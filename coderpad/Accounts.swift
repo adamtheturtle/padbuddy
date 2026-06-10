@@ -219,6 +219,22 @@ final class AccountHealthMonitor {
 }
 
 @Observable
+final class PadActivityMonitor {
+    static let shared = PadActivityMonitor()
+    var unseenChangedCount: Int = 0
+
+    private init() {}
+
+    func record(changedCount: Int) {
+        if changedCount > 0 { unseenChangedCount = changedCount }
+    }
+
+    func markSeen() {
+        unseenChangedCount = 0
+    }
+}
+
+@Observable
 final class PinnedPadsStore {
     static let shared = PinnedPadsStore()
 

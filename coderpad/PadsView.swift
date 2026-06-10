@@ -26,6 +26,7 @@ struct PadsView: View {
     @State private var previousUpdatedAt: [String: Date] = [:]
     @State private var changedPadIDs: Set<String> = []
     @State private var hasLoadedOnce = false
+    @State private var dateRangeFilter: String? = nil
 
     private static let refreshInterval: Duration = .seconds(45)
 
@@ -77,14 +78,28 @@ struct PadsView: View {
         }
     }
 
+    private static let dateRangeOptions = ["today", "last 7 days", "last 30 days"]
+
+    private func dateRangeStart(for option: String) -> Date? {
+        let cal = Calendar.current
+        switch option {
+        case "today": return cal.startOfDay(for: Date())
+        case "last 7 days": return cal.date(byAdding: .day, value: -7, to: Date())
+        case "last 30 days": return cal.date(byAdding: .day, value: -30, to: Date())
+        default: return nil
+        }
+    }
+
     private var filtered: [Pad] {
         let lowered = search.lowercased()
+        let rangeStart = dateRangeFilter.flatMap(dateRangeStart(for:))
         let matched = pads.filter { pad in
             (stateFilter == nil || pad.state.lowercased() == stateFilter) &&
             (languageFilter == nil || (pad.language ?? "").lowercased() == languageFilter) &&
             (ownerFilter == nil || pad.ownerEmail == ownerFilter) &&
             (teamFilter == nil || pad.team?.name == teamFilter) &&
             (typeFilter == nil || (pad.type ?? "").lowercased() == typeFilter) &&
+            (rangeStart == nil || (pad.updatedAt ?? .distantPast) >= rangeStart!) &&
             (lowered.isEmpty
              || pad.title.lowercased().contains(lowered)
              || pad.id.lowercased().contains(lowered)
@@ -115,7 +130,7 @@ struct PadsView: View {
     }
 
     private var activeFilterCount: Int {
-        [stateFilter, languageFilter, ownerFilter, teamFilter, typeFilter].compactMap { $0 }.count
+        [stateFilter, languageFilter, ownerFilter, teamFilter, typeFilter, dateRangeFilter].compactMap { $0 }.count
     }
 
     private var sidebar: some View {
@@ -196,10 +211,18 @@ struct PadsView: View {
                     options: availableTypes,
                     formatter: { $0.capitalized }
                 )
+                FilterChipMenu(
+                    title: "Updated",
+                    icon: "calendar",
+                    selected: $dateRangeFilter,
+                    options: Self.dateRangeOptions,
+                    formatter: { $0.capitalized }
+                )
                 if activeFilterCount > 0 {
                     Button(role: .destructive) {
                         stateFilter = nil; languageFilter = nil
                         ownerFilter = nil; teamFilter = nil; typeFilter = nil
+                        dateRangeFilter = nil
                     } label: {
                         Label("Clear", systemImage: "xmark.circle.fill")
                             .labelStyle(.titleAndIcon)
@@ -245,6 +268,7 @@ struct PadsView: View {
                 }
             }
             changedPadIDs = changes
+            PadActivityMonitor.shared.record(changedCount: changes.count)
             var nextState: [String: Date] = [:]
             for pad in fetched {
                 if let updated = pad.updatedAt { nextState[pad.id] = updated }

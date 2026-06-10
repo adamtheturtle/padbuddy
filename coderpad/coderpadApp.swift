@@ -50,8 +50,10 @@ struct coderpadApp: App {
             SettingsView()
         }
 
-        MenuBarExtra("CoderPad", systemImage: "doc.text.magnifyingglass") {
+        MenuBarExtra {
             MenuBarView()
+        } label: {
+            MenuBarLabel()
         }
         .menuBarExtraStyle(.menu)
     }

@@ -6,8 +6,19 @@
 import SwiftUI
 import AppKit
 
+struct MenuBarLabel: View {
+    @State private var monitor = PadActivityMonitor.shared
+
+    var body: some View {
+        Image(systemName: monitor.unseenChangedCount > 0
+              ? "doc.text.magnifyingglass.badge"
+              : "doc.text.magnifyingglass")
+    }
+}
+
 struct MenuBarView: View {
     @State private var store = AccountsStore.shared
+    @State private var monitor = PadActivityMonitor.shared
     @State private var pads: [Pad] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
@@ -15,6 +26,10 @@ struct MenuBarView: View {
 
     var body: some View {
         if let account = store.currentAccount {
+            if monitor.unseenChangedCount > 0 {
+                Text("\(monitor.unseenChangedCount) updated")
+                    .font(.caption).foregroundStyle(.orange)
+            }
             Text("My Pads · \(account.name)")
                 .font(.caption).foregroundStyle(.secondary)
 
@@ -103,6 +118,8 @@ struct MenuBarView: View {
             let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey)
             let fetched = try await client.listPads()
             pads = fetched.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
+            // Opening the menu means the user has seen the activity.
+            monitor.markSeen()
         } catch {
             errorMessage = error.localizedDescription
         }
