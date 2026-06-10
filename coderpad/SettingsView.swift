@@ -13,7 +13,6 @@ struct SettingsView: View {
     var body: some View {
         TabView {
             accountsTab
-                .padding(20)
                 .tabItem { Label("Accounts", systemImage: "person.crop.circle") }
             menuBarTab
                 .tabItem { Label("Menu Bar", systemImage: "menubar.rectangle") }
@@ -37,6 +36,7 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Accounts").font(.headline)
                 .padding(.bottom, 8)
+                .padding(.top, 16)
 
             if store.accounts.isEmpty {
                 ContentUnavailableView {
@@ -126,6 +126,8 @@ struct SettingsView: View {
                 .padding(.top, 6)
             }
         }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 20)
     }
 
     private var menuBarTab: some View {
