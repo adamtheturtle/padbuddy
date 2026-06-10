@@ -216,6 +216,21 @@ struct MockServerTests {
         #expect(pads.allSatisfy { !$0.id.isEmpty })
     }
 
+    @Test("listPadsIncrementally yields page 1 first, then the full list")
+    func listPadsIncrementally() async throws {
+        var snapshots: [[Pad]] = []
+        for try await snapshot in client.listPadsIncrementally() {
+            snapshots.append(snapshot)
+        }
+        // At least one snapshot, the first is non-empty (page 1 renders immediately),
+        // each snapshot only grows, and the final matches the all-at-once fetch.
+        let first = try #require(snapshots.first)
+        #expect(!first.isEmpty)
+        #expect(zip(snapshots, snapshots.dropFirst()).allSatisfy { $0.count <= $1.count })
+        let expected = try await client.listPads(sort: "updated_at,desc")
+        #expect(snapshots.last?.map(\.id) == expected.map(\.id))
+    }
+
     @Test("getPad returns a specific pad")
     func getPad() async throws {
         let pad = try await client.getPad(id: "DEMOABC1")
@@ -319,6 +334,61 @@ struct MockServerTests {
         let after = try await client.listPads()
         #expect(after.count == before.count + 1)
         #expect(after.contains(where: { $0.id == new.id }))
+    }
+
+    @Test("createPad links the new pad to the requested team and question")
+    func createPadTeamAndQuestion() async throws {
+        let new = try await client.createPad(PadCreate(
+            title: "Team + question pad",
+            language: "python3",
+            questionID: 101,
+            teamID: "demo-team"
+        ))
+        #expect(new.team?.id == "demo-team")
+        #expect(new.questionIDs == [101])
+    }
+
+    @Test("Pad decodes the events convenience URL")
+    func padEventsURLDecoded() async throws {
+        let pads = try await client.listPads()
+        let pad = try #require(pads.first)
+        #expect(pad.events?.contains("/api/pads/\(pad.id)/events") == true)
+    }
+
+    @Test("updatePad persists changes and returns fresh state without a PUT body")
+    func updatePad() async throws {
+        // The mock's PUT now returns only {"status":"OK"} (like the live API), so this
+        // exercises the re-fetch path rather than decoding a pad from the PUT response.
+        let updated = try await client.updatePad(PadUpdate(id: "DEMOPLY3", title: "Renamed pad"))
+        #expect(updated.id == "DEMOPLY3")
+        #expect(updated.title == "Renamed pad")
+    }
+
+    @Test("updatePad can reset contents and attach a question")
+    func updatePadContentsAndQuestion() async throws {
+        let withContents = try await client.updatePad(
+            PadUpdate(id: "DEMOABC1", contents: "print('reset')"))
+        #expect(withContents.contents == "print('reset')")
+
+        let withQuestion = try await client.updatePad(
+            PadUpdate(id: "DEMOSWFT5", questionID: 102))
+        #expect(withQuestion.questionIDs == [102])
+    }
+
+    @Test("createQuestion round-trips title and language sent via nested question params")
+    func createQuestionNestedParams() async throws {
+        let created = try await client.createQuestion(QuestionCreate(
+            title: "Nested params question",
+            language: "swift"))
+        #expect(created.title == "Nested params question")
+        #expect(created.language == "swift")
+    }
+
+    @Test("updateQuestion persists changes and returns fresh state without a PUT body")
+    func updateQuestion() async throws {
+        let updated = try await client.updateQuestion(QuestionUpdate(id: 102, title: "Renamed question"))
+        #expect(updated.id == 102)
+        #expect(updated.title == "Renamed question")
     }
 
     @Test("getPad on an unknown id returns a 404 mapped error")

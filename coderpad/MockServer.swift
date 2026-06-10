@@ -82,9 +82,15 @@ enum MockResponses {
                 dict["state"] = "ended"
                 dict["ended_at"] = ISO8601DateFormatter().string(from: Date())
             }
+            // The create/modify API takes a singular `question_id`; the pad body
+            // exposes it as the `question_ids` array, so mirror it on merge.
+            if let questionID = dict.removeValue(forKey: "question_id") {
+                dict["question_ids"] = [questionID]
+            }
             MockFixtures.updatedPads[id] = dict
-            if let pad = MockFixtures.allPads().first(where: { ($0["id"] as? String) == id }) {
-                return ok(["status": "OK", "pad": pad])
+            // Mirror the live API: PUT returns only a status, not the pad body.
+            if MockFixtures.allPads().contains(where: { ($0["id"] as? String) == id }) {
+                return ok(["status": "OK"])
             }
             return (404, jsonString(["status": "error", "message": "pad not found"]))
         }
@@ -92,7 +98,7 @@ enum MockResponses {
         if method == "POST", path == "/api/pads/" || path == "/api/pads" {
             let create = (try? JSONDecoder().decode(PadCreate.self, from: body ?? Data())) ?? PadCreate()
             let id = "DEMO\(Int.random(in: 1000...9999))"
-            let pad = MockFixtures.pad(
+            var pad = MockFixtures.pad(
                 id: id,
                 title: create.title ?? "Demo Pad \(id)",
                 language: create.language ?? "python3",
@@ -101,6 +107,11 @@ enum MockResponses {
                 isPrivate: create.isPrivate ?? false,
                 executionEnabled: create.executionEnabled ?? true
             )
+            // Reflect the documented create params back into the pad body.
+            pad["question_ids"] = create.questionID.map { [$0] } ?? []
+            if let teamID = create.teamID {
+                pad["team"] = ["id": teamID, "name": teamID]
+            }
             MockFixtures.createdPads.append(pad)
             // Mirror the live API: the created pad is returned flat at the top level.
             var response = pad
@@ -132,7 +143,7 @@ enum MockResponses {
         }
 
         if method == "POST", path == "/api/questions/" || path == "/api/questions" {
-            let bodyDict = (try? JSONSerialization.jsonObject(with: body ?? Data()) as? [String: Any]) ?? [:]
+            let bodyDict = flattenQuestionParams((try? JSONSerialization.jsonObject(with: body ?? Data()) as? [String: Any]) ?? [:])
             let newID = (MockFixtures.questions().compactMap { $0["id"] as? Int }.max() ?? 100) + 1
             var q: [String: Any] = [
                 "id": newID,
@@ -158,9 +169,10 @@ enum MockResponses {
                   let dict = try? JSONSerialization.jsonObject(with: body) as? [String: Any] else {
                 return (400, jsonString(["status": "error"]))
             }
-            MockFixtures.updatedQuestions[idInt] = dict
-            if let q = MockFixtures.allQuestions().first(where: { ($0["id"] as? Int) == idInt }) {
-                return ok(["status": "OK", "question": q])
+            MockFixtures.updatedQuestions[idInt] = flattenQuestionParams(dict)
+            // Mirror the live API: PUT returns only a status, not the question body.
+            if MockFixtures.allQuestions().contains(where: { ($0["id"] as? Int) == idInt }) {
+                return ok(["status": "OK"])
             }
             return (404, jsonString(["status": "error"]))
         }
@@ -192,7 +204,7 @@ enum MockResponses {
         }
 
         if method == "GET", path == "/api/organization/stats" {
-            return ok(MockFixtures.organizationStats())
+            return ok(MockFixtures.organizationStats(query: query))
         }
 
         if method == "GET", path == "/api/organization/pads" {
@@ -223,6 +235,17 @@ enum MockResponses {
             return data
         }
         return Data("{}".utf8)
+    }
+
+    /// The question create/modify API nests `title`/`language` under a `question`
+    /// object (`question[title]`). Lift those back to top level so the fixtures,
+    /// which store flat keys, can read them — with a flat fallback for older callers.
+    private static func flattenQuestionParams(_ dict: [String: Any]) -> [String: Any] {
+        guard let nested = dict["question"] as? [String: Any] else { return dict }
+        var flattened = dict
+        flattened.removeValue(forKey: "question")
+        for (key, value) in nested { flattened[key] = value }
+        return flattened
     }
 
     private static func match(_ path: String, pattern: String) -> String? {
@@ -322,6 +345,7 @@ enum MockFixtures {
             "participants": participants,
             "url": "https://app.coderpad.io/\(id)",
             "playback": "https://app.coderpad.io/\(id)/playback",
+            "events": "https://app.coderpad.io/api/pads/\(id)/events",
             "created_at": createdAt,
             "updated_at": updatedAt,
             "type": "live",
@@ -528,14 +552,28 @@ enum MockFixtures {
         ]
     }
 
-    static func organizationStats() -> [String: Any] {
-        [
+    static func organizationStats(query: [String: String] = [:]) -> [String: Any] {
+        let start = query["start_time"] ?? "2026-06-03T00:00:00.000-07:00"
+        let end = query["end_time"] ?? "2026-06-10T00:00:00.000-07:00"
+        return [
             "status": "OK",
-            "start_time": "2026-06-01T00:00:00.000-07:00",
-            "end_time": "2026-06-10T00:00:00.000-07:00",
-            "pads_created": 7,
+            "start_time": start,
+            "end_time": end,
+            // Scale roughly with the requested window (~1 pad/day) so the picker
+            // produces a visibly different count.
+            "pads_created": padsCreatedForWindow(start: start, end: end),
             "users": users()
         ]
+    }
+
+    private static func padsCreatedForWindow(start: String, end: String) -> Int {
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let basic = ISO8601DateFormatter()
+        basic.formatOptions = [.withInternetDateTime]
+        func parse(_ s: String) -> Date? { fractional.date(from: s) ?? basic.date(from: s) }
+        guard let s = parse(start), let e = parse(end) else { return 7 }
+        return min(365, max(1, Int(e.timeIntervalSince(s) / 86_400)))
     }
 
     static func quota() -> [String: Any] {

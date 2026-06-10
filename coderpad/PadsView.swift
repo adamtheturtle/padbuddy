@@ -10,6 +10,7 @@ struct PadsView: View {
     @Environment(\.orgDirectory) private var directory
     @Environment(\.scenePhase) private var scenePhase
     @State private var accounts = AccountsStore.shared
+    @State private var nav = AppNavigation.shared
     @State private var cache = PadsCacheStore.shared
     @State private var pads: [Pad] = []
     @State private var isLoading = false
@@ -44,9 +45,8 @@ struct PadsView: View {
                 await reload()
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .createPadRequested)) { _ in
-            showCreate = true
-        }
+        .onAppear { applyPendingRequest() }
+        .onChange(of: nav.padsRequest) { _, _ in applyPendingRequest() }
         .onReceive(NotificationCenter.default.publisher(for: .reloadRequested)) { _ in
             Task { await reload() }
         }
@@ -62,12 +62,6 @@ struct PadsView: View {
                 pads.removeAll { $0.id == id }
                 if selection?.id == id { selection = nil }
             }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .padsSearchRequested)) { note in
-            if let q = note.object as? String { search = q }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .padsFilterByOwnerRequested)) { note in
-            if let email = note.object as? String { ownerFilter = email }
         }
         .sheet(isPresented: $showSaveSearch) {
             VStack(alignment: .leading, spacing: 12) {
@@ -98,6 +92,18 @@ struct PadsView: View {
         }
     }
 
+    /// Applies any request queued by `AppNavigation` (e.g. from clicking a user in
+    /// Organization), then clears it so it isn't re-applied. Runs both on first
+    /// appear — covering the case where this pane wasn't mounted when the request
+    /// was made — and on change, for when the pane is already on screen.
+    private func applyPendingRequest() {
+        guard let request = nav.padsRequest else { return }
+        nav.padsRequest = nil
+        if let owner = request.ownerEmail { ownerFilter = owner }
+        if let query = request.search { search = query }
+        if request.startCreating { showCreate = true }
+    }
+
     private func commitSavedSearch() {
         let trimmed = saveSearchName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
@@ -125,7 +131,7 @@ struct PadsView: View {
             (languageFilter == nil || (pad.language ?? "").lowercased() == languageFilter) &&
             (ownerFilter == nil || pad.ownerEmail == ownerFilter) &&
             (teamFilter == nil || pad.team?.name == teamFilter) &&
-            (typeFilter == nil || (pad.type ?? "").lowercased() == typeFilter) &&
+            (typeFilter == nil || pad.interviewType?.rawValue == typeFilter) &&
             (rangeStart == nil || (pad.updatedAt ?? .distantPast) >= rangeStart!) &&
             (lowered.isEmpty
              || pad.title.lowercased().contains(lowered)
@@ -148,10 +154,6 @@ struct PadsView: View {
     private var availableTeams: [String] {
         Array(Set(pads.compactMap { $0.team?.name })).sorted()
     }
-    private var availableTypes: [String] {
-        Array(Set(pads.compactMap { $0.type?.lowercased() }).filter { !$0.isEmpty }).sorted()
-    }
-
     private var activeFilterCount: Int {
         [stateFilter, languageFilter, ownerFilter, teamFilter, typeFilter, dateRangeFilter].compactMap { $0 }.count
     }
@@ -164,10 +166,13 @@ struct PadsView: View {
                 APIErrorView(error: error) { Task { await reload() } }
             } else {
                 VStack(spacing: 0) {
-                    InlineSearchField(query: $search, prompt: "Search title, owner, participants…")
-                        .padding(.horizontal, Spacing.paneH)
-                        .padding(.top, Spacing.paneTitleTop)
-                        .padding(.bottom, 8)
+                    HStack(spacing: 8) {
+                        InlineSearchField(query: $search, prompt: "Search title, owner, participants…")
+                        paneActions
+                    }
+                    .padding(.horizontal, Spacing.paneH)
+                    .padding(.top, Spacing.paneTitleTop)
+                    .padding(.bottom, 8)
                     savedSearchesBar
                     filterBar
                     Divider()
@@ -183,23 +188,28 @@ struct PadsView: View {
                 }
             }
         }
-        .toolbar {
-            ToolbarItem {
-                Button { showCreate = true } label: {
-                    Label("New Pad", systemImage: "plus")
-                }
-                .disabled(client.apiKey.isEmpty)
+    }
+
+    private var paneActions: some View {
+        HStack(spacing: 2) {
+            Button { showCreate = true } label: {
+                Image(systemName: "plus")
             }
-            ToolbarItem {
-                Button { Task { await reload() } } label: {
-                    if isLoading {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Label("Reload", systemImage: "arrow.clockwise")
-                    }
+            .buttonStyle(.borderless)
+            .help("New Pad")
+            .accessibilityLabel("New Pad")
+            .disabled(client.apiKey.isEmpty)
+            Button { Task { await reload() } } label: {
+                if isLoading {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Image(systemName: "arrow.clockwise")
                 }
-                .disabled(isLoading)
             }
+            .buttonStyle(.borderless)
+            .help("Reload")
+            .accessibilityLabel("Reload")
+            .disabled(isLoading)
         }
     }
 
@@ -277,8 +287,8 @@ struct PadsView: View {
                     title: "Type",
                     icon: "tag",
                     selected: $typeFilter,
-                    options: availableTypes,
-                    formatter: { $0.capitalized }
+                    options: InterviewType.allCases.map(\.rawValue),
+                    formatter: { InterviewType(rawValue: $0)?.label ?? $0.capitalized }
                 )
                 FilterChipMenu(
                     title: "Updated",
@@ -324,10 +334,15 @@ struct PadsView: View {
         error = nil
         defer { isLoading = false }
         do {
-            let fetched = try await client.listPads().sorted {
-                ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast)
+            // Render page 1 the moment it lands, then keep growing the list as the
+            // remaining pages stream in. Snapshots arrive sorted updated_at,desc from the
+            // server, so each one only appends below — no reshuffle as the list fills in.
+            var fetched: [Pad] = []
+            for try await snapshot in client.listPadsIncrementally() {
+                fetched = snapshot
+                pads = snapshot
             }
-            // Diff against previous snapshot
+            // Finalize diff + cache against the complete list, once.
             var changes: Set<String> = []
             if hasLoadedOnce {
                 for pad in fetched {
@@ -347,7 +362,6 @@ struct PadsView: View {
                 if let updated = pad.updatedAt { nextState[pad.id] = updated }
             }
             previousUpdatedAt = nextState
-            pads = fetched
             if let id = accounts.currentAccountID {
                 cache.set(id, pads: fetched)
             }
@@ -460,6 +474,9 @@ private struct PadRow: View {
                     if let language = pad.language, !language.isEmpty {
                         Chip(text: language.languageDisplayName, systemImage: language.languageSymbol,
                              tint: language.languageColor)
+                    }
+                    if pad.interviewType == .takeHome {
+                        InterviewType.takeHome.chip
                     }
                 }
                 Text(directory.display(pad.ownerEmail))
@@ -688,8 +705,8 @@ struct PadDetailView: View {
                     Chip(text: language.languageDisplayName, systemImage: language.languageSymbol,
                          tint: language.languageColor)
                 }
-                if let type = pad.type, !type.isEmpty {
-                    Chip(text: type, systemImage: "tag")
+                if let type = pad.interviewType {
+                    type.chip
                 }
                 if pad.isPrivate == true {
                     Chip(text: "Private", systemImage: "lock", tint: .orange)
@@ -988,6 +1005,8 @@ private struct NewPadSheet: View {
     @State private var error: String?
     @State private var questions: [Question] = []
     @State private var selectedQuestionID: Int? = nil
+    @State private var teams: [PadTeam] = []
+    @State private var selectedTeamID: String? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -1015,6 +1034,16 @@ private struct NewPadSheet: View {
                 }
 
                 TextField("Owner email", text: $ownerEmail, prompt: Text("Optional. Defaults to the key's owner."))
+
+                if !teams.isEmpty {
+                    Picker("Team", selection: $selectedTeamID) {
+                        Text("Default").tag(String?.none)
+                        Divider()
+                        ForEach(teams, id: \.id) { team in
+                            Text(team.name).tag(String?.some(team.id))
+                        }
+                    }
+                }
 
                 Toggle("Private", isOn: $isPrivate)
                 Toggle("Execution enabled", isOn: $executionEnabled)
@@ -1051,6 +1080,7 @@ private struct NewPadSheet: View {
         .padding()
         .frame(minWidth: 460, minHeight: 360)
         .task { await loadQuestions() }
+        .task { await loadTeams() }
     }
 
     private func loadQuestions() async {
@@ -1060,6 +1090,13 @@ private struct NewPadSheet: View {
         guard !client.apiKey.isEmpty else { return }
         if let fresh = try? await client.listQuestions() {
             questions = fresh.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
+        }
+    }
+
+    private func loadTeams() async {
+        guard !client.apiKey.isEmpty else { return }
+        if let org = try? await client.organization() {
+            teams = org.teams
         }
     }
 
@@ -1075,7 +1112,8 @@ private struct NewPadSheet: View {
             notes: nil,
             isPrivate: isPrivate,
             executionEnabled: executionEnabled,
-            questionIDs: selectedQuestionID.map { [$0] }
+            questionID: selectedQuestionID,
+            teamID: selectedTeamID
         )
         do {
             let pad = try await client.createPad(body)

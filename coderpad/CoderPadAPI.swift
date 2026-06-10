@@ -23,7 +23,7 @@ extension KeyedDecodingContainer {
 
 // MARK: - Models
 
-struct Pad: Decodable, Identifiable, Hashable {
+struct Pad: Codable, Identifiable, Hashable {
     let id: String
     let title: String
     let state: String
@@ -32,6 +32,9 @@ struct Pad: Decodable, Identifiable, Hashable {
     let participants: [String]
     let url: String
     let playback: String?
+    /// API URL for this pad's event log. Convenience field; `padEvents(padID:)`
+    /// derives the same URL from `id`, so this is decoded only for fidelity.
+    let events: String?
     /// Private interviewer notes. Round-trips with `PadCreate`/`PadUpdate`.
     let notes: String?
     /// URL of the pad's whiteboard drawing image, if any.
@@ -53,7 +56,7 @@ struct Pad: Decodable, Identifiable, Hashable {
 
     enum CodingKeys: String, CodingKey {
         case id, title, state, language, participants, url, playback, type, team
-        case notes, drawing, contents, history
+        case notes, drawing, contents, history, events
         case ownerEmail = "owner_email"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
@@ -75,6 +78,7 @@ struct Pad: Decodable, Identifiable, Hashable {
         participants = c.loggedDecodeIfPresent([String].self, forKey: .participants) ?? []
         url = c.loggedDecodeIfPresent(String.self, forKey: .url) ?? ""
         playback = c.loggedDecodeIfPresent(String.self, forKey: .playback)
+        events = c.loggedDecodeIfPresent(String.self, forKey: .events)
         notes = c.loggedDecodeIfPresent(String.self, forKey: .notes)
         drawing = c.loggedDecodeIfPresent(String.self, forKey: .drawing)
         contents = c.loggedDecodeIfPresent(String.self, forKey: .contents)
@@ -92,7 +96,7 @@ struct Pad: Decodable, Identifiable, Hashable {
     }
 }
 
-struct PadTeam: Decodable, Hashable {
+struct PadTeam: Codable, Hashable {
     let id: String
     let name: String
 }
@@ -179,20 +183,32 @@ struct PadUpdate: Codable {
     var notes: String?
     var isPrivate: Bool?
     var executionEnabled: Bool?
+    /// Resets the pad's editor contents. The API warns this destroys the pad's
+    /// history, so callers should confirm before sending. Mutually exclusive with
+    /// `questionID` — sending both is rejected by the API.
+    var contents: String?
+    /// Associates a question with the pad, mirroring "create from question" on the
+    /// web. Mutually exclusive with `contents`.
+    var questionID: Int?
     /// Set to `true` to end the interview. Any other value is ignored by the API.
     var ended: Bool?
     /// Set to `true` to delete the interview. Any other value is ignored by the API.
     var deleted: Bool?
 
     enum CodingKeys: String, CodingKey {
-        case id, title, language, notes, ended, deleted
+        case id, title, language, notes, contents, ended, deleted
         case ownerEmail = "owner_email"
         case isPrivate = "private"
         case executionEnabled = "execution_enabled"
+        case questionID = "question_id"
     }
 }
 
-struct QuestionCreate: Codable {
+/// Request body for creating a question. `title` and `language` are encoded nested
+/// under a `question` object to match the API's documented `question[title]` /
+/// `question[language]` parameters; the remaining fields are sent flat, as the API
+/// documents them. Encode-only — these are never decoded.
+struct QuestionCreate: Encodable {
     var title: String
     var language: String?
     var description: String?
@@ -203,15 +219,35 @@ struct QuestionCreate: Codable {
     var padType: String?
     var candidateInstructions: [CandidateInstructionPayload]?
 
-    enum CodingKeys: String, CodingKey {
-        case title, language, description, solution, contents
+    private enum CodingKeys: String, CodingKey {
+        case description, solution, contents, question
         case takeHome = "take_home"
         case padType = "pad_type"
         case candidateInstructions = "candidate_instructions"
     }
+
+    private enum QuestionKeys: String, CodingKey {
+        case title, language
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encodeIfPresent(description, forKey: .description)
+        try c.encodeIfPresent(solution, forKey: .solution)
+        try c.encodeIfPresent(contents, forKey: .contents)
+        try c.encodeIfPresent(takeHome, forKey: .takeHome)
+        try c.encodeIfPresent(padType, forKey: .padType)
+        try c.encodeIfPresent(candidateInstructions, forKey: .candidateInstructions)
+        var q = c.nestedContainer(keyedBy: QuestionKeys.self, forKey: .question)
+        try q.encode(title, forKey: .title)
+        try q.encodeIfPresent(language, forKey: .language)
+    }
 }
 
-struct QuestionUpdate: Codable {
+/// Request body for modifying a question. Like `QuestionCreate`, `title`/`language`
+/// are nested under `question`. The `id` travels in the URL path; it is also encoded
+/// flat here for parity with the create payload. Encode-only.
+struct QuestionUpdate: Encodable {
     var id: Int
     var title: String?
     var language: String?
@@ -223,11 +259,31 @@ struct QuestionUpdate: Codable {
     var padType: String?
     var candidateInstructions: [CandidateInstructionPayload]?
 
-    enum CodingKeys: String, CodingKey {
-        case id, title, language, description, solution, contents
+    private enum CodingKeys: String, CodingKey {
+        case id, description, solution, contents, question
         case takeHome = "take_home"
         case padType = "pad_type"
         case candidateInstructions = "candidate_instructions"
+    }
+
+    private enum QuestionKeys: String, CodingKey {
+        case title, language
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encodeIfPresent(description, forKey: .description)
+        try c.encodeIfPresent(solution, forKey: .solution)
+        try c.encodeIfPresent(contents, forKey: .contents)
+        try c.encodeIfPresent(takeHome, forKey: .takeHome)
+        try c.encodeIfPresent(padType, forKey: .padType)
+        try c.encodeIfPresent(candidateInstructions, forKey: .candidateInstructions)
+        if title != nil || language != nil {
+            var q = c.nestedContainer(keyedBy: QuestionKeys.self, forKey: .question)
+            try q.encodeIfPresent(title, forKey: .title)
+            try q.encodeIfPresent(language, forKey: .language)
+        }
     }
 }
 
@@ -249,14 +305,21 @@ struct PadCreate: Codable {
     var notes: String?
     var isPrivate: Bool?
     var executionEnabled: Bool?
-    var questionIDs: [Int]?
+    /// Question to seed the pad from. The API documents this as singular
+    /// `question_id` on create (the plural `question_ids` is a response-only field).
+    /// Mutually exclusive with `contents`.
+    var questionID: Int?
+    /// Links the new pad to a specific team. Settable only by org owners; omit to
+    /// use the account's default team.
+    var teamID: String?
 
     enum CodingKeys: String, CodingKey {
         case title, language, contents, notes
         case ownerEmail = "owner_email"
         case isPrivate = "private"
         case executionEnabled = "execution_enabled"
-        case questionIDs = "question_ids"
+        case questionID = "question_id"
+        case teamID = "team_id"
     }
 
     /// A pad seeded from a question: same title and language, with the question attached.
@@ -269,12 +332,12 @@ struct PadCreate: Codable {
             notes: nil,
             isPrivate: false,
             executionEnabled: true,
-            questionIDs: [q.id]
+            questionID: q.id
         )
     }
 }
 
-struct Question: Decodable, Identifiable, Hashable {
+struct Question: Codable, Identifiable, Hashable {
     let id: Int
     let title: String
     let ownerEmail: String
@@ -345,7 +408,53 @@ struct Question: Decodable, Identifiable, Hashable {
     }
 }
 
-struct QuestionCustomFile: Decodable, Hashable, Identifiable {
+/// Whether a pad or question is a real-time **live** interview or an async
+/// **take-home**. CoderPad models this inconsistently across resources: pads
+/// expose a free-form `type` string, while questions expose a `take_home`
+/// boolean (and, on newer records, a `pad_type` string). `InterviewType`
+/// normalizes all of these so the UI can present one consistent "Type" control.
+enum InterviewType: String, CaseIterable, Identifiable, Hashable {
+    case live
+    case takeHome = "take-home"
+
+    var id: String { rawValue }
+
+    /// Human-facing label for filter menus and badges.
+    var label: String {
+        switch self {
+        case .live: "Live"
+        case .takeHome: "Take-home"
+        }
+    }
+
+    /// Normalize a raw pad `type` / `pad_type` string. Accepts the hyphen and
+    /// underscore spellings the API has used. Returns `nil` for empty or
+    /// unrecognized values so callers can decide how to treat unexpected data.
+    init?(rawType: String?) {
+        switch rawType?.lowercased() {
+        case "live": self = .live
+        case "take-home", "take_home", "takehome": self = .takeHome
+        default: return nil
+        }
+    }
+}
+
+extension Pad {
+    /// Live vs take-home, normalized from the API's free-form `type` string.
+    /// `nil` when the pad reports no (or an unrecognized) type.
+    var interviewType: InterviewType? { InterviewType(rawType: type) }
+}
+
+extension Question {
+    /// Live vs take-home. Prefers the `pad_type` string when present, otherwise
+    /// derives it from the `take_home` boolean — defaulting to `.live`, which is
+    /// how the API treats an absent or false `take_home`.
+    var interviewType: InterviewType {
+        InterviewType(rawType: padType) ?? (takeHome == true ? .takeHome : .live)
+    }
+}
+
+struct QuestionCustomFile: Codable, Hashable, Identifiable {
     let id: String?
     let title: String?
     let description: String?
@@ -353,7 +462,7 @@ struct QuestionCustomFile: Decodable, Hashable, Identifiable {
     let filesize: String?
 }
 
-struct QuestionTestCase: Decodable, Hashable, Identifiable {
+struct QuestionTestCase: Codable, Hashable, Identifiable {
     let id: Int
     let returnValue: String?
     let visible: Bool?
@@ -365,7 +474,7 @@ struct QuestionTestCase: Decodable, Hashable, Identifiable {
     }
 }
 
-struct CandidateInstruction: Decodable, Hashable {
+struct CandidateInstruction: Codable, Hashable {
     let instructions: String
     let defaultVisible: Bool
 
@@ -456,31 +565,39 @@ struct Quota: Decodable, Hashable {
 /// A list response that may span multiple pages. The API returns at most 50 items
 /// per page, plus an absolute `next_page` URL when more remain. Callers that ignore
 /// it silently see only the first page.
+///
+/// `total` (the count across all pages, when the endpoint reports it) lets the client
+/// compute the page count from the first response and fetch the rest concurrently,
+/// rather than walking `next_page` one blocking round-trip at a time.
 private protocol PagedResponse: Decodable {
     associatedtype Item: Decodable
     var pageItems: [Item] { get }
     var nextPage: String? { get }
+    var total: Int? { get }
 }
 
 private struct PadsPage: PagedResponse {
     let pads: [Pad]
     let nextPage: String?
+    let total: Int?
     var pageItems: [Pad] { pads }
-    enum CodingKeys: String, CodingKey { case pads; case nextPage = "next_page" }
+    enum CodingKeys: String, CodingKey { case pads; case nextPage = "next_page"; case total }
 }
 
 private struct QuestionsPage: PagedResponse {
     let questions: [Question]
     let nextPage: String?
+    let total: Int?
     var pageItems: [Question] { questions }
-    enum CodingKeys: String, CodingKey { case questions; case nextPage = "next_page" }
+    enum CodingKeys: String, CodingKey { case questions; case nextPage = "next_page"; case total }
 }
 
 private struct EventsPage: PagedResponse {
     let events: [PadEvent]
     let nextPage: String?
+    let total: Int?
     var pageItems: [PadEvent] { events }
-    enum CodingKeys: String, CodingKey { case events; case nextPage = "next_page" }
+    enum CodingKeys: String, CodingKey { case events; case nextPage = "next_page"; case total }
 }
 
 // MARK: - Errors
@@ -559,6 +676,15 @@ struct CoderPadClient {
         try await fetchAllPages(PadsPage.self, path: "/api/pads/", sort: sort)
     }
 
+    /// Streams pads for progressive display. The first element arrives after a single
+    /// round-trip (page 1), so the UI can render immediately; each subsequent element is
+    /// a larger cumulative snapshot as more pages land, and the last element is the
+    /// complete list. With the default `updated_at,desc` sort, page 1 is already the top
+    /// of the final list, so rows only ever append below — no reshuffle mid-load.
+    func listPadsIncrementally(sort: String? = "updated_at,desc") -> AsyncThrowingStream<[Pad], Error> {
+        streamAllPages(PadsPage.self, path: "/api/pads/", sort: sort)
+    }
+
     func getPad(id: String) async throws -> Pad {
         struct Wrapper: Decodable { let pad: Pad }
         return try await fetch(Wrapper.self, path: "/api/pads/\(id)").pad
@@ -579,9 +705,12 @@ struct CoderPadClient {
         return try await send(Pad.self, method: "POST", path: "/api/pads/", body: body)
     }
 
+    /// The live API replies `{"status":"OK"}` with no pad body, so we re-fetch the
+    /// pad to return its fresh server state rather than decoding the (absent) body.
     func updatePad(_ body: PadUpdate) async throws -> Pad {
-        struct Wrapper: Decodable { let pad: Pad }
-        return try await send(Wrapper.self, method: "PUT", path: "/api/pads/", body: body).pad
+        struct StatusOnly: Decodable { let status: String? }
+        _ = try await send(StatusOnly.self, method: "PUT", path: "/api/pads/", body: body)
+        return try await getPad(id: body.id)
     }
 
     /// Ends the interview. The live API replies `{"status":"OK"}` with no pad body.
@@ -604,6 +733,13 @@ struct CoderPadClient {
         try await fetchAllPages(QuestionsPage.self, path: "/api/questions/", sort: sort)
     }
 
+    /// Streams questions for progressive display, like `listPadsIncrementally`: page 1
+    /// arrives after a single round-trip, then larger cumulative snapshots until the full
+    /// list is in. With `updated_at,desc` the first page is already the top of the list.
+    func listQuestionsIncrementally(sort: String? = "updated_at,desc") -> AsyncThrowingStream<[Question], Error> {
+        streamAllPages(QuestionsPage.self, path: "/api/questions/", sort: sort)
+    }
+
     func getQuestion(id: Int) async throws -> Question {
         struct Wrapper: Decodable { let question: Question }
         return try await fetch(Wrapper.self, path: "/api/questions/\(id)").question
@@ -614,9 +750,12 @@ struct CoderPadClient {
         return try await send(Wrapper.self, method: "POST", path: "/api/questions/", body: body).question
     }
 
+    /// The live API replies `{"status":"OK"}` with no question body, so we re-fetch the
+    /// question to return its fresh server state rather than decoding the (absent) body.
     func updateQuestion(_ body: QuestionUpdate) async throws -> Question {
-        struct Wrapper: Decodable { let question: Question }
-        return try await send(Wrapper.self, method: "PUT", path: "/api/questions/\(body.id)", body: body).question
+        struct StatusOnly: Decodable { let status: String? }
+        _ = try await send(StatusOnly.self, method: "PUT", path: "/api/questions/\(body.id)", body: body)
+        return try await getQuestion(id: body.id)
     }
 
     func deleteQuestion(id: Int) async throws {
@@ -638,8 +777,23 @@ struct CoderPadClient {
         return try await fetch(Organization.self, path: "/api/organization")
     }
 
-    func organizationStats() async throws -> OrganizationStats {
-        return try await fetch(OrganizationStats.self, path: "/api/organization/stats")
+    /// Pad usage stats for the organization. With no range the API reports the
+    /// last 7 days; passing `start`/`end` configures the window (both are required
+    /// together, per the API contract).
+    func organizationStats(start: Date? = nil, end: Date? = nil) async throws -> OrganizationStats {
+        guard !apiKey.isEmpty else { throw CoderPadError.missingAPIKey }
+        var comps = URLComponents(url: baseURL.appendingPathComponent("/api/organization/stats"),
+                                  resolvingAgainstBaseURL: false)
+        if let start, let end {
+            let fmt = ISO8601DateFormatter()
+            fmt.formatOptions = [.withInternetDateTime]
+            comps?.queryItems = [
+                URLQueryItem(name: "start_time", value: fmt.string(from: start)),
+                URLQueryItem(name: "end_time", value: fmt.string(from: end)),
+            ]
+        }
+        guard let url = comps?.url else { throw CoderPadError.http(0, "Invalid URL") }
+        return try await performWithRetry(OrganizationStats.self, request: authorizedGET(url))
     }
 
     /// Every pad in the organization (requires org-owner access or org-wide visibility),
@@ -680,24 +834,110 @@ struct CoderPadClient {
         return try await performWithRetry(type, request: authorizedGET(baseURL.appendingPathComponent(path)))
     }
 
-    /// Follows `next_page` links until the list is exhausted, accumulating every page.
-    /// Without this, callers would silently receive only the first 50 records.
+    /// Accumulates every page of a paginated list endpoint. Convenience over
+    /// `streamAllPages` for callers that only want the final, complete list.
     private func fetchAllPages<W: PagedResponse>(_ type: W.Type, path: String, sort: String? = nil) async throws -> [W.Item] {
-        guard !apiKey.isEmpty else { throw CoderPadError.missingAPIKey }
-        var comps = URLComponents(url: baseURL.appendingPathComponent(path), resolvingAgainstBaseURL: false)
-        if let sort { comps?.queryItems = [URLQueryItem(name: "sort", value: sort)] }
-        var url = comps?.url
         var items: [W.Item] = []
-        var pages = 0
-        while let current = url {
-            let page = try await performWithRetry(W.self, request: authorizedGET(current))
-            items.append(contentsOf: page.pageItems)
-            pages += 1
-            // Safety valve against a server that keeps handing back next_page links.
-            guard pages < 1000, let next = page.nextPage, let nextURL = URL(string: next) else { break }
-            url = nextURL
-        }
+        for try await snapshot in streamAllPages(W.self, path: path, sort: sort) { items = snapshot }
         return items
+    }
+
+    /// Streams cumulative snapshots of a paginated list endpoint, yielding page 1 first so
+    /// callers can render before the whole list is in.
+    ///
+    /// When the first response reports a `total`, the page count is known up front and the
+    /// remaining pages (numbered `?page=2…N`) are fetched concurrently — turning what was a
+    /// serial chain of round-trips into a few parallel waves. On a real account with ~2,000
+    /// pads this is the difference between ~40s and a few seconds. Completed pages are
+    /// emitted as a growing contiguous prefix, so each snapshot is correctly ordered even
+    /// though pages finish out of order. Endpoints that omit `total` (or any future
+    /// cursor-style pagination) fall back to walking `next_page` sequentially, emitting a
+    /// snapshot per page. Without this whole mechanism, callers would silently receive only
+    /// the first 50 records.
+    private func streamAllPages<W: PagedResponse>(_ type: W.Type, path: String, sort: String? = nil) -> AsyncThrowingStream<[W.Item], Error> {
+        AsyncThrowingStream { continuation in
+            // The client (and thus the page types' Decodable conformances) is
+            // MainActor-isolated, so the whole pipeline — including the concurrent child
+            // tasks below — runs on the main actor. Each `await` on the network call still
+            // suspends and releases the actor, so the page requests genuinely overlap.
+            let work = Task { @MainActor in
+                do {
+                    guard !apiKey.isEmpty else { throw CoderPadError.missingAPIKey }
+                    let baseQuery: [URLQueryItem] = sort.map { [URLQueryItem(name: "sort", value: $0)] } ?? []
+
+                    // Builds `…/path?sort=…&page=N`. Page numbers are constructed here
+                    // rather than taken from `next_page` so the parallel fetch is
+                    // fully deterministic.
+                    func pageURL(_ page: Int?) -> URL? {
+                        var comps = URLComponents(url: baseURL.appendingPathComponent(path), resolvingAgainstBaseURL: false)
+                        var query = baseQuery
+                        if let page { query.append(URLQueryItem(name: "page", value: String(page))) }
+                        comps?.queryItems = query.isEmpty ? nil : query
+                        return comps?.url
+                    }
+
+                    guard let firstURL = pageURL(nil) else { throw CoderPadError.http(0, "Invalid URL") }
+                    let firstPage = try await performWithRetry(W.self, request: authorizedGET(firstURL))
+                    var items = firstPage.pageItems
+                    continuation.yield(items)
+
+                    // Fast path: total + page-number URLs let us fetch pages 2…N in parallel.
+                    if let total = firstPage.total, !items.isEmpty {
+                        let pageSize = items.count
+                        let pageCount = (total + pageSize - 1) / pageSize
+                        guard pageCount > 1 else { continuation.finish(); return }
+
+                        var pending: [Int: [W.Item]] = [:]
+                        var nextToEmit = 2
+                        try await withThrowingTaskGroup(of: (Int, [W.Item]).self) { group in
+                            func enqueue(_ page: Int) throws {
+                                guard let url = pageURL(page) else { throw CoderPadError.http(0, "Invalid URL") }
+                                group.addTask { @MainActor in
+                                    (page, try await self.performWithRetry(W.self, request: self.authorizedGET(url)).pageItems)
+                                }
+                            }
+                            // Keep a bounded window in flight — enough to saturate the
+                            // network without unleashing dozens of connections (which
+                            // invite 429s).
+                            let maxConcurrent = 8
+                            var nextToFetch = 2
+                            while nextToFetch <= pageCount, nextToFetch - 2 < maxConcurrent {
+                                try enqueue(nextToFetch); nextToFetch += 1
+                            }
+                            while let (page, pageItems) = try await group.next() {
+                                pending[page] = pageItems
+                                // Emit a new snapshot whenever the contiguous prefix grows.
+                                var grew = false
+                                while let ready = pending.removeValue(forKey: nextToEmit) {
+                                    items.append(contentsOf: ready); nextToEmit += 1; grew = true
+                                }
+                                if grew { continuation.yield(items) }
+                                if nextToFetch <= pageCount { try enqueue(nextToFetch); nextToFetch += 1 }
+                            }
+                        }
+                        continuation.finish()
+                        return
+                    }
+
+                    // Fallback: follow `next_page` one page at a time.
+                    var url = firstPage.nextPage.flatMap { URL(string: $0) }
+                    var pages = 1
+                    while let current = url {
+                        let page = try await performWithRetry(W.self, request: authorizedGET(current))
+                        items.append(contentsOf: page.pageItems)
+                        continuation.yield(items)
+                        pages += 1
+                        // Safety valve against a server that keeps handing back next_page links.
+                        guard pages < 1000, let next = page.nextPage, let nextURL = URL(string: next) else { break }
+                        url = nextURL
+                    }
+                    continuation.finish()
+                } catch {
+                    continuation.finish(throwing: error)
+                }
+            }
+            continuation.onTermination = { _ in work.cancel() }
+        }
     }
 
     /// GET requests are idempotent, so transient failures (5xx, 429, network timeouts)
