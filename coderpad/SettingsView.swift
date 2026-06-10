@@ -131,16 +131,17 @@ struct SettingsView: View {
     }
 
     private var menuBarTab: some View {
-        Form {
+        let topN = Binding(
+            get: { UserDefaults.standard.integer(forKey: "menuBarTopN").nonZero ?? 10 },
+            set: { UserDefaults.standard.set($0, forKey: "menuBarTopN") }
+        )
+        return Form {
             Section {
-                Stepper(value: Binding(
-                    get: { UserDefaults.standard.integer(forKey: "menuBarTopN").nonZero ?? 10 },
-                    set: { UserDefaults.standard.set($0, forKey: "menuBarTopN") }
-                ), in: 3...30, step: 1) {
+                Stepper(value: topN, in: 3...30, step: 1) {
                     HStack {
                         Text("Recent pads in menu bar")
                         Spacer()
-                        Text("\((UserDefaults.standard.integer(forKey: "menuBarTopN").nonZero ?? 10))")
+                        Text("\(topN.wrappedValue)")
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -153,7 +154,6 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
     }
-
 }
 
 private struct AccountRow: View {
@@ -244,17 +244,9 @@ private struct AccountEditor: View {
 
             HStack {
                 Spacer()
-                Button("Cancel", role: .cancel) { onCancel() }
-                Button("Validate") { Task { await validate() } }
-                    .disabled(draft.apiKey.trimmingCharacters(in: .whitespaces).isEmpty
-                              || validation == .validating)
-                Button("Save") {
-                    finalizeNameIfNeeded()
-                    onSave(draft)
-                }
-                .keyboardShortcut(.defaultAction)
-                .buttonStyle(.borderedProminent)
-                .disabled(!isValidated)
+                Button("Cancel", role: .cancel, action: onCancel)
+                validateButton
+                saveButton
             }
         }
         .padding()
@@ -265,6 +257,41 @@ private struct AccountEditor: View {
     private var isValidated: Bool {
         if case .valid = validation { return true }
         return false
+    }
+
+    private var validateDisabled: Bool {
+        draft.apiKey.trimmingCharacters(in: .whitespaces).isEmpty || validation == .validating
+    }
+
+    @ViewBuilder
+    private var validateButton: some View {
+        if isValidated {
+            Button("Validate") { Task { await validate() } }
+                .buttonStyle(.bordered)
+                .disabled(validateDisabled)
+        } else {
+            Button("Validate") { Task { await validate() } }
+                .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
+                .disabled(validateDisabled)
+        }
+    }
+
+    @ViewBuilder
+    private var saveButton: some View {
+        let save = {
+            finalizeNameIfNeeded()
+            onSave(draft)
+        }
+        if isValidated {
+            Button("Save", action: save)
+                .buttonStyle(.borderedProminent)
+                .keyboardShortcut(.defaultAction)
+        } else {
+            Button("Save", action: save)
+                .buttonStyle(.bordered)
+                .disabled(true)
+        }
     }
 
     private func finalizeNameIfNeeded() {
@@ -285,7 +312,7 @@ private struct AccountEditor: View {
         case .validating:
             HStack(spacing: 6) {
                 ProgressView().controlSize(.small)
-                Text("Checking key…").foregroundStyle(.secondary)
+                Text("Validating API key…").foregroundStyle(.secondary)
             }
             .font(.callout)
         case .invalid(let message):
