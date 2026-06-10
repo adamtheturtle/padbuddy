@@ -17,6 +17,7 @@ struct ContentView: View {
     @State private var monitor = AccountHealthMonitor.shared
     @State private var openPadURLDraft: String = ""
     @State private var showOpenPadURL = false
+    @State private var showWhatsNew = false
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
@@ -80,6 +81,12 @@ struct ContentView: View {
                     }
             }
         }
+        .sheet(isPresented: $showWhatsNew) {
+            WhatsNewSheet(release: WhatsNew.current) { showWhatsNew = false }
+        }
+        .task {
+            if WhatsNew.shouldShow() { showWhatsNew = true }
+        }
     }
 
 
@@ -108,6 +115,79 @@ struct ContentView: View {
                     .buttonStyle(.borderedProminent)
             }
         }
+    }
+}
+
+struct WhatsNewRelease {
+    let version: String
+    let highlights: [(symbol: String, title: String, body: String)]
+}
+
+enum WhatsNew {
+    static let current = WhatsNewRelease(
+        version: "1.0",
+        highlights: [
+            ("magnifyingglass", "Search across the sidebar",
+             "Type in the new sidebar search to jump straight into Pads or Questions."),
+            ("person.crop.circle.badge.plus", "Accounts like Mail",
+             "The Add Account flow auto-fills the name from your org and uses the +/− button set."),
+            ("bolt.horizontal", "Faster section switching",
+             "Pads and Questions are cached per account, so switching sections shows your last data instantly while a background reload runs."),
+            ("keyboard", "More shortcuts",
+             "⌘⇧N New Question, ⌘⌥C Copy Pad URL, ⌘↩ Open Pad in Browser."),
+        ]
+    )
+
+    private static let key = "lastSeenWhatsNewVersion"
+
+    static func shouldShow() -> Bool {
+        let last = UserDefaults.standard.string(forKey: key)
+        return last != current.version
+    }
+
+    static func markSeen() {
+        UserDefaults.standard.set(current.version, forKey: key)
+    }
+}
+
+struct WhatsNewSheet: View {
+    let release: WhatsNewRelease
+    let onDismiss: () -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("What's New in CoderPad").font(.title2.bold())
+                Text("Version \(release.version)")
+                    .font(.callout).foregroundStyle(.secondary)
+            }
+            VStack(alignment: .leading, spacing: 14) {
+                ForEach(0..<release.highlights.count, id: \.self) { i in
+                    let item = release.highlights[i]
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: item.symbol)
+                            .font(.title2)
+                            .foregroundStyle(.tint)
+                            .frame(width: 32)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(item.title).font(.callout.weight(.semibold))
+                            Text(item.body).font(.callout).foregroundStyle(.secondary)
+                        }
+                    }
+                }
+            }
+            HStack {
+                Spacer()
+                Button("Continue") {
+                    WhatsNew.markSeen()
+                    onDismiss()
+                }
+                .keyboardShortcut(.defaultAction)
+                .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding(28)
+        .frame(minWidth: 460)
     }
 }
 

@@ -497,10 +497,63 @@ struct PadDetailView: View {
     @State private var loadError: Error?
     @State private var isLoading = false
     @State private var showEdit = false
+    @State private var showBrowser = false
     @Environment(\.openWindow) private var openWindow
     @Environment(\.orgDirectory) private var directory
 
     var body: some View {
+        Group {
+            if showBrowser, let url = URL(string: pad.url) {
+                VStack(spacing: 0) {
+                    HStack(spacing: 8) {
+                        Button {
+                            showBrowser = false
+                        } label: {
+                            Label("Back to Details", systemImage: "chevron.left")
+                        }
+                        .buttonStyle(.borderless)
+                        Spacer()
+                        Button {
+                            openWindow(id: "pad-browser", value: url)
+                        } label: {
+                            Image(systemName: "macwindow.badge.plus")
+                        }
+                        .help("Open in separate window")
+                        .buttonStyle(.borderless)
+                        Button {
+                            NSWorkspace.shared.open(url)
+                        } label: {
+                            Image(systemName: "safari")
+                        }
+                        .help("Open in default browser")
+                        .buttonStyle(.borderless)
+                    }
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 8)
+                    .background(.thinMaterial)
+                    Divider()
+                    PadBrowserView(url: url)
+                }
+            } else {
+                detailScroll
+            }
+        }
+        .navigationTitle(pad.title.isEmpty ? pad.id : pad.title)
+        .task(id: pad.id) { await load() }
+        .sheet(isPresented: $showEdit) {
+            EditPadSheet(
+                client: client,
+                original: pad,
+                onSaved: { updated in
+                    NotificationCenter.default.post(name: .padUpdated, object: updated)
+                    showEdit = false
+                },
+                onCancel: { showEdit = false }
+            )
+        }
+    }
+
+    private var detailScroll: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 header
@@ -522,19 +575,6 @@ struct PadDetailView: View {
             .padding(.top, 14)
             .padding(.bottom, 22)
             .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .navigationTitle(pad.title.isEmpty ? pad.id : pad.title)
-        .task(id: pad.id) { await load() }
-        .sheet(isPresented: $showEdit) {
-            EditPadSheet(
-                client: client,
-                original: pad,
-                onSaved: { updated in
-                    NotificationCenter.default.post(name: .padUpdated, object: updated)
-                    showEdit = false
-                },
-                onCancel: { showEdit = false }
-            )
         }
     }
 
@@ -558,19 +598,22 @@ struct PadDetailView: View {
                         Label("Edit", systemImage: "pencil")
                     }
                     .help("Edit pad properties")
-                    if let url = URL(string: pad.url) {
+                    if URL(string: pad.url) != nil {
                         Button {
-                            openWindow(id: "pad-browser", value: url)
+                            showBrowser = true
                         } label: {
                             Label("Open Pad", systemImage: "doc.text.image")
                         }
                         .buttonStyle(.borderedProminent)
-                        Button {
-                            NSWorkspace.shared.open(url)
-                        } label: {
-                            Image(systemName: "safari")
+                        .help("Open the pad in this pane")
+                        if let url = URL(string: pad.url) {
+                            Button {
+                                NSWorkspace.shared.open(url)
+                            } label: {
+                                Image(systemName: "safari")
+                            }
+                            .help("Open in default browser")
                         }
-                        .help("Open in default browser")
                     }
                 }
             }

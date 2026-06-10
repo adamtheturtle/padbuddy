@@ -305,8 +305,29 @@ private struct AccountEditor: View {
                 draft.name = org.organizationName
             }
         } catch {
-            validation = .invalid(error.localizedDescription)
+            validation = .invalid(friendlyValidationMessage(for: error))
         }
+    }
+
+    private func friendlyValidationMessage(for error: Error) -> String {
+        if let api = error as? CoderPadError {
+            if api.isUnauthorized {
+                return "CoderPad rejected this key. Double-check that it's the right one and hasn't been revoked."
+            }
+            switch api {
+            case .missingAPIKey:
+                return "Paste your CoderPad API key above."
+            case .http:
+                return "CoderPad couldn't verify the key right now. Try again in a moment."
+            case .decode:
+                return "CoderPad returned something unexpected. Try again, and if it keeps happening, regenerate the key."
+            }
+        }
+        let ns = error as NSError
+        if ns.domain == NSURLErrorDomain {
+            return "Couldn't reach CoderPad. Check your internet connection and try again."
+        }
+        return "Couldn't validate this key. Try again."
     }
 }
 
