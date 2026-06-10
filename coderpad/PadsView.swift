@@ -36,7 +36,7 @@ struct PadsView: View {
     var body: some View {
         NavigationSplitView {
             sidebar
-                .navigationSplitViewColumnWidth(min: 540, ideal: 540, max: 720)
+                .navigationSplitViewColumnWidth(min: 360, ideal: 440, max: 720)
         } detail: {
             if let selection {
                 PadDetailView(client: client, pad: selection)
@@ -169,8 +169,8 @@ struct PadsView: View {
             } else {
                 VStack(spacing: 0) {
                     InlineSearchField(query: $search, prompt: "Search title, owner, participants…")
-                        .padding(.horizontal, 22)
-                        .padding(.top, 18)
+                        .padding(.horizontal, Spacing.paneH)
+                        .padding(.top, Spacing.paneTitleTop)
                         .padding(.bottom, 8)
                     savedSearchesBar
                     filterBar
@@ -573,9 +573,9 @@ struct PadDetailView: View {
                 }
                 eventsCard
             }
-            .padding(.horizontal, 22)
-            .padding(.top, 22)
-            .padding(.bottom, 22)
+            .padding(.horizontal, Spacing.paneH)
+            .padding(.top, Spacing.paneV)
+            .padding(.bottom, Spacing.paneV)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
