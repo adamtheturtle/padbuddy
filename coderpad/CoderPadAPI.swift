@@ -4,6 +4,22 @@
 //
 
 import Foundation
+import os.log
+
+let apiLogger = Logger(subsystem: "com.coderpad.app", category: "api")
+
+extension KeyedDecodingContainer {
+    /// Like `try? decodeIfPresent`, but logs the underlying error so silent API drift
+    /// shows up in Console rather than producing an empty UI with no diagnostic.
+    func loggedDecodeIfPresent<T: Decodable>(_ type: T.Type, forKey key: Key) -> T? {
+        do {
+            return try decodeIfPresent(type, forKey: key)
+        } catch {
+            apiLogger.debug("decodeIfPresent '\(key.stringValue, privacy: .public)' as \(String(describing: type), privacy: .public) failed: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }
+}
 
 // MARK: - Models
 
@@ -43,23 +59,23 @@ struct Pad: Decodable, Identifiable, Hashable {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(String.self, forKey: .id)
-        title = (try? c.decodeIfPresent(String.self, forKey: .title)) ?? ""
-        state = (try? c.decodeIfPresent(String.self, forKey: .state)) ?? "unknown"
-        ownerEmail = (try? c.decodeIfPresent(String.self, forKey: .ownerEmail)) ?? ""
-        language = try? c.decodeIfPresent(String.self, forKey: .language)
-        participants = (try? c.decodeIfPresent([String].self, forKey: .participants)) ?? []
-        url = (try? c.decodeIfPresent(String.self, forKey: .url)) ?? ""
-        playback = try? c.decodeIfPresent(String.self, forKey: .playback)
-        createdAt = try? c.decodeIfPresent(Date.self, forKey: .createdAt)
-        updatedAt = try? c.decodeIfPresent(Date.self, forKey: .updatedAt)
-        endedAt = try? c.decodeIfPresent(Date.self, forKey: .endedAt)
-        type = try? c.decodeIfPresent(String.self, forKey: .type)
-        executionEnabled = try? c.decodeIfPresent(Bool.self, forKey: .executionEnabled)
-        isPrivate = try? c.decodeIfPresent(Bool.self, forKey: .isPrivate)
-        activeEnvironmentID = try? c.decodeIfPresent(Int.self, forKey: .activeEnvironmentID)
-        padEnvironmentIDs = (try? c.decodeIfPresent([Int].self, forKey: .padEnvironmentIDs)) ?? []
-        questionIDs = (try? c.decodeIfPresent([Int].self, forKey: .questionIDs)) ?? []
-        team = try? c.decodeIfPresent(PadTeam.self, forKey: .team)
+        title = c.loggedDecodeIfPresent(String.self, forKey: .title) ?? ""
+        state = c.loggedDecodeIfPresent(String.self, forKey: .state) ?? "unknown"
+        ownerEmail = c.loggedDecodeIfPresent(String.self, forKey: .ownerEmail) ?? ""
+        language = c.loggedDecodeIfPresent(String.self, forKey: .language)
+        participants = c.loggedDecodeIfPresent([String].self, forKey: .participants) ?? []
+        url = c.loggedDecodeIfPresent(String.self, forKey: .url) ?? ""
+        playback = c.loggedDecodeIfPresent(String.self, forKey: .playback)
+        createdAt = c.loggedDecodeIfPresent(Date.self, forKey: .createdAt)
+        updatedAt = c.loggedDecodeIfPresent(Date.self, forKey: .updatedAt)
+        endedAt = c.loggedDecodeIfPresent(Date.self, forKey: .endedAt)
+        type = c.loggedDecodeIfPresent(String.self, forKey: .type)
+        executionEnabled = c.loggedDecodeIfPresent(Bool.self, forKey: .executionEnabled)
+        isPrivate = c.loggedDecodeIfPresent(Bool.self, forKey: .isPrivate)
+        activeEnvironmentID = c.loggedDecodeIfPresent(Int.self, forKey: .activeEnvironmentID)
+        padEnvironmentIDs = c.loggedDecodeIfPresent([Int].self, forKey: .padEnvironmentIDs) ?? []
+        questionIDs = c.loggedDecodeIfPresent([Int].self, forKey: .questionIDs) ?? []
+        team = c.loggedDecodeIfPresent(PadTeam.self, forKey: .team)
     }
 }
 
@@ -214,22 +230,22 @@ struct Question: Decodable, Identifiable, Hashable {
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         id = try c.decode(Int.self, forKey: .id)
-        title = (try? c.decodeIfPresent(String.self, forKey: .title)) ?? ""
-        ownerEmail = (try? c.decodeIfPresent(String.self, forKey: .ownerEmail)) ?? ""
-        language = try? c.decodeIfPresent(String.self, forKey: .language)
-        description = try? c.decodeIfPresent(String.self, forKey: .description)
-        shared = try? c.decodeIfPresent(Bool.self, forKey: .shared)
-        used = try? c.decodeIfPresent(Int.self, forKey: .used)
-        takeHome = try? c.decodeIfPresent(Bool.self, forKey: .takeHome)
-        testCasesEnabled = try? c.decodeIfPresent(Bool.self, forKey: .testCasesEnabled)
-        solution = try? c.decodeIfPresent(String.self, forKey: .solution)
-        padType = try? c.decodeIfPresent(String.self, forKey: .padType)
-        isDraft = try? c.decodeIfPresent(Bool.self, forKey: .isDraft)
-        authorName = try? c.decodeIfPresent(String.self, forKey: .authorName)
-        organizationName = try? c.decodeIfPresent(String.self, forKey: .organizationName)
-        createdAt = try? c.decodeIfPresent(Date.self, forKey: .createdAt)
-        updatedAt = try? c.decodeIfPresent(Date.self, forKey: .updatedAt)
-        candidateInstructions = (try? c.decodeIfPresent([CandidateInstruction].self, forKey: .candidateInstructions)) ?? []
+        title = c.loggedDecodeIfPresent(String.self, forKey: .title) ?? ""
+        ownerEmail = c.loggedDecodeIfPresent(String.self, forKey: .ownerEmail) ?? ""
+        language = c.loggedDecodeIfPresent(String.self, forKey: .language)
+        description = c.loggedDecodeIfPresent(String.self, forKey: .description)
+        shared = c.loggedDecodeIfPresent(Bool.self, forKey: .shared)
+        used = c.loggedDecodeIfPresent(Int.self, forKey: .used)
+        takeHome = c.loggedDecodeIfPresent(Bool.self, forKey: .takeHome)
+        testCasesEnabled = c.loggedDecodeIfPresent(Bool.self, forKey: .testCasesEnabled)
+        solution = c.loggedDecodeIfPresent(String.self, forKey: .solution)
+        padType = c.loggedDecodeIfPresent(String.self, forKey: .padType)
+        isDraft = c.loggedDecodeIfPresent(Bool.self, forKey: .isDraft)
+        authorName = c.loggedDecodeIfPresent(String.self, forKey: .authorName)
+        organizationName = c.loggedDecodeIfPresent(String.self, forKey: .organizationName)
+        createdAt = c.loggedDecodeIfPresent(Date.self, forKey: .createdAt)
+        updatedAt = c.loggedDecodeIfPresent(Date.self, forKey: .updatedAt)
+        candidateInstructions = c.loggedDecodeIfPresent([CandidateInstruction].self, forKey: .candidateInstructions) ?? []
     }
 }
 

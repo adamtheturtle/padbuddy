@@ -8,6 +8,9 @@
 import Foundation
 import Security
 import SwiftUI
+import os.log
+
+let persistenceLogger = Logger(subsystem: "com.coderpad.app", category: "persistence")
 
 struct Account: Identifiable, Codable, Hashable {
     let id: UUID
@@ -62,7 +65,12 @@ enum Keychain {
             var insert = query
             insert[kSecValueData as String] = data
             insert[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-            SecItemAdd(insert as CFDictionary, nil)
+            let addStatus = SecItemAdd(insert as CFDictionary, nil)
+            if addStatus != errSecSuccess {
+                persistenceLogger.error("Keychain SecItemAdd failed for account '\(account, privacy: .public)' (OSStatus \(addStatus))")
+            }
+        } else if status != errSecSuccess {
+            persistenceLogger.error("Keychain SecItemUpdate failed for account '\(account, privacy: .public)' (OSStatus \(status))")
         }
     }
 
@@ -154,7 +162,12 @@ final class AccountsStore {
 
     private static func loadAccounts() -> [Account]? {
         guard let data = Keychain.readData(account: Keychain.accountsAccount) else { return nil }
-        return try? JSONDecoder().decode([Account].self, from: data)
+        do {
+            return try JSONDecoder().decode([Account].self, from: data)
+        } catch {
+            persistenceLogger.error("Failed to decode accounts from Keychain — saved keys may be unreadable: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
     }
 
     private func persistAccounts() {
@@ -165,8 +178,11 @@ final class AccountsStore {
                 Keychain.delete(account: Keychain.accountsAccount)
                 return
             }
-            if let data = try? JSONEncoder().encode(snapshot) {
+            do {
+                let data = try JSONEncoder().encode(snapshot)
                 Keychain.write(data, account: Keychain.accountsAccount)
+            } catch {
+                persistenceLogger.error("Failed to encode accounts snapshot: \(error.localizedDescription, privacy: .public)")
             }
         }
     }
@@ -286,8 +302,11 @@ final class SavedSearchStore {
     }
 
     private func save() {
-        if let data = try? JSONEncoder().encode(searches) {
+        do {
+            let data = try JSONEncoder().encode(searches)
             UserDefaults.standard.set(data, forKey: Self.key)
+        } catch {
+            persistenceLogger.error("Failed to encode saved searches: \(error.localizedDescription, privacy: .public)")
         }
     }
 }
