@@ -5,13 +5,13 @@
 
 import SwiftUI
 
-enum Section: Hashable {
+enum AppSection: Hashable {
     case pads, questions, organization, quota
 }
 
 struct ContentView: View {
     @State private var store = AccountsStore.shared
-    @State private var section: Section? = .pads
+    @State private var section: AppSection? = .pads
     @State private var showSettings = false
 
     var body: some View {
@@ -25,6 +25,7 @@ struct ContentView: View {
                 detailContent
             }
         }
+        .environment(\.openSettings, { showSettings = true })
         .sheet(isPresented: $showSettings) {
             NavigationStack {
                 SettingsView()
@@ -40,12 +41,12 @@ struct ContentView: View {
     private var sidebar: some View {
         List(selection: $section) {
             SwiftUI.Section("Browse") {
-                Label("Pads", systemImage: "doc.text").tag(Section.pads)
-                Label("Questions", systemImage: "questionmark.bubble").tag(Section.questions)
+                Label("Pads", systemImage: "doc.text").tag(AppSection.pads)
+                Label("Questions", systemImage: "questionmark.bubble").tag(AppSection.questions)
             }
             SwiftUI.Section("Account") {
-                Label("Organization", systemImage: "building.2").tag(Section.organization)
-                Label("Quota", systemImage: "gauge.with.dots.needle.67percent").tag(Section.quota)
+                Label("Organization", systemImage: "building.2").tag(AppSection.organization)
+                Label("Quota", systemImage: "gauge.with.dots.needle.67percent").tag(AppSection.quota)
             }
         }
         .listStyle(.sidebar)
@@ -63,12 +64,12 @@ struct ContentView: View {
                 AvatarCircle(label: current.name, diameter: 30)
                 VStack(alignment: .leading, spacing: 2) {
                     Text(current.name).font(.callout.weight(.medium)).lineLimit(1)
-                    Text("Active account").font(.caption2).foregroundStyle(.secondary)
+                    Text(store.accounts.count > 1 ? "Active · \(store.accounts.count) accounts" : "Active account")
+                        .font(.caption2).foregroundStyle(.secondary)
                 }
             } else {
                 Image(systemName: "person.crop.circle.badge.exclamationmark")
-                    .font(.system(size: 22))
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 22)).foregroundStyle(.secondary)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("No account").font(.callout.weight(.medium))
                     Text("Add one in Settings").font(.caption2).foregroundStyle(.secondary)

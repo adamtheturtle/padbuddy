@@ -9,15 +9,20 @@ struct PadsView: View {
     let client: CoderPadClient
     @State private var pads: [Pad] = []
     @State private var isLoading = false
-    @State private var errorMessage: String?
+    @State private var error: Error?
     @State private var selection: Pad?
     @State private var search = ""
-    @State private var stateFilter: String = "all"
+    @State private var stateFilter: String? = nil
+    @State private var languageFilter: String? = nil
+    @State private var ownerFilter: String? = nil
+    @State private var teamFilter: String? = nil
+    @State private var typeFilter: String? = nil
+    @State private var showCreate = false
 
     var body: some View {
         NavigationSplitView {
             sidebar
-                .navigationSplitViewColumnWidth(min: 280, ideal: 360)
+                .navigationSplitViewColumnWidth(min: 300, ideal: 360)
         } detail: {
             if let selection {
                 PadDetailView(client: client, pad: selection)
@@ -27,12 +32,25 @@ struct PadsView: View {
             }
         }
         .task(id: client.apiKey) { await reload() }
+        .sheet(isPresented: $showCreate) {
+            NewPadSheet(client: client) { created in
+                pads.insert(created, at: 0)
+                selection = created
+                showCreate = false
+            } onCancel: {
+                showCreate = false
+            }
+        }
     }
 
     private var filtered: [Pad] {
         let lowered = search.lowercased()
         return pads.filter { pad in
-            (stateFilter == "all" || pad.state.lowercased() == stateFilter) &&
+            (stateFilter == nil || pad.state.lowercased() == stateFilter) &&
+            (languageFilter == nil || (pad.language ?? "").lowercased() == languageFilter) &&
+            (ownerFilter == nil || pad.ownerEmail == ownerFilter) &&
+            (teamFilter == nil || pad.team?.name == teamFilter) &&
+            (typeFilter == nil || (pad.type ?? "").lowercased() == typeFilter) &&
             (lowered.isEmpty
              || pad.title.lowercased().contains(lowered)
              || pad.id.lowercased().contains(lowered)
@@ -44,38 +62,50 @@ struct PadsView: View {
     private var availableStates: [String] {
         Array(Set(pads.map { $0.state.lowercased() })).sorted()
     }
+    private var availableLanguages: [String] {
+        Array(Set(pads.compactMap { $0.language?.lowercased() }).filter { !$0.isEmpty }).sorted()
+    }
+    private var availableOwners: [String] {
+        Array(Set(pads.map { $0.ownerEmail }).filter { !$0.isEmpty }).sorted()
+    }
+    private var availableTeams: [String] {
+        Array(Set(pads.compactMap { $0.team?.name })).sorted()
+    }
+    private var availableTypes: [String] {
+        Array(Set(pads.compactMap { $0.type?.lowercased() }).filter { !$0.isEmpty }).sorted()
+    }
+
+    private var activeFilterCount: Int {
+        [stateFilter, languageFilter, ownerFilter, teamFilter, typeFilter].compactMap { $0 }.count
+    }
 
     private var sidebar: some View {
         Group {
             if isLoading && pads.isEmpty {
                 ProgressView("Loading pads…").frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let errorMessage {
-                ContentUnavailableView("Couldn't load pads",
-                                       systemImage: "exclamationmark.triangle",
-                                       description: Text(errorMessage))
+            } else if let error {
+                APIErrorView(error: error) { Task { await reload() } }
             } else {
-                List(filtered, selection: $selection) { pad in
-                    NavigationLink(value: pad) {
-                        PadRow(pad: pad)
+                VStack(spacing: 0) {
+                    filterBar
+                    Divider()
+                    List(filtered, selection: $selection) { pad in
+                        NavigationLink(value: pad) {
+                            PadRow(pad: pad)
+                        }
                     }
+                    .listStyle(.inset)
                 }
-                .listStyle(.inset)
             }
         }
         .navigationTitle("Pads")
         .searchable(text: $search, placement: .toolbar, prompt: "Search title, owner, participants…")
         .toolbar {
             ToolbarItem {
-                Menu {
-                    Button("All") { stateFilter = "all" }
-                    Divider()
-                    ForEach(availableStates, id: \.self) { state in
-                        Button(state.capitalized) { stateFilter = state }
-                    }
-                } label: {
-                    Label(stateFilter == "all" ? "All states" : stateFilter.capitalized,
-                          systemImage: "line.3.horizontal.decrease.circle")
+                Button { showCreate = true } label: {
+                    Label("New Pad", systemImage: "plus")
                 }
+                .disabled(client.apiKey.isEmpty)
             }
             ToolbarItem {
                 Button { Task { await reload() } } label: {
@@ -86,25 +116,126 @@ struct PadsView: View {
         }
     }
 
+    @ViewBuilder
+    private var filterBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                FilterChipMenu(
+                    title: "State",
+                    icon: "circle.fill",
+                    selected: $stateFilter,
+                    options: availableStates,
+                    formatter: { $0.capitalized }
+                )
+                FilterChipMenu(
+                    title: "Language",
+                    icon: "chevron.left.slash.chevron.right",
+                    selected: $languageFilter,
+                    options: availableLanguages,
+                    formatter: { $0 }
+                )
+                FilterChipMenu(
+                    title: "Owner",
+                    icon: "person",
+                    selected: $ownerFilter,
+                    options: availableOwners,
+                    formatter: { $0 }
+                )
+                FilterChipMenu(
+                    title: "Team",
+                    icon: "person.3",
+                    selected: $teamFilter,
+                    options: availableTeams,
+                    formatter: { $0 }
+                )
+                FilterChipMenu(
+                    title: "Type",
+                    icon: "tag",
+                    selected: $typeFilter,
+                    options: availableTypes,
+                    formatter: { $0.capitalized }
+                )
+                if activeFilterCount > 0 {
+                    Button(role: .destructive) {
+                        stateFilter = nil; languageFilter = nil
+                        ownerFilter = nil; teamFilter = nil; typeFilter = nil
+                    } label: {
+                        Label("Clear", systemImage: "xmark.circle.fill")
+                            .labelStyle(.titleAndIcon)
+                    }
+                    .buttonStyle(.borderless)
+                    .controlSize(.small)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+        }
+    }
+
     private var placeholder: some View {
         ContentUnavailableView {
             Label("Select a pad", systemImage: "doc.text")
         } description: {
-            Text(pads.isEmpty ? "Nothing here yet." : "\(pads.count) pads total. Pick one to see details.")
+            Text(pads.isEmpty ? "Nothing here yet." : "\(filtered.count) of \(pads.count) shown.")
         }
     }
 
     private func reload() async {
         guard !client.apiKey.isEmpty else { return }
         isLoading = true
-        errorMessage = nil
+        error = nil
         defer { isLoading = false }
         do {
             let fetched = try await client.listPads()
             pads = fetched.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
         } catch {
-            errorMessage = error.localizedDescription
+            self.error = error
         }
+    }
+}
+
+struct FilterChipMenu: View {
+    let title: String
+    let icon: String
+    @Binding var selected: String?
+    let options: [String]
+    let formatter: (String) -> String
+
+    var body: some View {
+        Menu {
+            Button("All") { selected = nil }
+            if !options.isEmpty { Divider() }
+            ForEach(options, id: \.self) { option in
+                Button {
+                    selected = option
+                } label: {
+                    if option == selected {
+                        Label(formatter(option), systemImage: "checkmark")
+                    } else {
+                        Text(formatter(option))
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: icon).font(.caption)
+                Text(selected.map(formatter) ?? title)
+                    .font(.callout)
+                Image(systemName: "chevron.down").font(.caption2)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(
+                (selected == nil ? Color.subtleStroke : Color.accentColor.opacity(0.18)),
+                in: Capsule()
+            )
+            .foregroundStyle(selected == nil ? Color.primary : Color.accentColor)
+            .overlay(Capsule().stroke(selected == nil ? Color.subtleStroke : Color.accentColor.opacity(0.4), lineWidth: 0.5))
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+        .disabled(options.isEmpty)
     }
 }
 
@@ -125,7 +256,7 @@ private struct PadRow: View {
                              tint: language.languageColor)
                     }
                 }
-                Text(pad.ownerEmail)
+                EmailLink(email: pad.ownerEmail)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -140,6 +271,8 @@ private struct PadRow: View {
     }
 }
 
+// MARK: - Detail
+
 struct PadDetailView: View {
     let client: CoderPadClient
     let pad: Pad
@@ -147,6 +280,7 @@ struct PadDetailView: View {
     @State private var environments: [PadEnvironment] = []
     @State private var loadError: String?
     @State private var isLoading = false
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         ScrollView {
@@ -175,15 +309,25 @@ struct PadDetailView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(pad.title.isEmpty ? "Untitled Pad" : pad.title)
                         .font(.title2.weight(.semibold))
-                    Text(pad.ownerEmail)
+                    EmailLink(email: pad.ownerEmail)
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
                 if let url = URL(string: pad.url) {
-                    Link(destination: url) {
-                        Label("Open Pad", systemImage: "arrow.up.forward.app")
+                    HStack(spacing: 6) {
+                        Button {
+                            openWindow(id: "pad-browser", value: url)
+                        } label: {
+                            Label("Open Pad", systemImage: "doc.text.image")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        Button {
+                            NSWorkspace.shared.open(url)
+                        } label: {
+                            Image(systemName: "safari")
+                        }
+                        .help("Open in default browser")
                     }
-                    .buttonStyle(.borderedProminent)
                 }
             }
             HStack(spacing: 6) {
@@ -381,5 +525,92 @@ struct PadDetailView: View {
             }
         }
         return result
+    }
+}
+
+// MARK: - New Pad sheet
+
+private struct NewPadSheet: View {
+    let client: CoderPadClient
+    let onCreated: (Pad) -> Void
+    let onCancel: () -> Void
+
+    @State private var title = ""
+    @State private var language = "python3"
+    @State private var ownerEmail = ""
+    @State private var isPrivate = false
+    @State private var executionEnabled = true
+    @State private var isSubmitting = false
+    @State private var error: String?
+
+    private let languages = [
+        "python3", "javascript", "typescript", "swift", "go", "rust", "java",
+        "kotlin", "ruby", "c", "cpp", "csharp", "php", "scala", "r", "sql", "bash"
+    ]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("New Pad").font(.title3.bold())
+
+            Form {
+                TextField("Title", text: $title, prompt: Text("Optional — e.g. \"Onsite – Jane Doe\""))
+
+                Picker("Language", selection: $language) {
+                    ForEach(languages, id: \.self) { Text($0).tag($0) }
+                }
+
+                TextField("Owner email", text: $ownerEmail, prompt: Text("Optional — defaults to the key's owner"))
+
+                Toggle("Private", isOn: $isPrivate)
+                Toggle("Execution enabled", isOn: $executionEnabled)
+            }
+            .formStyle(.grouped)
+
+            if let error {
+                Label(error, systemImage: "exclamationmark.triangle")
+                    .foregroundStyle(.orange)
+                    .font(.callout)
+            }
+
+            HStack {
+                Spacer()
+                Button("Cancel", role: .cancel, action: onCancel)
+                Button {
+                    Task { await submit() }
+                } label: {
+                    if isSubmitting {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Text("Create")
+                    }
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(isSubmitting)
+            }
+        }
+        .padding()
+        .frame(minWidth: 460, minHeight: 360)
+    }
+
+    private func submit() async {
+        isSubmitting = true
+        error = nil
+        defer { isSubmitting = false }
+        let body = PadCreate(
+            title: title.isEmpty ? nil : title,
+            language: language,
+            ownerEmail: ownerEmail.isEmpty ? nil : ownerEmail,
+            contents: nil,
+            notes: nil,
+            isPrivate: isPrivate,
+            executionEnabled: executionEnabled,
+            questionIDs: nil
+        )
+        do {
+            let pad = try await client.createPad(body)
+            onCreated(pad)
+        } catch {
+            self.error = error.localizedDescription
+        }
     }
 }

@@ -9,36 +9,27 @@ struct QuotaView: View {
     let client: CoderPadClient
     @State private var quota: Quota?
     @State private var isLoading = false
-    @State private var errorMessage: String?
+    @State private var error: Error?
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                HStack(spacing: 14) {
-                    Image(systemName: "gauge.with.dots.needle.67percent")
-                        .font(.system(size: 36))
-                        .foregroundStyle(.tint)
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Plan & Quota").font(.title2.weight(.semibold))
-                        Text("Usage and limits on your CoderPad subscription.")
-                            .foregroundStyle(.secondary)
+        Group {
+            if isLoading && quota == nil {
+                ProgressView("Loading quota…").frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let error, quota == nil {
+                APIErrorView(error: error) { Task { await reload() } }
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 18) {
+                        header
+                        if let quota {
+                            statTiles(quota)
+                            detailsCard(quota)
+                        }
                     }
-                    Spacer()
-                }
-
-                if isLoading && quota == nil {
-                    ProgressView("Loading quota…").frame(maxWidth: .infinity, minHeight: 80)
-                } else if let errorMessage {
-                    ContentUnavailableView("Couldn't load quota",
-                                           systemImage: "exclamationmark.triangle",
-                                           description: Text(errorMessage))
-                } else if let quota {
-                    statTiles(quota)
-                    detailsCard(quota)
+                    .padding(22)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
-            .padding(22)
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .navigationTitle("Quota")
         .toolbar {
@@ -50,6 +41,20 @@ struct QuotaView: View {
             }
         }
         .task(id: client.apiKey) { await reload() }
+    }
+
+    private var header: some View {
+        HStack(spacing: 14) {
+            Image(systemName: "gauge.with.dots.needle.67percent")
+                .font(.system(size: 36))
+                .foregroundStyle(.tint)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Plan & Quota").font(.title2.weight(.semibold))
+                Text("Usage and limits on your CoderPad subscription.")
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
     }
 
     @ViewBuilder
@@ -94,12 +99,12 @@ struct QuotaView: View {
     private func reload() async {
         guard !client.apiKey.isEmpty else { return }
         isLoading = true
-        errorMessage = nil
+        error = nil
         defer { isLoading = false }
         do {
             quota = try await client.quota()
         } catch {
-            errorMessage = error.localizedDescription
+            self.error = error
         }
     }
 }

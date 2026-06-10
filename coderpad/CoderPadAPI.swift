@@ -99,6 +99,25 @@ struct PadEnvironment: Decodable, Identifiable, Hashable {
     }
 }
 
+struct PadCreate: Encodable {
+    var title: String?
+    var language: String?
+    var ownerEmail: String?
+    var contents: String?
+    var notes: String?
+    var isPrivate: Bool?
+    var executionEnabled: Bool?
+    var questionIDs: [Int]?
+
+    enum CodingKeys: String, CodingKey {
+        case title, language, contents, notes
+        case ownerEmail = "owner_email"
+        case isPrivate = "private"
+        case executionEnabled = "execution_enabled"
+        case questionIDs = "question_ids"
+    }
+}
+
 struct Question: Decodable, Identifiable, Hashable {
     let id: Int
     let title: String
@@ -278,6 +297,12 @@ struct CoderPadClient {
         return d
     }()
 
+    static let encoder: JSONEncoder = {
+        let e = JSONEncoder()
+        e.dateEncodingStrategy = .iso8601
+        return e
+    }()
+
     // MARK: Pads
 
     func listPads() async throws -> [Pad] {
@@ -298,6 +323,11 @@ struct CoderPadClient {
     func padEnvironment(id: Int) async throws -> PadEnvironment {
         struct Wrapper: Decodable { let pad_environment: PadEnvironment }
         return try await fetch(Wrapper.self, path: "/api/pad_environments/\(id)").pad_environment
+    }
+
+    func createPad(_ body: PadCreate) async throws -> Pad {
+        struct Wrapper: Decodable { let pad: Pad }
+        return try await send(Wrapper.self, method: "POST", path: "/api/pads/", body: body).pad
     }
 
     // MARK: Questions
@@ -345,12 +375,25 @@ struct CoderPadClient {
 
     private func fetch<T: Decodable>(_ type: T.Type, path: String) async throws -> T {
         guard !apiKey.isEmpty else { throw CoderPadError.missingAPIKey }
-
         var request = URLRequest(url: baseURL.appendingPathComponent(path))
         request.httpMethod = "GET"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
+        return try await perform(type, request: request)
+    }
 
+    private func send<T: Decodable, B: Encodable>(_ type: T.Type, method: String, path: String, body: B) async throws -> T {
+        guard !apiKey.isEmpty else { throw CoderPadError.missingAPIKey }
+        var request = URLRequest(url: baseURL.appendingPathComponent(path))
+        request.httpMethod = method
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try Self.encoder.encode(body)
+        return try await perform(type, request: request)
+    }
+
+    private func perform<T: Decodable>(_ type: T.Type, request: URLRequest) async throws -> T {
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else {
             throw CoderPadError.http(0, "No HTTP response")
@@ -359,7 +402,6 @@ struct CoderPadClient {
             let body = String(data: data, encoding: .utf8) ?? ""
             throw CoderPadError.http(http.statusCode, body)
         }
-
         do {
             return try Self.decoder.decode(T.self, from: data)
         } catch let DecodingError.keyNotFound(key, ctx) {

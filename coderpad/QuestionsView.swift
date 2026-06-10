@@ -9,14 +9,18 @@ struct QuestionsView: View {
     let client: CoderPadClient
     @State private var questions: [Question] = []
     @State private var isLoading = false
-    @State private var errorMessage: String?
+    @State private var error: Error?
     @State private var selection: Question?
     @State private var search = ""
+    @State private var languageFilter: String? = nil
+    @State private var ownerFilter: String? = nil
+    @State private var takeHomeFilter: String? = nil
+    @State private var draftFilter: String? = nil
 
     var body: some View {
         NavigationSplitView {
             sidebar
-                .navigationSplitViewColumnWidth(min: 280, ideal: 360)
+                .navigationSplitViewColumnWidth(min: 300, ideal: 360)
         } detail: {
             if let selection {
                 QuestionDetailView(question: selection)
@@ -33,29 +37,50 @@ struct QuestionsView: View {
     private var filtered: [Question] {
         let lowered = search.lowercased()
         return questions.filter { q in
-            lowered.isEmpty
-            || q.title.lowercased().contains(lowered)
-            || q.ownerEmail.lowercased().contains(lowered)
-            || (q.language ?? "").lowercased().contains(lowered)
-            || (q.authorName ?? "").lowercased().contains(lowered)
+            (languageFilter == nil || (q.language ?? "").lowercased() == languageFilter) &&
+            (ownerFilter == nil || q.ownerEmail == ownerFilter) &&
+            (takeHomeFilter == nil
+             || (takeHomeFilter == "yes" && q.takeHome == true)
+             || (takeHomeFilter == "no" && q.takeHome != true)) &&
+            (draftFilter == nil
+             || (draftFilter == "draft" && q.isDraft == true)
+             || (draftFilter == "published" && q.isDraft != true)) &&
+            (lowered.isEmpty
+             || q.title.lowercased().contains(lowered)
+             || q.ownerEmail.lowercased().contains(lowered)
+             || (q.language ?? "").lowercased().contains(lowered)
+             || (q.authorName ?? "").lowercased().contains(lowered))
         }
+    }
+
+    private var availableLanguages: [String] {
+        Array(Set(questions.compactMap { $0.language?.lowercased() }).filter { !$0.isEmpty }).sorted()
+    }
+    private var availableOwners: [String] {
+        Array(Set(questions.map { $0.ownerEmail }).filter { !$0.isEmpty }).sorted()
+    }
+
+    private var activeFilterCount: Int {
+        [languageFilter, ownerFilter, takeHomeFilter, draftFilter].compactMap { $0 }.count
     }
 
     private var sidebar: some View {
         Group {
             if isLoading && questions.isEmpty {
                 ProgressView("Loading questions…").frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let errorMessage {
-                ContentUnavailableView("Couldn't load questions",
-                                       systemImage: "exclamationmark.triangle",
-                                       description: Text(errorMessage))
+            } else if let error {
+                APIErrorView(error: error) { Task { await reload() } }
             } else {
-                List(filtered, selection: $selection) { q in
-                    NavigationLink(value: q) {
-                        QuestionRow(question: q)
+                VStack(spacing: 0) {
+                    filterBar
+                    Divider()
+                    List(filtered, selection: $selection) { q in
+                        NavigationLink(value: q) {
+                            QuestionRow(question: q)
+                        }
                     }
+                    .listStyle(.inset)
                 }
-                .listStyle(.inset)
             }
         }
         .navigationTitle("Questions")
@@ -70,16 +95,49 @@ struct QuestionsView: View {
         }
     }
 
+    @ViewBuilder
+    private var filterBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                FilterChipMenu(title: "Language", icon: "chevron.left.slash.chevron.right",
+                               selected: $languageFilter, options: availableLanguages,
+                               formatter: { $0 })
+                FilterChipMenu(title: "Owner", icon: "person",
+                               selected: $ownerFilter, options: availableOwners,
+                               formatter: { $0 })
+                FilterChipMenu(title: "Take-home", icon: "house",
+                               selected: $takeHomeFilter, options: ["yes", "no"],
+                               formatter: { $0.capitalized })
+                FilterChipMenu(title: "Status", icon: "doc.badge.ellipsis",
+                               selected: $draftFilter, options: ["draft", "published"],
+                               formatter: { $0.capitalized })
+                if activeFilterCount > 0 {
+                    Button(role: .destructive) {
+                        languageFilter = nil; ownerFilter = nil
+                        takeHomeFilter = nil; draftFilter = nil
+                    } label: {
+                        Label("Clear", systemImage: "xmark.circle.fill")
+                    }
+                    .buttonStyle(.borderless)
+                    .controlSize(.small)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+        }
+    }
+
     private func reload() async {
         guard !client.apiKey.isEmpty else { return }
         isLoading = true
-        errorMessage = nil
+        error = nil
         defer { isLoading = false }
         do {
             let fetched = try await client.listQuestions()
             questions = fetched.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
         } catch {
-            errorMessage = error.localizedDescription
+            self.error = error
         }
     }
 }
@@ -132,7 +190,7 @@ struct QuestionDetailView: View {
                     instructionsCard
                 }
                 if let solution = question.solution, !solution.isEmpty {
-                    descriptionCard(title: "Solution", body: solution, tint: .green)
+                    descriptionCard(title: "Solution", body: solution)
                 }
             }
             .padding(22)
@@ -208,7 +266,7 @@ struct QuestionDetailView: View {
         }
     }
 
-    private func descriptionCard(title: String, body: String, tint: Color = .secondary) -> some View {
+    private func descriptionCard(title: String, body: String) -> some View {
         Card {
             VStack(alignment: .leading, spacing: 10) {
                 SectionHeader(title: title, systemImage: "doc.text")

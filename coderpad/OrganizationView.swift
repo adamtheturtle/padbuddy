@@ -11,27 +11,28 @@ struct OrganizationView: View {
     @State private var stats: OrganizationStats?
     @State private var quota: Quota?
     @State private var isLoading = false
-    @State private var errorMessage: String?
+    @State private var error: Error?
     @State private var userSearch = ""
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                header
-                if isLoading && organization == nil {
-                    ProgressView("Loading organization…")
-                        .frame(maxWidth: .infinity, minHeight: 120)
-                } else if let errorMessage {
-                    ContentUnavailableView("Couldn't load organization",
-                                           systemImage: "exclamationmark.triangle",
-                                           description: Text(errorMessage))
+        Group {
+            if isLoading && organization == nil {
+                ProgressView("Loading organization…")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let error, organization == nil {
+                APIErrorView(error: error) { Task { await reload() } }
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 18) {
+                        header
+                        statTiles
+                        if let stats { activitySection(stats) }
+                        if let organization { usersSection(organization) }
+                    }
+                    .padding(22)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                statTiles
-                if let stats { activitySection(stats) }
-                if let organization { usersSection(organization) }
             }
-            .padding(22)
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .navigationTitle("Organization")
         .task(id: client.apiKey) { await reload() }
@@ -124,7 +125,10 @@ struct OrganizationView: View {
                                 Text(user.name ?? user.email)
                                     .font(.callout.weight(.medium))
                                     .lineLimit(1)
-                                Text(user.email).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                                EmailLink(email: user.email)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
                             }
                             Spacer(minLength: 0)
                         }
@@ -147,7 +151,7 @@ struct OrganizationView: View {
     private func reload() async {
         guard !client.apiKey.isEmpty else { return }
         isLoading = true
-        errorMessage = nil
+        error = nil
         defer { isLoading = false }
         do {
             async let o = client.organization()
@@ -157,7 +161,7 @@ struct OrganizationView: View {
             stats = try? await s
             quota = try? await q
         } catch {
-            errorMessage = error.localizedDescription
+            self.error = error
         }
     }
 }

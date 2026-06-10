@@ -175,3 +175,76 @@ extension String {
         }
     }
 }
+
+// MARK: - EmailLink
+
+struct EmailLink: View {
+    let email: String
+
+    var body: some View {
+        if email.isEmpty {
+            Text("—")
+        } else if let url = URL(string: "mailto:\(email)") {
+            Link(email, destination: url)
+        } else {
+            Text(email)
+        }
+    }
+}
+
+// MARK: - Environment: openSettings
+
+private struct OpenSettingsKey: EnvironmentKey {
+    static let defaultValue: () -> Void = {}
+}
+
+extension EnvironmentValues {
+    var openSettings: () -> Void {
+        get { self[OpenSettingsKey.self] }
+        set { self[OpenSettingsKey.self] = newValue }
+    }
+}
+
+// MARK: - APIErrorView
+
+struct APIErrorView: View {
+    let error: Error
+    var onRetry: (() -> Void)? = nil
+    @Environment(\.openSettings) private var openSettings
+
+    var body: some View {
+        if let api = error as? CoderPadError, api.isUnauthorized {
+            ContentUnavailableView {
+                Label("Key not authorized", systemImage: "lock.shield")
+            } description: {
+                Text("Your API key was rejected (HTTP 401/403). Open Settings to switch accounts or paste a new key.")
+            } actions: {
+                Button("Open Settings") { openSettings() }
+                    .buttonStyle(.borderedProminent)
+                if let onRetry {
+                    Button("Retry", action: onRetry)
+                }
+            }
+        } else if let api = error as? CoderPadError, case .missingAPIKey = api {
+            ContentUnavailableView {
+                Label("No API key", systemImage: "key")
+            } description: {
+                Text("Add an account in Settings to start using the app.")
+            } actions: {
+                Button("Open Settings") { openSettings() }
+                    .buttonStyle(.borderedProminent)
+            }
+        } else {
+            ContentUnavailableView {
+                Label("Something went wrong", systemImage: "exclamationmark.triangle")
+            } description: {
+                Text(error.localizedDescription)
+            } actions: {
+                if let onRetry {
+                    Button("Retry", action: onRetry)
+                        .buttonStyle(.borderedProminent)
+                }
+            }
+        }
+    }
+}

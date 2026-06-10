@@ -8,7 +8,6 @@ import SwiftUI
 struct SettingsView: View {
     @State private var store = AccountsStore.shared
     @State private var editingAccount: Account?
-    @State private var showHelp = false
 
     var body: some View {
         TabView {
@@ -18,7 +17,7 @@ struct SettingsView: View {
                 .tabItem { Label("How to get a key", systemImage: "questionmark.circle") }
         }
         .padding()
-        .frame(minWidth: 520, minHeight: 380)
+        .frame(minWidth: 540, minHeight: 420)
         .sheet(item: $editingAccount) { account in
             AccountEditor(initial: account) { updated in
                 if store.accounts.contains(where: { $0.id == updated.id }) {
@@ -101,8 +100,7 @@ struct SettingsView: View {
 
                 Divider()
 
-                Text("Security")
-                    .font(.headline)
+                Text("Security").font(.headline)
                 Text("Keys are stored in the macOS Keychain under service \"\(Keychain.service)\". You can manage them with Keychain Access.app or rotate them at any time on the CoderPad dashboard.")
                     .foregroundStyle(.secondary)
             }
@@ -115,7 +113,7 @@ struct SettingsView: View {
             step(number: 1, title: "Sign in to CoderPad", body: "Go to app.coderpad.io and sign in with an admin account.")
             step(number: 2, title: "Open Account → API", body: "Click your avatar in the top right, choose Account, then the API tab. (Or use the direct link above.)")
             step(number: 3, title: "Generate or copy a key", body: "Click Generate API Key (or copy an existing one). Keys are long random strings — treat them like passwords.")
-            step(number: 4, title: "Paste it into a new account here", body: "Click Add Account, give it a label like \"Production\", and paste the key. Save.")
+            step(number: 4, title: "Paste it into a new account here", body: "Click Add Account, give it a label like \"Production\", paste the key, and click Validate & Save.")
         }
     }
 
@@ -144,13 +142,7 @@ private struct AccountRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            ZStack {
-                Circle().fill(Color.accentColor.opacity(0.18))
-                Text(initials(account.name))
-                    .font(.callout.weight(.semibold))
-                    .foregroundStyle(.tint)
-            }
-            .frame(width: 30, height: 30)
+            AvatarCircle(label: account.name, diameter: 30)
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
@@ -176,22 +168,12 @@ private struct AccountRow: View {
                     .buttonStyle(.bordered)
                     .controlSize(.small)
             }
-            Button { onEdit() } label: {
-                Image(systemName: "pencil")
-            }
-            .buttonStyle(.borderless)
-            Button(role: .destructive) { onDelete() } label: {
-                Image(systemName: "trash")
-            }
-            .buttonStyle(.borderless)
+            Button { onEdit() } label: { Image(systemName: "pencil") }
+                .buttonStyle(.borderless)
+            Button(role: .destructive) { onDelete() } label: { Image(systemName: "trash") }
+                .buttonStyle(.borderless)
         }
         .padding(.vertical, 4)
-    }
-
-    private func initials(_ s: String) -> String {
-        let parts = s.split(separator: " ").map(String.init)
-        let letters = parts.prefix(2).compactMap { $0.first.map(String.init) }
-        return letters.joined().uppercased().isEmpty ? "?" : letters.joined().uppercased()
     }
 
     private func mask(_ key: String) -> String {
@@ -201,12 +183,20 @@ private struct AccountRow: View {
     }
 }
 
+enum ValidationState: Equatable {
+    case idle
+    case validating
+    case valid(String)
+    case invalid(String)
+}
+
 private struct AccountEditor: View {
     @State var draft: Account
     let initialName: String
     let onSave: (Account) -> Void
     let onCancel: () -> Void
     @State private var reveal = false
+    @State private var validation: ValidationState = .idle
 
     init(initial: Account, onSave: @escaping (Account) -> Void, onCancel: @escaping () -> Void) {
         _draft = State(initialValue: initial)
@@ -231,17 +221,58 @@ private struct AccountEditor: View {
             }
             .formStyle(.grouped)
 
+            validationBanner
+
             HStack {
                 Spacer()
                 Button("Cancel", role: .cancel) { onCancel() }
+                Button("Validate") { Task { await validate() } }
+                    .disabled(draft.apiKey.trimmingCharacters(in: .whitespaces).isEmpty
+                              || validation == .validating)
                 Button("Save") { onSave(draft) }
                     .keyboardShortcut(.defaultAction)
+                    .buttonStyle(.borderedProminent)
                     .disabled(draft.name.trimmingCharacters(in: .whitespaces).isEmpty ||
                               draft.apiKey.trimmingCharacters(in: .whitespaces).isEmpty)
             }
         }
         .padding()
-        .frame(minWidth: 420, minHeight: 280)
+        .frame(minWidth: 460, minHeight: 320)
+        .onChange(of: draft.apiKey) { _, _ in validation = .idle }
+    }
+
+    @ViewBuilder
+    private var validationBanner: some View {
+        switch validation {
+        case .idle:
+            EmptyView()
+        case .validating:
+            HStack(spacing: 6) {
+                ProgressView().controlSize(.small)
+                Text("Checking key…").foregroundStyle(.secondary)
+            }
+            .font(.callout)
+        case .valid(let org):
+            Label("Valid — \(org)", systemImage: "checkmark.seal.fill")
+                .foregroundStyle(.green).font(.callout)
+        case .invalid(let message):
+            Label(message, systemImage: "xmark.octagon.fill")
+                .foregroundStyle(.red).font(.callout)
+        }
+    }
+
+    private func validate() async {
+        validation = .validating
+        do {
+            let client = CoderPadClient(apiKey: draft.apiKey.trimmingCharacters(in: .whitespacesAndNewlines))
+            let org = try await client.organization()
+            validation = .valid(org.organizationName)
+            if draft.name.trimmingCharacters(in: .whitespaces).isEmpty {
+                draft.name = org.organizationName
+            }
+        } catch {
+            validation = .invalid(error.localizedDescription)
+        }
     }
 }
 
