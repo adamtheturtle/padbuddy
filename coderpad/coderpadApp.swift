@@ -22,6 +22,7 @@ extension Notification.Name {
     static let createQuestionRequested = Notification.Name("coderpad.createQuestionRequested")
     static let openPadInBrowserRequested = Notification.Name("coderpad.openPadInBrowserRequested")
     static let padsFilterByOwnerRequested = Notification.Name("coderpad.padsFilterByOwnerRequested")
+    static let questionsSearchRequested = Notification.Name("coderpad.questionsSearchRequested")
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {

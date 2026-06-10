@@ -77,6 +77,9 @@ struct QuestionsView: View {
         .onReceive(NotificationCenter.default.publisher(for: .reloadRequested)) { _ in
             Task { await reload() }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .questionsSearchRequested)) { note in
+            if let q = note.object as? String { search = q }
+        }
     }
 
     private var filtered: [Question] {
@@ -291,14 +294,17 @@ struct QuestionDetailView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(question.title.isEmpty ? "Untitled Question" : question.title)
                         .font(.title2.weight(.semibold))
-                    Text("OWNER")
-                        .font(.caption2.weight(.semibold))
-                        .tracking(0.6)
-                        .foregroundStyle(.secondary)
-                        .padding(.top, 2)
-                    if let author = question.authorName {
-                        Text(author).foregroundStyle(.secondary)
+                    HStack(spacing: 4) {
+                        Image(systemName: "person.crop.circle")
+                            .foregroundStyle(.secondary)
+                        Text("Owner")
+                            .foregroundStyle(.secondary)
+                        if let author = question.authorName {
+                            Text("·").foregroundStyle(.tertiary)
+                            Text(author).foregroundStyle(.secondary)
+                        }
                     }
+                    .font(.caption)
                     EmailLink(email: question.ownerEmail)
                         .font(.caption)
                         .foregroundStyle(.tertiary)

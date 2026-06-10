@@ -17,9 +17,6 @@ struct SettingsView: View {
                 .tabItem { Label("Accounts", systemImage: "person.crop.circle") }
             menuBarTab
                 .tabItem { Label("Menu Bar", systemImage: "menubar.rectangle") }
-            helpTab
-                .padding(20)
-                .tabItem { Label("How to get a key", systemImage: "questionmark.circle") }
         }
         .frame(minWidth: 540, minHeight: 420)
         .sheet(item: $editingAccount) { account in
@@ -152,58 +149,6 @@ struct SettingsView: View {
         .formStyle(.grouped)
     }
 
-    private var helpTab: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
-                Label("How to get a CoderPad API key", systemImage: "key.fill")
-                    .font(.title3.bold())
-
-                Text("You'll need a paid CoderPad Interview seat and admin access to your organization. Personal-trial accounts may not have API access.")
-                    .foregroundStyle(.secondary)
-
-                Divider()
-
-                stepsView
-
-                Divider()
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Useful links").font(.headline)
-                    Link(destination: CoderPadLinks.apiSettings) {
-                        Label("Open your API settings on CoderPad", systemImage: "arrow.up.forward.app")
-                    }
-                    Link(destination: URL(string: "https://coderpad.io/resources/docs/coderpad-interview/api/")!) {
-                        Label("CoderPad API documentation", systemImage: "book")
-                    }
-                }
-            }
-            .padding(.vertical, 4)
-        }
-    }
-
-    private var stepsView: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            step(number: 1, title: "Sign in to CoderPad", body: "Go to app.coderpad.io and sign in with an admin account.")
-            step(number: 2, title: "Open Account → API", body: "Click your avatar in the top right, choose Account, then the API tab. (Or use the direct link above.)")
-            step(number: 3, title: "Generate or copy a key", body: "Click Generate API Key (or copy an existing one). Keys are long random strings; treat them like passwords.")
-            step(number: 4, title: "Paste it into a new account here", body: "Click Add Account, give it a label like \"Production\", paste the key, and click Validate & Save.")
-        }
-    }
-
-    @ViewBuilder
-    private func step(number: Int, title: String, body: String) -> some View {
-        HStack(alignment: .top, spacing: 10) {
-            Text("\(number)")
-                .font(.callout.weight(.bold))
-                .frame(width: 22, height: 22)
-                .background(Color.accentColor.opacity(0.15), in: Circle())
-                .foregroundStyle(.tint)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.callout.weight(.semibold))
-                Text(body).font(.callout).foregroundStyle(.secondary)
-            }
-        }
-    }
 }
 
 private struct AccountRow: View {
