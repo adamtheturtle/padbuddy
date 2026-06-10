@@ -8,6 +8,8 @@ import SwiftUI
 struct PadsView: View {
     let client: CoderPadClient
     @Environment(\.orgDirectory) private var directory
+    @State private var accounts = AccountsStore.shared
+    @State private var pinned = PinnedPadsStore.shared
     @State private var pads: [Pad] = []
     @State private var isLoading = false
     @State private var error: Error?
@@ -21,6 +23,8 @@ struct PadsView: View {
     @State private var showCreate = false
     @State private var lastFetched: Date?
 
+    private static let refreshInterval: Duration = .seconds(180)
+
     var body: some View {
         NavigationSplitView {
             sidebar
@@ -33,7 +37,14 @@ struct PadsView: View {
                 placeholder
             }
         }
-        .task(id: client.apiKey) { await reload() }
+        .task(id: client.apiKey) {
+            await reload()
+            while !Task.isCancelled {
+                try? await Task.sleep(for: Self.refreshInterval)
+                if Task.isCancelled { break }
+                await reload()
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .createPadRequested)) { _ in
             showCreate = true
         }
@@ -53,7 +64,7 @@ struct PadsView: View {
 
     private var filtered: [Pad] {
         let lowered = search.lowercased()
-        return pads.filter { pad in
+        let matched = pads.filter { pad in
             (stateFilter == nil || pad.state.lowercased() == stateFilter) &&
             (languageFilter == nil || (pad.language ?? "").lowercased() == languageFilter) &&
             (ownerFilter == nil || pad.ownerEmail == ownerFilter) &&
@@ -66,6 +77,10 @@ struct PadsView: View {
              || directory.display(pad.ownerEmail).lowercased().contains(lowered)
              || pad.participants.contains(where: { $0.lowercased().contains(lowered) }))
         }
+        guard let accountID = accounts.currentAccountID else { return matched }
+        let pinnedPads = matched.filter { pinned.isPinned(padID: $0.id, accountID: accountID) }
+        let unpinnedPads = matched.filter { !pinned.isPinned(padID: $0.id, accountID: accountID) }
+        return pinnedPads + unpinnedPads
     }
 
     private var availableStates: [String] {
@@ -256,6 +271,13 @@ struct FilterChipMenu: View {
 private struct PadRow: View {
     let pad: Pad
     @Environment(\.orgDirectory) private var directory
+    @State private var pinned = PinnedPadsStore.shared
+    @State private var accounts = AccountsStore.shared
+
+    private var isPinned: Bool {
+        guard let accountID = accounts.currentAccountID else { return false }
+        return pinned.isPinned(padID: pad.id, accountID: accountID)
+    }
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -281,6 +303,16 @@ private struct PadRow: View {
             }
             .font(.caption2)
             .foregroundStyle(.tertiary)
+            Spacer(minLength: 0)
+            Button {
+                guard let accountID = accounts.currentAccountID else { return }
+                pinned.togglePinned(padID: pad.id, accountID: accountID)
+            } label: {
+                Image(systemName: isPinned ? "star.fill" : "star")
+                    .foregroundStyle(isPinned ? Color.yellow : Color.secondary.opacity(0.6))
+            }
+            .buttonStyle(.borderless)
+            .help(isPinned ? "Unpin" : "Pin to top")
         }
         .padding(.vertical, 4)
     }

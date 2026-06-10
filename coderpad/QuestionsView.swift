@@ -9,6 +9,8 @@ struct QuestionsView: View {
     let client: CoderPadClient
     @Environment(\.orgDirectory) private var directory
     @State private var questions: [Question] = []
+
+    private static let refreshInterval: Duration = .seconds(300)
     @State private var isLoading = false
     @State private var error: Error?
     @State private var selection: Question?
@@ -33,7 +35,14 @@ struct QuestionsView: View {
                                        description: Text("Pick one to view details."))
             }
         }
-        .task(id: client.apiKey) { await reload() }
+        .task(id: client.apiKey) {
+            await reload()
+            while !Task.isCancelled {
+                try? await Task.sleep(for: Self.refreshInterval)
+                if Task.isCancelled { break }
+                await reload()
+            }
+        }
     }
 
     private var filtered: [Question] {
@@ -215,6 +224,9 @@ struct QuestionDetailView: View {
                     if let author = question.authorName {
                         Text(author).foregroundStyle(.secondary)
                     }
+                    EmailLink(email: question.ownerEmail)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
                 }
                 Spacer()
             }

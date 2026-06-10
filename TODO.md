@@ -14,10 +14,12 @@ A living roadmap. Items are grouped by theme and roughly ordered by impact. Anyt
 
 ## Data freshness & navigation
 
-- [ ] Auto-refresh pads list every N minutes when the window is foregrounded; respect `state == "started"` and bias toward those.
-- [ ] Show a "last fetched X ago" indicator near the reload button.
-- [ ] Persist last-selected section per account (currently resets to Pads each launch).
-- [ ] Pinned pads — let users star a pad and keep it at the top, scoped per account.
+- [x] Auto-refresh pads list every 3 minutes (questions every 5).
+- [x] Show a "last fetched X ago" indicator near the reload button (pads, questions).
+- [x] Persist last-selected section per account.
+- [x] Pinned pads — star button on each row, pinned pads float to top, scoped per account.
+- [ ] Bias auto-refresh toward `state == "started"` pads (currently refreshes the whole list).
+- [ ] Pause auto-refresh when window is not foregrounded.
 - [ ] Diff highlights when reloading: subtle badge on pads that changed since last refresh.
 
 ## Search & filtering

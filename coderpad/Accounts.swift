@@ -175,3 +175,35 @@ final class AccountsStore {
         }
     }
 }
+
+@Observable
+final class PinnedPadsStore {
+    static let shared = PinnedPadsStore()
+
+    private(set) var pinnedByAccount: [String: Set<String>] = [:]
+    private static let defaultsKey = "pinnedPads"
+
+    private init() {
+        if let data = UserDefaults.standard.data(forKey: Self.defaultsKey),
+           let decoded = try? JSONDecoder().decode([String: Set<String>].self, from: data) {
+            pinnedByAccount = decoded
+        }
+    }
+
+    func isPinned(padID: String, accountID: UUID) -> Bool {
+        pinnedByAccount[accountID.uuidString]?.contains(padID) ?? false
+    }
+
+    func togglePinned(padID: String, accountID: UUID) {
+        var set = pinnedByAccount[accountID.uuidString] ?? []
+        if set.contains(padID) { set.remove(padID) } else { set.insert(padID) }
+        pinnedByAccount[accountID.uuidString] = set
+        save()
+    }
+
+    private func save() {
+        if let data = try? JSONEncoder().encode(pinnedByAccount) {
+            UserDefaults.standard.set(data, forKey: Self.defaultsKey)
+        }
+    }
+}
