@@ -191,13 +191,10 @@ final class AccountHealthMonitor {
     private init() {}
 
     func start(every interval: Duration = .seconds(1800)) {
-        checkTask?.cancel()
-        checkTask = Task { @MainActor in
-            while !Task.isCancelled {
-                await self.checkCurrentAccount()
-                try? await Task.sleep(for: interval)
-            }
-        }
+        // Disabled by default to keep the main run loop quiet during the
+        // session. The check still fires on-demand via checkCurrentAccount()
+        // when ContentView's .task(id: currentAccountID) runs.
+        _ = interval
     }
 
     func checkCurrentAccount() async {

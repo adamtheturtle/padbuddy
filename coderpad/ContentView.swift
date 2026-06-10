@@ -54,7 +54,7 @@ struct ContentView: View {
                 }
             }
         }
-        .task { monitor.start() }
+
         .environment(\.openSettings, { showSettings = true })
         .environment(\.orgDirectory, directory)
         .onReceive(NotificationCenter.default.publisher(for: .sectionRequested)) { note in
@@ -191,20 +191,32 @@ struct ContentView: View {
         .accessibilityLabel("Warning: API key for current account was rejected. Open Settings to update.")
     }
 
+    @ViewBuilder
     private var noAccountView: some View {
-        ContentUnavailableView {
-            Label("No account selected", systemImage: "person.crop.circle.badge.plus")
-        } description: {
-            Text("Open Settings to add an account with your CoderPad API key, or try the demo with mock data.")
-        } actions: {
-            Button("Open Settings") { showSettings = true }
-                .buttonStyle(.borderedProminent)
-            #if DEBUG
-            Button("Try Demo (mock data)") {
-                store.addDemoIfMissing()
+        if store.accounts.isEmpty {
+            ContentUnavailableView {
+                Label("Welcome to CoderPad", systemImage: "doc.text.magnifyingglass")
+            } description: {
+                Text("Add an account with your CoderPad API key to browse pads, questions, organization stats and quota.")
+            } actions: {
+                Button("Add Account") { showSettings = true }
+                    .buttonStyle(.borderedProminent)
+                #if DEBUG
+                Button("Try Demo (mock data)") {
+                    store.addDemoIfMissing()
+                }
+                #endif
+                GetAPIKeyLink()
             }
-            #endif
-            GetAPIKeyLink()
+        } else {
+            ContentUnavailableView {
+                Label("No account selected", systemImage: "person.crop.circle.badge.questionmark")
+            } description: {
+                Text("Choose one of your saved accounts in Settings.")
+            } actions: {
+                Button("Open Settings") { showSettings = true }
+                    .buttonStyle(.borderedProminent)
+            }
         }
     }
 }
