@@ -185,8 +185,8 @@ private struct AccountRow: View {
                             .foregroundStyle(.green)
                     }
                 }
-                Text(account.isMock ? "Mock data, no key" : mask(account.apiKey))
-                    .font(.caption.monospaced())
+                Text(account.isMock ? "Mock data, no key" : "Key stored in Keychain")
+                    .font(.caption)
                     .foregroundStyle(.secondary)
             }
 
@@ -199,12 +199,6 @@ private struct AccountRow: View {
             }
         }
         .padding(.vertical, 4)
-    }
-
-    private func mask(_ key: String) -> String {
-        guard key.count > 6 else { return String(repeating: "•", count: max(key.count, 4)) }
-        let tail = key.suffix(4)
-        return String(repeating: "•", count: 8) + " " + tail
     }
 }
 
