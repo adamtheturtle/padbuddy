@@ -17,6 +17,7 @@ struct QuestionsView: View {
     @State private var ownerFilter: String? = nil
     @State private var takeHomeFilter: String? = nil
     @State private var draftFilter: String? = nil
+    @State private var lastFetched: Date?
 
     var body: some View {
         NavigationSplitView {
@@ -87,6 +88,9 @@ struct QuestionsView: View {
         .navigationTitle("Questions")
         .searchable(text: $search, placement: .toolbar, prompt: "Search title, author…")
         .toolbar {
+            ToolbarItem(placement: .status) {
+                LastFetchedLabel(date: lastFetched)
+            }
             ToolbarItem {
                 Button { Task { await reload() } } label: {
                     Label("Reload", systemImage: "arrow.clockwise")
@@ -137,6 +141,7 @@ struct QuestionsView: View {
         do {
             let fetched = try await client.listQuestions()
             questions = fetched.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
+            lastFetched = Date()
         } catch {
             self.error = error
         }

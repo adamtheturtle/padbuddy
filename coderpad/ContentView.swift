@@ -14,6 +14,9 @@ struct ContentView: View {
     @State private var section: AppSection? = .pads
     @State private var showSettings = false
     @State private var directory = OrgDirectory()
+    @State private var openPadURLDraft: String = ""
+    @State private var showOpenPadURL = false
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         Group {
@@ -48,6 +51,23 @@ struct ContentView: View {
         .environment(\.orgDirectory, directory)
         .onReceive(NotificationCenter.default.publisher(for: .sectionRequested)) { note in
             if let s = note.object as? AppSection { section = s }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .openPadByURLRequested)) { _ in
+            showOpenPadURL = true
+        }
+        .sheet(isPresented: $showOpenPadURL) {
+            OpenPadURLSheet(
+                urlString: $openPadURLDraft,
+                onSubmit: { url in
+                    openWindow(id: "pad-browser", value: url)
+                    openPadURLDraft = ""
+                    showOpenPadURL = false
+                },
+                onCancel: {
+                    openPadURLDraft = ""
+                    showOpenPadURL = false
+                }
+            )
         }
         .sheet(isPresented: $showSettings) {
             NavigationStack {
@@ -151,6 +171,38 @@ struct ContentView: View {
             #endif
             GetAPIKeyLink()
         }
+    }
+}
+
+struct OpenPadURLSheet: View {
+    @Binding var urlString: String
+    let onSubmit: (URL) -> Void
+    let onCancel: () -> Void
+
+    private var trimmed: String { urlString.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var parsedURL: URL? { URL(string: trimmed).flatMap { $0.scheme != nil ? $0 : nil } }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Open Pad by URL").font(.title3.bold())
+            Text("Paste a CoderPad pad URL — it opens in the in-app browser window.")
+                .foregroundStyle(.secondary)
+                .font(.callout)
+            TextField("https://app.coderpad.io/…", text: $urlString)
+                .textFieldStyle(.roundedBorder)
+                .onSubmit { if let url = parsedURL { onSubmit(url) } }
+            HStack {
+                Spacer()
+                Button("Cancel", role: .cancel, action: onCancel)
+                Button("Open") {
+                    if let url = parsedURL { onSubmit(url) }
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(parsedURL == nil)
+            }
+        }
+        .padding()
+        .frame(minWidth: 480)
     }
 }
 

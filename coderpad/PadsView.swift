@@ -19,6 +19,7 @@ struct PadsView: View {
     @State private var teamFilter: String? = nil
     @State private var typeFilter: String? = nil
     @State private var showCreate = false
+    @State private var lastFetched: Date?
 
     var body: some View {
         NavigationSplitView {
@@ -103,12 +104,16 @@ struct PadsView: View {
                         }
                     }
                     .listStyle(.inset)
+                    .focusedValue(\.focusedPad, selection)
                 }
             }
         }
         .navigationTitle("Pads")
         .searchable(text: $search, placement: .toolbar, prompt: "Search title, owner, participants…")
         .toolbar {
+            ToolbarItem(placement: .status) {
+                LastFetchedLabel(date: lastFetched)
+            }
             ToolbarItem {
                 Button { showCreate = true } label: {
                     Label("New Pad", systemImage: "plus")
@@ -197,6 +202,7 @@ struct PadsView: View {
         do {
             let fetched = try await client.listPads()
             pads = fetched.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
+            lastFetched = Date()
         } catch {
             self.error = error
         }

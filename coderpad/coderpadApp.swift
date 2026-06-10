@@ -10,6 +10,7 @@ extension Notification.Name {
     static let createPadRequested = Notification.Name("coderpad.createPadRequested")
     static let sectionRequested = Notification.Name("coderpad.sectionRequested")
     static let reloadRequested = Notification.Name("coderpad.reloadRequested")
+    static let openPadByURLRequested = Notification.Name("coderpad.openPadByURLRequested")
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -29,7 +30,10 @@ struct coderpadApp: App {
         .windowStyle(.titleBar)
         .windowToolbarStyle(.unified)
         .defaultLaunchBehavior(.presented)
-        .commands { appCommands }
+        .commands {
+            appCommands
+            PadCommands()
+        }
 
         WindowGroup("Pad Browser", id: "pad-browser", for: URL.self) { $url in
             if let url {
@@ -58,6 +62,10 @@ struct coderpadApp: App {
                 NotificationCenter.default.post(name: .createPadRequested, object: nil)
             }
             .keyboardShortcut("n", modifiers: [.command])
+            Button("Open Pad by URL…") {
+                NotificationCenter.default.post(name: .openPadByURLRequested, object: nil)
+            }
+            .keyboardShortcut("o", modifiers: [.command])
             Button("Reload") {
                 NotificationCenter.default.post(name: .reloadRequested, object: nil)
             }
@@ -105,5 +113,29 @@ github.com/adamtheturtle/coderpad-macos
             NSApplication.AboutPanelOptionKey.version: "Build \(build)",
             NSApplication.AboutPanelOptionKey.credits: credits,
         ])
+    }
+}
+
+struct PadCommands: Commands {
+    @FocusedValue(\.focusedPad) private var pad
+
+    var body: some Commands {
+        CommandGroup(after: .pasteboard) {
+            Divider()
+            Button("Copy Pad ID") {
+                guard let pad else { return }
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(pad.id, forType: .string)
+            }
+            .keyboardShortcut("c", modifiers: [.command, .shift])
+            .disabled(pad == nil)
+
+            Button("Copy Pad URL") {
+                guard let pad else { return }
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(pad.url, forType: .string)
+            }
+            .disabled(pad == nil)
+        }
     }
 }

@@ -371,6 +371,32 @@ private struct PopoverRow: View {
     }
 }
 
+// MARK: - FocusedValue for the selected pad
+
+struct FocusedPadKey: FocusedValueKey {
+    typealias Value = Pad
+}
+
+extension FocusedValues {
+    var focusedPad: Pad? {
+        get { self[FocusedPadKey.self] }
+        set { self[FocusedPadKey.self] = newValue }
+    }
+}
+
+// MARK: - LastFetchedLabel
+
+struct LastFetchedLabel: View {
+    let date: Date?
+    var body: some View {
+        if let date {
+            Text("Updated \(date.formatted(.relative(presentation: .named)))")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+    }
+}
+
 // MARK: - Environment: openSettings
 
 private struct OpenSettingsKey: EnvironmentKey {
