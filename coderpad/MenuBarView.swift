@@ -159,9 +159,13 @@ struct MenuBarView: View {
         return "\(title)\(language)"
     }
 
-    /// Pads owned by the most-frequent owner email in the fetched list — heuristic for
-    /// "my pads", since the CoderPad API doesn't tell us which user the key belongs to.
+    /// Pads owned by the account's configured email, if the user set one in Settings.
+    /// Otherwise falls back to the most-frequent owner email in the fetched list, since
+    /// the CoderPad API doesn't tell us which user the key belongs to.
     private var myPads: [Pad] {
+        if let mine = store.currentAccount?.userEmail, !mine.isEmpty {
+            return pads.filter { $0.ownerEmail == mine }
+        }
         let owners = pads
             .map(\.ownerEmail)
             .filter { !$0.isEmpty }

@@ -490,6 +490,7 @@ private struct EditQuestionSheet: View {
     @State private var title: String
     @State private var language: String
     @State private var description: String
+    @State private var instructions: String
     @State private var solution: String
     @State private var padType: String
     @State private var isSubmitting = false
@@ -506,6 +507,9 @@ private struct EditQuestionSheet: View {
         _title = State(initialValue: original.title)
         _language = State(initialValue: original.language ?? "python3")
         _description = State(initialValue: original.description ?? "")
+        _instructions = State(initialValue: original.candidateInstructions
+            .map(\.instructions)
+            .joined(separator: "\n\n"))
         _solution = State(initialValue: original.solution ?? "")
         let initialType = original.padType ?? (original.takeHome == true ? "take-home" : "live")
         _padType = State(initialValue: initialType)
@@ -528,6 +532,10 @@ private struct EditQuestionSheet: View {
                 Section("Description") {
                     TextField("", text: $description, prompt: Text("Optional"), axis: .vertical)
                         .lineLimit(3...8)
+                }
+                Section("Candidate instructions") {
+                    TextField("", text: $instructions, prompt: Text("Optional"), axis: .vertical)
+                        .lineLimit(4...12)
                 }
                 Section("Solution") {
                     TextField("", text: $solution, prompt: Text("Optional"), axis: .vertical)
@@ -553,13 +561,15 @@ private struct EditQuestionSheet: View {
             }
         }
         .padding()
-        .frame(minWidth: 520, minHeight: 480)
+        .frame(minWidth: 520, minHeight: 560)
     }
 
     private func submit() async {
         isSubmitting = true
         error = nil
         defer { isSubmitting = false }
+        // Send the edited instructions back as a single block so an edit no longer
+        // wipes them. An empty field clears them; the original's visibility is kept.
         let body = QuestionUpdate(
             id: original.id,
             title: title,
@@ -567,7 +577,12 @@ private struct EditQuestionSheet: View {
             description: description.isEmpty ? nil : description,
             solution: solution.isEmpty ? nil : solution,
             takeHome: padType == "take-home",
-            padType: padType
+            padType: padType,
+            candidateInstructions: instructions.isEmpty
+                ? []
+                : [CandidateInstructionPayload(
+                    instructions: instructions,
+                    defaultVisible: original.candidateInstructions.first?.defaultVisible ?? true)]
         )
         do {
             let q = try await client.updateQuestion(body)

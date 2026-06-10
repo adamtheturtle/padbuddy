@@ -810,10 +810,11 @@ struct PadDetailView: View {
                     Text(contents)
                         .font(.system(.callout, design: .monospaced))
                         .textSelection(.enabled)
-                        .padding(.vertical, 4)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 8)
                 }
-                .frame(maxHeight: 360)
+                .defaultScrollAnchor(.topLeading)
+                .frame(maxWidth: .infinity, maxHeight: 360, alignment: .leading)
                 .background(Color.subtleStroke.opacity(0.5),
                             in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                 .accessibilityLabel("Code preview of pad \(pad.id)")

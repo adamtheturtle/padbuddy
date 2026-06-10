@@ -636,21 +636,23 @@ struct SearchableFilterChip: View {
         }
     }
 
+    // Explicitly-typed style helpers keep the `body` type-checker from
+    // exploring these ternaries combinatorially (was ~6s to type-check).
+    private var isActive: Bool { selected != nil }
+    private var fillColor: Color { isActive ? Color.accentColor.opacity(0.18) : Color.subtleStroke }
+    private var strokeColor: Color { isActive ? Color.accentColor.opacity(0.4) : Color.subtleStroke }
+    private var labelColor: Color { isActive ? Color.accentColor : Color.primary }
+
     var body: some View {
         Button { presented.toggle() } label: {
-            HStack(spacing: 4) {
-                Image(systemName: icon).font(.caption)
-                Text(selected.map(formatter) ?? title)
-                    .font(.callout).lineLimit(1)
-                Image(systemName: "chevron.down").font(.caption2)
-            }
-            .padding(.horizontal, 10).padding(.vertical, 5)
-            .background(
-                (selected == nil ? Color.subtleStroke : Color.accentColor.opacity(0.18)),
-                in: Capsule()
+            ChipLabel(
+                title: title,
+                icon: icon,
+                text: selected.map(formatter) ?? title,
+                fillColor: fillColor,
+                strokeColor: strokeColor,
+                labelColor: labelColor
             )
-            .foregroundStyle(selected == nil ? Color.primary : Color.accentColor)
-            .overlay(Capsule().stroke(selected == nil ? Color.subtleStroke : Color.accentColor.opacity(0.4), lineWidth: 0.5))
         }
         .buttonStyle(.plain)
         .disabled(options.isEmpty)
@@ -658,37 +660,84 @@ struct SearchableFilterChip: View {
         .accessibilityValue(selected.map(formatter) ?? "All")
         .accessibilityHint(accessibilityHint)
         .popover(isPresented: $presented, arrowEdge: .top) {
-            VStack(spacing: 0) {
-                TextField("Search \(title.lowercased())", text: $search)
-                    .textFieldStyle(.roundedBorder)
-                    .padding(10)
-                Divider()
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        PopoverRow(label: "All", subtitle: nil, isSelected: selected == nil) {
-                            selected = nil
+            SearchableFilterPopover(
+                title: title,
+                options: filtered,
+                selected: $selected,
+                presented: $presented,
+                formatter: formatter,
+                search: $search
+            )
+        }
+    }
+}
+
+// Extracted so the label's styling chain type-checks independently of the
+// chip's outer modifier/popover chain — keeps SearchableFilterChip.body fast
+// to compile (was ~671ms as one expression).
+private struct ChipLabel: View {
+    let title: String
+    let icon: String
+    let text: String
+    let fillColor: Color
+    let strokeColor: Color
+    let labelColor: Color
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon).font(.caption)
+            Text(text)
+                .font(.callout).lineLimit(1)
+            Image(systemName: "chevron.down").font(.caption2)
+        }
+        .padding(.horizontal, 10).padding(.vertical, 5)
+        .background(fillColor, in: Capsule())
+        .foregroundStyle(labelColor)
+        .overlay(Capsule().stroke(strokeColor, lineWidth: 0.5))
+    }
+}
+
+// Extracted so its ScrollView/ForEach/ternary contents type-check independently
+// of the chip's modifier chain, keeping each `body` fast to compile.
+private struct SearchableFilterPopover: View {
+    let title: String
+    let options: [String]
+    @Binding var selected: String?
+    @Binding var presented: Bool
+    let formatter: (String) -> String
+    @Binding var search: String
+
+    var body: some View {
+        VStack(spacing: 0) {
+            TextField("Search \(title.lowercased())", text: $search)
+                .textFieldStyle(.roundedBorder)
+                .padding(10)
+            Divider()
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    PopoverRow(label: "All", subtitle: nil, isSelected: selected == nil) {
+                        selected = nil
+                        presented = false
+                    }
+                    Divider()
+                    ForEach(options, id: \.self) { option in
+                        PopoverRow(
+                            label: formatter(option),
+                            subtitle: formatter(option) == option ? nil : option,
+                            isSelected: option == selected
+                        ) {
+                            selected = option
                             presented = false
                         }
-                        Divider()
-                        ForEach(filtered, id: \.self) { option in
-                            PopoverRow(
-                                label: formatter(option),
-                                subtitle: formatter(option) == option ? nil : option,
-                                isSelected: option == selected
-                            ) {
-                                selected = option
-                                presented = false
-                            }
-                        }
-                        if filtered.isEmpty {
-                            Text("No matches")
-                                .font(.callout).foregroundStyle(.secondary)
-                                .padding(10)
-                        }
+                    }
+                    if options.isEmpty {
+                        Text("No matches")
+                            .font(.callout).foregroundStyle(.secondary)
+                            .padding(10)
                     }
                 }
-                .frame(width: 320, height: 320)
             }
+            .frame(width: 320, height: 320)
         }
     }
 }

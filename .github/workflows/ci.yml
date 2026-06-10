@@ -5,6 +5,12 @@ on:
   push:
     branches: [main]
 
+# Cancel an in-progress run when a newer commit is pushed to the same ref.
+# macOS runners bill at 10x minutes, so not paying for superseded builds matters.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     name: Build & Test
@@ -22,6 +28,17 @@ jobs:
       - name: Show available SDKs
         run: xcodebuild -showsdks
 
+      # Cache DerivedData (build intermediates, module cache) to speed up
+      # incremental builds. Keyed on the project + sources so it invalidates
+      # when they change, with a prefix fallback for partial reuse.
+      - name: Cache DerivedData
+        uses: actions/cache@v4
+        with:
+          path: DerivedData
+          key: deriveddata-${{ runner.os }}-${{ hashFiles('coderpad.xcodeproj/project.pbxproj', '**/*.swift') }}
+          restore-keys: |
+            deriveddata-${{ runner.os }}-
+
       - name: Build & test
         run: |
           set -o pipefail
@@ -29,6 +46,7 @@ jobs:
             -project coderpad.xcodeproj \
             -scheme coderpad \
             -destination 'platform=macOS' \
+            -derivedDataPath DerivedData \
             -resultBundlePath TestResults.xcresult \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \

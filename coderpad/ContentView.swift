@@ -250,6 +250,7 @@ private struct MainSplit: View {
                             }
                             await directory.load(for: account)
                             await monitor.checkCurrentAccount()
+                            monitor.start()
                         }
                     }
                     .onChange(of: section) { _, newValue in

@@ -210,6 +210,7 @@ private struct AccountEditor: View {
     let onSave: (Account) -> Void
     let onCancel: () -> Void
     @State private var validation: ValidationState = .idle
+    @State private var orgUsers: [OrganizationUser] = []
     @FocusState private var keyFieldFocused: Bool
 
     init(initial: Account, onSave: @escaping (Account) -> Void, onCancel: @escaping () -> Void) {
@@ -234,6 +235,13 @@ private struct AccountEditor: View {
                 }
                 if isValidated {
                     TextField("Name", text: $draft.name, prompt: Text("Auto-filled from your organization"))
+                    Picker("Your email", selection: $draft.userEmail) {
+                        Text("Not set").tag(String?.none)
+                        ForEach(emailOptions, id: \.self) { email in
+                            Text(emailLabel(email)).tag(String?.some(email))
+                        }
+                    }
+                    .help("Used to show only your pads in the menu bar.")
                 }
                 GetAPIKeyLink()
                     .font(.callout)
@@ -257,6 +265,21 @@ private struct AccountEditor: View {
     private var isValidated: Bool {
         if case .valid = validation { return true }
         return false
+    }
+
+    /// Org member emails for the picker, including any already-saved email that the
+    /// org list might not return, sorted for a stable order.
+    private var emailOptions: [String] {
+        var emails = Set(orgUsers.map(\.email).filter { !$0.isEmpty })
+        if let saved = draft.userEmail, !saved.isEmpty { emails.insert(saved) }
+        return emails.sorted()
+    }
+
+    private func emailLabel(_ email: String) -> String {
+        if let name = orgUsers.first(where: { $0.email == email })?.name, !name.isEmpty {
+            return "\(name) · \(email)"
+        }
+        return email
     }
 
     private var validateDisabled: Bool {
@@ -326,9 +349,14 @@ private struct AccountEditor: View {
         do {
             let client = CoderPadClient(apiKey: draft.apiKey.trimmingCharacters(in: .whitespacesAndNewlines))
             let org = try await client.organization()
+            orgUsers = org.users
             validation = .valid(org.organizationName)
             if draft.name.trimmingCharacters(in: .whitespaces).isEmpty {
                 draft.name = org.organizationName
+            }
+            // Pre-select the signed-in user's email if it's unambiguous.
+            if draft.userEmail == nil, org.users.count == 1 {
+                draft.userEmail = org.users.first?.email
             }
         } catch {
             validation = .invalid(friendlyValidationMessage(for: error))

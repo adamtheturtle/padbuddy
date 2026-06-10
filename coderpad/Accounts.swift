@@ -17,12 +17,17 @@ struct Account: Identifiable, Codable, Hashable {
     var name: String
     var apiKey: String
     var isMock: Bool
+    /// The email of the org member this key belongs to, used to show "my" pads.
+    /// The CoderPad API doesn't expose the key's owner, so the user picks it when
+    /// validating the key. Optional so accounts saved before this existed still decode.
+    var userEmail: String?
 
-    init(id: UUID = UUID(), name: String, apiKey: String, isMock: Bool = false) {
+    init(id: UUID = UUID(), name: String, apiKey: String, isMock: Bool = false, userEmail: String? = nil) {
         self.id = id
         self.name = name
         self.apiKey = apiKey
         self.isMock = isMock
+        self.userEmail = userEmail
     }
 
     static func demo() -> Account {
@@ -206,11 +211,23 @@ final class AccountHealthMonitor {
 
     private init() {}
 
+    /// Re-checks the current account's key on a fixed interval (default 30 min) so a key
+    /// revoked mid-session surfaces the unauthorized banner without needing a section switch.
+    /// Idempotent: repeated calls keep the single existing timer.
     func start(every interval: Duration = .seconds(1800)) {
-        // Disabled by default to keep the main run loop quiet during the
-        // session. The check still fires on-demand via checkCurrentAccount()
-        // when ContentView's .task(id: currentAccountID) runs.
-        _ = interval
+        guard checkTask == nil else { return }
+        checkTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: interval)
+                if Task.isCancelled { break }
+                await self?.checkCurrentAccount()
+            }
+        }
+    }
+
+    func stop() {
+        checkTask?.cancel()
+        checkTask = nil
     }
 
     func checkCurrentAccount() async {

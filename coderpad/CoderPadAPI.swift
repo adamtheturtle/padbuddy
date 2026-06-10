@@ -157,11 +157,13 @@ struct QuestionUpdate: Codable {
     var solution: String?
     var takeHome: Bool?
     var padType: String?
+    var candidateInstructions: [CandidateInstructionPayload]?
 
     enum CodingKeys: String, CodingKey {
         case id, title, language, description, solution
         case takeHome = "take_home"
         case padType = "pad_type"
+        case candidateInstructions = "candidate_instructions"
     }
 }
 
@@ -479,7 +481,38 @@ struct CoderPadClient {
         request.httpMethod = "GET"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        return try await perform(type, request: request)
+        return try await performWithRetry(type, request: request)
+    }
+
+    /// GET requests are idempotent, so transient failures (5xx, 429, network timeouts)
+    /// are retried with exponential backoff before the error surfaces to the UI. Mutating
+    /// requests go straight through `perform` to avoid duplicating side effects.
+    private func performWithRetry<T: Decodable>(_ type: T.Type, request: URLRequest, maxAttempts: Int = 3) async throws -> T {
+        var attempt = 0
+        while true {
+            do {
+                return try await perform(type, request: request)
+            } catch {
+                attempt += 1
+                guard attempt < maxAttempts, Self.isTransient(error) else { throw error }
+                apiLogger.debug("Transient failure on \(request.url?.path ?? "", privacy: .public); retry \(attempt)/\(maxAttempts - 1)")
+                // 300ms, then 600ms
+                try? await Task.sleep(for: .milliseconds(300 * (1 << (attempt - 1))))
+            }
+        }
+    }
+
+    private static func isTransient(_ error: Error) -> Bool {
+        if let api = error as? CoderPadError, case .http(let code, _) = api {
+            return (500...599).contains(code) || code == 429 || code == 0
+        }
+        let ns = error as NSError
+        if ns.domain == NSURLErrorDomain {
+            return [NSURLErrorTimedOut,
+                    NSURLErrorNetworkConnectionLost,
+                    NSURLErrorCannotConnectToHost].contains(ns.code)
+        }
+        return false
     }
 
     private func send<T: Decodable, B: Encodable>(_ type: T.Type, method: String, path: String, body: B) async throws -> T {
