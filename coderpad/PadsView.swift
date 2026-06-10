@@ -8,6 +8,7 @@ import SwiftUI
 struct PadsView: View {
     let client: CoderPadClient
     @Environment(\.orgDirectory) private var directory
+    @Environment(\.scenePhase) private var scenePhase
     @State private var accounts = AccountsStore.shared
     @State private var pinned = PinnedPadsStore.shared
     @State private var pads: [Pad] = []
@@ -22,8 +23,11 @@ struct PadsView: View {
     @State private var typeFilter: String? = nil
     @State private var showCreate = false
     @State private var lastFetched: Date?
+    @State private var previousUpdatedAt: [String: Date] = [:]
+    @State private var changedPadIDs: Set<String> = []
+    @State private var hasLoadedOnce = false
 
-    private static let refreshInterval: Duration = .seconds(180)
+    private static let refreshInterval: Duration = .seconds(45)
 
     var body: some View {
         NavigationSplitView {
@@ -37,7 +41,8 @@ struct PadsView: View {
                 placeholder
             }
         }
-        .task(id: client.apiKey) {
+        .task(id: TaskKey(apiKey: client.apiKey, phase: scenePhase)) {
+            guard scenePhase == .active else { return }
             await reload()
             while !Task.isCancelled {
                 try? await Task.sleep(for: Self.refreshInterval)
@@ -115,7 +120,7 @@ struct PadsView: View {
                     Divider()
                     List(filtered, selection: $selection) { pad in
                         NavigationLink(value: pad) {
-                            PadRow(pad: pad)
+                            PadRow(pad: pad, isChanged: changedPadIDs.contains(pad.id))
                         }
                     }
                     .listStyle(.inset)
@@ -215,13 +220,40 @@ struct PadsView: View {
         error = nil
         defer { isLoading = false }
         do {
-            let fetched = try await client.listPads()
-            pads = fetched.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
+            let fetched = try await client.listPads().sorted {
+                ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast)
+            }
+            // Diff against previous snapshot
+            var changes: Set<String> = []
+            if hasLoadedOnce {
+                for pad in fetched {
+                    if let prev = previousUpdatedAt[pad.id] {
+                        if let updated = pad.updatedAt, updated > prev {
+                            changes.insert(pad.id)
+                        }
+                    } else {
+                        changes.insert(pad.id)
+                    }
+                }
+            }
+            changedPadIDs = changes
+            var nextState: [String: Date] = [:]
+            for pad in fetched {
+                if let updated = pad.updatedAt { nextState[pad.id] = updated }
+            }
+            previousUpdatedAt = nextState
+            pads = fetched
             lastFetched = Date()
+            hasLoadedOnce = true
         } catch {
             self.error = error
         }
     }
+}
+
+private struct TaskKey: Hashable {
+    let apiKey: String
+    let phase: ScenePhase
 }
 
 struct FilterChipMenu: View {
@@ -270,6 +302,7 @@ struct FilterChipMenu: View {
 
 private struct PadRow: View {
     let pad: Pad
+    var isChanged: Bool = false
     @Environment(\.orgDirectory) private var directory
     @State private var pinned = PinnedPadsStore.shared
     @State private var accounts = AccountsStore.shared
@@ -281,7 +314,17 @@ private struct PadRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
-            AvatarCircle(label: directory.display(pad.ownerEmail), diameter: 30)
+            ZStack(alignment: .topTrailing) {
+                AvatarCircle(label: directory.display(pad.ownerEmail), diameter: 30)
+                if isChanged {
+                    Circle()
+                        .fill(Color.blue)
+                        .frame(width: 9, height: 9)
+                        .overlay(Circle().stroke(Color.cardBackground, lineWidth: 2))
+                        .offset(x: 2, y: -2)
+                        .help("Updated since last refresh")
+                }
+            }
             VStack(alignment: .leading, spacing: 4) {
                 Text(pad.title.isEmpty ? pad.id : pad.title)
                     .font(.callout.weight(.medium))
@@ -325,7 +368,7 @@ struct PadDetailView: View {
     let pad: Pad
     @State private var events: [PadEvent] = []
     @State private var environments: [PadEnvironment] = []
-    @State private var loadError: String?
+    @State private var loadError: Error?
     @State private var isLoading = false
     @Environment(\.openWindow) private var openWindow
     @Environment(\.orgDirectory) private var directory
@@ -497,7 +540,7 @@ struct PadDetailView: View {
                     }
                 }
                 if let loadError {
-                    Label(loadError, systemImage: "exclamationmark.triangle")
+                    Label(loadError.localizedDescription, systemImage: "exclamationmark.triangle")
                         .foregroundStyle(.orange)
                         .font(.callout)
                 } else if events.isEmpty && !isLoading {
@@ -565,7 +608,7 @@ struct PadDetailView: View {
             self.events = try await events
             self.environments = await envs
         } catch {
-            loadError = error.localizedDescription
+            loadError = error
         }
     }
 

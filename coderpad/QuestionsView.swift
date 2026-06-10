@@ -8,9 +8,10 @@ import SwiftUI
 struct QuestionsView: View {
     let client: CoderPadClient
     @Environment(\.orgDirectory) private var directory
+    @Environment(\.scenePhase) private var scenePhase
     @State private var questions: [Question] = []
 
-    private static let refreshInterval: Duration = .seconds(300)
+    private static let refreshInterval: Duration = .seconds(90)
     @State private var isLoading = false
     @State private var error: Error?
     @State private var selection: Question?
@@ -35,7 +36,8 @@ struct QuestionsView: View {
                                        description: Text("Pick one to view details."))
             }
         }
-        .task(id: client.apiKey) {
+        .task(id: QuestionsTaskKey(apiKey: client.apiKey, phase: scenePhase)) {
+            guard scenePhase == .active else { return }
             await reload()
             while !Task.isCancelled {
                 try? await Task.sleep(for: Self.refreshInterval)
@@ -155,6 +157,11 @@ struct QuestionsView: View {
             self.error = error
         }
     }
+}
+
+private struct QuestionsTaskKey: Hashable {
+    let apiKey: String
+    let phase: ScenePhase
 }
 
 private struct QuestionRow: View {

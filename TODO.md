@@ -14,13 +14,12 @@ A living roadmap. Items are grouped by theme and roughly ordered by impact. Anyt
 
 ## Data freshness & navigation
 
-- [x] Auto-refresh pads list every 3 minutes (questions every 5).
+- [x] Auto-refresh pads list every 45s (questions every 90s). Gated by `scenePhase == .active`: paused when window isn't foregrounded.
 - [x] Show a "last fetched X ago" indicator near the reload button (pads, questions).
 - [x] Persist last-selected section per account.
 - [x] Pinned pads — star button on each row, pinned pads float to top, scoped per account.
+- [x] Diff highlights when reloading: blue dot on the avatar of any pad whose `updated_at` changed (or that's new) since the last refresh.
 - [ ] Bias auto-refresh toward `state == "started"` pads (currently refreshes the whole list).
-- [ ] Pause auto-refresh when window is not foregrounded.
-- [ ] Diff highlights when reloading: subtle badge on pads that changed since last refresh.
 
 ## Search & filtering
 
