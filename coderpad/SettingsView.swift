@@ -166,28 +166,23 @@ private struct AccountRow: View {
             AvatarCircle(label: account.name, diameter: 30,
                          tint: account.isMock ? .purple : .accentColor)
 
-            VStack(alignment: .leading, spacing: 2) {
-                HStack(spacing: 6) {
-                    Text(account.name.isEmpty ? "Untitled account" : account.name)
-                        .font(.callout.weight(.medium))
-                    if account.isMock {
-                        Text("Demo")
-                            .font(.caption2)
-                            .padding(.horizontal, 6).padding(.vertical, 1)
-                            .background(Color.purple.opacity(0.18), in: Capsule())
-                            .foregroundStyle(.purple)
-                    }
-                    if isCurrent {
-                        Text("Current")
-                            .font(.caption2)
-                            .padding(.horizontal, 6).padding(.vertical, 1)
-                            .background(Color.green.opacity(0.18), in: Capsule())
-                            .foregroundStyle(.green)
-                    }
+            HStack(spacing: 6) {
+                Text(account.name.isEmpty ? "Untitled account" : account.name)
+                    .font(.callout.weight(.medium))
+                if account.isMock {
+                    Text("Demo")
+                        .font(.caption2)
+                        .padding(.horizontal, 6).padding(.vertical, 1)
+                        .background(Color.purple.opacity(0.18), in: Capsule())
+                        .foregroundStyle(.purple)
                 }
-                Text(account.isMock ? "Mock data, no key" : "Key stored in Keychain")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                if isCurrent {
+                    Text("Current")
+                        .font(.caption2)
+                        .padding(.horizontal, 6).padding(.vertical, 1)
+                        .background(Color.green.opacity(0.18), in: Capsule())
+                        .foregroundStyle(.green)
+                }
             }
 
             Spacer()
@@ -285,7 +280,7 @@ private struct AccountEditor: View {
     @ViewBuilder
     private var validationBanner: some View {
         switch validation {
-        case .idle:
+        case .idle, .valid:
             EmptyView()
         case .validating:
             HStack(spacing: 6) {
@@ -293,9 +288,6 @@ private struct AccountEditor: View {
                 Text("Checking key…").foregroundStyle(.secondary)
             }
             .font(.callout)
-        case .valid(let org):
-            Label("Valid: \(org)", systemImage: "checkmark.seal.fill")
-                .foregroundStyle(.green).font(.callout)
         case .invalid(let message):
             Label(message, systemImage: "xmark.octagon.fill")
                 .foregroundStyle(.red).font(.callout)
