@@ -302,19 +302,15 @@ private struct Sidebar: View {
             SidebarSearchField(query: $query, section: $section)
                 .padding(.horizontal, 10)
                 .padding(.top, 10)
-                .padding(.bottom, 6)
-            List(selection: $section) {
-                SidebarItem(label: "Pads", systemImage: "doc.text",
-                            value: .pads, selection: section)
-                SidebarItem(label: "Questions", systemImage: "questionmark.bubble",
-                            value: .questions, selection: section)
-                SidebarItem(label: "Organization", systemImage: "building.2",
-                            value: .organization, selection: section)
-                SidebarItem(label: "Quota", systemImage: "gauge.with.dots.needle.67percent",
-                            value: .quota, selection: section)
+                .padding(.bottom, 8)
+            VStack(spacing: 2) {
+                sidebarRow(.pads, "Pads", "doc.text")
+                sidebarRow(.questions, "Questions", "questionmark.bubble")
+                sidebarRow(.organization, "Organization", "building.2")
+                sidebarRow(.quota, "Quota", "gauge.with.dots.needle.67percent")
             }
-            .listStyle(.sidebar)
-            .scrollDisabled(true)
+            .padding(.horizontal, 8)
+            Spacer(minLength: 0)
             Divider()
             AccountFooter(showSettings: $showSettings)
                 .padding(10)
@@ -322,25 +318,33 @@ private struct Sidebar: View {
         }
         .navigationTitle("CoderPad")
     }
-}
 
-private struct SidebarItem: View {
-    let label: String
-    let systemImage: String
-    let value: AppSection
-    let selection: AppSection?
-
-    private var isSelected: Bool { selection == value }
-
-    var body: some View {
-        Label {
-            Text(label)
-                .foregroundStyle(isSelected ? Color.accentColor : .primary)
-        } icon: {
-            Image(systemName: systemImage)
-                .foregroundStyle(isSelected ? Color.accentColor : .primary)
+    @ViewBuilder
+    private func sidebarRow(_ value: AppSection, _ label: String, _ icon: String) -> some View {
+        let isSelected = section == value
+        Button {
+            section = value
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .frame(width: 18)
+                Text(label)
+                Spacer(minLength: 0)
+            }
+            .font(.callout)
+            .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
+            .padding(.vertical, 5)
+            .padding(.horizontal, 8)
+            .background(
+                isSelected
+                ? Color.primary.opacity(0.12)
+                : Color.clear,
+                in: RoundedRectangle(cornerRadius: 6, style: .continuous)
+            )
+            .contentShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
         }
-        .tag(value)
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 
