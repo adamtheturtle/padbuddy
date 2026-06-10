@@ -275,6 +275,20 @@ enum CoderPadLanguages {
     ]
 }
 
+/// Runs `work` immediately, then re-runs it on `interval` until the task is cancelled.
+/// Cancellation breaks the loop cleanly instead of being swallowed by `try?`.
+func periodicReload(interval: Duration, work: () async -> Void) async {
+    await work()
+    while !Task.isCancelled {
+        do {
+            try await Task.sleep(for: interval)
+        } catch {
+            break
+        }
+        await work()
+    }
+}
+
 struct GetAPIKeyLink: View {
     var prominent: Bool = false
     var body: some View {

@@ -50,10 +50,7 @@ struct PadsView: View {
             if pads.isEmpty, let id = accounts.currentAccountID {
                 pads = cache.get(id)
             }
-            await reload()
-            while !Task.isCancelled {
-                try? await Task.sleep(for: Self.refreshInterval)
-                if Task.isCancelled { break }
+            await periodicReload(interval: Self.refreshInterval) {
                 await reload()
             }
         }
