@@ -374,11 +374,10 @@ struct QuestionDetailView: View {
         Card {
             VStack(alignment: .leading, spacing: 10) {
                 SectionHeader(title: title, systemImage: "doc.text")
-                Text(body)
+                MarkdownText(body)
                     .font(.callout)
                     .textSelection(.enabled)
                     .foregroundStyle(.primary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
