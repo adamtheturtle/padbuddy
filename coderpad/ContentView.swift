@@ -304,10 +304,14 @@ private struct Sidebar: View {
                 .padding(.top, 10)
                 .padding(.bottom, 6)
             List(selection: $section) {
-                Label("Pads", systemImage: "doc.text").tag(AppSection.pads)
-                Label("Questions", systemImage: "questionmark.bubble").tag(AppSection.questions)
-                Label("Organization", systemImage: "building.2").tag(AppSection.organization)
-                Label("Quota", systemImage: "gauge.with.dots.needle.67percent").tag(AppSection.quota)
+                SidebarItem(label: "Pads", systemImage: "doc.text",
+                            value: .pads, selection: section)
+                SidebarItem(label: "Questions", systemImage: "questionmark.bubble",
+                            value: .questions, selection: section)
+                SidebarItem(label: "Organization", systemImage: "building.2",
+                            value: .organization, selection: section)
+                SidebarItem(label: "Quota", systemImage: "gauge.with.dots.needle.67percent",
+                            value: .quota, selection: section)
             }
             .listStyle(.sidebar)
             .scrollDisabled(true)
@@ -317,6 +321,26 @@ private struct Sidebar: View {
                 .background(.thinMaterial)
         }
         .navigationTitle("CoderPad")
+    }
+}
+
+private struct SidebarItem: View {
+    let label: String
+    let systemImage: String
+    let value: AppSection
+    let selection: AppSection?
+
+    private var isSelected: Bool { selection == value }
+
+    var body: some View {
+        Label {
+            Text(label)
+                .foregroundStyle(isSelected ? Color.accentColor : .primary)
+        } icon: {
+            Image(systemName: systemImage)
+                .foregroundStyle(isSelected ? Color.accentColor : .primary)
+        }
+        .tag(value)
     }
 }
 
