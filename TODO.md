@@ -103,3 +103,74 @@ A living roadmap. Items are grouped by theme and roughly ordered by impact. Anyt
 - [ ] Periodic key health check: silently call `/api/organization` once a day; if 401, surface a banner before the user discovers it.
 - [ ] Option to require Touch ID before revealing a saved key in Settings.
 - [ ] Audit the Keychain item's access group; currently uses the default Generic Password class.
+
+## App Store submission
+
+### Blockers — must be resolved before submitting
+
+- [ ] **Trademark / naming.** "CoderPad" is a registered trademark of CoderPad Inc. Apple App Review *will* reject (guideline 5.2.5) unless you have written permission from them. Pick one of:
+    - Get written permission from CoderPad Inc. (best if you might partner with them).
+    - Rename the app (e.g. "PadDeck", "InterviewPad", "DevInterview Browser"). Marketing copy and screenshots can still say "for CoderPad interviews".
+- [ ] **Bundle identifier.** Currently `ptn.coderpad`. Replace with a reverse-domain ID under a domain *you* own (e.g. `com.adamdangoor.coderpad-mac`). Must be unique and stable across versions.
+- [ ] **Paid Apple Developer Program membership** ($99/year). Required for App Store distribution; the existing "Personal Team" used for local Debug builds won't ship.
+- [ ] **[manual]** In Signing & Capabilities, set Team to your paid team and switch the Release configuration to "Mac App Store Distribution" provisioning.
+
+### Privacy
+
+- [ ] **`PrivacyInfo.xcprivacy` manifest** at `coderpad/coderpad/PrivacyInfo.xcprivacy`. List:
+    - `NSPrivacyTracking = false`
+    - `NSPrivacyTrackingDomains = []`
+    - `NSPrivacyCollectedDataTypes`: empty (the app only stores the user's own API key locally; no analytics, no upload).
+    - `NSPrivacyAccessedAPITypes`: `NSPrivacyAccessedAPICategoryUserDefaults` (we read `UserDefaults` for the current account id / section), and `NSPrivacyAccessedAPICategoryFileTimestamp` only if you add file APIs later.
+- [ ] **App Store Connect privacy nutrition labels** that match the manifest: no data collected, no third-party SDKs.
+- [ ] **Privacy policy URL.** A short single-page policy hosted on GitHub Pages or similar. Required field even when you collect nothing.
+- [ ] **Account deletion isn't applicable** (we don't sign users up — they paste a CoderPad key). Document this in the review notes.
+
+### Code & build configuration
+
+- [ ] Update **MARKETING_VERSION** and **CURRENT_PROJECT_VERSION** with each upload. Build number must monotonically increase per version.
+- [ ] **MACOSX_DEPLOYMENT_TARGET** currently `26.4` — must match what App Review's hardware can run. Pick a real deployment target that today's App Review machines support (probably 14.0 unless you specifically need 26.x features).
+- [ ] **Hardened runtime** enabled (off by default for Debug, required for Distribution).
+- [ ] **App Sandbox** with these capabilities:
+    - `com.apple.security.app-sandbox = true` ✅
+    - `com.apple.security.network.client = true` ✅ (already needed for the API)
+- [ ] No private API usage. (We don't; just sanity-check after any future refactor.)
+- [ ] **Notarization** is automatic for App Store submissions, but if you also ship a non-App-Store DMG (see Distribution above), notarize via `notarytool`.
+- [ ] **Asset catalog completeness**: AppIcon set ✅. Add Accent color if the system one isn't desired.
+
+### App Store Connect listing
+
+- [ ] App name (≤30 chars).
+- [ ] Subtitle (≤30 chars). e.g. "Browse and manage interview pads".
+- [ ] Promotional text (≤170 chars).
+- [ ] Description (≤4000 chars). Include features, requires an existing CoderPad account, free to download.
+- [ ] Keywords (≤100 chars total, comma separated).
+- [ ] Support URL (linkable to a GitHub Issues page).
+- [ ] Marketing URL (optional — the GitHub repo works).
+- [ ] **Screenshots**: macOS requires 2880 × 1800 (or 1280 × 800) — at least one. Recommend 5: pad list, pad detail, in-window browser, organization view, settings.
+- [ ] App preview video (optional, 15–30 s).
+- [ ] Primary + secondary category: Developer Tools / Productivity.
+- [ ] Age rating: 4+ (no objectionable content).
+- [ ] Copyright line.
+- [ ] Localizations: at least `en-US`. Add others later.
+
+### Review-friendly details
+
+- [ ] **Demo credentials in App Review notes**: tell the reviewer to flip the build to a Debug build for "Try Demo" — or, more practically, leave a *Release-safe* sample API key with read-only scope for review. Without it, Review can't see past the empty state.
+- [ ] **Reviewer instructions**: explain that the app is a thin client over the public CoderPad API, the user provides their own key, and that keys are stored only in the local Keychain.
+- [ ] **Avoid HIG violations**: no fake system UI, no copy-paste of standard alerts, no fake App Store / IAP UI. (Currently clean.)
+
+### Releases
+
+- [ ] Tag commits with semver (e.g. `v1.0.0`) and use the GitHub Releases page for release notes.
+- [ ] Hook the existing GitHub Actions workflow to also produce a Release `.app` artifact on tag pushes (separate from Mac App Store flow).
+- [ ] Set up Sparkle (or `SUUpdater`) for the non-App-Store builds (App Store builds update via the store).
+- [ ] Add a small "What's New" sheet on first launch after an update.
+
+### Polish before first submission
+
+- [ ] Verify the app works *without* the network entitlement and shows a useful error rather than spinning forever.
+- [ ] First-run UX with a real key: time-to-pads under 3 seconds for an org with ~100 pads.
+- [ ] Memory profile during an extended Pads → Detail → Browser session.
+- [ ] Verify VoiceOver pass on the pad list and detail view.
+- [ ] Run Xcode's Accessibility Inspector audit; resolve any P0/P1 findings.

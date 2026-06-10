@@ -5,7 +5,7 @@
 
 import SwiftUI
 
-enum AppSection: Hashable {
+enum AppSection: String, Hashable {
     case pads, questions, organization, quota
 }
 
@@ -16,19 +16,32 @@ struct ContentView: View {
     @State private var directory = OrgDirectory()
 
     var body: some View {
-        NavigationSplitView {
-            sidebar
-                .navigationSplitViewColumnWidth(min: 200, ideal: 220)
-        } detail: {
+        Group {
             if store.currentAccount == nil {
                 noAccountView
+                    .frame(minWidth: 520, minHeight: 380)
             } else {
-                detailContent
-                    .task(id: store.currentAccountID) {
-                        if let account = store.currentAccount {
-                            await directory.load(for: account)
+                NavigationSplitView {
+                    sidebar
+                        .navigationSplitViewColumnWidth(min: 200, ideal: 220)
+                } detail: {
+                    detailContent
+                        .task(id: store.currentAccountID) {
+                            if let account = store.currentAccount {
+                                if let raw = UserDefaults.standard.string(forKey: "section.\(account.id.uuidString)"),
+                                   let s = AppSection(rawValue: raw) {
+                                    section = s
+                                }
+                                await directory.load(for: account)
+                            }
                         }
-                    }
+                        .onChange(of: section) { _, newValue in
+                            if let account = store.currentAccount, let newValue {
+                                UserDefaults.standard.set(newValue.rawValue,
+                                                          forKey: "section.\(account.id.uuidString)")
+                            }
+                        }
+                }
             }
         }
         .environment(\.openSettings, { showSettings = true })
