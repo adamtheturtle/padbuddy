@@ -29,9 +29,10 @@ A living roadmap. Items are grouped by theme and roughly ordered by impact. Anyt
 - [ ] Save searches as named views ("Live pads, my team, today").
 - [ ] Spotlight integration via Core Spotlight so pads + questions are findable system-wide.
 
-## Write paths (currently only Create Pad is implemented)
+## Write paths
 
-- [ ] PUT `/api/pads/` — update an existing pad's title / language / private / execution / notes.
+- [x] POST `/api/pads/` — create.
+- [x] PUT `/api/pads/` — update title / language / owner / private / execution from an Edit sheet on pad detail.
 - [ ] POST `/api/questions/` — create question with description, candidate instructions, solution, language, take-home toggle.
 - [ ] PUT `/api/questions/:id` — edit.
 - [ ] DELETE `/api/questions/:id` — with a confirmation sheet and an undo grace period (re-create from cached fields).
@@ -102,7 +103,7 @@ A living roadmap. Items are grouped by theme and roughly ordered by impact. Anyt
 
 ## Security
 
-- [ ] Periodic key health check: silently call `/api/organization` once a day; if 401, surface a banner before the user discovers it.
+- [x] Periodic key health check: `AccountHealthMonitor` calls `/api/organization` every 30 minutes; an orange banner at the top of the window appears if the key returns 401/403, with Open Settings / Recheck buttons.
 - [ ] Option to require Touch ID before revealing a saved key in Settings.
 - [ ] Audit the Keychain item's access group; currently uses the default Generic Password class.
 

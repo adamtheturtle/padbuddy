@@ -64,6 +64,19 @@ final class MockURLProtocol: URLProtocol {
 
 enum MockResponses {
     static func respond(method: String, path: String, body: Data?) -> (Int, Data) {
+        if method == "PUT", path == "/api/pads/" || path == "/api/pads" {
+            guard let body,
+                  let dict = try? JSONSerialization.jsonObject(with: body) as? [String: Any],
+                  let id = dict["id"] as? String else {
+                return (400, jsonString(["status": "error", "message": "missing id"]))
+            }
+            MockFixtures.updatedPads[id] = dict
+            if let pad = MockFixtures.allPads().first(where: { ($0["id"] as? String) == id }) {
+                return ok(["status": "OK", "pad": pad])
+            }
+            return (404, jsonString(["status": "error", "message": "pad not found"]))
+        }
+
         if method == "POST", path == "/api/pads/" || path == "/api/pads" {
             let create = (try? JSONDecoder().decode(PadCreate.self, from: body ?? Data())) ?? PadCreate()
             let id = "DEMO\(Int.random(in: 1000...9999))"
@@ -165,9 +178,16 @@ enum MockResponses {
 
 enum MockFixtures {
     nonisolated(unsafe) static var createdPads: [[String: Any]] = []
+    nonisolated(unsafe) static var updatedPads: [String: [String: Any]] = [:]
 
     static func allPads() -> [[String: Any]] {
-        seedPads() + createdPads
+        let base = seedPads().map { pad -> [String: Any] in
+            guard let id = pad["id"] as? String, let updates = updatedPads[id] else { return pad }
+            var merged = pad
+            for (key, value) in updates where key != "id" { merged[key] = value }
+            return merged
+        }
+        return base + createdPads
     }
 
     private static func seedPads() -> [[String: Any]] {

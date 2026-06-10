@@ -56,6 +56,16 @@ struct PadsView: View {
         .onReceive(NotificationCenter.default.publisher(for: .reloadRequested)) { _ in
             Task { await reload() }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .padUpdated)) { note in
+            if let updated = note.object as? Pad,
+               let i = pads.firstIndex(where: { $0.id == updated.id }) {
+                pads[i] = updated
+                if selection?.id == updated.id { selection = updated }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .padsSearchRequested)) { note in
+            if let q = note.object as? String { search = q }
+        }
         .sheet(isPresented: $showCreate) {
             NewPadSheet(client: client) { created in
                 pads.insert(created, at: 0)
@@ -371,6 +381,7 @@ struct PadDetailView: View {
     @State private var environments: [PadEnvironment] = []
     @State private var loadError: Error?
     @State private var isLoading = false
+    @State private var showEdit = false
     @Environment(\.openWindow) private var openWindow
     @Environment(\.orgDirectory) private var directory
 
@@ -397,6 +408,27 @@ struct PadDetailView: View {
         }
         .navigationTitle(pad.title.isEmpty ? pad.id : pad.title)
         .task(id: pad.id) { await load() }
+        .toolbar {
+            ToolbarItem {
+                Button {
+                    showEdit = true
+                } label: {
+                    Label("Edit", systemImage: "pencil")
+                }
+                .help("Edit pad properties")
+            }
+        }
+        .sheet(isPresented: $showEdit) {
+            EditPadSheet(
+                client: client,
+                original: pad,
+                onSaved: { updated in
+                    NotificationCenter.default.post(name: .padUpdated, object: updated)
+                    showEdit = false
+                },
+                onCancel: { showEdit = false }
+            )
+        }
     }
 
     private var header: some View {
@@ -805,3 +837,106 @@ private struct NewPadSheet: View {
         }
     }
 }
+// MARK: - Edit Pad sheet
+
+private struct EditPadSheet: View {
+    let client: CoderPadClient
+    let original: Pad
+    let onSaved: (Pad) -> Void
+    let onCancel: () -> Void
+
+    @State private var title: String
+    @State private var language: String
+    @State private var ownerEmail: String
+    @State private var isPrivate: Bool
+    @State private var executionEnabled: Bool
+    @State private var isSubmitting = false
+    @State private var error: String?
+
+    private let languages = [
+        "python3", "javascript", "typescript", "swift", "go", "rust", "java",
+        "kotlin", "ruby", "c", "cpp", "csharp", "php", "scala", "r", "sql", "bash"
+    ]
+
+    init(client: CoderPadClient,
+         original: Pad,
+         onSaved: @escaping (Pad) -> Void,
+         onCancel: @escaping () -> Void) {
+        self.client = client
+        self.original = original
+        self.onSaved = onSaved
+        self.onCancel = onCancel
+        _title = State(initialValue: original.title)
+        _language = State(initialValue: original.language ?? "python3")
+        _ownerEmail = State(initialValue: original.ownerEmail)
+        _isPrivate = State(initialValue: original.isPrivate ?? false)
+        _executionEnabled = State(initialValue: original.executionEnabled ?? true)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Edit Pad").font(.title3.bold())
+            Text(original.id).font(.caption.monospaced()).foregroundStyle(.secondary)
+
+            Form {
+                TextField("Title", text: $title)
+                Picker("Language", selection: $language) {
+                    ForEach(languages, id: \.self) { Text($0).tag($0) }
+                    if !languages.contains(language) {
+                        Text(language).tag(language)
+                    }
+                }
+                TextField("Owner email", text: $ownerEmail)
+                Toggle("Private", isOn: $isPrivate)
+                Toggle("Execution enabled", isOn: $executionEnabled)
+            }
+            .formStyle(.grouped)
+
+            if let error {
+                Label(error, systemImage: "exclamationmark.triangle")
+                    .foregroundStyle(.orange)
+                    .font(.callout)
+            }
+
+            HStack {
+                Spacer()
+                Button("Cancel", role: .cancel, action: onCancel)
+                Button {
+                    Task { await submit() }
+                } label: {
+                    if isSubmitting {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Text("Save")
+                    }
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(isSubmitting)
+            }
+        }
+        .padding()
+        .frame(minWidth: 460, minHeight: 360)
+    }
+
+    private func submit() async {
+        isSubmitting = true
+        error = nil
+        defer { isSubmitting = false }
+        let body = PadUpdate(
+            id: original.id,
+            title: title,
+            language: language,
+            ownerEmail: ownerEmail.isEmpty ? nil : ownerEmail,
+            notes: nil,
+            isPrivate: isPrivate,
+            executionEnabled: executionEnabled
+        )
+        do {
+            let updated = try await client.updatePad(body)
+            onSaved(updated)
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+}
+

@@ -14,6 +14,7 @@ struct ContentView: View {
     @State private var section: AppSection? = .pads
     @State private var showSettings = false
     @State private var directory = OrgDirectory()
+    @State private var monitor = AccountHealthMonitor.shared
     @State private var openPadURLDraft: String = ""
     @State private var showOpenPadURL = false
     @Environment(\.openWindow) private var openWindow
@@ -24,29 +25,36 @@ struct ContentView: View {
                 noAccountView
                     .frame(minWidth: 520, minHeight: 380)
             } else {
-                NavigationSplitView {
-                    sidebar
-                        .navigationSplitViewColumnWidth(min: 200, ideal: 220)
-                } detail: {
-                    detailContent
-                        .task(id: store.currentAccountID) {
-                            if let account = store.currentAccount {
-                                if let raw = UserDefaults.standard.string(forKey: "section.\(account.id.uuidString)"),
-                                   let s = AppSection(rawValue: raw) {
-                                    section = s
+                VStack(spacing: 0) {
+                    if let account = store.currentAccount, monitor.isUnauthorized(account.id) {
+                        unauthorizedBanner
+                    }
+                    NavigationSplitView {
+                        sidebar
+                            .navigationSplitViewColumnWidth(min: 200, ideal: 220)
+                    } detail: {
+                        detailContent
+                            .task(id: store.currentAccountID) {
+                                if let account = store.currentAccount {
+                                    if let raw = UserDefaults.standard.string(forKey: "section.\(account.id.uuidString)"),
+                                       let s = AppSection(rawValue: raw) {
+                                        section = s
+                                    }
+                                    await directory.load(for: account)
+                                    await monitor.checkCurrentAccount()
                                 }
-                                await directory.load(for: account)
                             }
-                        }
-                        .onChange(of: section) { _, newValue in
-                            if let account = store.currentAccount, let newValue {
-                                UserDefaults.standard.set(newValue.rawValue,
-                                                          forKey: "section.\(account.id.uuidString)")
+                            .onChange(of: section) { _, newValue in
+                                if let account = store.currentAccount, let newValue {
+                                    UserDefaults.standard.set(newValue.rawValue,
+                                                              forKey: "section.\(account.id.uuidString)")
+                                }
                             }
-                        }
+                    }
                 }
             }
         }
+        .task { monitor.start() }
         .environment(\.openSettings, { showSettings = true })
         .environment(\.orgDirectory, directory)
         .onReceive(NotificationCenter.default.publisher(for: .sectionRequested)) { note in
@@ -154,6 +162,33 @@ struct ContentView: View {
             case .quota: QuotaView(client: client).id(account.id)
             }
         }
+    }
+
+    private var unauthorizedBanner: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.shield.fill")
+                .foregroundStyle(.orange)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("This API key was rejected by CoderPad")
+                    .font(.callout.weight(.semibold))
+                Text("Open Settings and update or replace the key for this account.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Button("Open Settings") { showSettings = true }
+                .controlSize(.small)
+            Button("Recheck") {
+                Task { await monitor.checkCurrentAccount() }
+            }
+            .controlSize(.small)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(Color.orange.opacity(0.18))
+        .overlay(Rectangle().frame(height: 0.5).foregroundStyle(.tertiary), alignment: .bottom)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Warning: API key for current account was rejected. Open Settings to update.")
     }
 
     private var noAccountView: some View {

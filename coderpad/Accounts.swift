@@ -158,12 +158,16 @@ final class AccountsStore {
     }
 
     private func persistAccounts() {
-        if accounts.isEmpty {
-            Keychain.delete(account: Keychain.accountsAccount)
-            return
-        }
-        if let data = try? JSONEncoder().encode(accounts) {
-            Keychain.write(data, account: Keychain.accountsAccount)
+        let snapshot = accounts
+        // Move Keychain I/O off the main thread to keep the UI responsive.
+        Task.detached(priority: .userInitiated) {
+            if snapshot.isEmpty {
+                Keychain.delete(account: Keychain.accountsAccount)
+                return
+            }
+            if let data = try? JSONEncoder().encode(snapshot) {
+                Keychain.write(data, account: Keychain.accountsAccount)
+            }
         }
     }
 
@@ -173,6 +177,47 @@ final class AccountsStore {
         } else {
             UserDefaults.standard.removeObject(forKey: Self.currentIDDefaultsKey)
         }
+    }
+}
+
+@Observable
+final class AccountHealthMonitor {
+    static let shared = AccountHealthMonitor()
+
+    private(set) var unauthorizedAccountIDs: Set<UUID> = []
+    private(set) var lastChecked: Date?
+    private var checkTask: Task<Void, Never>?
+
+    private init() {}
+
+    func start(every interval: Duration = .seconds(1800)) {
+        checkTask?.cancel()
+        checkTask = Task { @MainActor in
+            while !Task.isCancelled {
+                await self.checkCurrentAccount()
+                try? await Task.sleep(for: interval)
+            }
+        }
+    }
+
+    func checkCurrentAccount() async {
+        guard let account = AccountsStore.shared.currentAccount,
+              !account.isMock,
+              !account.apiKey.isEmpty else { return }
+        let client = CoderPadClient.live(apiKey: account.apiKey)
+        do {
+            _ = try await client.organization()
+            unauthorizedAccountIDs.remove(account.id)
+        } catch let error as CoderPadError where error.isUnauthorized {
+            unauthorizedAccountIDs.insert(account.id)
+        } catch {
+            // transient errors don't change auth state
+        }
+        lastChecked = Date()
+    }
+
+    func isUnauthorized(_ accountID: UUID) -> Bool {
+        unauthorizedAccountIDs.contains(accountID)
     }
 }
 

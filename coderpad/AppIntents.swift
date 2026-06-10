@@ -20,6 +20,31 @@ struct CoderPadShortcuts: AppShortcutsProvider {
             shortTitle: "Open Pads",
             systemImageName: "doc.text"
         )
+        AppShortcut(
+            intent: SearchPadsIntent(),
+            phrases: ["Search \(.applicationName)", "Find pads in \(.applicationName)"],
+            shortTitle: "Search Pads",
+            systemImageName: "magnifyingglass"
+        )
+    }
+}
+
+struct SearchPadsIntent: AppIntent {
+    static var title: LocalizedStringResource = "Search Pads"
+    static var description = IntentDescription("Open CoderPad and search pads matching a query.")
+    static var openAppWhenRun: Bool = true
+
+    @Parameter(title: "Query", description: "Text to search pad titles, owners, and participants for.")
+    var query: String
+
+    func perform() async throws -> some IntentResult {
+        try? await Task.sleep(for: .milliseconds(300))
+        let q = query
+        await MainActor.run {
+            NotificationCenter.default.post(name: .sectionRequested, object: AppSection.pads)
+            NotificationCenter.default.post(name: .padsSearchRequested, object: q)
+        }
+        return .result()
     }
 }
 

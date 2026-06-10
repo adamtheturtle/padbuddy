@@ -11,6 +11,8 @@ extension Notification.Name {
     static let sectionRequested = Notification.Name("coderpad.sectionRequested")
     static let reloadRequested = Notification.Name("coderpad.reloadRequested")
     static let openPadByURLRequested = Notification.Name("coderpad.openPadByURLRequested")
+    static let padUpdated = Notification.Name("coderpad.padUpdated")
+    static let padsSearchRequested = Notification.Name("coderpad.padsSearchRequested")
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {

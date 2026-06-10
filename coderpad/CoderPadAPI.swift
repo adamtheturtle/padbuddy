@@ -99,6 +99,23 @@ struct PadEnvironment: Decodable, Identifiable, Hashable {
     }
 }
 
+struct PadUpdate: Codable {
+    var id: String
+    var title: String?
+    var language: String?
+    var ownerEmail: String?
+    var notes: String?
+    var isPrivate: Bool?
+    var executionEnabled: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case id, title, language, notes
+        case ownerEmail = "owner_email"
+        case isPrivate = "private"
+        case executionEnabled = "execution_enabled"
+    }
+}
+
 struct PadCreate: Codable {
     var title: String?
     var language: String?
@@ -341,6 +358,11 @@ struct CoderPadClient {
     func createPad(_ body: PadCreate) async throws -> Pad {
         struct Wrapper: Decodable { let pad: Pad }
         return try await send(Wrapper.self, method: "POST", path: "/api/pads/", body: body).pad
+    }
+
+    func updatePad(_ body: PadUpdate) async throws -> Pad {
+        struct Wrapper: Decodable { let pad: Pad }
+        return try await send(Wrapper.self, method: "PUT", path: "/api/pads/", body: body).pad
     }
 
     // MARK: Questions

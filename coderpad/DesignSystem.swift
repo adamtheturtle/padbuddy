@@ -231,7 +231,7 @@ final class OrgDirectory {
         guard loadedAccountID != account.id, inFlight != account.id else { return }
         inFlight = account.id
         defer { inFlight = nil }
-        let client = CoderPadClient(apiKey: account.apiKey)
+        let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey)
         if let org = try? await client.organization() {
             var map: [String: String] = [:]
             for user in org.users {
