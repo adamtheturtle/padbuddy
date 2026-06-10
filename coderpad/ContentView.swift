@@ -12,13 +12,13 @@ enum AppSection: String, Hashable {
 struct ContentView: View {
     @State private var store = AccountsStore.shared
     @State private var section: AppSection? = .pads
-    @State private var showSettings = false
     @State private var directory = OrgDirectory()
     @State private var monitor = AccountHealthMonitor.shared
     @State private var openPadURLDraft: String = ""
     @State private var showOpenPadURL = false
     @State private var showWhatsNew = false
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         Group {
@@ -28,14 +28,12 @@ struct ContentView: View {
             } else {
                 MainSplit(
                     section: $section,
-                    showSettings: $showSettings,
                     directory: directory,
                     monitor: monitor
                 )
             }
         }
 
-        .environment(\.openSettings, { showSettings = true })
         .environment(\.orgDirectory, directory)
         .onReceive(NotificationCenter.default.publisher(for: .sectionRequested)) { note in
             if let s = note.object as? AppSection { section = s }
@@ -50,7 +48,7 @@ struct ContentView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .openSettingsRequested)) { _ in
-            showSettings = true
+            openSettings()
         }
         .onReceive(NotificationCenter.default.publisher(for: .openPadInBrowserRequested)) { note in
             if let url = note.object as? URL {
@@ -71,16 +69,6 @@ struct ContentView: View {
                 }
             )
         }
-        .sheet(isPresented: $showSettings) {
-            NavigationStack {
-                SettingsView()
-                    .toolbar {
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button("Done") { showSettings = false }
-                        }
-                    }
-            }
-        }
         .sheet(isPresented: $showWhatsNew) {
             WhatsNewSheet(release: WhatsNew.current) { showWhatsNew = false }
         }
@@ -97,7 +85,7 @@ struct ContentView: View {
             ContentUnavailableView {
                 Label("Welcome to CoderPad", systemImage: "doc.text.magnifyingglass")
             } actions: {
-                Button("Add Account") { showSettings = true }
+                Button("Add Account") { openSettings() }
                     .buttonStyle(.borderedProminent)
                 #if DEBUG
                 Button("Try Demo") {
@@ -111,7 +99,7 @@ struct ContentView: View {
             } description: {
                 Text("Choose one of your saved accounts in Settings.")
             } actions: {
-                Button("Open Settings") { showSettings = true }
+                Button("Open Settings") { openSettings() }
                     .buttonStyle(.borderedProminent)
             }
         }
@@ -228,17 +216,16 @@ struct OpenPadURLSheet: View {
 private struct MainSplit: View {
     @State private var store = AccountsStore.shared
     @Binding var section: AppSection?
-    @Binding var showSettings: Bool
     let directory: OrgDirectory
     let monitor: AccountHealthMonitor
 
     var body: some View {
         VStack(spacing: 0) {
             if let id = store.currentAccountID, monitor.isUnauthorized(id) {
-                UnauthorizedBanner(showSettings: $showSettings, monitor: monitor)
+                UnauthorizedBanner(monitor: monitor)
             }
             NavigationSplitView {
-                Sidebar(section: $section, showSettings: $showSettings)
+                Sidebar(section: $section)
                     .navigationSplitViewColumnWidth(min: 200, ideal: 220)
             } detail: {
                 DetailHost(section: section)
@@ -264,8 +251,8 @@ private struct MainSplit: View {
 }
 
 private struct UnauthorizedBanner: View {
-    @Binding var showSettings: Bool
     let monitor: AccountHealthMonitor
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         HStack(spacing: 10) {
@@ -279,7 +266,7 @@ private struct UnauthorizedBanner: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Button("Open Settings") { showSettings = true }
+            Button("Open Settings") { openSettings() }
                 .controlSize(.small)
             Button("Recheck") {
                 Task { await monitor.checkCurrentAccount() }
@@ -294,7 +281,6 @@ private struct UnauthorizedBanner: View {
 
 private struct Sidebar: View {
     @Binding var section: AppSection?
-    @Binding var showSettings: Bool
     @State private var query: String = ""
 
     var body: some View {
@@ -312,7 +298,7 @@ private struct Sidebar: View {
             .listStyle(.sidebar)
             .scrollDisabled(true)
             Divider()
-            AccountFooter(showSettings: $showSettings)
+            AccountFooter()
                 .padding(10)
                 .background(.thinMaterial)
         }
@@ -357,7 +343,7 @@ private struct SidebarSearchField: View {
 
 private struct AccountFooter: View {
     @State private var store = AccountsStore.shared
-    @Binding var showSettings: Bool
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         HStack(spacing: 10) {
@@ -388,7 +374,7 @@ private struct AccountFooter: View {
                 }
                 Divider()
             }
-            Button("Settings…") { showSettings = true }
+            Button("Settings…") { openSettings() }
                 .keyboardShortcut(",", modifiers: [.command])
         } label: {
             Image(systemName: "chevron.up.chevron.down")
