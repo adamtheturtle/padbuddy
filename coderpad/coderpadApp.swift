@@ -2,8 +2,6 @@
 //  coderpadApp.swift
 //  coderpad
 //
-//  Created by Adam Dangoor on 03/05/2026.
-//
 
 import SwiftUI
 import SwiftData
@@ -11,11 +9,8 @@ import SwiftData
 @main
 struct coderpadApp: App {
     var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
+        let schema = Schema([Item.self])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
         do {
             return try ModelContainer(for: schema, configurations: [modelConfiguration])
         } catch {
@@ -28,5 +23,9 @@ struct coderpadApp: App {
             ContentView()
         }
         .modelContainer(sharedModelContainer)
+
+        Settings {
+            SettingsView()
+        }
     }
 }
