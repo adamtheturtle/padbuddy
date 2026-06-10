@@ -170,7 +170,8 @@ struct QuestionsView: View {
                                formatter: { $0.languageDisplayName })
                 SearchableFilterChip(title: "Owner", icon: "person",
                                      selected: $ownerFilter, options: availableOwners,
-                                     formatter: { directory.display($0) })
+                                     formatter: { directory.display($0) },
+                                     meEmail: accounts.currentAccount?.userEmail)
                 FilterChipMenu(title: "Take-home", icon: "house",
                                selected: $takeHomeFilter, options: ["yes", "no"],
                                formatter: { $0.capitalized })

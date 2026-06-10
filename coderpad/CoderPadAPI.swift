@@ -32,6 +32,14 @@ struct Pad: Decodable, Identifiable, Hashable {
     let participants: [String]
     let url: String
     let playback: String?
+    /// Private interviewer notes. Round-trips with `PadCreate`/`PadUpdate`.
+    let notes: String?
+    /// URL of the pad's whiteboard drawing image, if any.
+    let drawing: String?
+    /// Pad code contents (legacy single-file representation).
+    let contents: String?
+    /// Firebase history URL for the pad.
+    let history: String?
     let createdAt: Date?
     let updatedAt: Date?
     let endedAt: Date?
@@ -45,6 +53,7 @@ struct Pad: Decodable, Identifiable, Hashable {
 
     enum CodingKeys: String, CodingKey {
         case id, title, state, language, participants, url, playback, type, team
+        case notes, drawing, contents, history
         case ownerEmail = "owner_email"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
@@ -66,6 +75,10 @@ struct Pad: Decodable, Identifiable, Hashable {
         participants = c.loggedDecodeIfPresent([String].self, forKey: .participants) ?? []
         url = c.loggedDecodeIfPresent(String.self, forKey: .url) ?? ""
         playback = c.loggedDecodeIfPresent(String.self, forKey: .playback)
+        notes = c.loggedDecodeIfPresent(String.self, forKey: .notes)
+        drawing = c.loggedDecodeIfPresent(String.self, forKey: .drawing)
+        contents = c.loggedDecodeIfPresent(String.self, forKey: .contents)
+        history = c.loggedDecodeIfPresent(String.self, forKey: .history)
         createdAt = c.loggedDecodeIfPresent(Date.self, forKey: .createdAt)
         updatedAt = c.loggedDecodeIfPresent(Date.self, forKey: .updatedAt)
         endedAt = c.loggedDecodeIfPresent(Date.self, forKey: .endedAt)
@@ -88,30 +101,73 @@ struct PadEvent: Decodable, Identifiable, Hashable {
     var id: String { "\(createdAt?.timeIntervalSince1970 ?? 0)-\(kind)-\(userName ?? "")-\(message.hashValue)" }
     let message: String
     let kind: String
+    /// Event-specific context: the language run for `ran`, the question ID for
+    /// `added_question`, "spectator" for a spectator `joined`, etc.
+    let metadata: String?
     let userName: String?
     let userEmail: String?
     let createdAt: Date?
 
     enum CodingKeys: String, CodingKey {
-        case message, kind
+        case message, kind, metadata
         case userName = "user_name"
         case userEmail = "user_email"
         case createdAt = "created_at"
     }
 }
 
+/// One file within a pad environment. Single-file languages return one of these;
+/// multi-file frameworks/projects return one per file in the project.
+struct PadEnvironmentFile: Decodable, Hashable {
+    let path: String?
+    let contents: String?
+    let history: String?
+}
+
 struct PadEnvironment: Decodable, Identifiable, Hashable {
     let id: Int
+    let padID: Int?
+    let questionID: Int?
+    /// e.g. "examples/035-django-shopping-list" when seeded from a CoderPad example.
+    let exampleQuestionID: String?
     let language: String?
-    let title: String?
-    let contents: String?
+    let fileContents: [PadEnvironmentFile]
     let createdAt: Date?
     let updatedAt: Date?
 
     enum CodingKeys: String, CodingKey {
-        case id, language, title, contents
+        case id, language
+        case padID = "pad_id"
+        case questionID = "question_id"
+        case exampleQuestionID = "example_question_id"
+        case fileContents = "file_contents"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(Int.self, forKey: .id)
+        padID = c.loggedDecodeIfPresent(Int.self, forKey: .padID)
+        questionID = c.loggedDecodeIfPresent(Int.self, forKey: .questionID)
+        exampleQuestionID = c.loggedDecodeIfPresent(String.self, forKey: .exampleQuestionID)
+        language = c.loggedDecodeIfPresent(String.self, forKey: .language)
+        fileContents = c.loggedDecodeIfPresent([PadEnvironmentFile].self, forKey: .fileContents) ?? []
+        createdAt = c.loggedDecodeIfPresent(Date.self, forKey: .createdAt)
+        updatedAt = c.loggedDecodeIfPresent(Date.self, forKey: .updatedAt)
+    }
+
+    /// The combined code across all files in the environment, for a simple preview.
+    /// Multi-file projects are concatenated with a header per file path.
+    var contents: String? {
+        let files = fileContents.compactMap { file -> String? in
+            guard let body = file.contents, !body.isEmpty else { return nil }
+            if fileContents.count > 1, let path = file.path, !path.isEmpty {
+                return "// \(path)\n\(body)"
+            }
+            return body
+        }
+        return files.isEmpty ? nil : files.joined(separator: "\n\n")
     }
 }
 
@@ -123,9 +179,13 @@ struct PadUpdate: Codable {
     var notes: String?
     var isPrivate: Bool?
     var executionEnabled: Bool?
+    /// Set to `true` to end the interview. Any other value is ignored by the API.
+    var ended: Bool?
+    /// Set to `true` to delete the interview. Any other value is ignored by the API.
+    var deleted: Bool?
 
     enum CodingKeys: String, CodingKey {
-        case id, title, language, notes
+        case id, title, language, notes, ended, deleted
         case ownerEmail = "owner_email"
         case isPrivate = "private"
         case executionEnabled = "execution_enabled"
@@ -137,12 +197,14 @@ struct QuestionCreate: Codable {
     var language: String?
     var description: String?
     var solution: String?
+    /// Starter code inserted into the interview session when this question is used.
+    var contents: String?
     var takeHome: Bool?
     var padType: String?
     var candidateInstructions: [CandidateInstructionPayload]?
 
     enum CodingKeys: String, CodingKey {
-        case title, language, description, solution
+        case title, language, description, solution, contents
         case takeHome = "take_home"
         case padType = "pad_type"
         case candidateInstructions = "candidate_instructions"
@@ -155,12 +217,14 @@ struct QuestionUpdate: Codable {
     var language: String?
     var description: String?
     var solution: String?
+    /// Starter code inserted into the interview session when this question is used.
+    var contents: String?
     var takeHome: Bool?
     var padType: String?
     var candidateInstructions: [CandidateInstructionPayload]?
 
     enum CodingKeys: String, CodingKey {
-        case id, title, language, description, solution
+        case id, title, language, description, solution, contents
         case takeHome = "take_home"
         case padType = "pad_type"
         case candidateInstructions = "candidate_instructions"
@@ -225,12 +289,19 @@ struct Question: Decodable, Identifiable, Hashable {
     let isDraft: Bool?
     let authorName: String?
     let organizationName: String?
+    /// Starter code inserted into the pad when this question is used.
+    let contents: String?
+    /// Starter code variant used when the question runs against test cases.
+    let contentsForTestCases: String?
+    let publicTakeHomeSettingID: Int?
+    let customFiles: [QuestionCustomFile]
+    let testCases: [QuestionTestCase]
     let createdAt: Date?
     let updatedAt: Date?
     let candidateInstructions: [CandidateInstruction]
 
     enum CodingKeys: String, CodingKey {
-        case id, title, language, description, shared, used, solution
+        case id, title, language, description, shared, used, solution, contents
         case ownerEmail = "owner_email"
         case takeHome = "take_home"
         case testCasesEnabled = "test_cases_enabled"
@@ -238,6 +309,10 @@ struct Question: Decodable, Identifiable, Hashable {
         case isDraft = "is_draft"
         case authorName = "author_name"
         case organizationName = "organization_name"
+        case contentsForTestCases = "contents_for_test_cases"
+        case publicTakeHomeSettingID = "public_take_home_setting_id"
+        case customFiles = "custom_files"
+        case testCases = "test_cases"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
         case candidateInstructions = "candidate_instructions"
@@ -259,9 +334,34 @@ struct Question: Decodable, Identifiable, Hashable {
         isDraft = c.loggedDecodeIfPresent(Bool.self, forKey: .isDraft)
         authorName = c.loggedDecodeIfPresent(String.self, forKey: .authorName)
         organizationName = c.loggedDecodeIfPresent(String.self, forKey: .organizationName)
+        contents = c.loggedDecodeIfPresent(String.self, forKey: .contents)
+        contentsForTestCases = c.loggedDecodeIfPresent(String.self, forKey: .contentsForTestCases)
+        publicTakeHomeSettingID = c.loggedDecodeIfPresent(Int.self, forKey: .publicTakeHomeSettingID)
+        customFiles = c.loggedDecodeIfPresent([QuestionCustomFile].self, forKey: .customFiles) ?? []
+        testCases = c.loggedDecodeIfPresent([QuestionTestCase].self, forKey: .testCases) ?? []
         createdAt = c.loggedDecodeIfPresent(Date.self, forKey: .createdAt)
         updatedAt = c.loggedDecodeIfPresent(Date.self, forKey: .updatedAt)
         candidateInstructions = c.loggedDecodeIfPresent([CandidateInstruction].self, forKey: .candidateInstructions) ?? []
+    }
+}
+
+struct QuestionCustomFile: Decodable, Hashable, Identifiable {
+    let id: String?
+    let title: String?
+    let description: String?
+    let filename: String?
+    let filesize: String?
+}
+
+struct QuestionTestCase: Decodable, Hashable, Identifiable {
+    let id: Int
+    let returnValue: String?
+    let visible: Bool?
+    let arguments: [String]?
+
+    enum CodingKeys: String, CodingKey {
+        case id, visible, arguments
+        case returnValue = "return_value"
     }
 }
 
@@ -289,6 +389,8 @@ struct Organization: Decodable, Hashable {
     let teams: [PadTeam]
     let organizationDefaultLanguage: String?
     let singleSignOnSupported: Bool?
+    /// URL of the organization's SSO sign-in portal, when SSO is supported.
+    let singleSignInURL: String?
 
     enum CodingKeys: String, CodingKey {
         case id, users, teams
@@ -296,6 +398,7 @@ struct Organization: Decodable, Hashable {
         case userCount = "user_count"
         case organizationDefaultLanguage = "organization_default_language"
         case singleSignOnSupported = "single_sign_on_supported"
+        case singleSignInURL = "single_sign_in_url"
     }
 }
 
@@ -332,6 +435,10 @@ struct Quota: Decodable, Hashable {
     let quotaReset: Date?
     let unlimited: Bool?
     let overagesEnabled: Bool?
+    /// Pads left in the current billing cycle. Absent (nil) when `unlimited` is true.
+    let padsRemaining: Int?
+    /// Total pads allocated for the billing cycle. Absent (nil) when `unlimited` is true.
+    let billingCyclePadLimit: Int?
 
     enum CodingKeys: String, CodingKey {
         case unlimited
@@ -339,7 +446,41 @@ struct Quota: Decodable, Hashable {
         case padsUsed = "pads_used"
         case quotaReset = "quota_reset_at"
         case overagesEnabled = "overages_enabled"
+        case padsRemaining = "pads_remaining"
+        case billingCyclePadLimit = "billing_cycle_pad_limit"
     }
+}
+
+// MARK: - Pagination
+
+/// A list response that may span multiple pages. The API returns at most 50 items
+/// per page, plus an absolute `next_page` URL when more remain. Callers that ignore
+/// it silently see only the first page.
+private protocol PagedResponse: Decodable {
+    associatedtype Item: Decodable
+    var pageItems: [Item] { get }
+    var nextPage: String? { get }
+}
+
+private struct PadsPage: PagedResponse {
+    let pads: [Pad]
+    let nextPage: String?
+    var pageItems: [Pad] { pads }
+    enum CodingKeys: String, CodingKey { case pads; case nextPage = "next_page" }
+}
+
+private struct QuestionsPage: PagedResponse {
+    let questions: [Question]
+    let nextPage: String?
+    var pageItems: [Question] { questions }
+    enum CodingKeys: String, CodingKey { case questions; case nextPage = "next_page" }
+}
+
+private struct EventsPage: PagedResponse {
+    let events: [PadEvent]
+    let nextPage: String?
+    var pageItems: [PadEvent] { events }
+    enum CodingKeys: String, CodingKey { case events; case nextPage = "next_page" }
 }
 
 // MARK: - Errors
@@ -412,9 +553,10 @@ struct CoderPadClient {
 
     // MARK: Pads
 
-    func listPads() async throws -> [Pad] {
-        struct Wrapper: Decodable { let pads: [Pad] }
-        return try await fetch(Wrapper.self, path: "/api/pads/").pads
+    /// `sort` accepts e.g. "updated_at,desc" or "created_at,asc". Defaults to the
+    /// API's `created_at,desc`. All pages are followed, not just the first 50.
+    func listPads(sort: String? = nil) async throws -> [Pad] {
+        try await fetchAllPages(PadsPage.self, path: "/api/pads/", sort: sort)
     }
 
     func getPad(id: String) async throws -> Pad {
@@ -423,8 +565,7 @@ struct CoderPadClient {
     }
 
     func padEvents(padID: String) async throws -> [PadEvent] {
-        struct Wrapper: Decodable { let events: [PadEvent] }
-        return try await fetch(Wrapper.self, path: "/api/pads/\(padID)/events").events
+        try await fetchAllPages(EventsPage.self, path: "/api/pads/\(padID)/events")
     }
 
     func padEnvironment(id: Int) async throws -> PadEnvironment {
@@ -433,8 +574,9 @@ struct CoderPadClient {
     }
 
     func createPad(_ body: PadCreate) async throws -> Pad {
-        struct Wrapper: Decodable { let pad: Pad }
-        return try await send(Wrapper.self, method: "POST", path: "/api/pads/", body: body).pad
+        // Unlike the GET endpoints, POST /api/pads returns the pad fields at the top
+        // level (alongside "status"), not nested under a "pad" key.
+        return try await send(Pad.self, method: "POST", path: "/api/pads/", body: body)
     }
 
     func updatePad(_ body: PadUpdate) async throws -> Pad {
@@ -442,11 +584,24 @@ struct CoderPadClient {
         return try await send(Wrapper.self, method: "PUT", path: "/api/pads/", body: body).pad
     }
 
+    /// Ends the interview. The live API replies `{"status":"OK"}` with no pad body.
+    func endPad(id: String) async throws {
+        struct StatusOnly: Decodable { let status: String? }
+        _ = try await send(StatusOnly.self, method: "PUT", path: "/api/pads/",
+                           body: PadUpdate(id: id, ended: true))
+    }
+
+    /// Deletes the interview. The live API replies `{"status":"OK"}` with no pad body.
+    func deletePad(id: String) async throws {
+        struct StatusOnly: Decodable { let status: String? }
+        _ = try await send(StatusOnly.self, method: "PUT", path: "/api/pads/",
+                           body: PadUpdate(id: id, deleted: true))
+    }
+
     // MARK: Questions
 
-    func listQuestions() async throws -> [Question] {
-        struct Wrapper: Decodable { let questions: [Question] }
-        return try await fetch(Wrapper.self, path: "/api/questions/").questions
+    func listQuestions(sort: String? = nil) async throws -> [Question] {
+        try await fetchAllPages(QuestionsPage.self, path: "/api/questions/", sort: sort)
     }
 
     func getQuestion(id: Int) async throws -> Question {
@@ -487,15 +642,62 @@ struct CoderPadClient {
         return try await fetch(OrganizationStats.self, path: "/api/organization/stats")
     }
 
+    /// Every pad in the organization (requires org-owner access or org-wide visibility),
+    /// rather than just the API key owner's pads. Paginated like `listPads`.
+    func listOrganizationPads(sort: String? = nil) async throws -> [Pad] {
+        try await fetchAllPages(PadsPage.self, path: "/api/organization/pads", sort: sort)
+    }
+
+    /// Every organization question visible to you. Paginated like `listQuestions`.
+    func listOrganizationQuestions(sort: String? = nil) async throws -> [Question] {
+        try await fetchAllPages(QuestionsPage.self, path: "/api/organization/questions", sort: sort)
+    }
+
+    /// The organization's users. Passing `email` returns only the matching user — the
+    /// reliable way to resolve which user an API key belongs to.
+    func organizationUsers(email: String? = nil) async throws -> [OrganizationUser] {
+        struct Wrapper: Decodable { let users: [OrganizationUser] }
+        guard !apiKey.isEmpty else { throw CoderPadError.missingAPIKey }
+        var comps = URLComponents(url: baseURL.appendingPathComponent("/api/organization/users"),
+                                  resolvingAgainstBaseURL: false)
+        if let email { comps?.queryItems = [URLQueryItem(name: "email", value: email)] }
+        guard let url = comps?.url else { throw CoderPadError.http(0, "Invalid URL") }
+        return try await performWithRetry(Wrapper.self, request: authorizedGET(url)).users
+    }
+
     // MARK: Plumbing
 
-    private func fetch<T: Decodable>(_ type: T.Type, path: String) async throws -> T {
-        guard !apiKey.isEmpty else { throw CoderPadError.missingAPIKey }
-        var request = URLRequest(url: baseURL.appendingPathComponent(path))
+    private func authorizedGET(_ url: URL) -> URLRequest {
+        var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        return try await performWithRetry(type, request: request)
+        return request
+    }
+
+    private func fetch<T: Decodable>(_ type: T.Type, path: String) async throws -> T {
+        guard !apiKey.isEmpty else { throw CoderPadError.missingAPIKey }
+        return try await performWithRetry(type, request: authorizedGET(baseURL.appendingPathComponent(path)))
+    }
+
+    /// Follows `next_page` links until the list is exhausted, accumulating every page.
+    /// Without this, callers would silently receive only the first 50 records.
+    private func fetchAllPages<W: PagedResponse>(_ type: W.Type, path: String, sort: String? = nil) async throws -> [W.Item] {
+        guard !apiKey.isEmpty else { throw CoderPadError.missingAPIKey }
+        var comps = URLComponents(url: baseURL.appendingPathComponent(path), resolvingAgainstBaseURL: false)
+        if let sort { comps?.queryItems = [URLQueryItem(name: "sort", value: sort)] }
+        var url = comps?.url
+        var items: [W.Item] = []
+        var pages = 0
+        while let current = url {
+            let page = try await performWithRetry(W.self, request: authorizedGET(current))
+            items.append(contentsOf: page.pageItems)
+            pages += 1
+            // Safety valve against a server that keeps handing back next_page links.
+            guard pages < 1000, let next = page.nextPage, let nextURL = URL(string: next) else { break }
+            url = nextURL
+        }
+        return items
     }
 
     /// GET requests are idempotent, so transient failures (5xx, 429, network timeouts)

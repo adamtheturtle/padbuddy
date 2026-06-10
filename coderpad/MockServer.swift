@@ -33,8 +33,11 @@ final class MockURLProtocol: URLProtocol {
         let path = url.path
         let method = request.httpMethod ?? "GET"
         let bodyData = request.httpBody ?? Self.drain(stream: request.httpBodyStream)
+        let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+            .queryItems?
+            .reduce(into: [String: String]()) { $0[$1.name] = $1.value } ?? [:]
 
-        let (status, body) = MockResponses.respond(method: method, path: path, body: bodyData)
+        let (status, body) = MockResponses.respond(method: method, path: path, query: query, body: bodyData)
 
         let headers = ["Content-Type": "application/json"]
         let response = HTTPURLResponse(url: url, statusCode: status, httpVersion: "HTTP/1.1", headerFields: headers)!
@@ -63,12 +66,21 @@ final class MockURLProtocol: URLProtocol {
 }
 
 enum MockResponses {
-    static func respond(method: String, path: String, body: Data?) -> (Int, Data) {
+    static func respond(method: String, path: String, query: [String: String] = [:], body: Data?) -> (Int, Data) {
         if method == "PUT", path == "/api/pads/" || path == "/api/pads" {
             guard let body,
-                  let dict = try? JSONSerialization.jsonObject(with: body) as? [String: Any],
+                  var dict = try? JSONSerialization.jsonObject(with: body) as? [String: Any],
                   let id = dict["id"] as? String else {
                 return (400, jsonString(["status": "error", "message": "missing id"]))
+            }
+            // The live API mirrors `deleted`/`ended` as side effects, not stored fields.
+            if dict["deleted"] as? Bool == true {
+                MockFixtures.deletedPadIDs.insert(id)
+                return (200, jsonString(["status": "OK"]))
+            }
+            if dict["ended"] as? Bool == true {
+                dict["state"] = "ended"
+                dict["ended_at"] = ISO8601DateFormatter().string(from: Date())
             }
             MockFixtures.updatedPads[id] = dict
             if let pad = MockFixtures.allPads().first(where: { ($0["id"] as? String) == id }) {
@@ -90,7 +102,10 @@ enum MockResponses {
                 executionEnabled: create.executionEnabled ?? true
             )
             MockFixtures.createdPads.append(pad)
-            return ok(["status": "OK", "pad": pad])
+            // Mirror the live API: the created pad is returned flat at the top level.
+            var response = pad
+            response["status"] = "OK"
+            return ok(response)
         }
 
         if method == "GET", let id = match(path, pattern: #"^/api/pads/([^/]+)/events/?$"#) {
@@ -189,7 +204,11 @@ enum MockResponses {
         }
 
         if method == "GET", path == "/api/organization/users" {
-            return ok(["status": "OK", "users": MockFixtures.users()])
+            let users = MockFixtures.users()
+            if let email = query["email"] {
+                return ok(["status": "OK", "users": users.filter { ($0["email"] as? String) == email }])
+            }
+            return ok(["status": "OK", "users": users])
         }
 
         return (404, jsonString(["status": "error", "message": "not handled by mock: \(method) \(path)"]))
@@ -219,6 +238,7 @@ enum MockResponses {
 enum MockFixtures {
     nonisolated(unsafe) static var createdPads: [[String: Any]] = []
     nonisolated(unsafe) static var updatedPads: [String: [String: Any]] = [:]
+    nonisolated(unsafe) static var deletedPadIDs: Set<String> = []
     nonisolated(unsafe) static var createdQuestions: [[String: Any]] = []
     nonisolated(unsafe) static var updatedQuestions: [Int: [String: Any]] = [:]
     nonisolated(unsafe) static var deletedQuestionIDs: Set<Int> = []
@@ -243,7 +263,10 @@ enum MockFixtures {
             for (key, value) in updates where key != "id" { merged[key] = value }
             return merged
         }
-        return base + createdPads
+        return (base + createdPads).filter { pad in
+            guard let id = pad["id"] as? String else { return true }
+            return !deletedPadIDs.contains(id)
+        }
     }
 
     private static func seedPads() -> [[String: Any]] {
@@ -319,7 +342,7 @@ enum MockFixtures {
             ["message": "Jane Doe joined the pad", "kind": "joined",
              "user_name": "Jane Doe", "user_email": NSNull(),
              "created_at": "2026-06-09T18:01:42Z"],
-            ["message": "Code executed", "kind": "ran",
+            ["message": "Code executed", "kind": "ran", "metadata": "python3",
              "user_name": "Jane Doe", "user_email": NSNull(),
              "created_at": "2026-06-09T18:14:08Z"],
             ["message": "Jane Doe left the pad", "kind": "left",
@@ -329,11 +352,21 @@ enum MockFixtures {
     }
 
     static func padEnvironment(id: Int) -> [String: Any] {
-        [
+        let language = id == 1 ? "python3" : "javascript"
+        let file: [String: Any] = id == 1
+            ? ["path": "coderpad/main.py",
+               "contents": "def greet(name):\n    return f\"Hello, {name}!\"\n\nprint(greet(\"CoderPad\"))\n",
+               "history": NSNull()]
+            : ["path": "coderpad/scratch.js",
+               "contents": "console.log('Hello, World!');\n",
+               "history": NSNull()]
+        return [
             "id": id,
-            "title": id == 1 ? "Main" : "Scratch",
-            "language": id == 1 ? "python3" : "javascript",
-            "contents": "# demo contents",
+            "pad_id": 88112233,
+            "question_id": NSNull(),
+            "example_question_id": NSNull(),
+            "language": language,
+            "file_contents": [file],
             "created_at": "2026-06-09T18:00:00Z",
             "updated_at": "2026-06-09T18:00:00Z",
         ]
@@ -359,10 +392,93 @@ enum MockFixtures {
                 "title": "URL shortener (take-home)",
                 "owner_email": "morgan@demo.co",
                 "language": "go",
-                "description": "Design and ship a small URL shortener.",
-                "candidate_instructions": [["instructions": "Read the spec, scope your solution.", "default_visible": true]],
+                "description": """
+                # URL Shortener
+
+                Design and ship a small, **production-minded** URL shortener service.
+
+                ## Goals
+
+                - Accept a long URL and return a short code
+                - Redirect short codes back to the *original* URL
+                - Survive a process restart (durable storage)
+
+                ## Non-goals
+
+                1. Custom vanity domains
+                2. Analytics dashboards
+                3. Multi-region replication — keep it **single node**
+
+                See the [design rubric](https://example.com/rubric) before you start.
+                """,
+                "candidate_instructions": [["instructions": """
+                ## Candidate Instructions
+
+                Read the spec, then **scope your solution** to ~45 minutes.
+
+                ### What we provide
+
+                | Component | Status |
+                | --- | --- |
+                | HTTP router | stubbed |
+                | Storage interface | `Store` defined |
+
+                ### Suggested API
+
+                ```go
+                type Store interface {
+                    Save(code, url string) error
+                    Lookup(code string) (string, bool)
+                }
+                ```
+
+                > **Tip:** start with an in-memory map, then talk through how you'd
+                > make it durable. Don't over-engineer the `encoding` up front.
+
+                Checklist:
+
+                - [x] Read the spec
+                - [ ] Sketch the data model
+                - [ ] Implement `POST /shorten`
+                - [ ] Implement `GET /{code}`
+                """, "default_visible": true]],
                 "shared": true, "used": 5, "take_home": true,
-                "test_cases_enabled": false, "solution": "",
+                "test_cases_enabled": false, "solution": """
+                # Reference Solution
+
+                A working solution typically has **three** pieces:
+
+                1. A base-62 encoder for the auto-increment id
+                2. A `Store` backed by SQLite (or a map for the demo)
+                3. Two handlers wired into the router
+
+                ## Encoding
+
+                ```go
+                const alphabet = "0123456789abcdefghijklmnopqrstuvwxyz" +
+                    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+                func encode(n uint64) string {
+                    if n == 0 {
+                        return "0"
+                    }
+                    var b []byte
+                    for n > 0 {
+                        b = append([]byte{alphabet[n%62]}, b...)
+                        n /= 62
+                    }
+                    return string(b)
+                }
+                ```
+
+                ## Things to probe in the interview
+
+                - *Collision handling* when codes are generated randomly
+                - Read-vs-write ratio and why a cache helps
+                - What happens at `2^63` ids — see [overflow notes][1]
+
+                [1]: https://example.com/overflow
+                """,
                 "pad_type": "take-home", "is_draft": false,
                 "author_name": "Morgan Lin", "organization_name": "Demo Org",
                 "created_at": "2025-11-12T14:00:00Z", "updated_at": "2026-05-30T09:00:00Z"
@@ -429,7 +545,9 @@ enum MockFixtures {
             "pads_used": 24,
             "quota_reset_at": "2026-07-01T00:00:00.000-07:00",
             "unlimited": false,
-            "overages_enabled": true
+            "overages_enabled": true,
+            "pads_remaining": 96,
+            "billing_cycle_pad_limit": 120
         ]
     }
 }

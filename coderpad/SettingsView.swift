@@ -34,10 +34,6 @@ struct SettingsView: View {
 
     private var accountsTab: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Accounts").font(.headline)
-                .padding(.bottom, 8)
-                .padding(.top, 16)
-
             if store.accounts.isEmpty {
                 ContentUnavailableView {
                     Label("No accounts", systemImage: "person.crop.circle.badge.questionmark")
@@ -126,8 +122,7 @@ struct SettingsView: View {
                 .padding(.top, 6)
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.bottom, 20)
+        .padding(20)
     }
 
     private var menuBarTab: some View {
@@ -145,8 +140,6 @@ struct SettingsView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
-            } header: {
-                Text("Menu Bar")
             } footer: {
                 Text("Controls how many recent pads and questions appear in the menu bar item.")
                     .foregroundStyle(.secondary)
@@ -204,7 +197,7 @@ enum ValidationState: Equatable {
     case invalid(String)
 }
 
-private struct AccountEditor: View {
+struct AccountEditor: View {
     @State var draft: Account
     let initialName: String
     let onSave: (Account) -> Void

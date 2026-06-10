@@ -14,6 +14,7 @@ extension Notification.Name {
     static let reloadRequested = Notification.Name("coderpad.reloadRequested")
     static let openPadByURLRequested = Notification.Name("coderpad.openPadByURLRequested")
     static let padUpdated = Notification.Name("coderpad.padUpdated")
+    static let padDeleted = Notification.Name("coderpad.padDeleted")
     static let padsSearchRequested = Notification.Name("coderpad.padsSearchRequested")
     static let questionUpdated = Notification.Name("coderpad.questionUpdated")
     static let questionDeleted = Notification.Name("coderpad.questionDeleted")

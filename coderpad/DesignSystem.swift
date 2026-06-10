@@ -3,6 +3,7 @@
 //  coderpad
 //
 
+import MarkdownUI
 import SwiftUI
 
 extension Color {
@@ -352,14 +353,8 @@ extension View {
 
 // MARK: - MarkdownText
 
-enum MarkdownBlock {
-    case heading(level: Int, text: String)
-    case paragraph(String)
-    case bulletList([String])
-    case numberedList([String])
-    case codeBlock(String)
-}
-
+/// Renders GitHub-flavored Markdown via swift-markdown-ui, themed to match the
+/// app's typography. Call sites are unchanged: `MarkdownText(raw)`.
 struct MarkdownText: View {
     let raw: String
 
@@ -371,181 +366,103 @@ struct MarkdownText: View {
         if raw.isEmpty {
             Text("(empty)").foregroundStyle(.secondary)
         } else {
-            VStack(alignment: .leading, spacing: 10) {
-                ForEach(Array(MarkdownText.parseBlocks(raw).enumerated()), id: \.offset) { _, block in
-                    blockView(block)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    @ViewBuilder
-    private func blockView(_ block: MarkdownBlock) -> some View {
-        switch block {
-        case .heading(let level, let text):
-            Text(inline(text))
-                .font(headingFont(for: level))
-        case .paragraph(let text):
-            Text(inline(text))
-                .fixedSize(horizontal: false, vertical: true)
-        case .bulletList(let items):
-            VStack(alignment: .leading, spacing: 4) {
-                ForEach(Array(items.enumerated()), id: \.offset) { _, item in
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text("•").foregroundStyle(.secondary)
-                        Text(inline(item))
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-            }
-        case .numberedList(let items):
-            VStack(alignment: .leading, spacing: 4) {
-                ForEach(Array(items.enumerated()), id: \.offset) { i, item in
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text("\(i + 1).").foregroundStyle(.secondary).monospacedDigit()
-                        Text(inline(item))
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-            }
-        case .codeBlock(let text):
-            Text(text)
-                .font(.system(.callout, design: .monospaced))
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(10)
-                .background(Color.subtleStroke.opacity(0.5),
-                            in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+            Markdown(raw)
+                .markdownTheme(.coderpad)
                 .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
+}
 
-    private func headingFont(for level: Int) -> Font {
-        switch level {
-        case 1: return .title2.bold()
-        case 2: return .title3.bold()
-        default: return .headline
+private extension Theme {
+    /// Approximates the app's previous hand-rolled Markdown styling: bold
+    /// headings, monospaced inline/code blocks, and a subtle code-block fill.
+    static let coderpad = Theme()
+        .code {
+            FontFamilyVariant(.monospaced)
+            FontSize(.em(0.9))
         }
-    }
-
-    private func inline(_ text: String) -> AttributedString {
-        if let attributed = try? AttributedString(
-            markdown: text,
-            options: .init(interpretedSyntax: .inlineOnlyPreservingWhitespace)
-        ) {
-            return attributed
-        }
-        return AttributedString(text)
-    }
-
-    static func parseBlocks(_ raw: String) -> [MarkdownBlock] {
-        var blocks: [MarkdownBlock] = []
-        let lines = raw.components(separatedBy: "\n")
-        var i = 0
-
-        while i < lines.count {
-            let line = lines[i]
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-
-            if trimmed.isEmpty {
-                i += 1
-                continue
-            }
-
-            if let (level, text) = Self.parseHeading(trimmed) {
-                blocks.append(.heading(level: level, text: text))
-                i += 1
-                continue
-            }
-
-            if trimmed.hasPrefix("```") {
-                var codeLines: [String] = []
-                i += 1
-                while i < lines.count && !lines[i].trimmingCharacters(in: .whitespaces).hasPrefix("```") {
-                    codeLines.append(lines[i])
-                    i += 1
+        .heading1 { configuration in
+            configuration.label
+                .markdownMargin(top: .em(0.8), bottom: .em(0.4))
+                .markdownTextStyle {
+                    FontWeight(.bold)
+                    FontSize(.em(1.5))
                 }
-                blocks.append(.codeBlock(codeLines.joined(separator: "\n")))
-                if i < lines.count { i += 1 } // skip closing fence
-                continue
-            }
-
-            if Self.isBullet(trimmed) {
-                var items: [String] = []
-                while i < lines.count {
-                    let t = lines[i].trimmingCharacters(in: .whitespaces)
-                    guard Self.isBullet(t) else { break }
-                    items.append(Self.stripBullet(t))
-                    i += 1
-                }
-                blocks.append(.bulletList(items))
-                continue
-            }
-
-            if Self.isNumbered(trimmed) {
-                var items: [String] = []
-                while i < lines.count {
-                    let t = lines[i].trimmingCharacters(in: .whitespaces)
-                    guard Self.isNumbered(t) else { break }
-                    items.append(Self.stripNumbered(t))
-                    i += 1
-                }
-                blocks.append(.numberedList(items))
-                continue
-            }
-
-            // Paragraph: gather until blank or new block
-            var paragraphLines: [String] = [line]
-            i += 1
-            while i < lines.count {
-                let t = lines[i].trimmingCharacters(in: .whitespaces)
-                if t.isEmpty
-                    || Self.isBullet(t)
-                    || Self.isNumbered(t)
-                    || Self.parseHeading(t) != nil
-                    || t.hasPrefix("```") {
-                    break
-                }
-                paragraphLines.append(lines[i])
-                i += 1
-            }
-            blocks.append(.paragraph(paragraphLines.joined(separator: " ")))
         }
-
-        return blocks
-    }
-
-    private static func parseHeading(_ line: String) -> (level: Int, text: String)? {
-        var level = 0
-        var idx = line.startIndex
-        while idx < line.endIndex && line[idx] == "#" {
-            level += 1
-            idx = line.index(after: idx)
+        .heading2 { configuration in
+            configuration.label
+                .markdownMargin(top: .em(0.8), bottom: .em(0.4))
+                .markdownTextStyle {
+                    FontWeight(.bold)
+                    FontSize(.em(1.3))
+                }
         }
-        guard level > 0, level <= 6,
-              idx < line.endIndex, line[idx] == " " else { return nil }
-        let text = String(line[line.index(after: idx)...])
-        return (level, text)
-    }
-
-    private static func isBullet(_ line: String) -> Bool {
-        line.hasPrefix("- ") || line.hasPrefix("* ") || line.hasPrefix("+ ")
-    }
-
-    private static func stripBullet(_ line: String) -> String {
-        String(line.dropFirst(2))
-    }
-
-    private static func isNumbered(_ line: String) -> Bool {
-        line.range(of: #"^\d+\.\s"#, options: .regularExpression) != nil
-    }
-
-    private static func stripNumbered(_ line: String) -> String {
-        guard let range = line.range(of: #"^\d+\.\s"#, options: .regularExpression) else {
-            return line
+        .heading3 { configuration in
+            configuration.label
+                .markdownMargin(top: .em(0.8), bottom: .em(0.4))
+                .markdownTextStyle {
+                    FontWeight(.semibold)
+                    FontSize(.em(1.15))
+                }
         }
-        return String(line[range.upperBound...])
+        .codeBlock { configuration in
+            configuration.label
+                .markdownTextStyle {
+                    FontFamilyVariant(.monospaced)
+                    FontSize(.em(0.9))
+                }
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    Color.subtleStroke.opacity(0.5),
+                    in: RoundedRectangle(cornerRadius: 6, style: .continuous)
+                )
+                .markdownMargin(top: .em(0.5), bottom: .em(0.5))
+        }
+}
+
+#Preview("MarkdownText") {
+    ScrollView {
+        MarkdownText(
+            """
+            # Reverse a Linked List
+            Implement a function that reverses a singly linked list **in place**.
+
+            ## Requirements
+            - Run in `O(n)` time and `O(1)` extra space
+            - Handle the *empty list* and single-node cases
+            - Return the new head
+
+            ### Example
+            Given `1 -> 2 -> 3`, return `3 -> 2 -> 1`.
+
+            1. Walk the list
+            2. Re-point each `next`
+            3. Track the previous node
+
+            ```swift
+            func reverse(_ head: Node?) -> Node? {
+                var prev: Node? = nil
+                var node = head
+                while let current = node {
+                    node = current.next
+                    current.next = prev
+                    prev = current
+                }
+                return prev
+            }
+            ```
+
+            | Case | Input | Output |
+            | --- | --- | --- |
+            | Empty | `nil` | `nil` |
+            | Single | `1` | `1` |
+            """
+        )
+        .padding()
     }
+    .frame(width: 460, height: 640)
 }
 
 // MARK: - EmailLink
@@ -644,9 +561,19 @@ struct SearchableFilterChip: View {
     @Binding var selected: String?
     let options: [String]
     let formatter: (String) -> String
+    /// When set, a "Me" shortcut is pinned to the top of the popover and the
+    /// chip reads "Me" while this value is selected. Nil hides the shortcut
+    /// (e.g. when the account has no known user email).
+    var meEmail: String? = nil
 
     @State private var presented = false
     @State private var search = ""
+
+    private var chipText: String {
+        guard let selected else { return title }
+        if let meEmail, selected == meEmail { return "Me" }
+        return formatter(selected)
+    }
 
     private var accessibilityHint: String {
         if let selected { return "Filter applied: \(formatter(selected)). Activate to change." }
@@ -675,7 +602,7 @@ struct SearchableFilterChip: View {
             ChipLabel(
                 title: title,
                 icon: icon,
-                text: selected.map(formatter) ?? title,
+                text: chipText,
                 fillColor: fillColor,
                 strokeColor: strokeColor,
                 labelColor: labelColor
@@ -693,7 +620,8 @@ struct SearchableFilterChip: View {
                 selected: $selected,
                 presented: $presented,
                 formatter: formatter,
-                search: $search
+                search: $search,
+                meEmail: meEmail
             )
         }
     }
@@ -733,6 +661,7 @@ private struct SearchableFilterPopover: View {
     @Binding var presented: Bool
     let formatter: (String) -> String
     @Binding var search: String
+    var meEmail: String? = nil
 
     var body: some View {
         VStack(spacing: 0) {
@@ -742,6 +671,17 @@ private struct SearchableFilterPopover: View {
             Divider()
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
+                    if let meEmail {
+                        PopoverRow(
+                            label: "Me",
+                            subtitle: formatter(meEmail) == meEmail ? meEmail : formatter(meEmail),
+                            isSelected: selected == meEmail
+                        ) {
+                            selected = meEmail
+                            presented = false
+                        }
+                        Divider()
+                    }
                     PopoverRow(label: "All", subtitle: nil, isSelected: selected == nil) {
                         selected = nil
                         presented = false

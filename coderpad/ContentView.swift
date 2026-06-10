@@ -432,6 +432,7 @@ struct InlineSearchField: View {
 private struct AccountFooter: View {
     @State private var store = AccountsStore.shared
     @Binding var showSettings: Bool
+    @State private var addingAccount: Account?
 
     var body: some View {
         HStack(spacing: 10) {
@@ -444,8 +445,26 @@ private struct AccountFooter: View {
                 }
             }
             Spacer()
+            addAccountButton
             footerMenu
         }
+        .sheet(item: $addingAccount) { account in
+            AccountEditor(initial: account) { saved in
+                store.add(saved)
+                addingAccount = nil
+            } onCancel: {
+                addingAccount = nil
+            }
+        }
+    }
+
+    private var addAccountButton: some View {
+        Button { addingAccount = Account(name: "", apiKey: "") } label: {
+            Image(systemName: "person.crop.circle.badge.plus")
+        }
+        .buttonStyle(.borderless)
+        .help("Add account")
+        .accessibilityLabel("Add account")
     }
 
     @ViewBuilder
@@ -462,6 +481,8 @@ private struct AccountFooter: View {
                 }
                 Divider()
             }
+            Button("Add Account…") { addingAccount = Account(name: "", apiKey: "") }
+            Divider()
             Button("Settings…") { showSettings = true }
                 .keyboardShortcut(",", modifiers: [.command])
         } label: {

@@ -69,6 +69,11 @@ struct QuotaView: View {
             } else if let used = q.padsUsed {
                 StatTile(title: "Pads used", value: "\(used)", systemImage: "chart.bar.fill", tint: .blue)
             }
+            if q.unlimited != true, let remaining = q.padsRemaining {
+                StatTile(title: "Remaining", value: "\(remaining)",
+                         systemImage: "tray.fill",
+                         tint: remaining <= 0 ? .red : .green)
+            }
             StatTile(title: "Overages",
                      value: q.overagesEnabled == true ? "Enabled" : "Disabled",
                      systemImage: "arrow.up.right.circle",
@@ -86,6 +91,12 @@ struct QuotaView: View {
                 SectionHeader(title: "Details", systemImage: "list.bullet")
                 if let used = q.padsUsed {
                     LabeledRow(label: "Pads used", value: "\(used)")
+                }
+                if q.unlimited != true, let remaining = q.padsRemaining {
+                    LabeledRow(label: "Pads remaining", value: "\(remaining)")
+                }
+                if q.unlimited != true, let limit = q.billingCyclePadLimit {
+                    LabeledRow(label: "Billing cycle limit", value: "\(limit)")
                 }
                 LabeledRow(label: "Unlimited", value: q.unlimited == true ? "Yes" : "No")
                 LabeledRow(label: "Overages", value: q.overagesEnabled == true ? "Enabled" : "Disabled")

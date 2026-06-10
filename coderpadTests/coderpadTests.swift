@@ -201,7 +201,9 @@ struct QuestionDecoderTests {
     }
 }
 
-@Suite("Mock server end-to-end")
+// Serialized: these tests share MockFixtures' process-wide mutable state (created /
+// updated / deleted pads), so concurrent execution would race on pad counts.
+@Suite("Mock server end-to-end", .serialized)
 struct MockServerTests {
 
     private let client = CoderPadClient.mock()
@@ -234,8 +236,9 @@ struct MockServerTests {
     func padEnvironment() async throws {
         let env = try await client.padEnvironment(id: 1)
         #expect(env.id == 1)
-        #expect(env.title == "Main")
         #expect(env.language == "python3")
+        #expect(env.fileContents.first?.path == "coderpad/main.py")
+        #expect(env.contents?.contains("Hello") == true)
     }
 
     @Test("listQuestions returns the seeded questions")
@@ -260,6 +263,45 @@ struct MockServerTests {
         #expect(q.unlimited == false)
         #expect(q.overagesEnabled == true)
         #expect(q.quotaReset != nil)
+        #expect(q.padsRemaining == 96)
+        #expect(q.billingCyclePadLimit == 120)
+    }
+
+    @Test("organizationUsers filters by email when provided")
+    func organizationUsersByEmail() async throws {
+        let all = try await client.organizationUsers()
+        #expect(all.count >= 5)
+        let one = try await client.organizationUsers(email: "alex@demo.co")
+        #expect(one.count == 1)
+        #expect(one.first?.email == "alex@demo.co")
+    }
+
+    @Test("listOrganizationPads and questions return org-wide data")
+    func organizationWideLists() async throws {
+        let pads = try await client.listOrganizationPads()
+        #expect(!pads.isEmpty)
+        let questions = try await client.listOrganizationQuestions()
+        #expect(!questions.isEmpty)
+    }
+
+    @Test("endPad marks the pad ended")
+    func endPad() async throws {
+        // DEMOABC1 is a seeded pad, so the mock's update merge applies; ending only
+        // flips state/ended_at, leaving the pad listable for other tests.
+        try await client.endPad(id: "DEMOABC1")
+        let pad = try await client.getPad(id: "DEMOABC1")
+        #expect(pad.state == "ended")
+        #expect(pad.endedAt != nil)
+    }
+
+    @Test("deletePad removes a created pad from listings")
+    func deletePad() async throws {
+        // Delete a freshly created pad rather than a seed, so the suite's
+        // "listPads returns the seeded pads" invariant is unaffected.
+        let new = try await client.createPad(PadCreate(title: "To delete"))
+        try await client.deletePad(id: new.id)
+        let after = try await client.listPads()
+        #expect(!after.contains(where: { $0.id == new.id }))
     }
 
     @Test("createPad echoes a new pad and makes it listable")

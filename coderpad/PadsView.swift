@@ -57,6 +57,12 @@ struct PadsView: View {
                 if selection?.id == updated.id { selection = updated }
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .padDeleted)) { note in
+            if let id = note.object as? String {
+                pads.removeAll { $0.id == id }
+                if selection?.id == id { selection = nil }
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .padsSearchRequested)) { note in
             if let q = note.object as? String { search = q }
         }
@@ -257,7 +263,8 @@ struct PadsView: View {
                     icon: "person",
                     selected: $ownerFilter,
                     options: availableOwners,
-                    formatter: { directory.display($0) }
+                    formatter: { directory.display($0) },
+                    meEmail: accounts.currentAccount?.userEmail
                 )
                 FilterChipMenu(
                     title: "Team",
@@ -482,6 +489,10 @@ struct PadDetailView: View {
     @State private var isLoading = false
     @State private var showEdit = false
     @State private var showBrowser = false
+    @State private var showEndConfirm = false
+    @State private var showDeleteConfirm = false
+    @State private var isMutating = false
+    @State private var mutateError: String?
     @Environment(\.openWindow) private var openWindow
     @Environment(\.orgDirectory) private var directory
 
@@ -536,6 +547,52 @@ struct PadDetailView: View {
                 },
                 onCancel: { showEdit = false }
             )
+        }
+        .confirmationDialog("End this interview?", isPresented: $showEndConfirm, titleVisibility: .visible) {
+            Button("End Interview", role: .destructive) { Task { await endInterview() } }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Ending the interview stops the live session for all participants.")
+        }
+        .confirmationDialog("Delete this pad?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+            Button("Delete Pad", role: .destructive) { Task { await deletePad() } }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Deleting the pad is permanent and cannot be undone.")
+        }
+        .alert("Action failed", isPresented: .init(get: { mutateError != nil }, set: { if !$0 { mutateError = nil } })) {
+            Button("OK", role: .cancel) { mutateError = nil }
+        } message: {
+            Text(mutateError ?? "")
+        }
+    }
+
+    private var isEnded: Bool {
+        pad.endedAt != nil || pad.state.lowercased() == "ended"
+    }
+
+    private func endInterview() async {
+        isMutating = true
+        defer { isMutating = false }
+        do {
+            try await client.endPad(id: pad.id)
+            // Refresh so the ended state/timestamp propagate to the list and detail.
+            if let updated = try? await client.getPad(id: pad.id) {
+                NotificationCenter.default.post(name: .padUpdated, object: updated)
+            }
+        } catch {
+            mutateError = error.localizedDescription
+        }
+    }
+
+    private func deletePad() async {
+        isMutating = true
+        defer { isMutating = false }
+        do {
+            try await client.deletePad(id: pad.id)
+            NotificationCenter.default.post(name: .padDeleted, object: pad.id)
+        } catch {
+            mutateError = error.localizedDescription
         }
     }
 
@@ -602,6 +659,27 @@ struct PadDetailView: View {
                             .accessibilityLabel("Open in default browser")
                         }
                     }
+                    Menu {
+                        Button {
+                            showEndConfirm = true
+                        } label: {
+                            Label("End Interview", systemImage: "flag.checkered")
+                        }
+                        .disabled(isEnded)
+                        Divider()
+                        Button(role: .destructive) {
+                            showDeleteConfirm = true
+                        } label: {
+                            Label("Delete Pad", systemImage: "trash")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                    }
+                    .menuStyle(.borderlessButton)
+                    .fixedSize()
+                    .disabled(isMutating)
+                    .help("More actions")
+                    .accessibilityLabel("More actions")
                 }
             }
             HStack(spacing: 6) {
@@ -693,7 +771,7 @@ struct PadDetailView: View {
                 SectionHeader(title: "Environments", systemImage: "cube.box")
                 ForEach(environments) { env in
                     HStack {
-                        Text(env.title ?? "Environment #\(env.id)").font(.callout.weight(.medium))
+                        Text("Environment #\(env.id)").font(.callout.weight(.medium))
                         if let lang = env.language, !lang.isEmpty {
                             Chip(text: lang.languageDisplayName, tint: lang.languageColor)
                         }
