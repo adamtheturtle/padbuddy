@@ -17,6 +17,8 @@ extension Notification.Name {
     static let questionDeleted = Notification.Name("coderpad.questionDeleted")
     static let openPadIDRequested = Notification.Name("coderpad.openPadIDRequested")
     static let openSettingsRequested = Notification.Name("coderpad.openSettingsRequested")
+    static let createQuestionRequested = Notification.Name("coderpad.createQuestionRequested")
+    static let openPadInBrowserRequested = Notification.Name("coderpad.openPadInBrowserRequested")
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -70,6 +72,11 @@ struct coderpadApp: App {
                 NotificationCenter.default.post(name: .createPadRequested, object: nil)
             }
             .keyboardShortcut("n", modifiers: [.command])
+            Button("New Question…") {
+                NotificationCenter.default.post(name: .sectionRequested, object: AppSection.questions)
+                NotificationCenter.default.post(name: .createQuestionRequested, object: nil)
+            }
+            .keyboardShortcut("n", modifiers: [.command, .shift])
             Button("Open Pad by URL…") {
                 NotificationCenter.default.post(name: .openPadByURLRequested, object: nil)
             }
@@ -143,6 +150,14 @@ struct PadCommands: Commands {
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(pad.url, forType: .string)
             }
+            .keyboardShortcut("c", modifiers: [.command, .option])
+            .disabled(pad == nil)
+
+            Button("Open Pad in Browser") {
+                guard let pad, let url = URL(string: pad.url) else { return }
+                NotificationCenter.default.post(name: .openPadInBrowserRequested, object: url)
+            }
+            .keyboardShortcut(.return, modifiers: [.command])
             .disabled(pad == nil)
         }
     }

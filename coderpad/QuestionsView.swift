@@ -9,6 +9,8 @@ struct QuestionsView: View {
     let client: CoderPadClient
     @Environment(\.orgDirectory) private var directory
     @Environment(\.scenePhase) private var scenePhase
+    @State private var accounts = AccountsStore.shared
+    @State private var cache = QuestionsCacheStore.shared
     @State private var questions: [Question] = []
 
     private static let refreshInterval: Duration = .seconds(90)
@@ -39,6 +41,9 @@ struct QuestionsView: View {
         }
         .task(id: QuestionsTaskKey(apiKey: client.apiKey, phase: scenePhase)) {
             guard scenePhase == .active else { return }
+            if questions.isEmpty, let id = accounts.currentAccountID {
+                questions = cache.get(id)
+            }
             await reload()
             while !Task.isCancelled {
                 try? await Task.sleep(for: Self.refreshInterval)
@@ -65,6 +70,12 @@ struct QuestionsView: View {
                 questions.removeAll { $0.id == id }
                 if selection?.id == id { selection = nil }
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .createQuestionRequested)) { _ in
+            showCreate = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .reloadRequested)) { _ in
+            Task { await reload() }
         }
     }
 
@@ -129,7 +140,11 @@ struct QuestionsView: View {
             }
             ToolbarItem {
                 Button { Task { await reload() } } label: {
-                    Label("Reload", systemImage: "arrow.clockwise")
+                    if isLoading {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Label("Reload", systemImage: "arrow.clockwise")
+                    }
                 }
                 .disabled(isLoading)
             }
@@ -176,7 +191,11 @@ struct QuestionsView: View {
         defer { isLoading = false }
         do {
             let fetched = try await client.listQuestions()
-            questions = fetched.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
+            let sorted = fetched.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
+            questions = sorted
+            if let id = accounts.currentAccountID {
+                cache.set(id, questions: sorted)
+            }
             lastFetched = Date()
         } catch {
             self.error = error
@@ -272,6 +291,11 @@ struct QuestionDetailView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(question.title.isEmpty ? "Untitled Question" : question.title)
                         .font(.title2.weight(.semibold))
+                    Text("OWNER")
+                        .font(.caption2.weight(.semibold))
+                        .tracking(0.6)
+                        .foregroundStyle(.secondary)
+                        .padding(.top, 2)
                     if let author = question.authorName {
                         Text(author).foregroundStyle(.secondary)
                     }

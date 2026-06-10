@@ -292,3 +292,21 @@ final class SavedSearchStore {
     }
 }
 
+@Observable
+final class PadsCacheStore {
+    static let shared = PadsCacheStore()
+    private(set) var padsByAccount: [UUID: [Pad]] = [:]
+    private init() {}
+    func get(_ accountID: UUID) -> [Pad] { padsByAccount[accountID] ?? [] }
+    func set(_ accountID: UUID, pads: [Pad]) { padsByAccount[accountID] = pads }
+}
+
+@Observable
+final class QuestionsCacheStore {
+    static let shared = QuestionsCacheStore()
+    private(set) var questionsByAccount: [UUID: [Question]] = [:]
+    private init() {}
+    func get(_ accountID: UUID) -> [Question] { questionsByAccount[accountID] ?? [] }
+    func set(_ accountID: UUID, questions: [Question]) { questionsByAccount[accountID] = questions }
+}
+

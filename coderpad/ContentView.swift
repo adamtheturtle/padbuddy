@@ -51,6 +51,11 @@ struct ContentView: View {
         .onReceive(NotificationCenter.default.publisher(for: .openSettingsRequested)) { _ in
             showSettings = true
         }
+        .onReceive(NotificationCenter.default.publisher(for: .openPadInBrowserRequested)) { note in
+            if let url = note.object as? URL {
+                openWindow(id: "pad-browser", value: url)
+            }
+        }
         .sheet(isPresented: $showOpenPadURL) {
             OpenPadURLSheet(
                 urlString: $openPadURLDraft,

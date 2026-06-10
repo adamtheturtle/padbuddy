@@ -9,6 +9,8 @@ struct PadsView: View {
     let client: CoderPadClient
     @Environment(\.orgDirectory) private var directory
     @Environment(\.scenePhase) private var scenePhase
+    @State private var accounts = AccountsStore.shared
+    @State private var cache = PadsCacheStore.shared
     @State private var pads: [Pad] = []
     @State private var isLoading = false
     @State private var error: Error?
@@ -45,6 +47,9 @@ struct PadsView: View {
         }
         .task(id: TaskKey(apiKey: client.apiKey, phase: scenePhase)) {
             guard scenePhase == .active else { return }
+            if pads.isEmpty, let id = accounts.currentAccountID {
+                pads = cache.get(id)
+            }
             await reload()
             while !Task.isCancelled {
                 try? await Task.sleep(for: Self.refreshInterval)
@@ -188,7 +193,11 @@ struct PadsView: View {
             }
             ToolbarItem {
                 Button { Task { await reload() } } label: {
-                    Label("Reload", systemImage: "arrow.clockwise")
+                    if isLoading {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Label("Reload", systemImage: "arrow.clockwise")
+                    }
                 }
                 .disabled(isLoading)
             }
@@ -346,6 +355,9 @@ struct PadsView: View {
             }
             previousUpdatedAt = nextState
             pads = fetched
+            if let id = accounts.currentAccountID {
+                cache.set(id, pads: fetched)
+            }
             lastFetched = Date()
             hasLoadedOnce = true
         } catch {
