@@ -57,10 +57,10 @@ struct MenuBarView: View {
                 Text("Loading…").foregroundStyle(.secondary)
             } else if let errorMessage {
                 Text(errorMessage).foregroundStyle(.red).lineLimit(2)
-            } else if pads.isEmpty {
+            } else if myPads.isEmpty {
                 Text("No pads").foregroundStyle(.secondary)
             } else {
-                ForEach(pads.prefix(topN)) { pad in
+                ForEach(myPads.prefix(topN)) { pad in
                     Button {
                         if let url = URL(string: pad.url) {
                             NSWorkspace.shared.open(url)
@@ -69,8 +69,8 @@ struct MenuBarView: View {
                         Text(padLabel(pad))
                     }
                 }
-                if pads.count > topN {
-                    Text("…\(pads.count - topN) more").foregroundStyle(.secondary)
+                if myPads.count > topN {
+                    Text("…\(myPads.count - topN) more").foregroundStyle(.secondary)
                 }
             }
 
@@ -102,6 +102,19 @@ struct MenuBarView: View {
                 NotificationCenter.default.post(name: .createQuestionRequested, object: nil)
             }
             .keyboardShortcut("n", modifiers: [.command, .shift])
+
+            if !questions.isEmpty {
+                Menu("New Pad from Question") {
+                    ForEach(questions.prefix(topN)) { q in
+                        Button {
+                            Task { await createPad(fromQuestion: q, account: account) }
+                        } label: {
+                            Text(q.title.isEmpty ? "#\(q.id)" : q.title)
+                        }
+                    }
+                }
+                .disabled(account.isMock == false && account.apiKey.isEmpty)
+            }
 
             Button("Open Pad by URL…") {
                 openMain()
@@ -144,6 +157,41 @@ struct MenuBarView: View {
         let title = pad.title.isEmpty ? pad.id : pad.title
         let language = (pad.language ?? "").isEmpty ? "" : " · \(pad.language!.languageDisplayName)"
         return "\(title)\(language)"
+    }
+
+    /// Pads owned by the most-frequent owner email in the fetched list — heuristic for
+    /// "my pads", since the CoderPad API doesn't tell us which user the key belongs to.
+    private var myPads: [Pad] {
+        let owners = pads
+            .map(\.ownerEmail)
+            .filter { !$0.isEmpty }
+            .reduce(into: [String: Int]()) { $0[$1, default: 0] += 1 }
+        guard let mine = owners.max(by: { $0.value < $1.value })?.key else {
+            return pads
+        }
+        return pads.filter { $0.ownerEmail == mine }
+    }
+
+    private func createPad(fromQuestion q: Question, account: Account) async {
+        let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey)
+        let body = PadCreate(
+            title: q.title,
+            language: q.language,
+            ownerEmail: nil,
+            contents: nil,
+            notes: nil,
+            isPrivate: false,
+            executionEnabled: true,
+            questionIDs: [q.id]
+        )
+        do {
+            let pad = try await client.createPad(body)
+            if let url = URL(string: pad.url) {
+                NSWorkspace.shared.open(url)
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 
     private func openMain() {
