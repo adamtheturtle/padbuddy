@@ -401,21 +401,13 @@ struct PadDetailView: View {
                 }
                 eventsCard
             }
-            .padding(22)
+            .padding(.horizontal, 22)
+            .padding(.top, 14)
+            .padding(.bottom, 22)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .navigationTitle(pad.title.isEmpty ? pad.id : pad.title)
         .task(id: pad.id) { await load() }
-        .toolbar {
-            ToolbarItem {
-                Button {
-                    showEdit = true
-                } label: {
-                    Label("Edit", systemImage: "pencil")
-                }
-                .help("Edit pad properties")
-            }
-        }
         .sheet(isPresented: $showEdit) {
             EditPadSheet(
                 client: client,
@@ -444,8 +436,12 @@ struct PadDetailView: View {
                     }
                 }
                 Spacer()
-                if let url = URL(string: pad.url) {
-                    HStack(spacing: 6) {
+                HStack(spacing: 6) {
+                    Button { showEdit = true } label: {
+                        Label("Edit", systemImage: "pencil")
+                    }
+                    .help("Edit pad properties")
+                    if let url = URL(string: pad.url) {
                         Button {
                             openWindow(id: "pad-browser", value: url)
                         } label: {

@@ -29,7 +29,9 @@ struct OrganizationView: View {
                         if let stats { activitySection(stats) }
                         if let organization { usersSection(organization) }
                     }
-                    .padding(22)
+                    .padding(.horizontal, 22)
+                    .padding(.top, 14)
+                    .padding(.bottom, 22)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }

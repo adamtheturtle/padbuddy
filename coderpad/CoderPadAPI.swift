@@ -116,6 +116,49 @@ struct PadUpdate: Codable {
     }
 }
 
+struct QuestionCreate: Codable {
+    var title: String
+    var language: String?
+    var description: String?
+    var solution: String?
+    var takeHome: Bool?
+    var padType: String?
+    var candidateInstructions: [CandidateInstructionPayload]?
+
+    enum CodingKeys: String, CodingKey {
+        case title, language, description, solution
+        case takeHome = "take_home"
+        case padType = "pad_type"
+        case candidateInstructions = "candidate_instructions"
+    }
+}
+
+struct QuestionUpdate: Codable {
+    var id: Int
+    var title: String?
+    var language: String?
+    var description: String?
+    var solution: String?
+    var takeHome: Bool?
+    var padType: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id, title, language, description, solution
+        case takeHome = "take_home"
+        case padType = "pad_type"
+    }
+}
+
+struct CandidateInstructionPayload: Codable {
+    var instructions: String
+    var defaultVisible: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case instructions
+        case defaultVisible = "default_visible"
+    }
+}
+
 struct PadCreate: Codable {
     var title: String?
     var language: String?
@@ -375,6 +418,25 @@ struct CoderPadClient {
     func getQuestion(id: Int) async throws -> Question {
         struct Wrapper: Decodable { let question: Question }
         return try await fetch(Wrapper.self, path: "/api/questions/\(id)").question
+    }
+
+    func createQuestion(_ body: QuestionCreate) async throws -> Question {
+        struct Wrapper: Decodable { let question: Question }
+        return try await send(Wrapper.self, method: "POST", path: "/api/questions/", body: body).question
+    }
+
+    func updateQuestion(_ body: QuestionUpdate) async throws -> Question {
+        struct Wrapper: Decodable { let question: Question }
+        return try await send(Wrapper.self, method: "PUT", path: "/api/questions/\(body.id)", body: body).question
+    }
+
+    func deleteQuestion(id: Int) async throws {
+        struct Empty: Decodable {}
+        var request = URLRequest(url: baseURL.appendingPathComponent("/api/questions/\(id)"))
+        request.httpMethod = "DELETE"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        _ = try await perform(Empty.self, request: request)
     }
 
     // MARK: Quota / Organization

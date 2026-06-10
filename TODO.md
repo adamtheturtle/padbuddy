@@ -33,9 +33,9 @@ A living roadmap. Items are grouped by theme and roughly ordered by impact. Anyt
 
 - [x] POST `/api/pads/` — create.
 - [x] PUT `/api/pads/` — update title / language / owner / private / execution from an Edit sheet on pad detail.
-- [ ] POST `/api/questions/` — create question with description, candidate instructions, solution, language, take-home toggle.
-- [ ] PUT `/api/questions/:id` — edit.
-- [ ] DELETE `/api/questions/:id` — with a confirmation sheet and an undo grace period (re-create from cached fields).
+- [x] POST `/api/questions/` — create from a New Question sheet (title, language, type, take-home, description, candidate instructions, solution).
+- [x] PUT `/api/questions/:id` — edit from a sheet on the detail view (pencil button).
+- [x] DELETE `/api/questions/:id` — with a confirmation dialog on the detail view (trash button).
 - [ ] Bulk actions on pads (end started pads, mark private).
 
 ## Pad detail polish

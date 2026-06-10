@@ -116,16 +116,56 @@ enum MockResponses {
             return ok(["status": "OK", "pad_environment": MockFixtures.padEnvironment(id: idInt)])
         }
 
+        if method == "POST", path == "/api/questions/" || path == "/api/questions" {
+            let bodyDict = (try? JSONSerialization.jsonObject(with: body ?? Data()) as? [String: Any]) ?? [:]
+            let newID = (MockFixtures.questions().compactMap { $0["id"] as? Int }.max() ?? 100) + 1
+            var q: [String: Any] = [
+                "id": newID,
+                "title": bodyDict["title"] as? String ?? "Untitled",
+                "owner_email": "demo@example.com",
+                "language": bodyDict["language"] ?? NSNull(),
+                "description": bodyDict["description"] ?? NSNull(),
+                "candidate_instructions": bodyDict["candidate_instructions"] ?? [],
+                "shared": false, "used": 0, "take_home": bodyDict["take_home"] as? Bool ?? false,
+                "test_cases_enabled": false, "solution": bodyDict["solution"] ?? "",
+                "pad_type": bodyDict["pad_type"] as? String ?? "live", "is_draft": true,
+                "author_name": "Demo User", "organization_name": "Demo Org",
+                "created_at": ISO8601DateFormatter().string(from: Date()),
+                "updated_at": ISO8601DateFormatter().string(from: Date()),
+            ]
+            MockFixtures.createdQuestions.append(q)
+            return ok(["status": "OK", "question": q])
+        }
+
+        if method == "PUT", let id = match(path, pattern: #"^/api/questions/(\d+)/?$"#) {
+            let idInt = Int(id) ?? 0
+            guard let body,
+                  let dict = try? JSONSerialization.jsonObject(with: body) as? [String: Any] else {
+                return (400, jsonString(["status": "error"]))
+            }
+            MockFixtures.updatedQuestions[idInt] = dict
+            if let q = MockFixtures.allQuestions().first(where: { ($0["id"] as? Int) == idInt }) {
+                return ok(["status": "OK", "question": q])
+            }
+            return (404, jsonString(["status": "error"]))
+        }
+
+        if method == "DELETE", let id = match(path, pattern: #"^/api/questions/(\d+)/?$"#) {
+            let idInt = Int(id) ?? 0
+            MockFixtures.deletedQuestionIDs.insert(idInt)
+            return (200, jsonString(["status": "OK"]))
+        }
+
         if method == "GET", let id = match(path, pattern: #"^/api/questions/(\d+)/?$"#) {
             let idInt = Int(id) ?? 0
-            if let q = MockFixtures.questions().first(where: { ($0["id"] as? Int) == idInt }) {
+            if let q = MockFixtures.allQuestions().first(where: { ($0["id"] as? Int) == idInt }) {
                 return ok(["status": "OK", "question": q])
             }
             return (404, jsonString(["status": "error"]))
         }
 
         if method == "GET", path == "/api/questions/" || path == "/api/questions" {
-            return ok(["status": "OK", "questions": MockFixtures.questions()])
+            return ok(["status": "OK", "questions": MockFixtures.allQuestions()])
         }
 
         if method == "GET", path == "/api/quota" {
@@ -179,6 +219,22 @@ enum MockResponses {
 enum MockFixtures {
     nonisolated(unsafe) static var createdPads: [[String: Any]] = []
     nonisolated(unsafe) static var updatedPads: [String: [String: Any]] = [:]
+    nonisolated(unsafe) static var createdQuestions: [[String: Any]] = []
+    nonisolated(unsafe) static var updatedQuestions: [Int: [String: Any]] = [:]
+    nonisolated(unsafe) static var deletedQuestionIDs: Set<Int> = []
+
+    static func allQuestions() -> [[String: Any]] {
+        let merged = questions().map { q -> [String: Any] in
+            guard let id = q["id"] as? Int, let updates = updatedQuestions[id] else { return q }
+            var m = q
+            for (k, v) in updates where k != "id" { m[k] = v }
+            return m
+        }
+        return (merged + createdQuestions).filter { q in
+            guard let id = q["id"] as? Int else { return true }
+            return !deletedQuestionIDs.contains(id)
+        }
+    }
 
     static func allPads() -> [[String: Any]] {
         let base = seedPads().map { pad -> [String: Any] in

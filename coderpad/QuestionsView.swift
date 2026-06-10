@@ -21,6 +21,7 @@ struct QuestionsView: View {
     @State private var takeHomeFilter: String? = nil
     @State private var draftFilter: String? = nil
     @State private var lastFetched: Date?
+    @State private var showCreate = false
 
     var body: some View {
         NavigationSplitView {
@@ -28,7 +29,7 @@ struct QuestionsView: View {
                 .navigationSplitViewColumnWidth(min: 300, ideal: 360)
         } detail: {
             if let selection {
-                QuestionDetailView(question: selection)
+                QuestionDetailView(client: client, question: selection)
                     .id(selection.id)
             } else {
                 ContentUnavailableView("Select a question",
@@ -43,6 +44,26 @@ struct QuestionsView: View {
                 try? await Task.sleep(for: Self.refreshInterval)
                 if Task.isCancelled { break }
                 await reload()
+            }
+        }
+        .sheet(isPresented: $showCreate) {
+            NewQuestionSheet(client: client) { created in
+                questions.insert(created, at: 0)
+                selection = created
+                showCreate = false
+            } onCancel: { showCreate = false }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .questionUpdated)) { note in
+            if let q = note.object as? Question,
+               let i = questions.firstIndex(where: { $0.id == q.id }) {
+                questions[i] = q
+                if selection?.id == q.id { selection = q }
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .questionDeleted)) { note in
+            if let id = note.object as? Int {
+                questions.removeAll { $0.id == id }
+                if selection?.id == id { selection = nil }
             }
         }
     }
@@ -100,6 +121,12 @@ struct QuestionsView: View {
         .navigationSubtitle(lastFetched.map { "Updated \($0.formatted(.relative(presentation: .named)))" } ?? "")
         .searchable(text: $search, placement: .toolbar, prompt: "Search title, author…")
         .toolbar {
+            ToolbarItem {
+                Button { showCreate = true } label: {
+                    Label("New Question", systemImage: "plus")
+                }
+                .disabled(client.apiKey.isEmpty)
+            }
             ToolbarItem {
                 Button { Task { await reload() } } label: {
                     Label("Reload", systemImage: "arrow.clockwise")
@@ -196,7 +223,11 @@ private struct QuestionRow: View {
 }
 
 struct QuestionDetailView: View {
+    let client: CoderPadClient
     let question: Question
+    @State private var showEdit = false
+    @State private var showDeleteConfirm = false
+    @State private var deleteError: String?
 
     var body: some View {
         ScrollView {
@@ -213,10 +244,25 @@ struct QuestionDetailView: View {
                     descriptionCard(title: "Solution", body: solution)
                 }
             }
-            .padding(22)
+            .padding(.horizontal, 22)
+            .padding(.top, 14)
+            .padding(.bottom, 22)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .navigationTitle(question.title.isEmpty ? "#\(question.id)" : question.title)
+        .sheet(isPresented: $showEdit) {
+            EditQuestionSheet(client: client, original: question) { updated in
+                NotificationCenter.default.post(name: .questionUpdated, object: updated)
+                showEdit = false
+            } onCancel: { showEdit = false }
+        }
+        .confirmationDialog("Delete \(question.title.isEmpty ? "this question" : question.title)?",
+                             isPresented: $showDeleteConfirm) {
+            Button("Delete", role: .destructive) { Task { await deleteQuestion() } }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This cannot be undone.")
+        }
     }
 
     private var header: some View {
@@ -234,6 +280,14 @@ struct QuestionDetailView: View {
                         .foregroundStyle(.tertiary)
                 }
                 Spacer()
+                HStack(spacing: 6) {
+                    Button { showEdit = true } label: { Label("Edit", systemImage: "pencil") }
+                        .help("Edit question")
+                    Button(role: .destructive) { showDeleteConfirm = true } label: {
+                        Image(systemName: "trash")
+                    }
+                    .help("Delete question")
+                }
             }
             HStack(spacing: 6) {
                 if let lang = question.language, !lang.isEmpty {
@@ -300,6 +354,203 @@ struct QuestionDetailView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func deleteQuestion() async {
+        do {
+            try await client.deleteQuestion(id: question.id)
+            NotificationCenter.default.post(name: .questionDeleted, object: question.id)
+        } catch {
+            deleteError = error.localizedDescription
+        }
+    }
+}
+
+// MARK: - Question Create / Edit sheets
+
+private let languageOptions = [
+    "python3", "javascript", "typescript", "swift", "go", "rust", "java",
+    "kotlin", "ruby", "c", "cpp", "csharp", "php", "scala", "r", "sql", "bash"
+]
+private let padTypeOptions = ["live", "take-home"]
+
+private struct NewQuestionSheet: View {
+    let client: CoderPadClient
+    let onCreated: (Question) -> Void
+    let onCancel: () -> Void
+
+    @State private var title = ""
+    @State private var language = "python3"
+    @State private var description = ""
+    @State private var instructions = ""
+    @State private var solution = ""
+    @State private var takeHome = false
+    @State private var padType = "live"
+    @State private var isSubmitting = false
+    @State private var error: String?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("New Question").font(.title3.bold())
+            Form {
+                TextField("Title", text: $title)
+                Picker("Language", selection: $language) {
+                    ForEach(languageOptions, id: \.self) { Text($0).tag($0) }
+                }
+                Picker("Type", selection: $padType) {
+                    ForEach(padTypeOptions, id: \.self) { Text($0.capitalized).tag($0) }
+                }
+                Toggle("Take-home", isOn: $takeHome)
+                Section("Description") {
+                    TextEditor(text: $description).frame(minHeight: 60)
+                }
+                Section("Candidate instructions") {
+                    TextEditor(text: $instructions).frame(minHeight: 80)
+                }
+                Section("Solution") {
+                    TextEditor(text: $solution).frame(minHeight: 60)
+                }
+            }
+            .formStyle(.grouped)
+
+            if let error {
+                Label(error, systemImage: "exclamationmark.triangle")
+                    .foregroundStyle(.orange).font(.callout)
+            }
+
+            HStack {
+                Spacer()
+                Button("Cancel", role: .cancel, action: onCancel)
+                Button { Task { await submit() } } label: {
+                    if isSubmitting { ProgressView().controlSize(.small) } else { Text("Create") }
+                }
+                .keyboardShortcut(.defaultAction)
+                .buttonStyle(.borderedProminent)
+                .disabled(isSubmitting || title.trimmingCharacters(in: .whitespaces).isEmpty)
+            }
+        }
+        .padding()
+        .frame(minWidth: 520, minHeight: 540)
+    }
+
+    private func submit() async {
+        isSubmitting = true
+        error = nil
+        defer { isSubmitting = false }
+        let body = QuestionCreate(
+            title: title,
+            language: language,
+            description: description.isEmpty ? nil : description,
+            solution: solution.isEmpty ? nil : solution,
+            takeHome: takeHome,
+            padType: padType,
+            candidateInstructions: instructions.isEmpty
+                ? nil
+                : [CandidateInstructionPayload(instructions: instructions, defaultVisible: true)]
+        )
+        do {
+            let q = try await client.createQuestion(body)
+            onCreated(q)
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+}
+
+private struct EditQuestionSheet: View {
+    let client: CoderPadClient
+    let original: Question
+    let onSaved: (Question) -> Void
+    let onCancel: () -> Void
+
+    @State private var title: String
+    @State private var language: String
+    @State private var description: String
+    @State private var solution: String
+    @State private var takeHome: Bool
+    @State private var padType: String
+    @State private var isSubmitting = false
+    @State private var error: String?
+
+    init(client: CoderPadClient,
+         original: Question,
+         onSaved: @escaping (Question) -> Void,
+         onCancel: @escaping () -> Void) {
+        self.client = client
+        self.original = original
+        self.onSaved = onSaved
+        self.onCancel = onCancel
+        _title = State(initialValue: original.title)
+        _language = State(initialValue: original.language ?? "python3")
+        _description = State(initialValue: original.description ?? "")
+        _solution = State(initialValue: original.solution ?? "")
+        _takeHome = State(initialValue: original.takeHome ?? false)
+        _padType = State(initialValue: original.padType ?? "live")
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Edit Question").font(.title3.bold())
+            Text("#\(original.id)").font(.caption.monospaced()).foregroundStyle(.secondary)
+            Form {
+                TextField("Title", text: $title)
+                Picker("Language", selection: $language) {
+                    ForEach(languageOptions, id: \.self) { Text($0).tag($0) }
+                    if !languageOptions.contains(language) { Text(language).tag(language) }
+                }
+                Picker("Type", selection: $padType) {
+                    ForEach(padTypeOptions, id: \.self) { Text($0.capitalized).tag($0) }
+                    if !padTypeOptions.contains(padType) { Text(padType).tag(padType) }
+                }
+                Toggle("Take-home", isOn: $takeHome)
+                Section("Description") {
+                    TextEditor(text: $description).frame(minHeight: 60)
+                }
+                Section("Solution") {
+                    TextEditor(text: $solution).frame(minHeight: 60)
+                }
+            }
+            .formStyle(.grouped)
+
+            if let error {
+                Label(error, systemImage: "exclamationmark.triangle")
+                    .foregroundStyle(.orange).font(.callout)
+            }
+
+            HStack {
+                Spacer()
+                Button("Cancel", role: .cancel, action: onCancel)
+                Button { Task { await submit() } } label: {
+                    if isSubmitting { ProgressView().controlSize(.small) } else { Text("Save") }
+                }
+                .keyboardShortcut(.defaultAction)
+                .buttonStyle(.borderedProminent)
+                .disabled(isSubmitting)
+            }
+        }
+        .padding()
+        .frame(minWidth: 520, minHeight: 480)
+    }
+
+    private func submit() async {
+        isSubmitting = true
+        error = nil
+        defer { isSubmitting = false }
+        let body = QuestionUpdate(
+            id: original.id,
+            title: title,
+            language: language,
+            description: description.isEmpty ? nil : description,
+            solution: solution.isEmpty ? nil : solution,
+            takeHome: takeHome,
+            padType: padType
+        )
+        do {
+            let q = try await client.updateQuestion(body)
+            onSaved(q)
+        } catch {
+            self.error = error.localizedDescription
         }
     }
 }
