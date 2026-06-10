@@ -400,9 +400,13 @@ struct LastFetchedLabel: View {
     let date: Date?
     var body: some View {
         if let date {
-            Text("Updated \(date.formatted(.relative(presentation: .named)))")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            HStack(spacing: 4) {
+                Image(systemName: "clock")
+                Text("Updated \(date.formatted(.relative(presentation: .named)))")
+            }
+            .font(.callout)
+            .foregroundStyle(.secondary)
+            .help("Last refreshed at \(date.formatted(date: .omitted, time: .standard))")
         }
     }
 }

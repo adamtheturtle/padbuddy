@@ -99,7 +99,7 @@ struct QuestionsView: View {
         .navigationTitle("Questions")
         .searchable(text: $search, placement: .toolbar, prompt: "Search title, author…")
         .toolbar {
-            ToolbarItem(placement: .status) {
+            ToolbarItem {
                 LastFetchedLabel(date: lastFetched)
             }
             ToolbarItem {

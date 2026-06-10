@@ -141,7 +141,7 @@ struct PadsView: View {
         .navigationTitle("Pads")
         .searchable(text: $search, placement: .toolbar, prompt: "Search title, owner, participants…")
         .toolbar {
-            ToolbarItem(placement: .status) {
+            ToolbarItem {
                 LastFetchedLabel(date: lastFetched)
             }
             ToolbarItem {
