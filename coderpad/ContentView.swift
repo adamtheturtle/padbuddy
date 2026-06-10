@@ -75,17 +75,14 @@ struct ContentView: View {
         if store.accounts.isEmpty {
             ContentUnavailableView {
                 Label("Welcome to CoderPad", systemImage: "doc.text.magnifyingglass")
-            } description: {
-                Text("Add an account with your CoderPad API key to browse pads, questions, organization stats and quota.")
             } actions: {
                 Button("Add Account") { showSettings = true }
                     .buttonStyle(.borderedProminent)
                 #if DEBUG
-                Button("Try Demo (mock data)") {
+                Button("Try Demo") {
                     store.addDemoIfMissing()
                 }
                 #endif
-                GetAPIKeyLink()
             }
         } else {
             ContentUnavailableView {
