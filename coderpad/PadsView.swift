@@ -139,11 +139,9 @@ struct PadsView: View {
             }
         }
         .navigationTitle("Pads")
+        .navigationSubtitle(lastFetched.map { "Updated \($0.formatted(.relative(presentation: .named)))" } ?? "")
         .searchable(text: $search, placement: .toolbar, prompt: "Search title, owner, participants…")
         .toolbar {
-            ToolbarItem {
-                LastFetchedLabel(date: lastFetched)
-            }
             ToolbarItem {
                 Button { showCreate = true } label: {
                     Label("New Pad", systemImage: "plus")

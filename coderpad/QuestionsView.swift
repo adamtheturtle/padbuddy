@@ -97,11 +97,9 @@ struct QuestionsView: View {
             }
         }
         .navigationTitle("Questions")
+        .navigationSubtitle(lastFetched.map { "Updated \($0.formatted(.relative(presentation: .named)))" } ?? "")
         .searchable(text: $search, placement: .toolbar, prompt: "Search title, author…")
         .toolbar {
-            ToolbarItem {
-                LastFetchedLabel(date: lastFetched)
-            }
             ToolbarItem {
                 Button { Task { await reload() } } label: {
                     Label("Reload", systemImage: "arrow.clockwise")
