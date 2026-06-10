@@ -6,6 +6,8 @@
 import SwiftUI
 import AppKit
 
+let copyrightLine = "Copyright © 2026 Adam Dangoor"
+
 extension Notification.Name {
     static let createPadRequested = Notification.Name("coderpad.createPadRequested")
     static let sectionRequested = Notification.Name("coderpad.sectionRequested")
@@ -19,6 +21,7 @@ extension Notification.Name {
     static let openSettingsRequested = Notification.Name("coderpad.openSettingsRequested")
     static let createQuestionRequested = Notification.Name("coderpad.createQuestionRequested")
     static let openPadInBrowserRequested = Notification.Name("coderpad.openPadInBrowserRequested")
+    static let padsFilterByOwnerRequested = Notification.Name("coderpad.padsFilterByOwnerRequested")
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -127,6 +130,7 @@ github.com/adamtheturtle/coderpad-macos
             NSApplication.AboutPanelOptionKey.applicationVersion: version,
             NSApplication.AboutPanelOptionKey.version: "Build \(build)",
             NSApplication.AboutPanelOptionKey.credits: credits,
+            NSApplication.AboutPanelOptionKey(rawValue: "Copyright"): copyrightLine,
         ])
     }
 }

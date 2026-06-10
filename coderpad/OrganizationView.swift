@@ -118,22 +118,30 @@ struct OrganizationView: View {
                     .textFieldStyle(.roundedBorder)
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 240), spacing: 10)], alignment: .leading, spacing: 10) {
                     ForEach(filteredUsers(org)) { user in
-                        HStack(spacing: 10) {
-                            AvatarCircle(label: user.name ?? user.email, diameter: 32)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(user.name ?? user.email)
-                                    .font(.callout.weight(.medium))
-                                    .lineLimit(1)
-                                EmailLink(email: user.email)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
+                        Button {
+                            NotificationCenter.default.post(name: .sectionRequested, object: AppSection.pads)
+                            NotificationCenter.default.post(name: .padsFilterByOwnerRequested, object: user.email)
+                        } label: {
+                            HStack(spacing: 10) {
+                                AvatarCircle(label: user.name ?? user.email, diameter: 32)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(user.name ?? user.email)
+                                        .font(.callout.weight(.medium))
+                                        .lineLimit(1)
+                                    Text(user.email)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                }
+                                Spacer(minLength: 0)
                             }
-                            Spacer(minLength: 0)
+                            .padding(10)
+                            .background(Color.subtleStroke.opacity(0.5),
+                                        in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                         }
-                        .padding(10)
-                        .background(Color.subtleStroke.opacity(0.5),
-                                    in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .buttonStyle(.plain)
+                        .help("Show pads owned by \(user.name ?? user.email)")
                     }
                 }
             }

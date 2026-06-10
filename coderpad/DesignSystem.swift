@@ -220,6 +220,31 @@ extension String {
             return self.prefix(1).uppercased() + self.dropFirst()
         }
     }
+
+    var languageSymbol: String {
+        switch self.lowercased() {
+        case "html", "css", "javascript", "typescript", "node", "node.js", "nodejs":
+            return "globe"
+        case "python", "python2", "python3", "ruby", "perl", "lua", "r", "bash", "shell", "sh":
+            return "terminal"
+        case "swift", "objective-c", "objc":
+            return "swift"
+        case "go", "golang", "rust", "c", "cpp", "c++", "csharp", "c#", "java", "kotlin", "scala":
+            return "cpu"
+        case "sql", "mysql", "postgresql", "postgres":
+            return "cylinder"
+        case "haskell", "elixir", "erlang", "clojure", "ocaml", "f#", "fsharp":
+            return "function"
+        case "dart":
+            return "iphone"
+        case "php":
+            return "globe.americas"
+        case "plaintext", "plain-text", "plain_text":
+            return "doc.plaintext"
+        default:
+            return "chevron.left.slash.chevron.right"
+        }
+    }
 }
 
 // MARK: - GetAPIKeyLink

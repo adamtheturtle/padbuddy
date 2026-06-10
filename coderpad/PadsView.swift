@@ -73,6 +73,9 @@ struct PadsView: View {
         .onReceive(NotificationCenter.default.publisher(for: .padsSearchRequested)) { note in
             if let q = note.object as? String { search = q }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .padsFilterByOwnerRequested)) { note in
+            if let email = note.object as? String { ownerFilter = email }
+        }
         .sheet(isPresented: $showSaveSearch) {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Save Search").font(.title3.bold())
@@ -464,7 +467,7 @@ private struct PadRow: View {
                 HStack(spacing: 6) {
                     StateBadge(state: pad.state)
                     if let language = pad.language, !language.isEmpty {
-                        Chip(text: language.languageDisplayName, systemImage: "chevron.left.slash.chevron.right",
+                        Chip(text: language.languageDisplayName, systemImage: language.languageSymbol,
                              tint: language.languageColor)
                     }
                 }
@@ -574,7 +577,7 @@ struct PadDetailView: View {
             HStack(spacing: 6) {
                 StateBadge(state: pad.state)
                 if let language = pad.language, !language.isEmpty {
-                    Chip(text: language.languageDisplayName, systemImage: "chevron.left.slash.chevron.right",
+                    Chip(text: language.languageDisplayName, systemImage: language.languageSymbol,
                          tint: language.languageColor)
                 }
                 if let type = pad.type, !type.isEmpty {

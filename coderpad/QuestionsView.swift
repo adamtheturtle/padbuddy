@@ -220,7 +220,7 @@ private struct QuestionRow: View {
                     .lineLimit(1)
                 HStack(spacing: 6) {
                     if let lang = question.language, !lang.isEmpty {
-                        Chip(text: lang.languageDisplayName, systemImage: "chevron.left.slash.chevron.right", tint: lang.languageColor)
+                        Chip(text: lang.languageDisplayName, systemImage: lang.languageSymbol, tint: lang.languageColor)
                     }
                     if question.takeHome == true {
                         Chip(text: "Take-home", systemImage: "house", tint: .pink)
@@ -315,7 +315,7 @@ struct QuestionDetailView: View {
             }
             HStack(spacing: 6) {
                 if let lang = question.language, !lang.isEmpty {
-                    Chip(text: lang.languageDisplayName, systemImage: "chevron.left.slash.chevron.right", tint: lang.languageColor)
+                    Chip(text: lang.languageDisplayName, systemImage: lang.languageSymbol, tint: lang.languageColor)
                 }
                 if let type = question.padType, !type.isEmpty {
                     Chip(text: type, systemImage: "tag")
