@@ -192,6 +192,160 @@ struct EmailLink: View {
     }
 }
 
+// MARK: - Org directory (email -> name lookup)
+
+@Observable
+final class OrgDirectory {
+    private(set) var nameByEmail: [String: String] = [:]
+    private var loadedAccountID: UUID?
+    private var inFlight: UUID?
+
+    func load(for account: Account) async {
+        guard loadedAccountID != account.id, inFlight != account.id else { return }
+        inFlight = account.id
+        defer { inFlight = nil }
+        let client = CoderPadClient(apiKey: account.apiKey)
+        if let org = try? await client.organization() {
+            var map: [String: String] = [:]
+            for user in org.users {
+                if let name = user.name, !name.isEmpty {
+                    map[user.email] = name
+                }
+            }
+            nameByEmail = map
+            loadedAccountID = account.id
+        }
+    }
+
+    func name(for email: String) -> String? {
+        let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        return nameByEmail[trimmed]
+    }
+
+    func display(_ email: String) -> String {
+        name(for: email) ?? email
+    }
+}
+
+private struct OrgDirectoryKey: EnvironmentKey {
+    static let defaultValue = OrgDirectory()
+}
+
+extension EnvironmentValues {
+    var orgDirectory: OrgDirectory {
+        get { self[OrgDirectoryKey.self] }
+        set { self[OrgDirectoryKey.self] = newValue }
+    }
+}
+
+// MARK: - Searchable filter chip
+
+struct SearchableFilterChip: View {
+    let title: String
+    let icon: String
+    @Binding var selected: String?
+    let options: [String]
+    let formatter: (String) -> String
+
+    @State private var presented = false
+    @State private var search = ""
+
+    private var filtered: [String] {
+        let q = search.lowercased()
+        guard !q.isEmpty else { return options }
+        return options.filter {
+            formatter($0).lowercased().contains(q) || $0.lowercased().contains(q)
+        }
+    }
+
+    var body: some View {
+        Button { presented.toggle() } label: {
+            HStack(spacing: 4) {
+                Image(systemName: icon).font(.caption)
+                Text(selected.map(formatter) ?? title)
+                    .font(.callout).lineLimit(1)
+                Image(systemName: "chevron.down").font(.caption2)
+            }
+            .padding(.horizontal, 10).padding(.vertical, 5)
+            .background(
+                (selected == nil ? Color.subtleStroke : Color.accentColor.opacity(0.18)),
+                in: Capsule()
+            )
+            .foregroundStyle(selected == nil ? Color.primary : Color.accentColor)
+            .overlay(Capsule().stroke(selected == nil ? Color.subtleStroke : Color.accentColor.opacity(0.4), lineWidth: 0.5))
+        }
+        .buttonStyle(.plain)
+        .disabled(options.isEmpty)
+        .popover(isPresented: $presented, arrowEdge: .top) {
+            VStack(spacing: 0) {
+                TextField("Search \(title.lowercased())", text: $search)
+                    .textFieldStyle(.roundedBorder)
+                    .padding(10)
+                Divider()
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 0) {
+                        PopoverRow(label: "All", subtitle: nil, isSelected: selected == nil) {
+                            selected = nil
+                            presented = false
+                        }
+                        Divider()
+                        ForEach(filtered, id: \.self) { option in
+                            PopoverRow(
+                                label: formatter(option),
+                                subtitle: formatter(option) == option ? nil : option,
+                                isSelected: option == selected
+                            ) {
+                                selected = option
+                                presented = false
+                            }
+                        }
+                        if filtered.isEmpty {
+                            Text("No matches")
+                                .font(.callout).foregroundStyle(.secondary)
+                                .padding(10)
+                        }
+                    }
+                }
+                .frame(width: 320, height: 320)
+            }
+        }
+    }
+}
+
+private struct PopoverRow: View {
+    let label: String
+    let subtitle: String?
+    let isSelected: Bool
+    let action: () -> Void
+
+    @State private var hovered = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: isSelected ? "checkmark" : "circle")
+                    .font(.caption)
+                    .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+                    .frame(width: 16)
+                Text(label).lineLimit(1)
+                Spacer(minLength: 4)
+                if let subtitle {
+                    Text(subtitle)
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+            .padding(.horizontal, 12).padding(.vertical, 6)
+            .background(hovered ? Color.accentColor.opacity(0.10) : Color.clear)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .onHover { hovered = $0 }
+    }
+}
+
 // MARK: - Environment: openSettings
 
 private struct OpenSettingsKey: EnvironmentKey {

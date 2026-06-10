@@ -7,6 +7,7 @@ import SwiftUI
 
 struct QuestionsView: View {
     let client: CoderPadClient
+    @Environment(\.orgDirectory) private var directory
     @State private var questions: [Question] = []
     @State private var isLoading = false
     @State private var error: Error?
@@ -102,9 +103,9 @@ struct QuestionsView: View {
                 FilterChipMenu(title: "Language", icon: "chevron.left.slash.chevron.right",
                                selected: $languageFilter, options: availableLanguages,
                                formatter: { $0 })
-                FilterChipMenu(title: "Owner", icon: "person",
-                               selected: $ownerFilter, options: availableOwners,
-                               formatter: { $0 })
+                SearchableFilterChip(title: "Owner", icon: "person",
+                                     selected: $ownerFilter, options: availableOwners,
+                                     formatter: { directory.display($0) })
                 FilterChipMenu(title: "Take-home", icon: "house",
                                selected: $takeHomeFilter, options: ["yes", "no"],
                                formatter: { $0.capitalized })

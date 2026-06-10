@@ -13,6 +13,7 @@ struct ContentView: View {
     @State private var store = AccountsStore.shared
     @State private var section: AppSection? = .pads
     @State private var showSettings = false
+    @State private var directory = OrgDirectory()
 
     var body: some View {
         NavigationSplitView {
@@ -23,9 +24,15 @@ struct ContentView: View {
                 noAccountView
             } else {
                 detailContent
+                    .task(id: store.currentAccountID) {
+                        if let account = store.currentAccount {
+                            await directory.load(for: account)
+                        }
+                    }
             }
         }
         .environment(\.openSettings, { showSettings = true })
+        .environment(\.orgDirectory, directory)
         .sheet(isPresented: $showSettings) {
             NavigationStack {
                 SettingsView()

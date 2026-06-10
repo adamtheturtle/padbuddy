@@ -7,6 +7,7 @@ import SwiftUI
 
 struct PadsView: View {
     let client: CoderPadClient
+    @Environment(\.orgDirectory) private var directory
     @State private var pads: [Pad] = []
     @State private var isLoading = false
     @State private var error: Error?
@@ -55,6 +56,7 @@ struct PadsView: View {
              || pad.title.lowercased().contains(lowered)
              || pad.id.lowercased().contains(lowered)
              || pad.ownerEmail.lowercased().contains(lowered)
+             || directory.display(pad.ownerEmail).lowercased().contains(lowered)
              || pad.participants.contains(where: { $0.lowercased().contains(lowered) }))
         }
     }
@@ -134,12 +136,12 @@ struct PadsView: View {
                     options: availableLanguages,
                     formatter: { $0 }
                 )
-                FilterChipMenu(
+                SearchableFilterChip(
                     title: "Owner",
                     icon: "person",
                     selected: $ownerFilter,
                     options: availableOwners,
-                    formatter: { $0 }
+                    formatter: { directory.display($0) }
                 )
                 FilterChipMenu(
                     title: "Team",
@@ -241,10 +243,11 @@ struct FilterChipMenu: View {
 
 private struct PadRow: View {
     let pad: Pad
+    @Environment(\.orgDirectory) private var directory
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
-            AvatarCircle(label: pad.ownerEmail, diameter: 30)
+            AvatarCircle(label: directory.display(pad.ownerEmail), diameter: 30)
             VStack(alignment: .leading, spacing: 4) {
                 Text(pad.title.isEmpty ? pad.id : pad.title)
                     .font(.callout.weight(.medium))
@@ -256,7 +259,7 @@ private struct PadRow: View {
                              tint: language.languageColor)
                     }
                 }
-                EmailLink(email: pad.ownerEmail)
+                Text(directory.display(pad.ownerEmail))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -281,6 +284,7 @@ struct PadDetailView: View {
     @State private var loadError: String?
     @State private var isLoading = false
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.orgDirectory) private var directory
 
     var body: some View {
         ScrollView {
@@ -305,12 +309,16 @@ struct PadDetailView: View {
     private var header: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 12) {
-                AvatarCircle(label: pad.ownerEmail, diameter: 48)
+                AvatarCircle(label: directory.display(pad.ownerEmail), diameter: 48)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(pad.title.isEmpty ? "Untitled Pad" : pad.title)
                         .font(.title2.weight(.semibold))
-                    EmailLink(email: pad.ownerEmail)
-                        .foregroundStyle(.secondary)
+                    if let name = directory.name(for: pad.ownerEmail) {
+                        Text(name).font(.callout)
+                        EmailLink(email: pad.ownerEmail).font(.caption).foregroundStyle(.secondary)
+                    } else {
+                        EmailLink(email: pad.ownerEmail).foregroundStyle(.secondary)
+                    }
                 }
                 Spacer()
                 if let url = URL(string: pad.url) {
