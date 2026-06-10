@@ -39,8 +39,9 @@ A living roadmap. Items are grouped by theme and roughly ordered by impact. Anyt
 
 ## Pad detail polish
 
-- [ ] In-pad code preview: show the `contents` and/or active environment code with syntax highlighting (CodeEditor / TextKit2).
-- [ ] Events timeline grouping (collapse consecutive `typed` events).
+- [x] In-pad code preview: show the active environment's `contents` in a monospaced scrollable card with copy button.
+- [x] Events timeline grouping: consecutive `typed`/`edited`/`ran` events by the same user collapse to one row with `×N` chip and date range.
+- [ ] Syntax highlighting for the code preview (CodeEditor / TextKit2).
 - [ ] Highlight the active participant in the events timeline.
 - [ ] "Open in Pad Browser" button on individual events when the API exposes a deep-link.
 
@@ -62,7 +63,7 @@ A living roadmap. Items are grouped by theme and roughly ordered by impact. Anyt
 
 ## Accessibility & ergonomics
 
-- [ ] VoiceOver labels on filter chips, stat tiles, and the event timeline.
+- [x] VoiceOver labels on filter chips, stat tiles, pin button, and the event timeline (each event is `combine`d into a single accessible element with kind/count/user/time).
 - [ ] Dynamic Type for body text (most labels already use semantic fonts; verify in pad detail).
 - [ ] High-contrast mode pass for the chip backgrounds (current alphas are subtle).
 - [ ] Keyboard navigation through pad list with `↑/↓`, `↩` to open in-window browser.

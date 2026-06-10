@@ -356,6 +356,7 @@ private struct PadRow: View {
             }
             .buttonStyle(.borderless)
             .help(isPinned ? "Unpin" : "Pin to top")
+            .accessibilityLabel(isPinned ? "Unpin pad" : "Pin pad to top")
         }
         .padding(.vertical, 4)
     }
@@ -383,6 +384,11 @@ struct PadDetailView: View {
                 }
                 if !environments.isEmpty {
                     environmentsCard
+                }
+                if let active = activeEnvironment,
+                   let contents = active.contents,
+                   !contents.isEmpty {
+                    codePreviewCard(active, contents: contents)
                 }
                 eventsCard
             }
@@ -547,32 +553,112 @@ struct PadDetailView: View {
                     Text("No events yet.").foregroundStyle(.secondary).font(.callout)
                 } else {
                     VStack(alignment: .leading, spacing: 8) {
-                        ForEach(events) { event in
+                        ForEach(groupedEvents) { group in
                             HStack(alignment: .top, spacing: 10) {
-                                Image(systemName: icon(for: event.kind))
-                                    .foregroundStyle(color(for: event.kind))
+                                Image(systemName: icon(for: group.representative.kind))
+                                    .foregroundStyle(color(for: group.representative.kind))
                                     .frame(width: 18)
                                 VStack(alignment: .leading, spacing: 2) {
                                     HStack(spacing: 6) {
-                                        Text(event.kind.capitalized).font(.callout.weight(.semibold))
-                                        if let name = event.userName, !name.isEmpty {
+                                        Text(group.representative.kind.capitalized)
+                                            .font(.callout.weight(.semibold))
+                                        if group.count > 1 {
+                                            Chip(text: "×\(group.count)", tint: .accentColor)
+                                        }
+                                        if let name = group.representative.userName, !name.isEmpty {
                                             Text("· \(name)").font(.callout).foregroundStyle(.secondary)
                                         }
                                     }
-                                    if let created = event.createdAt {
-                                        Text(created.formatted(date: .abbreviated, time: .shortened))
-                                            .font(.caption).foregroundStyle(.tertiary)
+                                    if let first = group.representative.createdAt {
+                                        if group.count > 1, let last = group.lastEvent.createdAt {
+                                            Text("\(first.formatted(date: .abbreviated, time: .shortened)) – \(last.formatted(date: .omitted, time: .shortened))")
+                                                .font(.caption).foregroundStyle(.tertiary)
+                                        } else {
+                                            Text(first.formatted(date: .abbreviated, time: .shortened))
+                                                .font(.caption).foregroundStyle(.tertiary)
+                                        }
                                     }
                                 }
                                 Spacer()
                             }
                             .padding(.vertical, 2)
+                            .accessibilityElement(children: .combine)
+                            .accessibilityLabel(accessibilityLabel(for: group))
                         }
                     }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    private var activeEnvironment: PadEnvironment? {
+        environments.first(where: { $0.id == pad.activeEnvironmentID })
+            ?? environments.first
+    }
+
+    private func codePreviewCard(_ env: PadEnvironment, contents: String) -> some View {
+        Card {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    SectionHeader(title: "Code", systemImage: "chevron.left.slash.chevron.right")
+                    Spacer()
+                    if let lang = env.language, !lang.isEmpty {
+                        Chip(text: lang, tint: lang.languageColor)
+                    }
+                    Button {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(contents, forType: .string)
+                    } label: {
+                        Image(systemName: "doc.on.doc")
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Copy code")
+                    .accessibilityLabel("Copy code")
+                }
+                ScrollView([.vertical, .horizontal]) {
+                    Text(contents)
+                        .font(.system(.callout, design: .monospaced))
+                        .textSelection(.enabled)
+                        .padding(.vertical, 4)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(maxHeight: 360)
+                .background(Color.subtleStroke.opacity(0.5),
+                            in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .accessibilityLabel("Code preview of pad \(pad.id)")
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private struct EventGroup: Identifiable {
+        let id: String
+        let representative: PadEvent
+        let count: Int
+        let lastEvent: PadEvent
+    }
+
+    private static let collapsibleKinds: Set<String> = ["typed", "edited", "ran", "executed"]
+
+    private var groupedEvents: [EventGroup] {
+        var groups: [EventGroup] = []
+        for event in events {
+            if let last = groups.last,
+               Self.collapsibleKinds.contains(event.kind.lowercased()),
+               last.representative.kind == event.kind,
+               last.representative.userName == event.userName {
+                groups[groups.count - 1] = EventGroup(
+                    id: last.id,
+                    representative: last.representative,
+                    count: last.count + 1,
+                    lastEvent: event
+                )
+            } else {
+                groups.append(EventGroup(id: event.id, representative: event, count: 1, lastEvent: event))
+            }
+        }
+        return groups
     }
 
     private func icon(for kind: String) -> String {
@@ -596,6 +682,16 @@ struct PadDetailView: View {
         case "ran", "executed": return .orange
         default: return .accentColor
         }
+    }
+
+    private func accessibilityLabel(for group: EventGroup) -> String {
+        var parts = [group.representative.kind]
+        if group.count > 1 { parts.append("\(group.count) times") }
+        if let user = group.representative.userName, !user.isEmpty { parts.append("by \(user)") }
+        if let when = group.representative.createdAt {
+            parts.append("at \(when.formatted(date: .abbreviated, time: .shortened))")
+        }
+        return parts.joined(separator: " ")
     }
 
     private func load() async {

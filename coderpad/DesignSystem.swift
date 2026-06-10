@@ -137,6 +137,8 @@ struct StatTile: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(title): \(value)")
     }
 }
 
@@ -276,6 +278,11 @@ struct SearchableFilterChip: View {
     @State private var presented = false
     @State private var search = ""
 
+    private var accessibilityHint: String {
+        if let selected { return "Filter applied: \(formatter(selected)). Activate to change." }
+        return "No \(title.lowercased()) filter. Activate to choose one."
+    }
+
     private var filtered: [String] {
         let q = search.lowercased()
         guard !q.isEmpty else { return options }
@@ -302,6 +309,9 @@ struct SearchableFilterChip: View {
         }
         .buttonStyle(.plain)
         .disabled(options.isEmpty)
+        .accessibilityLabel("\(title) filter")
+        .accessibilityValue(selected.map(formatter) ?? "All")
+        .accessibilityHint(accessibilityHint)
         .popover(isPresented: $presented, arrowEdge: .top) {
             VStack(spacing: 0) {
                 TextField("Search \(title.lowercased())", text: $search)
