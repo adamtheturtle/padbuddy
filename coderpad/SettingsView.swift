@@ -220,8 +220,8 @@ private struct AccountEditor: View {
     let initialName: String
     let onSave: (Account) -> Void
     let onCancel: () -> Void
-    @State private var reveal = false
     @State private var validation: ValidationState = .idle
+    @FocusState private var keyFieldFocused: Bool
 
     init(initial: Account, onSave: @escaping (Account) -> Void, onCancel: @escaping () -> Void) {
         _draft = State(initialValue: initial)
@@ -235,14 +235,17 @@ private struct AccountEditor: View {
             Text(initialName.isEmpty ? "Add account" : "Edit account").font(.title3.bold())
             Form {
                 Group {
-                    if reveal {
-                        TextField("API key", text: $draft.apiKey, prompt: Text("paste key"))
+                    if keyFieldFocused {
+                        TextField("API key", text: $draft.apiKey, prompt: Text("key"))
+                            .focused($keyFieldFocused)
                     } else {
-                        SecureField("API key", text: $draft.apiKey, prompt: Text("paste key"))
+                        SecureField("API key", text: $draft.apiKey, prompt: Text("key"))
+                            .focused($keyFieldFocused)
                     }
                 }
-                Toggle("Show key", isOn: $reveal)
-                TextField("Name", text: $draft.name, prompt: Text("Auto-filled after validating"))
+                if isValidated {
+                    TextField("Name", text: $draft.name, prompt: Text("Auto-filled from your organization"))
+                }
                 GetAPIKeyLink()
                     .font(.callout)
             }
@@ -262,12 +265,17 @@ private struct AccountEditor: View {
                 }
                 .keyboardShortcut(.defaultAction)
                 .buttonStyle(.borderedProminent)
-                .disabled(draft.apiKey.trimmingCharacters(in: .whitespaces).isEmpty)
+                .disabled(!isValidated)
             }
         }
         .padding()
         .frame(minWidth: 460, minHeight: 320)
         .onChange(of: draft.apiKey) { _, _ in validation = .idle }
+    }
+
+    private var isValidated: Bool {
+        if case .valid = validation { return true }
+        return false
     }
 
     private func finalizeNameIfNeeded() {
