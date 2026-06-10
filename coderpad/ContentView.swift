@@ -48,6 +48,9 @@ struct ContentView: View {
                 openWindow(id: "pad-browser", value: url)
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .openSettingsRequested)) { _ in
+            showSettings = true
+        }
         .sheet(isPresented: $showOpenPadURL) {
             OpenPadURLSheet(
                 urlString: $openPadURLDraft,
@@ -211,14 +214,10 @@ private struct Sidebar: View {
     var body: some View {
         VStack(spacing: 0) {
             List(selection: $section) {
-                SwiftUI.Section("Browse") {
-                    Label("Pads", systemImage: "doc.text").tag(AppSection.pads)
-                    Label("Questions", systemImage: "questionmark.bubble").tag(AppSection.questions)
-                }
-                SwiftUI.Section("Account") {
-                    Label("Organization", systemImage: "building.2").tag(AppSection.organization)
-                    Label("Quota", systemImage: "gauge.with.dots.needle.67percent").tag(AppSection.quota)
-                }
+                Label("Pads", systemImage: "doc.text").tag(AppSection.pads)
+                Label("Questions", systemImage: "questionmark.bubble").tag(AppSection.questions)
+                Label("Organization", systemImage: "building.2").tag(AppSection.organization)
+                Label("Quota", systemImage: "gauge.with.dots.needle.67percent").tag(AppSection.quota)
             }
             .listStyle(.sidebar)
             .scrollDisabled(true)
@@ -254,7 +253,7 @@ private struct AccountFooter: View {
     private var footerMenu: some View {
         Menu {
             if store.accounts.count > 1, let currentID = store.currentAccountID {
-                Picker("Switch", selection: Binding(
+                Picker("Switch Account", selection: Binding(
                     get: { currentID },
                     set: { store.currentAccountID = $0 }
                 )) {

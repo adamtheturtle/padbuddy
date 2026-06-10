@@ -16,6 +16,7 @@ extension Notification.Name {
     static let questionUpdated = Notification.Name("coderpad.questionUpdated")
     static let questionDeleted = Notification.Name("coderpad.questionDeleted")
     static let openPadIDRequested = Notification.Name("coderpad.openPadIDRequested")
+    static let openSettingsRequested = Notification.Name("coderpad.openSettingsRequested")
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {

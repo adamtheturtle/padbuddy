@@ -108,6 +108,11 @@ struct MenuBarView: View {
             Text("No account configured")
                 .font(.caption).foregroundStyle(.secondary)
             Divider()
+            Button("Add Account…") {
+                openMain()
+                NotificationCenter.default.post(name: .openSettingsRequested, object: nil)
+            }
+            .keyboardShortcut("n")
             Button("Open CoderPad") { openMain() }
             Button("Quit") { NSApp.terminate(nil) }
                 .keyboardShortcut("q")

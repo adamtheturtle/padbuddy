@@ -333,7 +333,7 @@ struct QuestionDetailView: View {
             VStack(alignment: .leading, spacing: 10) {
                 SectionHeader(title: "Candidate Instructions", systemImage: "text.book.closed")
                 ForEach(Array(question.candidateInstructions.enumerated()), id: \.offset) { _, item in
-                    Text(item.instructions.isEmpty ? "(empty)" : item.instructions)
+                    MarkdownText(item.instructions)
                         .font(.callout)
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -369,10 +369,6 @@ struct QuestionDetailView: View {
 
 // MARK: - Question Create / Edit sheets
 
-private let languageOptions = [
-    "python3", "javascript", "typescript", "swift", "go", "rust", "java",
-    "kotlin", "ruby", "c", "cpp", "csharp", "php", "scala", "r", "sql", "bash"
-]
 private let padTypeOptions = ["live", "take-home"]
 
 private struct NewQuestionSheet: View {
@@ -385,7 +381,6 @@ private struct NewQuestionSheet: View {
     @State private var description = ""
     @State private var instructions = ""
     @State private var solution = ""
-    @State private var takeHome = false
     @State private var padType = "live"
     @State private var isSubmitting = false
     @State private var error: String?
@@ -396,12 +391,11 @@ private struct NewQuestionSheet: View {
             Form {
                 TextField("Title", text: $title)
                 Picker("Language", selection: $language) {
-                    ForEach(languageOptions, id: \.self) { Text($0).tag($0) }
+                    ForEach(CoderPadLanguages.pickerOptions, id: \.self) { Text($0.languageDisplayName).tag($0) }
                 }
                 Picker("Type", selection: $padType) {
                     ForEach(padTypeOptions, id: \.self) { Text($0.capitalized).tag($0) }
                 }
-                Toggle("Take-home", isOn: $takeHome)
                 Section("Description") {
                     TextEditor(text: $description).frame(minHeight: 60)
                 }
@@ -443,7 +437,7 @@ private struct NewQuestionSheet: View {
             language: language,
             description: description.isEmpty ? nil : description,
             solution: solution.isEmpty ? nil : solution,
-            takeHome: takeHome,
+            takeHome: padType == "take-home",
             padType: padType,
             candidateInstructions: instructions.isEmpty
                 ? nil
@@ -468,7 +462,6 @@ private struct EditQuestionSheet: View {
     @State private var language: String
     @State private var description: String
     @State private var solution: String
-    @State private var takeHome: Bool
     @State private var padType: String
     @State private var isSubmitting = false
     @State private var error: String?
@@ -485,8 +478,8 @@ private struct EditQuestionSheet: View {
         _language = State(initialValue: original.language ?? "python3")
         _description = State(initialValue: original.description ?? "")
         _solution = State(initialValue: original.solution ?? "")
-        _takeHome = State(initialValue: original.takeHome ?? false)
-        _padType = State(initialValue: original.padType ?? "live")
+        let initialType = original.padType ?? (original.takeHome == true ? "take-home" : "live")
+        _padType = State(initialValue: initialType)
     }
 
     var body: some View {
@@ -496,14 +489,13 @@ private struct EditQuestionSheet: View {
             Form {
                 TextField("Title", text: $title)
                 Picker("Language", selection: $language) {
-                    ForEach(languageOptions, id: \.self) { Text($0).tag($0) }
-                    if !languageOptions.contains(language) { Text(language).tag(language) }
+                    ForEach(CoderPadLanguages.pickerOptions, id: \.self) { Text($0.languageDisplayName).tag($0) }
+                    if !CoderPadLanguages.pickerOptions.contains(language) { Text(language.languageDisplayName).tag(language) }
                 }
                 Picker("Type", selection: $padType) {
                     ForEach(padTypeOptions, id: \.self) { Text($0.capitalized).tag($0) }
                     if !padTypeOptions.contains(padType) { Text(padType).tag(padType) }
                 }
-                Toggle("Take-home", isOn: $takeHome)
                 Section("Description") {
                     TextEditor(text: $description).frame(minHeight: 60)
                 }
@@ -543,7 +535,7 @@ private struct EditQuestionSheet: View {
             language: language,
             description: description.isEmpty ? nil : description,
             solution: solution.isEmpty ? nil : solution,
-            takeHome: takeHome,
+            takeHome: padType == "take-home",
             padType: padType
         )
         do {

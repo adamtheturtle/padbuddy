@@ -214,6 +214,7 @@ extension String {
         case "clojure": return "Clojure"
         case "ocaml": return "OCaml"
         case "f#", "fsharp": return "F#"
+        case "plaintext", "plain-text", "plain_text": return "Plain text"
         default:
             guard !self.isEmpty else { return self }
             return self.prefix(1).uppercased() + self.dropFirst()
@@ -227,6 +228,26 @@ enum CoderPadLinks {
     static let apiSettings = URL(string: "https://app.coderpad.io/dashboard/settings")!
     static let apiDocs = URL(string: "https://coderpad.io/resources/docs/coderpad-interview/api/")!
     static let sourceRepo = URL(string: "https://github.com/adamtheturtle/coderpad-macos")!
+}
+
+enum CoderPadLanguages {
+    static let pickerOptions: [String] = [
+        "python3", "python2",
+        "javascript", "typescript", "nodejs",
+        "swift",
+        "go",
+        "rust",
+        "java", "kotlin", "scala",
+        "ruby",
+        "c", "cpp", "csharp", "objective-c",
+        "php",
+        "r",
+        "sql", "mysql", "postgresql",
+        "bash", "shell",
+        "elixir", "erlang", "haskell", "perl", "lua", "dart", "clojure", "ocaml", "fsharp",
+        "html", "css",
+        "plaintext"
+    ]
 }
 
 struct GetAPIKeyLink: View {
@@ -243,6 +264,31 @@ extension View {
     @ViewBuilder
     fileprivate func `if`<T: View>(_ condition: Bool, transform: (Self) -> T) -> some View {
         if condition { transform(self) } else { self }
+    }
+}
+
+// MARK: - MarkdownText
+
+struct MarkdownText: View {
+    let raw: String
+
+    init(_ raw: String) {
+        self.raw = raw
+    }
+
+    var body: some View {
+        if raw.isEmpty {
+            Text("(empty)").foregroundStyle(.secondary)
+        } else if let attributed = try? AttributedString(
+            markdown: raw,
+            options: .init(
+                interpretedSyntax: .inlineOnlyPreservingWhitespace
+            )
+        ) {
+            Text(attributed)
+        } else {
+            Text(raw)
+        }
     }
 }
 

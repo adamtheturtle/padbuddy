@@ -862,11 +862,6 @@ private struct NewPadSheet: View {
     @State private var isSubmitting = false
     @State private var error: String?
 
-    private let languages = [
-        "python3", "javascript", "typescript", "swift", "go", "rust", "java",
-        "kotlin", "ruby", "c", "cpp", "csharp", "php", "scala", "r", "sql", "bash"
-    ]
-
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("New Pad").font(.title3.bold())
@@ -875,7 +870,7 @@ private struct NewPadSheet: View {
                 TextField("Title", text: $title, prompt: Text("Optional — e.g. \"Onsite – Jane Doe\""))
 
                 Picker("Language", selection: $language) {
-                    ForEach(languages, id: \.self) { Text($0).tag($0) }
+                    ForEach(CoderPadLanguages.pickerOptions, id: \.self) { Text($0.languageDisplayName).tag($0) }
                 }
 
                 TextField("Owner email", text: $ownerEmail, prompt: Text("Optional — defaults to the key's owner"))
@@ -949,11 +944,6 @@ private struct EditPadSheet: View {
     @State private var isSubmitting = false
     @State private var error: String?
 
-    private let languages = [
-        "python3", "javascript", "typescript", "swift", "go", "rust", "java",
-        "kotlin", "ruby", "c", "cpp", "csharp", "php", "scala", "r", "sql", "bash"
-    ]
-
     init(client: CoderPadClient,
          original: Pad,
          onSaved: @escaping (Pad) -> Void,
@@ -977,9 +967,9 @@ private struct EditPadSheet: View {
             Form {
                 TextField("Title", text: $title)
                 Picker("Language", selection: $language) {
-                    ForEach(languages, id: \.self) { Text($0).tag($0) }
-                    if !languages.contains(language) {
-                        Text(language).tag(language)
+                    ForEach(CoderPadLanguages.pickerOptions, id: \.self) { Text($0.languageDisplayName).tag($0) }
+                    if !CoderPadLanguages.pickerOptions.contains(language) {
+                        Text(language.languageDisplayName).tag(language)
                     }
                 }
                 TextField("Owner email", text: $ownerEmail)
