@@ -27,7 +27,7 @@ struct QuotaView: View {
                         }
                     }
                     .padding(.horizontal, 22)
-                    .padding(.top, 14)
+                    .padding(.top, 22)
                     .padding(.bottom, 22)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }

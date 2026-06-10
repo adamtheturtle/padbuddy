@@ -125,6 +125,7 @@ struct QuestionsView: View {
                         }
                     }
                     .listStyle(.inset)
+                    .refreshable { await reload() }
                 }
             }
         }
@@ -264,7 +265,7 @@ struct QuestionDetailView: View {
                 }
             }
             .padding(.horizontal, 22)
-            .padding(.top, 14)
+            .padding(.top, 22)
             .padding(.bottom, 22)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -290,18 +291,12 @@ struct QuestionDetailView: View {
                 AvatarCircle(label: question.ownerEmail, diameter: 48, tint: .indigo)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(question.title.isEmpty ? "Untitled Question" : question.title)
-                        .font(.title2.weight(.semibold))
-                    HStack(spacing: 4) {
-                        Image(systemName: "person.crop.circle")
+                        .font(.title.bold())
+                    if let author = question.authorName {
+                        Text("by \(author)")
+                            .font(.caption)
                             .foregroundStyle(.secondary)
-                        Text("Owner")
-                            .foregroundStyle(.secondary)
-                        if let author = question.authorName {
-                            Text("·").foregroundStyle(.tertiary)
-                            Text(author).foregroundStyle(.secondary)
-                        }
                     }
-                    .font(.caption)
                     EmailLink(email: question.ownerEmail)
                         .font(.caption)
                         .foregroundStyle(.tertiary)

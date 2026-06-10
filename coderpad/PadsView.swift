@@ -177,6 +177,7 @@ struct PadsView: View {
                         }
                     }
                     .listStyle(.inset)
+                    .refreshable { await reload() }
                     .focusedValue(\.focusedPad, selection)
                 }
             }
@@ -572,7 +573,7 @@ struct PadDetailView: View {
                 eventsCard
             }
             .padding(.horizontal, 22)
-            .padding(.top, 14)
+            .padding(.top, 22)
             .padding(.bottom, 22)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -584,7 +585,7 @@ struct PadDetailView: View {
                 AvatarCircle(label: directory.display(pad.ownerEmail), diameter: 48)
                 VStack(alignment: .leading, spacing: 4) {
                     Text(pad.title.isEmpty ? "Untitled Pad" : pad.title)
-                        .font(.title2.weight(.semibold))
+                        .font(.title.bold())
                     if let name = directory.name(for: pad.ownerEmail) {
                         Text(name).font(.callout)
                         EmailLink(email: pad.ownerEmail).font(.caption).foregroundStyle(.secondary)
