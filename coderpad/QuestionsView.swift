@@ -121,6 +121,9 @@ struct QuestionsView: View {
                         title: "Questions",
                         subtitle: lastFetched.map { "Updated \($0.formatted(.relative(presentation: .named)))" }
                     )
+                    InlineSearchField(query: $search, prompt: "Search title, author…")
+                        .padding(.horizontal, 22)
+                        .padding(.bottom, 8)
                     filterBar
                     Divider()
                     List(filtered, selection: $selection) { q in

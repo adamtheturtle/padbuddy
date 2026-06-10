@@ -172,6 +172,9 @@ struct PadsView: View {
                         title: "Pads",
                         subtitle: lastFetched.map { "Updated \($0.formatted(.relative(presentation: .named)))" }
                     )
+                    InlineSearchField(query: $search, prompt: "Search title, owner, participants…")
+                        .padding(.horizontal, 22)
+                        .padding(.bottom, 8)
                     savedSearchesBar
                     filterBar
                     Divider()

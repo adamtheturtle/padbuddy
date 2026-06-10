@@ -295,14 +295,9 @@ private struct UnauthorizedBanner: View {
 private struct Sidebar: View {
     @Binding var section: AppSection?
     @Binding var showSettings: Bool
-    @State private var query: String = ""
 
     var body: some View {
         VStack(spacing: 0) {
-            SidebarSearchField(query: $query, section: $section)
-                .padding(.horizontal, 10)
-                .padding(.top, 10)
-                .padding(.bottom, 8)
             VStack(spacing: 2) {
                 sidebarRow(.pads, "Pads", "doc.text")
                 sidebarRow(.questions, "Questions", "questionmark.bubble")
@@ -310,6 +305,7 @@ private struct Sidebar: View {
                 sidebarRow(.quota, "Quota", "gauge.with.dots.needle.67percent")
             }
             .padding(.horizontal, 8)
+            .padding(.top, 10)
             Spacer(minLength: 0)
             Divider()
             AccountFooter(showSettings: $showSettings)
@@ -348,38 +344,30 @@ private struct Sidebar: View {
     }
 }
 
-private struct SidebarSearchField: View {
+struct InlineSearchField: View {
     @Binding var query: String
-    @Binding var section: AppSection?
+    var prompt: String = "Search"
 
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
                 .font(.callout)
-            TextField("Search", text: $query)
+            TextField(prompt, text: $query)
                 .textFieldStyle(.plain)
                 .font(.callout)
-                .onSubmit { submit() }
+            if !query.isEmpty {
+                Button { query = "" } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel("Clear search")
+            }
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
         .background(Color.subtleStroke.opacity(0.6), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-    }
-
-    private func submit() {
-        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        let target = section ?? .pads
-        switch target {
-        case .questions:
-            NotificationCenter.default.post(name: .sectionRequested, object: AppSection.questions)
-            NotificationCenter.default.post(name: .questionsSearchRequested, object: trimmed)
-        default:
-            NotificationCenter.default.post(name: .sectionRequested, object: AppSection.pads)
-            NotificationCenter.default.post(name: .padsSearchRequested, object: trimmed)
-        }
-        query = ""
     }
 }
 
