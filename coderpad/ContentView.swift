@@ -232,34 +232,92 @@ private struct MainSplit: View {
     let directory: OrgDirectory
     let monitor: AccountHealthMonitor
 
+    @State private var padSelection: Pad?
+    @State private var questionSelection: Question?
+
+    /// Floor for the content column: the natural width of the active section's
+    /// filter bar, so it can never be dragged too thin to hold all filters.
+    @State private var contentMinWidth: CGFloat = 380
+
+    /// Pads and Questions drive a detail pane; Organization and Quota are
+    /// single-pane sections, so they drop the third column entirely.
+    private var sectionHasDetail: Bool {
+        switch section ?? .pads {
+        case .pads, .questions: return true
+        case .organization, .quota: return false
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             if let id = store.currentAccountID, monitor.isUnauthorized(id) {
                 UnauthorizedBanner(showSettings: $showSettings, monitor: monitor)
             }
-            NavigationSplitView {
-                Sidebar(section: $section, showSettings: $showSettings)
-                    .navigationSplitViewColumnWidth(min: 200, ideal: 220)
-            } detail: {
-                DetailHost(section: section)
-                    .task(id: store.currentAccountID) {
-                        if let account = store.currentAccount {
-                            if let raw = UserDefaults.standard.string(forKey: "section.\(account.id.uuidString)"),
-                               let s = AppSection(rawValue: raw) {
-                                section = s
-                            }
-                            await directory.load(for: account)
-                            await monitor.checkCurrentAccount()
-                            monitor.start()
-                        }
-                    }
-                    .onChange(of: section) { _, newValue in
-                        if let account = store.currentAccount, let newValue {
-                            UserDefaults.standard.set(newValue.rawValue,
-                                                      forKey: "section.\(account.id.uuidString)")
-                        }
-                    }
+            if sectionHasDetail {
+                threeColumnSplit
+            } else {
+                twoColumnSplit
             }
+        }
+        .task(id: store.currentAccountID) {
+            if let account = store.currentAccount {
+                if let raw = UserDefaults.standard.string(forKey: "section.\(account.id.uuidString)"),
+                   let s = AppSection(rawValue: raw) {
+                    section = s
+                }
+                await directory.load(for: account)
+                await monitor.checkCurrentAccount()
+                monitor.start()
+            }
+        }
+        .onChange(of: section) { _, newValue in
+            if let account = store.currentAccount, let newValue {
+                UserDefaults.standard.set(newValue.rawValue,
+                                          forKey: "section.\(account.id.uuidString)")
+            }
+        }
+        .onChange(of: store.currentAccountID) { _, _ in
+            padSelection = nil
+            questionSelection = nil
+        }
+    }
+
+    private var threeColumnSplit: some View {
+        NavigationSplitView {
+            Sidebar(section: $section, showSettings: $showSettings)
+                .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 280)
+        } content: {
+            SectionContent(
+                section: section,
+                padSelection: $padSelection,
+                questionSelection: $questionSelection
+            )
+            .onPreferenceChange(FilterBarWidthKey.self) { contentMinWidth = $0 }
+            .navigationSplitViewColumnWidth(
+                min: contentMinWidth,
+                ideal: max(480, contentMinWidth),
+                max: max(760, contentMinWidth)
+            )
+        } detail: {
+            SectionDetail(
+                section: section,
+                padSelection: $padSelection,
+                questionSelection: $questionSelection
+            )
+            .navigationSplitViewColumnWidth(min: 360, ideal: 520)
+        }
+    }
+
+    private var twoColumnSplit: some View {
+        NavigationSplitView {
+            Sidebar(section: $section, showSettings: $showSettings)
+                .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 280)
+        } detail: {
+            SectionContent(
+                section: section,
+                padSelection: $padSelection,
+                questionSelection: $questionSelection
+            )
         }
     }
 }
@@ -313,7 +371,6 @@ private struct Sidebar: View {
                 .padding(10)
                 .background(.thinMaterial)
         }
-        .navigationTitle("CoderPad")
     }
 
     @ViewBuilder
@@ -416,18 +473,52 @@ private struct AccountFooter: View {
     }
 }
 
-private struct DetailHost: View {
+private struct SectionContent: View {
     @State private var store = AccountsStore.shared
     let section: AppSection?
+    @Binding var padSelection: Pad?
+    @Binding var questionSelection: Question?
 
     var body: some View {
         if let account = store.currentAccount {
             let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey)
             switch section ?? .pads {
-            case .pads: PadsView(client: client).id(account.id)
-            case .questions: QuestionsView(client: client).id(account.id)
+            case .pads: PadsView(client: client, selection: $padSelection).id(account.id)
+            case .questions: QuestionsView(client: client, selection: $questionSelection).id(account.id)
             case .organization: OrganizationView(client: client).id(account.id)
             case .quota: QuotaView(client: client).id(account.id)
+            }
+        }
+    }
+}
+
+private struct SectionDetail: View {
+    @State private var store = AccountsStore.shared
+    let section: AppSection?
+    @Binding var padSelection: Pad?
+    @Binding var questionSelection: Question?
+
+    var body: some View {
+        if let account = store.currentAccount {
+            let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey)
+            switch section ?? .pads {
+            case .pads:
+                if let pad = padSelection {
+                    PadDetailView(client: client, pad: pad).id(pad.id)
+                } else {
+                    ContentUnavailableView("Select a pad", systemImage: "doc.text",
+                                           description: Text("Pick a pad to see its details."))
+                }
+            case .questions:
+                if let question = questionSelection {
+                    QuestionDetailView(client: client, question: question).id(question.id)
+                } else {
+                    ContentUnavailableView("Select a question", systemImage: "questionmark.bubble",
+                                           description: Text("Pick a question to see its details."))
+                }
+            case .organization, .quota:
+                ContentUnavailableView("Nothing selected", systemImage: "sidebar.squares.leading",
+                                       description: Text("This section shows everything in the list."))
             }
         }
     }

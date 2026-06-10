@@ -194,6 +194,20 @@ struct PadCreate: Codable {
         case executionEnabled = "execution_enabled"
         case questionIDs = "question_ids"
     }
+
+    /// A pad seeded from a question: same title and language, with the question attached.
+    static func fromQuestion(_ q: Question) -> PadCreate {
+        PadCreate(
+            title: q.title,
+            language: q.language,
+            ownerEmail: nil,
+            contents: nil,
+            notes: nil,
+            isPrivate: false,
+            executionEnabled: true,
+            questionIDs: [q.id]
+        )
+    }
 }
 
 struct Question: Decodable, Identifiable, Hashable {

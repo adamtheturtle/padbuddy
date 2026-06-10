@@ -178,18 +178,8 @@ struct MenuBarView: View {
 
     private func createPad(fromQuestion q: Question, account: Account) async {
         let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey)
-        let body = PadCreate(
-            title: q.title,
-            language: q.language,
-            ownerEmail: nil,
-            contents: nil,
-            notes: nil,
-            isPrivate: false,
-            executionEnabled: true,
-            questionIDs: [q.id]
-        )
         do {
-            let pad = try await client.createPad(body)
+            let pad = try await client.createPad(.fromQuestion(q))
             if let url = URL(string: pad.url) {
                 NSWorkspace.shared.open(url)
             }

@@ -611,6 +611,31 @@ extension EnvironmentValues {
     }
 }
 
+// MARK: - Filter bar width measurement
+
+/// Carries the natural (unclipped) width of a filter bar up the view tree so the
+/// enclosing split-view column can refuse to shrink below it. Reduces to the
+/// widest reporter, and never below a sensible floor.
+struct FilterBarWidthKey: PreferenceKey {
+    static let defaultValue: CGFloat = 380
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+extension View {
+    /// Measures this view's laid-out width and reports it via `FilterBarWidthKey`.
+    /// Attach to a filter bar's content (inside its horizontal `ScrollView`) so the
+    /// measured value is the chips' natural width rather than the clipped viewport.
+    func measuresFilterBarWidth() -> some View {
+        background(
+            GeometryReader { proxy in
+                Color.clear.preference(key: FilterBarWidthKey.self, value: proxy.size.width)
+            }
+        )
+    }
+}
+
 // MARK: - Searchable filter chip
 
 struct SearchableFilterChip: View {
@@ -639,8 +664,10 @@ struct SearchableFilterChip: View {
     // Explicitly-typed style helpers keep the `body` type-checker from
     // exploring these ternaries combinatorially (was ~6s to type-check).
     private var isActive: Bool { selected != nil }
-    private var fillColor: Color { isActive ? Color.accentColor.opacity(0.18) : Color.subtleStroke }
-    private var strokeColor: Color { isActive ? Color.accentColor.opacity(0.4) : Color.subtleStroke }
+    // Idle state is transparent so this chip matches the borderless `Menu`-based
+    // FilterChipMenu chips, which don't paint a capsule fill until a filter is set.
+    private var fillColor: Color { isActive ? Color.accentColor.opacity(0.18) : Color.clear }
+    private var strokeColor: Color { isActive ? Color.accentColor.opacity(0.4) : Color.clear }
     private var labelColor: Color { isActive ? Color.accentColor : Color.primary }
 
     var body: some View {

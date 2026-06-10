@@ -9,6 +9,7 @@ struct QuestionsView: View {
     let client: CoderPadClient
     @Environment(\.orgDirectory) private var directory
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.openWindow) private var openWindow
     @State private var accounts = AccountsStore.shared
     @State private var cache = QuestionsCacheStore.shared
     @State private var questions: [Question] = []
@@ -16,7 +17,7 @@ struct QuestionsView: View {
     private static let refreshInterval: Duration = .seconds(90)
     @State private var isLoading = false
     @State private var error: Error?
-    @State private var selection: Question?
+    @Binding var selection: Question?
     @State private var search = ""
     @State private var languageFilter: String? = nil
     @State private var ownerFilter: String? = nil
@@ -24,21 +25,10 @@ struct QuestionsView: View {
     @State private var draftFilter: String? = nil
     @State private var lastFetched: Date?
     @State private var showCreate = false
+    @State private var createPadError: String?
 
     var body: some View {
-        NavigationSplitView {
-            sidebar
-                .navigationSplitViewColumnWidth(min: 360, ideal: 440, max: 620)
-        } detail: {
-            if let selection {
-                QuestionDetailView(client: client, question: selection)
-                    .id(selection.id)
-            } else {
-                ContentUnavailableView("Select a question",
-                                       systemImage: "questionmark.bubble",
-                                       description: Text("Pick one to view details."))
-            }
-        }
+        sidebar
         .task(id: QuestionsTaskKey(apiKey: client.apiKey, phase: scenePhase)) {
             guard scenePhase == .active else { return }
             if questions.isEmpty, let id = accounts.currentAccountID {
@@ -126,9 +116,17 @@ struct QuestionsView: View {
                         .padding(.bottom, 8)
                     filterBar
                     Divider()
-                    List(filtered, selection: $selection) { q in
-                        NavigationLink(value: q) {
+                    List(selection: $selection) {
+                        ForEach(filtered) { q in
                             QuestionRow(question: q)
+                                .tag(q)
+                                .contextMenu {
+                                    Button {
+                                        Task { await createPad(fromQuestion: q) }
+                                    } label: {
+                                        Label("New Pad from Question", systemImage: "plus.rectangle.on.rectangle")
+                                    }
+                                }
                         }
                     }
                     .listStyle(.inset)
@@ -153,6 +151,13 @@ struct QuestionsView: View {
                 }
                 .disabled(isLoading)
             }
+        }
+        .alert("Couldn’t create pad",
+               isPresented: Binding(get: { createPadError != nil },
+                                    set: { if !$0 { createPadError = nil } })) {
+            Button("OK", role: .cancel) { createPadError = nil }
+        } message: {
+            if let createPadError { Text(createPadError) }
         }
     }
 
@@ -186,6 +191,7 @@ struct QuestionsView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
+            .measuresFilterBarWidth()
         }
     }
 
@@ -204,6 +210,17 @@ struct QuestionsView: View {
             lastFetched = Date()
         } catch {
             self.error = error
+        }
+    }
+
+    private func createPad(fromQuestion q: Question) async {
+        do {
+            let pad = try await client.createPad(.fromQuestion(q))
+            if let url = URL(string: pad.url) {
+                openWindow(id: "pad-browser", value: url)
+            }
+        } catch {
+            createPadError = error.localizedDescription
         }
     }
 }
@@ -249,9 +266,12 @@ private struct QuestionRow: View {
 struct QuestionDetailView: View {
     let client: CoderPadClient
     let question: Question
+    @Environment(\.openWindow) private var openWindow
     @State private var showEdit = false
     @State private var showDeleteConfirm = false
     @State private var deleteError: String?
+    @State private var isCreatingPad = false
+    @State private var createPadError: String?
 
     var body: some View {
         ScrollView {
@@ -287,6 +307,13 @@ struct QuestionDetailView: View {
         } message: {
             Text("This cannot be undone.")
         }
+        .alert("Couldn’t create pad",
+               isPresented: Binding(get: { createPadError != nil },
+                                    set: { if !$0 { createPadError = nil } })) {
+            Button("OK", role: .cancel) { createPadError = nil }
+        } message: {
+            if let createPadError { Text(createPadError) }
+        }
     }
 
     private var header: some View {
@@ -296,6 +323,7 @@ struct QuestionDetailView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(question.title.isEmpty ? "Untitled Question" : question.title)
                         .font(.title.bold())
+                        .lineLimit(2)
                     if let author = question.authorName {
                         Text("by \(author)")
                             .font(.caption)
@@ -305,8 +333,20 @@ struct QuestionDetailView: View {
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
-                Spacer()
+                Spacer(minLength: 12)
                 HStack(spacing: 6) {
+                    Button { Task { await createPad() } } label: {
+                        if isCreatingPad {
+                            ProgressView().controlSize(.small)
+                        } else {
+                            Label("New Pad", systemImage: "plus.rectangle.on.rectangle")
+                                .lineLimit(1)
+                                .fixedSize()
+                        }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(isCreatingPad)
+                    .help("Create a new interview pad from this question")
                     Button { showEdit = true } label: { Label("Edit", systemImage: "pencil") }
                         .help("Edit question")
                     Button(role: .destructive) { showDeleteConfirm = true } label: {
@@ -315,6 +355,7 @@ struct QuestionDetailView: View {
                     .help("Delete question")
                     .accessibilityLabel("Delete question")
                 }
+                .fixedSize()
             }
             HStack(spacing: 6) {
                 if let lang = question.language, !lang.isEmpty {
@@ -389,6 +430,19 @@ struct QuestionDetailView: View {
             NotificationCenter.default.post(name: .questionDeleted, object: question.id)
         } catch {
             deleteError = error.localizedDescription
+        }
+    }
+
+    private func createPad() async {
+        isCreatingPad = true
+        defer { isCreatingPad = false }
+        do {
+            let pad = try await client.createPad(.fromQuestion(question))
+            if let url = URL(string: pad.url) {
+                openWindow(id: "pad-browser", value: url)
+            }
+        } catch {
+            createPadError = error.localizedDescription
         }
     }
 }

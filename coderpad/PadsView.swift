@@ -14,7 +14,7 @@ struct PadsView: View {
     @State private var pads: [Pad] = []
     @State private var isLoading = false
     @State private var error: Error?
-    @State private var selection: Pad?
+    @Binding var selection: Pad?
     @State private var search = ""
     @State private var stateFilter: String? = nil
     @State private var languageFilter: String? = nil
@@ -34,17 +34,7 @@ struct PadsView: View {
     private static let refreshInterval: Duration = .seconds(45)
 
     var body: some View {
-        NavigationSplitView {
-            sidebar
-                .navigationSplitViewColumnWidth(min: 360, ideal: 440, max: 720)
-        } detail: {
-            if let selection {
-                PadDetailView(client: client, pad: selection)
-                    .id(selection.id)
-            } else {
-                placeholder
-            }
-        }
+        sidebar
         .task(id: TaskKey(apiKey: client.apiKey, phase: scenePhase)) {
             guard scenePhase == .active else { return }
             if pads.isEmpty, let id = accounts.currentAccountID {
@@ -175,9 +165,10 @@ struct PadsView: View {
                     savedSearchesBar
                     filterBar
                     Divider()
-                    List(filtered, selection: $selection) { pad in
-                        NavigationLink(value: pad) {
+                    List(selection: $selection) {
+                        ForEach(filtered) { pad in
                             PadRow(pad: pad, isChanged: changedPadIDs.contains(pad.id))
+                                .tag(pad)
                         }
                     }
                     .listStyle(.inset)
@@ -316,14 +307,7 @@ struct PadsView: View {
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
-        }
-    }
-
-    private var placeholder: some View {
-        ContentUnavailableView {
-            Label("Select a pad", systemImage: "doc.text")
-        } description: {
-            Text(pads.isEmpty ? "Nothing here yet." : "\(filtered.count) of \(pads.count) shown.")
+            .measuresFilterBarWidth()
         }
     }
 
@@ -924,6 +908,8 @@ private struct NewPadSheet: View {
     @State private var executionEnabled = true
     @State private var isSubmitting = false
     @State private var error: String?
+    @State private var questions: [Question] = []
+    @State private var selectedQuestionID: Int? = nil
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -932,8 +918,22 @@ private struct NewPadSheet: View {
             Form {
                 TextField("Title", text: $title, prompt: Text("Optional, e.g. \"Onsite: Jane Doe\""))
 
+                Picker("Question", selection: $selectedQuestionID) {
+                    Text("None").tag(Int?.none)
+                    if !questions.isEmpty {
+                        Divider()
+                        ForEach(questions) { q in
+                            Text(q.title.isEmpty ? "#\(q.id)" : q.title).tag(Int?.some(q.id))
+                        }
+                    }
+                }
+                .disabled(questions.isEmpty)
+
                 Picker("Language", selection: $language) {
                     ForEach(CoderPadLanguages.pickerOptions, id: \.self) { Text($0.languageDisplayName).tag($0) }
+                    if !CoderPadLanguages.pickerOptions.contains(language) {
+                        Text(language.languageDisplayName).tag(language)
+                    }
                 }
 
                 TextField("Owner email", text: $ownerEmail, prompt: Text("Optional. Defaults to the key's owner."))
@@ -942,6 +942,11 @@ private struct NewPadSheet: View {
                 Toggle("Execution enabled", isOn: $executionEnabled)
             }
             .formStyle(.grouped)
+            .onChange(of: selectedQuestionID) { _, newValue in
+                guard let id = newValue, let q = questions.first(where: { $0.id == id }) else { return }
+                if title.isEmpty { title = q.title }
+                if let lang = q.language, !lang.isEmpty { language = lang }
+            }
 
             if let error {
                 Label(error, systemImage: "exclamationmark.triangle")
@@ -967,6 +972,17 @@ private struct NewPadSheet: View {
         }
         .padding()
         .frame(minWidth: 460, minHeight: 360)
+        .task { await loadQuestions() }
+    }
+
+    private func loadQuestions() async {
+        if questions.isEmpty, let id = AccountsStore.shared.currentAccountID {
+            questions = QuestionsCacheStore.shared.get(id)
+        }
+        guard !client.apiKey.isEmpty else { return }
+        if let fresh = try? await client.listQuestions() {
+            questions = fresh.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
+        }
     }
 
     private func submit() async {
@@ -981,7 +997,7 @@ private struct NewPadSheet: View {
             notes: nil,
             isPrivate: isPrivate,
             executionEnabled: executionEnabled,
-            questionIDs: nil
+            questionIDs: selectedQuestionID.map { [$0] }
         )
         do {
             let pad = try await client.createPad(body)
