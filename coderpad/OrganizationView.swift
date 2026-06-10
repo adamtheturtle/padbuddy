@@ -23,20 +23,22 @@ struct OrganizationView: View {
                 APIErrorView(error: error) { Task { await reload() } }
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 18) {
-                        header
-                        statTiles
-                        if let stats { activitySection(stats) }
-                        if let organization { usersSection(organization) }
+                    VStack(alignment: .leading, spacing: 0) {
+                        PaneTitle(title: "Organization")
+                        VStack(alignment: .leading, spacing: 18) {
+                            header
+                            statTiles
+                            if let stats { activitySection(stats) }
+                            if let organization { usersSection(organization) }
+                        }
+                        .padding(.horizontal, 22)
+                        .padding(.top, 4)
+                        .padding(.bottom, 22)
                     }
-                    .padding(.horizontal, 22)
-                    .padding(.top, 22)
-                    .padding(.bottom, 22)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }
-        .navigationTitle("Organization")
         .task(id: client.apiKey) { await reload() }
         .toolbar {
             ToolbarItem {

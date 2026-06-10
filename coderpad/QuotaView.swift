@@ -19,21 +19,23 @@ struct QuotaView: View {
                 APIErrorView(error: error) { Task { await reload() } }
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 18) {
-                        header
-                        if let quota {
-                            statTiles(quota)
-                            detailsCard(quota)
+                    VStack(alignment: .leading, spacing: 0) {
+                        PaneTitle(title: "Quota")
+                        VStack(alignment: .leading, spacing: 18) {
+                            header
+                            if let quota {
+                                statTiles(quota)
+                                detailsCard(quota)
+                            }
                         }
+                        .padding(.horizontal, 22)
+                        .padding(.top, 4)
+                        .padding(.bottom, 22)
                     }
-                    .padding(.horizontal, 22)
-                    .padding(.top, 22)
-                    .padding(.bottom, 22)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }
-        .navigationTitle("Quota")
         .toolbar {
             ToolbarItem {
                 Button { Task { await reload() } } label: {

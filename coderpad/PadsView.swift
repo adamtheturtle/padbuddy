@@ -36,7 +36,7 @@ struct PadsView: View {
     var body: some View {
         NavigationSplitView {
             sidebar
-                .navigationSplitViewColumnWidth(min: 380, ideal: 440)
+                .navigationSplitViewColumnWidth(min: 540, ideal: 540, max: 720)
         } detail: {
             if let selection {
                 PadDetailView(client: client, pad: selection)
@@ -168,6 +168,10 @@ struct PadsView: View {
                 APIErrorView(error: error) { Task { await reload() } }
             } else {
                 VStack(spacing: 0) {
+                    PaneTitle(
+                        title: "Pads",
+                        subtitle: lastFetched.map { "Updated \($0.formatted(.relative(presentation: .named)))" }
+                    )
                     savedSearchesBar
                     filterBar
                     Divider()
@@ -182,8 +186,6 @@ struct PadsView: View {
                 }
             }
         }
-        .navigationTitle("Pads")
-        .navigationSubtitle(lastFetched.map { "Updated \($0.formatted(.relative(presentation: .named)))" } ?? "")
         .toolbar {
             ToolbarItem {
                 Button { showCreate = true } label: {

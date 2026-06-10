@@ -28,7 +28,7 @@ struct QuestionsView: View {
     var body: some View {
         NavigationSplitView {
             sidebar
-                .navigationSplitViewColumnWidth(min: 360, ideal: 420)
+                .navigationSplitViewColumnWidth(min: 460, ideal: 460, max: 620)
         } detail: {
             if let selection {
                 QuestionDetailView(client: client, question: selection)
@@ -117,6 +117,10 @@ struct QuestionsView: View {
                 APIErrorView(error: error) { Task { await reload() } }
             } else {
                 VStack(spacing: 0) {
+                    PaneTitle(
+                        title: "Questions",
+                        subtitle: lastFetched.map { "Updated \($0.formatted(.relative(presentation: .named)))" }
+                    )
                     filterBar
                     Divider()
                     List(filtered, selection: $selection) { q in
@@ -129,8 +133,6 @@ struct QuestionsView: View {
                 }
             }
         }
-        .navigationTitle("Questions")
-        .navigationSubtitle(lastFetched.map { "Updated \($0.formatted(.relative(presentation: .named)))" } ?? "")
         .toolbar {
             ToolbarItem {
                 Button { showCreate = true } label: {
@@ -419,13 +421,16 @@ private struct NewQuestionSheet: View {
                     ForEach(padTypeOptions, id: \.self) { Text($0.capitalized).tag($0) }
                 }
                 Section("Description") {
-                    TextEditor(text: $description).frame(minHeight: 60)
+                    TextField("", text: $description, prompt: Text("Optional"), axis: .vertical)
+                        .lineLimit(3...8)
                 }
                 Section("Candidate instructions") {
-                    TextEditor(text: $instructions).frame(minHeight: 80)
+                    TextField("", text: $instructions, prompt: Text("Optional"), axis: .vertical)
+                        .lineLimit(4...12)
                 }
                 Section("Solution") {
-                    TextEditor(text: $solution).frame(minHeight: 60)
+                    TextField("", text: $solution, prompt: Text("Optional"), axis: .vertical)
+                        .lineLimit(3...12)
                 }
             }
             .formStyle(.grouped)
@@ -519,10 +524,12 @@ private struct EditQuestionSheet: View {
                     if !padTypeOptions.contains(padType) { Text(padType).tag(padType) }
                 }
                 Section("Description") {
-                    TextEditor(text: $description).frame(minHeight: 60)
+                    TextField("", text: $description, prompt: Text("Optional"), axis: .vertical)
+                        .lineLimit(3...8)
                 }
                 Section("Solution") {
-                    TextEditor(text: $solution).frame(minHeight: 60)
+                    TextField("", text: $solution, prompt: Text("Optional"), axis: .vertical)
+                        .lineLimit(3...12)
                 }
             }
             .formStyle(.grouped)

@@ -38,7 +38,7 @@ struct coderpadApp: App {
     var body: some Scene {
         WindowGroup("CoderPad", id: "main") {
             ContentView()
-                .frame(minWidth: 820, minHeight: 520)
+                .frame(minWidth: 940, minHeight: 540)
         }
         .windowStyle(.titleBar)
         .windowToolbarStyle(.unifiedCompact)

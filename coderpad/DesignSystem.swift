@@ -289,6 +289,27 @@ func periodicReload(interval: Duration, work: () async -> Void) async {
     }
 }
 
+struct PaneTitle: View {
+    let title: String
+    var subtitle: String? = nil
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(title)
+                .font(.largeTitle.bold())
+            if let subtitle, !subtitle.isEmpty {
+                Text(subtitle)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 22)
+        .padding(.top, 18)
+        .padding(.bottom, 10)
+    }
+}
+
 struct GetAPIKeyLink: View {
     var prominent: Bool = false
     var body: some View {
