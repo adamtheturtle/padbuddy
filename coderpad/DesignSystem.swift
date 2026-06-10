@@ -176,6 +176,31 @@ extension String {
     }
 }
 
+// MARK: - GetAPIKeyLink
+
+enum CoderPadLinks {
+    static let apiSettings = URL(string: "https://app.coderpad.io/dashboard/settings/api")!
+    static let apiDocs = URL(string: "https://coderpad.io/resources/docs/coderpad-interview/api/")!
+    static let sourceRepo = URL(string: "https://github.com/adamtheturtle/coderpad-macos")!
+}
+
+struct GetAPIKeyLink: View {
+    var prominent: Bool = false
+    var body: some View {
+        Link(destination: CoderPadLinks.apiSettings) {
+            Label("Get an API key from CoderPad", systemImage: "key.viewfinder")
+        }
+        .if(prominent) { $0.buttonStyle(.borderedProminent) }
+    }
+}
+
+extension View {
+    @ViewBuilder
+    fileprivate func `if`<T: View>(_ condition: Bool, transform: (Self) -> T) -> some View {
+        if condition { transform(self) } else { self }
+    }
+}
+
 // MARK: - EmailLink
 
 struct EmailLink: View {
@@ -375,6 +400,7 @@ struct APIErrorView: View {
             } actions: {
                 Button("Open Settings") { openSettings() }
                     .buttonStyle(.borderedProminent)
+                GetAPIKeyLink()
                 if let onRetry {
                     Button("Retry", action: onRetry)
                 }
@@ -387,6 +413,7 @@ struct APIErrorView: View {
             } actions: {
                 Button("Open Settings") { openSettings() }
                     .buttonStyle(.borderedProminent)
+                GetAPIKeyLink()
             }
         } else {
             ContentUnavailableView {

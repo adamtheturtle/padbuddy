@@ -99,7 +99,7 @@ struct PadEnvironment: Decodable, Identifiable, Hashable {
     }
 }
 
-struct PadCreate: Encodable {
+struct PadCreate: Codable {
     var title: String?
     var language: String?
     var ownerEmail: String?
@@ -280,7 +280,20 @@ enum CoderPadError: LocalizedError {
 struct CoderPadClient {
     let apiKey: String
     let baseURL = URL(string: "https://app.coderpad.io")!
-    let session: URLSession = .shared
+    let session: URLSession
+
+    init(apiKey: String, session: URLSession = .shared) {
+        self.apiKey = apiKey
+        self.session = session
+    }
+
+    static func live(apiKey: String) -> CoderPadClient {
+        CoderPadClient(apiKey: apiKey)
+    }
+
+    static func mock() -> CoderPadClient {
+        CoderPadClient(apiKey: "demo", session: MockServer.session())
+    }
 
     static let decoder: JSONDecoder = {
         let d = JSONDecoder()

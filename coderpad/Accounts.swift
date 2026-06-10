@@ -13,11 +13,17 @@ struct Account: Identifiable, Codable, Hashable {
     let id: UUID
     var name: String
     var apiKey: String
+    var isMock: Bool
 
-    init(id: UUID = UUID(), name: String, apiKey: String) {
+    init(id: UUID = UUID(), name: String, apiKey: String, isMock: Bool = false) {
         self.id = id
         self.name = name
         self.apiKey = apiKey
+        self.isMock = isMock
+    }
+
+    static func demo() -> Account {
+        Account(name: "Demo (mock data)", apiKey: "demo", isMock: true)
     }
 }
 
@@ -103,6 +109,15 @@ final class AccountsStore {
     func add(_ account: Account) {
         accounts.append(account)
         if currentAccountID == nil { currentAccountID = account.id }
+    }
+
+    func addDemoIfMissing() {
+        if !accounts.contains(where: { $0.isMock }) {
+            add(.demo())
+        }
+        if let demo = accounts.first(where: { $0.isMock }) {
+            currentAccountID = demo.id
+        }
     }
 
     func update(_ account: Account) {

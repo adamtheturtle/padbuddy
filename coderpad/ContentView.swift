@@ -33,6 +33,9 @@ struct ContentView: View {
         }
         .environment(\.openSettings, { showSettings = true })
         .environment(\.orgDirectory, directory)
+        .onReceive(NotificationCenter.default.publisher(for: .sectionRequested)) { note in
+            if let s = note.object as? AppSection { section = s }
+        }
         .sheet(isPresented: $showSettings) {
             NavigationStack {
                 SettingsView()
@@ -108,7 +111,7 @@ struct ContentView: View {
     @ViewBuilder
     private var detailContent: some View {
         if let account = store.currentAccount {
-            let client = CoderPadClient(apiKey: account.apiKey)
+            let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey)
             switch section ?? .pads {
             case .pads: PadsView(client: client).id(account.id)
             case .questions: QuestionsView(client: client).id(account.id)
@@ -122,10 +125,14 @@ struct ContentView: View {
         ContentUnavailableView {
             Label("No account selected", systemImage: "person.crop.circle.badge.plus")
         } description: {
-            Text("Open Settings and add an account with your CoderPad API key.")
+            Text("Open Settings to add an account with your CoderPad API key, or try the demo with mock data.")
         } actions: {
             Button("Open Settings") { showSettings = true }
                 .buttonStyle(.borderedProminent)
+            Button("Try Demo (mock data)") {
+                store.addDemoIfMissing()
+            }
+            GetAPIKeyLink()
         }
     }
 }

@@ -38,6 +38,13 @@ struct SettingsView: View {
                 Text("Accounts").font(.headline)
                 Spacer()
                 Button {
+                    store.addDemoIfMissing()
+                } label: {
+                    Label("Add Demo", systemImage: "wand.and.stars")
+                }
+                .disabled(store.accounts.contains(where: { $0.isMock }))
+                .help("Add a sandbox account backed by mock data — no key required")
+                Button {
                     editingAccount = Account(name: "", apiKey: "")
                 } label: {
                     Label("Add Account", systemImage: "plus")
@@ -48,12 +55,15 @@ struct SettingsView: View {
                 ContentUnavailableView {
                     Label("No accounts", systemImage: "person.crop.circle.badge.questionmark")
                 } description: {
-                    Text("Add an account with a CoderPad API key.")
+                    Text("Add an account with a CoderPad API key, or try the demo with mock data.")
                 } actions: {
                     Button("Add Account") {
                         editingAccount = Account(name: "", apiKey: "")
                     }
                     .buttonStyle(.borderedProminent)
+                    Button("Try Demo") {
+                        store.addDemoIfMissing()
+                    }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
@@ -142,12 +152,20 @@ private struct AccountRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            AvatarCircle(label: account.name, diameter: 30)
+            AvatarCircle(label: account.name, diameter: 30,
+                         tint: account.isMock ? .purple : .accentColor)
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text(account.name.isEmpty ? "Untitled account" : account.name)
                         .font(.callout.weight(.medium))
+                    if account.isMock {
+                        Text("Demo")
+                            .font(.caption2)
+                            .padding(.horizontal, 6).padding(.vertical, 1)
+                            .background(Color.purple.opacity(0.18), in: Capsule())
+                            .foregroundStyle(.purple)
+                    }
                     if isCurrent {
                         Text("Current")
                             .font(.caption2)
@@ -156,7 +174,7 @@ private struct AccountRow: View {
                             .foregroundStyle(.green)
                     }
                 }
-                Text(mask(account.apiKey))
+                Text(account.isMock ? "Mock data — no key" : mask(account.apiKey))
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
             }
@@ -218,6 +236,8 @@ private struct AccountEditor: View {
                     }
                 }
                 Toggle("Show key", isOn: $reveal)
+                GetAPIKeyLink()
+                    .font(.callout)
             }
             .formStyle(.grouped)
 

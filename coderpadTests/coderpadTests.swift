@@ -201,6 +201,92 @@ struct QuestionDecoderTests {
     }
 }
 
+@Suite("Mock server end-to-end")
+struct MockServerTests {
+
+    private let client = CoderPadClient.mock()
+
+    @Test("listPads returns the seeded pads")
+    func listPads() async throws {
+        let pads = try await client.listPads()
+        #expect(pads.count >= 5)
+        #expect(pads.contains(where: { $0.id == "DEMOABC1" }))
+        #expect(pads.allSatisfy { !$0.id.isEmpty })
+    }
+
+    @Test("getPad returns a specific pad")
+    func getPad() async throws {
+        let pad = try await client.getPad(id: "DEMOABC1")
+        #expect(pad.title == "Onsite — Jane Doe")
+        #expect(pad.ownerEmail == "alex@demo.co")
+        #expect(pad.participants == ["Jane Doe", "Alex Park"])
+    }
+
+    @Test("padEvents returns events for a pad")
+    func padEvents() async throws {
+        let events = try await client.padEvents(padID: "DEMOABC1")
+        #expect(events.count == 4)
+        #expect(events.first?.kind == "started")
+        #expect(events.contains(where: { $0.kind == "ran" }))
+    }
+
+    @Test("padEnvironment returns the requested environment")
+    func padEnvironment() async throws {
+        let env = try await client.padEnvironment(id: 1)
+        #expect(env.id == 1)
+        #expect(env.title == "Main")
+        #expect(env.language == "python3")
+    }
+
+    @Test("listQuestions returns the seeded questions")
+    func listQuestions() async throws {
+        let qs = try await client.listQuestions()
+        #expect(qs.count == 3)
+        #expect(qs.contains(where: { $0.title == "FizzBuzz" }))
+    }
+
+    @Test("organization returns the demo org with users")
+    func organization() async throws {
+        let org = try await client.organization()
+        #expect(org.organizationName == "Demo Org")
+        #expect(org.users.count >= 5)
+        #expect(org.users.contains(where: { $0.email == "alex@demo.co" }))
+    }
+
+    @Test("quota returns the demo plan")
+    func quota() async throws {
+        let q = try await client.quota()
+        #expect(q.padsUsed == 24)
+        #expect(q.unlimited == false)
+        #expect(q.overagesEnabled == true)
+        #expect(q.quotaReset != nil)
+    }
+
+    @Test("createPad echoes a new pad and makes it listable")
+    func createPad() async throws {
+        let before = try await client.listPads()
+        let new = try await client.createPad(PadCreate(
+            title: "Created via mock",
+            language: "swift",
+            ownerEmail: "demo@example.com",
+            isPrivate: false,
+            executionEnabled: true
+        ))
+        #expect(new.title == "Created via mock")
+        #expect(new.language == "swift")
+        let after = try await client.listPads()
+        #expect(after.count == before.count + 1)
+        #expect(after.contains(where: { $0.id == new.id }))
+    }
+
+    @Test("getPad on an unknown id returns a 404 mapped error")
+    func unknownPad() async throws {
+        await #expect(throws: CoderPadError.self) {
+            _ = try await client.getPad(id: "NOPE")
+        }
+    }
+}
+
 @Suite("Quota decoder")
 struct QuotaDecoderTests {
     @Test("parses dates with timezone offset and fractional seconds")

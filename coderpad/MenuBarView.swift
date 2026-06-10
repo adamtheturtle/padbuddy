@@ -100,7 +100,7 @@ struct MenuBarView: View {
         errorMessage = nil
         defer { isLoading = false }
         do {
-            let client = CoderPadClient(apiKey: account.apiKey)
+            let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey)
             let fetched = try await client.listPads()
             pads = fetched.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
         } catch {

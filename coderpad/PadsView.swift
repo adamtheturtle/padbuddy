@@ -33,6 +33,12 @@ struct PadsView: View {
             }
         }
         .task(id: client.apiKey) { await reload() }
+        .onReceive(NotificationCenter.default.publisher(for: .createPadRequested)) { _ in
+            showCreate = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .reloadRequested)) { _ in
+            Task { await reload() }
+        }
         .sheet(isPresented: $showCreate) {
             NewPadSheet(client: client) { created in
                 pads.insert(created, at: 0)
