@@ -433,6 +433,7 @@ private struct SavedSearchChip: View {
                 Image(systemName: "xmark").font(.caption2)
             }
             .buttonStyle(.borderless)
+            .accessibilityLabel("Delete saved search \(search.name)")
         }
         .padding(.horizontal, 8).padding(.vertical, 4)
         .background(Color.accentColor.opacity(0.14), in: Capsule())
@@ -520,6 +521,7 @@ struct PadDetailView: View {
                         }
                         .help("Open in separate window")
                         .buttonStyle(.borderless)
+                        .accessibilityLabel("Open in separate window")
                         Button {
                             NSWorkspace.shared.open(url)
                         } label: {
@@ -527,6 +529,7 @@ struct PadDetailView: View {
                         }
                         .help("Open in default browser")
                         .buttonStyle(.borderless)
+                        .accessibilityLabel("Open in default browser")
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
@@ -613,6 +616,7 @@ struct PadDetailView: View {
                                 Image(systemName: "safari")
                             }
                             .help("Open in default browser")
+                            .accessibilityLabel("Open in default browser")
                         }
                     }
                 }
@@ -646,6 +650,7 @@ struct PadDetailView: View {
                 }
                 .buttonStyle(.borderless)
                 .help("Copy ID")
+                .accessibilityLabel("Copy pad ID")
             }
             .foregroundStyle(.secondary)
         }

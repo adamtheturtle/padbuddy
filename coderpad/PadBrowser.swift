@@ -82,17 +82,20 @@ struct PadBrowserView: View {
             }
             .disabled(!controller.canGoBack)
             .help("Back")
+            .accessibilityLabel("Back")
 
             Button { controller.goForward() } label: {
                 Image(systemName: "chevron.right")
             }
             .disabled(!controller.canGoForward)
             .help("Forward")
+            .accessibilityLabel("Forward")
 
             Button { controller.reload() } label: {
                 Image(systemName: "arrow.clockwise")
             }
             .help("Reload")
+            .accessibilityLabel("Reload page")
 
             if controller.isLoading {
                 ProgressView().controlSize(.small)
@@ -118,6 +121,7 @@ struct PadBrowserView: View {
                 Image(systemName: "doc.on.doc")
             }
             .help("Copy URL")
+            .accessibilityLabel("Copy URL")
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)

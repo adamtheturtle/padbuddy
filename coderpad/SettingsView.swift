@@ -79,6 +79,7 @@ struct SettingsView: View {
                     }
                     .help("Add account")
                     .buttonStyle(.borderless)
+                    .accessibilityLabel("Add account")
 
                     Button {
                         if let id = selectedAccountID {
@@ -91,6 +92,7 @@ struct SettingsView: View {
                     .help("Remove selected account")
                     .buttonStyle(.borderless)
                     .disabled(selectedAccountID == nil)
+                    .accessibilityLabel("Remove selected account")
 
                     Divider().frame(height: 14)
 
@@ -105,6 +107,7 @@ struct SettingsView: View {
                     .help("Edit selected account")
                     .buttonStyle(.borderless)
                     .disabled(selectedAccountID == nil)
+                    .accessibilityLabel("Edit selected account")
 
                     Spacer()
 

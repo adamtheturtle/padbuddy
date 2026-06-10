@@ -317,6 +317,7 @@ struct QuestionDetailView: View {
                         Image(systemName: "trash")
                     }
                     .help("Delete question")
+                    .accessibilityLabel("Delete question")
                 }
             }
             HStack(spacing: 6) {

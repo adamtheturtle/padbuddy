@@ -395,6 +395,7 @@ private struct AccountFooter: View {
         }
         .menuStyle(.borderlessButton)
         .fixedSize()
+        .accessibilityLabel("Account menu")
     }
 }
 
