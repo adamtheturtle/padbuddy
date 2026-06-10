@@ -52,7 +52,7 @@ struct OrganizationView: View {
         HStack(spacing: 14) {
             AvatarCircle(label: organization?.organizationName ?? "?", diameter: 56, tint: .purple)
             VStack(alignment: .leading, spacing: 4) {
-                Text(organization?.organizationName ?? "—")
+                Text(organization?.organizationName ?? "…")
                     .font(.title2.weight(.semibold))
                 Text(organization.map { "ID #\($0.id)" } ?? " ")
                     .foregroundStyle(.secondary)
@@ -64,11 +64,11 @@ struct OrganizationView: View {
 
     private var statTiles: some View {
         HStack(spacing: 12) {
-            StatTile(title: "Users", value: organization.map { "\($0.userCount ?? $0.users.count)" } ?? "—",
+            StatTile(title: "Users", value: organization.map { "\($0.userCount ?? $0.users.count)" } ?? "…",
                      systemImage: "person.3.fill", tint: .blue)
-            StatTile(title: "Teams", value: organization.map { "\($0.teams.count)" } ?? "—",
+            StatTile(title: "Teams", value: organization.map { "\($0.teams.count)" } ?? "…",
                      systemImage: "rectangle.stack.person.crop", tint: .indigo)
-            StatTile(title: "Pads (period)", value: stats.map { "\($0.padsCreated)" } ?? "—",
+            StatTile(title: "Pads (period)", value: stats.map { "\($0.padsCreated)" } ?? "…",
                      systemImage: "doc.text.fill", tint: .teal)
             if let quota {
                 if quota.unlimited == true {

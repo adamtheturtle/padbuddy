@@ -8,17 +8,19 @@ import SwiftUI
 struct SettingsView: View {
     @State private var store = AccountsStore.shared
     @State private var editingAccount: Account?
+    @State private var selectedAccountID: UUID?
 
     var body: some View {
         TabView {
             accountsTab
+                .padding(20)
                 .tabItem { Label("Accounts", systemImage: "person.crop.circle") }
             menuBarTab
                 .tabItem { Label("Menu Bar", systemImage: "menubar.rectangle") }
             helpTab
+                .padding(20)
                 .tabItem { Label("How to get a key", systemImage: "questionmark.circle") }
         }
-        .padding()
         .frame(minWidth: 540, minHeight: 420)
         .sheet(item: $editingAccount) { account in
             AccountEditor(initial: account) { updated in
@@ -35,25 +37,9 @@ struct SettingsView: View {
     }
 
     private var accountsTab: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Accounts").font(.headline)
-                Spacer()
-                #if DEBUG
-                Button {
-                    store.addDemoIfMissing()
-                } label: {
-                    Label("Add Demo", systemImage: "wand.and.stars")
-                }
-                .disabled(store.accounts.contains(where: { $0.isMock }))
-                .help("Add a sandbox account backed by mock data — no key required (DEBUG builds only)")
-                #endif
-                Button {
-                    editingAccount = Account(name: "", apiKey: "")
-                } label: {
-                    Label("Add Account", systemImage: "plus")
-                }
-            }
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Accounts").font(.headline)
+                .padding(.bottom, 8)
 
             if store.accounts.isEmpty {
                 ContentUnavailableView {
@@ -73,18 +59,71 @@ struct SettingsView: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                List {
+                List(selection: $selectedAccountID) {
                     ForEach(store.accounts) { account in
                         AccountRow(
                             account: account,
                             isCurrent: account.id == store.currentAccountID,
-                            onMakeCurrent: { store.currentAccountID = account.id },
-                            onEdit: { editingAccount = account },
-                            onDelete: { store.remove(id: account.id) }
+                            onMakeCurrent: { store.currentAccountID = account.id }
                         )
+                        .tag(account.id)
+                        .contentShape(Rectangle())
+                        .onTapGesture(count: 2) { editingAccount = account }
                     }
                 }
-                .listStyle(.inset)
+                .listStyle(.inset(alternatesRowBackgrounds: true))
+                .frame(maxHeight: .infinity)
+
+                HStack(spacing: 4) {
+                    Button {
+                        editingAccount = Account(name: "", apiKey: "")
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                    .help("Add account")
+                    .buttonStyle(.borderless)
+
+                    Button {
+                        if let id = selectedAccountID {
+                            store.remove(id: id)
+                            selectedAccountID = nil
+                        }
+                    } label: {
+                        Image(systemName: "minus")
+                    }
+                    .help("Remove selected account")
+                    .buttonStyle(.borderless)
+                    .disabled(selectedAccountID == nil)
+
+                    Divider().frame(height: 14)
+
+                    Button {
+                        if let id = selectedAccountID,
+                           let account = store.accounts.first(where: { $0.id == id }) {
+                            editingAccount = account
+                        }
+                    } label: {
+                        Image(systemName: "pencil")
+                    }
+                    .help("Edit selected account")
+                    .buttonStyle(.borderless)
+                    .disabled(selectedAccountID == nil)
+
+                    Spacer()
+
+                    #if DEBUG
+                    Button {
+                        store.addDemoIfMissing()
+                    } label: {
+                        Label("Add Demo", systemImage: "wand.and.stars")
+                            .labelStyle(.titleAndIcon)
+                    }
+                    .buttonStyle(.borderless)
+                    .disabled(store.accounts.contains(where: { $0.isMock }))
+                    .help("Add a sandbox account backed by mock data. No key required (DEBUG builds only).")
+                    #endif
+                }
+                .padding(.top, 6)
             }
         }
     }
@@ -146,7 +185,7 @@ struct SettingsView: View {
         VStack(alignment: .leading, spacing: 10) {
             step(number: 1, title: "Sign in to CoderPad", body: "Go to app.coderpad.io and sign in with an admin account.")
             step(number: 2, title: "Open Account → API", body: "Click your avatar in the top right, choose Account, then the API tab. (Or use the direct link above.)")
-            step(number: 3, title: "Generate or copy a key", body: "Click Generate API Key (or copy an existing one). Keys are long random strings — treat them like passwords.")
+            step(number: 3, title: "Generate or copy a key", body: "Click Generate API Key (or copy an existing one). Keys are long random strings; treat them like passwords.")
             step(number: 4, title: "Paste it into a new account here", body: "Click Add Account, give it a label like \"Production\", paste the key, and click Validate & Save.")
         }
     }
@@ -171,8 +210,6 @@ private struct AccountRow: View {
     let account: Account
     let isCurrent: Bool
     let onMakeCurrent: () -> Void
-    let onEdit: () -> Void
-    let onDelete: () -> Void
 
     var body: some View {
         HStack(spacing: 10) {
@@ -198,7 +235,7 @@ private struct AccountRow: View {
                             .foregroundStyle(.green)
                     }
                 }
-                Text(account.isMock ? "Mock data — no key" : mask(account.apiKey))
+                Text(account.isMock ? "Mock data, no key" : mask(account.apiKey))
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
             }
@@ -210,10 +247,6 @@ private struct AccountRow: View {
                     .buttonStyle(.bordered)
                     .controlSize(.small)
             }
-            Button { onEdit() } label: { Image(systemName: "pencil") }
-                .buttonStyle(.borderless)
-            Button(role: .destructive) { onDelete() } label: { Image(systemName: "trash") }
-                .buttonStyle(.borderless)
         }
         .padding(.vertical, 4)
     }
@@ -251,7 +284,6 @@ private struct AccountEditor: View {
         VStack(alignment: .leading, spacing: 14) {
             Text(initialName.isEmpty ? "Add account" : "Edit account").font(.title3.bold())
             Form {
-                TextField("Name", text: $draft.name, prompt: Text("e.g. Production"))
                 Group {
                     if reveal {
                         TextField("API key", text: $draft.apiKey, prompt: Text("paste key"))
@@ -260,6 +292,7 @@ private struct AccountEditor: View {
                     }
                 }
                 Toggle("Show key", isOn: $reveal)
+                TextField("Name", text: $draft.name, prompt: Text("Auto-filled after validating"))
                 GetAPIKeyLink()
                     .font(.callout)
             }
@@ -273,16 +306,28 @@ private struct AccountEditor: View {
                 Button("Validate") { Task { await validate() } }
                     .disabled(draft.apiKey.trimmingCharacters(in: .whitespaces).isEmpty
                               || validation == .validating)
-                Button("Save") { onSave(draft) }
-                    .keyboardShortcut(.defaultAction)
-                    .buttonStyle(.borderedProminent)
-                    .disabled(draft.name.trimmingCharacters(in: .whitespaces).isEmpty ||
-                              draft.apiKey.trimmingCharacters(in: .whitespaces).isEmpty)
+                Button("Save") {
+                    finalizeNameIfNeeded()
+                    onSave(draft)
+                }
+                .keyboardShortcut(.defaultAction)
+                .buttonStyle(.borderedProminent)
+                .disabled(draft.apiKey.trimmingCharacters(in: .whitespaces).isEmpty)
             }
         }
         .padding()
         .frame(minWidth: 460, minHeight: 320)
         .onChange(of: draft.apiKey) { _, _ in validation = .idle }
+    }
+
+    private func finalizeNameIfNeeded() {
+        if draft.name.trimmingCharacters(in: .whitespaces).isEmpty {
+            if case .valid(let org) = validation {
+                draft.name = org
+            } else {
+                draft.name = "Account"
+            }
+        }
     }
 
     @ViewBuilder
@@ -297,7 +342,7 @@ private struct AccountEditor: View {
             }
             .font(.callout)
         case .valid(let org):
-            Label("Valid — \(org)", systemImage: "checkmark.seal.fill")
+            Label("Valid: \(org)", systemImage: "checkmark.seal.fill")
                 .foregroundStyle(.green).font(.callout)
         case .invalid(let message):
             Label(message, systemImage: "xmark.octagon.fill")

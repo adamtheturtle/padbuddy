@@ -248,18 +248,18 @@ enum MockFixtures {
 
     private static func seedPads() -> [[String: Any]] {
         [
-            pad(id: "DEMOABC1", title: "Onsite — Jane Doe",
+            pad(id: "DEMOABC1", title: "Onsite: Jane Doe",
                 language: "python3", ownerEmail: "alex@demo.co",
                 state: "started", isPrivate: false, executionEnabled: true,
                 participants: ["Jane Doe", "Alex Park"],
                 createdAt: "2026-06-08T15:00:00Z", updatedAt: "2026-06-09T22:00:00Z"),
-            pad(id: "DEMOXYZ2", title: "Phone screen — Sam Lee",
+            pad(id: "DEMOXYZ2", title: "Phone screen: Sam Lee",
                 language: "javascript", ownerEmail: "morgan@demo.co",
                 state: "ended", isPrivate: true, executionEnabled: true,
                 participants: ["Sam Lee", "Morgan Lin"],
                 createdAt: "2026-06-05T17:30:00Z", updatedAt: "2026-06-06T19:00:00Z",
                 endedAt: "2026-06-06T19:00:00Z"),
-            pad(id: "DEMOPLY3", title: "Live coding — backend",
+            pad(id: "DEMOPLY3", title: "Live coding: backend",
                 language: "go", ownerEmail: "alex@demo.co",
                 state: "started", isPrivate: false, executionEnabled: false,
                 participants: ["Casey Wu", "Alex Park"],

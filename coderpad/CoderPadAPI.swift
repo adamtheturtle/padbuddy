@@ -508,9 +508,9 @@ struct CoderPadClient {
         } catch let DecodingError.valueNotFound(type, ctx) {
             throw CoderPadError.decode("missing value of \(type) at \(pathString(ctx.codingPath))")
         } catch let DecodingError.typeMismatch(type, ctx) {
-            throw CoderPadError.decode("type mismatch (\(type)) at \(pathString(ctx.codingPath)) — \(ctx.debugDescription)")
+            throw CoderPadError.decode("type mismatch (\(type)) at \(pathString(ctx.codingPath)): \(ctx.debugDescription)")
         } catch let DecodingError.dataCorrupted(ctx) {
-            throw CoderPadError.decode("corrupted at \(pathString(ctx.codingPath)) — \(ctx.debugDescription)")
+            throw CoderPadError.decode("corrupted at \(pathString(ctx.codingPath)): \(ctx.debugDescription)")
         }
     }
 

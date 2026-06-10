@@ -122,7 +122,7 @@ struct OpenPadURLSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Open Pad by URL").font(.title3.bold())
-            Text("Paste a CoderPad pad URL — it opens in the in-app browser window.")
+            Text("Paste a CoderPad pad URL. It opens in the in-app browser window.")
                 .foregroundStyle(.secondary)
                 .font(.callout)
             TextField("https://app.coderpad.io/…", text: $urlString)

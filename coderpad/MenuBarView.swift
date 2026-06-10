@@ -89,6 +89,27 @@ struct MenuBarView: View {
 
             Divider()
 
+            Button("New Pad…") {
+                openMain()
+                NotificationCenter.default.post(name: .sectionRequested, object: AppSection.pads)
+                NotificationCenter.default.post(name: .createPadRequested, object: nil)
+            }
+            .keyboardShortcut("n")
+
+            Button("New Question…") {
+                openMain()
+                NotificationCenter.default.post(name: .sectionRequested, object: AppSection.questions)
+                NotificationCenter.default.post(name: .createQuestionRequested, object: nil)
+            }
+            .keyboardShortcut("n", modifiers: [.command, .shift])
+
+            Button("Open Pad by URL…") {
+                openMain()
+                NotificationCenter.default.post(name: .openPadByURLRequested, object: nil)
+            }
+
+            Divider()
+
             Button("Open CoderPad") {
                 openMain()
             }

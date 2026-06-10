@@ -879,13 +879,13 @@ private struct NewPadSheet: View {
             Text("New Pad").font(.title3.bold())
 
             Form {
-                TextField("Title", text: $title, prompt: Text("Optional — e.g. \"Onsite – Jane Doe\""))
+                TextField("Title", text: $title, prompt: Text("Optional, e.g. \"Onsite: Jane Doe\""))
 
                 Picker("Language", selection: $language) {
                     ForEach(CoderPadLanguages.pickerOptions, id: \.self) { Text($0.languageDisplayName).tag($0) }
                 }
 
-                TextField("Owner email", text: $ownerEmail, prompt: Text("Optional — defaults to the key's owner"))
+                TextField("Owner email", text: $ownerEmail, prompt: Text("Optional. Defaults to the key's owner."))
 
                 Toggle("Private", isOn: $isPrivate)
                 Toggle("Execution enabled", isOn: $executionEnabled)

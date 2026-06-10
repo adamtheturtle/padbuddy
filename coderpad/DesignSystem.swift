@@ -299,7 +299,7 @@ struct EmailLink: View {
 
     var body: some View {
         if email.isEmpty {
-            Text("—")
+            Text("(no email)").foregroundStyle(.secondary)
         } else if let url = URL(string: "mailto:\(email)") {
             Link(email, destination: url)
         } else {
