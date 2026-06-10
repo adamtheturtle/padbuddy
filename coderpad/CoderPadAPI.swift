@@ -455,21 +455,6 @@ struct CoderPadClient {
         return try await fetch(OrganizationStats.self, path: "/api/organization/stats")
     }
 
-    func organizationPads() async throws -> [Pad] {
-        struct Wrapper: Decodable { let pads: [Pad] }
-        return try await fetch(Wrapper.self, path: "/api/organization/pads").pads
-    }
-
-    func organizationQuestions() async throws -> [Question] {
-        struct Wrapper: Decodable { let questions: [Question] }
-        return try await fetch(Wrapper.self, path: "/api/organization/questions").questions
-    }
-
-    func organizationUsers() async throws -> [OrganizationUser] {
-        struct Wrapper: Decodable { let users: [OrganizationUser] }
-        return try await fetch(Wrapper.self, path: "/api/organization/users").users
-    }
-
     // MARK: Plumbing
 
     private func fetch<T: Decodable>(_ type: T.Type, path: String) async throws -> T {
