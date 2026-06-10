@@ -234,6 +234,64 @@ final class PadActivityMonitor {
     }
 }
 
+struct NamedSearch: Identifiable, Codable, Hashable {
+    let id: UUID
+    var name: String
+    var search: String
+    var stateFilter: String?
+    var languageFilter: String?
+    var ownerFilter: String?
+    var teamFilter: String?
+    var typeFilter: String?
+    var dateRangeFilter: String?
+
+    init(id: UUID = UUID(), name: String,
+         search: String = "",
+         stateFilter: String? = nil, languageFilter: String? = nil,
+         ownerFilter: String? = nil, teamFilter: String? = nil,
+         typeFilter: String? = nil, dateRangeFilter: String? = nil) {
+        self.id = id
+        self.name = name
+        self.search = search
+        self.stateFilter = stateFilter
+        self.languageFilter = languageFilter
+        self.ownerFilter = ownerFilter
+        self.teamFilter = teamFilter
+        self.typeFilter = typeFilter
+        self.dateRangeFilter = dateRangeFilter
+    }
+}
+
+@Observable
+final class SavedSearchStore {
+    static let shared = SavedSearchStore()
+    private(set) var searches: [NamedSearch] = []
+    private static let key = "savedPadSearches.v1"
+
+    private init() {
+        if let data = UserDefaults.standard.data(forKey: Self.key),
+           let decoded = try? JSONDecoder().decode([NamedSearch].self, from: data) {
+            searches = decoded
+        }
+    }
+
+    func add(_ search: NamedSearch) {
+        searches.append(search)
+        save()
+    }
+
+    func remove(id: UUID) {
+        searches.removeAll { $0.id == id }
+        save()
+    }
+
+    private func save() {
+        if let data = try? JSONEncoder().encode(searches) {
+            UserDefaults.standard.set(data, forKey: Self.key)
+        }
+    }
+}
+
 @Observable
 final class PinnedPadsStore {
     static let shared = PinnedPadsStore()

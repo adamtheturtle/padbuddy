@@ -20,8 +20,10 @@ struct MenuBarView: View {
     @State private var store = AccountsStore.shared
     @State private var monitor = PadActivityMonitor.shared
     @State private var pads: [Pad] = []
+    @State private var questions: [Question] = []
     @State private var isLoading = false
     @State private var errorMessage: String?
+    @AppStorage("menuBarTopN") private var topN: Int = 10
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
@@ -58,7 +60,7 @@ struct MenuBarView: View {
             } else if pads.isEmpty {
                 Text("No pads").foregroundStyle(.secondary)
             } else {
-                ForEach(pads.prefix(10)) { pad in
+                ForEach(pads.prefix(topN)) { pad in
                     Button {
                         if let url = URL(string: pad.url) {
                             NSWorkspace.shared.open(url)
@@ -67,8 +69,21 @@ struct MenuBarView: View {
                         Text(padLabel(pad))
                     }
                 }
-                if pads.count > 10 {
-                    Text("…\(pads.count - 10) more").foregroundStyle(.secondary)
+                if pads.count > topN {
+                    Text("…\(pads.count - topN) more").foregroundStyle(.secondary)
+                }
+            }
+
+            if !questions.isEmpty {
+                Divider()
+                Menu("Recent Questions") {
+                    ForEach(questions.prefix(topN)) { q in
+                        Button {
+                            openMain()
+                        } label: {
+                            Text(q.title.isEmpty ? "#\(q.id)" : q.title)
+                        }
+                    }
                 }
             }
 
@@ -114,11 +129,15 @@ struct MenuBarView: View {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
+        let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey)
         do {
-            let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey)
-            let fetched = try await client.listPads()
+            async let padsTask = client.listPads()
+            async let qsTask = client.listQuestions()
+            let fetched = try await padsTask
             pads = fetched.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
-            // Opening the menu means the user has seen the activity.
+            if let qs = try? await qsTask {
+                questions = qs.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
+            }
             monitor.markSeen()
         } catch {
             errorMessage = error.localizedDescription

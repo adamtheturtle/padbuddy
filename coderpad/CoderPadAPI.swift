@@ -342,13 +342,15 @@ struct CoderPadClient {
     let baseURL = URL(string: "https://app.coderpad.io")!
     let session: URLSession
 
-    init(apiKey: String, session: URLSession = .shared) {
+    init(apiKey: String, session: URLSession = CoderPadClient.liveSession) {
         self.apiKey = apiKey
         self.session = session
     }
 
+    static let liveSession: URLSession = .shared
+
     static func live(apiKey: String) -> CoderPadClient {
-        CoderPadClient(apiKey: apiKey)
+        CoderPadClient(apiKey: apiKey, session: liveSession)
     }
 
     static func mock() -> CoderPadClient {

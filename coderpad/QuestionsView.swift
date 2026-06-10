@@ -26,7 +26,7 @@ struct QuestionsView: View {
     var body: some View {
         NavigationSplitView {
             sidebar
-                .navigationSplitViewColumnWidth(min: 300, ideal: 360)
+                .navigationSplitViewColumnWidth(min: 360, ideal: 420)
         } detail: {
             if let selection {
                 QuestionDetailView(client: client, question: selection)

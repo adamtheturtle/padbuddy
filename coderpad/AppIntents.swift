@@ -26,6 +26,29 @@ struct CoderPadShortcuts: AppShortcutsProvider {
             shortTitle: "Search Pads",
             systemImageName: "magnifyingglass"
         )
+        AppShortcut(
+            intent: OpenPadByIDIntent(),
+            phrases: ["Open pad in \(.applicationName)", "Show pad in \(.applicationName)"],
+            shortTitle: "Open Pad by ID",
+            systemImageName: "doc.text.image"
+        )
+    }
+}
+
+struct OpenPadByIDIntent: AppIntent {
+    static var title: LocalizedStringResource = "Open Pad by ID"
+    static var description = IntentDescription("Open a specific CoderPad pad in the in-app browser.")
+    static var openAppWhenRun: Bool = true
+
+    @Parameter(title: "Pad ID", description: "The 8-character pad identifier.")
+    var padID: String
+
+    func perform() async throws -> some IntentResult {
+        let trimmed = padID.trimmingCharacters(in: .whitespacesAndNewlines)
+        await MainActor.run {
+            NotificationCenter.default.post(name: .openPadIDRequested, object: trimmed)
+        }
+        return .result()
     }
 }
 

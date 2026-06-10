@@ -13,6 +13,8 @@ struct SettingsView: View {
         TabView {
             accountsTab
                 .tabItem { Label("Accounts", systemImage: "person.crop.circle") }
+            menuBarTab
+                .tabItem { Label("Menu Bar", systemImage: "menubar.rectangle") }
             helpTab
                 .tabItem { Label("How to get a key", systemImage: "questionmark.circle") }
         }
@@ -85,6 +87,30 @@ struct SettingsView: View {
                 .listStyle(.inset)
             }
         }
+    }
+
+    private var menuBarTab: some View {
+        Form {
+            Section {
+                Stepper(value: Binding(
+                    get: { UserDefaults.standard.integer(forKey: "menuBarTopN").nonZero ?? 10 },
+                    set: { UserDefaults.standard.set($0, forKey: "menuBarTopN") }
+                ), in: 3...30, step: 1) {
+                    HStack {
+                        Text("Recent pads in menu bar")
+                        Spacer()
+                        Text("\((UserDefaults.standard.integer(forKey: "menuBarTopN").nonZero ?? 10))")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } header: {
+                Text("Menu Bar")
+            } footer: {
+                Text("Controls how many recent pads and questions appear in the menu bar item.")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
     }
 
     private var helpTab: some View {
@@ -298,6 +324,10 @@ private struct AccountEditor: View {
             validation = .invalid(error.localizedDescription)
         }
     }
+}
+
+private extension Int {
+    var nonZero: Int? { self == 0 ? nil : self }
 }
 
 #Preview { SettingsView() }

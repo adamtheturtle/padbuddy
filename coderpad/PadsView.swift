@@ -27,13 +27,16 @@ struct PadsView: View {
     @State private var changedPadIDs: Set<String> = []
     @State private var hasLoadedOnce = false
     @State private var dateRangeFilter: String? = nil
+    @State private var savedSearches = SavedSearchStore.shared
+    @State private var showSaveSearch = false
+    @State private var saveSearchName = ""
 
     private static let refreshInterval: Duration = .seconds(45)
 
     var body: some View {
         NavigationSplitView {
             sidebar
-                .navigationSplitViewColumnWidth(min: 300, ideal: 360)
+                .navigationSplitViewColumnWidth(min: 380, ideal: 440)
         } detail: {
             if let selection {
                 PadDetailView(client: client, pad: selection)
@@ -67,6 +70,24 @@ struct PadsView: View {
         .onReceive(NotificationCenter.default.publisher(for: .padsSearchRequested)) { note in
             if let q = note.object as? String { search = q }
         }
+        .sheet(isPresented: $showSaveSearch) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Save Search").font(.title3.bold())
+                TextField("Name", text: $saveSearchName, prompt: Text("e.g. Live pads, my team"))
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit { commitSavedSearch() }
+                HStack {
+                    Spacer()
+                    Button("Cancel", role: .cancel) { showSaveSearch = false }
+                    Button("Save") { commitSavedSearch() }
+                        .keyboardShortcut(.defaultAction)
+                        .buttonStyle(.borderedProminent)
+                        .disabled(saveSearchName.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            }
+            .padding()
+            .frame(minWidth: 360)
+        }
         .sheet(isPresented: $showCreate) {
             NewPadSheet(client: client) { created in
                 pads.insert(created, at: 0)
@@ -76,6 +97,13 @@ struct PadsView: View {
                 showCreate = false
             }
         }
+    }
+
+    private func commitSavedSearch() {
+        let trimmed = saveSearchName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        savedSearches.add(captureCurrentSearch(named: trimmed))
+        showSaveSearch = false
     }
 
     private static let dateRangeOptions = ["today", "last 7 days", "last 30 days"]
@@ -141,6 +169,7 @@ struct PadsView: View {
                 APIErrorView(error: error) { Task { await reload() } }
             } else {
                 VStack(spacing: 0) {
+                    savedSearchesBar
                     filterBar
                     Divider()
                     List(filtered, selection: $selection) { pad in
@@ -170,6 +199,43 @@ struct PadsView: View {
                 .disabled(isLoading)
             }
         }
+    }
+
+    @ViewBuilder
+    private var savedSearchesBar: some View {
+        if !savedSearches.searches.isEmpty {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(savedSearches.searches) { saved in
+                        SavedSearchChip(search: saved) {
+                            apply(saved)
+                        } onDelete: {
+                            savedSearches.remove(id: saved.id)
+                        }
+                    }
+                }
+                .padding(.horizontal, 12).padding(.top, 6)
+            }
+        }
+    }
+
+    private func apply(_ saved: NamedSearch) {
+        search = saved.search
+        stateFilter = saved.stateFilter
+        languageFilter = saved.languageFilter
+        ownerFilter = saved.ownerFilter
+        teamFilter = saved.teamFilter
+        typeFilter = saved.typeFilter
+        dateRangeFilter = saved.dateRangeFilter
+    }
+
+    private func captureCurrentSearch(named name: String) -> NamedSearch {
+        NamedSearch(
+            name: name, search: search,
+            stateFilter: stateFilter, languageFilter: languageFilter,
+            ownerFilter: ownerFilter, teamFilter: teamFilter,
+            typeFilter: typeFilter, dateRangeFilter: dateRangeFilter
+        )
     }
 
     @ViewBuilder
@@ -218,6 +284,17 @@ struct PadsView: View {
                     options: Self.dateRangeOptions,
                     formatter: { $0.capitalized }
                 )
+                if activeFilterCount > 0 || !search.isEmpty {
+                    Button {
+                        saveSearchName = ""
+                        showSaveSearch = true
+                    } label: {
+                        Label("Save…", systemImage: "bookmark")
+                            .labelStyle(.titleAndIcon)
+                    }
+                    .buttonStyle(.borderless)
+                    .controlSize(.small)
+                }
                 if activeFilterCount > 0 {
                     Button(role: .destructive) {
                         stateFilter = nil; languageFilter = nil
@@ -329,6 +406,30 @@ struct FilterChipMenu: View {
         .menuStyle(.borderlessButton)
         .fixedSize()
         .disabled(options.isEmpty)
+    }
+}
+
+private struct SavedSearchChip: View {
+    let search: NamedSearch
+    let onApply: () -> Void
+    let onDelete: () -> Void
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "bookmark.fill").font(.caption2)
+            Text(search.name).font(.caption)
+            Button {
+                onDelete()
+            } label: {
+                Image(systemName: "xmark").font(.caption2)
+            }
+            .buttonStyle(.borderless)
+        }
+        .padding(.horizontal, 8).padding(.vertical, 4)
+        .background(Color.accentColor.opacity(0.14), in: Capsule())
+        .foregroundStyle(Color.accentColor)
+        .overlay(Capsule().stroke(Color.accentColor.opacity(0.3), lineWidth: 0.5))
+        .onTapGesture { onApply() }
     }
 }
 

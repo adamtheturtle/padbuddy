@@ -15,6 +15,7 @@ extension Notification.Name {
     static let padsSearchRequested = Notification.Name("coderpad.padsSearchRequested")
     static let questionUpdated = Notification.Name("coderpad.questionUpdated")
     static let questionDeleted = Notification.Name("coderpad.questionDeleted")
+    static let openPadIDRequested = Notification.Name("coderpad.openPadIDRequested")
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
