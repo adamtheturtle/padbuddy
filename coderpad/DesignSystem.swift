@@ -10,6 +10,29 @@ extension Color {
     static let subtleStroke = Color.primary.opacity(0.08)
 }
 
+/// Shared layout constants so pane chrome stays in sync across detail views.
+/// Tweak these here instead of hunting for matching literals in every view.
+enum Spacing {
+    /// Horizontal inset for pane content, matched to ``PaneTitle``.
+    static let paneH: CGFloat = 22
+    /// ``PaneTitle``'s top inset.
+    static let paneTitleTop: CGFloat = 18
+    /// ``PaneTitle``'s bottom inset.
+    static let paneTitleBottom: CGFloat = 10
+    /// Vertical inset for pane content (below a ``PaneTitle`` or search field).
+    static let paneV: CGFloat = 22
+    /// Interior padding for ``Card``.
+    static let card: CGFloat = 16
+    /// Horizontal inset for the inline banner.
+    static let bannerH: CGFloat = 14
+}
+
+/// Shared typography so matching text styles stay in sync across views.
+enum Typography {
+    /// The large title shown by ``PaneTitle`` at the top of a pane.
+    static let paneTitle: Font = .largeTitle.bold()
+}
+
 struct StateBadge: View {
     let state: String
 
@@ -70,7 +93,7 @@ struct Card<Content: View>: View {
 
     var body: some View {
         content
-            .padding(16)
+            .padding(Spacing.card)
             .background(Color.cardBackground, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Color.subtleStroke, lineWidth: 1))
     }
@@ -296,7 +319,7 @@ struct PaneTitle: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(title)
-                .font(.largeTitle.bold())
+                .font(Typography.paneTitle)
             if let subtitle, !subtitle.isEmpty {
                 Text(subtitle)
                     .font(.callout)
@@ -304,9 +327,9 @@ struct PaneTitle: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 22)
-        .padding(.top, 18)
-        .padding(.bottom, 10)
+        .padding(.horizontal, Spacing.paneH)
+        .padding(.top, Spacing.paneTitleTop)
+        .padding(.bottom, Spacing.paneTitleBottom)
     }
 }
 

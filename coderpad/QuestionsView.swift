@@ -28,7 +28,7 @@ struct QuestionsView: View {
     var body: some View {
         NavigationSplitView {
             sidebar
-                .navigationSplitViewColumnWidth(min: 460, ideal: 460, max: 620)
+                .navigationSplitViewColumnWidth(min: 360, ideal: 440, max: 620)
         } detail: {
             if let selection {
                 QuestionDetailView(client: client, question: selection)
@@ -122,7 +122,7 @@ struct QuestionsView: View {
                         subtitle: lastFetched.map { "Updated \($0.formatted(.relative(presentation: .named)))" }
                     )
                     InlineSearchField(query: $search, prompt: "Search title, author…")
-                        .padding(.horizontal, 22)
+                        .padding(.horizontal, Spacing.paneH)
                         .padding(.bottom, 8)
                     filterBar
                     Divider()
@@ -268,9 +268,9 @@ struct QuestionDetailView: View {
                     descriptionCard(title: "Solution", body: solution)
                 }
             }
-            .padding(.horizontal, 22)
-            .padding(.top, 22)
-            .padding(.bottom, 22)
+            .padding(.horizontal, Spacing.paneH)
+            .padding(.top, Spacing.paneV)
+            .padding(.bottom, Spacing.paneV)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .navigationTitle(question.title.isEmpty ? "#\(question.id)" : question.title)

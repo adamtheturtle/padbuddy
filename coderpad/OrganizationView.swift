@@ -31,9 +31,9 @@ struct OrganizationView: View {
                             if let stats { activitySection(stats) }
                             if let organization { usersSection(organization) }
                         }
-                        .padding(.horizontal, 22)
+                        .padding(.horizontal, Spacing.paneH)
                         .padding(.top, 4)
-                        .padding(.bottom, 22)
+                        .padding(.bottom, Spacing.paneV)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }

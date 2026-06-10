@@ -28,9 +28,9 @@ struct QuotaView: View {
                                 detailsCard(quota)
                             }
                         }
-                        .padding(.horizontal, 22)
+                        .padding(.horizontal, Spacing.paneH)
                         .padding(.top, 4)
-                        .padding(.bottom, 22)
+                        .padding(.bottom, Spacing.paneV)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }

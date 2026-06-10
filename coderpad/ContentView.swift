@@ -286,7 +286,7 @@ private struct UnauthorizedBanner: View {
             }
             .controlSize(.small)
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, Spacing.bannerH)
         .padding(.vertical, 10)
         .background(Color.orange.opacity(0.18))
     }
