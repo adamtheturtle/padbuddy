@@ -32,7 +32,7 @@ struct coderpadApp: App {
             ContentView()
         }
         .windowStyle(.titleBar)
-        .windowToolbarStyle(.unified)
+        .windowToolbarStyle(.unifiedCompact)
         .defaultLaunchBehavior(.presented)
         .commands {
             appCommands
