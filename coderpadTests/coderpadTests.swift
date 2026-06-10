@@ -217,7 +217,7 @@ struct MockServerTests {
     @Test("getPad returns a specific pad")
     func getPad() async throws {
         let pad = try await client.getPad(id: "DEMOABC1")
-        #expect(pad.title == "Onsite — Jane Doe")
+        #expect(pad.title == "Onsite: Jane Doe")
         #expect(pad.ownerEmail == "alex@demo.co")
         #expect(pad.participants == ["Jane Doe", "Alex Park"])
     }
@@ -283,6 +283,103 @@ struct MockServerTests {
     func unknownPad() async throws {
         await #expect(throws: CoderPadError.self) {
             _ = try await client.getPad(id: "NOPE")
+        }
+    }
+}
+
+@Suite("Language helpers")
+struct LanguageHelperTests {
+    @Test("languageDisplayName maps known codes to friendly names")
+    func displayNames() {
+        #expect("python3".languageDisplayName == "Python 3")
+        #expect("python2".languageDisplayName == "Python 2")
+        #expect("javascript".languageDisplayName == "JavaScript")
+        #expect("typescript".languageDisplayName == "TypeScript")
+        #expect("nodejs".languageDisplayName == "Node.js")
+        #expect("cpp".languageDisplayName == "C++")
+        #expect("csharp".languageDisplayName == "C#")
+        #expect("objective-c".languageDisplayName == "Objective-C")
+        #expect("postgresql".languageDisplayName == "PostgreSQL")
+        #expect("fsharp".languageDisplayName == "F#")
+    }
+
+    @Test("languageDisplayName capitalizes unknown codes")
+    func unknownNames() {
+        #expect("zig".languageDisplayName == "Zig")
+        #expect("".languageDisplayName == "")
+    }
+
+    @Test("languageSymbol falls back for unknown languages")
+    func symbolFallback() {
+        #expect("python3".languageSymbol == "terminal")
+        #expect("javascript".languageSymbol == "globe")
+        #expect("swift".languageSymbol == "swift")
+        #expect("rust".languageSymbol == "cpu")
+        #expect("sql".languageSymbol == "cylinder")
+        #expect("zig".languageSymbol == "chevron.left.slash.chevron.right")
+    }
+}
+
+@Suite("Account round-trip")
+struct AccountRoundTripTests {
+    @Test("Account encodes/decodes through JSON without loss")
+    func roundTrip() throws {
+        let original = Account(name: "Production", apiKey: "secret-key", isMock: false)
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(Account.self, from: data)
+        #expect(decoded.id == original.id)
+        #expect(decoded.name == original.name)
+        #expect(decoded.apiKey == original.apiKey)
+        #expect(decoded.isMock == original.isMock)
+    }
+
+    @Test("Demo account survives the round-trip with isMock = true")
+    func demoRoundTrip() throws {
+        let demo = Account.demo()
+        let data = try JSONEncoder().encode(demo)
+        let decoded = try JSONDecoder().decode(Account.self, from: data)
+        #expect(decoded.isMock == true)
+        #expect(decoded.name == "Demo (mock data)")
+    }
+}
+
+@Suite("What's New gating", .serialized)
+struct WhatsNewTests {
+    private static let key = "lastSeenWhatsNewVersion"
+
+    private func withCleanDefault<T>(_ block: () throws -> T) rethrows -> T {
+        let saved = UserDefaults.standard.string(forKey: Self.key)
+        UserDefaults.standard.removeObject(forKey: Self.key)
+        defer {
+            if let saved {
+                UserDefaults.standard.set(saved, forKey: Self.key)
+            } else {
+                UserDefaults.standard.removeObject(forKey: Self.key)
+            }
+        }
+        return try block()
+    }
+
+    @Test("shouldShow returns true on clean install")
+    func cleanInstall() {
+        withCleanDefault {
+            #expect(WhatsNew.shouldShow() == true)
+        }
+    }
+
+    @Test("markSeen suppresses future prompts for the same version")
+    func markSeen() {
+        withCleanDefault {
+            WhatsNew.markSeen()
+            #expect(WhatsNew.shouldShow() == false)
+        }
+    }
+
+    @Test("an older recorded version still triggers the prompt")
+    func olderVersion() {
+        withCleanDefault {
+            UserDefaults.standard.set("0.1", forKey: Self.key)
+            #expect(WhatsNew.shouldShow() == true)
         }
     }
 }
