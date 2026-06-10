@@ -49,23 +49,25 @@ struct ContentView: View {
     }
 
     private var sidebar: some View {
-        List(selection: $section) {
-            SwiftUI.Section("Browse") {
-                Label("Pads", systemImage: "doc.text").tag(AppSection.pads)
-                Label("Questions", systemImage: "questionmark.bubble").tag(AppSection.questions)
+        VStack(spacing: 0) {
+            List(selection: $section) {
+                SwiftUI.Section("Browse") {
+                    Label("Pads", systemImage: "doc.text").tag(AppSection.pads)
+                    Label("Questions", systemImage: "questionmark.bubble").tag(AppSection.questions)
+                }
+                SwiftUI.Section("Account") {
+                    Label("Organization", systemImage: "building.2").tag(AppSection.organization)
+                    Label("Quota", systemImage: "gauge.with.dots.needle.67percent").tag(AppSection.quota)
+                }
             }
-            SwiftUI.Section("Account") {
-                Label("Organization", systemImage: "building.2").tag(AppSection.organization)
-                Label("Quota", systemImage: "gauge.with.dots.needle.67percent").tag(AppSection.quota)
-            }
-        }
-        .listStyle(.sidebar)
-        .navigationTitle("CoderPad")
-        .safeAreaInset(edge: .bottom) {
+            .listStyle(.sidebar)
+
+            Divider()
             accountFooter
                 .padding(10)
                 .background(.thinMaterial)
         }
+        .navigationTitle("CoderPad")
     }
 
     private var accountFooter: some View {
@@ -129,9 +131,11 @@ struct ContentView: View {
         } actions: {
             Button("Open Settings") { showSettings = true }
                 .buttonStyle(.borderedProminent)
+            #if DEBUG
             Button("Try Demo (mock data)") {
                 store.addDemoIfMissing()
             }
+            #endif
             GetAPIKeyLink()
         }
     }

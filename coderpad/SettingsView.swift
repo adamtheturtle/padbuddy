@@ -37,13 +37,15 @@ struct SettingsView: View {
             HStack {
                 Text("Accounts").font(.headline)
                 Spacer()
+                #if DEBUG
                 Button {
                     store.addDemoIfMissing()
                 } label: {
                     Label("Add Demo", systemImage: "wand.and.stars")
                 }
                 .disabled(store.accounts.contains(where: { $0.isMock }))
-                .help("Add a sandbox account backed by mock data — no key required")
+                .help("Add a sandbox account backed by mock data — no key required (DEBUG builds only)")
+                #endif
                 Button {
                     editingAccount = Account(name: "", apiKey: "")
                 } label: {
@@ -55,15 +57,17 @@ struct SettingsView: View {
                 ContentUnavailableView {
                     Label("No accounts", systemImage: "person.crop.circle.badge.questionmark")
                 } description: {
-                    Text("Add an account with a CoderPad API key, or try the demo with mock data.")
+                    Text("Add an account with a CoderPad API key.")
                 } actions: {
                     Button("Add Account") {
                         editingAccount = Account(name: "", apiKey: "")
                     }
                     .buttonStyle(.borderedProminent)
+                    #if DEBUG
                     Button("Try Demo") {
                         store.addDemoIfMissing()
                     }
+                    #endif
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
