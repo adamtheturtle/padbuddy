@@ -176,12 +176,55 @@ extension String {
         default: return .accentColor
         }
     }
+
+    var languageDisplayName: String {
+        switch self.lowercased() {
+        case "python": return "Python"
+        case "python2": return "Python 2"
+        case "python3": return "Python 3"
+        case "javascript": return "JavaScript"
+        case "typescript": return "TypeScript"
+        case "node", "node.js", "nodejs": return "Node.js"
+        case "swift": return "Swift"
+        case "go", "golang": return "Go"
+        case "rust": return "Rust"
+        case "java": return "Java"
+        case "kotlin": return "Kotlin"
+        case "ruby": return "Ruby"
+        case "c": return "C"
+        case "cpp", "c++": return "C++"
+        case "csharp", "c#": return "C#"
+        case "objective-c", "objc": return "Objective-C"
+        case "php": return "PHP"
+        case "html": return "HTML"
+        case "css": return "CSS"
+        case "sql": return "SQL"
+        case "mysql": return "MySQL"
+        case "postgresql", "postgres": return "PostgreSQL"
+        case "bash": return "Bash"
+        case "shell", "sh": return "Shell"
+        case "r": return "R"
+        case "scala": return "Scala"
+        case "elixir": return "Elixir"
+        case "erlang": return "Erlang"
+        case "haskell": return "Haskell"
+        case "perl": return "Perl"
+        case "lua": return "Lua"
+        case "dart": return "Dart"
+        case "clojure": return "Clojure"
+        case "ocaml": return "OCaml"
+        case "f#", "fsharp": return "F#"
+        default:
+            guard !self.isEmpty else { return self }
+            return self.prefix(1).uppercased() + self.dropFirst()
+        }
+    }
 }
 
 // MARK: - GetAPIKeyLink
 
 enum CoderPadLinks {
-    static let apiSettings = URL(string: "https://app.coderpad.io/dashboard/settings/api")!
+    static let apiSettings = URL(string: "https://app.coderpad.io/dashboard/settings")!
     static let apiDocs = URL(string: "https://coderpad.io/resources/docs/coderpad-interview/api/")!
     static let sourceRepo = URL(string: "https://github.com/adamtheturtle/coderpad-macos")!
 }

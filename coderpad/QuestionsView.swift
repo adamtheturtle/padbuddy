@@ -142,7 +142,7 @@ struct QuestionsView: View {
             HStack(spacing: 8) {
                 FilterChipMenu(title: "Language", icon: "chevron.left.slash.chevron.right",
                                selected: $languageFilter, options: availableLanguages,
-                               formatter: { $0 })
+                               formatter: { $0.languageDisplayName })
                 SearchableFilterChip(title: "Owner", icon: "person",
                                      selected: $ownerFilter, options: availableOwners,
                                      formatter: { directory.display($0) })
@@ -201,7 +201,7 @@ private struct QuestionRow: View {
                     .lineLimit(1)
                 HStack(spacing: 6) {
                     if let lang = question.language, !lang.isEmpty {
-                        Chip(text: lang, systemImage: "chevron.left.slash.chevron.right", tint: lang.languageColor)
+                        Chip(text: lang.languageDisplayName, systemImage: "chevron.left.slash.chevron.right", tint: lang.languageColor)
                     }
                     if question.takeHome == true {
                         Chip(text: "Take-home", systemImage: "house", tint: .pink)
@@ -291,7 +291,7 @@ struct QuestionDetailView: View {
             }
             HStack(spacing: 6) {
                 if let lang = question.language, !lang.isEmpty {
-                    Chip(text: lang, systemImage: "chevron.left.slash.chevron.right", tint: lang.languageColor)
+                    Chip(text: lang.languageDisplayName, systemImage: "chevron.left.slash.chevron.right", tint: lang.languageColor)
                 }
                 if let type = question.padType, !type.isEmpty {
                     Chip(text: type, systemImage: "tag")

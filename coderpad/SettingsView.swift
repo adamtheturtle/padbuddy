@@ -130,19 +130,13 @@ struct SettingsView: View {
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Useful links").font(.headline)
-                    Link(destination: URL(string: "https://app.coderpad.io/dashboard/settings/api")!) {
+                    Link(destination: CoderPadLinks.apiSettings) {
                         Label("Open your API settings on CoderPad", systemImage: "arrow.up.forward.app")
                     }
                     Link(destination: URL(string: "https://coderpad.io/resources/docs/coderpad-interview/api/")!) {
                         Label("CoderPad API documentation", systemImage: "book")
                     }
                 }
-
-                Divider()
-
-                Text("Security").font(.headline)
-                Text("Keys are stored in the macOS Keychain under service \"\(Keychain.service)\". You can manage them with Keychain Access.app or rotate them at any time on the CoderPad dashboard.")
-                    .foregroundStyle(.secondary)
             }
             .padding(.vertical, 4)
         }

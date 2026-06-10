@@ -84,14 +84,11 @@ struct OrganizationView: View {
         Card {
             VStack(alignment: .leading, spacing: 10) {
                 SectionHeader(title: "Activity Window", systemImage: "calendar")
-                HStack {
-                    if let start = stats.startTime {
-                        LabeledRow(label: "From", value: start.formatted(date: .abbreviated, time: .shortened))
-                    }
-                    Spacer(minLength: 24)
-                    if let end = stats.endTime {
-                        LabeledRow(label: "To", value: end.formatted(date: .abbreviated, time: .shortened))
-                    }
+                if let start = stats.startTime {
+                    LabeledRow(label: "From", value: start.formatted(date: .abbreviated, time: .shortened))
+                }
+                if let end = stats.endTime {
+                    LabeledRow(label: "To", value: end.formatted(date: .abbreviated, time: .shortened))
                 }
                 LabeledRow(label: "Pads created", value: "\(stats.padsCreated)")
                 if let q = quota {

@@ -221,6 +221,7 @@ private struct Sidebar: View {
                 }
             }
             .listStyle(.sidebar)
+            .scrollDisabled(true)
             Divider()
             AccountFooter(showSettings: $showSettings)
                 .padding(10)

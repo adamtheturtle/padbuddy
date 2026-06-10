@@ -9,8 +9,6 @@ struct PadsView: View {
     let client: CoderPadClient
     @Environment(\.orgDirectory) private var directory
     @Environment(\.scenePhase) private var scenePhase
-    @State private var accounts = AccountsStore.shared
-    @State private var pinned = PinnedPadsStore.shared
     @State private var pads: [Pad] = []
     @State private var isLoading = false
     @State private var error: Error?
@@ -121,7 +119,7 @@ struct PadsView: View {
     private var filtered: [Pad] {
         let lowered = search.lowercased()
         let rangeStart = dateRangeFilter.flatMap(dateRangeStart(for:))
-        let matched = pads.filter { pad in
+        return pads.filter { pad in
             (stateFilter == nil || pad.state.lowercased() == stateFilter) &&
             (languageFilter == nil || (pad.language ?? "").lowercased() == languageFilter) &&
             (ownerFilter == nil || pad.ownerEmail == ownerFilter) &&
@@ -135,10 +133,6 @@ struct PadsView: View {
              || directory.display(pad.ownerEmail).lowercased().contains(lowered)
              || pad.participants.contains(where: { $0.lowercased().contains(lowered) }))
         }
-        guard let accountID = accounts.currentAccountID else { return matched }
-        let pinnedPads = matched.filter { pinned.isPinned(padID: $0.id, accountID: accountID) }
-        let unpinnedPads = matched.filter { !pinned.isPinned(padID: $0.id, accountID: accountID) }
-        return pinnedPads + unpinnedPads
     }
 
     private var availableStates: [String] {
@@ -254,7 +248,7 @@ struct PadsView: View {
                     icon: "chevron.left.slash.chevron.right",
                     selected: $languageFilter,
                     options: availableLanguages,
-                    formatter: { $0 }
+                    formatter: { $0.languageDisplayName }
                 )
                 SearchableFilterChip(
                     title: "Owner",
@@ -437,13 +431,6 @@ private struct PadRow: View {
     let pad: Pad
     var isChanged: Bool = false
     @Environment(\.orgDirectory) private var directory
-    @State private var pinned = PinnedPadsStore.shared
-    @State private var accounts = AccountsStore.shared
-
-    private var isPinned: Bool {
-        guard let accountID = accounts.currentAccountID else { return false }
-        return pinned.isPinned(padID: pad.id, accountID: accountID)
-    }
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -465,7 +452,7 @@ private struct PadRow: View {
                 HStack(spacing: 6) {
                     StateBadge(state: pad.state)
                     if let language = pad.language, !language.isEmpty {
-                        Chip(text: language, systemImage: "chevron.left.slash.chevron.right",
+                        Chip(text: language.languageDisplayName, systemImage: "chevron.left.slash.chevron.right",
                              tint: language.languageColor)
                     }
                 }
@@ -480,16 +467,6 @@ private struct PadRow: View {
             .font(.caption2)
             .foregroundStyle(.tertiary)
             Spacer(minLength: 0)
-            Button {
-                guard let accountID = accounts.currentAccountID else { return }
-                pinned.togglePinned(padID: pad.id, accountID: accountID)
-            } label: {
-                Image(systemName: isPinned ? "star.fill" : "star")
-                    .foregroundStyle(isPinned ? Color.yellow : Color.secondary.opacity(0.6))
-            }
-            .buttonStyle(.borderless)
-            .help(isPinned ? "Unpin" : "Pin to top")
-            .accessibilityLabel(isPinned ? "Unpin pad" : "Pin pad to top")
         }
         .padding(.vertical, 4)
     }
@@ -585,7 +562,7 @@ struct PadDetailView: View {
             HStack(spacing: 6) {
                 StateBadge(state: pad.state)
                 if let language = pad.language, !language.isEmpty {
-                    Chip(text: language, systemImage: "chevron.left.slash.chevron.right",
+                    Chip(text: language.languageDisplayName, systemImage: "chevron.left.slash.chevron.right",
                          tint: language.languageColor)
                 }
                 if let type = pad.type, !type.isEmpty {
@@ -672,7 +649,7 @@ struct PadDetailView: View {
                     HStack {
                         Text(env.title ?? "Environment #\(env.id)").font(.callout.weight(.medium))
                         if let lang = env.language, !lang.isEmpty {
-                            Chip(text: lang, tint: lang.languageColor)
+                            Chip(text: lang.languageDisplayName, tint: lang.languageColor)
                         }
                         if env.id == pad.activeEnvironmentID {
                             Chip(text: "Active", systemImage: "checkmark.seal", tint: .green)
@@ -755,7 +732,7 @@ struct PadDetailView: View {
                     SectionHeader(title: "Code", systemImage: "chevron.left.slash.chevron.right")
                     Spacer()
                     if let lang = env.language, !lang.isEmpty {
-                        Chip(text: lang, tint: lang.languageColor)
+                        Chip(text: lang.languageDisplayName, tint: lang.languageColor)
                     }
                     Button {
                         NSPasteboard.general.clearContents()

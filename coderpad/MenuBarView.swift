@@ -116,7 +116,7 @@ struct MenuBarView: View {
 
     private func padLabel(_ pad: Pad) -> String {
         let title = pad.title.isEmpty ? pad.id : pad.title
-        let language = (pad.language ?? "").isEmpty ? "" : " · \(pad.language!)"
+        let language = (pad.language ?? "").isEmpty ? "" : " · \(pad.language!.languageDisplayName)"
         return "\(title)\(language)"
     }
 
