@@ -28,6 +28,7 @@ struct coderpadApp: App {
         }
         .windowStyle(.titleBar)
         .windowToolbarStyle(.unified)
+        .defaultLaunchBehavior(.presented)
         .commands { appCommands }
 
         WindowGroup("Pad Browser", id: "pad-browser", for: URL.self) { $url in

@@ -9,7 +9,6 @@ A living roadmap. Items are grouped by theme and roughly ordered by impact. Anyt
 
 ## Onboarding
 
-- [ ] First-launch tour overlay highlighting: where to add an account, the gear icon, the Demo mode, and the menu bar item.
 - [ ] In Settings → Accounts, add a small banner with the "Get an API key" link (already in the editor sheet) plus the latest scopes the key needs.
 - [ ] Validate keys not just for *can-reach-org* but also surface which scopes are missing if a 403 comes back from any endpoint.
 

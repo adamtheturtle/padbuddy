@@ -32,14 +32,22 @@ enum Keychain {
     static let accountsAccount = "accounts"
     static let legacySingleKeyAccount = "apiKey"
 
-    static func readData(account: String) -> Data? {
-        let query: [String: Any] = [
+    private static func baseQuery(account: String) -> [String: Any] {
+        [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
-            kSecReturnData as String: true,
-            kSecMatchLimit as String: kSecMatchLimitOne,
+            // Use the modern data-protection keychain so macOS doesn't prompt
+            // for password on every Debug rebuild (the legacy file keychain
+            // ties ACLs to the app's code signature, which changes per build).
+            kSecUseDataProtectionKeychain as String: true,
         ]
+    }
+
+    static func readData(account: String) -> Data? {
+        var query = baseQuery(account: account)
+        query[kSecReturnData as String] = true
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
         guard status == errSecSuccess, let data = item as? Data else { return nil }
@@ -47,26 +55,19 @@ enum Keychain {
     }
 
     static func write(_ data: Data, account: String) {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-        ]
+        let query = baseQuery(account: account)
         let attrs: [String: Any] = [kSecValueData as String: data]
         let status = SecItemUpdate(query as CFDictionary, attrs as CFDictionary)
         if status == errSecItemNotFound {
             var insert = query
             insert[kSecValueData as String] = data
+            insert[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
             SecItemAdd(insert as CFDictionary, nil)
         }
     }
 
     static func delete(account: String) {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-        ]
+        let query = baseQuery(account: account)
         SecItemDelete(query as CFDictionary)
     }
 }
