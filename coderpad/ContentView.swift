@@ -25,33 +25,12 @@ struct ContentView: View {
                 noAccountView
                     .frame(minWidth: 520, minHeight: 380)
             } else {
-                VStack(spacing: 0) {
-                    if let account = store.currentAccount, monitor.isUnauthorized(account.id) {
-                        unauthorizedBanner
-                    }
-                    NavigationSplitView {
-                        sidebar
-                            .navigationSplitViewColumnWidth(min: 200, ideal: 220)
-                    } detail: {
-                        detailContent
-                            .task(id: store.currentAccountID) {
-                                if let account = store.currentAccount {
-                                    if let raw = UserDefaults.standard.string(forKey: "section.\(account.id.uuidString)"),
-                                       let s = AppSection(rawValue: raw) {
-                                        section = s
-                                    }
-                                    await directory.load(for: account)
-                                    await monitor.checkCurrentAccount()
-                                }
-                            }
-                            .onChange(of: section) { _, newValue in
-                                if let account = store.currentAccount, let newValue {
-                                    UserDefaults.standard.set(newValue.rawValue,
-                                                              forKey: "section.\(account.id.uuidString)")
-                                }
-                            }
-                    }
-                }
+                MainSplit(
+                    section: $section,
+                    showSettings: $showSettings,
+                    directory: directory,
+                    monitor: monitor
+                )
             }
         }
 
@@ -89,107 +68,7 @@ struct ContentView: View {
         }
     }
 
-    private var sidebar: some View {
-        VStack(spacing: 0) {
-            List(selection: $section) {
-                SwiftUI.Section("Browse") {
-                    Label("Pads", systemImage: "doc.text").tag(AppSection.pads)
-                    Label("Questions", systemImage: "questionmark.bubble").tag(AppSection.questions)
-                }
-                SwiftUI.Section("Account") {
-                    Label("Organization", systemImage: "building.2").tag(AppSection.organization)
-                    Label("Quota", systemImage: "gauge.with.dots.needle.67percent").tag(AppSection.quota)
-                }
-            }
-            .listStyle(.sidebar)
 
-            Divider()
-            accountFooter
-                .padding(10)
-                .background(.thinMaterial)
-        }
-        .navigationTitle("CoderPad")
-    }
-
-    private var accountFooter: some View {
-        HStack(spacing: 10) {
-            if let current = store.currentAccount {
-                AvatarCircle(label: current.name, diameter: 30)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(current.name).font(.callout.weight(.medium)).lineLimit(1)
-                    Text(store.accounts.count > 1 ? "Active · \(store.accounts.count) accounts" : "Active account")
-                        .font(.caption2).foregroundStyle(.secondary)
-                }
-            } else {
-                Image(systemName: "person.crop.circle.badge.exclamationmark")
-                    .font(.system(size: 22)).foregroundStyle(.secondary)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("No account").font(.callout.weight(.medium))
-                    Text("Add one in Settings").font(.caption2).foregroundStyle(.secondary)
-                }
-            }
-            Spacer()
-            Menu {
-                if !store.accounts.isEmpty {
-                    Picker("Switch", selection: Binding(
-                        get: { store.currentAccountID ?? store.accounts.first?.id ?? UUID() },
-                        set: { store.currentAccountID = $0 }
-                    )) {
-                        ForEach(store.accounts) { account in
-                            Text(account.name).tag(account.id)
-                        }
-                    }
-                    Divider()
-                }
-                Button("Settings…") { showSettings = true }
-                    .keyboardShortcut(",", modifiers: [.command])
-            } label: {
-                Image(systemName: "chevron.up.chevron.down")
-            }
-            .menuStyle(.borderlessButton)
-            .fixedSize()
-        }
-    }
-
-    @ViewBuilder
-    private var detailContent: some View {
-        if let account = store.currentAccount {
-            let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey)
-            switch section ?? .pads {
-            case .pads: PadsView(client: client).id(account.id)
-            case .questions: QuestionsView(client: client).id(account.id)
-            case .organization: OrganizationView(client: client).id(account.id)
-            case .quota: QuotaView(client: client).id(account.id)
-            }
-        }
-    }
-
-    private var unauthorizedBanner: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "exclamationmark.shield.fill")
-                .foregroundStyle(.orange)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("This API key was rejected by CoderPad")
-                    .font(.callout.weight(.semibold))
-                Text("Open Settings and update or replace the key for this account.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            Button("Open Settings") { showSettings = true }
-                .controlSize(.small)
-            Button("Recheck") {
-                Task { await monitor.checkCurrentAccount() }
-            }
-            .controlSize(.small)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(Color.orange.opacity(0.18))
-        .overlay(Rectangle().frame(height: 0.5).foregroundStyle(.tertiary), alignment: .bottom)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel("Warning: API key for current account was rejected. Open Settings to update.")
-    }
 
     @ViewBuilder
     private var noAccountView: some View {
@@ -250,6 +129,161 @@ struct OpenPadURLSheet: View {
         }
         .padding()
         .frame(minWidth: 480)
+    }
+}
+
+// MARK: - Split into small structs to reduce body type complexity
+
+private struct MainSplit: View {
+    @State private var store = AccountsStore.shared
+    @Binding var section: AppSection?
+    @Binding var showSettings: Bool
+    let directory: OrgDirectory
+    let monitor: AccountHealthMonitor
+
+    var body: some View {
+        VStack(spacing: 0) {
+            if let id = store.currentAccountID, monitor.isUnauthorized(id) {
+                UnauthorizedBanner(showSettings: $showSettings, monitor: monitor)
+            }
+            NavigationSplitView {
+                Sidebar(section: $section, showSettings: $showSettings)
+                    .navigationSplitViewColumnWidth(min: 200, ideal: 220)
+            } detail: {
+                DetailHost(section: section)
+                    .task(id: store.currentAccountID) {
+                        if let account = store.currentAccount {
+                            if let raw = UserDefaults.standard.string(forKey: "section.\(account.id.uuidString)"),
+                               let s = AppSection(rawValue: raw) {
+                                section = s
+                            }
+                            await directory.load(for: account)
+                            await monitor.checkCurrentAccount()
+                        }
+                    }
+                    .onChange(of: section) { _, newValue in
+                        if let account = store.currentAccount, let newValue {
+                            UserDefaults.standard.set(newValue.rawValue,
+                                                      forKey: "section.\(account.id.uuidString)")
+                        }
+                    }
+            }
+        }
+    }
+}
+
+private struct UnauthorizedBanner: View {
+    @Binding var showSettings: Bool
+    let monitor: AccountHealthMonitor
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.shield.fill")
+                .foregroundStyle(.orange)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("This API key was rejected by CoderPad")
+                    .font(.callout.weight(.semibold))
+                Text("Open Settings and update or replace the key for this account.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Button("Open Settings") { showSettings = true }
+                .controlSize(.small)
+            Button("Recheck") {
+                Task { await monitor.checkCurrentAccount() }
+            }
+            .controlSize(.small)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(Color.orange.opacity(0.18))
+    }
+}
+
+private struct Sidebar: View {
+    @Binding var section: AppSection?
+    @Binding var showSettings: Bool
+
+    var body: some View {
+        VStack(spacing: 0) {
+            List(selection: $section) {
+                SwiftUI.Section("Browse") {
+                    Label("Pads", systemImage: "doc.text").tag(AppSection.pads)
+                    Label("Questions", systemImage: "questionmark.bubble").tag(AppSection.questions)
+                }
+                SwiftUI.Section("Account") {
+                    Label("Organization", systemImage: "building.2").tag(AppSection.organization)
+                    Label("Quota", systemImage: "gauge.with.dots.needle.67percent").tag(AppSection.quota)
+                }
+            }
+            .listStyle(.sidebar)
+            Divider()
+            AccountFooter(showSettings: $showSettings)
+                .padding(10)
+                .background(.thinMaterial)
+        }
+        .navigationTitle("CoderPad")
+    }
+}
+
+private struct AccountFooter: View {
+    @State private var store = AccountsStore.shared
+    @Binding var showSettings: Bool
+
+    var body: some View {
+        HStack(spacing: 10) {
+            if let current = store.currentAccount {
+                AvatarCircle(label: current.name, diameter: 30)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(current.name).font(.callout.weight(.medium)).lineLimit(1)
+                    Text(store.accounts.count > 1 ? "Active · \(store.accounts.count) accounts" : "Active account")
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
+            footerMenu
+        }
+    }
+
+    @ViewBuilder
+    private var footerMenu: some View {
+        Menu {
+            if store.accounts.count > 1, let currentID = store.currentAccountID {
+                Picker("Switch", selection: Binding(
+                    get: { currentID },
+                    set: { store.currentAccountID = $0 }
+                )) {
+                    ForEach(store.accounts) { account in
+                        Text(account.name).tag(account.id)
+                    }
+                }
+                Divider()
+            }
+            Button("Settings…") { showSettings = true }
+                .keyboardShortcut(",", modifiers: [.command])
+        } label: {
+            Image(systemName: "chevron.up.chevron.down")
+        }
+        .menuStyle(.borderlessButton)
+        .fixedSize()
+    }
+}
+
+private struct DetailHost: View {
+    @State private var store = AccountsStore.shared
+    let section: AppSection?
+
+    var body: some View {
+        if let account = store.currentAccount {
+            let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey)
+            switch section ?? .pads {
+            case .pads: PadsView(client: client).id(account.id)
+            case .questions: QuestionsView(client: client).id(account.id)
+            case .organization: OrganizationView(client: client).id(account.id)
+            case .quota: QuotaView(client: client).id(account.id)
+            }
+        }
     }
 }
 
