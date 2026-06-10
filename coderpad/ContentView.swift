@@ -5,175 +5,121 @@
 
 import SwiftUI
 
+enum Section: Hashable {
+    case pads, questions, organization, quota
+}
+
 struct ContentView: View {
-    @State private var store = APIKeyStore.shared
-    @State private var pads: [Pad] = []
-    @State private var isLoading = false
-    @State private var errorMessage: String?
-    @State private var selection: Pad?
+    @State private var store = AccountsStore.shared
+    @State private var section: Section? = .pads
     @State private var showSettings = false
 
     var body: some View {
         NavigationSplitView {
-            Group {
-                if store.apiKey.isEmpty {
-                    missingKeyView
-                } else if isLoading && pads.isEmpty {
-                    ProgressView("Loading pads…")
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else if let errorMessage {
-                    ContentUnavailableView(
-                        "Couldn't load pads",
-                        systemImage: "exclamationmark.triangle",
-                        description: Text(errorMessage)
-                    )
-                } else if pads.isEmpty {
-                    ContentUnavailableView("No pads", systemImage: "tray")
-                } else {
-                    List(pads, selection: $selection) { pad in
-                        NavigationLink(value: pad) {
-                            PadRow(pad: pad)
-                        }
-                    }
-                }
-            }
-            .navigationTitle("Pads")
-            .navigationSplitViewColumnWidth(min: 240, ideal: 320)
-            .toolbar {
-                ToolbarItem {
-                    Button { showSettings = true } label: {
-                        Label("Settings", systemImage: "gearshape")
-                    }
-                }
-                ToolbarItem {
-                    Button(action: { Task { await reload() } }) {
-                        Label("Reload", systemImage: "arrow.clockwise")
-                    }
-                    .disabled(isLoading || store.apiKey.isEmpty)
-                }
-            }
-            .sheet(isPresented: $showSettings) {
-                NavigationStack {
-                    SettingsView()
-                        .toolbar {
-                            ToolbarItem(placement: .confirmationAction) {
-                                Button("Done") { showSettings = false }
-                            }
-                        }
-                }
-            }
+            sidebar
+                .navigationSplitViewColumnWidth(min: 200, ideal: 220)
         } detail: {
-            if let selection {
-                PadDetailView(pad: selection)
+            if store.currentAccount == nil {
+                noAccountView
             } else {
-                Text(store.apiKey.isEmpty ? "Set your API key in Settings" : "Select a pad")
-                    .foregroundStyle(.secondary)
+                detailContent
             }
         }
-        .task(id: store.apiKey) {
-            guard !store.apiKey.isEmpty else { return }
-            await reload()
+        .sheet(isPresented: $showSettings) {
+            NavigationStack {
+                SettingsView()
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") { showSettings = false }
+                        }
+                    }
+            }
         }
     }
 
-    private var missingKeyView: some View {
+    private var sidebar: some View {
+        List(selection: $section) {
+            SwiftUI.Section("Browse") {
+                Label("Pads", systemImage: "doc.text").tag(Section.pads)
+                Label("Questions", systemImage: "questionmark.bubble").tag(Section.questions)
+            }
+            SwiftUI.Section("Account") {
+                Label("Organization", systemImage: "building.2").tag(Section.organization)
+                Label("Quota", systemImage: "gauge.with.dots.needle.67percent").tag(Section.quota)
+            }
+        }
+        .listStyle(.sidebar)
+        .navigationTitle("CoderPad")
+        .safeAreaInset(edge: .bottom) {
+            accountFooter
+                .padding(10)
+                .background(.thinMaterial)
+        }
+    }
+
+    private var accountFooter: some View {
+        HStack(spacing: 10) {
+            if let current = store.currentAccount {
+                AvatarCircle(label: current.name, diameter: 30)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(current.name).font(.callout.weight(.medium)).lineLimit(1)
+                    Text("Active account").font(.caption2).foregroundStyle(.secondary)
+                }
+            } else {
+                Image(systemName: "person.crop.circle.badge.exclamationmark")
+                    .font(.system(size: 22))
+                    .foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("No account").font(.callout.weight(.medium))
+                    Text("Add one in Settings").font(.caption2).foregroundStyle(.secondary)
+                }
+            }
+            Spacer()
+            Menu {
+                if !store.accounts.isEmpty {
+                    Picker("Switch", selection: Binding(
+                        get: { store.currentAccountID ?? store.accounts.first?.id ?? UUID() },
+                        set: { store.currentAccountID = $0 }
+                    )) {
+                        ForEach(store.accounts) { account in
+                            Text(account.name).tag(account.id)
+                        }
+                    }
+                    Divider()
+                }
+                Button("Settings…") { showSettings = true }
+                    .keyboardShortcut(",", modifiers: [.command])
+            } label: {
+                Image(systemName: "chevron.up.chevron.down")
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+        }
+    }
+
+    @ViewBuilder
+    private var detailContent: some View {
+        if let account = store.currentAccount {
+            let client = CoderPadClient(apiKey: account.apiKey)
+            switch section ?? .pads {
+            case .pads: PadsView(client: client).id(account.id)
+            case .questions: QuestionsView(client: client).id(account.id)
+            case .organization: OrganizationView(client: client).id(account.id)
+            case .quota: QuotaView(client: client).id(account.id)
+            }
+        }
+    }
+
+    private var noAccountView: some View {
         ContentUnavailableView {
-            Label("No API key", systemImage: "key")
+            Label("No account selected", systemImage: "person.crop.circle.badge.plus")
         } description: {
-            Text("Open Settings and paste your CoderPad API key.")
+            Text("Open Settings and add an account with your CoderPad API key.")
         } actions: {
             Button("Open Settings") { showSettings = true }
                 .buttonStyle(.borderedProminent)
         }
     }
-
-    private func reload() async {
-        isLoading = true
-        errorMessage = nil
-        defer { isLoading = false }
-        do {
-            let client = CoderPadClient(apiKey: store.apiKey)
-            pads = try await client.listPads()
-        } catch {
-            errorMessage = error.localizedDescription
-        }
-    }
 }
 
-private struct PadRow: View {
-    let pad: Pad
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(pad.title).font(.headline).lineLimit(1)
-            HStack(spacing: 6) {
-                Text(pad.state.capitalized)
-                    .font(.caption2)
-                    .padding(.horizontal, 6).padding(.vertical, 2)
-                    .background(stateColor.opacity(0.15), in: Capsule())
-                    .foregroundStyle(stateColor)
-                Text(pad.ownerEmail).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-            }
-            if let updatedAt = pad.updatedAt {
-                Text(updatedAt, style: .relative)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
-        }
-        .padding(.vertical, 2)
-    }
-
-    private var stateColor: Color {
-        switch pad.state {
-        case "started": return .green
-        case "ended": return .gray
-        default: return .blue
-        }
-    }
-}
-
-private struct PadDetailView: View {
-    let pad: Pad
-
-    var body: some View {
-        Form {
-            Section("Pad") {
-                LabeledContent("ID", value: pad.id)
-                LabeledContent("Title", value: pad.title)
-                LabeledContent("State", value: pad.state)
-                LabeledContent("Owner", value: pad.ownerEmail)
-                if let language = pad.language {
-                    LabeledContent("Language", value: language)
-                }
-            }
-            Section("Participants") {
-                if pad.participants.isEmpty {
-                    Text("None").foregroundStyle(.secondary)
-                } else {
-                    ForEach(pad.participants, id: \.self) { name in
-                        Text(name)
-                    }
-                }
-            }
-            Section("Timing") {
-                if let createdAt = pad.createdAt {
-                    LabeledContent("Created", value: createdAt.formatted(date: .abbreviated, time: .shortened))
-                }
-                if let updatedAt = pad.updatedAt {
-                    LabeledContent("Updated", value: updatedAt.formatted(date: .abbreviated, time: .shortened))
-                }
-                if let endedAt = pad.endedAt {
-                    LabeledContent("Ended", value: endedAt.formatted(date: .abbreviated, time: .shortened))
-                }
-            }
-            Section {
-                Link("Open in CoderPad", destination: URL(string: pad.url) ?? URL(string: "https://coderpad.io")!)
-            }
-        }
-        .navigationTitle(pad.title)
-    }
-}
-
-#Preview {
-    ContentView()
-}
+#Preview { ContentView() }

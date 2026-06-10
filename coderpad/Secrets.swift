@@ -2,18 +2,31 @@
 //  Secrets.swift
 //  coderpad
 //
-//  Keychain-backed store for the CoderPad API key.
+//  Multi-account key storage backed by the macOS Keychain.
 //
 
 import Foundation
 import Security
 import SwiftUI
 
+struct Account: Identifiable, Codable, Hashable {
+    let id: UUID
+    var name: String
+    var apiKey: String
+
+    init(id: UUID = UUID(), name: String, apiKey: String) {
+        self.id = id
+        self.name = name
+        self.apiKey = apiKey
+    }
+}
+
 enum Keychain {
     static let service = "com.coderpad.app"
-    static let account = "apiKey"
+    static let accountsAccount = "accounts"
+    static let legacySingleKeyAccount = "apiKey"
 
-    static func read() -> String? {
+    static func readData(account: String) -> Data? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -24,11 +37,10 @@ enum Keychain {
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
         guard status == errSecSuccess, let data = item as? Data else { return nil }
-        return String(data: data, encoding: .utf8)
+        return data
     }
 
-    static func write(_ value: String) {
-        let data = Data(value.utf8)
+    static func write(_ data: Data, account: String) {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -43,7 +55,7 @@ enum Keychain {
         }
     }
 
-    static func delete() {
+    static func delete(account: String) {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -54,29 +66,96 @@ enum Keychain {
 }
 
 @Observable
-final class APIKeyStore {
-    static let shared = APIKeyStore()
+final class AccountsStore {
+    static let shared = AccountsStore()
 
-    var apiKey: String {
-        didSet {
-            if apiKey.isEmpty {
-                Keychain.delete()
-            } else {
-                Keychain.write(apiKey)
-            }
+    var accounts: [Account] {
+        didSet { persistAccounts() }
+    }
+
+    var currentAccountID: UUID? {
+        didSet { persistCurrentID() }
+    }
+
+    var currentAccount: Account? {
+        guard let id = currentAccountID else { return accounts.first }
+        return accounts.first(where: { $0.id == id }) ?? accounts.first
+    }
+
+    private static let currentIDDefaultsKey = "currentAccountID"
+
+    private init() {
+        let loaded: [Account] = Self.loadAccounts() ?? []
+        accounts = loaded
+        if let s = UserDefaults.standard.string(forKey: Self.currentIDDefaultsKey),
+           let uuid = UUID(uuidString: s),
+           loaded.contains(where: { $0.id == uuid }) {
+            currentAccountID = uuid
+        } else {
+            currentAccountID = loaded.first?.id
+        }
+
+        if loaded.isEmpty {
+            migrateLegacyIfNeeded()
         }
     }
 
-    private init() {
-        let legacyDefaultsKey = "coderPadAPIKey"
-        if let stored = Keychain.read(), !stored.isEmpty {
-            apiKey = stored
-        } else if let legacy = UserDefaults.standard.string(forKey: legacyDefaultsKey), !legacy.isEmpty {
-            Keychain.write(legacy)
-            UserDefaults.standard.removeObject(forKey: legacyDefaultsKey)
-            apiKey = legacy
+    func add(_ account: Account) {
+        accounts.append(account)
+        if currentAccountID == nil { currentAccountID = account.id }
+    }
+
+    func update(_ account: Account) {
+        if let i = accounts.firstIndex(where: { $0.id == account.id }) {
+            accounts[i] = account
+        }
+    }
+
+    func remove(id: UUID) {
+        accounts.removeAll { $0.id == id }
+        if currentAccountID == id {
+            currentAccountID = accounts.first?.id
+        }
+    }
+
+    private func migrateLegacyIfNeeded() {
+        if let data = Keychain.readData(account: Keychain.legacySingleKeyAccount),
+           let key = String(data: data, encoding: .utf8),
+           !key.isEmpty {
+            let account = Account(name: "Default", apiKey: key)
+            accounts = [account]
+            currentAccountID = account.id
+            Keychain.delete(account: Keychain.legacySingleKeyAccount)
+            return
+        }
+        if let legacy = UserDefaults.standard.string(forKey: "coderPadAPIKey"), !legacy.isEmpty {
+            let account = Account(name: "Default", apiKey: legacy)
+            accounts = [account]
+            currentAccountID = account.id
+            UserDefaults.standard.removeObject(forKey: "coderPadAPIKey")
+        }
+    }
+
+    private static func loadAccounts() -> [Account]? {
+        guard let data = Keychain.readData(account: Keychain.accountsAccount) else { return nil }
+        return try? JSONDecoder().decode([Account].self, from: data)
+    }
+
+    private func persistAccounts() {
+        if accounts.isEmpty {
+            Keychain.delete(account: Keychain.accountsAccount)
+            return
+        }
+        if let data = try? JSONEncoder().encode(accounts) {
+            Keychain.write(data, account: Keychain.accountsAccount)
+        }
+    }
+
+    private func persistCurrentID() {
+        if let id = currentAccountID {
+            UserDefaults.standard.set(id.uuidString, forKey: Self.currentIDDefaultsKey)
         } else {
-            apiKey = ""
+            UserDefaults.standard.removeObject(forKey: Self.currentIDDefaultsKey)
         }
     }
 }
