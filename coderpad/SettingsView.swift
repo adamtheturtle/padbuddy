@@ -150,7 +150,10 @@ struct SettingsView: View {
                         )
                         .tag(account.id)
                         .contentShape(Rectangle())
-                        .onTapGesture(count: 2) { editingAccount = account }
+                        // Use a simultaneous gesture so double-click-to-edit doesn't
+                        // swallow the List's single-click selection, which the
+                        // remove/edit buttons depend on.
+                        .simultaneousGesture(TapGesture(count: 2).onEnded { editingAccount = account })
                     }
                 }
                 .listStyle(.inset(alternatesRowBackgrounds: true))

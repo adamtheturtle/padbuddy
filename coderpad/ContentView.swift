@@ -39,7 +39,6 @@ private struct WindowChromeConfigurator: NSViewRepresentable {
 struct ContentView: View {
     @State private var store = AccountsStore.shared
     @State private var nav = AppNavigation.shared
-    @State private var showSettings = false
     @State private var addingAccount: Account?
     @State private var directory = OrgDirectory()
     @State private var monitor = AccountHealthMonitor.shared
@@ -47,6 +46,7 @@ struct ContentView: View {
     @State private var showOpenPadURL = false
     @State private var showWhatsNew = false
     @Environment(\.openWindow) private var openWindow
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         Group {
@@ -56,7 +56,6 @@ struct ContentView: View {
             } else {
                 MainSplit(
                     section: $nav.section,
-                    showSettings: $showSettings,
                     directory: directory,
                     monitor: monitor
                 )
@@ -64,7 +63,6 @@ struct ContentView: View {
         }
 
         .background(WindowChromeConfigurator())
-        .environment(\.openSettings, { showSettings = true })
         .environment(\.orgDirectory, directory)
         .onReceive(NotificationCenter.default.publisher(for: .openPadByURLRequested)) { _ in
             showOpenPadURL = true
@@ -76,7 +74,7 @@ struct ContentView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .openSettingsRequested)) { _ in
-            showSettings = true
+            openSettings()
         }
         .onReceive(NotificationCenter.default.publisher(for: .openPadInBrowserRequested)) { note in
             if let url = note.object as? URL {
@@ -96,16 +94,6 @@ struct ContentView: View {
                     showOpenPadURL = false
                 }
             )
-        }
-        .sheet(isPresented: $showSettings) {
-            NavigationStack {
-                SettingsView()
-                    .toolbar {
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button("Done") { showSettings = false }
-                        }
-                    }
-            }
         }
         .sheet(isPresented: $showWhatsNew) {
             WhatsNewSheet(release: WhatsNew.current) { showWhatsNew = false }
@@ -140,7 +128,7 @@ struct ContentView: View {
             } description: {
                 Text("Choose one of your saved accounts in Settings.")
             } actions: {
-                Button("Open Settings") { showSettings = true }
+                Button("Open Settings") { openSettings() }
                     .buttonStyle(.borderedProminent)
             }
         }
@@ -257,7 +245,6 @@ struct OpenPadURLSheet: View {
 private struct MainSplit: View {
     @State private var store = AccountsStore.shared
     @Binding var section: AppSection
-    @Binding var showSettings: Bool
     let directory: OrgDirectory
     let monitor: AccountHealthMonitor
 
@@ -297,7 +284,7 @@ private struct MainSplit: View {
     var body: some View {
         VStack(spacing: 0) {
             if let id = store.currentAccountID, monitor.isUnauthorized(id) {
-                UnauthorizedBanner(showSettings: $showSettings, monitor: monitor)
+                UnauthorizedBanner(monitor: monitor)
             }
             Group {
                 if sectionHasDetail {
@@ -373,7 +360,7 @@ private struct MainSplit: View {
 
     private var threeColumnSplit: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
-            Sidebar(section: $section, showSettings: $showSettings)
+            Sidebar(section: $section)
                 .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 280)
                 .navigationTitle("")
                 .toolbar(removing: .sidebarToggle)
@@ -401,7 +388,7 @@ private struct MainSplit: View {
 
     private var twoColumnSplit: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
-            Sidebar(section: $section, showSettings: $showSettings)
+            Sidebar(section: $section)
                 .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 280)
                 .navigationTitle("")
                 .toolbar(removing: .sidebarToggle)
@@ -478,8 +465,8 @@ private struct TitlebarLeadingAccessory<Content: View>: NSViewRepresentable {
 }
 
 private struct UnauthorizedBanner: View {
-    @Binding var showSettings: Bool
     let monitor: AccountHealthMonitor
+    @Environment(\.openSettings) private var openSettings
 
     var body: some View {
         HStack(spacing: 10) {
@@ -493,7 +480,7 @@ private struct UnauthorizedBanner: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Button("Open Settings") { showSettings = true }
+            Button("Open Settings") { openSettings() }
                 .controlSize(.small)
             Button("Recheck") {
                 Task { await monitor.checkCurrentAccount() }
@@ -523,7 +510,6 @@ private struct SidebarMaterial: NSViewRepresentable {
 
 private struct Sidebar: View {
     @Binding var section: AppSection
-    @Binding var showSettings: Bool
 
     var body: some View {
         VStack(spacing: 0) {
@@ -537,7 +523,7 @@ private struct Sidebar: View {
             .padding(.top, 10)
             Spacer(minLength: 0)
             Divider()
-            AccountFooter(showSettings: $showSettings)
+            AccountFooter()
                 .padding(10)
                 .background(.thinMaterial)
         }
@@ -623,7 +609,6 @@ private struct OptionalFocus: ViewModifier {
 
 private struct AccountFooter: View {
     @State private var store = AccountsStore.shared
-    @Binding var showSettings: Bool
     @State private var addingAccount: Account?
 
     var body: some View {
@@ -688,8 +673,9 @@ private struct AccountFooter: View {
             }
             Button("Add Account…") { addingAccount = Account(name: "", apiKey: "") }
             Divider()
-            Button("Settings…") { showSettings = true }
-                .keyboardShortcut(",", modifiers: [.command])
+            SettingsLink {
+                Text("Settings…")
+            }
         } label: {
             Image(systemName: "chevron.up.chevron.down")
         }

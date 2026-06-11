@@ -186,6 +186,8 @@ final class AccountsStore {
         // behind on disk and a re-added account starts clean.
         PadsCacheStore.shared.remove(id)
         QuestionsCacheStore.shared.remove(id)
+        OrganizationCacheStore.shared.remove(id)
+        QuotaCacheStore.shared.remove(id)
     }
 
     private func migrateLegacyIfNeeded() {
@@ -492,5 +494,34 @@ final class QuestionsCacheStore {
             CacheDisk.delete(kind: "questions", account: accountID)
         }
     }
+}
+
+/// Holds the last-loaded organization per account so switching to the
+/// Organization section shows it instantly while a background refresh runs,
+/// instead of a blocking spinner every visit. `Organization` is `Decodable`
+/// only, so this is memory-only (no disk persistence like pads/questions).
+@Observable
+final class OrganizationCacheStore {
+    static let shared = OrganizationCacheStore()
+    private(set) var byAccount: [UUID: Organization] = [:]
+    private init() {}
+
+    func get(_ accountID: UUID) -> Organization? { byAccount[accountID] }
+    func set(_ accountID: UUID, organization: Organization) { byAccount[accountID] = organization }
+    func remove(_ accountID: UUID) { byAccount[accountID] = nil }
+}
+
+/// Holds the last-loaded quota per account, for the same reason as
+/// `OrganizationCacheStore`. Shared by both the Quota and Organization sections,
+/// so visiting either one warms the other.
+@Observable
+final class QuotaCacheStore {
+    static let shared = QuotaCacheStore()
+    private(set) var byAccount: [UUID: Quota] = [:]
+    private init() {}
+
+    func get(_ accountID: UUID) -> Quota? { byAccount[accountID] }
+    func set(_ accountID: UUID, quota: Quota) { byAccount[accountID] = quota }
+    func remove(_ accountID: UUID) { byAccount[accountID] = nil }
 }
 

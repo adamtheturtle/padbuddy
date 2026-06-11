@@ -198,7 +198,13 @@ struct PadsView: View {
                     }
                     .listStyle(.inset)
                     .refreshable { await reload() }
-                    .focusedValue(\.focusedPad, selection)
+                    // Scene-scoped, not view-scoped: the Pad menu commands (Copy
+                    // Pad ID/URL, Open in Browser) should stay enabled whenever this
+                    // window is frontmost and a pad is selected — not only while the
+                    // list itself holds keyboard focus. Using `.focusedValue` here
+                    // also tripped a "FocusedValue update tried to update multiple
+                    // times per frame" fault as the list took focus on first render.
+                    .focusedSceneValue(\.focusedPad, selection)
                 }
             }
         }
@@ -527,7 +533,7 @@ struct PadDetailView: View {
     @State private var loadError: Error?
     @State private var isLoading = false
     @State private var showEdit = false
-    @State private var showBrowser = false
+    @State private var browserURL: URL?
     @State private var showEndConfirm = false
     @State private var showDeleteConfirm = false
     @State private var isMutating = false
@@ -538,11 +544,11 @@ struct PadDetailView: View {
 
     var body: some View {
         Group {
-            if showBrowser, let url = URL(string: pad.url) {
+            if let url = browserURL {
                 VStack(spacing: 0) {
                     HStack(spacing: 8) {
                         Button {
-                            showBrowser = false
+                            browserURL = nil
                         } label: {
                             Label("Back to Details", systemImage: "chevron.left")
                         }
@@ -706,22 +712,12 @@ struct PadDetailView: View {
                     Chip(text: team.name, systemImage: "person.3", tint: .purple)
                 }
             }
-            HStack(spacing: 6) {
-                // The raw ID stays selectable so it can still be grabbed as a
-                // literal token (API calls, referencing the pad in conversation).
-                Text(pad.id)
-                    .font(.caption.monospaced())
-                    .textSelection(.enabled)
-                if let url = URL(string: pad.url) {
-                    ShareLink(item: url) {
-                        Image(systemName: "square.and.arrow.up")
-                    }
-                    .buttonStyle(.borderless)
-                    .help("Share pad")
-                    .accessibilityLabel("Share pad")
-                }
-            }
-            .foregroundStyle(.secondary)
+            // The raw ID stays selectable so it can still be grabbed as a
+            // literal token (API calls, referencing the pad in conversation).
+            Text(pad.id)
+                .font(.caption.monospaced())
+                .textSelection(.enabled)
+                .foregroundStyle(.secondary)
         }
     }
 
@@ -742,17 +738,39 @@ struct PadDetailView: View {
     }
 
     private var actionButtons: some View {
+        // Grouped by intent rather than laid out as one flat row: the primary
+        // "Open" CTA stands alone, non-destructive utilities (Edit, Share) join
+        // into a ControlGroup, and the destructive/lifecycle actions live behind
+        // a labelled overflow menu. Keeping End Interview and Delete out of the
+        // visible cluster — and behind full text labels — guards against an
+        // accidental, irreversible click on a bare icon.
         HStack(spacing: 6) {
+            // Secondary, non-destructive utilities kept adjacent so they read as
+            // a toolbar cluster. These are deliberately *not* wrapped in a
+            // ControlGroup: on macOS a ShareLink nested in a ControlGroup renders
+            // its button but the share-service picker never presents (it has no
+            // view to anchor to), so the Share action was silently swallowed.
             Button { showEdit = true } label: {
                 Label("Edit", systemImage: "pencil")
             }
+            .buttonStyle(.bordered)
             .help("Edit pad properties")
+            .fixedSize()
+            if let url = URL(string: pad.url) {
+                ShareLink(item: url) {
+                    Label("Share", systemImage: "square.and.arrow.up")
+                }
+                .buttonStyle(.bordered)
+                .help("Share pad")
+                .accessibilityLabel("Share pad")
+                .fixedSize()
+            }
             if let url = URL(string: pad.url) {
                 Button {
                     if BrowserSettings.openLinksIn == .external {
                         BrowserSettings.openExternally(url)
                     } else {
-                        showBrowser = true
+                        browserURL = url
                     }
                 } label: {
                     Label("Open Pad", systemImage: "doc.text.image")
@@ -762,25 +780,27 @@ struct PadDetailView: View {
                 .buttonStyle(.borderedProminent)
                 .help("Open the pad")
             }
+            // Destructive and lifecycle actions tucked into an overflow menu.
+            // Each item keeps a full text label and role, so the dangerous
+            // choices are deliberate rather than a one-pixel mistake.
             Menu {
                 Button {
                     showEndConfirm = true
                 } label: {
                     Label("End Interview", systemImage: "flag.checkered")
                 }
-                .disabled(isEnded)
-                Divider()
+                .disabled(isEnded || isMutating)
                 Button(role: .destructive) {
                     showDeleteConfirm = true
                 } label: {
                     Label("Delete Pad", systemImage: "trash")
                 }
+                .disabled(isMutating)
             } label: {
-                Image(systemName: "ellipsis.circle")
+                Image(systemName: "ellipsis")
             }
-            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
             .fixedSize()
-            .disabled(isMutating)
             .help("More actions")
             .accessibilityLabel("More actions")
         }
@@ -816,8 +836,16 @@ struct PadDetailView: View {
                 Card {
                     VStack(alignment: .leading, spacing: 6) {
                         SectionHeader(title: "Playback", systemImage: "play.rectangle")
-                        Link("Watch", destination: url)
-                            .font(.title3.weight(.semibold))
+                        Button("Watch") {
+                            if BrowserSettings.openLinksIn == .external {
+                                BrowserSettings.openExternally(url)
+                            } else {
+                                browserURL = url
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(.tint)
+                        .font(.title3.weight(.semibold))
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }

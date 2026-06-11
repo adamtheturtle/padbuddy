@@ -708,18 +708,31 @@ struct SearchableFilterChip: View {
     private var labelColor: Color { isActive ? Color.accentColor : Color.primary }
 
     var body: some View {
-        Button { presented.toggle() } label: {
-            ChipLabel(
-                title: title,
-                icon: icon,
-                text: chipText,
-                fillColor: fillColor,
-                strokeColor: strokeColor,
-                labelColor: labelColor
-            )
-        }
-        .buttonStyle(.plain)
+        // A plain tappable label rather than a `Button`: a macOS `Button` keeps
+        // AppKit's default push-button control height and centers its label within
+        // it (even with `.fixedSize()`), rendering taller than the FilterChipMenu
+        // chips. The remaining mismatch is that `Menu`'s `.borderlessButton` reports
+        // its layout height *without* the label's 5pt vertical padding (it draws the
+        // capsule overflowing that smaller box), so the menu chips measure ~10pt
+        // shorter than this label's true padded height. Since FlowLayout top-aligns
+        // each chip by its reported height, the taller Owner chip sat lower. The
+        // `.padding(.vertical, -5)` cancels exactly that padding from measurement
+        // while the capsule still draws, so this chip reports the same height as the
+        // menu chips and lines up with them. We re-add button a11y semantics by hand.
+        ChipLabel(
+            title: title,
+            icon: icon,
+            text: chipText,
+            fillColor: fillColor,
+            strokeColor: strokeColor,
+            labelColor: labelColor
+        )
+        .padding(.vertical, -5)
+        .contentShape(Capsule())
+        .onTapGesture { presented.toggle() }
         .disabled(options.isEmpty)
+        .accessibilityElement(children: .ignore)
+        .accessibilityAddTraits(.isButton)
         .accessibilityLabel("\(title) filter")
         .accessibilityValue(selected.map(formatter) ?? "All")
         .accessibilityHint(accessibilityHint)
@@ -852,8 +865,11 @@ private struct PopoverRow: View {
     }
 }
 
-// MARK: - FocusedValue for the selected pad
+// MARK: - Focused scene value for the selected pad
 
+/// The pad selected in the active window's list, published via
+/// `focusedSceneValue` so the Pad menu commands can act on it whenever the
+/// window is frontmost — independent of which subview holds keyboard focus.
 struct FocusedPadKey: FocusedValueKey {
     typealias Value = Pad
 }
@@ -881,19 +897,6 @@ extension FocusedValues {
     var findAction: FindAction? {
         get { self[FindActionKey.self] }
         set { self[FindActionKey.self] = newValue }
-    }
-}
-
-// MARK: - Environment: openSettings
-
-private struct OpenSettingsKey: EnvironmentKey {
-    static let defaultValue: () -> Void = {}
-}
-
-extension EnvironmentValues {
-    var openSettings: () -> Void {
-        get { self[OpenSettingsKey.self] }
-        set { self[OpenSettingsKey.self] = newValue }
     }
 }
 

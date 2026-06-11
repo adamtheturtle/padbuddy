@@ -66,6 +66,25 @@ final class WebController: NSObject {
             webView.reloadFromOrigin()
         }
     }
+
+    /// Clear the browsing session: purge cookies and web storage, then reload. Login
+    /// state lives in cookies and local/session storage rather than the HTTP cache,
+    /// so a plain hard refresh leaves you signed in. This logs you out of the Pad,
+    /// matching what clearing site data does in a regular browser.
+    func clearSession() {
+        guard let webView else { return }
+        let dataStore = webView.configuration.websiteDataStore
+        let sessionTypes: Set<String> = [
+            WKWebsiteDataTypeCookies,
+            WKWebsiteDataTypeLocalStorage,
+            WKWebsiteDataTypeSessionStorage,
+            WKWebsiteDataTypeIndexedDBDatabases,
+            WKWebsiteDataTypeWebSQLDatabases,
+        ]
+        dataStore.removeData(ofTypes: sessionTypes, modifiedSince: .distantPast) {
+            webView.reloadFromOrigin()
+        }
+    }
 }
 
 // MARK: - Popups & JavaScript dialogs
@@ -154,6 +173,10 @@ struct WebViewRepresentable: NSViewRepresentable {
     let url: URL
     let controller: WebController
 
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
     func makeNSView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
         // Identify as Safari. Google blocks its OAuth consent screen for user agents
@@ -167,11 +190,26 @@ struct WebViewRepresentable: NSViewRepresentable {
         webView.uiDelegate = controller
         controller.attach(webView)
         webView.load(URLRequest(url: url))
+        context.coordinator.loadedURL = url
         return webView
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
         controller.attach(webView)
+        // SwiftUI reuses this web view when the bound `url` changes — e.g. opening a
+        // second pad into the existing "pad-browser" window, or switching the
+        // selected pad while the in-app browser is open. `makeNSView` only loads the
+        // first URL, so without this the view keeps showing the original (now blank
+        // or stale) page. Reload only on an actual change so we don't clobber the
+        // user's in-page navigation on every SwiftUI update.
+        if context.coordinator.loadedURL != url {
+            context.coordinator.loadedURL = url
+            webView.load(URLRequest(url: url))
+        }
+    }
+
+    final class Coordinator {
+        var loadedURL: URL?
     }
 }
 
@@ -222,7 +260,15 @@ struct PadBrowserView: View {
             .contextMenu {
                 Button("Reload") { controller.reload() }
                 Button("Reload Without Cache") { controller.hardReload() }
+                Divider()
+                Button("Clear Session (Log Out)") { controller.clearSession() }
             }
+
+            Button { controller.clearSession() } label: {
+                Image(systemName: "person.crop.circle.badge.xmark")
+            }
+            .help("Clear session — log out of the Pad by clearing cookies and storage")
+            .accessibilityLabel("Clear session and log out")
 
             if controller.isLoading {
                 ProgressView().controlSize(.small)

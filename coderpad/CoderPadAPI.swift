@@ -75,7 +75,10 @@ nonisolated struct Pad: Codable, Identifiable, Hashable {
         state = c.loggedDecodeIfPresent(String.self, forKey: .state) ?? "unknown"
         ownerEmail = c.loggedDecodeIfPresent(String.self, forKey: .ownerEmail) ?? ""
         language = c.loggedDecodeIfPresent(String.self, forKey: .language)
-        participants = c.loggedDecodeIfPresent([String].self, forKey: .participants) ?? []
+        // The live API can include `null` entries in `participants` (e.g. an
+        // anonymous or not-yet-named guest), so decode as optional strings and
+        // drop the nulls rather than letting one null fail the whole array.
+        participants = (c.loggedDecodeIfPresent([String?].self, forKey: .participants) ?? []).compactMap { $0 }
         url = c.loggedDecodeIfPresent(String.self, forKey: .url) ?? ""
         playback = c.loggedDecodeIfPresent(String.self, forKey: .playback)
         events = c.loggedDecodeIfPresent(String.self, forKey: .events)

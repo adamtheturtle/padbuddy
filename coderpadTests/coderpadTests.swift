@@ -100,6 +100,18 @@ struct PadDecoderTests {
         #expect(pad.questionIDs.isEmpty)
     }
 
+    @Test("drops null entries inside the participants array")
+    func nullParticipantEntries() throws {
+        let json = """
+        {
+          "id": "X4",
+          "participants": ["Jane", null, "Joe"]
+        }
+        """
+        let pad = try decode(json)
+        #expect(pad.participants == ["Jane", "Joe"])
+    }
+
     @Test("decodes both ISO8601 with Z and with offset+fractional seconds")
     func dateFormats() throws {
         let json = """

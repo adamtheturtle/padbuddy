@@ -7,6 +7,8 @@ import SwiftUI
 
 struct QuotaView: View {
     let client: CoderPadClient
+    @State private var accounts = AccountsStore.shared
+    @State private var cache = QuotaCacheStore.shared
     @State private var quota: Quota?
     @State private var isLoading = false
     @State private var error: Error?
@@ -38,7 +40,14 @@ struct QuotaView: View {
                 }
             }
         }
-        .task(id: client.apiKey) { await reload() }
+        .task(id: client.apiKey) {
+            // Show the last-loaded quota immediately so re-entering the section
+            // doesn't flash a spinner; the reload below refreshes it in place.
+            if quota == nil, let id = accounts.currentAccountID {
+                quota = cache.get(id)
+            }
+            await reload()
+        }
     }
 
     private var reloadButton: some View {
@@ -125,7 +134,11 @@ struct QuotaView: View {
         error = nil
         defer { isLoading = false }
         do {
-            quota = try await client.quota()
+            let fetched = try await client.quota()
+            quota = fetched
+            if let id = accounts.currentAccountID {
+                cache.set(id, quota: fetched)
+            }
         } catch {
             self.error = error
         }

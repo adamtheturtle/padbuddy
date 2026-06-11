@@ -37,6 +37,9 @@ enum StatsPeriod: String, CaseIterable, Identifiable {
 
 struct OrganizationView: View {
     let client: CoderPadClient
+    @State private var accounts = AccountsStore.shared
+    @State private var orgCache = OrganizationCacheStore.shared
+    @State private var quotaCache = QuotaCacheStore.shared
     @State private var organization: Organization?
     @State private var stats: OrganizationStats?
     @State private var quota: Quota?
@@ -70,7 +73,7 @@ struct OrganizationView: View {
                         VStack(alignment: .leading, spacing: 18) {
                             header
                             statTiles
-                            if let stats { activitySection(stats) }
+                            if organization != nil { activitySection(stats) }
                             if let organization { usersSection(organization) }
                         }
                         .padding(.horizontal, Spacing.paneH)
@@ -81,7 +84,16 @@ struct OrganizationView: View {
                 }
             }
         }
-        .task(id: client.apiKey) { await reload() }
+        .task(id: client.apiKey) {
+            // Show the last-loaded org/quota immediately so re-entering the
+            // section doesn't flash a spinner; reload refreshes them in place.
+            // Stats are period-dependent, so they reload rather than restore.
+            if let id = accounts.currentAccountID {
+                if organization == nil { organization = orgCache.get(id) }
+                if quota == nil { quota = quotaCache.get(id) }
+            }
+            await reload()
+        }
         .onChange(of: period) { _, _ in
             Task { await reloadStats() }
         }
@@ -158,17 +170,17 @@ struct OrganizationView: View {
         }
     }
 
-    private func activitySection(_ stats: OrganizationStats) -> some View {
+    private func activitySection(_ stats: OrganizationStats?) -> some View {
         Card {
             VStack(alignment: .leading, spacing: 10) {
                 SectionHeader(title: "Activity Window", systemImage: "calendar")
-                if let start = stats.startTime {
-                    LabeledRow(label: "From", value: start.formatted(date: .abbreviated, time: .shortened))
-                }
-                if let end = stats.endTime {
-                    LabeledRow(label: "To", value: end.formatted(date: .abbreviated, time: .shortened))
-                }
-                LabeledRow(label: "Pads created", value: "\(stats.padsCreated)")
+                // Show the rows from the first frame (even before stats load) so
+                // the card doesn't pop in and shove the layout; values fill in.
+                LabeledRow(label: "From", value: stats?.startTime
+                    .map { $0.formatted(date: .abbreviated, time: .shortened) } ?? "…")
+                LabeledRow(label: "To", value: stats?.endTime
+                    .map { $0.formatted(date: .abbreviated, time: .shortened) } ?? "…")
+                LabeledRow(label: "Pads created", value: stats.map { "\($0.padsCreated)" } ?? "…")
                 if let q = quota {
                     if let reset = q.quotaReset {
                         LabeledRow(label: "Quota resets", value: reset.formatted(date: .abbreviated, time: .shortened))
@@ -243,9 +255,17 @@ struct OrganizationView: View {
             async let o = client.organization()
             async let s = client.organizationStats(start: window.start, end: window.end)
             async let q = client.quota()
-            organization = try await o
+            let fetchedOrg = try await o
+            organization = fetchedOrg
             stats = try? await s
-            quota = try? await q
+            let fetchedQuota = try? await q
+            quota = fetchedQuota
+            // Warm the shared caches so re-entering Organization — or visiting
+            // the Quota section — shows data instantly instead of a spinner.
+            if let id = accounts.currentAccountID {
+                orgCache.set(id, organization: fetchedOrg)
+                if let fetchedQuota { quotaCache.set(id, quota: fetchedQuota) }
+            }
         } catch {
             self.error = error
         }
