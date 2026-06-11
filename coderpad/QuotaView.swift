@@ -20,7 +20,9 @@ struct QuotaView: View {
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
-                        PaneTitle(title: "Quota")
+                        PaneTitle(title: "Quota") {
+                            reloadButton
+                        }
                         VStack(alignment: .leading, spacing: 18) {
                             header
                             if let quota {
@@ -36,15 +38,21 @@ struct QuotaView: View {
                 }
             }
         }
-        .toolbar {
-            ToolbarItem {
-                Button { Task { await reload() } } label: {
-                    Label("Reload", systemImage: "arrow.clockwise")
-                }
-                .disabled(isLoading)
+        .task(id: client.apiKey) { await reload() }
+    }
+
+    private var reloadButton: some View {
+        Button { Task { await reload() } } label: {
+            if isLoading {
+                ProgressView().controlSize(.small)
+            } else {
+                Image(systemName: "arrow.clockwise")
             }
         }
-        .task(id: client.apiKey) { await reload() }
+        .buttonStyle(.borderless)
+        .help("Reload")
+        .accessibilityLabel("Reload")
+        .disabled(isLoading)
     }
 
     private var header: some View {

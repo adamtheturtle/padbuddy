@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		66E3CC532FDA19E400FE87A9 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = 66E3CC522FDA19E400FE87A9 /* MarkdownUI */; };
+		66E3CC582FDA31CC00FE87A9 /* Highlightr in Frameworks */ = {isa = PBXBuildFile; productRef = 66E3CC572FDA31CC00FE87A9 /* Highlightr */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -56,6 +57,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				66E3CC582FDA31CC00FE87A9 /* Highlightr in Frameworks */,
 				66E3CC532FDA19E400FE87A9 /* MarkdownUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -126,6 +128,7 @@
 			name = coderpad;
 			packageProductDependencies = (
 				66E3CC522FDA19E400FE87A9 /* MarkdownUI */,
+				66E3CC572FDA31CC00FE87A9 /* Highlightr */,
 			);
 			productName = coderpad;
 			productReference = 66C8C50B2FA73AB0009B720C /* coderpad.app */;
@@ -211,6 +214,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				66E3CC502FDA197100FE87A9 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */,
+				66E3CC562FDA31CC00FE87A9 /* XCRemoteSwiftPackageReference "Highlightr" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 66C8C50C2FA73AB0009B720C /* Products */;
@@ -622,6 +626,14 @@
 				minimumVersion = 2.4.1;
 			};
 		};
+		66E3CC562FDA31CC00FE87A9 /* XCRemoteSwiftPackageReference "Highlightr" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/raspu/Highlightr";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.3.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -629,6 +641,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 66E3CC502FDA197100FE87A9 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */;
 			productName = MarkdownUI;
+		};
+		66E3CC572FDA31CC00FE87A9 /* Highlightr */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 66E3CC562FDA31CC00FE87A9 /* XCRemoteSwiftPackageReference "Highlightr" */;
+			productName = Highlightr;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

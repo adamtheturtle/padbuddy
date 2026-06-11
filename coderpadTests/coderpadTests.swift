@@ -415,6 +415,14 @@ struct LanguageHelperTests {
         #expect("fsharp".languageDisplayName == "F#")
     }
 
+    @Test("languageDisplayName names multifile project environments")
+    func multifileNames() {
+        #expect("multifile_java".languageDisplayName == "Java Project")
+        #expect("Multifile_java".languageDisplayName == "Java Project")
+        #expect("multifile_python3".languageDisplayName == "Python 3 Project")
+        #expect("multifile_nodejs".languageDisplayName == "Node.js Project")
+    }
+
     @Test("languageDisplayName capitalizes unknown codes")
     func unknownNames() {
         #expect("zig".languageDisplayName == "Zig")

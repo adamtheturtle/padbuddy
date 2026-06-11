@@ -64,8 +64,7 @@ struct SearchPadsIntent: AppIntent {
         try? await Task.sleep(for: .milliseconds(300))
         let q = query
         await MainActor.run {
-            NotificationCenter.default.post(name: .sectionRequested, object: AppSection.pads)
-            NotificationCenter.default.post(name: .padsSearchRequested, object: q)
+            AppNavigation.shared.showPads(PadsRequest(search: q))
         }
         return .result()
     }
@@ -79,7 +78,7 @@ struct NewPadIntent: AppIntent {
     func perform() async throws -> some IntentResult {
         try? await Task.sleep(for: .milliseconds(400))
         await MainActor.run {
-            NotificationCenter.default.post(name: .createPadRequested, object: nil)
+            AppNavigation.shared.showPads(PadsRequest(startCreating: true))
         }
         return .result()
     }
@@ -93,7 +92,7 @@ struct OpenPadsIntent: AppIntent {
     func perform() async throws -> some IntentResult {
         try? await Task.sleep(for: .milliseconds(200))
         await MainActor.run {
-            NotificationCenter.default.post(name: .sectionRequested, object: AppSection.pads)
+            AppNavigation.shared.show(.pads)
         }
         return .result()
     }

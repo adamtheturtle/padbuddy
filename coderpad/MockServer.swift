@@ -127,8 +127,10 @@ enum MockResponses {
         }
 
         if method == "GET", let id = match(path, pattern: #"^/api/pads/([^/]+)/?$"#), !id.isEmpty {
-            if let pad = MockFixtures.allPads().first(where: { ($0["id"] as? String) == id }) {
-                return ok(["status": "OK", "pad": pad])
+            if var pad = MockFixtures.allPads().first(where: { ($0["id"] as? String) == id }) {
+                // Mirror the live API: the pad's fields are returned flat at the top level.
+                pad["status"] = "OK"
+                return ok(pad)
             }
             return (404, jsonString(["status": "error", "message": "pad not found"]))
         }
@@ -139,7 +141,10 @@ enum MockResponses {
 
         if method == "GET", let id = match(path, pattern: #"^/api/pad_environments/(\d+)/?$"#) {
             let idInt = Int(id) ?? 1
-            return ok(["status": "OK", "pad_environment": MockFixtures.padEnvironment(id: idInt)])
+            // Mirror the live API: the environment's fields are returned flat.
+            var env = MockFixtures.padEnvironment(id: idInt)
+            env["status"] = "OK"
+            return ok(env)
         }
 
         if method == "POST", path == "/api/questions/" || path == "/api/questions" {
@@ -160,7 +165,9 @@ enum MockResponses {
                 "updated_at": ISO8601DateFormatter().string(from: Date()),
             ]
             MockFixtures.createdQuestions.append(q)
-            return ok(["status": "OK", "question": q])
+            // Mirror the live API: the question's fields are returned flat at the top level.
+            q["status"] = "OK"
+            return ok(q)
         }
 
         if method == "PUT", let id = match(path, pattern: #"^/api/questions/(\d+)/?$"#) {
@@ -185,8 +192,10 @@ enum MockResponses {
 
         if method == "GET", let id = match(path, pattern: #"^/api/questions/(\d+)/?$"#) {
             let idInt = Int(id) ?? 0
-            if let q = MockFixtures.allQuestions().first(where: { ($0["id"] as? Int) == idInt }) {
-                return ok(["status": "OK", "question": q])
+            if var q = MockFixtures.allQuestions().first(where: { ($0["id"] as? Int) == idInt }) {
+                // Mirror the live API: the question's fields are returned flat.
+                q["status"] = "OK"
+                return ok(q)
             }
             return (404, jsonString(["status": "error"]))
         }
@@ -294,32 +303,44 @@ enum MockFixtures {
 
     private static func seedPads() -> [[String: Any]] {
         [
+            // Two environments: an active single-file Python and a multi-file
+            // JavaScript. Exercises the stacked Code cards, the Active flag, and
+            // the multi-file "N files" count.
             pad(id: "DEMOABC1", title: "Onsite: Jane Doe",
                 language: "python3", ownerEmail: "alex@demo.co",
                 state: "started", isPrivate: false, executionEnabled: true,
                 participants: ["Jane Doe", "Alex Park"],
-                createdAt: "2026-06-08T15:00:00Z", updatedAt: "2026-06-09T22:00:00Z"),
+                createdAt: "2026-06-08T15:00:00Z", updatedAt: "2026-06-09T22:00:00Z",
+                environmentIDs: [1, 2], activeEnvironmentID: 1),
             pad(id: "DEMOXYZ2", title: "Phone screen: Sam Lee",
                 language: "javascript", ownerEmail: "morgan@demo.co",
                 state: "ended", isPrivate: true, executionEnabled: true,
                 participants: ["Sam Lee", "Morgan Lin"],
                 createdAt: "2026-06-05T17:30:00Z", updatedAt: "2026-06-06T19:00:00Z",
-                endedAt: "2026-06-06T19:00:00Z"),
+                endedAt: "2026-06-06T19:00:00Z",
+                environmentIDs: [1, 2], activeEnvironmentID: 2),
+            // Three environments with the active one in the middle, so the Active
+            // flag is clearly not just "the first card".
             pad(id: "DEMOPLY3", title: "Live coding: backend",
                 language: "go", ownerEmail: "alex@demo.co",
                 state: "started", isPrivate: false, executionEnabled: false,
                 participants: ["Casey Wu", "Alex Park"],
-                createdAt: "2026-06-09T18:00:00Z", updatedAt: "2026-06-09T18:20:00Z"),
+                createdAt: "2026-06-09T18:00:00Z", updatedAt: "2026-06-09T18:20:00Z",
+                environmentIDs: [1, 4, 2], activeEnvironmentID: 4),
             pad(id: "DEMOOLD4", title: "Q1 take-home draft",
                 language: "rust", ownerEmail: "morgan@demo.co",
                 state: "draft", isPrivate: true, executionEnabled: true,
                 participants: [],
-                createdAt: "2026-05-12T10:00:00Z", updatedAt: "2026-05-12T10:00:00Z"),
+                createdAt: "2026-05-12T10:00:00Z", updatedAt: "2026-05-12T10:00:00Z",
+                environmentIDs: [1, 2], activeEnvironmentID: 1),
+            // A single environment, so its language chip alone names it and the
+            // lone Code card carries no active badge.
             pad(id: "DEMOSWFT5", title: "iOS sample pad",
                 language: "swift", ownerEmail: "demo@example.com",
                 state: "started", isPrivate: false, executionEnabled: true,
                 participants: ["Demo User"],
-                createdAt: "2026-06-09T09:00:00Z", updatedAt: "2026-06-10T08:00:00Z"),
+                createdAt: "2026-06-09T09:00:00Z", updatedAt: "2026-06-10T08:00:00Z",
+                environmentIDs: [3], activeEnvironmentID: 3),
         ]
     }
 
@@ -333,7 +354,9 @@ enum MockFixtures {
                     participants: [String] = [],
                     createdAt: String = "2026-06-10T08:00:00Z",
                     updatedAt: String = "2026-06-10T08:00:00Z",
-                    endedAt: String? = nil) -> [String: Any] {
+                    endedAt: String? = nil,
+                    environmentIDs: [Int] = [1, 2],
+                    activeEnvironmentID: Int = 1) -> [String: Any] {
         var dict: [String: Any] = [
             "id": id,
             "title": title,
@@ -349,8 +372,8 @@ enum MockFixtures {
             "created_at": createdAt,
             "updated_at": updatedAt,
             "type": "live",
-            "active_environment_id": 1,
-            "pad_environment_ids": [1, 2],
+            "active_environment_id": activeEnvironmentID,
+            "pad_environment_ids": environmentIDs,
             "question_ids": [101],
             "team": ["id": "demo-team", "name": "Demo Team"]
         ]
@@ -376,21 +399,54 @@ enum MockFixtures {
     }
 
     static func padEnvironment(id: Int) -> [String: Any] {
-        let language = id == 1 ? "python3" : "javascript"
-        let file: [String: Any] = id == 1
-            ? ["path": "coderpad/main.py",
-               "contents": "def greet(name):\n    return f\"Hello, {name}!\"\n\nprint(greet(\"CoderPad\"))\n",
-               "history": NSNull()]
-            : ["path": "coderpad/scratch.js",
-               "contents": "console.log('Hello, World!');\n",
-               "history": NSNull()]
+        // Each id is a distinct environment so a single pad can carry several
+        // languages and a mix of single- and multi-file layouts. Ids 2 and 4 are
+        // multi-file to exercise the per-file tabs and the "N files" count; id 4
+        // mixes HTML/CSS/JS so the per-file, extension-derived highlighting is
+        // visible (each file rendered in its own language, not the environment's).
+        func file(_ path: String, _ contents: String) -> [String: Any] {
+            ["path": path, "contents": contents, "history": NSNull()]
+        }
+        let language: String
+        let files: [[String: Any]]
+        switch id {
+        case 1:
+            language = "python3"
+            files = [file("coderpad/main.py",
+                          "def greet(name):\n    return f\"Hello, {name}!\"\n\nprint(greet(\"CoderPad\"))\n")]
+        case 3:
+            language = "swift"
+            files = [file("main.swift",
+                          "import Foundation\n\nfunc greet(_ name: String) -> String {\n    \"Hello, \\(name)!\"\n}\n\nprint(greet(\"CoderPad\"))\n")]
+        case 4:
+            // A small mixed-language web project: each file is highlighted in its
+            // own language (HTML, CSS, JavaScript) from its extension, even though
+            // the environment reports a single language.
+            language = "javascript"
+            files = [
+                file("index.html",
+                     "<!DOCTYPE html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"utf-8\" />\n    <title>Greeter</title>\n    <link rel=\"stylesheet\" href=\"styles.css\" />\n  </head>\n  <body>\n    <h1 id=\"greeting\">Hello</h1>\n    <script src=\"app.js\"></script>\n  </body>\n</html>\n"),
+                file("styles.css",
+                     "body {\n  font-family: -apple-system, sans-serif;\n  margin: 2rem;\n}\n\n#greeting {\n  color: #2d6cdf;\n  font-weight: 600;\n}\n"),
+                file("app.js",
+                     "function greet(name) {\n  return `Hello, ${name}!`;\n}\n\ndocument.getElementById('greeting').textContent = greet('CoderPad');\n"),
+            ]
+        default: // 2 and any other id
+            language = "javascript"
+            files = [
+                file("src/index.js",
+                     "import { greet } from './greet.js';\n\nconsole.log(greet('CoderPad'));\n"),
+                file("src/greet.js",
+                     "export function greet(name) {\n  return `Hello, ${name}!`;\n}\n"),
+            ]
+        }
         return [
             "id": id,
             "pad_id": 88112233,
             "question_id": NSNull(),
             "example_question_id": NSNull(),
             "language": language,
-            "file_contents": [file],
+            "file_contents": files,
             "created_at": "2026-06-09T18:00:00Z",
             "updated_at": "2026-06-09T18:00:00Z",
         ]

@@ -17,13 +17,13 @@ struct PadsView: View {
     @State private var error: Error?
     @Binding var selection: Pad?
     @State private var search = ""
+    @FocusState private var searchFieldFocused: Bool
     @State private var stateFilter: String? = nil
     @State private var languageFilter: String? = nil
     @State private var ownerFilter: String? = nil
     @State private var teamFilter: String? = nil
     @State private var typeFilter: String? = nil
     @State private var showCreate = false
-    @State private var lastFetched: Date?
     @State private var previousUpdatedAt: [String: Date] = [:]
     @State private var changedPadIDs: Set<String> = []
     @State private var hasLoadedOnce = false
@@ -32,7 +32,17 @@ struct PadsView: View {
     @State private var showSaveSearch = false
     @State private var saveSearchName = ""
 
-    private static let refreshInterval: Duration = .seconds(45)
+    /// Big orgs return thousands of pads per sweep, and re-fetching every page every 45s is
+    /// mostly wasted work for data well below the fold. The auto-refresh cadence backs off as
+    /// the list grows, so large orgs poll far less often while small orgs keep the snappy
+    /// refresh. Manual reload and the focused detail refresh are unaffected.
+    private var nextRefreshInterval: Duration {
+        switch pads.count {
+        case ..<500: return .seconds(45)
+        case 500..<2000: return .seconds(120)
+        default: return .seconds(300)
+        }
+    }
 
     var body: some View {
         sidebar
@@ -41,7 +51,7 @@ struct PadsView: View {
             if pads.isEmpty, let id = accounts.currentAccountID {
                 pads = cache.get(id)
             }
-            await periodicReload(interval: Self.refreshInterval) {
+            await periodicReload(interval: { nextRefreshInterval }) {
                 await reload()
             }
         }
@@ -166,12 +176,13 @@ struct PadsView: View {
                 APIErrorView(error: error) { Task { await reload() } }
             } else {
                 VStack(spacing: 0) {
+                    PaneTitle(title: "Pads")
                     HStack(spacing: 8) {
-                        InlineSearchField(query: $search, prompt: "Search title, owner, participants…")
+                        InlineSearchField(query: $search, prompt: "Search title, owner, participants…",
+                                          focused: $searchFieldFocused)
                         paneActions
                     }
                     .padding(.horizontal, Spacing.paneH)
-                    .padding(.top, Spacing.paneTitleTop)
                     .padding(.bottom, 8)
                     savedSearchesBar
                     filterBar
@@ -188,6 +199,7 @@ struct PadsView: View {
                 }
             }
         }
+        .focusedSceneValue(\.findAction, FindAction { searchFieldFocused = true })
     }
 
     private var paneActions: some View {
@@ -339,6 +351,13 @@ struct PadsView: View {
             // server, so each one only appends below — no reshuffle as the list fills in.
             var fetched: [Pad] = []
             for try await snapshot in client.listPadsIncrementally() {
+                // The first snapshot is page 1 — the most-recently-updated pads, already
+                // usable. Drop the blocking spinner now and let the rest stream in
+                // silently behind the already-visible list, rather than spinning until
+                // the last page lands.
+                if isLoading {
+                    isLoading = false
+                }
                 fetched = snapshot
                 pads = snapshot
             }
@@ -365,7 +384,6 @@ struct PadsView: View {
             if let id = accounts.currentAccountID {
                 cache.set(id, pads: fetched)
             }
-            lastFetched = Date()
             hasLoadedOnce = true
         } catch {
             self.error = error
@@ -483,7 +501,7 @@ private struct PadRow: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
-                if let updated = pad.updatedAt {
+                if let updated = pad.informativeUpdatedAt {
                     Text("Updated \(updated.formatted(.relative(presentation: .named)))")
                 }
             }
@@ -512,6 +530,7 @@ struct PadDetailView: View {
     @State private var mutateError: String?
     @Environment(\.openWindow) private var openWindow
     @Environment(\.orgDirectory) private var directory
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         Group {
@@ -533,14 +552,6 @@ struct PadDetailView: View {
                         .help("Open in separate window")
                         .buttonStyle(.borderless)
                         .accessibilityLabel("Open in separate window")
-                        Button {
-                            NSWorkspace.shared.open(url)
-                        } label: {
-                            Image(systemName: "safari")
-                        }
-                        .help("Open in default browser")
-                        .buttonStyle(.borderless)
-                        .accessibilityLabel("Open in default browser")
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
@@ -621,13 +632,24 @@ struct PadDetailView: View {
                 if !pad.participants.isEmpty {
                     participantsCard
                 }
-                if !environments.isEmpty {
-                    environmentsCard
-                }
-                if let active = activeEnvironment,
-                   let contents = active.contents,
-                   !contents.isEmpty {
-                    codePreviewCard(active, contents: contents)
+                // One code card per environment. A pad can carry several
+                // environments (e.g. a candidate and reference solution, or
+                // multiple languages); showing only the active one silently hid
+                // the rest. Each card is identified by its language chip and
+                // flags the active one, so no separate environments list is
+                // needed to tell them apart.
+                ForEach(environments) { env in
+                    let files = displayFiles(for: env)
+                    if !files.isEmpty {
+                        EnvironmentCodeCard(
+                            files: files,
+                            isActive: env.id == pad.activeEnvironmentID,
+                            showActiveBadge: environments.count > 1,
+                            language: env.language,
+                            padID: pad.id,
+                            dark: colorScheme == .dark
+                        )
+                    }
                 }
                 eventsCard
             }
@@ -640,68 +662,30 @@ struct PadDetailView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 12) {
-                AvatarCircle(label: directory.display(pad.ownerEmail), diameter: 48)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(pad.title.isEmpty ? "Untitled Pad" : pad.title)
-                        .font(.title.bold())
-                    if let name = directory.name(for: pad.ownerEmail) {
-                        Text(name).font(.callout)
-                        EmailLink(email: pad.ownerEmail).font(.caption).foregroundStyle(.secondary)
-                    } else {
-                        EmailLink(email: pad.ownerEmail).foregroundStyle(.secondary)
-                    }
+            // When the pane is wide, identity and actions share one row. As it
+            // narrows, the actions drop to a row below so the title keeps the full
+            // pane width to wrap across, instead of being starved by the fixed-size
+            // buttons down to a one-character-per-line column.
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: 12) {
+                    identity
+                        .lineLimit(1)
+                        .fixedSize(horizontal: true, vertical: false)
+                    Spacer(minLength: 12)
+                    actionButtons
                 }
-                Spacer()
-                HStack(spacing: 6) {
-                    Button { showEdit = true } label: {
-                        Label("Edit", systemImage: "pencil")
-                    }
-                    .help("Edit pad properties")
-                    if URL(string: pad.url) != nil {
-                        Button {
-                            showBrowser = true
-                        } label: {
-                            Label("Open Pad", systemImage: "doc.text.image")
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .help("Open the pad in this pane")
-                        if let url = URL(string: pad.url) {
-                            Button {
-                                NSWorkspace.shared.open(url)
-                            } label: {
-                                Image(systemName: "safari")
-                            }
-                            .help("Open in default browser")
-                            .accessibilityLabel("Open in default browser")
-                        }
-                    }
-                    Menu {
-                        Button {
-                            showEndConfirm = true
-                        } label: {
-                            Label("End Interview", systemImage: "flag.checkered")
-                        }
-                        .disabled(isEnded)
-                        Divider()
-                        Button(role: .destructive) {
-                            showDeleteConfirm = true
-                        } label: {
-                            Label("Delete Pad", systemImage: "trash")
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis.circle")
-                    }
-                    .menuStyle(.borderlessButton)
-                    .fixedSize()
-                    .disabled(isMutating)
-                    .help("More actions")
-                    .accessibilityLabel("More actions")
+                VStack(alignment: .leading, spacing: 12) {
+                    identity
+                    actionButtons
                 }
             }
             HStack(spacing: 6) {
                 StateBadge(state: pad.state)
-                if let language = pad.language, !language.isEmpty {
+                // Skip the pad-level language chip when a single code card is
+                // shown — that card names the language itself, so repeating it
+                // here is redundant. Keep it when there's no card (nothing else
+                // names the language) or several (this summarizes the active one).
+                if let language = pad.language, !language.isEmpty, codeCardCount != 1 {
                     Chip(text: language.languageDisplayName, systemImage: language.languageSymbol,
                          tint: language.languageColor)
                 }
@@ -719,19 +703,84 @@ struct PadDetailView: View {
                 }
             }
             HStack(spacing: 6) {
-                Text(pad.id).font(.caption.monospaced())
-                Button {
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(pad.id, forType: .string)
-                } label: {
-                    Image(systemName: "doc.on.doc")
+                // The raw ID stays selectable so it can still be grabbed as a
+                // literal token (API calls, referencing the pad in conversation).
+                Text(pad.id)
+                    .font(.caption.monospaced())
+                    .textSelection(.enabled)
+                if let url = URL(string: pad.url) {
+                    ShareLink(item: url) {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    .buttonStyle(.borderless)
+                    .help("Share pad")
+                    .accessibilityLabel("Share pad")
                 }
-                .buttonStyle(.borderless)
-                .help("Copy ID")
-                .accessibilityLabel("Copy pad ID")
             }
             .foregroundStyle(.secondary)
         }
+    }
+
+    private var identity: some View {
+        HStack(spacing: 12) {
+            AvatarCircle(label: directory.display(pad.ownerEmail), diameter: 48)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(pad.title.isEmpty ? "Untitled Pad" : pad.title)
+                    .font(.title.bold())
+                if let name = directory.name(for: pad.ownerEmail) {
+                    Text(name).font(.callout)
+                    EmailLink(email: pad.ownerEmail).font(.caption).foregroundStyle(.secondary)
+                } else {
+                    EmailLink(email: pad.ownerEmail).foregroundStyle(.secondary)
+                }
+            }
+        }
+    }
+
+    private var actionButtons: some View {
+        HStack(spacing: 6) {
+            Button { showEdit = true } label: {
+                Label("Edit", systemImage: "pencil")
+            }
+            .help("Edit pad properties")
+            if let url = URL(string: pad.url) {
+                Button {
+                    if BrowserSettings.openLinksIn == .external {
+                        BrowserSettings.openExternally(url)
+                    } else {
+                        showBrowser = true
+                    }
+                } label: {
+                    Label("Open Pad", systemImage: "doc.text.image")
+                        .lineLimit(1)
+                        .fixedSize()
+                }
+                .buttonStyle(.borderedProminent)
+                .help("Open the pad")
+            }
+            Menu {
+                Button {
+                    showEndConfirm = true
+                } label: {
+                    Label("End Interview", systemImage: "flag.checkered")
+                }
+                .disabled(isEnded)
+                Divider()
+                Button(role: .destructive) {
+                    showDeleteConfirm = true
+                } label: {
+                    Label("Delete Pad", systemImage: "trash")
+                }
+            } label: {
+                Image(systemName: "ellipsis.circle")
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .disabled(isMutating)
+            .help("More actions")
+            .accessibilityLabel("More actions")
+        }
+        .fixedSize()
     }
 
     private var metaCards: some View {
@@ -740,7 +789,7 @@ struct PadDetailView: View {
                 StatTile(title: "Created", value: createdAt.formatted(date: .abbreviated, time: .shortened),
                          systemImage: "calendar.badge.plus", tint: .blue)
             }
-            if let updatedAt = pad.updatedAt {
+            if let updatedAt = pad.informativeUpdatedAt {
                 StatTile(title: "Updated", value: updatedAt.formatted(date: .abbreviated, time: .shortened),
                          systemImage: "clock.arrow.circlepath", tint: .teal)
             }
@@ -761,46 +810,72 @@ struct PadDetailView: View {
         }
     }
 
+    // The API returns participants as a flat list of names with no role, so we
+    // infer who's who from the org directory: a participant whose name matches an
+    // org member is an interviewer, and anyone else is the candidate. When the
+    // directory hasn't loaded we can't tell them apart, so we fall back to an
+    // unlabeled list rather than guess.
+    private var participantRoles: (interviewers: [String], candidates: [String])? {
+        let memberNames = Set(directory.nameByEmail.values.map { $0.lowercased() })
+        guard !memberNames.isEmpty else { return nil }
+        var interviewers: [String] = []
+        var candidates: [String] = []
+        for name in pad.participants {
+            if memberNames.contains(name.lowercased()) {
+                interviewers.append(name)
+            } else {
+                candidates.append(name)
+            }
+        }
+        return (interviewers, candidates)
+    }
+
     private var participantsCard: some View {
         Card {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 12) {
                 SectionHeader(title: "Participants", systemImage: "person.2")
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 8)], alignment: .leading, spacing: 8) {
-                    ForEach(pad.participants, id: \.self) { name in
-                        HStack(spacing: 8) {
-                            AvatarCircle(label: name, diameter: 26, tint: .purple)
-                            Text(name).font(.callout)
-                            Spacer(minLength: 0)
-                        }
-                        .padding(.vertical, 4)
-                        .padding(.horizontal, 8)
-                        .background(Color.subtleStroke.opacity(0.6), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                if let roles = participantRoles {
+                    if !roles.candidates.isEmpty {
+                        participantGroup(
+                            title: roles.candidates.count == 1 ? "Candidate" : "Candidates",
+                            systemImage: "person.crop.circle.badge.questionmark",
+                            names: roles.candidates, tint: .blue)
                     }
+                    if !roles.interviewers.isEmpty {
+                        participantGroup(
+                            title: roles.interviewers.count == 1 ? "Interviewer" : "Interviewers",
+                            systemImage: "person.crop.circle.badge.checkmark",
+                            names: roles.interviewers, tint: .purple)
+                    }
+                } else {
+                    participantGrid(names: pad.participants, tint: .purple)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
-    private var environmentsCard: some View {
-        Card {
-            VStack(alignment: .leading, spacing: 10) {
-                SectionHeader(title: "Environments", systemImage: "cube.box")
-                ForEach(environments) { env in
-                    HStack {
-                        Text("Environment #\(env.id)").font(.callout.weight(.medium))
-                        if let lang = env.language, !lang.isEmpty {
-                            Chip(text: lang.languageDisplayName, tint: lang.languageColor)
-                        }
-                        if env.id == pad.activeEnvironmentID {
-                            Chip(text: "Active", systemImage: "checkmark.seal", tint: .green)
-                        }
-                        Spacer(minLength: 0)
-                    }
-                    .padding(.vertical, 4)
+    private func participantGroup(title: String, systemImage: String, names: [String], tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label(title, systemImage: systemImage)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(tint)
+            participantGrid(names: names, tint: tint)
+        }
+    }
+
+    private func participantGrid(names: [String], tint: Color) -> some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 8)], alignment: .leading, spacing: 8) {
+            ForEach(names, id: \.self) { name in
+                HStack(spacing: 8) {
+                    AvatarCircle(label: name, diameter: 26, tint: tint)
+                    Text(name).font(.callout)
+                    Spacer(minLength: 0)
                 }
+                .padding(.vertical, 4)
+                .padding(.horizontal, 8)
+                .background(Color.subtleStroke.opacity(0.6), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -861,44 +936,27 @@ struct PadDetailView: View {
         }
     }
 
-    private var activeEnvironment: PadEnvironment? {
-        environments.first(where: { $0.id == pad.activeEnvironmentID })
-            ?? environments.first
+    /// The non-empty files of an environment, each paired with a language
+    /// inferred from its own extension. A multi-file project (e.g. a Django
+    /// app) mixes `.py`, `.html`, and `.css`; deriving the language per file
+    /// lets each be highlighted correctly instead of forcing the environment's
+    /// single language onto all of them.
+    /// How many environments actually render a code card (i.e. have files to
+    /// show). When exactly one does, that card's own language chip names the
+    /// language, so the header chip would just repeat it.
+    private var codeCardCount: Int {
+        environments.filter { !displayFiles(for: $0).isEmpty }.count
     }
 
-    private func codePreviewCard(_ env: PadEnvironment, contents: String) -> some View {
-        Card {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    SectionHeader(title: "Code", systemImage: "chevron.left.slash.chevron.right")
-                    Spacer()
-                    if let lang = env.language, !lang.isEmpty {
-                        Chip(text: lang.languageDisplayName, tint: lang.languageColor)
-                    }
-                    Button {
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(contents, forType: .string)
-                    } label: {
-                        Image(systemName: "doc.on.doc")
-                    }
-                    .buttonStyle(.borderless)
-                    .help("Copy code")
-                    .accessibilityLabel("Copy code")
-                }
-                ScrollView([.vertical, .horizontal]) {
-                    Text(contents)
-                        .font(.system(.callout, design: .monospaced))
-                        .textSelection(.enabled)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 8)
-                }
-                .defaultScrollAnchor(.topLeading)
-                .frame(maxWidth: .infinity, maxHeight: 360, alignment: .leading)
-                .background(Color.subtleStroke.opacity(0.5),
-                            in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .accessibilityLabel("Code preview of pad \(pad.id)")
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+    private func displayFiles(for env: PadEnvironment) -> [CodeFile] {
+        env.fileContents.enumerated().compactMap { index, file in
+            guard let body = file.contents, !body.isEmpty else { return nil }
+            return CodeFile(
+                id: index,
+                path: file.path,
+                contents: body,
+                language: CodeFile.language(forPath: file.path, fallback: env.language)
+            )
         }
     }
 
@@ -971,7 +1029,13 @@ struct PadDetailView: View {
         do {
             async let events = client.padEvents(padID: pad.id)
             async let envs = loadEnvironments()
-            self.events = try await events
+            // The API returns events newest-first; display them oldest-first so the
+            // log reads top-to-bottom in chronological order (and so the grouping
+            // logic, which collapses consecutive same-kind events into an
+            // earliest–latest range, stays correct).
+            self.events = try await events.sorted {
+                ($0.createdAt ?? .distantPast) < ($1.createdAt ?? .distantPast)
+            }
             self.environments = await envs
         } catch {
             loadError = error
@@ -986,6 +1050,225 @@ struct PadDetailView: View {
             }
         }
         return result
+    }
+}
+
+// MARK: - Code preview
+
+/// One displayable file in an environment's code preview, carrying the
+/// language used to highlight it (derived from the file's own extension, with
+/// the environment language as a fallback).
+private struct CodeFile: Identifiable, Hashable {
+    let id: Int
+    let path: String?
+    let contents: String
+    let language: String?
+
+    /// The file's name without its directory, for compact tab labels.
+    var name: String {
+        guard let path, !path.isEmpty else { return "untitled" }
+        return path.split(separator: "/").last.map(String.init) ?? path
+    }
+
+    /// Strips CoderPad's `multifile_` prefix so the environment language can
+    /// stand in for a file that has no recognised extension.
+    private static func baseLanguage(_ language: String?) -> String? {
+        guard let language else { return nil }
+        let lowered = language.lowercased()
+        if lowered.hasPrefix("multifile_") {
+            return String(lowered.dropFirst("multifile_".count))
+        }
+        return language
+    }
+
+    /// Maps a file extension to a CoderPad language code the highlighter
+    /// understands, falling back to the environment language when the
+    /// extension is missing or unrecognised.
+    static func language(forPath path: String?, fallback: String?) -> String? {
+        guard let path, let dot = path.lastIndex(of: "."), dot < path.index(before: path.endIndex) else {
+            return baseLanguage(fallback)
+        }
+        switch path[path.index(after: dot)...].lowercased() {
+        case "py": return "python"
+        case "js", "jsx", "mjs", "cjs": return "javascript"
+        case "ts", "tsx": return "typescript"
+        case "swift": return "swift"
+        case "go": return "go"
+        case "rs": return "rust"
+        case "java": return "java"
+        case "kt", "kts": return "kotlin"
+        case "scala", "sc": return "scala"
+        case "rb": return "ruby"
+        case "c", "h": return "c"
+        case "cpp", "cc", "cxx", "hpp", "hh": return "cpp"
+        case "cs": return "csharp"
+        case "m", "mm": return "objective-c"
+        case "php": return "php"
+        case "r": return "r"
+        case "sql": return "sql"
+        case "sh", "bash": return "bash"
+        case "ex", "exs": return "elixir"
+        case "erl", "hrl": return "erlang"
+        case "hs": return "haskell"
+        case "pl", "pm": return "perl"
+        case "lua": return "lua"
+        case "dart": return "dart"
+        case "clj", "cljs", "cljc": return "clojure"
+        case "ml", "mli": return "ocaml"
+        case "fs", "fsx": return "fsharp"
+        case "html", "htm": return "html"
+        case "css": return "css"
+        case "txt", "md", "markdown": return "plaintext"
+        default: return baseLanguage(fallback)
+        }
+    }
+}
+
+/// A code card for one environment. Single-file environments render exactly as
+/// before — a single highlighted scroll. Multi-file environments gain a row of
+/// file tabs and a per-file path header, so the files no longer run together
+/// in one concatenated blob and each is highlighted in its own language.
+private struct EnvironmentCodeCard: View {
+    let files: [CodeFile]
+    let isActive: Bool
+    /// Whether to flag the active environment. Only meaningful when a pad has
+    /// several environments; with a single one the active flag says nothing.
+    let showActiveBadge: Bool
+    /// The environment-level language, shown as a chip (e.g. "Python Project").
+    let language: String?
+    let padID: String
+    let dark: Bool
+
+    @State private var selectedFileID: Int?
+
+    private var selected: CodeFile {
+        files.first { $0.id == selectedFileID } ?? files[0]
+    }
+
+    private var isMultiFile: Bool { files.count > 1 }
+
+    var body: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 10) {
+                header
+                if isMultiFile {
+                    fileTabs
+                }
+                codePane
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var header: some View {
+        HStack {
+            SectionHeader(title: "Code", systemImage: "chevron.left.slash.chevron.right")
+            // When several environments are stacked, flag the active one so the
+            // cards don't blur together. The language chip below names each.
+            if showActiveBadge && isActive {
+                Chip(text: "Active", systemImage: "checkmark.seal", tint: .green)
+            }
+            Spacer()
+            if let language, !language.isEmpty {
+                Chip(text: language.languageDisplayName, tint: language.languageColor)
+            }
+        }
+    }
+
+    /// Floats in the top-right of the code block and copies the selected file.
+    private var copyButton: some View {
+        Button {
+            copy(selected.contents)
+        } label: {
+            Image(systemName: "doc.on.doc")
+                .padding(6)
+        }
+        .buttonStyle(.plain)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .stroke(Color.subtleStroke, lineWidth: 0.5)
+        )
+        .help("Copy code")
+        .accessibilityLabel("Copy code")
+    }
+
+    private var fileTabs: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 6) {
+                ForEach(files) { file in
+                    let isSelected = file.id == selected.id
+                    Button {
+                        selectedFileID = file.id
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: (file.language ?? "").languageSymbol)
+                                .font(.caption2)
+                            Text(file.name).font(.caption)
+                        }
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 4)
+                        .background(
+                            isSelected ? Color.accentColor.opacity(0.18) : Color.subtleStroke.opacity(0.6),
+                            in: Capsule()
+                        )
+                        .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
+                        .overlay(Capsule().stroke(isSelected ? Color.accentColor.opacity(0.4) : .clear, lineWidth: 0.5))
+                    }
+                    .buttonStyle(.plain)
+                    .help(file.path ?? file.name)
+                }
+            }
+            .padding(.vertical, 2)
+        }
+    }
+
+    private var codePane: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Multi-file projects show the full path above the code so the
+            // selected tab's location in the project is unambiguous.
+            if isMultiFile, let path = selected.path, !path.isEmpty {
+                Text(path)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .padding(.horizontal, 10)
+                    .padding(.top, 8)
+            }
+            ScrollView([.vertical, .horizontal]) {
+                Text(SyntaxHighlighter.highlight(selected.contents, language: selected.language, dark: dark))
+                    .font(.system(.callout, design: .monospaced))
+                    .textSelection(.enabled)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+            }
+            .defaultScrollAnchor(.topLeading)
+            .frame(maxWidth: .infinity, maxHeight: 360, alignment: .leading)
+            .overlay(alignment: .topTrailing) {
+                copyButton
+                    .padding(8)
+            }
+        }
+        .background(Color.subtleStroke.opacity(0.5),
+                    in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    private var accessibilityLabel: String {
+        // Name the environment by its language, the same identity shown visually.
+        let environmentName = (language?.isEmpty == false) ? language!.languageDisplayName : nil
+        if isMultiFile {
+            return "Code preview of \(selected.name)\(environmentName.map { " in \($0)" } ?? "") in pad \(padID)"
+        }
+        return environmentName != nil
+            ? "Code preview of \(environmentName!) in pad \(padID)"
+            : "Code preview of pad \(padID)"
+    }
+
+    private func copy(_ text: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
     }
 }
 

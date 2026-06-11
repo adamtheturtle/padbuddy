@@ -63,7 +63,7 @@ struct MenuBarView: View {
                 ForEach(myPads.prefix(topN)) { pad in
                     Button {
                         if let url = URL(string: pad.url) {
-                            NSWorkspace.shared.open(url)
+                            BrowserSettings.openExternally(url)
                         }
                     } label: {
                         Text(padLabel(pad))
@@ -91,15 +91,13 @@ struct MenuBarView: View {
 
             Button("New Pad…") {
                 openMain()
-                NotificationCenter.default.post(name: .sectionRequested, object: AppSection.pads)
-                NotificationCenter.default.post(name: .createPadRequested, object: nil)
+                AppNavigation.shared.showPads(PadsRequest(startCreating: true))
             }
             .keyboardShortcut("n")
 
             Button("New Question…") {
                 openMain()
-                NotificationCenter.default.post(name: .sectionRequested, object: AppSection.questions)
-                NotificationCenter.default.post(name: .createQuestionRequested, object: nil)
+                AppNavigation.shared.showQuestions(QuestionsRequest(startCreating: true))
             }
             .keyboardShortcut("n", modifiers: [.command, .shift])
 
@@ -181,7 +179,7 @@ struct MenuBarView: View {
         do {
             let pad = try await client.createPad(.fromQuestion(q))
             if let url = URL(string: pad.url) {
-                NSWorkspace.shared.open(url)
+                BrowserSettings.openExternally(url)
             }
         } catch {
             errorMessage = error.localizedDescription

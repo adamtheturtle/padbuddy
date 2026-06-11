@@ -4,6 +4,93 @@
 //
 
 import SwiftUI
+import AppKit
+
+/// Where a pad link opens when you activate it.
+enum LinkDestination: String, CaseIterable, Identifiable {
+    case inApp
+    case external
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .inApp: return "In-app browser"
+        case .external: return "Default browser"
+        }
+    }
+}
+
+/// An installed app that can open http(s) links, shown in the "Default browser" picker.
+struct InstalledBrowser: Identifiable, Hashable {
+    let bundleID: String
+    let name: String
+    var id: String { bundleID }
+}
+
+/// Browser-related preferences, stored in `UserDefaults` and read both by the
+/// settings UI and by the link-opening call sites across the app. Centralizing
+/// these here lets a single "Open" action honor the user's choice, which is why
+/// the per-location "open in default browser" buttons are no longer needed.
+enum BrowserSettings {
+    enum Key {
+        static let openLinksIn = "browser.openLinksIn"
+        static let defaultBrowserBundleID = "browser.defaultBrowserBundleID"
+        static let openInBackground = "browser.openInBackground"
+    }
+
+    static var openLinksIn: LinkDestination {
+        LinkDestination(rawValue: UserDefaults.standard.string(forKey: Key.openLinksIn) ?? "") ?? .inApp
+    }
+
+    static var defaultBrowserBundleID: String? {
+        UserDefaults.standard.string(forKey: Key.defaultBrowserBundleID)
+    }
+
+    static var openInBackground: Bool {
+        UserDefaults.standard.bool(forKey: Key.openInBackground)
+    }
+
+    /// A representative URL used to discover http(s)-capable apps.
+    private static let probeURL = URL(string: "https://app.coderpad.io")!
+
+    /// Open a link in the user's chosen browser, honoring the background preference.
+    @MainActor
+    static func openExternally(_ url: URL) {
+        let config = NSWorkspace.OpenConfiguration()
+        config.activates = !openInBackground
+        let appURL = defaultBrowserBundleID.flatMap {
+            NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0)
+        } ?? NSWorkspace.shared.urlForApplication(toOpen: probeURL)
+        if let appURL {
+            NSWorkspace.shared.open([url], withApplicationAt: appURL, configuration: config)
+        } else {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    /// http(s)-capable apps installed on this Mac, de-duplicated and sorted by name.
+    static func installedBrowsers() -> [InstalledBrowser] {
+        let urls = NSWorkspace.shared.urlsForApplications(toOpen: probeURL)
+        var seen = Set<String>()
+        return urls.compactMap { appURL -> InstalledBrowser? in
+            guard let id = Bundle(url: appURL)?.bundleIdentifier, seen.insert(id).inserted else { return nil }
+            return InstalledBrowser(bundleID: id, name: displayName(for: appURL))
+        }
+        .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+    }
+
+    /// The name of the system's current default browser, e.g. "Safari".
+    static func systemDefaultBrowserName() -> String {
+        guard let appURL = NSWorkspace.shared.urlForApplication(toOpen: probeURL) else { return "Safari" }
+        return displayName(for: appURL)
+    }
+
+    private static func displayName(for appURL: URL) -> String {
+        FileManager.default.displayName(atPath: appURL.path)
+            .replacingOccurrences(of: ".app", with: "")
+    }
+}
 
 struct SettingsView: View {
     @State private var store = AccountsStore.shared
@@ -14,6 +101,8 @@ struct SettingsView: View {
         TabView {
             accountsTab
                 .tabItem { Label("Accounts", systemImage: "person.crop.circle") }
+            browserTab
+                .tabItem { Label("Browser", systemImage: "safari") }
             menuBarTab
                 .tabItem { Label("Menu Bar", systemImage: "menubar.rectangle") }
         }
@@ -125,6 +214,46 @@ struct SettingsView: View {
         .padding(20)
     }
 
+    private var browserTab: some View {
+        let openLinksIn = Binding(
+            get: { BrowserSettings.openLinksIn },
+            set: { UserDefaults.standard.set($0.rawValue, forKey: BrowserSettings.Key.openLinksIn) }
+        )
+        let defaultBrowser = Binding(
+            get: { BrowserSettings.defaultBrowserBundleID },
+            set: { UserDefaults.standard.set($0, forKey: BrowserSettings.Key.defaultBrowserBundleID) }
+        )
+        let openInBackground = Binding(
+            get: { BrowserSettings.openInBackground },
+            set: { UserDefaults.standard.set($0, forKey: BrowserSettings.Key.openInBackground) }
+        )
+        return Form {
+            Section {
+                Picker("Open links", selection: openLinksIn) {
+                    ForEach(LinkDestination.allCases) { destination in
+                        Text(destination.label).tag(destination)
+                    }
+                }
+            }
+            Section {
+                Picker("Default browser", selection: defaultBrowser) {
+                    Text("Use system default (\(BrowserSettings.systemDefaultBrowserName()))")
+                        .tag(String?.none)
+                    ForEach(BrowserSettings.installedBrowsers()) { browser in
+                        Text(browser.name).tag(Optional(browser.bundleID))
+                    }
+                }
+            }
+            Section {
+                Toggle("Open links in background", isOn: openInBackground)
+            } footer: {
+                Text("Please note that some third-party browsers do not support opening links in the background.")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+    }
+
     private var menuBarTab: some View {
         let topN = Binding(
             get: { UserDefaults.standard.integer(forKey: "menuBarTopN").nonZero ?? 10 },
@@ -228,11 +357,12 @@ struct AccountEditor: View {
                 }
                 if isValidated {
                     TextField("Name", text: $draft.name, prompt: Text("Auto-filled from your organization"))
-                    Picker("Your email", selection: $draft.userEmail) {
-                        Text("Not set").tag(String?.none)
-                        ForEach(emailOptions, id: \.self) { email in
-                            Text(emailLabel(email)).tag(String?.some(email))
-                        }
+                    LabeledContent("Your email") {
+                        OrgMemberPicker(
+                            selection: $draft.userEmail,
+                            options: emailOptions,
+                            label: emailLabel
+                        )
                     }
                     .help("Used to show only your pads in the menu bar.")
                 }
@@ -375,6 +505,95 @@ struct AccountEditor: View {
             return "Couldn't reach CoderPad. Check your internet connection and try again."
         }
         return "Couldn't validate this key. Try again."
+    }
+}
+
+/// A searchable replacement for a long `Picker` of organization members. Shows the
+/// current selection as a button; tapping opens a popover with a search field that
+/// filters the (potentially large) member list so you don't scroll a huge menu.
+private struct OrgMemberPicker: View {
+    @Binding var selection: String?
+    let options: [String]
+    let label: (String) -> String
+
+    @State private var isPresented = false
+    @State private var query = ""
+    @FocusState private var searchFocused: Bool
+
+    private var filtered: [String] {
+        let q = query.trimmingCharacters(in: .whitespaces)
+        guard !q.isEmpty else { return options }
+        return options.filter { label($0).localizedCaseInsensitiveContains(q) }
+    }
+
+    var body: some View {
+        Button {
+            isPresented = true
+        } label: {
+            HStack {
+                Text(selection.map(label) ?? "Not set")
+                    .foregroundStyle(selection == nil ? .secondary : .primary)
+                    .lineLimit(1)
+                Spacer()
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .buttonStyle(.bordered)
+        .popover(isPresented: $isPresented, arrowEdge: .bottom) {
+            VStack(spacing: 0) {
+                TextField("Search members", text: $query)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($searchFocused)
+                    .padding(8)
+
+                Divider()
+
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        memberRow(email: nil, title: "Not set")
+                        ForEach(filtered, id: \.self) { email in
+                            memberRow(email: email, title: label(email))
+                        }
+                        if filtered.isEmpty {
+                            Text("No members match “\(query)”")
+                                .foregroundStyle(.secondary)
+                                .font(.callout)
+                                .padding(8)
+                        }
+                    }
+                }
+                .frame(maxHeight: 240)
+            }
+            .frame(width: 320)
+            .onAppear { searchFocused = true }
+        }
+    }
+
+    @ViewBuilder
+    private func memberRow(email: String?, title: String) -> some View {
+        let isSelected = email == selection
+        Button {
+            selection = email
+            isPresented = false
+        } label: {
+            HStack {
+                Text(title)
+                    .foregroundStyle(email == nil ? .secondary : .primary)
+                    .lineLimit(1)
+                Spacer()
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .foregroundStyle(.tint)
+                }
+            }
+            .contentShape(Rectangle())
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+        }
+        .buttonStyle(.plain)
+        .background(isSelected ? Color.accentColor.opacity(0.12) : .clear)
     }
 }
 

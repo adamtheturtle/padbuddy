@@ -107,9 +107,10 @@ struct PadBrowserView: View {
             Spacer(minLength: 8)
 
             Button {
-                NSWorkspace.shared.open(controller.currentURL ?? url)
+                BrowserSettings.openExternally(controller.currentURL ?? url)
             } label: {
                 Label("Open in Browser", systemImage: "safari")
+                    .fixedSize()
             }
             .help("Open the current page in your default browser")
 

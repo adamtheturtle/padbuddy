@@ -9,21 +9,72 @@ import AppKit
 let copyrightLine = "Copyright © 2026 Adam Dangoor"
 
 extension Notification.Name {
-    static let createPadRequested = Notification.Name("coderpad.createPadRequested")
-    static let sectionRequested = Notification.Name("coderpad.sectionRequested")
     static let reloadRequested = Notification.Name("coderpad.reloadRequested")
     static let openPadByURLRequested = Notification.Name("coderpad.openPadByURLRequested")
     static let padUpdated = Notification.Name("coderpad.padUpdated")
     static let padDeleted = Notification.Name("coderpad.padDeleted")
-    static let padsSearchRequested = Notification.Name("coderpad.padsSearchRequested")
     static let questionUpdated = Notification.Name("coderpad.questionUpdated")
     static let questionDeleted = Notification.Name("coderpad.questionDeleted")
     static let openPadIDRequested = Notification.Name("coderpad.openPadIDRequested")
     static let openSettingsRequested = Notification.Name("coderpad.openSettingsRequested")
-    static let createQuestionRequested = Notification.Name("coderpad.createQuestionRequested")
     static let openPadInBrowserRequested = Notification.Name("coderpad.openPadInBrowserRequested")
-    static let padsFilterByOwnerRequested = Notification.Name("coderpad.padsFilterByOwnerRequested")
-    static let questionsSearchRequested = Notification.Name("coderpad.questionsSearchRequested")
+}
+
+/// A one-shot request for the Pads pane to apply when it next appears. Unlike a
+/// transient notification, it survives until the destination view actually mounts
+/// and consumes it — so "switch to Pads, then filter/search/create" works even
+/// when PadsView isn't on screen at the moment the request is made.
+struct PadsRequest: Equatable {
+    var ownerEmail: String?
+    var search: String?
+    var startCreating = false
+}
+
+/// The Questions-pane equivalent of `PadsRequest`.
+struct QuestionsRequest: Equatable {
+    var search: String?
+    var startCreating = false
+}
+
+/// Single source of truth for the visible section and any pending request queued
+/// for a section's pane. Centralizing this removes the ordering hazard of posting
+/// "switch section" and "apply filter" as two separate notifications: the target
+/// pane may not be mounted yet when the second one fires, so it would be dropped.
+/// Here the request is durable state the pane reads on appear.
+@Observable
+final class AppNavigation {
+    static let shared = AppNavigation()
+    private init() {}
+
+    var section: AppSection = .pads
+
+    /// Consumed and cleared by PadsView when it appears or this value changes.
+    var padsRequest: PadsRequest?
+    /// Consumed and cleared by QuestionsView when it appears or this value changes.
+    var questionsRequest: QuestionsRequest?
+
+    /// A question id whose detail pane should immediately create a pad and open it
+    /// inline (the in-pane browser), matching the detail view's "New Pad" button.
+    /// Set by the Questions list's context menu (after selecting that question) and
+    /// consumed/cleared by QuestionDetailView when it appears or this value changes.
+    var createPadForQuestionID: Int?
+
+    /// Switch to a section with no pending request.
+    func show(_ section: AppSection) {
+        self.section = section
+    }
+
+    /// Switch to Pads and queue a request for the list to apply on appear.
+    func showPads(_ request: PadsRequest = PadsRequest()) {
+        section = .pads
+        padsRequest = request
+    }
+
+    /// Switch to Questions and queue a request for the list to apply on appear.
+    func showQuestions(_ request: QuestionsRequest = QuestionsRequest()) {
+        section = .questions
+        questionsRequest = request
+    }
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -41,12 +92,12 @@ struct coderpadApp: App {
             ContentView()
                 .frame(minWidth: 940, minHeight: 540)
         }
-        .windowStyle(.titleBar)
-        .windowToolbarStyle(.unifiedCompact)
+        .windowStyle(.hiddenTitleBar)
         .defaultLaunchBehavior(.presented)
         .defaultSize(width: 1100, height: 720)
         .commands {
             appCommands
+            FindCommands()
             PadCommands()
         }
 
@@ -76,12 +127,11 @@ struct coderpadApp: App {
         }
         CommandGroup(after: .newItem) {
             Button("New Pad…") {
-                NotificationCenter.default.post(name: .createPadRequested, object: nil)
+                AppNavigation.shared.showPads(PadsRequest(startCreating: true))
             }
             .keyboardShortcut("n", modifiers: [.command])
             Button("New Question…") {
-                NotificationCenter.default.post(name: .sectionRequested, object: AppSection.questions)
-                NotificationCenter.default.post(name: .createQuestionRequested, object: nil)
+                AppNavigation.shared.showQuestions(QuestionsRequest(startCreating: true))
             }
             .keyboardShortcut("n", modifiers: [.command, .shift])
             Button("Open Pad by URL…") {
@@ -108,7 +158,7 @@ struct coderpadApp: App {
     }
 
     private func post(_ section: AppSection) {
-        NotificationCenter.default.post(name: .sectionRequested, object: section)
+        AppNavigation.shared.show(section)
     }
 
     private func showAbout() {
@@ -136,6 +186,21 @@ github.com/adamtheturtle/coderpad-macos
             NSApplication.AboutPanelOptionKey.credits: credits,
             NSApplication.AboutPanelOptionKey(rawValue: "Copyright"): copyrightLine,
         ])
+    }
+}
+
+/// Wires ⌘F to the search field of whichever pane is on screen. The pane
+/// publishes a `findAction`; here we surface it as a standard Find menu item in
+/// the Edit menu, disabled in sections (like Quota) that have nothing to search.
+struct FindCommands: Commands {
+    @FocusedValue(\.findAction) private var findAction
+
+    var body: some Commands {
+        CommandGroup(after: .textEditing) {
+            Button("Find") { findAction?.perform() }
+                .keyboardShortcut("f", modifiers: [.command])
+                .disabled(findAction == nil)
+        }
     }
 }
 

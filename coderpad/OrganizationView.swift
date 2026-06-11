@@ -5,6 +5,36 @@
 
 import SwiftUI
 
+/// Selectable window for the organization pad-usage stats. `nil` dates mean the
+/// API's own default (last 7 days); the presets compute an explicit range.
+enum StatsPeriod: String, CaseIterable, Identifiable {
+    case days7 = "Last 7 days"
+    case days30 = "Last 30 days"
+    case days90 = "Last 90 days"
+    case months12 = "Last 12 months"
+    case custom = "Custom range"
+
+    var id: String { rawValue }
+
+    private var days: Int? {
+        switch self {
+        case .days7: return 7
+        case .days30: return 30
+        case .days90: return 90
+        case .months12: return 365
+        case .custom: return nil
+        }
+    }
+
+    /// The (start, end) window ending now for the selected preset, or `nil` for
+    /// `.custom` where the dates come from the view's own pickers.
+    func range(now: Date = Date()) -> (start: Date, end: Date)? {
+        guard let days else { return nil }
+        let start = Calendar.current.date(byAdding: .day, value: -days, to: now) ?? now
+        return (start, now)
+    }
+}
+
 struct OrganizationView: View {
     let client: CoderPadClient
     @State private var organization: Organization?
@@ -13,6 +43,16 @@ struct OrganizationView: View {
     @State private var isLoading = false
     @State private var error: Error?
     @State private var userSearch = ""
+    @FocusState private var userSearchFocused: Bool
+    @State private var period: StatsPeriod = .days7
+    @State private var customStart = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
+    @State private var customEnd = Date()
+
+    /// Resolved (start, end) window for the active period, falling back to the
+    /// custom pickers when no preset range applies.
+    private var window: (start: Date, end: Date) {
+        period.range() ?? (customStart, customEnd)
+    }
 
     var body: some View {
         Group {
@@ -24,7 +64,9 @@ struct OrganizationView: View {
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
-                        PaneTitle(title: "Organization")
+                        PaneTitle(title: "Organization") {
+                            periodControls
+                        }
                         VStack(alignment: .leading, spacing: 18) {
                             header
                             statTiles
@@ -40,13 +82,47 @@ struct OrganizationView: View {
             }
         }
         .task(id: client.apiKey) { await reload() }
-        .toolbar {
-            ToolbarItem {
-                Button { Task { await reload() } } label: {
-                    Label("Reload", systemImage: "arrow.clockwise")
-                }
-                .disabled(isLoading)
+        .onChange(of: period) { _, _ in
+            Task { await reloadStats() }
+        }
+        .onChange(of: customStart) { _, _ in
+            guard period == .custom else { return }
+            Task { await reloadStats() }
+        }
+        .onChange(of: customEnd) { _, _ in
+            guard period == .custom else { return }
+            Task { await reloadStats() }
+        }
+        .focusedSceneValue(\.findAction, FindAction { userSearchFocused = true })
+    }
+
+    private var periodControls: some View {
+        HStack(spacing: 8) {
+            Picker("Period", selection: $period) {
+                ForEach(StatsPeriod.allCases) { Text($0.rawValue).tag($0) }
             }
+            .pickerStyle(.menu)
+            .labelsHidden()
+            .fixedSize()
+            if period == .custom {
+                DatePicker("From", selection: $customStart, in: ...customEnd, displayedComponents: .date)
+                    .datePickerStyle(.field)
+                    .labelsHidden()
+                DatePicker("To", selection: $customEnd, in: customStart..., displayedComponents: .date)
+                    .datePickerStyle(.field)
+                    .labelsHidden()
+            }
+            Button { Task { await reload() } } label: {
+                if isLoading {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Image(systemName: "arrow.clockwise")
+                }
+            }
+            .buttonStyle(.borderless)
+            .help("Reload")
+            .accessibilityLabel("Reload")
+            .disabled(isLoading)
         }
     }
 
@@ -70,7 +146,7 @@ struct OrganizationView: View {
                      systemImage: "person.3.fill", tint: .blue)
             StatTile(title: "Teams", value: organization.map { "\($0.teams.count)" } ?? "…",
                      systemImage: "rectangle.stack.person.crop", tint: .indigo)
-            StatTile(title: "Pads (period)", value: stats.map { "\($0.padsCreated)" } ?? "…",
+            StatTile(title: "Pads (\(period.rawValue.lowercased()))", value: stats.map { "\($0.padsCreated)" } ?? "…",
                      systemImage: "doc.text.fill", tint: .teal)
             if let quota {
                 if quota.unlimited == true {
@@ -118,11 +194,11 @@ struct OrganizationView: View {
                 }
                 TextField("Search users…", text: $userSearch)
                     .textFieldStyle(.roundedBorder)
+                    .focused($userSearchFocused)
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 240), spacing: 10)], alignment: .leading, spacing: 10) {
                     ForEach(filteredUsers(org)) { user in
                         Button {
-                            NotificationCenter.default.post(name: .sectionRequested, object: AppSection.pads)
-                            NotificationCenter.default.post(name: .padsFilterByOwnerRequested, object: user.email)
+                            AppNavigation.shared.showPads(PadsRequest(ownerEmail: user.email))
                         } label: {
                             HStack(spacing: 10) {
                                 AvatarCircle(label: user.name ?? user.email, diameter: 32)
@@ -162,9 +238,10 @@ struct OrganizationView: View {
         isLoading = true
         error = nil
         defer { isLoading = false }
+        let window = window
         do {
             async let o = client.organization()
-            async let s = client.organizationStats()
+            async let s = client.organizationStats(start: window.start, end: window.end)
             async let q = client.quota()
             organization = try await o
             stats = try? await s
@@ -172,5 +249,13 @@ struct OrganizationView: View {
         } catch {
             self.error = error
         }
+    }
+
+    /// Refetches just the stats when the period changes, leaving the rest of the
+    /// loaded organization data in place.
+    private func reloadStats() async {
+        guard !client.apiKey.isEmpty else { return }
+        let window = window
+        stats = try? await client.organizationStats(start: window.start, end: window.end)
     }
 }

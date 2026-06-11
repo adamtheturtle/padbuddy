@@ -118,7 +118,45 @@ final class AccountsStore {
         if loaded.isEmpty {
             migrateLegacyIfNeeded()
         }
+
+        #if DEBUG
+        seedDevKeyFromEnvironmentIfAvailable()
+        #endif
     }
+
+    #if DEBUG
+    /// Name of the auto-managed account backed by the `CODERPAD_API_KEY` env var.
+    private static let devAccountName = "Dev (env key)"
+
+    /// Debug-only convenience so testing against real data doesn't mean re-typing
+    /// the key each run. Reads `CODERPAD_API_KEY` (and optional `CODERPAD_USER_EMAIL`)
+    /// from the process environment — set once in the scheme's Run action — and
+    /// seeds, refreshes, then selects a dedicated live account from it. Env vars are
+    /// readable under the App Sandbox, unlike a home-directory dotfile. Keep that
+    /// scheme non-shared (xcuserdata) so the key never lands in git.
+    private func seedDevKeyFromEnvironmentIfAvailable() {
+        let env = ProcessInfo.processInfo.environment
+        guard let rawKey = env["CODERPAD_API_KEY"]?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !rawKey.isEmpty else { return }
+        let trimmedEmail = env["CODERPAD_USER_EMAIL"]?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let email = (trimmedEmail?.isEmpty == false) ? trimmedEmail : nil
+
+        if let existing = accounts.first(where: { $0.name == Self.devAccountName }) {
+            if existing.apiKey != rawKey || existing.userEmail != email {
+                var refreshed = existing
+                refreshed.apiKey = rawKey
+                refreshed.userEmail = email
+                update(refreshed)
+            }
+            currentAccountID = existing.id
+        } else {
+            let account = Account(name: Self.devAccountName, apiKey: rawKey, userEmail: email)
+            add(account)
+            currentAccountID = account.id
+        }
+    }
+    #endif
 
     func add(_ account: Account) {
         accounts.append(account)
@@ -145,6 +183,10 @@ final class AccountsStore {
         if currentAccountID == id {
             currentAccountID = accounts.first?.id
         }
+        // Drop the account's cached pads/questions so a removed key leaves nothing
+        // behind on disk and a re-added account starts clean.
+        PadsCacheStore.shared.remove(id)
+        QuestionsCacheStore.shared.remove(id)
     }
 
     private func migrateLegacyIfNeeded() {
@@ -328,21 +370,128 @@ final class SavedSearchStore {
     }
 }
 
+/// On-disk backing for the per-account list caches. Lets pads and questions a
+/// returning user already loaded appear instantly on the next cold launch, with
+/// the network fetch refreshing them in the background (stale-while-revalidate).
+///
+/// Snapshots live in Application Support, one JSON file per account+kind. The
+/// encoder/decoder pair is symmetric (default strategies), so it round-trips the
+/// API models faithfully without depending on the API's date format.
+enum CacheDisk {
+    // nonisolated so reads/writes genuinely run off the main actor when invoked
+    // from a detached task, rather than hopping back to the main thread.
+    private nonisolated static let logger = Logger(subsystem: "com.coderpad.app", category: "cache")
+
+    private nonisolated static func url(kind: String, account: UUID) -> URL? {
+        guard let base = FileManager.default.urls(for: .applicationSupportDirectory,
+                                                  in: .userDomainMask).first else { return nil }
+        let dir = base.appendingPathComponent("com.coderpad.app/DataCache", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir.appendingPathComponent("\(kind)-\(account.uuidString).json")
+    }
+
+    nonisolated static func load<T: Decodable>(_ type: T.Type, kind: String, account: UUID) -> T? {
+        guard let url = url(kind: kind, account: account),
+              let data = try? Data(contentsOf: url) else { return nil }
+        do {
+            return try JSONDecoder().decode(T.self, from: data)
+        } catch {
+            logger.error("Failed to decode \(kind, privacy: .public) cache: \(error.localizedDescription, privacy: .public)")
+            return nil
+        }
+    }
+
+    nonisolated static func save<T: Encodable>(_ value: T, kind: String, account: UUID) {
+        guard let url = url(kind: kind, account: account) else { return }
+        do {
+            let data = try JSONEncoder().encode(value)
+            try data.write(to: url, options: .atomic)
+        } catch {
+            logger.error("Failed to write \(kind, privacy: .public) cache: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    nonisolated static func delete(kind: String, account: UUID) {
+        guard let url = url(kind: kind, account: account) else { return }
+        try? FileManager.default.removeItem(at: url)
+    }
+}
+
 @Observable
 final class PadsCacheStore {
     static let shared = PadsCacheStore()
     private(set) var padsByAccount: [UUID: [Pad]] = [:]
+    /// Accounts whose disk snapshot we've already consulted, so a genuinely empty
+    /// cache isn't re-read from disk on every `get`.
+    private var diskConsulted: Set<UUID> = []
     private init() {}
-    func get(_ accountID: UUID) -> [Pad] { padsByAccount[accountID] ?? [] }
-    func set(_ accountID: UUID, pads: [Pad]) { padsByAccount[accountID] = pads }
+
+    func get(_ accountID: UUID) -> [Pad] {
+        if let cached = padsByAccount[accountID] { return cached }
+        if !diskConsulted.contains(accountID) {
+            diskConsulted.insert(accountID)
+            if let disk = CacheDisk.load([Pad].self, kind: "pads", account: accountID) {
+                padsByAccount[accountID] = disk
+                return disk
+            }
+        }
+        return []
+    }
+
+    /// `persist: false` updates only the in-memory snapshot, skipping the disk write —
+    /// used when streaming pages so intermediate snapshots warm the UI without churning
+    /// the disk; the caller persists once with the final, complete list.
+    func set(_ accountID: UUID, pads: [Pad], persist: Bool = true) {
+        padsByAccount[accountID] = pads
+        diskConsulted.insert(accountID)
+        guard persist else { return }
+        Task.detached(priority: .utility) {
+            CacheDisk.save(pads, kind: "pads", account: accountID)
+        }
+    }
+
+    func remove(_ accountID: UUID) {
+        padsByAccount[accountID] = nil
+        diskConsulted.remove(accountID)
+        Task.detached(priority: .utility) {
+            CacheDisk.delete(kind: "pads", account: accountID)
+        }
+    }
 }
 
 @Observable
 final class QuestionsCacheStore {
     static let shared = QuestionsCacheStore()
     private(set) var questionsByAccount: [UUID: [Question]] = [:]
+    private var diskConsulted: Set<UUID> = []
     private init() {}
-    func get(_ accountID: UUID) -> [Question] { questionsByAccount[accountID] ?? [] }
-    func set(_ accountID: UUID, questions: [Question]) { questionsByAccount[accountID] = questions }
+
+    func get(_ accountID: UUID) -> [Question] {
+        if let cached = questionsByAccount[accountID] { return cached }
+        if !diskConsulted.contains(accountID) {
+            diskConsulted.insert(accountID)
+            if let disk = CacheDisk.load([Question].self, kind: "questions", account: accountID) {
+                questionsByAccount[accountID] = disk
+                return disk
+            }
+        }
+        return []
+    }
+
+    func set(_ accountID: UUID, questions: [Question]) {
+        questionsByAccount[accountID] = questions
+        diskConsulted.insert(accountID)
+        Task.detached(priority: .utility) {
+            CacheDisk.save(questions, kind: "questions", account: accountID)
+        }
+    }
+
+    func remove(_ accountID: UUID) {
+        questionsByAccount[accountID] = nil
+        diskConsulted.remove(accountID)
+        Task.detached(priority: .utility) {
+            CacheDisk.delete(kind: "questions", account: accountID)
+        }
+    }
 }
 

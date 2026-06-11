@@ -4,13 +4,14 @@
 //
 
 import SwiftUI
+import AppKit
 
 struct QuestionsView: View {
     let client: CoderPadClient
     @Environment(\.orgDirectory) private var directory
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.openWindow) private var openWindow
     @State private var accounts = AccountsStore.shared
+    @State private var nav = AppNavigation.shared
     @State private var cache = QuestionsCacheStore.shared
     @State private var questions: [Question] = []
 
@@ -19,13 +20,13 @@ struct QuestionsView: View {
     @State private var error: Error?
     @Binding var selection: Question?
     @State private var search = ""
+    @FocusState private var searchFieldFocused: Bool
     @State private var languageFilter: String? = nil
     @State private var ownerFilter: String? = nil
-    @State private var takeHomeFilter: String? = nil
+    @State private var typeFilter: String? = nil
     @State private var draftFilter: String? = nil
-    @State private var lastFetched: Date?
+    @State private var sort: QuestionSort = .lastUsedDesc
     @State private var showCreate = false
-    @State private var createPadError: String?
 
     var body: some View {
         sidebar
@@ -58,15 +59,20 @@ struct QuestionsView: View {
                 if selection?.id == id { selection = nil }
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .createQuestionRequested)) { _ in
-            showCreate = true
-        }
+        .onAppear { applyPendingRequest() }
+        .onChange(of: nav.questionsRequest) { _, _ in applyPendingRequest() }
         .onReceive(NotificationCenter.default.publisher(for: .reloadRequested)) { _ in
             Task { await reload() }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .questionsSearchRequested)) { note in
-            if let q = note.object as? String { search = q }
-        }
+    }
+
+    /// Applies any request queued by `AppNavigation`, then clears it. See the
+    /// matching method in `PadsView` for the appear-vs-change rationale.
+    private func applyPendingRequest() {
+        guard let request = nav.questionsRequest else { return }
+        nav.questionsRequest = nil
+        if let query = request.search { search = query }
+        if request.startCreating { showCreate = true }
     }
 
     private var filtered: [Question] {
@@ -74,9 +80,7 @@ struct QuestionsView: View {
         return questions.filter { q in
             (languageFilter == nil || (q.language ?? "").lowercased() == languageFilter) &&
             (ownerFilter == nil || q.ownerEmail == ownerFilter) &&
-            (takeHomeFilter == nil
-             || (takeHomeFilter == "yes" && q.takeHome == true)
-             || (takeHomeFilter == "no" && q.takeHome != true)) &&
+            (typeFilter == nil || q.interviewType.rawValue == typeFilter) &&
             (draftFilter == nil
              || (draftFilter == "draft" && q.isDraft == true)
              || (draftFilter == "published" && q.isDraft != true)) &&
@@ -88,6 +92,22 @@ struct QuestionsView: View {
         }
     }
 
+    /// Filtered questions arranged by the active sort. "Last used" is backed by
+    /// `updatedAt` — the only per-question recency signal the API exposes.
+    private var sorted: [Question] {
+        let items = filtered
+        switch sort {
+        case .titleAsc:
+            return items.sorted { $0.displayTitle.localizedCaseInsensitiveCompare($1.displayTitle) == .orderedAscending }
+        case .titleDesc:
+            return items.sorted { $0.displayTitle.localizedCaseInsensitiveCompare($1.displayTitle) == .orderedDescending }
+        case .lastUsedDesc:
+            return items.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
+        case .lastUsedAsc:
+            return items.sorted { ($0.updatedAt ?? .distantPast) < ($1.updatedAt ?? .distantPast) }
+        }
+    }
+
     private var availableLanguages: [String] {
         Array(Set(questions.compactMap { $0.language?.lowercased() }).filter { !$0.isEmpty }).sorted()
     }
@@ -96,7 +116,7 @@ struct QuestionsView: View {
     }
 
     private var activeFilterCount: Int {
-        [languageFilter, ownerFilter, takeHomeFilter, draftFilter].compactMap { $0 }.count
+        [languageFilter, ownerFilter, typeFilter, draftFilter].compactMap { $0 }.count
     }
 
     private var sidebar: some View {
@@ -107,22 +127,27 @@ struct QuestionsView: View {
                 APIErrorView(error: error) { Task { await reload() } }
             } else {
                 VStack(spacing: 0) {
-                    PaneTitle(
-                        title: "Questions",
-                        subtitle: lastFetched.map { "Updated \($0.formatted(.relative(presentation: .named)))" }
-                    )
-                    InlineSearchField(query: $search, prompt: "Search title, author…")
-                        .padding(.horizontal, Spacing.paneH)
-                        .padding(.bottom, 8)
+                    PaneTitle(title: "Questions")
+                    HStack(spacing: 8) {
+                        InlineSearchField(query: $search, prompt: "Search title, author…",
+                                          focused: $searchFieldFocused)
+                        paneActions
+                    }
+                    .padding(.horizontal, Spacing.paneH)
+                    .padding(.bottom, 8)
                     filterBar
                     Divider()
                     List(selection: $selection) {
-                        ForEach(filtered) { q in
+                        ForEach(sorted) { q in
                             QuestionRow(question: q)
                                 .tag(q)
                                 .contextMenu {
                                     Button {
-                                        Task { await createPad(fromQuestion: q) }
+                                        // Mirror the detail view's "New Pad" button: select the
+                                        // question so its detail pane shows, then let that pane
+                                        // create the pad and open it inline.
+                                        selection = q
+                                        nav.createPadForQuestionID = q.id
                                     } label: {
                                         Label("New Pad from Question", systemImage: "plus.rectangle.on.rectangle")
                                     }
@@ -134,30 +159,41 @@ struct QuestionsView: View {
                 }
             }
         }
-        .toolbar {
-            ToolbarItem {
-                Button { showCreate = true } label: {
-                    Label("New Question", systemImage: "plus")
+        .focusedSceneValue(\.findAction, FindAction { searchFieldFocused = true })
+    }
+
+    private var paneActions: some View {
+        HStack(spacing: 2) {
+            Menu {
+                Picker("Sort", selection: $sort) {
+                    ForEach(QuestionSort.allCases) { Text($0.label).tag($0) }
                 }
-                .disabled(client.apiKey.isEmpty)
+                .pickerStyle(.inline)
+            } label: {
+                Image(systemName: "arrow.up.arrow.down")
             }
-            ToolbarItem {
-                Button { Task { await reload() } } label: {
-                    if isLoading {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Label("Reload", systemImage: "arrow.clockwise")
-                    }
+            .menuIndicator(.hidden)
+            .fixedSize()
+            .help("Sort questions")
+            .accessibilityLabel("Sort questions")
+            Button { showCreate = true } label: {
+                Image(systemName: "plus")
+            }
+            .buttonStyle(.borderless)
+            .help("New Question")
+            .accessibilityLabel("New Question")
+            .disabled(client.apiKey.isEmpty)
+            Button { Task { await reload() } } label: {
+                if isLoading {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Image(systemName: "arrow.clockwise")
                 }
-                .disabled(isLoading)
             }
-        }
-        .alert("Couldn’t create pad",
-               isPresented: Binding(get: { createPadError != nil },
-                                    set: { if !$0 { createPadError = nil } })) {
-            Button("OK", role: .cancel) { createPadError = nil }
-        } message: {
-            if let createPadError { Text(createPadError) }
+            .buttonStyle(.borderless)
+            .help("Reload")
+            .accessibilityLabel("Reload")
+            .disabled(isLoading)
         }
     }
 
@@ -172,16 +208,17 @@ struct QuestionsView: View {
                                      selected: $ownerFilter, options: availableOwners,
                                      formatter: { directory.display($0) },
                                      meEmail: accounts.currentAccount?.userEmail)
-                FilterChipMenu(title: "Take-home", icon: "house",
-                               selected: $takeHomeFilter, options: ["yes", "no"],
-                               formatter: { $0.capitalized })
+                FilterChipMenu(title: "Type", icon: "tag",
+                               selected: $typeFilter,
+                               options: InterviewType.allCases.map(\.rawValue),
+                               formatter: { InterviewType(rawValue: $0)?.label ?? $0.capitalized })
                 FilterChipMenu(title: "Status", icon: "doc.badge.ellipsis",
                                selected: $draftFilter, options: ["draft", "published"],
                                formatter: { $0.capitalized })
                 if activeFilterCount > 0 {
                     Button(role: .destructive) {
                         languageFilter = nil; ownerFilter = nil
-                        takeHomeFilter = nil; draftFilter = nil
+                        typeFilter = nil; draftFilter = nil
                     } label: {
                         Label("Clear", systemImage: "xmark.circle.fill")
                     }
@@ -202,33 +239,51 @@ struct QuestionsView: View {
         error = nil
         defer { isLoading = false }
         do {
-            let fetched = try await client.listQuestions()
-            let sorted = fetched.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
-            questions = sorted
-            if let id = accounts.currentAccountID {
-                cache.set(id, questions: sorted)
+            // Render page 1 immediately, then grow the list as later pages stream in.
+            // Snapshots arrive sorted updated_at,desc, so rows only append below.
+            var fetched: [Question] = []
+            for try await snapshot in client.listQuestionsIncrementally() {
+                fetched = snapshot
+                questions = snapshot
             }
-            lastFetched = Date()
+            if let id = accounts.currentAccountID {
+                cache.set(id, questions: fetched)
+            }
         } catch {
             self.error = error
         }
     }
 
-    private func createPad(fromQuestion q: Question) async {
-        do {
-            let pad = try await client.createPad(.fromQuestion(q))
-            if let url = URL(string: pad.url) {
-                openWindow(id: "pad-browser", value: url)
-            }
-        } catch {
-            createPadError = error.localizedDescription
-        }
-    }
 }
 
 private struct QuestionsTaskKey: Hashable {
     let apiKey: String
     let phase: ScenePhase
+}
+
+/// Sort orders offered for the Questions list. "Last used" is backed by the
+/// question's `updatedAt` timestamp — the API exposes no distinct last-used date.
+enum QuestionSort: String, CaseIterable, Identifiable {
+    case lastUsedDesc
+    case lastUsedAsc
+    case titleAsc
+    case titleDesc
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .lastUsedDesc: "Last used (newest first)"
+        case .lastUsedAsc: "Last used (oldest first)"
+        case .titleAsc: "Title (A–Z)"
+        case .titleDesc: "Title (Z–A)"
+        }
+    }
+}
+
+extension Question {
+    /// Title to display, falling back to `#id` when a question has no title.
+    var displayTitle: String { title.isEmpty ? "#\(id)" : title }
 }
 
 private struct QuestionRow: View {
@@ -238,15 +293,15 @@ private struct QuestionRow: View {
         HStack(alignment: .top, spacing: 10) {
             AvatarCircle(label: question.ownerEmail, diameter: 30, tint: .indigo)
             VStack(alignment: .leading, spacing: 4) {
-                Text(question.title.isEmpty ? "#\(question.id)" : question.title)
+                Text(question.displayTitle)
                     .font(.callout.weight(.medium))
                     .lineLimit(1)
                 HStack(spacing: 6) {
                     if let lang = question.language, !lang.isEmpty {
                         Chip(text: lang.languageDisplayName, systemImage: lang.languageSymbol, tint: lang.languageColor)
                     }
-                    if question.takeHome == true {
-                        Chip(text: "Take-home", systemImage: "house", tint: .pink)
+                    if question.interviewType == .takeHome {
+                        InterviewType.takeHome.chip
                     }
                     if let used = question.used, used > 0 {
                         Chip(text: "Used \(used)×", systemImage: "chart.bar", tint: .blue)
@@ -259,6 +314,16 @@ private struct QuestionRow: View {
                     Text(author).font(.caption).foregroundStyle(.secondary)
                 }
             }
+            Spacer(minLength: 8)
+            if let lastUsed = question.updatedAt {
+                Text(lastUsed.formatted(.relative(presentation: .named)))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .fixedSize()
+                    .help("Last used \(lastUsed.formatted(date: .abbreviated, time: .shortened))")
+                    .accessibilityLabel("Last used \(lastUsed.formatted(.relative(presentation: .named)))")
+            }
         }
         .padding(.vertical, 4)
     }
@@ -268,31 +333,22 @@ struct QuestionDetailView: View {
     let client: CoderPadClient
     let question: Question
     @Environment(\.openWindow) private var openWindow
+    @State private var nav = AppNavigation.shared
     @State private var showEdit = false
     @State private var showDeleteConfirm = false
     @State private var deleteError: String?
     @State private var isCreatingPad = false
     @State private var createPadError: String?
+    @State private var showBrowser = false
+    @State private var createdPadURL: URL?
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                header
-                metaCards
-                if let description = question.description, !description.isEmpty {
-                    descriptionCard(title: "Description", body: description)
-                }
-                if !question.candidateInstructions.isEmpty {
-                    instructionsCard
-                }
-                if let solution = question.solution, !solution.isEmpty {
-                    descriptionCard(title: "Solution", body: solution)
-                }
+        Group {
+            if showBrowser, let url = createdPadURL {
+                padBrowser(url: url)
+            } else {
+                detailScroll
             }
-            .padding(.horizontal, Spacing.paneH)
-            .padding(.top, Spacing.paneV)
-            .padding(.bottom, Spacing.paneV)
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .navigationTitle(question.title.isEmpty ? "#\(question.id)" : question.title)
         .sheet(isPresented: $showEdit) {
@@ -314,6 +370,61 @@ struct QuestionDetailView: View {
             Button("OK", role: .cancel) { createPadError = nil }
         } message: {
             if let createPadError { Text(createPadError) }
+        }
+        .onAppear { consumePendingPadCreation() }
+        .onChange(of: nav.createPadForQuestionID) { _, _ in consumePendingPadCreation() }
+    }
+
+    private var detailScroll: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                header
+                metaCards
+                if let description = question.description, !description.isEmpty {
+                    descriptionCard(title: "Description", body: description)
+                }
+                if !question.candidateInstructions.isEmpty {
+                    instructionsCard
+                }
+                if let solution = question.solution, !solution.isEmpty {
+                    descriptionCard(title: "Solution", body: solution)
+                }
+            }
+            .padding(.horizontal, Spacing.paneH)
+            .padding(.top, Spacing.paneV)
+            .padding(.bottom, Spacing.paneV)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    /// The freshly created pad shown in the in-pane browser, mirroring
+    /// `PadDetailView` so creating a pad here behaves like opening one there:
+    /// inline by default, with buttons to break out to a separate window or
+    /// the default browser.
+    private func padBrowser(url: URL) -> some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                Button {
+                    showBrowser = false
+                } label: {
+                    Label("Back to Question", systemImage: "chevron.left")
+                }
+                .buttonStyle(.borderless)
+                Spacer()
+                Button {
+                    openWindow(id: "pad-browser", value: url)
+                } label: {
+                    Image(systemName: "macwindow.badge.plus")
+                }
+                .help("Open in separate window")
+                .buttonStyle(.borderless)
+                .accessibilityLabel("Open in separate window")
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(.thinMaterial)
+            Divider()
+            PadBrowserView(url: url)
         }
     }
 
@@ -362,12 +473,7 @@ struct QuestionDetailView: View {
                 if let lang = question.language, !lang.isEmpty {
                     Chip(text: lang.languageDisplayName, systemImage: lang.languageSymbol, tint: lang.languageColor)
                 }
-                if let type = question.padType, !type.isEmpty {
-                    Chip(text: type, systemImage: "tag")
-                }
-                if question.takeHome == true {
-                    Chip(text: "Take-home", systemImage: "house", tint: .pink)
-                }
+                question.interviewType.chip
                 if question.shared == true {
                     Chip(text: "Shared", systemImage: "person.2", tint: .blue)
                 }
@@ -434,13 +540,23 @@ struct QuestionDetailView: View {
         }
     }
 
+    /// Honors a "New Pad from Question" request routed via `AppNavigation` (e.g.
+    /// from the Questions list's context menu): create the pad and open it inline,
+    /// exactly as the in-pane "New Pad" button does.
+    private func consumePendingPadCreation() {
+        guard nav.createPadForQuestionID == question.id else { return }
+        nav.createPadForQuestionID = nil
+        Task { await createPad() }
+    }
+
     private func createPad() async {
         isCreatingPad = true
         defer { isCreatingPad = false }
         do {
             let pad = try await client.createPad(.fromQuestion(question))
             if let url = URL(string: pad.url) {
-                openWindow(id: "pad-browser", value: url)
+                createdPadURL = url
+                showBrowser = true
             }
         } catch {
             createPadError = error.localizedDescription
@@ -450,7 +566,8 @@ struct QuestionDetailView: View {
 
 // MARK: - Question Create / Edit sheets
 
-private let padTypeOptions = ["live", "take-home"]
+private let padTypeOptions = InterviewType.allCases.map(\.rawValue)
+private func padTypeLabel(_ raw: String) -> String { InterviewType(rawValue: raw)?.label ?? raw.capitalized }
 
 private struct NewQuestionSheet: View {
     let client: CoderPadClient
@@ -475,7 +592,7 @@ private struct NewQuestionSheet: View {
                     ForEach(CoderPadLanguages.pickerOptions, id: \.self) { Text($0.languageDisplayName).tag($0) }
                 }
                 Picker("Type", selection: $padType) {
-                    ForEach(padTypeOptions, id: \.self) { Text($0.capitalized).tag($0) }
+                    ForEach(padTypeOptions, id: \.self) { Text(padTypeLabel($0)).tag($0) }
                 }
                 Section("Description") {
                     TextField("", text: $description, prompt: Text("Optional"), axis: .vertical)
@@ -581,7 +698,7 @@ private struct EditQuestionSheet: View {
                     if !CoderPadLanguages.pickerOptions.contains(language) { Text(language.languageDisplayName).tag(language) }
                 }
                 Picker("Type", selection: $padType) {
-                    ForEach(padTypeOptions, id: \.self) { Text($0.capitalized).tag($0) }
+                    ForEach(padTypeOptions, id: \.self) { Text(padTypeLabel($0)).tag($0) }
                     if !padTypeOptions.contains(padType) { Text(padType).tag(padType) }
                 }
                 Section("Description") {

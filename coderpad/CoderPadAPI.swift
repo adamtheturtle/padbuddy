@@ -96,6 +96,19 @@ struct Pad: Codable, Identifiable, Hashable {
     }
 }
 
+extension Pad {
+    /// The `updatedAt` timestamp, but only when it carries information beyond the
+    /// pad's end time. Ending a pad is itself a write, so for ended pads
+    /// `updated_at` usually equals `ended_at` and surfacing both is redundant.
+    /// Show it only when a later edit (notes, feedback) moved `updated_at`
+    /// meaningfully past the end.
+    var informativeUpdatedAt: Date? {
+        guard let updatedAt else { return nil }
+        guard let endedAt else { return updatedAt }
+        return updatedAt.timeIntervalSince(endedAt) > 60 ? updatedAt : nil
+    }
+}
+
 struct PadTeam: Codable, Hashable {
     let id: String
     let name: String
@@ -686,8 +699,9 @@ struct CoderPadClient {
     }
 
     func getPad(id: String) async throws -> Pad {
-        struct Wrapper: Decodable { let pad: Pad }
-        return try await fetch(Wrapper.self, path: "/api/pads/\(id)").pad
+        // The live API returns the pad's fields flat at the top level (alongside
+        // "status"), not nested under a "pad" key.
+        try await fetch(Pad.self, path: "/api/pads/\(id)")
     }
 
     func padEvents(padID: String) async throws -> [PadEvent] {
@@ -695,13 +709,13 @@ struct CoderPadClient {
     }
 
     func padEnvironment(id: Int) async throws -> PadEnvironment {
-        struct Wrapper: Decodable { let pad_environment: PadEnvironment }
-        return try await fetch(Wrapper.self, path: "/api/pad_environments/\(id)").pad_environment
+        // The live API returns the environment's fields flat at the top level.
+        try await fetch(PadEnvironment.self, path: "/api/pad_environments/\(id)")
     }
 
     func createPad(_ body: PadCreate) async throws -> Pad {
-        // Unlike the GET endpoints, POST /api/pads returns the pad fields at the top
-        // level (alongside "status"), not nested under a "pad" key.
+        // Single-resource pad endpoints (this POST and GET /api/pads/:id) return the
+        // pad's fields flat at the top level, alongside "status".
         return try await send(Pad.self, method: "POST", path: "/api/pads/", body: body)
     }
 
@@ -741,13 +755,15 @@ struct CoderPadClient {
     }
 
     func getQuestion(id: Int) async throws -> Question {
-        struct Wrapper: Decodable { let question: Question }
-        return try await fetch(Wrapper.self, path: "/api/questions/\(id)").question
+        // The live API returns the question's fields flat at the top level (alongside
+        // "status"), not nested under a "question" key.
+        try await fetch(Question.self, path: "/api/questions/\(id)")
     }
 
     func createQuestion(_ body: QuestionCreate) async throws -> Question {
-        struct Wrapper: Decodable { let question: Question }
-        return try await send(Wrapper.self, method: "POST", path: "/api/questions/", body: body).question
+        // Single-resource question endpoints (this POST and GET /api/questions/:id)
+        // return the question's fields flat at the top level, alongside "status".
+        return try await send(Question.self, method: "POST", path: "/api/questions/", body: body)
     }
 
     /// The live API replies `{"status":"OK"}` with no question body, so we re-fetch the

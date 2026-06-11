@@ -186,6 +186,27 @@ struct Chip: View {
     }
 }
 
+extension InterviewType {
+    /// SF Symbol paired with this type in chips and filter menus.
+    var systemImage: String {
+        switch self {
+        case .live: "dot.radiowaves.left.and.right"
+        case .takeHome: "house"
+        }
+    }
+
+    /// Accent color for this type's chip.
+    var tint: Color {
+        switch self {
+        case .live: .green
+        case .takeHome: .pink
+        }
+    }
+
+    /// Standard badge for this type, used across list rows and detail headers.
+    var chip: Chip { Chip(text: label, systemImage: systemImage, tint: tint) }
+}
+
 extension String {
     var languageColor: Color {
         switch self.lowercased() {
@@ -240,6 +261,11 @@ extension String {
         case "f#", "fsharp": return "F#"
         case "plaintext", "plain-text", "plain_text": return "Plain text"
         default:
+            let lowered = self.lowercased()
+            if lowered.hasPrefix("multifile_") {
+                let base = String(lowered.dropFirst("multifile_".count))
+                return base.languageDisplayName + " Project"
+            }
             guard !self.isEmpty else { return self }
             return self.prefix(1).uppercased() + self.dropFirst()
         }
@@ -266,6 +292,10 @@ extension String {
         case "plaintext", "plain-text", "plain_text":
             return "doc.plaintext"
         default:
+            let lowered = self.lowercased()
+            if lowered.hasPrefix("multifile_") {
+                return String(lowered.dropFirst("multifile_".count)).languageSymbol
+            }
             return "chevron.left.slash.chevron.right"
         }
     }
@@ -302,10 +332,17 @@ enum CoderPadLanguages {
 /// Runs `work` immediately, then re-runs it on `interval` until the task is cancelled.
 /// Cancellation breaks the loop cleanly instead of being swallowed by `try?`.
 func periodicReload(interval: Duration, work: () async -> Void) async {
+    await periodicReload(interval: { interval }, work: work)
+}
+
+/// Variant whose interval is recomputed after each run, letting callers stretch the
+/// cadence based on how heavy the last run turned out to be — e.g. a big org with
+/// thousands of pads polling far less often than a small one.
+func periodicReload(interval: () -> Duration, work: () async -> Void) async {
     await work()
     while !Task.isCancelled {
         do {
-            try await Task.sleep(for: interval)
+            try await Task.sleep(for: interval())
         } catch {
             break
         }
@@ -313,24 +350,35 @@ func periodicReload(interval: Duration, work: () async -> Void) async {
     }
 }
 
-struct PaneTitle: View {
+struct PaneTitle<Trailing: View>: View {
     let title: String
     var subtitle: String? = nil
+    @ViewBuilder var trailing: () -> Trailing
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(title)
-                .font(Typography.paneTitle)
-            if let subtitle, !subtitle.isEmpty {
-                Text(subtitle)
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(Typography.paneTitle)
+                if let subtitle, !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
             }
+            Spacer(minLength: 0)
+            trailing()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, Spacing.paneH)
         .padding(.top, Spacing.paneTitleTop)
         .padding(.bottom, Spacing.paneTitleBottom)
+    }
+}
+
+extension PaneTitle where Trailing == EmptyView {
+    init(title: String, subtitle: String? = nil) {
+        self.init(title: title, subtitle: subtitle) { EmptyView() }
     }
 }
 
@@ -419,6 +467,16 @@ private extension Theme {
                     in: RoundedRectangle(cornerRadius: 6, style: .continuous)
                 )
                 .markdownMargin(top: .em(0.5), bottom: .em(0.5))
+        }
+        .tableCell { configuration in
+            configuration.label
+                .markdownTextStyle {
+                    if configuration.row == 0 {
+                        FontWeight(.semibold)
+                    }
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
         }
 }
 
@@ -755,20 +813,22 @@ extension FocusedValues {
     }
 }
 
-// MARK: - LastFetchedLabel
+/// Action published by whichever pane currently owns a search field, so the
+/// global ⌘F command can focus it. Panes set this via `focusedSceneValue` while
+/// visible; the command reads it both to perform the find and to know whether
+/// Find applies in the current context (it's disabled when no pane provides one).
+struct FindAction {
+    let perform: () -> Void
+}
 
-struct LastFetchedLabel: View {
-    let date: Date?
-    var body: some View {
-        if let date {
-            HStack(spacing: 4) {
-                Image(systemName: "clock")
-                Text("Updated \(date.formatted(.relative(presentation: .named)))")
-            }
-            .font(.callout)
-            .foregroundStyle(.secondary)
-            .help("Last refreshed at \(date.formatted(date: .omitted, time: .standard))")
-        }
+struct FindActionKey: FocusedValueKey {
+    typealias Value = FindAction
+}
+
+extension FocusedValues {
+    var findAction: FindAction? {
+        get { self[FindActionKey.self] }
+        set { self[FindActionKey.self] = newValue }
     }
 }
 

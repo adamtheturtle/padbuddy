@@ -3,16 +3,44 @@
 //  coderpad
 //
 
+import AppKit
 import SwiftUI
 
 enum AppSection: String, Hashable {
     case pads, questions, organization, quota
 }
 
+/// Strips the chrome Mail also omits: the window title (otherwise shown big at
+/// the top of the sidebar) and the hairline separator under the unified toolbar.
+private struct WindowChromeConfigurator: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView { ChromeView() }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        (nsView as? ChromeView)?.applyChrome()
+    }
+
+    /// Applies the chrome in `viewDidMoveToWindow`, when the window is guaranteed
+    /// to exist — and again on every SwiftUI update, since toolbar changes can
+    /// otherwise reinstate the separator.
+    final class ChromeView: NSView {
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            applyChrome()
+        }
+
+        func applyChrome() {
+            guard let window else { return }
+            window.titleVisibility = .hidden
+            window.titlebarSeparatorStyle = .none
+        }
+    }
+}
+
 struct ContentView: View {
     @State private var store = AccountsStore.shared
-    @State private var section: AppSection? = .pads
+    @State private var nav = AppNavigation.shared
     @State private var showSettings = false
+    @State private var addingAccount: Account?
     @State private var directory = OrgDirectory()
     @State private var monitor = AccountHealthMonitor.shared
     @State private var openPadURLDraft: String = ""
@@ -27,7 +55,7 @@ struct ContentView: View {
                     .frame(minWidth: 520, minHeight: 380)
             } else {
                 MainSplit(
-                    section: $section,
+                    section: $nav.section,
                     showSettings: $showSettings,
                     directory: directory,
                     monitor: monitor
@@ -35,11 +63,9 @@ struct ContentView: View {
             }
         }
 
+        .background(WindowChromeConfigurator())
         .environment(\.openSettings, { showSettings = true })
         .environment(\.orgDirectory, directory)
-        .onReceive(NotificationCenter.default.publisher(for: .sectionRequested)) { note in
-            if let s = note.object as? AppSection { section = s }
-        }
         .onReceive(NotificationCenter.default.publisher(for: .openPadByURLRequested)) { _ in
             showOpenPadURL = true
         }
@@ -84,6 +110,14 @@ struct ContentView: View {
         .sheet(isPresented: $showWhatsNew) {
             WhatsNewSheet(release: WhatsNew.current) { showWhatsNew = false }
         }
+        .sheet(item: $addingAccount) { account in
+            AccountEditor(initial: account) { saved in
+                store.add(saved)
+                addingAccount = nil
+            } onCancel: {
+                addingAccount = nil
+            }
+        }
         .task {
             if WhatsNew.shouldShow() { showWhatsNew = true }
         }
@@ -97,7 +131,7 @@ struct ContentView: View {
             ContentUnavailableView {
                 Label("Welcome to CoderPad", systemImage: "doc.text.magnifyingglass")
             } actions: {
-                Button("Add Account") { showSettings = true }
+                Button("Add Account") { addingAccount = Account(name: "", apiKey: "") }
                     .buttonStyle(.borderedProminent)
                 #if DEBUG
                 Button("Try Demo") {
@@ -227,7 +261,7 @@ struct OpenPadURLSheet: View {
 
 private struct MainSplit: View {
     @State private var store = AccountsStore.shared
-    @Binding var section: AppSection?
+    @Binding var section: AppSection
     @Binding var showSettings: Bool
     let directory: OrgDirectory
     let monitor: AccountHealthMonitor
@@ -235,14 +269,31 @@ private struct MainSplit: View {
     @State private var padSelection: Pad?
     @State private var questionSelection: Question?
 
+    /// Drives the sidebar collapse/expand. With the title bar hidden there's no
+    /// system toolbar to host the automatic sidebar toggle, so we own this state
+    /// and surface our own toggle in the titlebar instead.
+    @State private var columnVisibility: NavigationSplitViewVisibility = .all
+
     /// Floor for the content column: the natural width of the active section's
     /// filter bar, so it can never be dragged too thin to hold all filters.
     @State private var contentMinWidth: CGFloat = 380
 
+    private var isSidebarCollapsed: Bool { columnVisibility != .all }
+
+    private func toggleSidebar() {
+        withAnimation(.snappy) {
+            if isSidebarCollapsed {
+                columnVisibility = .all
+            } else {
+                columnVisibility = sectionHasDetail ? .doubleColumn : .detailOnly
+            }
+        }
+    }
+
     /// Pads and Questions drive a detail pane; Organization and Quota are
     /// single-pane sections, so they drop the third column entirely.
     private var sectionHasDetail: Bool {
-        switch section ?? .pads {
+        switch section {
         case .pads, .questions: return true
         case .organization, .quota: return false
         }
@@ -253,25 +304,39 @@ private struct MainSplit: View {
             if let id = store.currentAccountID, monitor.isUnauthorized(id) {
                 UnauthorizedBanner(showSettings: $showSettings, monitor: monitor)
             }
-            if sectionHasDetail {
-                threeColumnSplit
-            } else {
-                twoColumnSplit
+            Group {
+                if sectionHasDetail {
+                    threeColumnSplit
+                } else {
+                    twoColumnSplit
+                }
             }
         }
+        // Pin the sidebar toggle in the titlebar (right of the traffic lights),
+        // which the hidden title bar leaves transparent over the sidebar.
+        .background(
+            TitlebarLeadingAccessory {
+                SidebarToggleButton(action: toggleSidebar)
+            }
+        )
         .task(id: store.currentAccountID) {
             if let account = store.currentAccount {
                 if let raw = UserDefaults.standard.string(forKey: "section.\(account.id.uuidString)"),
                    let s = AppSection(rawValue: raw) {
                     section = s
                 }
+                // Warm the list(s) not currently on screen right away — concurrently with
+                // the directory and health checks rather than queued behind them — so the
+                // first switch to Pads/Questions has data ready instead of a spinner.
+                async let warmed: Void = prefetchInactiveSections(account: account, active: section)
                 await directory.load(for: account)
                 await monitor.checkCurrentAccount()
                 monitor.start()
+                await warmed
             }
         }
         .onChange(of: section) { _, newValue in
-            if let account = store.currentAccount, let newValue {
+            if let account = store.currentAccount {
                 UserDefaults.standard.set(newValue.rawValue,
                                           forKey: "section.\(account.id.uuidString)")
             }
@@ -282,10 +347,41 @@ private struct MainSplit: View {
         }
     }
 
+    /// Fetches whichever lists aren't currently displayed and stores them in the
+    /// shared caches (which also persist to disk). The visible section loads itself,
+    /// so we skip it here to avoid a duplicate request.
+    private func prefetchInactiveSections(account: Account, active: AppSection) async {
+        guard account.isMock || !account.apiKey.isEmpty else { return }
+        let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey)
+        let id = account.id
+        // Stream pages so the cache is warm from page 1 — the first switch shows the
+        // top (most-recently-updated) pads immediately while the rest fill in behind it,
+        // instead of waiting for every page of a large org to land.
+        if active != .pads {
+            var latest: [Pad] = []
+            do {
+                for try await snapshot in client.listPadsIncrementally() {
+                    latest = snapshot
+                    // Warm memory per page (cheap); persist the final list once below.
+                    PadsCacheStore.shared.set(id, pads: snapshot, persist: false)
+                }
+                PadsCacheStore.shared.set(id, pads: latest)
+            } catch {
+                // Partial results still warm the UI; persist whatever arrived.
+                if !latest.isEmpty { PadsCacheStore.shared.set(id, pads: latest) }
+            }
+        }
+        if active != .questions, let questions = try? await client.listQuestions(sort: "updated_at,desc") {
+            QuestionsCacheStore.shared.set(id, questions: questions)
+        }
+    }
+
     private var threeColumnSplit: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
             Sidebar(section: $section, showSettings: $showSettings)
                 .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 280)
+                .navigationTitle("")
+                .toolbar(removing: .sidebarToggle)
         } content: {
             SectionContent(
                 section: section,
@@ -309,15 +405,79 @@ private struct MainSplit: View {
     }
 
     private var twoColumnSplit: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $columnVisibility) {
             Sidebar(section: $section, showSettings: $showSettings)
                 .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 280)
+                .navigationTitle("")
+                .toolbar(removing: .sidebarToggle)
         } detail: {
             SectionContent(
                 section: section,
                 padSelection: $padSelection,
                 questionSelection: $questionSelection
             )
+        }
+    }
+}
+
+/// The fixed sidebar toggle, centered on the traffic-light row via the titlebar
+/// accessory. Same position whether the sidebar is shown or hidden.
+private struct SidebarToggleButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "sidebar.left")
+                .font(.system(size: 14, weight: .medium))
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .foregroundStyle(.secondary)
+        .help("Toggle Sidebar")
+        .accessibilityLabel("Toggle Sidebar")
+    }
+}
+
+/// Hosts a SwiftUI control in the window's titlebar, pinned to the leading edge
+/// just right of the traffic lights and vertically centered on that row. Living
+/// in the titlebar rather than a split column keeps it fixed when the sidebar
+/// collapses or expands — and AppKit handles the alignment for us.
+private struct TitlebarLeadingAccessory<Content: View>: NSViewRepresentable {
+    @ViewBuilder var content: Content
+
+    func makeNSView(context: Context) -> NSView { AccessoryAnchor(content: content) }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        (nsView as? AccessoryAnchor<Content>)?.update(content: content)
+    }
+
+    final class AccessoryAnchor<C: View>: NSView {
+        private var accessory: NSTitlebarAccessoryViewController?
+        private var hosting: NSHostingView<C>?
+        private let initialContent: C
+
+        init(content: C) {
+            self.initialContent = content
+            super.init(frame: .zero)
+        }
+
+        required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            guard let window, accessory == nil else { return }
+            let hosting = NSHostingView(rootView: initialContent)
+            hosting.frame = NSRect(x: 0, y: 0, width: 40, height: 28)
+            let controller = NSTitlebarAccessoryViewController()
+            controller.view = hosting
+            controller.layoutAttribute = .leading
+            window.addTitlebarAccessoryViewController(controller)
+            self.accessory = controller
+            self.hosting = hosting
+        }
+
+        func update(content: C) {
+            hosting?.rootView = content
         }
     }
 }
@@ -351,8 +511,23 @@ private struct UnauthorizedBanner: View {
     }
 }
 
+/// The vibrant translucent material macOS source lists use. Painted as the
+/// sidebar's background (extended under the titlebar) so the traffic lights read
+/// as sitting on the sidebar, the way they do in Mail.
+private struct SidebarMaterial: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSVisualEffectView {
+        let view = NSVisualEffectView()
+        view.material = .sidebar
+        view.blendingMode = .behindWindow
+        view.state = .followsWindowActiveState
+        return view
+    }
+
+    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
+}
+
 private struct Sidebar: View {
-    @Binding var section: AppSection?
+    @Binding var section: AppSection
     @Binding var showSettings: Bool
 
     var body: some View {
@@ -371,6 +546,11 @@ private struct Sidebar: View {
                 .padding(10)
                 .background(.thinMaterial)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        // Paint the vibrant sidebar material all the way up behind the titlebar,
+        // so the traffic lights sit on the sidebar like Mail. The rows above still
+        // respect the safe area, so only the material extends under the lights.
+        .background(SidebarMaterial().ignoresSafeArea())
     }
 
     @ViewBuilder
@@ -405,6 +585,8 @@ private struct Sidebar: View {
 struct InlineSearchField: View {
     @Binding var query: String
     var prompt: String = "Search"
+    /// Optional external focus binding so a pane can drive focus (e.g. from ⌘F).
+    var focused: FocusState<Bool>.Binding? = nil
 
     var body: some View {
         HStack(spacing: 6) {
@@ -414,6 +596,7 @@ struct InlineSearchField: View {
             TextField(prompt, text: $query)
                 .textFieldStyle(.plain)
                 .font(.callout)
+                .modifier(OptionalFocus(binding: focused))
             if !query.isEmpty {
                 Button { query = "" } label: {
                     Image(systemName: "xmark.circle.fill")
@@ -426,6 +609,20 @@ struct InlineSearchField: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
         .background(Color.subtleStroke.opacity(0.6), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+    }
+}
+
+/// Applies a `.focused` binding only when one is supplied, so `InlineSearchField`
+/// can stay usable both with and without an external focus driver.
+private struct OptionalFocus: ViewModifier {
+    let binding: FocusState<Bool>.Binding?
+
+    func body(content: Content) -> some View {
+        if let binding {
+            content.focused(binding)
+        } else {
+            content
+        }
     }
 }
 
@@ -442,7 +639,11 @@ private struct AccountFooter: View {
                     Text(current.name).font(.callout.weight(.medium)).lineLimit(1)
                     Text(store.accounts.count > 1 ? "Active · \(store.accounts.count) accounts" : "Active account")
                         .font(.caption2).foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
                 }
+                .fixedSize(horizontal: false, vertical: true)
+                .layoutPriority(-1)
             }
             Spacer()
             addAccountButton
@@ -496,14 +697,14 @@ private struct AccountFooter: View {
 
 private struct SectionContent: View {
     @State private var store = AccountsStore.shared
-    let section: AppSection?
+    let section: AppSection
     @Binding var padSelection: Pad?
     @Binding var questionSelection: Question?
 
     var body: some View {
         if let account = store.currentAccount {
             let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey)
-            switch section ?? .pads {
+            switch section {
             case .pads: PadsView(client: client, selection: $padSelection).id(account.id)
             case .questions: QuestionsView(client: client, selection: $questionSelection).id(account.id)
             case .organization: OrganizationView(client: client).id(account.id)
@@ -515,14 +716,14 @@ private struct SectionContent: View {
 
 private struct SectionDetail: View {
     @State private var store = AccountsStore.shared
-    let section: AppSection?
+    let section: AppSection
     @Binding var padSelection: Pad?
     @Binding var questionSelection: Question?
 
     var body: some View {
         if let account = store.currentAccount {
             let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey)
-            switch section ?? .pads {
+            switch section {
             case .pads:
                 if let pad = padSelection {
                     PadDetailView(client: client, pad: pad).id(pad.id)
