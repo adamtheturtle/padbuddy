@@ -190,6 +190,20 @@ struct OrganizationView: View {
                     }
                     LabeledRow(label: "Overages", value: q.overagesEnabled == true ? "Enabled" : "Disabled")
                 }
+                if let supported = organization?.singleSignOnSupported {
+                    LabeledRow(label: "Single sign-on", value: supported ? "Enabled" : "Disabled")
+                    if supported, let urlString = organization?.singleSignInURL,
+                       let url = URL(string: urlString) {
+                        // Always the system browser, never the in-app web view: SSO
+                        // sign-in relies on the user's real browser session and
+                        // password manager.
+                        Button { BrowserSettings.openExternally(url) } label: {
+                            Label("Open sign-in portal", systemImage: "arrow.up.forward.app")
+                                .font(.callout)
+                        }
+                        .buttonStyle(.link)
+                    }
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }

@@ -351,6 +351,13 @@ final class PadActivityMonitor {
 /// shape serves both. Unused fields stay `nil` for a given kind, and all are
 /// optional so snapshots saved before a field existed still decode.
 struct NamedSearch: Identifiable, Codable, Hashable {
+    /// The longest a saved-search name may be. Names are short recall labels shown
+    /// as chips, so capping them keeps any one chip from dominating the bar and
+    /// guards against an accidental paste of a huge string. Enforced as the user
+    /// types and again on save; chips also clamp display so names persisted before
+    /// the cap existed stay bounded.
+    static let maxNameLength = 40
+
     let id: UUID
     var name: String
     var search: String

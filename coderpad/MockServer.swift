@@ -692,7 +692,10 @@ nonisolated enum MockFixtures {
             // Deliberately not the New Pad/Question sheets' hardcoded "python3"
             // fallback, so the org-default pre-selection is visible in the demo.
             "organization_default_language": "go",
-            "single_sign_on_supported": false,
+            // SSO enabled with a portal URL so the Organization view's sign-on row
+            // and "Open sign-in portal" action are exercised in the demo.
+            "single_sign_on_supported": true,
+            "single_sign_in_url": "https://app.coderpad.io/sso/demo-org",
             "teams": [["id": "demo-team", "name": "Demo Team"]]
         ]
     }

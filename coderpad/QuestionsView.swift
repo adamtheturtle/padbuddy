@@ -56,6 +56,11 @@ struct QuestionsView: View {
                 TextField("Name", text: $saveSearchName, prompt: Text("e.g. My drafts, Python"))
                     .textFieldStyle(.roundedBorder)
                     .onSubmit { commitSavedSearch() }
+                    .onChange(of: saveSearchName) { _, newValue in
+                        if newValue.count > NamedSearch.maxNameLength {
+                            saveSearchName = String(newValue.prefix(NamedSearch.maxNameLength))
+                        }
+                    }
                 HStack {
                     Spacer()
                     Button("Cancel", role: .cancel) { showSaveSearch = false }
@@ -369,7 +374,8 @@ struct QuestionsView: View {
         // also fire; guarding on the still-open sheet keeps a single keypress from
         // saving the search twice.
         guard showSaveSearch else { return }
-        let trimmed = saveSearchName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = String(saveSearchName.trimmingCharacters(in: .whitespacesAndNewlines)
+            .prefix(NamedSearch.maxNameLength))
         guard !trimmed.isEmpty, let account = accounts.currentAccountID else { return }
         savedSearches.add(captureCurrentSearch(named: trimmed), account: account, kind: .questions)
         showSaveSearch = false
@@ -627,7 +633,11 @@ struct QuestionDetailView: View {
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 }
-                Spacer(minLength: 12)
+                // Claim the leftover width here rather than via a trailing
+                // Spacer: a Spacer competes with the wrapping title Text for
+                // flexible space and, next to the fixed-size button group,
+                // starves it down to a single character per line.
+                .frame(maxWidth: .infinity, alignment: .leading)
                 HStack(spacing: 6) {
                     Button { Task { await createPad() } } label: {
                         if isCreatingPad {

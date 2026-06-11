@@ -345,6 +345,9 @@ struct MockServerTests {
         #expect(org.users.contains(where: { $0.email == "alex@demo.co" }))
         // Backs the org-default language pre-selection in the create sheets.
         #expect(org.organizationDefaultLanguage == "go")
+        // Backs the Organization view's single sign-on row and portal action.
+        #expect(org.singleSignOnSupported == true)
+        #expect(org.singleSignInURL == "https://app.coderpad.io/sso/demo-org")
     }
 
     @Test("quota returns the demo plan")

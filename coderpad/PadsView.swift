@@ -90,6 +90,11 @@ struct PadsView: View {
                 TextField("Name", text: $saveSearchName, prompt: Text("e.g. Live pads, my team"))
                     .textFieldStyle(.roundedBorder)
                     .onSubmit { commitSavedSearch() }
+                    .onChange(of: saveSearchName) { _, newValue in
+                        if newValue.count > NamedSearch.maxNameLength {
+                            saveSearchName = String(newValue.prefix(NamedSearch.maxNameLength))
+                        }
+                    }
                 HStack {
                     Spacer()
                     Button("Cancel", role: .cancel) { showSaveSearch = false }
@@ -164,7 +169,8 @@ struct PadsView: View {
         // also fire; guarding on the still-open sheet keeps a single keypress from
         // saving the search twice.
         guard showSaveSearch else { return }
-        let trimmed = saveSearchName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmed = String(saveSearchName.trimmingCharacters(in: .whitespacesAndNewlines)
+            .prefix(NamedSearch.maxNameLength))
         guard !trimmed.isEmpty, let account = accounts.currentAccountID else { return }
         savedSearches.add(captureCurrentSearch(named: trimmed), account: account, kind: .pads)
         showSaveSearch = false
@@ -641,14 +647,24 @@ struct SavedSearchChip: View {
         isActive ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.primary)
     }
 
+    /// New names are capped on save, but names persisted before the cap (or any
+    /// odd multi-line paste) could still be unbounded. Clamp to the same limit
+    /// with a trailing ellipsis so no single chip overflows the bar; the full name
+    /// stays in the accessibility label below.
+    private var displayName: String {
+        guard name.count > NamedSearch.maxNameLength else { return name }
+        return String(name.prefix(NamedSearch.maxNameLength - 1)) + "…"
+    }
+
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: systemImage)
                 .font(.caption2)
                 .foregroundStyle(isActive ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.secondary))
-            Text(name)
+            Text(displayName)
                 .font(.caption.weight(.medium))
                 .foregroundStyle(contentColor)
+                .lineLimit(1)
             if let onDelete {
                 Button {
                     onDelete()
