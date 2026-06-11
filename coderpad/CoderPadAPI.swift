@@ -666,8 +666,10 @@ struct CoderPadClient {
         CoderPadClient(apiKey: apiKey, baseURL: baseURL, session: liveSession)
     }
 
-    static func mock() -> CoderPadClient {
-        CoderPadClient(apiKey: "demo", session: MockServer.session())
+    /// `unauthorized: true` returns a client whose mock server answers 401 for every
+    /// request, backing the "bad key" demo account.
+    static func mock(unauthorized: Bool = false) -> CoderPadClient {
+        CoderPadClient(apiKey: "demo", session: MockServer.session(unauthorized: unauthorized))
     }
 
     static let decoder: JSONDecoder = {
@@ -786,7 +788,7 @@ struct CoderPadClient {
 
     func deleteQuestion(id: Int) async throws {
         struct Empty: Decodable {}
-        var request = URLRequest(url: baseURL.appendingPathComponent("/api/questions/\(id)"))
+        var request = URLRequest(url: baseURL.appending(path:"/api/questions/\(id)"))
         request.httpMethod = "DELETE"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
@@ -808,14 +810,12 @@ struct CoderPadClient {
     /// together, per the API contract).
     func organizationStats(start: Date? = nil, end: Date? = nil) async throws -> OrganizationStats {
         guard !apiKey.isEmpty else { throw CoderPadError.missingAPIKey }
-        var comps = URLComponents(url: baseURL.appendingPathComponent("/api/organization/stats"),
+        var comps = URLComponents(url: baseURL.appending(path:"/api/organization/stats"),
                                   resolvingAgainstBaseURL: false)
         if let start, let end {
-            let fmt = ISO8601DateFormatter()
-            fmt.formatOptions = [.withInternetDateTime]
             comps?.queryItems = [
-                URLQueryItem(name: "start_time", value: fmt.string(from: start)),
-                URLQueryItem(name: "end_time", value: fmt.string(from: end)),
+                URLQueryItem(name: "start_time", value: start.formatted(.iso8601)),
+                URLQueryItem(name: "end_time", value: end.formatted(.iso8601)),
             ]
         }
         guard let url = comps?.url else { throw CoderPadError.http(0, "Invalid URL") }
@@ -838,7 +838,7 @@ struct CoderPadClient {
     func organizationUsers(email: String? = nil) async throws -> [OrganizationUser] {
         struct Wrapper: Decodable { let users: [OrganizationUser] }
         guard !apiKey.isEmpty else { throw CoderPadError.missingAPIKey }
-        var comps = URLComponents(url: baseURL.appendingPathComponent("/api/organization/users"),
+        var comps = URLComponents(url: baseURL.appending(path:"/api/organization/users"),
                                   resolvingAgainstBaseURL: false)
         if let email { comps?.queryItems = [URLQueryItem(name: "email", value: email)] }
         guard let url = comps?.url else { throw CoderPadError.http(0, "Invalid URL") }
@@ -857,7 +857,7 @@ struct CoderPadClient {
 
     private func fetch<T: Decodable>(_ type: T.Type, path: String) async throws -> T {
         guard !apiKey.isEmpty else { throw CoderPadError.missingAPIKey }
-        return try await performWithRetry(type, request: authorizedGET(baseURL.appendingPathComponent(path)))
+        return try await performWithRetry(type, request: authorizedGET(baseURL.appending(path:path)))
     }
 
     /// Accumulates every page of a paginated list endpoint. Convenience over
@@ -895,7 +895,7 @@ struct CoderPadClient {
                     // rather than taken from `next_page` so the parallel fetch is
                     // fully deterministic.
                     func pageURL(_ page: Int?) -> URL? {
-                        var comps = URLComponents(url: baseURL.appendingPathComponent(path), resolvingAgainstBaseURL: false)
+                        var comps = URLComponents(url: baseURL.appending(path:path), resolvingAgainstBaseURL: false)
                         var query = baseQuery
                         if let page { query.append(URLQueryItem(name: "page", value: String(page))) }
                         comps?.queryItems = query.isEmpty ? nil : query
@@ -999,7 +999,7 @@ struct CoderPadClient {
 
     private func send<T: Decodable, B: Encodable>(_ type: T.Type, method: String, path: String, body: B) async throws -> T {
         guard !apiKey.isEmpty else { throw CoderPadError.missingAPIKey }
-        var request = URLRequest(url: baseURL.appendingPathComponent(path))
+        var request = URLRequest(url: baseURL.appending(path:path))
         request.httpMethod = method
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Accept")

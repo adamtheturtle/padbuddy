@@ -97,6 +97,21 @@ final class AppNavigation {
     /// the detail view share the same confirmation step before the irreversible delete.
     var deleteQuestionID: Int?
 
+    /// A pad id whose detail pane should immediately present its edit sheet. The
+    /// pad counterpart to `editQuestionID`, set by the Pad menu command and
+    /// consumed/cleared by `PadDetailView` when it appears or this value changes.
+    var editPadID: String?
+
+    /// A pad id whose detail pane should immediately present its "End Interview"
+    /// confirmation. Routed (rather than ending inline) so the menu command and the
+    /// detail view share the same confirmation step before the live session is ended.
+    var endPadID: String?
+
+    /// A pad id whose detail pane should immediately present its delete
+    /// confirmation — the pad counterpart to `deleteQuestionID`, never deleting
+    /// without that confirmation step.
+    var deletePadID: String?
+
     /// Switch to a section with no pending request.
     func show(_ section: AppSection) {
         self.section = section
@@ -146,6 +161,7 @@ struct coderpadApp: App {
             appCommands
             FindCommands()
             PadCommands()
+            QuestionCommands()
             WindowCommands()
         }
 
@@ -245,13 +261,56 @@ struct FindCommands: Commands {
     }
 }
 
+/// Top-level "Pad" menu: every action for the pad selected in the frontmost
+/// window (published as `focusedPad`). Open and copy act directly; Edit, End
+/// Interview, and Delete route through `AppNavigation` so the mounted
+/// `PadDetailView` runs them with its existing sheet and confirmations — the same
+/// pattern the Questions side uses — rather than duplicating that machinery here.
+///
+/// Several shortcuts (⌘↩ primary action, ⌘E edit, ⇧⌘C copy id, ⌘⌫ delete) are
+/// shared with the Question menu. Only one of `focusedPad`/`focusedQuestion` is
+/// ever set — the visible section publishes one and the other reverts to nil — so
+/// at any moment exactly one menu's item is enabled and the shortcut is
+/// unambiguous, while the muscle memory carries across both sections.
 struct PadCommands: Commands {
     @FocusedValue(\.focusedPad) private var pad
     @Environment(\.openWindow) private var openWindow
 
+    /// Mirrors `PadDetailView.isEnded`, so "End Interview" disables once the pad
+    /// is already ended instead of routing a no-op confirmation.
+    private var isEnded: Bool {
+        guard let pad else { return false }
+        return pad.endedAt != nil || pad.state.lowercased() == "ended"
+    }
+
     var body: some Commands {
-        CommandGroup(after: .pasteboard) {
+        CommandMenu("Pad") {
+            Button("Open Pad in Browser") {
+                guard let pad, let url = URL(string: pad.url) else { return }
+                NotificationCenter.default.post(name: .openPadInBrowserRequested, object: url)
+            }
+            .keyboardShortcut(.return, modifiers: [.command])
+            .disabled(pad == nil)
+
+            Button("Open Pad in New Window") {
+                guard let pad, let url = URL(string: pad.url) else { return }
+                NSApp.activate(ignoringOtherApps: true)
+                openWindow(id: "pad-browser", value: url)
+            }
+            .keyboardShortcut(.return, modifiers: [.command, .option])
+            .disabled(pad == nil)
+
             Divider()
+
+            Button("Edit Pad…") {
+                guard let pad else { return }
+                AppNavigation.shared.editPadID = pad.id
+            }
+            .keyboardShortcut("e", modifiers: [.command])
+            .disabled(pad == nil)
+
+            Divider()
+
             Button("Copy Pad ID") {
                 guard let pad else { return }
                 NSPasteboard.general.clearContents()
@@ -277,20 +336,78 @@ struct PadCommands: Commands {
 
             Divider()
 
-            Button("Open Pad in Browser") {
-                guard let pad, let url = URL(string: pad.url) else { return }
-                NotificationCenter.default.post(name: .openPadInBrowserRequested, object: url)
+            Button("End Interview…") {
+                guard let pad else { return }
+                AppNavigation.shared.endPadID = pad.id
+            }
+            .disabled(pad == nil || isEnded)
+
+            Button("Delete Pad…") {
+                guard let pad else { return }
+                AppNavigation.shared.deletePadID = pad.id
+            }
+            .keyboardShortcut(.delete, modifiers: [.command])
+            .disabled(pad == nil)
+        }
+    }
+}
+
+/// Top-level "Question" menu: the Questions-pane counterpart to `PadCommands`,
+/// acting on the question selected in the frontmost window (`focusedQuestion`).
+/// New Pad / Edit / Delete route through `AppNavigation` so the mounted
+/// `QuestionDetailView` performs them with its existing sheets and delete
+/// confirmation — the same path the Questions list's context menu uses.
+///
+/// `⌘↩` mirrors the Pad menu's primary action: with a pad selected it opens the
+/// pad, with a question selected it creates a pad from that question — each the
+/// headline action of the corresponding detail view. See `PadCommands` for why
+/// sharing shortcuts across the two menus is unambiguous.
+struct QuestionCommands: Commands {
+    @FocusedValue(\.focusedQuestion) private var question
+
+    var body: some Commands {
+        CommandMenu("Question") {
+            Button("New Pad from Question") {
+                guard let question else { return }
+                AppNavigation.shared.createPadForQuestionID = question.id
             }
             .keyboardShortcut(.return, modifiers: [.command])
-            .disabled(pad == nil)
+            .disabled(question == nil)
 
-            Button("Open Pad in New Window") {
-                guard let pad, let url = URL(string: pad.url) else { return }
-                NSApp.activate(ignoringOtherApps: true)
-                openWindow(id: "pad-browser", value: url)
+            Divider()
+
+            Button("Edit Question…") {
+                guard let question else { return }
+                AppNavigation.shared.editQuestionID = question.id
             }
-            .keyboardShortcut(.return, modifiers: [.command, .option])
-            .disabled(pad == nil)
+            .keyboardShortcut("e", modifiers: [.command])
+            .disabled(question == nil)
+
+            Divider()
+
+            Button("Copy Question ID") {
+                guard let question else { return }
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(String(question.id), forType: .string)
+            }
+            .keyboardShortcut("c", modifiers: [.command, .shift])
+            .disabled(question == nil)
+
+            Button("Copy Question Title") {
+                guard let question else { return }
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(question.displayTitle, forType: .string)
+            }
+            .disabled(question == nil)
+
+            Divider()
+
+            Button("Delete Question…") {
+                guard let question else { return }
+                AppNavigation.shared.deleteQuestionID = question.id
+            }
+            .keyboardShortcut(.delete, modifiers: [.command])
+            .disabled(question == nil)
         }
     }
 }

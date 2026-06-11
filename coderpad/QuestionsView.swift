@@ -47,23 +47,28 @@ struct QuestionsView: View {
                 showCreate = false
             } onCancel: { showCreate = false }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .questionUpdated)) { note in
-            if let q = note.object as? Question,
-               let i = questions.firstIndex(where: { $0.id == q.id }) {
-                questions[i] = q
-                if selection?.id == q.id { selection = q }
+        .task {
+            for await q in NotificationCenter.default.notifications(named: .questionUpdated)
+                .compactMap({ $0.object as? Question }) {
+                if let i = questions.firstIndex(where: { $0.id == q.id }) {
+                    questions[i] = q
+                    if selection?.id == q.id { selection = q }
+                }
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .questionDeleted)) { note in
-            if let id = note.object as? Int {
+        .task {
+            for await id in NotificationCenter.default.notifications(named: .questionDeleted)
+                .compactMap({ $0.object as? Int }) {
                 questions.removeAll { $0.id == id }
                 if selection?.id == id { selection = nil }
             }
         }
         .onAppear { applyPendingRequest() }
         .onChange(of: nav.questionsRequest) { _, _ in applyPendingRequest() }
-        .onReceive(NotificationCenter.default.publisher(for: .reloadRequested)) { _ in
-            Task { await reload() }
+        .task {
+            for await _ in NotificationCenter.default.notifications(named: .reloadRequested) {
+                await reload()
+            }
         }
     }
 
@@ -144,6 +149,10 @@ struct QuestionsView: View {
                     }
                     .listStyle(.inset)
                     .refreshable { await reload() }
+                    // Scene-scoped, mirroring PadsView: the Question menu commands
+                    // stay enabled whenever this window is frontmost and a question
+                    // is selected, not only while the list holds keyboard focus.
+                    .focusedSceneValue(\.focusedQuestion, selection)
                 }
             }
         }

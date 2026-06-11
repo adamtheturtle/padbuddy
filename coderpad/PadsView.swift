@@ -61,18 +61,23 @@ struct PadsView: View {
         }
         .onAppear { applyPendingRequest() }
         .onChange(of: nav.padsRequest) { _, _ in applyPendingRequest() }
-        .onReceive(NotificationCenter.default.publisher(for: .reloadRequested)) { _ in
-            Task { await reload() }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .padUpdated)) { note in
-            if let updated = note.object as? Pad,
-               let i = pads.firstIndex(where: { $0.id == updated.id }) {
-                pads[i] = updated
-                if selection?.id == updated.id { selection = updated }
+        .task {
+            for await _ in NotificationCenter.default.notifications(named: .reloadRequested) {
+                await reload()
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .padDeleted)) { note in
-            if let id = note.object as? String {
+        .task {
+            for await updated in NotificationCenter.default.notifications(named: .padUpdated)
+                .compactMap({ $0.object as? Pad }) {
+                if let i = pads.firstIndex(where: { $0.id == updated.id }) {
+                    pads[i] = updated
+                    if selection?.id == updated.id { selection = updated }
+                }
+            }
+        }
+        .task {
+            for await id in NotificationCenter.default.notifications(named: .padDeleted)
+                .compactMap({ $0.object as? String }) {
                 pads.removeAll { $0.id == id }
                 if selection?.id == id { selection = nil }
             }
@@ -591,6 +596,7 @@ struct PadDetailView: View {
     @State private var showDeleteConfirm = false
     @State private var isMutating = false
     @State private var mutateError: String?
+    @State private var nav = AppNavigation.shared
     @Environment(\.openWindow) private var openWindow
     @Environment(\.orgDirectory) private var directory
     @Environment(\.colorScheme) private var colorScheme
@@ -656,6 +662,38 @@ struct PadDetailView: View {
         } message: {
             Text(mutateError ?? "")
         }
+        .onAppear {
+            consumePendingEdit()
+            consumePendingEnd()
+            consumePendingDelete()
+        }
+        .onChange(of: nav.editPadID) { _, _ in consumePendingEdit() }
+        .onChange(of: nav.endPadID) { _, _ in consumePendingEnd() }
+        .onChange(of: nav.deletePadID) { _, _ in consumePendingDelete() }
+    }
+
+    /// Honors an "Edit Pad" request routed via `AppNavigation` from the Pad menu
+    /// command by presenting the same edit sheet as the in-pane Edit button.
+    private func consumePendingEdit() {
+        guard nav.editPadID == pad.id else { return }
+        nav.editPadID = nil
+        showEdit = true
+    }
+
+    /// Honors an "End Interview" request from the Pad menu by showing the same
+    /// confirmation as the in-pane action — never ending the session without it.
+    private func consumePendingEnd() {
+        guard nav.endPadID == pad.id else { return }
+        nav.endPadID = nil
+        showEndConfirm = true
+    }
+
+    /// Honors a "Delete Pad" request from the Pad menu by showing the same delete
+    /// confirmation as the in-pane Delete action.
+    private func consumePendingDelete() {
+        guard nav.deletePadID == pad.id else { return }
+        nav.deletePadID = nil
+        showDeleteConfirm = true
     }
 
     private var isEnded: Bool {

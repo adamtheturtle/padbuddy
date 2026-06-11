@@ -412,6 +412,36 @@ struct MockServerTests {
     }
 }
 
+// Backs the "bad key" demo account: the mock server answers 401 for every request,
+// so the unauthorized banner and error states can be exercised without a real
+// revoked key. No shared mutable state, so this suite needn't be serialized.
+@Suite("Unauthorized mock server")
+struct UnauthorizedMockServerTests {
+
+    private let client = CoderPadClient.mock(unauthorized: true)
+
+    @Test("organization() throws an unauthorized 401 error")
+    func organizationUnauthorized() async throws {
+        let error = await #expect(throws: CoderPadError.self) {
+            _ = try await client.organization()
+        }
+        #expect(error?.isUnauthorized == true)
+        if case .http(let code, _) = error {
+            #expect(code == 401)
+        } else {
+            Issue.record("Expected a .http error, got \(String(describing: error))")
+        }
+    }
+
+    @Test("listPads() also 401s, so the whole client is gated")
+    func listPadsUnauthorized() async throws {
+        let error = await #expect(throws: CoderPadError.self) {
+            _ = try await client.listPads()
+        }
+        #expect(error?.isUnauthorized == true)
+    }
+}
+
 @Suite("Language helpers")
 struct LanguageHelperTests {
     @Test("languageDisplayName maps known codes to friendly names")

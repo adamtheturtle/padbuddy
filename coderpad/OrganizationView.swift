@@ -105,8 +105,10 @@ struct OrganizationView: View {
             Task { await reloadStats() }
         }
         .focusedSceneValue(\.findAction, FindAction(id: "organization") { userSearchFocused = true })
-        .onReceive(NotificationCenter.default.publisher(for: .reloadRequested)) { _ in
-            Task { await reload() }
+        .task {
+            for await _ in NotificationCenter.default.notifications(named: .reloadRequested) {
+                await reload()
+            }
         }
         .toolbar(id: "org.toolbar") {
             ToolbarItem(id: "period") {

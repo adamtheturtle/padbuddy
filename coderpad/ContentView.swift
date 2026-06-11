@@ -64,20 +64,27 @@ struct ContentView: View {
 
         .background(WindowChromeConfigurator())
         .environment(\.orgDirectory, directory)
-        .onReceive(NotificationCenter.default.publisher(for: .openPadByURLRequested)) { _ in
-            showOpenPadURL = true
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .openPadIDRequested)) { note in
-            if let id = note.object as? String,
-               let url = URL(string: "https://app.coderpad.io/\(id)") {
-                openWindow(id: "pad-browser", value: url)
+        .task {
+            for await _ in NotificationCenter.default.notifications(named: .openPadByURLRequested) {
+                showOpenPadURL = true
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .openSettingsRequested)) { _ in
-            openSettings()
+        .task {
+            for await id in NotificationCenter.default.notifications(named: .openPadIDRequested)
+                .compactMap({ $0.object as? String }) {
+                if let url = URL(string: "https://app.coderpad.io/\(id)") {
+                    openWindow(id: "pad-browser", value: url)
+                }
+            }
         }
-        .onReceive(NotificationCenter.default.publisher(for: .openPadInBrowserRequested)) { note in
-            if let url = note.object as? URL {
+        .task {
+            for await _ in NotificationCenter.default.notifications(named: .openSettingsRequested) {
+                openSettings()
+            }
+        }
+        .task {
+            for await url in NotificationCenter.default.notifications(named: .openPadInBrowserRequested)
+                .compactMap({ $0.object as? URL }) {
                 openWindow(id: "pad-browser", value: url)
             }
         }
@@ -298,7 +305,7 @@ private struct MainSplit: View {
         // which the hidden title bar leaves transparent over the sidebar.
         .background(
             TitlebarLeadingAccessory {
-                SidebarToggleButton(action: toggleSidebar)
+                SidebarToggleButton(isCollapsed: isSidebarCollapsed, action: toggleSidebar)
             }
         )
         .task(id: store.currentAccountID) {
@@ -334,7 +341,7 @@ private struct MainSplit: View {
     /// so we skip it here to avoid a duplicate request.
     private func prefetchInactiveSections(account: Account, active: AppSection) async {
         guard account.isMock || !account.apiKey.isEmpty else { return }
-        let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey, baseURL: account.resolvedBaseURL)
+        let client = account.makeClient()
         let id = account.id
         // Stream pages so the cache is warm from page 1 — the first switch shows the
         // top (most-recently-updated) pads immediately while the rest fill in behind it,
@@ -412,16 +419,42 @@ private struct MainSplit: View {
 /// The fixed sidebar toggle, centered on the traffic-light row via the titlebar
 /// accessory. Same position whether the sidebar is shown or hidden.
 private struct SidebarToggleButton: View {
+    let isCollapsed: Bool
     let action: () -> Void
 
     var body: some View {
-        Button(action: action) {
-            Image(systemName: "sidebar.left")
-                .font(.system(size: 14, weight: .medium))
-                .contentShape(Rectangle())
+        // Mail's behaviour: while the sidebar is expanded the toggle is a bare
+        // glyph resting on the sidebar material. Once collapsed there's no sidebar
+        // behind it, so it gains a circular Liquid Glass container (macOS 26) to
+        // stay legible over the content pane. Leading-aligned in a fixed footprint
+        // so it stays put next to the traffic lights as the style swaps.
+        Group {
+            if isCollapsed, #available(macOS 26, *) {
+                // Apply the glass as a circular effect behind the *same* glyph used
+                // when expanded, rather than `.buttonStyle(.glass)` — the glass
+                // button imposes its own content metrics and shrinks the symbol.
+                // This keeps the glyph at an identical 18pt across both states,
+                // matching the section toolbar icons.
+                Button(action: action) {
+                    Image(systemName: "sidebar.left")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(.secondary)
+                        .frame(width: 34, height: 34)
+                        .glassEffect(.regular.interactive(), in: Circle())
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+            } else {
+                Button(action: action) {
+                    Image(systemName: "sidebar.left")
+                        .font(.system(size: 18, weight: .medium))
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+            }
         }
-        .buttonStyle(.plain)
-        .foregroundStyle(.secondary)
+        .frame(width: 44, height: 36, alignment: .leading)
         .help("Toggle Sidebar")
         .accessibilityLabel("Toggle Sidebar")
     }
@@ -456,7 +489,9 @@ private struct TitlebarLeadingAccessory<Content: View>: NSViewRepresentable {
             super.viewDidMoveToWindow()
             guard let window, accessory == nil else { return }
             let hosting = NSHostingView(rootView: initialContent)
-            hosting.frame = NSRect(x: 0, y: 0, width: 40, height: 28)
+            // Matches SidebarToggleButton's fixed footprint, which is roomy enough
+            // for the circular Liquid Glass container it adopts when collapsed.
+            hosting.frame = NSRect(x: 0, y: 0, width: 44, height: 36)
             let controller = NSTitlebarAccessoryViewController()
             controller.view = hosting
             controller.layoutAttribute = .leading
@@ -543,7 +578,13 @@ private struct Sidebar: View {
         // Paint the vibrant sidebar material all the way up behind the titlebar,
         // so the traffic lights sit on the sidebar like Mail. The rows above still
         // respect the safe area, so only the material extends under the lights.
-        .background(SidebarMaterial().ignoresSafeArea())
+        // A subtle dark scrim over the material deepens the sidebar so it reads as
+        // distinctly darker than the content pane, the way Mail's does, while still
+        // letting the translucency show through.
+        .background {
+            SidebarMaterial().ignoresSafeArea()
+            Color.black.opacity(0.18).ignoresSafeArea()
+        }
     }
 
     @ViewBuilder
@@ -553,22 +594,26 @@ private struct Sidebar: View {
             section = value
         } label: {
             HStack(spacing: 8) {
+                // Mail dims unselected icons to secondary and tints both icon and
+                // label with the accent on the selected row; the label stays primary
+                // white when unselected.
                 Image(systemName: icon)
+                    .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
                     .frame(width: 18)
                 Text(label)
+                    .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
                 Spacer(minLength: 0)
             }
             .font(.callout)
-            .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
-            .padding(.vertical, 5)
+            .padding(.vertical, 6)
             .padding(.horizontal, 8)
             .background(
                 isSelected
-                ? Color.primary.opacity(0.12)
+                ? Color.primary.opacity(0.10)
                 : Color.clear,
-                in: RoundedRectangle(cornerRadius: 6, style: .continuous)
+                in: RoundedRectangle(cornerRadius: 8, style: .continuous)
             )
-            .contentShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
@@ -625,21 +670,9 @@ private struct AccountFooter: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            if let current = store.currentAccount {
-                AvatarCircle(label: current.name, diameter: 30)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(current.name).font(.callout.weight(.medium)).lineLimit(1)
-                    Text(store.accounts.count > 1 ? "Active · \(store.accounts.count) accounts" : "Active account")
-                        .font(.caption2).foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                }
-                .fixedSize(horizontal: false, vertical: true)
-                .layoutPriority(-1)
-            }
+            accountMenu
             Spacer()
             addAccountButton
-            footerMenu
         }
         .sheet(item: $addingAccount) { account in
             AccountEditor(initial: account) { saved in
@@ -669,40 +702,54 @@ private struct AccountFooter: View {
         return Account(name: "", apiKey: "")
     }
 
+    /// The whole account identity (avatar + name) is the menu trigger, and the
+    /// accounts are listed directly as top-level items — so switching is open →
+    /// pick, instead of burying the choice under a nested "Switch Account" submenu.
     @ViewBuilder
-    private var footerMenu: some View {
-        Menu {
-            if store.accounts.count > 1, let currentID = store.currentAccountID {
-                // An explicit Button submenu rather than a Picker: a Picker inside a
-                // Menu desyncs AppKit's cached menu-item reps during tracking
-                // ("rep returned item view with wrong item"). This matches the same
-                // pattern used by the menu-bar account switcher.
-                Menu("Switch Account") {
-                    ForEach(store.accounts) { account in
-                        Button {
-                            store.currentAccountID = account.id
-                        } label: {
-                            if account.id == currentID {
-                                Label(account.name, systemImage: "checkmark")
-                            } else {
-                                Text(account.name)
-                            }
+    private var accountMenu: some View {
+        if let current = store.currentAccount {
+            Menu {
+                // Direct Buttons (not a Picker): a Picker inside a Menu desyncs
+                // AppKit's cached menu-item reps during tracking ("rep returned
+                // item view with wrong item"). Matches the menu-bar switcher.
+                ForEach(store.accounts) { account in
+                    Button {
+                        store.currentAccountID = account.id
+                    } label: {
+                        if account.id == current.id {
+                            Label(account.name, systemImage: "checkmark")
+                        } else {
+                            Text(account.name)
                         }
                     }
                 }
                 Divider()
+                Button("Add Account…") { addingAccount = Account(name: "", apiKey: "") }
+                SettingsLink {
+                    Text("Settings…")
+                }
+            } label: {
+                HStack(spacing: 10) {
+                    AvatarCircle(label: current.name, diameter: 30)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(current.name).font(.callout.weight(.medium)).lineLimit(1)
+                        Text(store.accounts.count > 1 ? "Active · \(store.accounts.count) accounts" : "Active account")
+                            .font(.caption2).foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    }
+                    .fixedSize(horizontal: false, vertical: true)
+                    .layoutPriority(-1)
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .contentShape(.rect)
             }
-            Button("Add Account…") { addingAccount = Account(name: "", apiKey: "") }
-            Divider()
-            SettingsLink {
-                Text("Settings…")
-            }
-        } label: {
-            Image(systemName: "chevron.up.chevron.down")
+            .menuStyle(.borderlessButton)
+            .menuIndicator(.hidden)
+            .accessibilityLabel("Switch account")
         }
-        .menuStyle(.borderlessButton)
-        .fixedSize()
-        .accessibilityLabel("Account menu")
     }
 }
 
@@ -714,7 +761,7 @@ private struct SectionContent: View {
 
     var body: some View {
         if let account = store.currentAccount {
-            let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey, baseURL: account.resolvedBaseURL)
+            let client = account.makeClient()
             switch section {
             case .pads: PadsView(client: client, selection: $padSelection).id(account.id)
             case .questions: QuestionsView(client: client, selection: $questionSelection).id(account.id)
@@ -733,7 +780,7 @@ private struct SectionDetail: View {
 
     var body: some View {
         if let account = store.currentAccount {
-            let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey, baseURL: account.resolvedBaseURL)
+            let client = account.makeClient()
             switch section {
             case .pads:
                 if let pad = padSelection {

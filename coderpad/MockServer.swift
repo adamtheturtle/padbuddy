@@ -11,11 +11,40 @@ import Foundation
 nonisolated enum MockServer {
     static let host = "app.coderpad.io"
 
-    static func session() -> URLSession {
+    /// A session backed by the in-process fake API. When `unauthorized` is true the
+    /// server answers every request with 401, which drives the "bad key" demo:
+    /// the unauthorized banner and error states can be shown without a real revoked key.
+    static func session(unauthorized: Bool = false) -> URLSession {
         let config = URLSessionConfiguration.ephemeral
-        config.protocolClasses = [MockURLProtocol.self] + (config.protocolClasses ?? [])
+        let proto: URLProtocol.Type = unauthorized ? MockUnauthorizedURLProtocol.self : MockURLProtocol.self
+        config.protocolClasses = [proto] + (config.protocolClasses ?? [])
         return URLSession(configuration: config)
     }
+}
+
+/// Answers every CoderPad request with 401 Unauthorized, mimicking a revoked or
+/// invalid API key. Backs the "bad key" demo account.
+nonisolated final class MockUnauthorizedURLProtocol: URLProtocol {
+    override class func canInit(with request: URLRequest) -> Bool {
+        request.url?.host == MockServer.host
+    }
+
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        guard let url = request.url else {
+            client?.urlProtocol(self, didFailWithError: URLError(.badURL))
+            return
+        }
+        let body = Data(#"{"status":"error","message":"Invalid API key"}"#.utf8)
+        let headers = ["Content-Type": "application/json"]
+        let response = HTTPURLResponse(url: url, statusCode: 401, httpVersion: "HTTP/1.1", headerFields: headers)!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: body)
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
 }
 
 nonisolated final class MockURLProtocol: URLProtocol {
@@ -80,7 +109,7 @@ nonisolated enum MockResponses {
             }
             if dict["ended"] as? Bool == true {
                 dict["state"] = "ended"
-                dict["ended_at"] = ISO8601DateFormatter().string(from: Date())
+                dict["ended_at"] = Date.now.formatted(.iso8601)
             }
             // The create/modify API takes a singular `question_id`; the pad body
             // exposes it as the `question_ids` array, so mirror it on merge.
@@ -162,8 +191,8 @@ nonisolated enum MockResponses {
                 "pad_type": bodyDict["pad_type"] as? String ?? "live", "is_draft": true,
                 "contents": bodyDict["contents"] ?? NSNull(), "custom_files": [],
                 "author_name": "Demo User", "organization_name": "Demo Org",
-                "created_at": ISO8601DateFormatter().string(from: Date()),
-                "updated_at": ISO8601DateFormatter().string(from: Date()),
+                "created_at": Date.now.formatted(.iso8601),
+                "updated_at": Date.now.formatted(.iso8601),
             ]
             MockFixtures.createdQuestions.append(q)
             // Mirror the live API: the question's fields are returned flat at the top level.

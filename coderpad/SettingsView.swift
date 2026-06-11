@@ -207,8 +207,11 @@ final class SettingsNavigation {
 struct SettingsView: View {
     @State private var store = AccountsStore.shared
     @State private var navigation = SettingsNavigation.shared
-    @State private var editingAccount: Account?
     @State private var selectedAccountID: UUID?
+    /// A not-yet-saved account being added. While non-nil, the detail pane shows the
+    /// editor for it and the sidebar selection is cleared — mirroring Mail, where the
+    /// `+` button reveals an inline setup pane rather than a modal sheet.
+    @State private var addingAccount: Account?
 
     // Browser and menu-bar preferences live in UserDefaults under the keys defined
     // in `BrowserSettings.Key`; `@AppStorage` reads/writes those same keys so the
@@ -243,33 +246,22 @@ struct SettingsView: View {
                 .tabItem { Label("Menu Bar", systemImage: "menubar.rectangle") }
                 .tag(SettingsTab.menuBar)
         }
-        .frame(minWidth: 540, minHeight: 420)
+        .frame(minWidth: 620, minHeight: 440)
         // A caller (e.g. the unauthorized banner) can request the editor for a
         // specific account; honor it both when Settings first appears and while it's
         // already open.
         .onAppear { openPendingEdit(navigation.accountToEdit) }
         .onChange(of: navigation.accountToEdit) { _, id in openPendingEdit(id) }
-        .sheet(item: $editingAccount) { account in
-            AccountEditor(initial: account) { updated in
-                if store.accounts.contains(where: { $0.id == updated.id }) {
-                    store.update(updated)
-                } else {
-                    store.add(updated)
-                }
-                editingAccount = nil
-            } onCancel: {
-                editingAccount = nil
-            }
-        }
     }
 
-    /// Open the account editor for a requested account, switching to the Accounts tab
-    /// and selecting the row first, then clearing the request so it fires only once.
+    /// Reveal a requested account in the Accounts tab, switching tabs and selecting
+    /// the row so its inline editor appears, then clearing the request so it fires
+    /// only once.
     private func openPendingEdit(_ id: UUID?) {
-        guard let id, let account = store.accounts.first(where: { $0.id == id }) else { return }
+        guard let id, store.accounts.contains(where: { $0.id == id }) else { return }
         navigation.selectedTab = .accounts
+        addingAccount = nil
         selectedAccountID = id
-        editingAccount = account
         navigation.accountToEdit = nil
     }
 
@@ -345,119 +337,145 @@ struct SettingsView: View {
         return remainder == 0 ? "\(minutes)m" : "\(minutes)m \(remainder)s"
     }
 
+    /// Mail-style master-detail layout: a sidebar listing the accounts with `+`/`−`
+    /// controls at its foot, and a detail pane showing the selected account's settings
+    /// inline rather than in a modal sheet.
     private var accountsTab: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            if store.accounts.isEmpty {
-                ContentUnavailableView {
-                    Label("No accounts", systemImage: "person.crop.circle.badge.questionmark")
-                } description: {
-                    Text("Add an account with a CoderPad API key.")
-                } actions: {
-                    Button("Add Account") {
-                        editingAccount = Account(name: "", apiKey: "")
-                    }
-                    .buttonStyle(.borderedProminent)
-                    #if DEBUG
-                    Button("Try Demo") {
-                        store.addDemoIfMissing()
-                    }
-                    #endif
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else {
-                List(selection: $selectedAccountID) {
-                    ForEach(store.accounts) { account in
-                        AccountRow(
-                            account: account,
-                            isCurrent: account.id == store.currentAccountID
-                        )
-                        .tag(account.id)
-                        .contentShape(Rectangle())
-                        // Drive selection explicitly: attaching any tap gesture to a row
-                        // in a List(selection:) interferes with AppKit's built-in
-                        // click-to-select, so a single click would otherwise be eaten.
-                        // Declare the double-click variant first so SwiftUI can
-                        // disambiguate it from the single click.
-                        .onTapGesture(count: 2) { editingAccount = account }
-                        .onTapGesture(count: 1) { selectedAccountID = account.id }
-                    }
-                }
-                .listStyle(.inset(alternatesRowBackgrounds: true))
-                .frame(maxHeight: .infinity)
-                // Mirror the current account into the selection on appear. Selecting a
-                // row only highlights it; switching the active account is an explicit
-                // action via the "Use" button below.
-                .onAppear { selectedAccountID = store.currentAccountID }
-
-                HStack(spacing: 4) {
-                    Button {
-                        editingAccount = Account(name: "", apiKey: "")
-                    } label: {
-                        Image(systemName: "plus")
-                    }
-                    .help("Add account")
-                    .buttonStyle(.borderless)
-                    .accessibilityLabel("Add account")
-
-                    Button {
-                        if let id = selectedAccountID {
-                            store.remove(id: id)
-                            selectedAccountID = nil
-                        }
-                    } label: {
-                        Image(systemName: "minus")
-                    }
-                    .help("Remove selected account")
-                    .buttonStyle(.borderless)
-                    .disabled(selectedAccountID == nil)
-                    .accessibilityLabel("Remove selected account")
-
-                    Divider().frame(height: 14)
-
-                    Button {
-                        if let id = selectedAccountID,
-                           let account = store.accounts.first(where: { $0.id == id }) {
-                            editingAccount = account
-                        }
-                    } label: {
-                        Image(systemName: "pencil")
-                    }
-                    .help("Edit selected account")
-                    .buttonStyle(.borderless)
-                    .disabled(selectedAccountID == nil)
-                    .accessibilityLabel("Edit selected account")
-
-                    Divider().frame(height: 14)
-
-                    Button {
-                        if let id = selectedAccountID { store.currentAccountID = id }
-                    } label: {
-                        Label("Use", systemImage: "checkmark.circle")
-                            .labelStyle(.titleAndIcon)
-                    }
-                    .help("Switch to the selected account")
-                    .buttonStyle(.borderless)
-                    .disabled(selectedAccountID == nil || selectedAccountID == store.currentAccountID)
-                    .accessibilityLabel("Use selected account")
-
-                    Spacer()
-
-                    #if DEBUG
-                    Button {
-                        store.addDemoIfMissing()
-                    } label: {
-                        Label("Add Demo", systemImage: "wand.and.stars")
-                            .labelStyle(.titleAndIcon)
-                    }
-                    .buttonStyle(.borderless)
-                    .disabled(store.accounts.contains(where: { $0.isMock }))
-                    .help("Add a sandbox account backed by mock data. No key required (DEBUG builds only).")
-                    #endif
-                }
-                .padding(.top, 6)
+        HSplitView {
+            accountsSidebar
+                .frame(minWidth: 200, idealWidth: 220, maxWidth: 320)
+            accountDetail
+                .frame(minWidth: 380, maxWidth: .infinity, maxHeight: .infinity)
+        }
+        // Land on the active account so its settings are visible on open.
+        .onAppear {
+            if selectedAccountID == nil {
+                selectedAccountID = store.currentAccountID
             }
         }
-        .padding(20)
+        // Adding a new account happens in a modal sheet; on Save it's committed to the
+        // store and selected so it lands on its own row.
+        .sheet(item: $addingAccount) { account in
+            AccountEditor(
+                initial: account,
+                onSave: { updated in
+                    store.add(updated)
+                    addingAccount = nil
+                    selectedAccountID = updated.id
+                },
+                onCancel: { addingAccount = nil }
+            )
+        }
+    }
+
+    private var accountsSidebar: some View {
+        VStack(spacing: 0) {
+            List(selection: $selectedAccountID) {
+                ForEach(store.accounts) { account in
+                    AccountRow(
+                        account: account,
+                        isCurrent: account.id == store.currentAccountID
+                    )
+                    .tag(account.id)
+                }
+            }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+
+            Divider()
+
+            sidebarToolbar
+                .padding(.horizontal, 8)
+                .padding(.vertical, 6)
+        }
+    }
+
+    private var sidebarToolbar: some View {
+        HStack(spacing: 2) {
+            Button {
+                addingAccount = Account(name: "", apiKey: "")
+            } label: {
+                Image(systemName: "plus")
+            }
+            .help("Add account")
+            .accessibilityLabel("Add account")
+
+            Button {
+                if let id = selectedAccountID {
+                    store.remove(id: id)
+                    selectedAccountID = nil
+                }
+            } label: {
+                Image(systemName: "minus")
+            }
+            .help("Remove selected account")
+            .disabled(selectedAccountID == nil)
+            .accessibilityLabel("Remove selected account")
+
+            Spacer()
+
+            #if DEBUG
+            Menu {
+                Button("Mock data") { store.addDemoIfMissing() }
+                    .disabled(store.accounts.contains(where: { $0.isMock && !$0.isBadKeyDemo }))
+                Button("Bad API key") { store.addDemoBadKeyIfMissing() }
+                    .disabled(store.accounts.contains(where: { $0.isBadKeyDemo }))
+            } label: {
+                Image(systemName: "wand.and.stars")
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .help("Add a sandbox account backed by mock data, or one that simulates a revoked key (DEBUG builds only).")
+            #endif
+        }
+        .buttonStyle(.borderless)
+    }
+
+    @ViewBuilder
+    private var accountDetail: some View {
+        if let id = selectedAccountID,
+                  let account = store.accounts.first(where: { $0.id == id }) {
+            // Editing a saved account. `onUse` makes it the active account (Mail's
+            // "Enable this account"); `.id(id)` reloads the draft when the selection
+            // changes so edits don't bleed between accounts.
+            AccountEditor(
+                initial: account,
+                embedded: true,
+                isCurrent: id == store.currentAccountID,
+                onUse: { store.currentAccountID = id },
+                onSave: { updated in store.update(updated) },
+                onCancel: {},
+                onDelete: {
+                    store.remove(id: id)
+                    selectedAccountID = nil
+                }
+            )
+            .id(id)
+        } else {
+            accountDetailPlaceholder
+        }
+    }
+
+    @ViewBuilder
+    private var accountDetailPlaceholder: some View {
+        if store.accounts.isEmpty {
+            ContentUnavailableView {
+                Label("No accounts", systemImage: "person.crop.circle.badge.questionmark")
+            } description: {
+                Text("Add an account with a CoderPad API key.")
+            } actions: {
+                Button("Add Account") {
+                    addingAccount = Account(name: "", apiKey: "")
+                }
+                .buttonStyle(.borderedProminent)
+            }
+        } else {
+            ContentUnavailableView {
+                Label("No Account Selected", systemImage: "person.crop.circle")
+            } description: {
+                Text("Select an account to view its settings.")
+            }
+        }
     }
 
     private var browserTab: some View {
@@ -527,6 +545,13 @@ private struct AccountRow: View {
                         .background(Color.purple.opacity(0.18), in: Capsule())
                         .foregroundStyle(.purple)
                 }
+                if account.isBadKeyDemo {
+                    Text("Bad key")
+                        .font(.caption2)
+                        .padding(.horizontal, 6).padding(.vertical, 1)
+                        .background(Color.red.opacity(0.18), in: Capsule())
+                        .foregroundStyle(.red)
+                }
                 if isCurrent {
                     Text("Current")
                         .font(.caption2)
@@ -552,69 +577,179 @@ enum ValidationState: Equatable {
 struct AccountEditor: View {
     @State var draft: Account
     let initialName: String
+    /// When true, the editor is embedded inline in the Accounts pane (Mail-style)
+    /// rather than presented as a modal sheet: it drops the fixed sheet frame, hides
+    /// Cancel for saved accounts, and shows the "Use This Account" header control.
+    let embedded: Bool
+    /// Whether this account is the app's active one, shown as a badge in the header.
+    let isCurrent: Bool
+    /// Supplied only for a saved account in embedded mode; makes it the active account.
+    let onUse: (() -> Void)?
     let onSave: (Account) -> Void
     let onCancel: () -> Void
+    /// Supplied only when editing a saved account; `nil` hides the Delete button (Add mode).
+    let onDelete: (() -> Void)?
+    /// The credentials the editor opened with. A saved account can be re-saved without
+    /// re-validating as long as these are untouched (e.g. a Description-only change);
+    /// changing either forces a fresh validation before Save re-enables.
+    private let initialAPIKey: String
+    private let initialBaseURL: String?
     @State private var validation: ValidationState = .idle
     @State private var orgUsers: [OrganizationUser] = []
-    @FocusState private var keyFieldFocused: Bool
+    @State private var showDeleteConfirmation = false
+    /// Reveals the API key as plain text on explicit request. The field is a
+    /// `SecureField` by default so macOS offers password AutoFill suggestions;
+    /// revealing it via a toggle (rather than on focus) keeps that intact.
+    @State private var revealKey = false
 
-    init(initial: Account, onSave: @escaping (Account) -> Void, onCancel: @escaping () -> Void) {
+    init(initial: Account,
+         embedded: Bool = false,
+         isCurrent: Bool = false,
+         onUse: (() -> Void)? = nil,
+         onSave: @escaping (Account) -> Void,
+         onCancel: @escaping () -> Void,
+         onDelete: (() -> Void)? = nil) {
         _draft = State(initialValue: initial)
         self.initialName = initial.name
+        self.initialAPIKey = initial.apiKey
+        self.initialBaseURL = initial.baseURL
+        self.embedded = embedded
+        self.isCurrent = isCurrent
+        self.onUse = onUse
         self.onSave = onSave
         self.onCancel = onCancel
+        self.onDelete = onDelete
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text(initialName.isEmpty ? "Add account" : "Edit account").font(.title3.bold())
-            Form {
-                Group {
-                    if keyFieldFocused {
-                        TextField("API key", text: $draft.apiKey, prompt: Text("key"))
-                            .focused($keyFieldFocused)
+            HStack {
+                // Only the modal Add sheet carries a title; the embedded editor shows
+                // the account's identity in the sidebar already, so it omits one and
+                // leads with the Use/Current control instead.
+                if !embedded {
+                    Text("Add account").font(.title3.bold())
+                }
+                Spacer()
+                if let onUse {
+                    if isCurrent {
+                        Label("Current", systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                            .font(.callout)
                     } else {
-                        SecureField("API key", text: $draft.apiKey, prompt: Text("key"))
-                            .focused($keyFieldFocused)
+                        Button("Use This Account", action: onUse)
+                            .help("Switch the app to this account.")
                     }
                 }
-                TextField("Server URL", text: baseURLBinding,
-                          prompt: Text(CoderPadClient.defaultBaseURL.absoluteString))
-                    .autocorrectionDisabled()
-                    .help("Override only for self-hosted or regional CoderPad deployments. Leave blank to use the default.")
+            }
+            // Reserve the button's height so swapping it for the shorter "Current"
+            // label between accounts doesn't shift the rest of the form.
+            .frame(minHeight: 24)
+            // A flat, Mail-style pane: a right-aligned label column with left-aligned,
+            // bordered fields beside it — rather than a grouped form that pushes values
+            // to the trailing edge.
+            VStack(alignment: .leading, spacing: 10) {
+                fieldRow("API Key") {
+                    HStack(spacing: 6) {
+                        Group {
+                            if revealKey {
+                                TextField("", text: $draft.apiKey, prompt: Text("key"))
+                            } else {
+                                SecureField("", text: $draft.apiKey, prompt: Text("key"))
+                            }
+                        }
+                        .textFieldStyle(.roundedBorder)
+                        .textContentType(.password)
+                        Button {
+                            revealKey.toggle()
+                        } label: {
+                            Image(systemName: revealKey ? "eye.slash" : "eye")
+                        }
+                        .buttonStyle(.borderless)
+                        .help(revealKey ? "Hide the API key." : "Show the API key.")
+                        .accessibilityLabel(revealKey ? "Hide API key" : "Show API key")
+                    }
+                }
+                fieldRow("Server URL") {
+                    TextField("", text: baseURLBinding,
+                              prompt: Text(CoderPadClient.defaultBaseURL.absoluteString))
+                        .textFieldStyle(.roundedBorder)
+                        .autocorrectionDisabled()
+                        .help("Override only for self-hosted or regional CoderPad deployments. Leave blank to use the default.")
+                }
+                // A saved account always offers its Description so it can be renamed
+                // without re-validating the key; a new account auto-fills it from the
+                // organization once the key validates.
+                if isEditing || isValidated {
+                    fieldRow("Description") {
+                        TextField("", text: $draft.name,
+                                  prompt: Text("Auto-filled from your organization"))
+                            .textFieldStyle(.roundedBorder)
+                    }
+                }
+                // The email picker needs the validated org's member list, so it stays
+                // gated behind a successful validation.
                 if isValidated {
-                    TextField("Name", text: $draft.name, prompt: Text("Auto-filled from your organization"))
-                    LabeledContent("Your email") {
+                    fieldRow("Your Email") {
                         OrgMemberPicker(
                             selection: $draft.userEmail,
                             options: emailOptions,
                             label: emailLabel
                         )
+                        .help("Used to show only your pads in the menu bar.")
                     }
-                    .help("Used to show only your pads in the menu bar.")
                 }
-                GetAPIKeyLink()
-                    .font(.callout)
+                fieldRow("") {
+                    GetAPIKeyLink()
+                        .font(.callout)
+                }
             }
-            .formStyle(.grouped)
 
             validationBanner
 
             HStack {
-                #if DEBUG
-                Button("Try Demo") { onSave(.demo()) }
-                    .help("Add a sandbox account backed by mock data. No key required (DEBUG builds only).")
-                #endif
+                if onDelete != nil {
+                    Button("Delete", role: .destructive) { showDeleteConfirmation = true }
+                        .help("Remove this account and its stored API key from this Mac.")
+                }
                 Spacer()
-                Button("Cancel", role: .cancel, action: onCancel)
+                // A saved account embedded inline has no Cancel: selecting away simply
+                // discards unsaved edits, the way Mail's account pane works.
+                if !(embedded && onDelete != nil) {
+                    Button("Cancel", role: .cancel, action: onCancel)
+                }
                 validateButton
                 saveButton
             }
         }
         .padding()
-        .frame(minWidth: 460, minHeight: 320)
+        .frame(minWidth: embedded ? nil : 460, minHeight: embedded ? nil : 320,
+               maxHeight: embedded ? .infinity : nil, alignment: .top)
         .onChange(of: draft.apiKey) { _, _ in validation = .idle }
         .onChange(of: draft.baseURL) { _, _ in validation = .idle }
+        .confirmationDialog("Delete this account?",
+                            isPresented: $showDeleteConfirmation,
+                            titleVisibility: .visible) {
+            Button("Delete Account", role: .destructive) { onDelete?() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("“\(initialName)” and its stored API key will be removed from this Mac. This can’t be undone.")
+        }
+    }
+
+    /// Width of the right-aligned label column, sized to hold the longest label
+    /// ("Description") so every field starts at the same x — the Mail look.
+    private let labelColumnWidth: CGFloat = 84
+
+    /// One Mail-style row: a right-aligned label paired with a left-aligned field.
+    private func fieldRow<Content: View>(_ label: String,
+                                         @ViewBuilder content: () -> Content) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Text(label)
+                .frame(width: labelColumnWidth, alignment: .trailing)
+                .foregroundStyle(.secondary)
+            content()
+        }
     }
 
     /// Bridges the optional `baseURL` to the text field: an empty field means
@@ -633,6 +768,10 @@ struct AccountEditor: View {
         if case .valid = validation { return true }
         return false
     }
+
+    /// Whether the editor is modifying a saved account (vs. adding a new one); the
+    /// Delete callback is supplied only in that case.
+    private var isEditing: Bool { onDelete != nil }
 
     /// Org member emails for the picker, including any already-saved email that the
     /// org list might not return, sorted for a stable order.
@@ -655,7 +794,9 @@ struct AccountEditor: View {
 
     @ViewBuilder
     private var validateButton: some View {
-        if isValidated {
+        // When Save is available it owns the default action (Return); otherwise Validate
+        // is the primary call to action, so only one button claims the shortcut.
+        if canSave {
             Button("Validate") { Task { await validate() } }
                 .buttonStyle(.bordered)
                 .disabled(validateDisabled)
@@ -667,13 +808,20 @@ struct AccountEditor: View {
         }
     }
 
+    /// A saved account whose key and server URL are untouched can be re-saved without
+    /// re-validating, so edits to the Description or email persist freely; a new account
+    /// or a changed credential still requires a successful validation first.
+    private var canSave: Bool {
+        isValidated || (isEditing && draft.apiKey == initialAPIKey && draft.baseURL == initialBaseURL)
+    }
+
     @ViewBuilder
     private var saveButton: some View {
         let save = {
             finalizeNameIfNeeded()
             onSave(draft)
         }
-        if isValidated {
+        if canSave {
             Button("Save", action: save)
                 .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.defaultAction)
@@ -718,14 +866,14 @@ struct AccountEditor: View {
                                         baseURL: draft.resolvedBaseURL)
             let org = try await client.organization()
             orgUsers = org.users
-            validation = .valid(org.organizationName)
             if draft.name.trimmingCharacters(in: .whitespaces).isEmpty {
                 draft.name = org.organizationName
             }
             // Pre-select the signed-in user's email. The default /api/pads/ endpoint
             // is scoped to the API key owner, so the dominant owner email on their pads
             // is "you" — detect it directly rather than making the user pick. Fall back
-            // to the single-user org case, then to the manual picker.
+            // to the single-user org case, then to the manual picker. This runs while
+            // still in the validating state so the spinner covers the email retrieval.
             if draft.userEmail == nil {
                 if let detected = await detectUserEmail(client: client) {
                     draft.userEmail = detected
@@ -733,6 +881,7 @@ struct AccountEditor: View {
                     draft.userEmail = org.users.first?.email
                 }
             }
+            validation = .valid(org.organizationName)
         } catch {
             validation = .invalid(friendlyValidationMessage(for: error))
         }
@@ -801,7 +950,7 @@ private struct OrgMemberPicker: View {
             isPresented = true
         } label: {
             HStack {
-                Text(selection.map(label) ?? "Not set")
+                Text(selection.map(label) ?? "Unset")
                     .foregroundStyle(selection == nil ? .secondary : .primary)
                     .lineLimit(1)
                 Spacer()
@@ -822,7 +971,7 @@ private struct OrgMemberPicker: View {
 
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
-                        memberRow(email: nil, title: "Not set")
+                        memberRow(email: nil, title: "Unset")
                         ForEach(filtered, id: \.self) { email in
                             memberRow(email: email, title: label(email))
                         }

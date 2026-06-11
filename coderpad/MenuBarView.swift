@@ -213,7 +213,7 @@ struct MenuBarView: View {
     }
 
     private func createPad(_ body: PadCreate, account: Account) async {
-        let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey, baseURL: account.resolvedBaseURL)
+        let client = account.makeClient()
         do {
             let pad = try await client.createPad(body)
             if let url = URL(string: pad.url) {
@@ -233,7 +233,7 @@ struct MenuBarView: View {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
-        let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey, baseURL: account.resolvedBaseURL)
+        let client = account.makeClient()
         do {
             async let padsTask = client.listPads()
             async let qsTask = client.listQuestions()

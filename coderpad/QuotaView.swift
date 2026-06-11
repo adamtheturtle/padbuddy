@@ -46,8 +46,10 @@ struct QuotaView: View {
             }
             await reload()
         }
-        .onReceive(NotificationCenter.default.publisher(for: .reloadRequested)) { _ in
-            Task { await reload() }
+        .task {
+            for await _ in NotificationCenter.default.notifications(named: .reloadRequested) {
+                await reload()
+            }
         }
         .toolbar(id: "quota.toolbar") {
             ToolbarItem(id: "reload") {

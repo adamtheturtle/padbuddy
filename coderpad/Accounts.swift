@@ -49,6 +49,27 @@ struct Account: Identifiable, Codable, Hashable {
         Account(name: "Demo (mock data)", apiKey: "demo", isMock: true)
     }
 
+    /// Sentinel key marking the "bad key" demo: a mock account whose in-process
+    /// server answers 401 for every request, so the unauthorized banner and error
+    /// states can be demoed without a real revoked key.
+    static let badKeyMockKey = "demo-bad-key"
+
+    static func demoBadKey() -> Account {
+        Account(name: "Demo (bad key)", apiKey: badKeyMockKey, isMock: true)
+    }
+
+    /// Whether this is the bad-key demo, as opposed to the mock-data demo.
+    var isBadKeyDemo: Bool { isMock && apiKey == Self.badKeyMockKey }
+
+    /// The API client this account talks to: the in-process mock for demo accounts
+    /// (answering 401 for the bad-key demo), otherwise the live hosted client.
+    func makeClient() -> CoderPadClient {
+        guard isMock else {
+            return .live(apiKey: apiKey, baseURL: resolvedBaseURL)
+        }
+        return .mock(unauthorized: isBadKeyDemo)
+    }
+
     /// A draft account pre-filled from the `CODERPAD_API_KEY` (and optional
     /// `CODERPAD_USER_EMAIL`) env vars set in the scheme's Run action, or `nil`
     /// when no key is present. Debug-only convenience so testing against real
@@ -163,10 +184,19 @@ final class AccountsStore {
     }
 
     func addDemoIfMissing() {
-        if !accounts.contains(where: { $0.isMock }) {
+        if !accounts.contains(where: { $0.isMock && !$0.isBadKeyDemo }) {
             add(.demo())
         }
-        if let demo = accounts.first(where: { $0.isMock }) {
+        if let demo = accounts.first(where: { $0.isMock && !$0.isBadKeyDemo }) {
+            currentAccountID = demo.id
+        }
+    }
+
+    func addDemoBadKeyIfMissing() {
+        if !accounts.contains(where: { $0.isBadKeyDemo }) {
+            add(.demoBadKey())
+        }
+        if let demo = accounts.first(where: { $0.isBadKeyDemo }) {
             currentAccountID = demo.id
         }
     }
@@ -274,10 +304,11 @@ final class AccountHealthMonitor {
     }
 
     func checkCurrentAccount() async {
+        // The bad-key demo is intentionally checked so it surfaces the unauthorized
+        // banner; the mock-data demo is skipped since it's always authorized.
         guard let account = AccountsStore.shared.currentAccount,
-              !account.isMock,
-              !account.apiKey.isEmpty else { return }
-        let client = CoderPadClient.live(apiKey: account.apiKey, baseURL: account.resolvedBaseURL)
+              account.isBadKeyDemo || (!account.isMock && !account.apiKey.isEmpty) else { return }
+        let client = account.makeClient()
         do {
             _ = try await client.organization()
             unauthorizedAccountIDs.remove(account.id)
@@ -386,9 +417,9 @@ enum CacheDisk {
     private nonisolated static func url(kind: String, account: UUID) -> URL? {
         guard let base = FileManager.default.urls(for: .applicationSupportDirectory,
                                                   in: .userDomainMask).first else { return nil }
-        let dir = base.appendingPathComponent("com.coderpad.app/DataCache", isDirectory: true)
+        let dir = base.appending(path: "com.coderpad.app/DataCache", directoryHint: .isDirectory)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir.appendingPathComponent("\(kind)-\(account.uuidString).json")
+        return dir.appending(path: "\(kind)-\(account.uuidString).json")
     }
 
     nonisolated static func load<T: Decodable>(_ type: T.Type, kind: String, account: UUID) -> T? {

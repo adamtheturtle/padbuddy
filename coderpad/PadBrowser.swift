@@ -269,7 +269,8 @@ extension WebController: WKNavigationDelegate {
         }
         if !didRetryLoad {
             didRetryLoad = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(for: .milliseconds(300))
                 self?.webView?.load(URLRequest(url: url))
             }
             return

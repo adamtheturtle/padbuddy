@@ -572,7 +572,7 @@ final class OrgDirectory {
         guard loadedAccountID != account.id, inFlight != account.id else { return }
         inFlight = account.id
         defer { inFlight = nil }
-        let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey, baseURL: account.resolvedBaseURL)
+        let client = account.makeClient()
         if let org = try? await client.organization() {
             var map: [String: String] = [:]
             for user in org.users {
@@ -596,15 +596,8 @@ final class OrgDirectory {
     }
 }
 
-private struct OrgDirectoryKey: EnvironmentKey {
-    static let defaultValue = OrgDirectory()
-}
-
 extension EnvironmentValues {
-    var orgDirectory: OrgDirectory {
-        get { self[OrgDirectoryKey.self] }
-        set { self[OrgDirectoryKey.self] = newValue }
-    }
+    @Entry var orgDirectory = OrgDirectory()
 }
 
 // MARK: - Filter bar width measurement
@@ -888,18 +881,18 @@ private struct PopoverRow: View {
 
 // MARK: - Focused scene value for the selected pad
 
-/// The pad selected in the active window's list, published via
-/// `focusedSceneValue` so the Pad menu commands can act on it whenever the
-/// window is frontmost — independent of which subview holds keyboard focus.
-struct FocusedPadKey: FocusedValueKey {
-    typealias Value = Pad
+extension FocusedValues {
+    /// The pad selected in the active window's list, published via
+    /// `focusedSceneValue` so the Pad menu commands can act on it whenever the
+    /// window is frontmost — independent of which subview holds keyboard focus.
+    @Entry var focusedPad: Pad?
 }
 
 extension FocusedValues {
-    var focusedPad: Pad? {
-        get { self[FocusedPadKey.self] }
-        set { self[FocusedPadKey.self] = newValue }
-    }
+    /// The question selected in the active window's list, published via
+    /// `focusedSceneValue` so the Question menu commands can act on it whenever the
+    /// window is frontmost — the Questions-pane counterpart to `focusedPad`.
+    @Entry var focusedQuestion: Question?
 }
 
 /// Action published by whichever pane currently owns a search field, so the
@@ -924,15 +917,8 @@ struct FindAction: Equatable {
     }
 }
 
-struct FindActionKey: FocusedValueKey {
-    typealias Value = FindAction
-}
-
 extension FocusedValues {
-    var findAction: FindAction? {
-        get { self[FindActionKey.self] }
-        set { self[FindActionKey.self] = newValue }
-    }
+    @Entry var findAction: FindAction?
 }
 
 // MARK: - APIErrorView
