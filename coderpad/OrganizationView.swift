@@ -67,10 +67,9 @@ struct OrganizationView: View {
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
-                        PaneTitle(title: "Organization") {
-                            periodControls
-                        }
+                        PaneTitle(title: "Organization")
                         VStack(alignment: .leading, spacing: 18) {
+                            if period == .custom { customRangeControls }
                             header
                             statTiles
                             if organization != nil { activitySection(stats) }
@@ -105,36 +104,34 @@ struct OrganizationView: View {
             guard period == .custom else { return }
             Task { await reloadStats() }
         }
-        .focusedSceneValue(\.findAction, FindAction { userSearchFocused = true })
+        .focusedSceneValue(\.findAction, FindAction(id: "organization") { userSearchFocused = true })
+        .onReceive(NotificationCenter.default.publisher(for: .reloadRequested)) { _ in
+            Task { await reload() }
+        }
+        .toolbar(id: "org.toolbar") {
+            ToolbarItem(id: "period") {
+                Picker("Period", selection: $period) {
+                    ForEach(StatsPeriod.allCases) { Text($0.rawValue).tag($0) }
+                }
+                .pickerStyle(.menu)
+                .help("Stats period")
+            }
+            ToolbarItem(id: "reload") {
+                ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
+            }
+        }
     }
 
-    private var periodControls: some View {
+    /// The custom From/To range, shown inline below the title only when the
+    /// "Custom range" period is selected. These stay in the pane rather than the
+    /// toolbar because their width varies and they only apply to one period.
+    private var customRangeControls: some View {
         HStack(spacing: 8) {
-            Picker("Period", selection: $period) {
-                ForEach(StatsPeriod.allCases) { Text($0.rawValue).tag($0) }
-            }
-            .pickerStyle(.menu)
-            .labelsHidden()
-            .fixedSize()
-            if period == .custom {
-                DatePicker("From", selection: $customStart, in: ...customEnd, displayedComponents: .date)
-                    .datePickerStyle(.field)
-                    .labelsHidden()
-                DatePicker("To", selection: $customEnd, in: customStart..., displayedComponents: .date)
-                    .datePickerStyle(.field)
-                    .labelsHidden()
-            }
-            Button { Task { await reload() } } label: {
-                if isLoading {
-                    ProgressView().controlSize(.small)
-                } else {
-                    Image(systemName: "arrow.clockwise")
-                }
-            }
-            .buttonStyle(.borderless)
-            .help("Reload")
-            .accessibilityLabel("Reload")
-            .disabled(isLoading)
+            DatePicker("From", selection: $customStart, in: ...customEnd, displayedComponents: .date)
+                .datePickerStyle(.field)
+            DatePicker("To", selection: $customEnd, in: customStart..., displayedComponents: .date)
+                .datePickerStyle(.field)
+            Spacer(minLength: 0)
         }
     }
 

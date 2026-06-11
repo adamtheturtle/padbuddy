@@ -5,6 +5,7 @@
 
 import SwiftUI
 import AppKit
+import ServiceManagement
 
 /// Where a pad link opens when you activate it.
 enum LinkDestination: String, CaseIterable, Identifiable {
@@ -92,21 +93,162 @@ enum BrowserSettings {
     }
 }
 
+/// How the app follows the system appearance, or forces light/dark regardless.
+enum AppAppearance: String, CaseIterable, Identifiable {
+    case system
+    case light
+    case dark
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .system: return "System"
+        case .light: return "Light"
+        case .dark: return "Dark"
+        }
+    }
+
+    /// The color scheme to force on the app's windows, or nil to follow the system.
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: return nil
+        case .light: return .light
+        case .dark: return .dark
+        }
+    }
+}
+
+/// General app preferences (appearance, Dock visibility, auto-refresh cadence)
+/// stored in `UserDefaults`. Mirrors `BrowserSettings`: the keys are shared by the
+/// settings UI (via `@AppStorage`) and by the app-wide static getters here, so a
+/// single source of truth backs both. Launch-at-login state lives with the system
+/// (`SMAppService`) rather than here — see `LoginItem`.
+enum GeneralSettings {
+    enum Key {
+        static let appearance = "general.appearance"
+        static let hideDockIcon = "general.hideDockIcon"
+        static let refreshSeconds = "general.refreshSeconds"
+    }
+
+    /// Default auto-refresh cadence, matching the value the panes used before this
+    /// became configurable.
+    static let defaultRefreshSeconds = 90
+    static let minRefreshSeconds = 15
+    static let maxRefreshSeconds = 600
+
+    static var appearance: AppAppearance {
+        AppAppearance(rawValue: UserDefaults.standard.string(forKey: Key.appearance) ?? "") ?? .system
+    }
+
+    static var hideDockIcon: Bool {
+        UserDefaults.standard.bool(forKey: Key.hideDockIcon)
+    }
+
+    /// Auto-refresh cadence in seconds, clamped to a sane range. A never-set value
+    /// reads back as 0 from `UserDefaults`, which we treat as "use the default".
+    static var refreshSeconds: Int {
+        let stored = UserDefaults.standard.integer(forKey: Key.refreshSeconds)
+        guard stored != 0 else { return defaultRefreshSeconds }
+        return min(max(stored, minRefreshSeconds), maxRefreshSeconds)
+    }
+
+    static var refreshInterval: Duration { .seconds(refreshSeconds) }
+
+    /// Reflect the Dock-visibility preference by switching the activation policy:
+    /// `.accessory` runs menu-bar-only (no Dock icon), `.regular` shows in the Dock.
+    @MainActor
+    static func applyDockVisibility() {
+        NSApp.setActivationPolicy(hideDockIcon ? .accessory : .regular)
+    }
+}
+
+/// Thin wrapper over `SMAppService.mainApp` for the "Launch at login" toggle. The
+/// enabled state is owned by the system, so reads go straight to the service rather
+/// than to `UserDefaults`.
+enum LoginItem {
+    static var isEnabled: Bool {
+        SMAppService.mainApp.status == .enabled
+    }
+
+    static func setEnabled(_ enabled: Bool) throws {
+        if enabled {
+            try SMAppService.mainApp.register()
+        } else {
+            try SMAppService.mainApp.unregister()
+        }
+    }
+}
+
+/// The tabs in the Settings window, used to drive `SettingsView`'s selection so
+/// callers can open Settings on a specific tab (e.g. the unauthorized banner jumps
+/// straight to Accounts).
+enum SettingsTab: Hashable {
+    case general
+    case accounts
+    case browser
+    case menuBar
+}
+
+/// Shared target tab for the Settings window. Set this before calling `openSettings()`
+/// to control which tab appears. Lives outside the view because the banner that opens
+/// Settings and the `SettingsView` itself are in separate scenes.
+@MainActor
+@Observable
+final class SettingsNavigation {
+    static let shared = SettingsNavigation()
+    var selectedTab: SettingsTab = .general
+    /// When set, Settings opens the editor for this account as it appears, then
+    /// clears it. Lets the unauthorized banner jump straight to the account's settings.
+    var accountToEdit: UUID?
+    private init() {}
+}
+
 struct SettingsView: View {
     @State private var store = AccountsStore.shared
+    @State private var navigation = SettingsNavigation.shared
     @State private var editingAccount: Account?
     @State private var selectedAccountID: UUID?
 
+    // Browser and menu-bar preferences live in UserDefaults under the keys defined
+    // in `BrowserSettings.Key`; `@AppStorage` reads/writes those same keys so the
+    // app-wide static getters on `BrowserSettings` stay in sync.
+    @AppStorage(BrowserSettings.Key.openLinksIn) private var openLinksIn: LinkDestination = .inApp
+    @AppStorage(BrowserSettings.Key.defaultBrowserBundleID) private var defaultBrowserBundleID: String?
+    @AppStorage(BrowserSettings.Key.openInBackground) private var openInBackground = false
+    @AppStorage("menuBarTopN") private var menuBarTopN = 3
+
+    // General preferences, backed by the keys in `GeneralSettings.Key`.
+    @AppStorage(GeneralSettings.Key.appearance) private var appearance: AppAppearance = .system
+    @AppStorage(GeneralSettings.Key.hideDockIcon) private var hideDockIcon = false
+    @AppStorage(GeneralSettings.Key.refreshSeconds) private var refreshSeconds = GeneralSettings.defaultRefreshSeconds
+
+    // Launch-at-login mirrors the live `SMAppService` state rather than UserDefaults,
+    // so it's plain view state kept in sync on appear and after each toggle.
+    @State private var launchAtLogin = LoginItem.isEnabled
+    @State private var loginItemError: String?
+
     var body: some View {
-        TabView {
+        TabView(selection: $navigation.selectedTab) {
+            generalTab
+                .tabItem { Label("General", systemImage: "gearshape") }
+                .tag(SettingsTab.general)
             accountsTab
                 .tabItem { Label("Accounts", systemImage: "person.crop.circle") }
+                .tag(SettingsTab.accounts)
             browserTab
                 .tabItem { Label("Browser", systemImage: "safari") }
+                .tag(SettingsTab.browser)
             menuBarTab
                 .tabItem { Label("Menu Bar", systemImage: "menubar.rectangle") }
+                .tag(SettingsTab.menuBar)
         }
         .frame(minWidth: 540, minHeight: 420)
+        // A caller (e.g. the unauthorized banner) can request the editor for a
+        // specific account; honor it both when Settings first appears and while it's
+        // already open.
+        .onAppear { openPendingEdit(navigation.accountToEdit) }
+        .onChange(of: navigation.accountToEdit) { _, id in openPendingEdit(id) }
         .sheet(item: $editingAccount) { account in
             AccountEditor(initial: account) { updated in
                 if store.accounts.contains(where: { $0.id == updated.id }) {
@@ -119,6 +261,88 @@ struct SettingsView: View {
                 editingAccount = nil
             }
         }
+    }
+
+    /// Open the account editor for a requested account, switching to the Accounts tab
+    /// and selecting the row first, then clearing the request so it fires only once.
+    private func openPendingEdit(_ id: UUID?) {
+        guard let id, let account = store.accounts.first(where: { $0.id == id }) else { return }
+        navigation.selectedTab = .accounts
+        selectedAccountID = id
+        editingAccount = account
+        navigation.accountToEdit = nil
+    }
+
+    private var generalTab: some View {
+        Form {
+            Section {
+                Toggle("Launch at login", isOn: $launchAtLogin)
+                    .onChange(of: launchAtLogin) { _, enabled in
+                        do {
+                            try LoginItem.setEnabled(enabled)
+                            loginItemError = nil
+                        } catch {
+                            // Registration failed: snap the toggle back to the real
+                            // state and surface why.
+                            launchAtLogin = LoginItem.isEnabled
+                            loginItemError = error.localizedDescription
+                        }
+                    }
+            } footer: {
+                if let loginItemError {
+                    Text(loginItemError).foregroundStyle(.red)
+                } else {
+                    Text("Open CoderPad automatically when you log in to your Mac.")
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Section {
+                Picker("Appearance", selection: $appearance) {
+                    ForEach(AppAppearance.allCases) { option in
+                        Text(option.label).tag(option)
+                    }
+                }
+            }
+
+            Section {
+                Toggle("Hide Dock icon", isOn: $hideDockIcon)
+                    .onChange(of: hideDockIcon) { _, _ in
+                        GeneralSettings.applyDockVisibility()
+                    }
+            } footer: {
+                Text("Run CoderPad from the menu bar only. The app stays available from its menu-bar icon.")
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                Stepper(value: $refreshSeconds,
+                        in: GeneralSettings.minRefreshSeconds...GeneralSettings.maxRefreshSeconds,
+                        step: 15) {
+                    HStack {
+                        Text("Auto-refresh interval")
+                        Spacer()
+                        Text(refreshIntervalLabel)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } footer: {
+                Text("How often pads and questions reload in the background. Large organizations refresh less often automatically.")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .formStyle(.grouped)
+        // Re-sync with the system in case the login item changed outside the app.
+        .onAppear { launchAtLogin = LoginItem.isEnabled }
+    }
+
+    /// Human-readable form of the auto-refresh interval, e.g. "90s" or "2m 30s".
+    private var refreshIntervalLabel: String {
+        let seconds = refreshSeconds
+        if seconds < 60 { return "\(seconds)s" }
+        let minutes = seconds / 60
+        let remainder = seconds % 60
+        return remainder == 0 ? "\(minutes)m" : "\(minutes)m \(remainder)s"
     }
 
     private var accountsTab: some View {
@@ -145,19 +369,25 @@ struct SettingsView: View {
                     ForEach(store.accounts) { account in
                         AccountRow(
                             account: account,
-                            isCurrent: account.id == store.currentAccountID,
-                            onMakeCurrent: { store.currentAccountID = account.id }
+                            isCurrent: account.id == store.currentAccountID
                         )
                         .tag(account.id)
                         .contentShape(Rectangle())
-                        // Use a simultaneous gesture so double-click-to-edit doesn't
-                        // swallow the List's single-click selection, which the
-                        // remove/edit buttons depend on.
-                        .simultaneousGesture(TapGesture(count: 2).onEnded { editingAccount = account })
+                        // Drive selection explicitly: attaching any tap gesture to a row
+                        // in a List(selection:) interferes with AppKit's built-in
+                        // click-to-select, so a single click would otherwise be eaten.
+                        // Declare the double-click variant first so SwiftUI can
+                        // disambiguate it from the single click.
+                        .onTapGesture(count: 2) { editingAccount = account }
+                        .onTapGesture(count: 1) { selectedAccountID = account.id }
                     }
                 }
                 .listStyle(.inset(alternatesRowBackgrounds: true))
                 .frame(maxHeight: .infinity)
+                // Mirror the current account into the selection on appear. Selecting a
+                // row only highlights it; switching the active account is an explicit
+                // action via the "Use" button below.
+                .onAppear { selectedAccountID = store.currentAccountID }
 
                 HStack(spacing: 4) {
                     Button {
@@ -197,6 +427,19 @@ struct SettingsView: View {
                     .disabled(selectedAccountID == nil)
                     .accessibilityLabel("Edit selected account")
 
+                    Divider().frame(height: 14)
+
+                    Button {
+                        if let id = selectedAccountID { store.currentAccountID = id }
+                    } label: {
+                        Label("Use", systemImage: "checkmark.circle")
+                            .labelStyle(.titleAndIcon)
+                    }
+                    .help("Switch to the selected account")
+                    .buttonStyle(.borderless)
+                    .disabled(selectedAccountID == nil || selectedAccountID == store.currentAccountID)
+                    .accessibilityLabel("Use selected account")
+
                     Spacer()
 
                     #if DEBUG
@@ -218,28 +461,16 @@ struct SettingsView: View {
     }
 
     private var browserTab: some View {
-        let openLinksIn = Binding(
-            get: { BrowserSettings.openLinksIn },
-            set: { UserDefaults.standard.set($0.rawValue, forKey: BrowserSettings.Key.openLinksIn) }
-        )
-        let defaultBrowser = Binding(
-            get: { BrowserSettings.defaultBrowserBundleID },
-            set: { UserDefaults.standard.set($0, forKey: BrowserSettings.Key.defaultBrowserBundleID) }
-        )
-        let openInBackground = Binding(
-            get: { BrowserSettings.openInBackground },
-            set: { UserDefaults.standard.set($0, forKey: BrowserSettings.Key.openInBackground) }
-        )
-        return Form {
+        Form {
             Section {
-                Picker("Open links", selection: openLinksIn) {
+                Picker("Open links", selection: $openLinksIn) {
                     ForEach(LinkDestination.allCases) { destination in
                         Text(destination.label).tag(destination)
                     }
                 }
             }
             Section {
-                Picker("Default browser", selection: defaultBrowser) {
+                Picker("Default browser", selection: $defaultBrowserBundleID) {
                     Text("Use system default (\(BrowserSettings.systemDefaultBrowserName()))")
                         .tag(String?.none)
                     ForEach(BrowserSettings.installedBrowsers()) { browser in
@@ -248,7 +479,7 @@ struct SettingsView: View {
                 }
             }
             Section {
-                Toggle("Open links in background", isOn: openInBackground)
+                Toggle("Open links in background", isOn: $openInBackground)
             } footer: {
                 Text("Please note that some third-party browsers do not support opening links in the background.")
                     .foregroundStyle(.secondary)
@@ -258,17 +489,13 @@ struct SettingsView: View {
     }
 
     private var menuBarTab: some View {
-        let topN = Binding(
-            get: { UserDefaults.standard.integer(forKey: "menuBarTopN").nonZero ?? 10 },
-            set: { UserDefaults.standard.set($0, forKey: "menuBarTopN") }
-        )
-        return Form {
+        Form {
             Section {
-                Stepper(value: topN, in: 3...30, step: 1) {
+                Stepper(value: $menuBarTopN, in: 3...30, step: 1) {
                     HStack {
                         Text("Recent pads in menu bar")
                         Spacer()
-                        Text("\(topN.wrappedValue)")
+                        Text("\(menuBarTopN)")
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -284,7 +511,6 @@ struct SettingsView: View {
 private struct AccountRow: View {
     let account: Account
     let isCurrent: Bool
-    let onMakeCurrent: () -> Void
 
     var body: some View {
         HStack(spacing: 10) {
@@ -311,12 +537,6 @@ private struct AccountRow: View {
             }
 
             Spacer()
-
-            if !isCurrent {
-                Button("Use") { onMakeCurrent() }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-            }
         }
         .padding(.vertical, 4)
     }
@@ -645,10 +865,6 @@ private struct OrgMemberPicker: View {
         .buttonStyle(.plain)
         .background(isSelected ? Color.accentColor.opacity(0.12) : .clear)
     }
-}
-
-private extension Int {
-    var nonZero: Int? { self == 0 ? nil : self }
 }
 
 #Preview { SettingsView() }

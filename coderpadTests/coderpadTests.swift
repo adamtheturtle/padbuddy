@@ -5,6 +5,7 @@
 
 import Testing
 import Foundation
+import SwiftUI
 @testable import coderpad
 
 @Suite("Pad decoder")
@@ -536,5 +537,106 @@ struct QuotaDecoderTests {
         #expect(q.overagesEnabled == false)
         #expect(q.trialExpiresAt != nil)
         #expect(q.quotaReset != nil)
+    }
+}
+
+@Suite("App appearance")
+struct AppAppearanceTests {
+    @Test("raw values are stable (they back the stored preference)")
+    func rawValues() {
+        #expect(AppAppearance.system.rawValue == "system")
+        #expect(AppAppearance.light.rawValue == "light")
+        #expect(AppAppearance.dark.rawValue == "dark")
+    }
+
+    @Test("maps to the color scheme it forces, nil for system")
+    func colorScheme() {
+        #expect(AppAppearance.system.colorScheme == nil)
+        #expect(AppAppearance.light.colorScheme == .light)
+        #expect(AppAppearance.dark.colorScheme == .dark)
+    }
+
+    @Test("every case has a non-empty label")
+    func labels() {
+        #expect(AppAppearance.allCases.allSatisfy { !$0.label.isEmpty })
+    }
+}
+
+// Serialized: these read and mutate process-wide UserDefaults under the
+// `general.*` keys, so concurrent runs would clobber each other's values.
+@Suite("General settings", .serialized)
+struct GeneralSettingsTests {
+    private static let keys = [
+        GeneralSettings.Key.appearance,
+        GeneralSettings.Key.hideDockIcon,
+        GeneralSettings.Key.refreshSeconds,
+    ]
+
+    /// Snapshots the `general.*` defaults, clears them, runs the block, then restores
+    /// whatever was there before so the test leaves no trace.
+    private func withCleanDefaults<T>(_ block: () throws -> T) rethrows -> T {
+        let saved = Self.keys.map { ($0, UserDefaults.standard.object(forKey: $0)) }
+        for key in Self.keys { UserDefaults.standard.removeObject(forKey: key) }
+        defer {
+            for (key, value) in saved {
+                if let value {
+                    UserDefaults.standard.set(value, forKey: key)
+                } else {
+                    UserDefaults.standard.removeObject(forKey: key)
+                }
+            }
+        }
+        return try block()
+    }
+
+    @Test("refreshSeconds falls back to the default when unset")
+    func refreshDefault() {
+        withCleanDefaults {
+            #expect(GeneralSettings.refreshSeconds == GeneralSettings.defaultRefreshSeconds)
+            #expect(GeneralSettings.refreshInterval == .seconds(GeneralSettings.defaultRefreshSeconds))
+        }
+    }
+
+    @Test("refreshSeconds passes a valid stored value through")
+    func refreshPassthrough() {
+        withCleanDefaults {
+            UserDefaults.standard.set(120, forKey: GeneralSettings.Key.refreshSeconds)
+            #expect(GeneralSettings.refreshSeconds == 120)
+            #expect(GeneralSettings.refreshInterval == .seconds(120))
+        }
+    }
+
+    @Test("refreshSeconds clamps below the minimum and above the maximum")
+    func refreshClamping() {
+        withCleanDefaults {
+            UserDefaults.standard.set(1, forKey: GeneralSettings.Key.refreshSeconds)
+            #expect(GeneralSettings.refreshSeconds == GeneralSettings.minRefreshSeconds)
+
+            UserDefaults.standard.set(99_999, forKey: GeneralSettings.Key.refreshSeconds)
+            #expect(GeneralSettings.refreshSeconds == GeneralSettings.maxRefreshSeconds)
+        }
+    }
+
+    @Test("appearance defaults to system and reads back a stored choice")
+    func appearance() {
+        withCleanDefaults {
+            #expect(GeneralSettings.appearance == .system)
+
+            UserDefaults.standard.set("dark", forKey: GeneralSettings.Key.appearance)
+            #expect(GeneralSettings.appearance == .dark)
+
+            // An unrecognized stored value falls back to system rather than crashing.
+            UserDefaults.standard.set("chartreuse", forKey: GeneralSettings.Key.appearance)
+            #expect(GeneralSettings.appearance == .system)
+        }
+    }
+
+    @Test("hideDockIcon defaults to false and reflects a stored true")
+    func hideDockIcon() {
+        withCleanDefaults {
+            #expect(GeneralSettings.hideDockIcon == false)
+            UserDefaults.standard.set(true, forKey: GeneralSettings.Key.hideDockIcon)
+            #expect(GeneralSettings.hideDockIcon == true)
+        }
     }
 }

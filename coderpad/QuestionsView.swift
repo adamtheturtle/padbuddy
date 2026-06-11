@@ -15,7 +15,6 @@ struct QuestionsView: View {
     @State private var cache = QuestionsCacheStore.shared
     @State private var questions: [Question] = []
 
-    private static let refreshInterval: Duration = .seconds(90)
     @State private var isLoading = false
     @State private var error: Error?
     @Binding var selection: Question?
@@ -35,7 +34,9 @@ struct QuestionsView: View {
             if questions.isEmpty, let id = accounts.currentAccountID {
                 questions = cache.get(id)
             }
-            await periodicReload(interval: Self.refreshInterval) {
+            // Closure form so a change to the interval in Settings takes effect on
+            // the next cycle without restarting the task.
+            await periodicReload(interval: { GeneralSettings.refreshInterval }) {
                 await reload()
             }
         }
@@ -127,34 +128,18 @@ struct QuestionsView: View {
                 APIErrorView(error: error) { Task { await reload() } }
             } else {
                 VStack(spacing: 0) {
-                    PaneTitle(title: "Questions") {
-                        NewQuestionButton { showCreate = true }
-                            .disabled(client.apiKey.isEmpty)
-                    }
-                    HStack(spacing: 8) {
-                        InlineSearchField(query: $search, prompt: "Search title, author…",
-                                          focused: $searchFieldFocused)
-                        paneActions
-                    }
-                    .padding(.horizontal, Spacing.paneH)
-                    .padding(.bottom, 8)
+                    PaneTitle(title: "Questions")
+                    InlineSearchField(query: $search, prompt: "Search title, author…",
+                                      focused: $searchFieldFocused)
+                        .padding(.horizontal, Spacing.paneH)
+                        .padding(.bottom, 8)
                     filterBar
                     Divider()
                     List(selection: $selection) {
                         ForEach(sorted) { q in
                             QuestionRow(question: q)
                                 .tag(q)
-                                .contextMenu {
-                                    Button {
-                                        // Mirror the detail view's "New Pad" button: select the
-                                        // question so its detail pane shows, then let that pane
-                                        // create the pad and open it inline.
-                                        selection = q
-                                        nav.createPadForQuestionID = q.id
-                                    } label: {
-                                        Label("New Pad from Question", systemImage: "plus.rectangle.on.rectangle")
-                                    }
-                                }
+                                .contextMenu { questionContextMenu(q) }
                         }
                     }
                     .listStyle(.inset)
@@ -162,35 +147,88 @@ struct QuestionsView: View {
                 }
             }
         }
-        .focusedSceneValue(\.findAction, FindAction { searchFieldFocused = true })
+        .focusedSceneValue(\.findAction, FindAction(id: "questions") { searchFieldFocused = true })
+        .toolbar(id: "questions.toolbar") {
+            ToolbarItem(id: "sort") {
+                Menu {
+                    Picker("Sort", selection: $sort) {
+                        ForEach(QuestionSort.allCases) { Text($0.label).tag($0) }
+                    }
+                    .pickerStyle(.inline)
+                } label: {
+                    Label("Sort", systemImage: "arrow.up.arrow.down")
+                }
+                .help("Sort questions")
+                .accessibilityLabel("Sort questions")
+            }
+            ToolbarItem(id: "reload") {
+                ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
+            }
+            if #available(macOS 26, *) {
+                ToolbarSpacer(.fixed)
+            }
+            ToolbarItem(id: "new", placement: .primaryAction) {
+                Button { showCreate = true } label: {
+                    Label("New Question", systemImage: "plus")
+                }
+                .help("Create a new question (⇧⌘N)")
+                .accessibilityLabel("New Question")
+                .disabled(client.apiKey.isEmpty)
+            }
+        }
     }
 
-    private var paneActions: some View {
-        HStack(spacing: 2) {
-            Menu {
-                Picker("Sort", selection: $sort) {
-                    ForEach(QuestionSort.allCases) { Text($0.label).tag($0) }
-                }
-                .pickerStyle(.inline)
-            } label: {
-                Image(systemName: "arrow.up.arrow.down")
-            }
-            .menuIndicator(.hidden)
-            .fixedSize()
-            .help("Sort questions")
-            .accessibilityLabel("Sort questions")
-            Button { Task { await reload() } } label: {
-                if isLoading {
-                    ProgressView().controlSize(.small)
-                } else {
-                    Image(systemName: "arrow.clockwise")
-                }
-            }
-            .buttonStyle(.borderless)
-            .help("Reload")
-            .accessibilityLabel("Reload")
-            .disabled(isLoading)
+    /// Right-click actions for a question row. Actions that need the detail pane's
+    /// machinery (its sheets and confirmations) select the question first, then
+    /// route the request through `AppNavigation` — the same pattern as "New Pad
+    /// from Question" — so the detail view performs them with its existing UI.
+    @ViewBuilder
+    private func questionContextMenu(_ q: Question) -> some View {
+        Button {
+            // Mirror the detail view's "New Pad" button: select the question so
+            // its detail pane shows, then let that pane create the pad and open
+            // it inline.
+            selection = q
+            nav.createPadForQuestionID = q.id
+        } label: {
+            Label("New Pad from Question", systemImage: "plus.rectangle.on.rectangle")
         }
+        Button {
+            selection = q
+            nav.editQuestionID = q.id
+        } label: {
+            Label("Edit Question…", systemImage: "pencil")
+        }
+        Divider()
+        Button {
+            copyToPasteboard(q.displayTitle)
+        } label: {
+            Label("Copy Title", systemImage: "doc.on.doc")
+        }
+        Button {
+            ownerFilter = q.ownerEmail
+        } label: {
+            Label("Show Questions from \(directory.display(q.ownerEmail))", systemImage: "person")
+        }
+        if let lang = q.language, !lang.isEmpty {
+            Button {
+                languageFilter = lang.lowercased()
+            } label: {
+                Label("Show \(lang.languageDisplayName) Questions", systemImage: "chevron.left.slash.chevron.right")
+            }
+        }
+        Divider()
+        Button(role: .destructive) {
+            selection = q
+            nav.deleteQuestionID = q.id
+        } label: {
+            Label("Delete Question…", systemImage: "trash")
+        }
+    }
+
+    private func copyToPasteboard(_ text: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
     }
 
     @ViewBuilder
@@ -271,8 +309,8 @@ enum QuestionSort: String, CaseIterable, Identifiable {
         switch self {
         case .lastUsedDesc: "Last used (newest first)"
         case .lastUsedAsc: "Last used (oldest first)"
-        case .titleAsc: "Title (A–Z)"
-        case .titleDesc: "Title (Z–A)"
+        case .titleAsc: "Title (A-Z)"
+        case .titleDesc: "Title (Z-A)"
         }
     }
 }
@@ -367,8 +405,14 @@ struct QuestionDetailView: View {
         } message: {
             if let createPadError { Text(createPadError) }
         }
-        .onAppear { consumePendingPadCreation() }
+        .onAppear {
+            consumePendingPadCreation()
+            consumePendingEdit()
+            consumePendingDelete()
+        }
         .onChange(of: nav.createPadForQuestionID) { _, _ in consumePendingPadCreation() }
+        .onChange(of: nav.editQuestionID) { _, _ in consumePendingEdit() }
+        .onChange(of: nav.deleteQuestionID) { _, _ in consumePendingDelete() }
     }
 
     private var detailScroll: some View {
@@ -549,6 +593,23 @@ struct QuestionDetailView: View {
         Task { await createPad() }
     }
 
+    /// Honors an "Edit Question" request routed via `AppNavigation` from the list's
+    /// context menu by presenting the same edit sheet as the in-pane Edit button.
+    private func consumePendingEdit() {
+        guard nav.editQuestionID == question.id else { return }
+        nav.editQuestionID = nil
+        showEdit = true
+    }
+
+    /// Honors a "Delete Question" request from the list's context menu by showing
+    /// the same delete confirmation as the in-pane Delete button — never deleting
+    /// without that confirmation step.
+    private func consumePendingDelete() {
+        guard nav.deleteQuestionID == question.id else { return }
+        nav.deleteQuestionID = nil
+        showDeleteConfirm = true
+    }
+
     private func createPad() async {
         isCreatingPad = true
         defer { isCreatingPad = false }
@@ -568,27 +629,6 @@ struct QuestionDetailView: View {
 
 private let padTypeOptions = InterviewType.allCases.map(\.rawValue)
 private func padTypeLabel(_ raw: String) -> String { InterviewType(rawValue: raw)?.label ?? raw.capitalized }
-
-/// The primary call-to-action for the Questions pane. Authoring a question is a
-/// central task, so it gets a prominent, accent-tinted button in the pane title
-/// rather than an easily-missed icon next to the search field.
-private struct NewQuestionButton: View {
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Label("New Question", systemImage: "plus")
-                .font(.callout.weight(.semibold))
-        }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
-        // Capsule is the app-wide shape for action buttons; stated explicitly so
-        // it holds even if the control size changes. See PadsView's NewPadButton.
-        .buttonBorderShape(.capsule)
-        .help("Create a new question (⇧⌘N)")
-        .accessibilityLabel("New Question")
-    }
-}
 
 private struct NewQuestionSheet: View {
     let client: CoderPadClient

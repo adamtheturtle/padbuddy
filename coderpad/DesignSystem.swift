@@ -306,7 +306,6 @@ extension String {
 enum CoderPadLinks {
     static let apiSettings = URL(string: "https://app.coderpad.io/dashboard/settings")!
     static let apiDocs = URL(string: "https://coderpad.io/resources/docs/coderpad-interview/api/")!
-    static let sourceRepo = URL(string: "https://github.com/adamtheturtle/coderpad-macos")!
 }
 
 enum CoderPadLanguages {
@@ -379,6 +378,28 @@ struct PaneTitle<Trailing: View>: View {
 extension PaneTitle where Trailing == EmptyView {
     init(title: String, subtitle: String? = nil) {
         self.init(title: title, subtitle: subtitle) { EmptyView() }
+    }
+}
+
+// MARK: - ReloadToolbarButton
+
+/// The Reload action shared by every section's window toolbar. Kept as a stable
+/// `Label` (rather than swapping the whole control for a `ProgressView` while
+/// loading) so the toolbar item keeps a fixed size and identity inside the
+/// Liquid Glass cluster, and so the "Icon and Text" customization mode always has
+/// text to show. The spinning feedback comes from a symbol effect on the icon.
+struct ReloadToolbarButton: View {
+    let isLoading: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label("Reload", systemImage: "arrow.clockwise")
+                .symbolEffect(.rotate, options: .repeat(.continuous), isActive: isLoading)
+        }
+        .help("Reload")
+        .accessibilityLabel("Reload")
+        .disabled(isLoading)
     }
 }
 
@@ -885,8 +906,22 @@ extension FocusedValues {
 /// global ⌘F command can focus it. Panes set this via `focusedSceneValue` while
 /// visible; the command reads it both to perform the find and to know whether
 /// Find applies in the current context (it's disabled when no pane provides one).
-struct FindAction {
+///
+/// `Equatable` on a stable per-pane `id` is load-bearing: the wrapped closure
+/// can't be compared, so without it every body pass re-publishes a "new" value
+/// for the same scene key. Because `NavigationSplitView` re-evaluates its panes
+/// several times per layout pass, SwiftUI flags those redundant writes as
+/// "FocusedValue update tried to update multiple times per frame." Comparing by
+/// `id` lets SwiftUI dedupe the identical re-assignments instead.
+struct FindAction: Equatable {
+    /// Identifies the owning pane (e.g. "pads"), so re-publishes from the same
+    /// pane compare equal while a genuine pane switch compares unequal.
+    let id: String
     let perform: () -> Void
+
+    static func == (lhs: FindAction, rhs: FindAction) -> Bool {
+        lhs.id == rhs.id
+    }
 }
 
 struct FindActionKey: FocusedValueKey {
@@ -914,11 +949,13 @@ struct APIErrorView: View {
             } description: {
                 Text("Your API key was rejected (HTTP 401/403). Open Settings to switch accounts or paste a new key.")
             } actions: {
-                Button("Open Settings") { openSettings() }
-                    .buttonStyle(.borderedProminent)
-                GetAPIKeyLink()
-                if let onRetry {
-                    Button("Retry", action: onRetry)
+                VStack(spacing: 8) {
+                    Button("Open Settings") { openSettings() }
+                        .buttonStyle(.borderedProminent)
+                    GetAPIKeyLink()
+                    if let onRetry {
+                        Button("Retry", action: onRetry)
+                    }
                 }
             }
         } else if let api = error as? CoderPadError, case .missingAPIKey = api {
@@ -927,9 +964,11 @@ struct APIErrorView: View {
             } description: {
                 Text("Add an account in Settings to start using the app.")
             } actions: {
-                Button("Open Settings") { openSettings() }
-                    .buttonStyle(.borderedProminent)
-                GetAPIKeyLink()
+                VStack(spacing: 8) {
+                    Button("Open Settings") { openSettings() }
+                        .buttonStyle(.borderedProminent)
+                    GetAPIKeyLink()
+                }
             }
         } else {
             ContentUnavailableView {

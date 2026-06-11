@@ -4,11 +4,13 @@
 //
 
 import SwiftUI
+import AppKit
 
 struct PadsView: View {
     let client: CoderPadClient
     @Environment(\.orgDirectory) private var directory
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.openWindow) private var openWindow
     @State private var accounts = AccountsStore.shared
     @State private var nav = AppNavigation.shared
     @State private var cache = PadsCacheStore.shared
@@ -32,15 +34,17 @@ struct PadsView: View {
     @State private var showSaveSearch = false
     @State private var saveSearchName = ""
 
-    /// Big orgs return thousands of pads per sweep, and re-fetching every page every 45s is
-    /// mostly wasted work for data well below the fold. The auto-refresh cadence backs off as
-    /// the list grows, so large orgs poll far less often while small orgs keep the snappy
-    /// refresh. Manual reload and the focused detail refresh are unaffected.
+    /// Big orgs return thousands of pads per sweep, and re-fetching every page on the base
+    /// cadence is mostly wasted work for data well below the fold. The auto-refresh cadence
+    /// backs off as the list grows, so large orgs poll far less often while small orgs keep
+    /// the snappy refresh. The base cadence is the user's configured auto-refresh interval;
+    /// manual reload and the focused detail refresh are unaffected.
     private var nextRefreshInterval: Duration {
+        let base = GeneralSettings.refreshInterval
         switch pads.count {
-        case ..<500: return .seconds(45)
-        case 500..<2000: return .seconds(120)
-        default: return .seconds(300)
+        case ..<500: return base
+        case 500..<2000: return base * 2
+        default: return base * 4
         }
     }
 
@@ -176,17 +180,11 @@ struct PadsView: View {
                 APIErrorView(error: error) { Task { await reload() } }
             } else {
                 VStack(spacing: 0) {
-                    PaneTitle(title: "Pads") {
-                        NewPadButton { showCreate = true }
-                            .disabled(client.apiKey.isEmpty)
-                    }
-                    HStack(spacing: 8) {
-                        InlineSearchField(query: $search, prompt: "Search title, owner, participants…",
-                                          focused: $searchFieldFocused)
-                        paneActions
-                    }
-                    .padding(.horizontal, Spacing.paneH)
-                    .padding(.bottom, 8)
+                    PaneTitle(title: "Pads")
+                    InlineSearchField(query: $search, prompt: "Search title, owner, participants…",
+                                      focused: $searchFieldFocused)
+                        .padding(.horizontal, Spacing.paneH)
+                        .padding(.bottom, 8)
                     savedSearchesBar
                     filterBar
                     Divider()
@@ -194,6 +192,7 @@ struct PadsView: View {
                         ForEach(filtered) { pad in
                             PadRow(pad: pad, isChanged: changedPadIDs.contains(pad.id))
                                 .tag(pad)
+                                .contextMenu { padContextMenu(pad) }
                         }
                     }
                     .listStyle(.inset)
@@ -208,23 +207,77 @@ struct PadsView: View {
                 }
             }
         }
-        .focusedSceneValue(\.findAction, FindAction { searchFieldFocused = true })
+        .focusedSceneValue(\.findAction, FindAction(id: "pads") { searchFieldFocused = true })
+        .toolbar(id: "pads.toolbar") {
+            ToolbarItem(id: "reload") {
+                ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
+            }
+            if #available(macOS 26, *) {
+                ToolbarSpacer(.fixed)
+            }
+            ToolbarItem(id: "new", placement: .primaryAction) {
+                Button { showCreate = true } label: {
+                    Label("New Pad", systemImage: "plus")
+                }
+                .help("Create a new pad (⌘N)")
+                .accessibilityLabel("New Pad")
+                .disabled(client.apiKey.isEmpty)
+            }
+        }
     }
 
-    private var paneActions: some View {
-        HStack(spacing: 2) {
-            Button { Task { await reload() } } label: {
-                if isLoading {
-                    ProgressView().controlSize(.small)
-                } else {
-                    Image(systemName: "arrow.clockwise")
-                }
-            }
-            .buttonStyle(.borderless)
-            .help("Reload")
-            .accessibilityLabel("Reload")
-            .disabled(isLoading)
+    /// Right-click actions for a pad row. These are the quick, self-contained
+    /// operations (open, copy, share, narrow the list); the destructive lifecycle
+    /// actions stay behind the detail view's confirmations, reached by selecting
+    /// the pad first.
+    @ViewBuilder
+    private func padContextMenu(_ pad: Pad) -> some View {
+        Button {
+            selection = pad
+            openPad(pad)
+        } label: {
+            Label("Open Pad", systemImage: "doc.text.image")
         }
+        if let url = URL(string: pad.url) {
+            ShareLink(item: url) {
+                Label("Share…", systemImage: "square.and.arrow.up")
+            }
+        }
+        Divider()
+        Button {
+            copyToPasteboard(pad.id)
+        } label: {
+            Label("Copy Pad ID", systemImage: "number")
+        }
+        Button {
+            copyToPasteboard(pad.url)
+        } label: {
+            Label("Copy Pad URL", systemImage: "link")
+        }
+        Divider()
+        Button {
+            ownerFilter = pad.ownerEmail
+        } label: {
+            Label("Show Pads from \(directory.display(pad.ownerEmail))", systemImage: "person")
+        }
+    }
+
+    /// Open a pad honoring the user's browser preference: externally when chosen,
+    /// otherwise in a dedicated in-app browser window. The list has no inline
+    /// browser pane of its own, so the in-app case opens a separate window —
+    /// matching the "Open Pad in Browser" menu command.
+    private func openPad(_ pad: Pad) {
+        guard let url = URL(string: pad.url) else { return }
+        if BrowserSettings.openLinksIn == .external {
+            BrowserSettings.openExternally(url)
+        } else {
+            openWindow(id: "pad-browser", value: url)
+        }
+    }
+
+    private func copyToPasteboard(_ text: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
     }
 
     @ViewBuilder
@@ -958,7 +1011,7 @@ struct PadDetailView: View {
                                     }
                                     if let first = group.representative.createdAt {
                                         if group.count > 1, let last = group.lastEvent.createdAt {
-                                            Text("\(first.formatted(date: .abbreviated, time: .shortened)) – \(last.formatted(date: .omitted, time: .shortened))")
+                                            Text("\(first.formatted(date: .abbreviated, time: .shortened)) - \(last.formatted(date: .omitted, time: .shortened))")
                                                 .font(.caption).foregroundStyle(.tertiary)
                                         } else {
                                             Text(first.formatted(date: .abbreviated, time: .shortened))
@@ -1317,28 +1370,6 @@ private struct EnvironmentCodeCard: View {
 
 // MARK: - New Pad sheet
 
-/// The primary call-to-action for the Pads pane. Creating a pad is the app's
-/// central task, so it gets a prominent, accent-tinted button in the pane title
-/// rather than an easily-missed icon next to the search field.
-private struct NewPadButton: View {
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Label("New Pad", systemImage: "plus")
-                .font(.callout.weight(.semibold))
-        }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.large)
-        // Capsule is the app-wide shape for action buttons. `.large` already
-        // renders as a capsule, but stating it keeps the shape from drifting if
-        // the control size ever changes, and documents the shared rule.
-        .buttonBorderShape(.capsule)
-        .help("Create a new pad (⌘N)")
-        .accessibilityLabel("New Pad")
-    }
-}
-
 private struct NewPadSheet: View {
     let client: CoderPadClient
     let onCreated: (Pad) -> Void
@@ -1608,23 +1639,47 @@ private struct SearchableOwnerPicker: View {
             .nilIfEmpty
     }
 
-    /// The label shown on the closed picker button.
-    private var selectedLabel: (text: String, isDefault: Bool) {
-        guard !trimmedOwner.isEmpty else { return ("Default (key owner)", true) }
-        return (displayName(forEmail: trimmedOwner) ?? trimmedOwner, false)
+    /// The current account's email, when known — used to recognize an explicitly
+    /// self-owned pad (e.g. when editing) and to label the "Me" row by name.
+    private var selfEmail: String? {
+        keyOwnerEmail?.nilIfEmpty
     }
 
-    /// Secondary text for the Default row: the resolved key owner, when known.
-    private var defaultSubtitle: String? {
-        guard let email = keyOwnerEmail?.nilIfEmpty else { return nil }
+    /// True when the picker already holds the current account's own email.
+    private var isSelfSelected: Bool {
+        guard let selfEmail else { return false }
+        return selfEmail.caseInsensitiveCompare(trimmedOwner) == .orderedSame
+    }
+
+    /// Label for the "Me" choice: the account name when we know it, else just "Me".
+    private var meLabel: String {
+        guard let email = selfEmail else { return "Me" }
+        return (displayName(forEmail: email) ?? email) + " (Me)"
+    }
+
+    /// Subtitle for the "Me" row: the resolved key owner when known, otherwise a
+    /// short explanation that an empty owner means the account holder.
+    private var meSubtitle: String {
+        guard let email = selfEmail else { return "Owned by your account (the API key owner)" }
         if let name = displayName(forEmail: email) { return "\(name) · \(email)" }
         return email
     }
 
+    /// The label shown on the closed picker button. An empty owner means the pad is
+    /// owned by the key owner — i.e. you — so it reads as "Me".
+    private var selectedLabel: String {
+        if trimmedOwner.isEmpty || isSelfSelected { return meLabel }
+        return displayName(forEmail: trimmedOwner) ?? trimmedOwner
+    }
+
     private var filteredUsers: [OrganizationUser] {
+        // Exclude self — it's offered as a pinned "Me" row at the top instead.
+        let members = users.filter {
+            $0.email.caseInsensitiveCompare(selfEmail ?? "") != .orderedSame
+        }
         let q = query.trimmingCharacters(in: .whitespaces)
-        guard !q.isEmpty else { return users }
-        return users.filter {
+        guard !q.isEmpty else { return members }
+        return members.filter {
             $0.email.localizedCaseInsensitiveContains(q)
                 || ($0.name?.localizedCaseInsensitiveContains(q) ?? false)
         }
@@ -1644,8 +1699,7 @@ private struct SearchableOwnerPicker: View {
             isPresented = true
         } label: {
             HStack {
-                Text(selectedLabel.text)
-                    .foregroundStyle(selectedLabel.isDefault ? .secondary : .primary)
+                Text(selectedLabel)
                     .lineLimit(1)
                 Spacer()
                 Image(systemName: "chevron.up.chevron.down")
@@ -1665,10 +1719,15 @@ private struct SearchableOwnerPicker: View {
 
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
+                        // Pinned, always-present "Me" shortcut. An empty owner makes
+                        // the server assign the pad to the key owner — you — so this
+                        // works even when the account's email was never detected.
                         ownerRow(email: "",
-                                 primary: "Default (key owner)",
-                                 secondary: defaultSubtitle,
-                                 isMuted: true)
+                                 primary: meLabel,
+                                 secondary: meSubtitle,
+                                 isMuted: false)
+
+                        Divider()
 
                         ForEach(filteredUsers) { user in
                             ownerRow(email: user.email,

@@ -21,9 +21,10 @@ struct MenuBarView: View {
     @State private var monitor = PadActivityMonitor.shared
     @State private var pads: [Pad] = []
     @State private var questions: [Question] = []
+    @State private var quota: Quota?
     @State private var isLoading = false
     @State private var errorMessage: String?
-    @AppStorage("menuBarTopN") private var topN: Int = 10
+    @AppStorage("menuBarTopN") private var topN: Int = 3
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
@@ -31,9 +32,14 @@ struct MenuBarView: View {
             if monitor.unseenChangedCount > 0 {
                 Text("\(monitor.unseenChangedCount) updated")
                     .font(.caption).foregroundStyle(.orange)
+                Button("Mark All as Seen") { monitor.markSeen() }
             }
             Text("My Pads · \(account.name)")
                 .font(.caption).foregroundStyle(.secondary)
+            if let quotaSummary {
+                Text(quotaSummary)
+                    .font(.caption).foregroundStyle(.secondary)
+            }
 
             if store.accounts.count > 1 {
                 Menu("Switch Account") {
@@ -74,19 +80,6 @@ struct MenuBarView: View {
                 }
             }
 
-            if !questions.isEmpty {
-                Divider()
-                Menu("Recent Questions") {
-                    ForEach(questions.prefix(topN)) { q in
-                        Button {
-                            openMain()
-                        } label: {
-                            Text(q.title.isEmpty ? "#\(q.id)" : q.title)
-                        }
-                    }
-                }
-            }
-
             Divider()
 
             Button("New Pad…") {
@@ -115,17 +108,37 @@ struct MenuBarView: View {
 
             Divider()
 
-            Button("Open CoderPad") {
-                openMain()
+            Menu("Go to") {
+                Button("Pads") { go(.pads) }
+                Button("Questions") { go(.questions) }
+                Button("Organization") { go(.organization) }
+                Button("Quota") { go(.quota) }
+                Divider()
+                Button("Settings…") {
+                    openMain()
+                    NotificationCenter.default.post(name: .openSettingsRequested, object: nil)
+                }
             }
-            .keyboardShortcut("o")
 
             Button("Reload") {
                 Task { await load(account: account) }
             }
             .keyboardShortcut("r")
 
+            Button("Settings…") {
+                openMain()
+                NotificationCenter.default.post(name: .openSettingsRequested, object: nil)
+            }
+            .keyboardShortcut(",")
+
             Divider()
+
+            Menu("Help") {
+                Link("CoderPad API Documentation", destination: CoderPadLinks.apiDocs)
+                Link("Get API Key", destination: CoderPadLinks.apiSettings)
+            }
+
+            Button("About CoderPad") { showAboutPanel() }
 
             Button("Quit") { NSApp.terminate(nil) }
                 .keyboardShortcut("q")
@@ -139,10 +152,41 @@ struct MenuBarView: View {
                 NotificationCenter.default.post(name: .openSettingsRequested, object: nil)
             }
             .keyboardShortcut("n")
-            Button("Open CoderPad") { openMain() }
+
+            Divider()
+
+            Menu("Help") {
+                Link("CoderPad API Documentation", destination: CoderPadLinks.apiDocs)
+                Link("Get API Key", destination: CoderPadLinks.apiSettings)
+            }
+
+            Button("About CoderPad") { showAboutPanel() }
+
             Button("Quit") { NSApp.terminate(nil) }
                 .keyboardShortcut("q")
         }
+    }
+
+    /// A one-line summary of the account's pad quota for the header, or `nil`
+    /// when quota hasn't loaded yet (or the API doesn't report it).
+    private var quotaSummary: String? {
+        guard let quota else { return nil }
+        if quota.unlimited == true { return "Unlimited pads" }
+        if let remaining = quota.padsRemaining {
+            if let limit = quota.billingCyclePadLimit {
+                return "\(remaining) of \(limit) pads remaining"
+            }
+            return "\(remaining) pads remaining"
+        }
+        if let used = quota.padsUsed { return "\(used) pads used" }
+        return nil
+    }
+
+    /// Opens the main window and switches it to `section`. The section is durable
+    /// navigation state, so this works whether or not the window is already open.
+    private func go(_ section: AppSection) {
+        AppNavigation.shared.show(section)
+        openMain()
     }
 
     private func padLabel(_ pad: Pad) -> String {
@@ -193,11 +237,13 @@ struct MenuBarView: View {
         do {
             async let padsTask = client.listPads()
             async let qsTask = client.listQuestions()
+            async let quotaTask = client.quota()
             let fetched = try await padsTask
             pads = fetched.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
             if let qs = try? await qsTask {
                 questions = qs.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
             }
+            quota = try? await quotaTask
             monitor.markSeen()
         } catch {
             errorMessage = error.localizedDescription

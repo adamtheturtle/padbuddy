@@ -8,6 +8,34 @@ import AppKit
 
 let copyrightLine = "Copyright © 2026 Adam Dangoor"
 
+/// Shows the app's custom About panel, populated with version, build, credits,
+/// and copyright. Shared by the app menu and the menu-bar extra so both surface
+/// the same information.
+func showAboutPanel() {
+    let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
+    let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
+    let credits = NSAttributedString(
+        string: """
+A macOS client for the CoderPad Interview API.
+
+Browse pads, questions, organization stats, and quota.
+Multi-account, Keychain-backed, with a mock-data demo mode.
+""",
+        attributes: [
+            .font: NSFont.systemFont(ofSize: 11),
+            .foregroundColor: NSColor.labelColor,
+        ]
+    )
+    NSApp.activate(ignoringOtherApps: true)
+    NSApp.orderFrontStandardAboutPanel(options: [
+        NSApplication.AboutPanelOptionKey.applicationName: "CoderPad",
+        NSApplication.AboutPanelOptionKey.applicationVersion: version,
+        NSApplication.AboutPanelOptionKey.version: "Build \(build)",
+        NSApplication.AboutPanelOptionKey.credits: credits,
+        NSApplication.AboutPanelOptionKey(rawValue: "Copyright"): copyrightLine,
+    ])
+}
+
 extension Notification.Name {
     static let reloadRequested = Notification.Name("coderpad.reloadRequested")
     static let openPadByURLRequested = Notification.Name("coderpad.openPadByURLRequested")
@@ -59,6 +87,16 @@ final class AppNavigation {
     /// consumed/cleared by QuestionDetailView when it appears or this value changes.
     var createPadForQuestionID: Int?
 
+    /// A question id whose detail pane should immediately present its edit sheet.
+    /// Set by the Questions list's context menu (after selecting that question) and
+    /// consumed/cleared by QuestionDetailView, mirroring `createPadForQuestionID`.
+    var editQuestionID: Int?
+
+    /// A question id whose detail pane should immediately present its delete
+    /// confirmation. Routed (rather than deleting inline) so the context menu and
+    /// the detail view share the same confirmation step before the irreversible delete.
+    var deleteQuestionID: Int?
+
     /// Switch to a section with no pending request.
     func show(_ section: AppSection) {
         self.section = section
@@ -81,16 +119,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return false
     }
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        // Honor the "Hide Dock icon" preference from the moment the app launches.
+        GeneralSettings.applyDockVisibility()
+    }
 }
 
 @main
 struct coderpadApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
+    // Drives the app-wide light/dark override; nil follows the system appearance.
+    @AppStorage(GeneralSettings.Key.appearance) private var appearance: AppAppearance = .system
+
     var body: some Scene {
         WindowGroup("CoderPad", id: "main") {
             ContentView()
                 .frame(minWidth: 940, minHeight: 540)
+                .preferredColorScheme(appearance.colorScheme)
         }
         .windowStyle(.hiddenTitleBar)
         .defaultLaunchBehavior(.presented)
@@ -99,17 +146,20 @@ struct coderpadApp: App {
             appCommands
             FindCommands()
             PadCommands()
+            WindowCommands()
         }
 
         WindowGroup("Pad Browser", id: "pad-browser", for: URL.self) { $url in
             if let url {
                 PadBrowserView(url: url)
                     .navigationTitle(url.host ?? "Pad")
+                    .preferredColorScheme(appearance.colorScheme)
             }
         }
 
         Settings {
             SettingsView()
+                .preferredColorScheme(appearance.colorScheme)
         }
 
         MenuBarExtra {
@@ -125,7 +175,7 @@ struct coderpadApp: App {
         CommandGroup(replacing: .appInfo) {
             Button("About CoderPad") { showAbout() }
         }
-        CommandGroup(after: .newItem) {
+        CommandGroup(replacing: .newItem) {
             Button("New Pad…") {
                 AppNavigation.shared.showPads(PadsRequest(startCreating: true))
             }
@@ -134,10 +184,12 @@ struct coderpadApp: App {
                 AppNavigation.shared.showQuestions(QuestionsRequest(startCreating: true))
             }
             .keyboardShortcut("n", modifiers: [.command, .shift])
+            Divider()
             Button("Open Pad by URL…") {
                 NotificationCenter.default.post(name: .openPadByURLRequested, object: nil)
             }
             .keyboardShortcut("o", modifiers: [.command])
+            Divider()
             Button("Reload") {
                 NotificationCenter.default.post(name: .reloadRequested, object: nil)
             }
@@ -148,12 +200,15 @@ struct coderpadApp: App {
             Button("Questions") { post(.questions) }.keyboardShortcut("2", modifiers: [.command])
             Button("Organization") { post(.organization) }.keyboardShortcut("3", modifiers: [.command])
             Button("Quota") { post(.quota) }.keyboardShortcut("4", modifiers: [.command])
+            Divider()
+            Button("Next Section") { cycleSection(by: 1) }
+                .keyboardShortcut("]", modifiers: [.command, .shift])
+            Button("Previous Section") { cycleSection(by: -1) }
+                .keyboardShortcut("[", modifiers: [.command, .shift])
         }
         CommandGroup(replacing: .help) {
             Link("CoderPad API Documentation", destination: CoderPadLinks.apiDocs)
             Link("Get API Key", destination: CoderPadLinks.apiSettings)
-            Divider()
-            Link("Source (GitHub)", destination: CoderPadLinks.sourceRepo)
         }
     }
 
@@ -161,32 +216,18 @@ struct coderpadApp: App {
         AppNavigation.shared.show(section)
     }
 
-    private func showAbout() {
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
-        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
-        let credits = NSAttributedString(
-            string: """
-A macOS client for the CoderPad Interview API.
-
-Browse pads, questions, organization stats, and quota.
-Multi-account, Keychain-backed, with a mock-data demo mode.
-
-github.com/adamtheturtle/coderpad-macos
-""",
-            attributes: [
-                .font: NSFont.systemFont(ofSize: 11),
-                .foregroundColor: NSColor.labelColor,
-            ]
-        )
-        NSApp.activate(ignoringOtherApps: true)
-        NSApp.orderFrontStandardAboutPanel(options: [
-            NSApplication.AboutPanelOptionKey.applicationName: "CoderPad",
-            NSApplication.AboutPanelOptionKey.applicationVersion: version,
-            NSApplication.AboutPanelOptionKey.version: "Build \(build)",
-            NSApplication.AboutPanelOptionKey.credits: credits,
-            NSApplication.AboutPanelOptionKey(rawValue: "Copyright"): copyrightLine,
-        ])
+    /// Moves the visible section forward (`+1`) or back (`-1`) through the fixed
+    /// section order, wrapping at the ends. Backs the Go menu's Next/Previous items.
+    private func cycleSection(by delta: Int) {
+        let order: [AppSection] = [.pads, .questions, .organization, .quota]
+        let current = AppNavigation.shared.section
+        let index = order.firstIndex(of: current) ?? 0
+        let count = order.count
+        let next = order[((index + delta) % count + count) % count]
+        AppNavigation.shared.show(next)
     }
+
+    private func showAbout() { showAboutPanel() }
 }
 
 /// Wires ⌘F to the search field of whichever pane is on screen. The pane
@@ -206,6 +247,7 @@ struct FindCommands: Commands {
 
 struct PadCommands: Commands {
     @FocusedValue(\.focusedPad) private var pad
+    @Environment(\.openWindow) private var openWindow
 
     var body: some Commands {
         CommandGroup(after: .pasteboard) {
@@ -226,12 +268,46 @@ struct PadCommands: Commands {
             .keyboardShortcut("c", modifiers: [.command, .option])
             .disabled(pad == nil)
 
+            Button("Copy Pad Title") {
+                guard let pad else { return }
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(pad.title.isEmpty ? pad.id : pad.title, forType: .string)
+            }
+            .disabled(pad == nil)
+
+            Divider()
+
             Button("Open Pad in Browser") {
                 guard let pad, let url = URL(string: pad.url) else { return }
                 NotificationCenter.default.post(name: .openPadInBrowserRequested, object: url)
             }
             .keyboardShortcut(.return, modifiers: [.command])
             .disabled(pad == nil)
+
+            Button("Open Pad in New Window") {
+                guard let pad, let url = URL(string: pad.url) else { return }
+                NSApp.activate(ignoringOtherApps: true)
+                openWindow(id: "pad-browser", value: url)
+            }
+            .keyboardShortcut(.return, modifiers: [.command, .option])
+            .disabled(pad == nil)
+        }
+    }
+}
+
+/// Adds an "Open Main Window" item to the Window menu so the main window can be
+/// reopened after it's closed — the app keeps running with no windows (see
+/// `AppDelegate.applicationShouldTerminateAfterLastWindowClosed`).
+struct WindowCommands: Commands {
+    @Environment(\.openWindow) private var openWindow
+
+    var body: some Commands {
+        CommandGroup(after: .windowArrangement) {
+            Button("Open Main Window") {
+                NSApp.activate(ignoringOtherApps: true)
+                openWindow(id: "main")
+            }
+            .keyboardShortcut("0", modifiers: [.command])
         }
     }
 }

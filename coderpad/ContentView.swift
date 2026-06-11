@@ -370,7 +370,14 @@ private struct MainSplit: View {
                 padSelection: $padSelection,
                 questionSelection: $questionSelection
             )
-            .onPreferenceChange(FilterBarWidthKey.self) { contentMinWidth = $0 }
+            // Round to whole points and only assign on a real change. The measured
+            // filter-bar width feeds this column's own min width, so re-writing it
+            // with sub-pixel-different (or identical) values would re-invalidate the
+            // column mid-layout — which AppKit reports as layout recursion.
+            .onPreferenceChange(FilterBarWidthKey.self) { width in
+                let rounded = width.rounded()
+                if contentMinWidth != rounded { contentMinWidth = rounded }
+            }
             .navigationSplitViewColumnWidth(
                 min: contentMinWidth,
                 ideal: max(480, contentMinWidth),
@@ -480,8 +487,13 @@ private struct UnauthorizedBanner: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Button("Open Settings") { openSettings() }
-                .controlSize(.small)
+            Button("Open Settings") {
+                let navigation = SettingsNavigation.shared
+                navigation.selectedTab = .accounts
+                navigation.accountToEdit = AccountsStore.shared.currentAccountID
+                openSettings()
+            }
+            .controlSize(.small)
             Button("Recheck") {
                 Task { await monitor.checkCurrentAccount() }
             }
@@ -661,12 +673,21 @@ private struct AccountFooter: View {
     private var footerMenu: some View {
         Menu {
             if store.accounts.count > 1, let currentID = store.currentAccountID {
-                Picker("Switch Account", selection: Binding(
-                    get: { currentID },
-                    set: { store.currentAccountID = $0 }
-                )) {
+                // An explicit Button submenu rather than a Picker: a Picker inside a
+                // Menu desyncs AppKit's cached menu-item reps during tracking
+                // ("rep returned item view with wrong item"). This matches the same
+                // pattern used by the menu-bar account switcher.
+                Menu("Switch Account") {
                     ForEach(store.accounts) { account in
-                        Text(account.name).tag(account.id)
+                        Button {
+                            store.currentAccountID = account.id
+                        } label: {
+                            if account.id == currentID {
+                                Label(account.name, systemImage: "checkmark")
+                            } else {
+                                Text(account.name)
+                            }
+                        }
                     }
                 }
                 Divider()
