@@ -422,8 +422,8 @@ private struct MacPullToRefresh: ViewModifier {
     let action: () async -> Void
 
     /// How far (in points) the content must be dragged past the top before
-    /// releasing triggers a refresh.
-    private let threshold: CGFloat = 80
+    /// releasing triggers a refresh. Kept low so a short trackpad pull is enough.
+    private let threshold: CGFloat = 24
 
     /// 0…1 as the user drags past the top; drives the indicator's reveal.
     @State private var pull: CGFloat = 0

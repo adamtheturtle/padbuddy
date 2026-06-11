@@ -535,7 +535,13 @@ nonisolated enum MockFixtures {
                     ["id": 3, "arguments": ["15"], "return_value": "FizzBuzz", "visible": false]
                 ],
                 "pad_type": "live", "is_draft": false,
-                "contents": NSNull(), "custom_files": [],
+                "contents": NSNull(),
+                "custom_files": [
+                    ["id": "cf1", "title": "Starter", "description": "Boilerplate the candidate begins from",
+                     "filename": "fizzbuzz.py", "filesize": "1.2 KB"],
+                    ["id": "cf2", "title": "Fixtures", "description": "Sample inputs for manual testing",
+                     "filename": "cases.csv", "filesize": "640 B"]
+                ],
                 "author_name": "Alex Park", "organization_name": "Demo Org",
                 "created_at": "2025-09-01T10:00:00Z", "updated_at": "2026-06-08T10:00:00Z"
             ],

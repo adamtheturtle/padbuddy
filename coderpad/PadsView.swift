@@ -355,26 +355,27 @@ struct PadsView: View {
         let saved = savedSearches.searches(account: accounts.currentAccountID, kind: .pads)
         let defaults = defaultSearches
         if !defaults.isEmpty || !saved.isEmpty {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
-                    ForEach(defaults) { item in
-                        SavedSearchChip(name: item.search.name, systemImage: item.icon,
-                                        isActive: isActiveSearch(item.search)) {
-                            apply(item.search)
-                        }
+            // A wrapping flow layout rather than a horizontal scroll, so the chips
+            // reflow onto extra lines as the pane narrows instead of clipping a
+            // long saved-search name off the trailing edge.
+            FlowLayout(spacing: 6, lineSpacing: 6) {
+                ForEach(defaults) { item in
+                    SavedSearchChip(name: item.search.name, systemImage: item.icon,
+                                    isActive: isActiveSearch(item.search)) {
+                        apply(item.search)
                     }
-                    ForEach(saved) { item in
-                        SavedSearchChip(name: item.name, isActive: isActiveSearch(item)) {
-                            apply(item)
-                        } onDelete: {
-                            if let account = accounts.currentAccountID {
-                                savedSearches.remove(id: item.id, account: account, kind: .pads)
-                            }
+                }
+                ForEach(saved) { item in
+                    SavedSearchChip(name: item.name, isActive: isActiveSearch(item)) {
+                        apply(item)
+                    } onDelete: {
+                        if let account = accounts.currentAccountID {
+                            savedSearches.remove(id: item.id, account: account, kind: .pads)
                         }
                     }
                 }
-                .padding(.horizontal, 12).padding(.top, 6)
             }
+            .padding(.horizontal, 12).padding(.top, 6)
         }
     }
 

@@ -238,6 +238,30 @@ struct QuestionDecoderTests {
         let q = try decode(#"{"id": 8}"#)
         #expect(q.testCases.isEmpty)
     }
+
+    @Test("decodes custom file metadata")
+    func questionCustomFiles() throws {
+        let json = """
+        {
+          "id": 9,
+          "custom_files": [
+            {"id": "cf1", "title": "Starter", "description": "Boilerplate",
+             "filename": "main.py", "filesize": "1.2 KB"}
+          ]
+        }
+        """
+        let q = try decode(json)
+        #expect(q.customFiles.count == 1)
+        #expect(q.customFiles.first?.filename == "main.py")
+        #expect(q.customFiles.first?.filesize == "1.2 KB")
+        #expect(q.customFiles.first?.title == "Starter")
+    }
+
+    @Test("defaults custom files to empty when the field is absent")
+    func questionCustomFilesAbsent() throws {
+        let q = try decode(#"{"id": 10}"#)
+        #expect(q.customFiles.isEmpty)
+    }
 }
 
 // Serialized: these tests share MockFixtures' process-wide mutable state (created /

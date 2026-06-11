@@ -340,29 +340,27 @@ struct QuestionsView: View {
         let saved = savedSearches.searches(account: accounts.currentAccountID, kind: .questions)
         let defaults = defaultSearches
         if !defaults.isEmpty || !saved.isEmpty {
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
-                    ForEach(defaults) { item in
-                        SavedSearchChip(name: item.search.name, systemImage: item.icon,
-                                        isActive: isActiveSearch(item.search)) {
-                            apply(item.search)
-                        }
+            // A wrapping flow layout rather than a horizontal scroll, so the chips
+            // reflow onto extra lines as the pane narrows instead of clipping a
+            // long saved-search name off the trailing edge.
+            FlowLayout(spacing: 6, lineSpacing: 6) {
+                ForEach(defaults) { item in
+                    SavedSearchChip(name: item.search.name, systemImage: item.icon,
+                                    isActive: isActiveSearch(item.search)) {
+                        apply(item.search)
                     }
-                    ForEach(saved) { item in
-                        SavedSearchChip(name: item.name, isActive: isActiveSearch(item)) {
-                            apply(item)
-                        } onDelete: {
-                            if let account = accounts.currentAccountID {
-                                savedSearches.remove(id: item.id, account: account, kind: .questions)
-                            }
+                }
+                ForEach(saved) { item in
+                    SavedSearchChip(name: item.name, isActive: isActiveSearch(item)) {
+                        apply(item)
+                    } onDelete: {
+                        if let account = accounts.currentAccountID {
+                            savedSearches.remove(id: item.id, account: account, kind: .questions)
                         }
                     }
                 }
-                .padding(.horizontal, 12).padding(.top, 6)
             }
-            // The chips usually fit, so don't let a trackpad gesture rubber-band
-            // them sideways; only scroll once they actually overflow.
-            .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+            .padding(.horizontal, 12).padding(.top, 6)
         }
     }
 
@@ -567,6 +565,9 @@ struct QuestionDetailView: View {
                 if !question.testCases.isEmpty {
                     testCasesCard
                 }
+                if !question.customFiles.isEmpty {
+                    filesCard
+                }
                 if let solution = question.solution, !solution.isEmpty {
                     descriptionCard(title: "Solution", body: solution)
                 }
@@ -753,6 +754,57 @@ struct QuestionDetailView: View {
     private func argumentsDisplay(_ arguments: [String]?) -> String {
         guard let arguments, !arguments.isEmpty else { return "—" }
         return arguments.joined(separator: ", ")
+    }
+
+    /// The question's attached custom files. The API exposes only metadata (name,
+    /// description, size) for these, not their contents, so this is a manifest of
+    /// what's bundled rather than a viewer.
+    private var filesCard: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 10) {
+                SectionHeader(title: "Files", systemImage: "doc.on.doc")
+                ForEach(Array(question.customFiles.enumerated()), id: \.offset) { index, file in
+                    fileRow(file)
+                    if index != question.customFiles.count - 1 {
+                        Divider()
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func fileRow(_ file: QuestionCustomFile) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Image(systemName: "doc")
+                .foregroundStyle(.secondary)
+                .frame(width: 18)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(fileName(file))
+                    .font(.callout.weight(.medium))
+                    .textSelection(.enabled)
+                if let description = file.description, !description.isEmpty {
+                    Text(description)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            Spacer(minLength: 8)
+            if let size = file.filesize, !size.isEmpty {
+                Text(size)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// A display name for a custom file: its filename, falling back to its title,
+    /// then a generic placeholder when the API supplies neither.
+    private func fileName(_ file: QuestionCustomFile) -> String {
+        if let filename = file.filename, !filename.isEmpty { return filename }
+        if let title = file.title, !title.isEmpty { return title }
+        return "Untitled file"
     }
 
     private func descriptionCard(title: String, body: String) -> some View {
