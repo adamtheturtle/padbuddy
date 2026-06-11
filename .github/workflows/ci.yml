@@ -14,15 +14,21 @@ concurrency:
 jobs:
   test:
     name: Build & Test
-    runs-on: macos-latest
+    # macos-26 is the newest hosted image; it ships Xcode 26.x, which honors
+    # SWIFT_DEFAULT_ACTOR_ISOLATION (Swift 6.2). macos-latest still maps to an
+    # older image whose Xcode silently ignores that setting and so fails the
+    # Swift 6 build. (Local dev is on Xcode 27 beta, which hosted runners lack.)
+    runs-on: macos-26
     timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Select latest Xcode
+      # Pin an explicit Xcode rather than the image default, which drifts as
+      # Apple ships updates. 26.5 is the newest stable on the macos-26 image.
+      - name: Select Xcode
         run: |
-          sudo xcode-select -s /Applications/Xcode.app
+          sudo xcode-select -s /Applications/Xcode_26.5.app
           xcodebuild -version
 
       - name: Show available SDKs

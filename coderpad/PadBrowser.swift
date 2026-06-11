@@ -49,6 +49,23 @@ final class WebController: NSObject {
     func goBack() { webView?.goBack() }
     func goForward() { webView?.goForward() }
     func reload() { webView?.reload() }
+
+    /// Hard refresh: purge WebKit's cached resources, then reload from the origin
+    /// bypassing the HTTP cache. The plain `reload()` revalidates conditionally and
+    /// can still serve cached bytes; this guarantees a fresh fetch from the server,
+    /// which is what users reach for when a page is stuck on stale content.
+    func hardReload() {
+        guard let webView else { return }
+        let dataStore = webView.configuration.websiteDataStore
+        let cacheTypes: Set<String> = [
+            WKWebsiteDataTypeDiskCache,
+            WKWebsiteDataTypeMemoryCache,
+            WKWebsiteDataTypeFetchCache,
+        ]
+        dataStore.removeData(ofTypes: cacheTypes, modifiedSince: .distantPast) {
+            webView.reloadFromOrigin()
+        }
+    }
 }
 
 // MARK: - Popups & JavaScript dialogs
@@ -188,11 +205,24 @@ struct PadBrowserView: View {
             .help("Forward")
             .accessibilityLabel("Forward")
 
-            Button { controller.reload() } label: {
+            // Plain reload, with Option-click escalating to a no-cache hard refresh.
+            // A right-click menu and the ⇧⌘R shortcut below expose the same options
+            // for discoverability.
+            Button {
+                if NSEvent.modifierFlags.contains(.option) {
+                    controller.hardReload()
+                } else {
+                    controller.reload()
+                }
+            } label: {
                 Image(systemName: "arrow.clockwise")
             }
-            .help("Reload")
+            .help("Reload (hold ⌥ to reload without cache)")
             .accessibilityLabel("Reload page")
+            .contextMenu {
+                Button("Reload") { controller.reload() }
+                Button("Reload Without Cache") { controller.hardReload() }
+            }
 
             if controller.isLoading {
                 ProgressView().controlSize(.small)
@@ -223,6 +253,17 @@ struct PadBrowserView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
         .background(.regularMaterial)
+        .background {
+            // Hidden buttons carrying the reload keyboard shortcuts: ⌘R for a normal
+            // reload and ⇧⌘R for a hard, cache-bypassing refresh.
+            Group {
+                Button("Reload") { controller.reload() }
+                    .keyboardShortcut("r", modifiers: .command)
+                Button("Reload Without Cache") { controller.hardReload() }
+                    .keyboardShortcut("r", modifiers: [.command, .shift])
+            }
+            .hidden()
+        }
     }
 
     private var urlLabel: some View {
