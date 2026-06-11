@@ -8,7 +8,7 @@
 
 import Foundation
 
-enum MockServer {
+nonisolated enum MockServer {
     static let host = "app.coderpad.io"
 
     static func session() -> URLSession {
@@ -18,7 +18,7 @@ enum MockServer {
     }
 }
 
-final class MockURLProtocol: URLProtocol {
+nonisolated final class MockURLProtocol: URLProtocol {
     override class func canInit(with request: URLRequest) -> Bool {
         request.url?.host == MockServer.host
     }
@@ -65,7 +65,7 @@ final class MockURLProtocol: URLProtocol {
     }
 }
 
-enum MockResponses {
+nonisolated enum MockResponses {
     static func respond(method: String, path: String, query: [String: String] = [:], body: Data?) -> (Int, Data) {
         if method == "PUT", path == "/api/pads/" || path == "/api/pads" {
             guard let body,
@@ -268,7 +268,7 @@ enum MockResponses {
     }
 }
 
-enum MockFixtures {
+nonisolated enum MockFixtures {
     nonisolated(unsafe) static var createdPads: [[String: Any]] = []
     nonisolated(unsafe) static var updatedPads: [String: [String: Any]] = [:]
     nonisolated(unsafe) static var deletedPadIDs: Set<String> = []

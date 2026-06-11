@@ -36,9 +36,9 @@ struct CoderPadShortcuts: AppShortcutsProvider {
 }
 
 struct OpenPadByIDIntent: AppIntent {
-    static var title: LocalizedStringResource = "Open Pad by ID"
-    static var description = IntentDescription("Open a specific CoderPad pad in the in-app browser.")
-    static var openAppWhenRun: Bool = true
+    static let title: LocalizedStringResource = "Open Pad by ID"
+    static let description = IntentDescription("Open a specific CoderPad pad in the in-app browser.")
+    static let openAppWhenRun: Bool = true
 
     @Parameter(title: "Pad ID", description: "The 8-character pad identifier.")
     var padID: String
@@ -53,9 +53,9 @@ struct OpenPadByIDIntent: AppIntent {
 }
 
 struct SearchPadsIntent: AppIntent {
-    static var title: LocalizedStringResource = "Search Pads"
-    static var description = IntentDescription("Open CoderPad and search pads matching a query.")
-    static var openAppWhenRun: Bool = true
+    static let title: LocalizedStringResource = "Search Pads"
+    static let description = IntentDescription("Open CoderPad and search pads matching a query.")
+    static let openAppWhenRun: Bool = true
 
     @Parameter(title: "Query", description: "Text to search pad titles, owners, and participants for.")
     var query: String
@@ -71,9 +71,9 @@ struct SearchPadsIntent: AppIntent {
 }
 
 struct NewPadIntent: AppIntent {
-    static var title: LocalizedStringResource = "New Pad"
-    static var description = IntentDescription("Open CoderPad and start creating a new pad.")
-    static var openAppWhenRun: Bool = true
+    static let title: LocalizedStringResource = "New Pad"
+    static let description = IntentDescription("Open CoderPad and start creating a new pad.")
+    static let openAppWhenRun: Bool = true
 
     func perform() async throws -> some IntentResult {
         try? await Task.sleep(for: .milliseconds(400))
@@ -85,9 +85,9 @@ struct NewPadIntent: AppIntent {
 }
 
 struct OpenPadsIntent: AppIntent {
-    static var title: LocalizedStringResource = "Open Pads"
-    static var description = IntentDescription("Open the Pads list in CoderPad.")
-    static var openAppWhenRun: Bool = true
+    static let title: LocalizedStringResource = "Open Pads"
+    static let description = IntentDescription("Open the Pads list in CoderPad.")
+    static let openAppWhenRun: Bool = true
 
     func perform() async throws -> some IntentResult {
         try? await Task.sleep(for: .milliseconds(200))

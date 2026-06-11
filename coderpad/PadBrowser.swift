@@ -27,21 +27,21 @@ final class WebController: NSObject {
         guard self.webView !== webView else { return }
         self.webView = webView
         observers = [
-            webView.observe(\.canGoBack, options: [.initial, .new]) { webView, _ in
+            webView.observe(\.canGoBack, options: [.initial, .new]) { [weak self] webView, _ in
                 let value = webView.canGoBack
-                Task { @MainActor [weak self] in self?.canGoBack = value }
+                Task { @MainActor in self?.canGoBack = value }
             },
-            webView.observe(\.canGoForward, options: [.initial, .new]) { webView, _ in
+            webView.observe(\.canGoForward, options: [.initial, .new]) { [weak self] webView, _ in
                 let value = webView.canGoForward
-                Task { @MainActor [weak self] in self?.canGoForward = value }
+                Task { @MainActor in self?.canGoForward = value }
             },
-            webView.observe(\.isLoading, options: [.initial, .new]) { webView, _ in
+            webView.observe(\.isLoading, options: [.initial, .new]) { [weak self] webView, _ in
                 let value = webView.isLoading
-                Task { @MainActor [weak self] in self?.isLoading = value }
+                Task { @MainActor in self?.isLoading = value }
             },
-            webView.observe(\.url, options: [.initial, .new]) { webView, _ in
+            webView.observe(\.url, options: [.initial, .new]) { [weak self] webView, _ in
                 let value = webView.url
-                Task { @MainActor [weak self] in self?.currentURL = value }
+                Task { @MainActor in self?.currentURL = value }
             },
         ]
     }

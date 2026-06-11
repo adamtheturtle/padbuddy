@@ -6,12 +6,12 @@
 import Foundation
 import os.log
 
-let apiLogger = Logger(subsystem: "com.coderpad.app", category: "api")
+nonisolated let apiLogger = Logger(subsystem: "com.coderpad.app", category: "api")
 
 extension KeyedDecodingContainer {
     /// Like `try? decodeIfPresent`, but logs the underlying error so silent API drift
     /// shows up in Console rather than producing an empty UI with no diagnostic.
-    func loggedDecodeIfPresent<T: Decodable>(_ type: T.Type, forKey key: Key) -> T? {
+    nonisolated func loggedDecodeIfPresent<T: Decodable>(_ type: T.Type, forKey key: Key) -> T? {
         do {
             return try decodeIfPresent(type, forKey: key)
         } catch {
@@ -23,7 +23,7 @@ extension KeyedDecodingContainer {
 
 // MARK: - Models
 
-struct Pad: Codable, Identifiable, Hashable {
+nonisolated struct Pad: Codable, Identifiable, Hashable {
     let id: String
     let title: String
     let state: String
@@ -109,12 +109,12 @@ extension Pad {
     }
 }
 
-struct PadTeam: Codable, Hashable {
+nonisolated struct PadTeam: Codable, Hashable {
     let id: String
     let name: String
 }
 
-struct PadEvent: Decodable, Identifiable, Hashable {
+nonisolated struct PadEvent: Decodable, Identifiable, Hashable {
     var id: String { "\(createdAt?.timeIntervalSince1970 ?? 0)-\(kind)-\(userName ?? "")-\(message.hashValue)" }
     let message: String
     let kind: String
@@ -310,7 +310,7 @@ struct CandidateInstructionPayload: Codable {
     }
 }
 
-struct PadCreate: Codable {
+nonisolated struct PadCreate: Codable {
     var title: String?
     var language: String?
     var ownerEmail: String?
@@ -350,7 +350,7 @@ struct PadCreate: Codable {
     }
 }
 
-struct Question: Codable, Identifiable, Hashable {
+nonisolated struct Question: Codable, Identifiable, Hashable {
     let id: Int
     let title: String
     let ownerEmail: String
@@ -467,7 +467,7 @@ extension Question {
     }
 }
 
-struct QuestionCustomFile: Codable, Hashable, Identifiable {
+nonisolated struct QuestionCustomFile: Codable, Hashable, Identifiable {
     let id: String?
     let title: String?
     let description: String?
@@ -475,7 +475,7 @@ struct QuestionCustomFile: Codable, Hashable, Identifiable {
     let filesize: String?
 }
 
-struct QuestionTestCase: Codable, Hashable, Identifiable {
+nonisolated struct QuestionTestCase: Codable, Hashable, Identifiable {
     let id: Int
     let returnValue: String?
     let visible: Bool?
@@ -487,7 +487,7 @@ struct QuestionTestCase: Codable, Hashable, Identifiable {
     }
 }
 
-struct CandidateInstruction: Codable, Hashable {
+nonisolated struct CandidateInstruction: Codable, Hashable {
     let instructions: String
     let defaultVisible: Bool
 
@@ -582,14 +582,14 @@ struct Quota: Decodable, Hashable {
 /// `total` (the count across all pages, when the endpoint reports it) lets the client
 /// compute the page count from the first response and fetch the rest concurrently,
 /// rather than walking `next_page` one blocking round-trip at a time.
-private protocol PagedResponse: Decodable {
-    associatedtype Item: Decodable
+private protocol PagedResponse: Decodable, Sendable {
+    associatedtype Item: Decodable & Sendable
     var pageItems: [Item] { get }
     var nextPage: String? { get }
     var total: Int? { get }
 }
 
-private struct PadsPage: PagedResponse {
+private nonisolated struct PadsPage: PagedResponse {
     let pads: [Pad]
     let nextPage: String?
     let total: Int?
@@ -597,7 +597,7 @@ private struct PadsPage: PagedResponse {
     enum CodingKeys: String, CodingKey { case pads; case nextPage = "next_page"; case total }
 }
 
-private struct QuestionsPage: PagedResponse {
+private nonisolated struct QuestionsPage: PagedResponse {
     let questions: [Question]
     let nextPage: String?
     let total: Int?
@@ -605,7 +605,7 @@ private struct QuestionsPage: PagedResponse {
     enum CodingKeys: String, CodingKey { case questions; case nextPage = "next_page"; case total }
 }
 
-private struct EventsPage: PagedResponse {
+private nonisolated struct EventsPage: PagedResponse {
     let events: [PadEvent]
     let nextPage: String?
     let total: Int?
@@ -915,7 +915,7 @@ struct CoderPadClient {
                         try await withThrowingTaskGroup(of: (Int, [W.Item]).self) { group in
                             func enqueue(_ page: Int) throws {
                                 guard let url = pageURL(page) else { throw CoderPadError.http(0, "Invalid URL") }
-                                group.addTask { @MainActor in
+                                group.addTask {
                                     (page, try await self.performWithRetry(W.self, request: self.authorizedGET(url)).pageItems)
                                 }
                             }

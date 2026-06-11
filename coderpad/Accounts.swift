@@ -10,7 +10,7 @@ import Security
 import SwiftUI
 import os.log
 
-let persistenceLogger = Logger(subsystem: "com.coderpad.app", category: "persistence")
+nonisolated let persistenceLogger = Logger(subsystem: "com.coderpad.app", category: "persistence")
 
 struct Account: Identifiable, Codable, Hashable {
     let id: UUID
@@ -71,7 +71,7 @@ struct Account: Identifiable, Codable, Hashable {
     }
 }
 
-enum Keychain {
+nonisolated enum Keychain {
     static let service = "com.coderpad.app"
     static let accountsAccount = "accounts"
     static let legacySingleKeyAccount = "apiKey"
