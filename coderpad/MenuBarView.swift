@@ -90,22 +90,16 @@ struct MenuBarView: View {
             Divider()
 
             Button("New Pad…") {
-                openMain()
-                AppNavigation.shared.showPads(PadsRequest(startCreating: true))
+                Task { await createPad(PadCreate(), account: account) }
             }
             .keyboardShortcut("n")
-
-            Button("New Question…") {
-                openMain()
-                AppNavigation.shared.showQuestions(QuestionsRequest(startCreating: true))
-            }
-            .keyboardShortcut("n", modifiers: [.command, .shift])
+            .disabled(account.isMock == false && account.apiKey.isEmpty)
 
             if !questions.isEmpty {
                 Menu("New Pad from Question") {
                     ForEach(questions.prefix(topN)) { q in
                         Button {
-                            Task { await createPad(fromQuestion: q, account: account) }
+                            Task { await createPad(.fromQuestion(q), account: account) }
                         } label: {
                             Text(q.title.isEmpty ? "#\(q.id)" : q.title)
                         }
@@ -174,10 +168,10 @@ struct MenuBarView: View {
         return pads.filter { $0.ownerEmail == mine }
     }
 
-    private func createPad(fromQuestion q: Question, account: Account) async {
-        let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey)
+    private func createPad(_ body: PadCreate, account: Account) async {
+        let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey, baseURL: account.resolvedBaseURL)
         do {
-            let pad = try await client.createPad(.fromQuestion(q))
+            let pad = try await client.createPad(body)
             if let url = URL(string: pad.url) {
                 BrowserSettings.openExternally(url)
             }
@@ -195,7 +189,7 @@ struct MenuBarView: View {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
-        let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey)
+        let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey, baseURL: account.resolvedBaseURL)
         do {
             async let padsTask = client.listPads()
             async let qsTask = client.listQuestions()

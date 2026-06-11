@@ -355,6 +355,10 @@ struct AccountEditor: View {
                             .focused($keyFieldFocused)
                     }
                 }
+                TextField("Server URL", text: baseURLBinding,
+                          prompt: Text(CoderPadClient.defaultBaseURL.absoluteString))
+                    .autocorrectionDisabled()
+                    .help("Override only for self-hosted or regional CoderPad deployments. Leave blank to use the default.")
                 if isValidated {
                     TextField("Name", text: $draft.name, prompt: Text("Auto-filled from your organization"))
                     LabeledContent("Your email") {
@@ -374,6 +378,10 @@ struct AccountEditor: View {
             validationBanner
 
             HStack {
+                #if DEBUG
+                Button("Try Demo") { onSave(.demo()) }
+                    .help("Add a sandbox account backed by mock data. No key required (DEBUG builds only).")
+                #endif
                 Spacer()
                 Button("Cancel", role: .cancel, action: onCancel)
                 validateButton
@@ -383,6 +391,19 @@ struct AccountEditor: View {
         .padding()
         .frame(minWidth: 460, minHeight: 320)
         .onChange(of: draft.apiKey) { _, _ in validation = .idle }
+        .onChange(of: draft.baseURL) { _, _ in validation = .idle }
+    }
+
+    /// Bridges the optional `baseURL` to the text field: an empty field means
+    /// "use the default", which we store as `nil` rather than an empty string.
+    private var baseURLBinding: Binding<String> {
+        Binding(
+            get: { draft.baseURL ?? "" },
+            set: { newValue in
+                let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+                draft.baseURL = trimmed.isEmpty ? nil : trimmed
+            }
+        )
     }
 
     private var isValidated: Bool {
@@ -470,20 +491,46 @@ struct AccountEditor: View {
     private func validate() async {
         validation = .validating
         do {
-            let client = CoderPadClient(apiKey: draft.apiKey.trimmingCharacters(in: .whitespacesAndNewlines))
+            let client = CoderPadClient(apiKey: draft.apiKey.trimmingCharacters(in: .whitespacesAndNewlines),
+                                        baseURL: draft.resolvedBaseURL)
             let org = try await client.organization()
             orgUsers = org.users
             validation = .valid(org.organizationName)
             if draft.name.trimmingCharacters(in: .whitespaces).isEmpty {
                 draft.name = org.organizationName
             }
-            // Pre-select the signed-in user's email if it's unambiguous.
-            if draft.userEmail == nil, org.users.count == 1 {
-                draft.userEmail = org.users.first?.email
+            // Pre-select the signed-in user's email. The default /api/pads/ endpoint
+            // is scoped to the API key owner, so the dominant owner email on their pads
+            // is "you" — detect it directly rather than making the user pick. Fall back
+            // to the single-user org case, then to the manual picker.
+            if draft.userEmail == nil {
+                if let detected = await detectUserEmail(client: client) {
+                    draft.userEmail = detected
+                } else if org.users.count == 1 {
+                    draft.userEmail = org.users.first?.email
+                }
             }
         } catch {
             validation = .invalid(friendlyValidationMessage(for: error))
         }
+    }
+
+    /// Derives the signed-in user's email from their own pads. `/api/pads/` is scoped
+    /// to the API key owner, so the most common owner email on the first page is "you".
+    /// Returns nil if the user has no pads yet (e.g. a brand-new account), letting the
+    /// caller fall back to the manual picker. Non-fatal: validation already succeeded.
+    private func detectUserEmail(client: CoderPadClient) async -> String? {
+        do {
+            for try await page in client.listPadsIncrementally() {
+                let emails = page.map(\.ownerEmail).filter { !$0.isEmpty }
+                guard !emails.isEmpty else { return nil }
+                let counts = Dictionary(emails.map { ($0, 1) }, uniquingKeysWith: +)
+                return counts.max { $0.value < $1.value }?.key
+            }
+        } catch {
+            // Ignore: the picker remains available as a fallback.
+        }
+        return nil
     }
 
     private func friendlyValidationMessage(for error: Error) -> String {

@@ -127,7 +127,10 @@ struct QuestionsView: View {
                 APIErrorView(error: error) { Task { await reload() } }
             } else {
                 VStack(spacing: 0) {
-                    PaneTitle(title: "Questions")
+                    PaneTitle(title: "Questions") {
+                        NewQuestionButton { showCreate = true }
+                            .disabled(client.apiKey.isEmpty)
+                    }
                     HStack(spacing: 8) {
                         InlineSearchField(query: $search, prompt: "Search title, author…",
                                           focused: $searchFieldFocused)
@@ -176,13 +179,6 @@ struct QuestionsView: View {
             .fixedSize()
             .help("Sort questions")
             .accessibilityLabel("Sort questions")
-            Button { showCreate = true } label: {
-                Image(systemName: "plus")
-            }
-            .buttonStyle(.borderless)
-            .help("New Question")
-            .accessibilityLabel("New Question")
-            .disabled(client.apiKey.isEmpty)
             Button { Task { await reload() } } label: {
                 if isLoading {
                     ProgressView().controlSize(.small)
@@ -468,6 +464,10 @@ struct QuestionDetailView: View {
                     .accessibilityLabel("Delete question")
                 }
                 .fixedSize()
+                // Capsule shape matches the pane-title hero CTA and the Pads
+                // detail header, keeping one shape language for action buttons
+                // across panes. Propagates to every bordered button here.
+                .buttonBorderShape(.capsule)
             }
             HStack(spacing: 6) {
                 if let lang = question.language, !lang.isEmpty {
@@ -568,6 +568,27 @@ struct QuestionDetailView: View {
 
 private let padTypeOptions = InterviewType.allCases.map(\.rawValue)
 private func padTypeLabel(_ raw: String) -> String { InterviewType(rawValue: raw)?.label ?? raw.capitalized }
+
+/// The primary call-to-action for the Questions pane. Authoring a question is a
+/// central task, so it gets a prominent, accent-tinted button in the pane title
+/// rather than an easily-missed icon next to the search field.
+private struct NewQuestionButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label("New Question", systemImage: "plus")
+                .font(.callout.weight(.semibold))
+        }
+        .buttonStyle(.borderedProminent)
+        .controlSize(.large)
+        // Capsule is the app-wide shape for action buttons; stated explicitly so
+        // it holds even if the control size changes. See PadsView's NewPadButton.
+        .buttonBorderShape(.capsule)
+        .help("Create a new question (⇧⌘N)")
+        .accessibilityLabel("New Question")
+    }
+}
 
 private struct NewQuestionSheet: View {
     let client: CoderPadClient

@@ -176,7 +176,10 @@ struct PadsView: View {
                 APIErrorView(error: error) { Task { await reload() } }
             } else {
                 VStack(spacing: 0) {
-                    PaneTitle(title: "Pads")
+                    PaneTitle(title: "Pads") {
+                        NewPadButton { showCreate = true }
+                            .disabled(client.apiKey.isEmpty)
+                    }
                     HStack(spacing: 8) {
                         InlineSearchField(query: $search, prompt: "Search title, owner, participants…",
                                           focused: $searchFieldFocused)
@@ -204,13 +207,6 @@ struct PadsView: View {
 
     private var paneActions: some View {
         HStack(spacing: 2) {
-            Button { showCreate = true } label: {
-                Image(systemName: "plus")
-            }
-            .buttonStyle(.borderless)
-            .help("New Pad")
-            .accessibilityLabel("New Pad")
-            .disabled(client.apiKey.isEmpty)
             Button { Task { await reload() } } label: {
                 if isLoading {
                     ProgressView().controlSize(.small)
@@ -264,80 +260,88 @@ struct PadsView: View {
 
     @ViewBuilder
     private var filterBar: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                FilterChipMenu(
-                    title: "State",
-                    icon: "circle.fill",
-                    selected: $stateFilter,
-                    options: availableStates,
-                    formatter: { $0.capitalized }
-                )
-                FilterChipMenu(
-                    title: "Language",
-                    icon: "chevron.left.slash.chevron.right",
-                    selected: $languageFilter,
-                    options: availableLanguages,
-                    formatter: { $0.languageDisplayName }
-                )
-                SearchableFilterChip(
-                    title: "Owner",
-                    icon: "person",
-                    selected: $ownerFilter,
-                    options: availableOwners,
-                    formatter: { directory.display($0) },
-                    meEmail: accounts.currentAccount?.userEmail
-                )
-                FilterChipMenu(
-                    title: "Team",
-                    icon: "person.3",
-                    selected: $teamFilter,
-                    options: availableTeams,
-                    formatter: { $0 }
-                )
-                FilterChipMenu(
-                    title: "Type",
-                    icon: "tag",
-                    selected: $typeFilter,
-                    options: InterviewType.allCases.map(\.rawValue),
-                    formatter: { InterviewType(rawValue: $0)?.label ?? $0.capitalized }
-                )
-                FilterChipMenu(
-                    title: "Updated",
-                    icon: "calendar",
-                    selected: $dateRangeFilter,
-                    options: Self.dateRangeOptions,
-                    formatter: { $0.capitalized }
-                )
-                if activeFilterCount > 0 || !search.isEmpty {
-                    Button {
-                        saveSearchName = ""
-                        showSaveSearch = true
-                    } label: {
-                        Label("Save…", systemImage: "bookmark")
-                            .labelStyle(.titleAndIcon)
-                    }
-                    .buttonStyle(.borderless)
-                    .controlSize(.small)
-                }
-                if activeFilterCount > 0 {
-                    Button(role: .destructive) {
-                        stateFilter = nil; languageFilter = nil
-                        ownerFilter = nil; teamFilter = nil; typeFilter = nil
-                        dateRangeFilter = nil
-                    } label: {
-                        Label("Clear", systemImage: "xmark.circle.fill")
-                            .labelStyle(.titleAndIcon)
-                    }
-                    .buttonStyle(.borderless)
-                    .controlSize(.small)
-                }
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+        // A wrapping flow layout rather than a horizontal scroll, so the chips
+        // reflow onto extra lines as the pane narrows instead of forcing a wide
+        // minimum column width. Each chip reports its own width; because
+        // `FilterBarWidthKey` reduces by `max`, the column floor becomes the
+        // widest single chip, letting the pane be dragged much thinner.
+        FlowLayout(spacing: 8, lineSpacing: 8) {
+            FilterChipMenu(
+                title: "State",
+                icon: "circle.fill",
+                selected: $stateFilter,
+                options: availableStates,
+                formatter: { $0.replacingOccurrences(of: "_", with: " ").capitalized }
+            )
             .measuresFilterBarWidth()
+            FilterChipMenu(
+                title: "Language",
+                icon: "chevron.left.slash.chevron.right",
+                selected: $languageFilter,
+                options: availableLanguages,
+                formatter: { $0.languageDisplayName }
+            )
+            .measuresFilterBarWidth()
+            SearchableFilterChip(
+                title: "Owner",
+                icon: "person",
+                selected: $ownerFilter,
+                options: availableOwners,
+                formatter: { directory.display($0) },
+                meEmail: accounts.currentAccount?.userEmail
+            )
+            .measuresFilterBarWidth()
+            FilterChipMenu(
+                title: "Team",
+                icon: "person.3",
+                selected: $teamFilter,
+                options: availableTeams,
+                formatter: { $0 }
+            )
+            .measuresFilterBarWidth()
+            FilterChipMenu(
+                title: "Type",
+                icon: "tag",
+                selected: $typeFilter,
+                options: InterviewType.allCases.map(\.rawValue),
+                formatter: { InterviewType(rawValue: $0)?.label ?? $0.capitalized }
+            )
+            .measuresFilterBarWidth()
+            FilterChipMenu(
+                title: "Updated",
+                icon: "calendar",
+                selected: $dateRangeFilter,
+                options: Self.dateRangeOptions,
+                formatter: { $0.capitalized }
+            )
+            .measuresFilterBarWidth()
+            if activeFilterCount > 0 || !search.isEmpty {
+                Button {
+                    saveSearchName = ""
+                    showSaveSearch = true
+                } label: {
+                    Label("Save…", systemImage: "bookmark")
+                        .labelStyle(.titleAndIcon)
+                }
+                .buttonStyle(.borderless)
+                .controlSize(.small)
+            }
+            if activeFilterCount > 0 {
+                Button(role: .destructive) {
+                    stateFilter = nil; languageFilter = nil
+                    ownerFilter = nil; teamFilter = nil; typeFilter = nil
+                    dateRangeFilter = nil
+                } label: {
+                    Label("Clear", systemImage: "xmark.circle.fill")
+                        .labelStyle(.titleAndIcon)
+                }
+                .buttonStyle(.borderless)
+                .controlSize(.small)
+            }
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private func reload() async {
@@ -781,10 +785,21 @@ struct PadDetailView: View {
             .accessibilityLabel("More actions")
         }
         .fixedSize()
+        // Match the capsule shape of the pane-title hero CTA so primary actions
+        // share one shape language across the split-view divider. The cluster
+        // stays at the regular control size — size and fill carry the hierarchy,
+        // not corner radius. Propagates to every bordered button in the HStack;
+        // the borderless overflow menu is unaffected.
+        .buttonBorderShape(.capsule)
     }
 
     private var metaCards: some View {
-        HStack(spacing: 12) {
+        // An adaptive grid instead of a fixed HStack so the tiles wrap onto a
+        // new row when the detail pane is too narrow to fit them side by side.
+        // A plain HStack can't shrink the date-bearing tiles below their content
+        // width, so it overflowed and the rightmost tile was clipped by the pane
+        // edge.
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 160), spacing: 12)], alignment: .leading, spacing: 12) {
             if let createdAt = pad.createdAt {
                 StatTile(title: "Created", value: createdAt.formatted(date: .abbreviated, time: .shortened),
                          systemImage: "calendar.badge.plus", tint: .blue)
@@ -1274,6 +1289,28 @@ private struct EnvironmentCodeCard: View {
 
 // MARK: - New Pad sheet
 
+/// The primary call-to-action for the Pads pane. Creating a pad is the app's
+/// central task, so it gets a prominent, accent-tinted button in the pane title
+/// rather than an easily-missed icon next to the search field.
+private struct NewPadButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label("New Pad", systemImage: "plus")
+                .font(.callout.weight(.semibold))
+        }
+        .buttonStyle(.borderedProminent)
+        .controlSize(.large)
+        // Capsule is the app-wide shape for action buttons. `.large` already
+        // renders as a capsule, but stating it keeps the shape from drifting if
+        // the control size ever changes, and documents the shared rule.
+        .buttonBorderShape(.capsule)
+        .help("Create a new pad (⌘N)")
+        .accessibilityLabel("New Pad")
+    }
+}
+
 private struct NewPadSheet: View {
     let client: CoderPadClient
     let onCreated: (Pad) -> Void
@@ -1290,6 +1327,7 @@ private struct NewPadSheet: View {
     @State private var selectedQuestionID: Int? = nil
     @State private var teams: [PadTeam] = []
     @State private var selectedTeamID: String? = nil
+    @State private var users: [OrganizationUser] = []
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -1298,16 +1336,10 @@ private struct NewPadSheet: View {
             Form {
                 TextField("Title", text: $title, prompt: Text("Optional, e.g. \"Onsite: Jane Doe\""))
 
-                Picker("Question", selection: $selectedQuestionID) {
-                    Text("None").tag(Int?.none)
-                    if !questions.isEmpty {
-                        Divider()
-                        ForEach(questions) { q in
-                            Text(q.title.isEmpty ? "#\(q.id)" : q.title).tag(Int?.some(q.id))
-                        }
-                    }
+                LabeledContent("Question") {
+                    SearchableQuestionPicker(selection: $selectedQuestionID, questions: questions)
+                        .disabled(questions.isEmpty)
                 }
-                .disabled(questions.isEmpty)
 
                 Picker("Language", selection: $language) {
                     ForEach(CoderPadLanguages.pickerOptions, id: \.self) { Text($0.languageDisplayName).tag($0) }
@@ -1316,7 +1348,11 @@ private struct NewPadSheet: View {
                     }
                 }
 
-                TextField("Owner email", text: $ownerEmail, prompt: Text("Optional. Defaults to the key's owner."))
+                LabeledContent("Owner") {
+                    SearchableOwnerPicker(ownerEmail: $ownerEmail,
+                                          users: users,
+                                          keyOwnerEmail: AccountsStore.shared.currentAccount?.userEmail)
+                }
 
                 if !teams.isEmpty {
                     Picker("Team", selection: $selectedTeamID) {
@@ -1363,7 +1399,7 @@ private struct NewPadSheet: View {
         .padding()
         .frame(minWidth: 460, minHeight: 360)
         .task { await loadQuestions() }
-        .task { await loadTeams() }
+        .task { await loadOrganization() }
     }
 
     private func loadQuestions() async {
@@ -1376,10 +1412,15 @@ private struct NewPadSheet: View {
         }
     }
 
-    private func loadTeams() async {
+    /// One `organization()` call backs both the Team picker and the searchable
+    /// Owner picker, so adding owner selection costs no extra network round-trip.
+    private func loadOrganization() async {
         guard !client.apiKey.isEmpty else { return }
         if let org = try? await client.organization() {
             teams = org.teams
+            users = org.users.sorted {
+                ($0.name ?? $0.email).localizedCaseInsensitiveCompare($1.name ?? $1.email) == .orderedAscending
+            }
         }
     }
 
@@ -1406,6 +1447,265 @@ private struct NewPadSheet: View {
         }
     }
 }
+
+/// A searchable replacement for a long `Picker` of questions. Shows the current
+/// selection as a button; tapping opens a popover with a search field that filters
+/// the (potentially large) question list so you don't scroll a huge menu.
+private struct SearchableQuestionPicker: View {
+    @Binding var selection: Int?
+    let questions: [Question]
+
+    @State private var isPresented = false
+    @State private var query = ""
+    @FocusState private var searchFocused: Bool
+
+    private func title(for q: Question) -> String {
+        q.title.isEmpty ? "#\(q.id)" : q.title
+    }
+
+    private var selectedTitle: String {
+        guard let id = selection, let q = questions.first(where: { $0.id == id }) else { return "None" }
+        return title(for: q)
+    }
+
+    private var filtered: [Question] {
+        let q = query.trimmingCharacters(in: .whitespaces)
+        guard !q.isEmpty else { return questions }
+        return questions.filter { title(for: $0).localizedCaseInsensitiveContains(q) }
+    }
+
+    var body: some View {
+        Button {
+            isPresented = true
+        } label: {
+            HStack {
+                Text(selectedTitle)
+                    .foregroundStyle(selection == nil ? .secondary : .primary)
+                    .lineLimit(1)
+                Spacer()
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .buttonStyle(.bordered)
+        .popover(isPresented: $isPresented, arrowEdge: .bottom) {
+            VStack(spacing: 0) {
+                TextField("Search questions", text: $query)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($searchFocused)
+                    .padding(8)
+
+                Divider()
+
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        questionRow(id: nil, title: "None")
+                        ForEach(filtered) { q in
+                            questionRow(id: q.id, title: title(for: q))
+                        }
+                        if filtered.isEmpty {
+                            Text("No questions match “\(query)”")
+                                .foregroundStyle(.secondary)
+                                .font(.callout)
+                                .padding(8)
+                        }
+                    }
+                }
+                .frame(maxHeight: 240)
+            }
+            .frame(width: 320)
+            .onAppear { searchFocused = true }
+        }
+    }
+
+    @ViewBuilder
+    private func questionRow(id: Int?, title: String) -> some View {
+        let isSelected = id == selection
+        Button {
+            selection = id
+            isPresented = false
+        } label: {
+            HStack {
+                Text(title)
+                    .foregroundStyle(id == nil ? .secondary : .primary)
+                    .lineLimit(1)
+                Spacer()
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .foregroundStyle(.tint)
+                }
+            }
+            .contentShape(Rectangle())
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+        }
+        .buttonStyle(.plain)
+        .background(isSelected ? Color.accentColor.opacity(0.12) : .clear)
+    }
+}
+
+private extension String {
+    /// `nil` when the string is empty, otherwise itself — for collapsing optional
+    /// names that arrive as empty strings into a true "missing" value.
+    var nilIfEmpty: String? { isEmpty ? nil : self }
+}
+
+/// Picks the new pad's owner. An empty `ownerEmail` means "let the API default to
+/// the key's owner"; the picker surfaces that as a concrete, named "Default" row
+/// (resolved from the configured account) rather than an abstract placeholder.
+///
+/// The search field doubles as free-text email entry: orgs where the key isn't an
+/// owner may return no member list, and you may want to assign an owner who isn't
+/// listed — typing any address offers a "Use …" row, so the field is never a dead
+/// end when `users` is empty.
+private struct SearchableOwnerPicker: View {
+    @Binding var ownerEmail: String
+    let users: [OrganizationUser]
+    /// The configured account email, used only to label the Default row with who
+    /// the key owner is. Pads are still created with an empty owner so the server
+    /// resolves the true key owner.
+    let keyOwnerEmail: String?
+
+    @State private var isPresented = false
+    @State private var query = ""
+    @FocusState private var searchFocused: Bool
+
+    private var trimmedOwner: String {
+        ownerEmail.trimmingCharacters(in: .whitespaces)
+    }
+
+    private func displayName(forEmail email: String) -> String? {
+        users.first { $0.email.caseInsensitiveCompare(email) == .orderedSame }?.name?
+            .nilIfEmpty
+    }
+
+    /// The label shown on the closed picker button.
+    private var selectedLabel: (text: String, isDefault: Bool) {
+        guard !trimmedOwner.isEmpty else { return ("Default (key owner)", true) }
+        return (displayName(forEmail: trimmedOwner) ?? trimmedOwner, false)
+    }
+
+    /// Secondary text for the Default row: the resolved key owner, when known.
+    private var defaultSubtitle: String? {
+        guard let email = keyOwnerEmail?.nilIfEmpty else { return nil }
+        if let name = displayName(forEmail: email) { return "\(name) · \(email)" }
+        return email
+    }
+
+    private var filteredUsers: [OrganizationUser] {
+        let q = query.trimmingCharacters(in: .whitespaces)
+        guard !q.isEmpty else { return users }
+        return users.filter {
+            $0.email.localizedCaseInsensitiveContains(q)
+                || ($0.name?.localizedCaseInsensitiveContains(q) ?? false)
+        }
+    }
+
+    /// A typed address that isn't already an existing member — offered as a
+    /// "Use …" row so free-text assignment still works.
+    private var customEmailCandidate: String? {
+        let q = query.trimmingCharacters(in: .whitespaces)
+        guard !q.isEmpty, q.contains("@") else { return nil }
+        guard !users.contains(where: { $0.email.caseInsensitiveCompare(q) == .orderedSame }) else { return nil }
+        return q
+    }
+
+    var body: some View {
+        Button {
+            isPresented = true
+        } label: {
+            HStack {
+                Text(selectedLabel.text)
+                    .foregroundStyle(selectedLabel.isDefault ? .secondary : .primary)
+                    .lineLimit(1)
+                Spacer()
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .buttonStyle(.bordered)
+        .popover(isPresented: $isPresented, arrowEdge: .bottom) {
+            VStack(spacing: 0) {
+                TextField("Search members or enter email", text: $query)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($searchFocused)
+                    .padding(8)
+
+                Divider()
+
+                ScrollView {
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        ownerRow(email: "",
+                                 primary: "Default (key owner)",
+                                 secondary: defaultSubtitle,
+                                 isMuted: true)
+
+                        ForEach(filteredUsers) { user in
+                            ownerRow(email: user.email,
+                                     primary: user.name?.nilIfEmpty ?? user.email,
+                                     secondary: user.name?.nilIfEmpty == nil ? nil : user.email,
+                                     isMuted: false)
+                        }
+
+                        if let custom = customEmailCandidate {
+                            ownerRow(email: custom,
+                                     primary: "Use “\(custom)”",
+                                     secondary: nil,
+                                     isMuted: false)
+                        }
+
+                        if filteredUsers.isEmpty && customEmailCandidate == nil && !query.trimmingCharacters(in: .whitespaces).isEmpty {
+                            Text("No members match “\(query)”")
+                                .foregroundStyle(.secondary)
+                                .font(.callout)
+                                .padding(8)
+                        }
+                    }
+                }
+                .frame(maxHeight: 240)
+            }
+            .frame(width: 320)
+            .onAppear { searchFocused = true }
+        }
+    }
+
+    @ViewBuilder
+    private func ownerRow(email: String, primary: String, secondary: String?, isMuted: Bool) -> some View {
+        let isSelected = email.caseInsensitiveCompare(trimmedOwner) == .orderedSame
+        Button {
+            ownerEmail = email
+            query = ""
+            isPresented = false
+        } label: {
+            HStack {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(primary)
+                        .foregroundStyle(isMuted ? .secondary : .primary)
+                        .lineLimit(1)
+                    if let secondary {
+                        Text(secondary)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+                Spacer()
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .foregroundStyle(.tint)
+                }
+            }
+            .contentShape(Rectangle())
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+        }
+        .buttonStyle(.plain)
+        .background(isSelected ? Color.accentColor.opacity(0.12) : .clear)
+    }
+}
+
 // MARK: - Edit Pad sheet
 
 private struct EditPadSheet: View {
@@ -1421,6 +1721,7 @@ private struct EditPadSheet: View {
     @State private var executionEnabled: Bool
     @State private var isSubmitting = false
     @State private var error: String?
+    @State private var users: [OrganizationUser] = []
 
     init(client: CoderPadClient,
          original: Pad,
@@ -1450,7 +1751,11 @@ private struct EditPadSheet: View {
                         Text(language.languageDisplayName).tag(language)
                     }
                 }
-                TextField("Owner email", text: $ownerEmail)
+                LabeledContent("Owner") {
+                    SearchableOwnerPicker(ownerEmail: $ownerEmail,
+                                          users: users,
+                                          keyOwnerEmail: AccountsStore.shared.currentAccount?.userEmail)
+                }
                 Toggle("Private", isOn: $isPrivate)
                 Toggle("Execution enabled", isOn: $executionEnabled)
             }
@@ -1480,6 +1785,18 @@ private struct EditPadSheet: View {
         }
         .padding()
         .frame(minWidth: 460, minHeight: 360)
+        .task { await loadOrganizationUsers() }
+    }
+
+    /// Loads org members so the owner field offers a searchable, named picker.
+    /// Falls back silently to free-text entry when the list is empty or unavailable.
+    private func loadOrganizationUsers() async {
+        guard !client.apiKey.isEmpty else { return }
+        if let org = try? await client.organization() {
+            users = org.users.sorted {
+                ($0.name ?? $0.email).localizedCaseInsensitiveCompare($1.name ?? $1.email) == .orderedAscending
+            }
+        }
     }
 
     private func submit() async {

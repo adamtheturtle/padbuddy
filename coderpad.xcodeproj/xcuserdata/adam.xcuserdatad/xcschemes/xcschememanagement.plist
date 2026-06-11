@@ -4,10 +4,28 @@
 <dict>
 	<key>SchemeUserState</key>
 	<dict>
-		<key>coderpad.xcscheme_^#shared#^_</key>
+		<key>coderpad.xcscheme</key>
 		<dict>
 			<key>orderHint</key>
 			<integer>0</integer>
+		</dict>
+	</dict>
+	<key>SuppressBuildableAutocreation</key>
+	<dict>
+		<key>66C8C50A2FA73AB0009B720C</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>66C8C5192FA73AB2009B720C</key>
+		<dict>
+			<key>primary</key>
+			<true/>
+		</dict>
+		<key>66C8C5232FA73AB2009B720C</key>
+		<dict>
+			<key>primary</key>
+			<true/>
 		</dict>
 	</dict>
 </dict>

@@ -51,7 +51,7 @@ struct StateBadge: View {
         switch state.lowercased() {
         case "started", "active", "live": return .green
         case "ended", "finished": return .gray
-        case "draft": return .orange
+        case "pending", "draft": return .orange
         case "joined": return .blue
         case "left": return .secondary
         case "deleted": return .red
@@ -551,7 +551,7 @@ final class OrgDirectory {
         guard loadedAccountID != account.id, inFlight != account.id else { return }
         inFlight = account.id
         defer { inFlight = nil }
-        let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey)
+        let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey, baseURL: account.resolvedBaseURL)
         if let org = try? await client.organization() {
             var map: [String: String] = [:]
             for user in org.users {
@@ -600,14 +600,66 @@ struct FilterBarWidthKey: PreferenceKey {
 
 extension View {
     /// Measures this view's laid-out width and reports it via `FilterBarWidthKey`.
-    /// Attach to a filter bar's content (inside its horizontal `ScrollView`) so the
-    /// measured value is the chips' natural width rather than the clipped viewport.
+    /// Attach either to a horizontally-scrolling filter bar's content (so the
+    /// measured value is the chips' natural row width) or to each individual chip
+    /// in a wrapping filter bar — because the key reduces by `max`, the per-chip
+    /// case yields the widest single chip, the right floor for a bar that wraps.
     func measuresFilterBarWidth() -> some View {
         background(
             GeometryReader { proxy in
                 Color.clear.preference(key: FilterBarWidthKey.self, value: proxy.size.width)
             }
         )
+    }
+}
+
+// MARK: - Flow layout
+
+/// Arranges its subviews left-to-right, wrapping to a new line whenever the next
+/// subview would overflow the available width. Lets a row of filter chips reflow
+/// onto multiple lines as its container narrows, instead of being clipped or
+/// forcing a horizontal scroll.
+struct FlowLayout: Layout {
+    var spacing: CGFloat = 8
+    var lineSpacing: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) -> CGSize {
+        let maxWidth = proposal.width ?? .infinity
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var rowHeight: CGFloat = 0
+        var widestRow: CGFloat = 0
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x > 0 && x + size.width > maxWidth {
+                widestRow = max(widestRow, x - spacing)
+                x = 0
+                y += rowHeight + lineSpacing
+                rowHeight = 0
+            }
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
+        widestRow = max(widestRow, x - spacing)
+        let width = maxWidth.isFinite ? maxWidth : widestRow
+        return CGSize(width: max(0, width), height: y + rowHeight)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) {
+        var x = bounds.minX
+        var y = bounds.minY
+        var rowHeight: CGFloat = 0
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x > bounds.minX && x + size.width > bounds.maxX {
+                x = bounds.minX
+                y += rowHeight + lineSpacing
+                rowHeight = 0
+            }
+            subview.place(at: CGPoint(x: x, y: y), anchor: .topLeading, proposal: ProposedViewSize(size))
+            x += size.width + spacing
+            rowHeight = max(rowHeight, size.height)
+        }
     }
 }
 

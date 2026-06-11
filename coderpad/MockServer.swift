@@ -160,6 +160,7 @@ enum MockResponses {
                 "shared": false, "used": 0, "take_home": bodyDict["take_home"] as? Bool ?? false,
                 "test_cases_enabled": false, "solution": bodyDict["solution"] ?? "",
                 "pad_type": bodyDict["pad_type"] as? String ?? "live", "is_draft": true,
+                "contents": bodyDict["contents"] ?? NSNull(), "custom_files": [],
                 "author_name": "Demo User", "organization_name": "Demo Org",
                 "created_at": ISO8601DateFormatter().string(from: Date()),
                 "updated_at": ISO8601DateFormatter().string(from: Date()),
@@ -221,7 +222,7 @@ enum MockResponses {
         }
 
         if method == "GET", path == "/api/organization/questions" {
-            return ok(["status": "OK", "questions": MockFixtures.questions()])
+            return ok(["status": "OK", "questions": MockFixtures.allQuestions()])
         }
 
         if method == "GET", path == "/api/organization/users" {
@@ -318,6 +319,7 @@ enum MockFixtures {
                 participants: ["Sam Lee", "Morgan Lin"],
                 createdAt: "2026-06-05T17:30:00Z", updatedAt: "2026-06-06T19:00:00Z",
                 endedAt: "2026-06-06T19:00:00Z",
+                notes: "Strong on arrays, hesitant on recursion.\nFollow up on the time-complexity discussion.",
                 environmentIDs: [1, 2], activeEnvironmentID: 2),
             // Three environments with the active one in the middle, so the Active
             // flag is clearly not just "the first card".
@@ -329,7 +331,7 @@ enum MockFixtures {
                 environmentIDs: [1, 4, 2], activeEnvironmentID: 4),
             pad(id: "DEMOOLD4", title: "Q1 take-home draft",
                 language: "rust", ownerEmail: "morgan@demo.co",
-                state: "draft", isPrivate: true, executionEnabled: true,
+                state: "pending", isPrivate: true, executionEnabled: true,
                 participants: [],
                 createdAt: "2026-05-12T10:00:00Z", updatedAt: "2026-05-12T10:00:00Z",
                 environmentIDs: [1, 2], activeEnvironmentID: 1),
@@ -355,6 +357,7 @@ enum MockFixtures {
                     createdAt: String = "2026-06-10T08:00:00Z",
                     updatedAt: String = "2026-06-10T08:00:00Z",
                     endedAt: String? = nil,
+                    notes: String? = nil,
                     environmentIDs: [Int] = [1, 2],
                     activeEnvironmentID: Int = 1) -> [String: Any] {
         var dict: [String: Any] = [
@@ -365,10 +368,18 @@ enum MockFixtures {
             "language": language,
             "private": isPrivate,
             "execution_enabled": executionEnabled,
+            // The live API exposes the interviewer-access lock on every pad.
+            "restrict_interviewer_access": false,
             "participants": participants,
             "url": "https://app.coderpad.io/\(id)",
             "playback": "https://app.coderpad.io/\(id)/playback",
             "events": "https://app.coderpad.io/api/pads/\(id)/events",
+            // Firebase history URL: present on every live pad, mirroring the API.
+            "history": "https://coderpad-1.firebaseio.com/\(id)/history.json",
+            // The list response carries `contents`/`drawing` keys, null until the
+            // pad has editor content or a whiteboard drawing.
+            "contents": NSNull(),
+            "drawing": NSNull(),
             "created_at": createdAt,
             "updated_at": updatedAt,
             "type": "live",
@@ -378,6 +389,7 @@ enum MockFixtures {
             "team": ["id": "demo-team", "name": "Demo Team"]
         ]
         if let endedAt { dict["ended_at"] = endedAt } else { dict["ended_at"] = NSNull() }
+        if let notes { dict["notes"] = notes } else { dict["notes"] = NSNull() }
         return dict
     }
 
@@ -464,6 +476,7 @@ enum MockFixtures {
                 "shared": true, "used": 42, "take_home": false,
                 "test_cases_enabled": true, "solution": "see notion",
                 "pad_type": "live", "is_draft": false,
+                "contents": NSNull(), "custom_files": [],
                 "author_name": "Alex Park", "organization_name": "Demo Org",
                 "created_at": "2025-09-01T10:00:00Z", "updated_at": "2026-06-08T10:00:00Z"
             ],
@@ -560,6 +573,7 @@ enum MockFixtures {
                 [1]: https://example.com/overflow
                 """,
                 "pad_type": "take-home", "is_draft": false,
+                "contents": NSNull(), "custom_files": [],
                 "author_name": "Morgan Lin", "organization_name": "Demo Org",
                 "created_at": "2025-11-12T14:00:00Z", "updated_at": "2026-05-30T09:00:00Z"
             ],
@@ -573,25 +587,33 @@ enum MockFixtures {
                 "shared": false, "used": 0, "take_home": false,
                 "test_cases_enabled": false, "solution": "",
                 "pad_type": "live", "is_draft": true,
+                "contents": NSNull(), "custom_files": [],
                 "author_name": "Alex Park", "organization_name": "Demo Org",
                 "created_at": "2026-06-05T11:00:00Z", "updated_at": "2026-06-05T11:00:00Z"
             ],
         ]
     }
 
+    /// Single source of truth for the demo org's members. The two user-facing
+    /// shapes (directory vs. stats) are projected from this below.
+    private static let people: [(email: String, name: String, padsCreated: Int)] = [
+        ("alex@demo.co", "Alex Park", 12),
+        ("morgan@demo.co", "Morgan Lin", 9),
+        ("casey@demo.co", "Casey Wu", 2),
+        ("robin@demo.co", "Robin Patel", 0),
+        ("demo@example.com", "Demo User", 1),
+    ]
+
+    /// Directory shape: `/api/organization` and `/api/organization/users` return
+    /// `{email, name, teams}` — no `pads_created`.
     static func users() -> [[String: Any]] {
-        [
-            ["email": "alex@demo.co", "name": "Alex Park",
-             "teams": ["demo-team"], "pads_created": 12],
-            ["email": "morgan@demo.co", "name": "Morgan Lin",
-             "teams": ["demo-team"], "pads_created": 9],
-            ["email": "casey@demo.co", "name": "Casey Wu",
-             "teams": ["demo-team"], "pads_created": 2],
-            ["email": "robin@demo.co", "name": "Robin Patel",
-             "teams": ["demo-team"], "pads_created": 0],
-            ["email": "demo@example.com", "name": "Demo User",
-             "teams": ["demo-team"], "pads_created": 1],
-        ]
+        people.map { ["email": $0.email, "name": $0.name, "teams": ["demo-team"]] }
+    }
+
+    /// Stats shape: `/api/organization/stats` returns `{email, name, pads_created}`
+    /// per user — no `teams`.
+    static func statsUsers() -> [[String: Any]] {
+        people.map { ["email": $0.email, "name": $0.name, "pads_created": $0.padsCreated] }
     }
 
     static func organization() -> [String: Any] {
@@ -618,7 +640,7 @@ enum MockFixtures {
             // Scale roughly with the requested window (~1 pad/day) so the picker
             // produces a visibly different count.
             "pads_created": padsCreatedForWindow(start: start, end: end),
-            "users": users()
+            "users": statsUsers()
         ]
     }
 

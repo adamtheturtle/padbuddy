@@ -642,18 +642,25 @@ enum CoderPadError: LocalizedError {
 
 struct CoderPadClient {
     let apiKey: String
-    let baseURL = URL(string: "https://app.coderpad.io")!
+    let baseURL: URL
     let session: URLSession
 
-    init(apiKey: String, session: URLSession = CoderPadClient.liveSession) {
+    /// The standard hosted CoderPad endpoint, used when an account doesn't
+    /// override it (e.g. a self-hosted or regional deployment).
+    static let defaultBaseURL = URL(string: "https://app.coderpad.io")!
+
+    init(apiKey: String,
+         baseURL: URL = CoderPadClient.defaultBaseURL,
+         session: URLSession = CoderPadClient.liveSession) {
         self.apiKey = apiKey
+        self.baseURL = baseURL
         self.session = session
     }
 
     static let liveSession: URLSession = .shared
 
-    static func live(apiKey: String) -> CoderPadClient {
-        CoderPadClient(apiKey: apiKey, session: liveSession)
+    static func live(apiKey: String, baseURL: URL = CoderPadClient.defaultBaseURL) -> CoderPadClient {
+        CoderPadClient(apiKey: apiKey, baseURL: baseURL, session: liveSession)
     }
 
     static func mock() -> CoderPadClient {

@@ -133,11 +133,6 @@ struct ContentView: View {
             } actions: {
                 Button("Add Account") { addingAccount = Account(name: "", apiKey: "") }
                     .buttonStyle(.borderedProminent)
-                #if DEBUG
-                Button("Try Demo") {
-                    store.addDemoIfMissing()
-                }
-                #endif
             }
         } else {
             ContentUnavailableView {
@@ -352,7 +347,7 @@ private struct MainSplit: View {
     /// so we skip it here to avoid a duplicate request.
     private func prefetchInactiveSections(account: Account, active: AppSection) async {
         guard account.isMock || !account.apiKey.isEmpty else { return }
-        let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey)
+        let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey, baseURL: account.resolvedBaseURL)
         let id = account.id
         // Stream pages so the cache is warm from page 1 — the first switch shows the
         // top (most-recently-updated) pads immediately while the rest fill in behind it,
@@ -660,12 +655,21 @@ private struct AccountFooter: View {
     }
 
     private var addAccountButton: some View {
-        Button { addingAccount = Account(name: "", apiKey: "") } label: {
+        Button { addingAccount = newAccountDraft() } label: {
             Image(systemName: "person.crop.circle.badge.plus")
         }
         .buttonStyle(.borderless)
         .help("Add account")
         .accessibilityLabel("Add account")
+    }
+
+    /// A blank draft to add, or — when option is held and the dev env vars are
+    /// set — one pre-filled from `CODERPAD_API_KEY` for quick real-data testing.
+    private func newAccountDraft() -> Account {
+        if NSEvent.modifierFlags.contains(.option), let dev = Account.fromDevEnvironment() {
+            return dev
+        }
+        return Account(name: "", apiKey: "")
     }
 
     @ViewBuilder
@@ -703,7 +707,7 @@ private struct SectionContent: View {
 
     var body: some View {
         if let account = store.currentAccount {
-            let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey)
+            let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey, baseURL: account.resolvedBaseURL)
             switch section {
             case .pads: PadsView(client: client, selection: $padSelection).id(account.id)
             case .questions: QuestionsView(client: client, selection: $questionSelection).id(account.id)
@@ -722,7 +726,7 @@ private struct SectionDetail: View {
 
     var body: some View {
         if let account = store.currentAccount {
-            let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey)
+            let client = account.isMock ? CoderPadClient.mock() : CoderPadClient.live(apiKey: account.apiKey, baseURL: account.resolvedBaseURL)
             switch section {
             case .pads:
                 if let pad = padSelection {

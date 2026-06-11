@@ -21,17 +21,53 @@ struct Account: Identifiable, Codable, Hashable {
     /// The CoderPad API doesn't expose the key's owner, so the user picks it when
     /// validating the key. Optional so accounts saved before this existed still decode.
     var userEmail: String?
+    /// An optional override for the CoderPad server URL, for self-hosted or regional
+    /// deployments. `nil`/empty means the standard hosted endpoint. Optional so
+    /// accounts saved before this existed still decode.
+    var baseURL: String?
 
-    init(id: UUID = UUID(), name: String, apiKey: String, isMock: Bool = false, userEmail: String? = nil) {
+    init(id: UUID = UUID(), name: String, apiKey: String, isMock: Bool = false, userEmail: String? = nil, baseURL: String? = nil) {
         self.id = id
         self.name = name
         self.apiKey = apiKey
         self.isMock = isMock
         self.userEmail = userEmail
+        self.baseURL = baseURL
+    }
+
+    /// The server URL to talk to: the account's override when set and parseable,
+    /// otherwise the standard hosted endpoint.
+    var resolvedBaseURL: URL {
+        let trimmed = baseURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !trimmed.isEmpty, let url = URL(string: trimmed), url.scheme != nil {
+            return url
+        }
+        return CoderPadClient.defaultBaseURL
     }
 
     static func demo() -> Account {
         Account(name: "Demo (mock data)", apiKey: "demo", isMock: true)
+    }
+
+    /// A draft account pre-filled from the `CODERPAD_API_KEY` (and optional
+    /// `CODERPAD_USER_EMAIL`) env vars set in the scheme's Run action, or `nil`
+    /// when no key is present. Debug-only convenience so testing against real
+    /// data via the Add Account button doesn't mean re-pasting the key each run;
+    /// option-click the button to fill from this. Env vars are readable under the
+    /// App Sandbox, unlike a home-directory dotfile — keep that scheme non-shared
+    /// (xcuserdata) so the key never lands in git.
+    static func fromDevEnvironment() -> Account? {
+        #if DEBUG
+        let env = ProcessInfo.processInfo.environment
+        guard let rawKey = env["CODERPAD_API_KEY"]?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !rawKey.isEmpty else { return nil }
+        let trimmedEmail = env["CODERPAD_USER_EMAIL"]?
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let email = (trimmedEmail?.isEmpty == false) ? trimmedEmail : nil
+        return Account(name: "Dev (env key)", apiKey: rawKey, userEmail: email)
+        #else
+        return nil
+        #endif
     }
 }
 
@@ -119,44 +155,7 @@ final class AccountsStore {
             migrateLegacyIfNeeded()
         }
 
-        #if DEBUG
-        seedDevKeyFromEnvironmentIfAvailable()
-        #endif
     }
-
-    #if DEBUG
-    /// Name of the auto-managed account backed by the `CODERPAD_API_KEY` env var.
-    private static let devAccountName = "Dev (env key)"
-
-    /// Debug-only convenience so testing against real data doesn't mean re-typing
-    /// the key each run. Reads `CODERPAD_API_KEY` (and optional `CODERPAD_USER_EMAIL`)
-    /// from the process environment — set once in the scheme's Run action — and
-    /// seeds, refreshes, then selects a dedicated live account from it. Env vars are
-    /// readable under the App Sandbox, unlike a home-directory dotfile. Keep that
-    /// scheme non-shared (xcuserdata) so the key never lands in git.
-    private func seedDevKeyFromEnvironmentIfAvailable() {
-        let env = ProcessInfo.processInfo.environment
-        guard let rawKey = env["CODERPAD_API_KEY"]?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !rawKey.isEmpty else { return }
-        let trimmedEmail = env["CODERPAD_USER_EMAIL"]?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        let email = (trimmedEmail?.isEmpty == false) ? trimmedEmail : nil
-
-        if let existing = accounts.first(where: { $0.name == Self.devAccountName }) {
-            if existing.apiKey != rawKey || existing.userEmail != email {
-                var refreshed = existing
-                refreshed.apiKey = rawKey
-                refreshed.userEmail = email
-                update(refreshed)
-            }
-            currentAccountID = existing.id
-        } else {
-            let account = Account(name: Self.devAccountName, apiKey: rawKey, userEmail: email)
-            add(account)
-            currentAccountID = account.id
-        }
-    }
-    #endif
 
     func add(_ account: Account) {
         accounts.append(account)
@@ -276,7 +275,7 @@ final class AccountHealthMonitor {
         guard let account = AccountsStore.shared.currentAccount,
               !account.isMock,
               !account.apiKey.isEmpty else { return }
-        let client = CoderPadClient.live(apiKey: account.apiKey)
+        let client = CoderPadClient.live(apiKey: account.apiKey, baseURL: account.resolvedBaseURL)
         do {
             _ = try await client.organization()
             unauthorizedAccountIDs.remove(account.id)
