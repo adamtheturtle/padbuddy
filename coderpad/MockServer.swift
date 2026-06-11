@@ -683,7 +683,9 @@ nonisolated enum MockFixtures {
             "child_organizations": [],
             "user_count": users().count,
             "users": users(),
-            "organization_default_language": "python3",
+            // Deliberately not the New Pad/Question sheets' hardcoded "python3"
+            // fallback, so the org-default pre-selection is visible in the demo.
+            "organization_default_language": "go",
             "single_sign_on_supported": false,
             "teams": [["id": "demo-team", "name": "Demo Team"]]
         ]

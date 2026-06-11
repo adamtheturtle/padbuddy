@@ -262,6 +262,30 @@ struct FindCommands: Commands {
     }
 }
 
+/// Adds "Customize Toolbar…" to the View menu, matching Mail, Finder, and other
+/// system apps. SwiftUI makes the section toolbars user-customizable (via
+/// `.toolbar(id:)`) and offers customization through the toolbar's right-click
+/// menu, but provides no menu command for it — so this bridges to AppKit's
+/// `runCustomizationPalette(_:)` on the frontmost window's `NSToolbar`.
+///
+/// The item enables only while `canCustomizeToolbar` is published — i.e. a main
+/// window is key. Settings and the Pad Browser don't have a customizable
+/// `NSToolbar`, so it stays disabled there rather than presenting nothing.
+/// Placed `after: .toolbar` so it sits just below "Show/Hide Toolbar", the same
+/// spot system apps use.
+struct ViewCommands: Commands {
+    @FocusedValue(\.canCustomizeToolbar) private var canCustomizeToolbar
+
+    var body: some Commands {
+        CommandGroup(after: .toolbar) {
+            Button("Customize Toolbar…") {
+                NSApp.keyWindow?.toolbar?.runCustomizationPalette(nil)
+            }
+            .disabled(canCustomizeToolbar != true)
+        }
+    }
+}
+
 /// Top-level "Pad" menu: every action for the pad selected in the frontmost
 /// window (published as `focusedPad`). Open and copy act directly; Edit, End
 /// Interview, and Delete route through `AppNavigation` so the mounted

@@ -565,24 +565,34 @@ private struct PullToRefreshScrollBridge: NSViewRepresentable {
             if shouldTrigger { onTrigger() }
         }
 
-        /// Finds the scroll view closest to `view`: climb ancestors, and at each
-        /// level search descendants, so the nearest `List`'s scroll view wins even
-        /// when several share the same window.
+        /// Finds the scroll view this helper is layered over. A `ScrollView`'s
+        /// `.background` lands *inside* its scroll view, so the enclosing one is
+        /// correct. A `List` instead places the background outside its scroll
+        /// view, so fall back to the smallest scroll view in the window whose
+        /// frame sits under the helper — i.e. the one it fronts, not a
+        /// neighbouring pane's, which a naive descendant search can pick by
+        /// mistake.
         private static func scrollView(near view: NSView) -> NSScrollView? {
-            var node: NSView? = view
-            while let current = node {
-                if let found = firstScrollView(in: current) { return found }
-                node = current.superview
+            if let enclosing = view.enclosingScrollView { return enclosing }
+            guard let root = view.window?.contentView else { return nil }
+            let point = view.convert(CGPoint(x: view.bounds.midX, y: view.bounds.midY), to: root)
+            var best: NSScrollView?
+            var bestArea = CGFloat.greatestFiniteMagnitude
+            func walk(_ node: NSView) {
+                if let scroll = node as? NSScrollView {
+                    let frame = scroll.convert(scroll.bounds, to: root)
+                    if frame.contains(point) {
+                        let area = frame.width * frame.height
+                        if area < bestArea {
+                            best = scroll
+                            bestArea = area
+                        }
+                    }
+                }
+                node.subviews.forEach(walk)
             }
-            return nil
-        }
-
-        private static func firstScrollView(in view: NSView) -> NSScrollView? {
-            if let scroll = view as? NSScrollView { return scroll }
-            for subview in view.subviews {
-                if let found = firstScrollView(in: subview) { return found }
-            }
-            return nil
+            walk(root)
+            return best
         }
 
         deinit { NotificationCenter.default.removeObserver(self) }
@@ -816,6 +826,10 @@ struct EmailLink: View {
 @Observable
 final class OrgDirectory {
     private(set) var nameByEmail: [String: String] = [:]
+    /// The organization's default coding language, used to pre-select the picker
+    /// in the New Pad / New Question sheets. `nil` until the org loads or when the
+    /// org reports no default.
+    private(set) var defaultLanguage: String?
     private var loadedAccountID: UUID?
     private var inFlight: UUID?
 
@@ -832,6 +846,7 @@ final class OrgDirectory {
                 }
             }
             nameByEmail = map
+            defaultLanguage = org.organizationDefaultLanguage.flatMap { $0.isEmpty ? nil : $0 }
             loadedAccountID = account.id
         }
     }

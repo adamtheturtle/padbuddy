@@ -828,8 +828,12 @@ private struct NewQuestionSheet: View {
     let onCreated: (Question) -> Void
     let onCancel: () -> Void
 
+    @Environment(\.orgDirectory) private var directory
     @State private var title = ""
     @State private var language = "python3"
+    /// Set once the user picks a language themselves, so a late-arriving org
+    /// default doesn't overwrite their choice.
+    @State private var languageEdited = false
     @State private var description = ""
     @State private var instructions = ""
     @State private var solution = ""
@@ -842,8 +846,11 @@ private struct NewQuestionSheet: View {
             Text("New Question").font(.title3.bold())
             Form {
                 TextField("Title", text: $title)
-                Picker("Language", selection: $language) {
+                Picker("Language", selection: languageSelection) {
                     ForEach(CoderPadLanguages.pickerOptions, id: \.self) { Text($0.languageDisplayName).tag($0) }
+                    if !CoderPadLanguages.pickerOptions.contains(language) {
+                        Text(language.languageDisplayName).tag(language)
+                    }
                 }
                 Picker("Type", selection: $padType) {
                     ForEach(padTypeOptions, id: \.self) { Text(padTypeLabel($0)).tag($0) }
@@ -881,6 +888,21 @@ private struct NewQuestionSheet: View {
         }
         .padding()
         .frame(minWidth: 520, minHeight: 540)
+        .task { applyOrgDefaultLanguage() }
+        .onChange(of: directory.defaultLanguage) { _, _ in applyOrgDefaultLanguage() }
+    }
+
+    /// The language picker's binding, marking the choice as user-made so the org
+    /// default no longer overrides it.
+    private var languageSelection: Binding<String> {
+        Binding(get: { language }, set: { language = $0; languageEdited = true })
+    }
+
+    /// Pre-select the organization's default language, unless the user has already
+    /// chosen one. Driven by `OrgDirectory`, which is loaded app-wide.
+    private func applyOrgDefaultLanguage() {
+        guard !languageEdited, let def = directory.defaultLanguage, !def.isEmpty else { return }
+        language = def
     }
 
     private func submit() async {

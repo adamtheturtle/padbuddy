@@ -319,6 +319,8 @@ struct MockServerTests {
         #expect(org.organizationName == "Demo Org")
         #expect(org.users.count >= 5)
         #expect(org.users.contains(where: { $0.email == "alex@demo.co" }))
+        // Backs the org-default language pre-selection in the create sheets.
+        #expect(org.organizationDefaultLanguage == "go")
     }
 
     @Test("quota returns the demo plan")

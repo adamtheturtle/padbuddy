@@ -1793,8 +1793,12 @@ private struct NewPadSheet: View {
     let onCreated: (Pad) -> Void
     let onCancel: () -> Void
 
+    @Environment(\.orgDirectory) private var directory
     @State private var title = ""
     @State private var language = "python3"
+    /// Set once the user picks a language themselves, so a late-arriving org
+    /// default doesn't overwrite their choice.
+    @State private var languageEdited = false
     @State private var ownerEmail = ""
     @State private var isPrivate = false
     @State private var executionEnabled = true
@@ -1818,7 +1822,7 @@ private struct NewPadSheet: View {
                         .disabled(questions.isEmpty)
                 }
 
-                Picker("Language", selection: $language) {
+                Picker("Language", selection: languageSelection) {
                     ForEach(CoderPadLanguages.pickerOptions, id: \.self) { Text($0.languageDisplayName).tag($0) }
                     if !CoderPadLanguages.pickerOptions.contains(language) {
                         Text(language.languageDisplayName).tag(language)
@@ -1877,6 +1881,21 @@ private struct NewPadSheet: View {
         .frame(minWidth: 460, minHeight: 360)
         .task { await loadQuestions() }
         .task { await loadOrganization() }
+        .task { applyOrgDefaultLanguage() }
+        .onChange(of: directory.defaultLanguage) { _, _ in applyOrgDefaultLanguage() }
+    }
+
+    /// The language picker's binding, marking the choice as user-made so the org
+    /// default no longer overrides it.
+    private var languageSelection: Binding<String> {
+        Binding(get: { language }, set: { language = $0; languageEdited = true })
+    }
+
+    /// Pre-select the organization's default language, unless the user has already
+    /// chosen one. Driven by `OrgDirectory`, which is loaded app-wide.
+    private func applyOrgDefaultLanguage() {
+        guard !languageEdited, let def = directory.defaultLanguage, !def.isEmpty else { return }
+        language = def
     }
 
     private func loadQuestions() async {
