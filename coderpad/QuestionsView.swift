@@ -167,10 +167,22 @@ struct QuestionsView: View {
                             QuestionRow(question: q)
                                 .tag(q)
                                 .contextMenu { questionContextMenu(q) }
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    Button {
+                                        // Same path as the context menu and detail
+                                        // "New Pad" button: select the question, then
+                                        // let its detail pane create and open the pad.
+                                        selection = q
+                                        nav.createPadForQuestionID = q.id
+                                    } label: {
+                                        Label("New Pad", systemImage: "plus.rectangle.on.rectangle")
+                                    }
+                                    .tint(.accentColor)
+                                }
                         }
                     }
                     .listStyle(.inset)
-                    .refreshable { await reload() }
+                    .macPullToRefresh { await reload() }
                     // Scene-scoped, mirroring PadsView: the Question menu commands
                     // stay enabled whenever this window is frontmost and a question
                     // is selected, not only while the list holds keyboard focus.
@@ -306,6 +318,7 @@ struct QuestionsView: View {
             .padding(.vertical, 8)
             .measuresFilterBarWidth()
         }
+        .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
     }
 
     /// Built-in chips shown ahead of the user's saved searches. "My Questions"
@@ -347,6 +360,9 @@ struct QuestionsView: View {
                 }
                 .padding(.horizontal, 12).padding(.top, 6)
             }
+            // The chips usually fit, so don't let a trackpad gesture rubber-band
+            // them sideways; only scroll once they actually overflow.
+            .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
         }
     }
 

@@ -386,13 +386,6 @@ private struct MainSplit: View {
                     let needed = (width + Self.sidebarRowChrome).rounded()
                     if abs(sidebarMinWidth - needed) > 0.5 { sidebarMinWidth = needed }
                 }
-                // A hard content floor, not just the column's advisory min:
-                // NavigationSplitView will happily compress the sidebar below its
-                // stated min when the window gets narrow, which truncated the
-                // longest label. This frame makes the content itself refuse to go
-                // narrower, so the label stays fully visible (the column clips its
-                // trailing whitespace instead).
-                .frame(minWidth: sidebarMinWidth, alignment: .leading)
                 .navigationSplitViewColumnWidth(
                     min: sidebarMinWidth,
                     ideal: max(280, sidebarMinWidth),
@@ -440,13 +433,6 @@ private struct MainSplit: View {
                     let needed = (width + Self.sidebarRowChrome).rounded()
                     if abs(sidebarMinWidth - needed) > 0.5 { sidebarMinWidth = needed }
                 }
-                // A hard content floor, not just the column's advisory min:
-                // NavigationSplitView will happily compress the sidebar below its
-                // stated min when the window gets narrow, which truncated the
-                // longest label. This frame makes the content itself refuse to go
-                // narrower, so the label stays fully visible (the column clips its
-                // trailing whitespace instead).
-                .frame(minWidth: sidebarMinWidth, alignment: .leading)
                 .navigationSplitViewColumnWidth(
                     min: sidebarMinWidth,
                     ideal: max(280, sidebarMinWidth),

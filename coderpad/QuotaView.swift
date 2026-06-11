@@ -36,6 +36,7 @@ struct QuotaView: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
+                .macPullToRefresh { await reload() }
             }
         }
         .task(id: client.apiKey) {

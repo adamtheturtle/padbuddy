@@ -33,6 +33,8 @@ struct PadsView: View {
     @State private var savedSearches = SavedSearchStore.shared
     @State private var showSaveSearch = false
     @State private var saveSearchName = ""
+    @State private var padPendingDelete: Pad?
+    @State private var deleteError: String?
 
     /// Big orgs return thousands of pads per sweep, and re-fetching every page on the base
     /// cadence is mostly wasted work for data well below the fold. The auto-refresh cadence
@@ -108,6 +110,40 @@ struct PadsView: View {
             } onCancel: {
                 showCreate = false
             }
+        }
+        // Swipe-to-delete reaches a pad without selecting it first, so the
+        // confirmation lives here at the list level rather than in the detail
+        // pane. It mirrors the detail view's "Delete this pad?" dialog.
+        .confirmationDialog(
+            "Delete this pad?",
+            isPresented: .init(get: { padPendingDelete != nil },
+                               set: { if !$0 { padPendingDelete = nil } }),
+            titleVisibility: .visible,
+            presenting: padPendingDelete
+        ) { pad in
+            Button("Delete Pad", role: .destructive) { Task { await deletePad(pad) } }
+            Button("Cancel", role: .cancel) {}
+        } message: { pad in
+            Text("“\(pad.title)” will be permanently deleted. This can't be undone.")
+        }
+        .alert("Couldn't delete pad",
+               isPresented: .init(get: { deleteError != nil },
+                                  set: { if !$0 { deleteError = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(deleteError ?? "")
+        }
+    }
+
+    /// Delete a pad reached via swipe action. Posts `.padDeleted` so this list —
+    /// and any other open window — drops the row, matching the detail view's own
+    /// delete path.
+    private func deletePad(_ pad: Pad) async {
+        do {
+            try await client.deletePad(id: pad.id)
+            NotificationCenter.default.post(name: .padDeleted, object: pad.id)
+        } catch {
+            deleteError = error.localizedDescription
         }
     }
 
@@ -203,10 +239,20 @@ struct PadsView: View {
                             PadRow(pad: pad, isChanged: changedPadIDs.contains(pad.id))
                                 .tag(pad)
                                 .contextMenu { padContextMenu(pad) }
+                                // Full swipe is allowed because it only opens the
+                                // confirmation dialog below — it never deletes
+                                // outright, so an accidental swipe is recoverable.
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) {
+                                        padPendingDelete = pad
+                                    } label: {
+                                        Label("Delete", systemImage: "trash")
+                                    }
+                                }
                         }
                     }
                     .listStyle(.inset)
-                    .refreshable { await reload() }
+                    .macPullToRefresh { await reload() }
                     // Scene-scoped, not view-scoped: the Pad menu commands (Copy
                     // Pad ID/URL, Open in Browser) should stay enabled whenever this
                     // window is frontmost and a pad is selected — not only while the
@@ -1007,6 +1053,9 @@ struct PadDetailView: View {
                         )
                     }
                 }
+                if whiteboardURL != nil {
+                    whiteboardCard
+                }
                 eventsCard
             }
             .padding(.horizontal, Spacing.paneH)
@@ -1274,6 +1323,74 @@ struct PadDetailView: View {
                 .padding(.horizontal, 8)
                 .background(Color.subtleStroke.opacity(0.6), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
+        }
+    }
+
+    /// The pad's whiteboard drawing, when it has one. Parsed once so the card and
+    /// its visibility check agree on whether there's anything to show.
+    private var whiteboardURL: URL? {
+        guard let drawing = pad.drawing, !drawing.isEmpty else { return nil }
+        return URL(string: drawing)
+    }
+
+    /// The whiteboard sketch from the interview, rendered inline. Tapping it opens
+    /// the full-size image, honouring the same in-app/external preference as the
+    /// pad and playback links.
+    private var whiteboardCard: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 10) {
+                SectionHeader(title: "Whiteboard", systemImage: "scribble.variable")
+                if let url = whiteboardURL {
+                    Button {
+                        openExternalOrInApp(url)
+                    } label: {
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case .empty:
+                                ZStack {
+                                    Color.subtleStroke
+                                    ProgressView().controlSize(.small)
+                                }
+                                .frame(height: 180)
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .scaledToFit()
+                            case .failure:
+                                ZStack {
+                                    Color.subtleStroke
+                                    Label("Couldn’t load whiteboard", systemImage: "photo")
+                                        .foregroundStyle(.secondary)
+                                        .font(.callout)
+                                }
+                                .frame(height: 120)
+                            @unknown default:
+                                EmptyView()
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .stroke(Color.subtleStroke, lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .help("Open the whiteboard full size")
+                    .accessibilityLabel("Open the whiteboard full size")
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    /// Open a URL the same way the pad and playback links do: in the default
+    /// browser or the in-pane web view, per the user's preference.
+    private func openExternalOrInApp(_ url: URL) {
+        if BrowserSettings.openLinksIn == .external {
+            BrowserSettings.openExternally(url)
+        } else {
+            browserURL = url
         }
     }
 
@@ -2129,7 +2246,6 @@ private struct EditPadSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Edit Pad").font(.title3.bold())
-            Text(original.id).font(.caption.monospaced()).foregroundStyle(.secondary)
 
             Form {
                 TextField("Title", text: $title)
