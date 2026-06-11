@@ -138,13 +138,13 @@ nonisolated struct PadEvent: Decodable, Identifiable, Hashable {
 
 /// One file within a pad environment. Single-file languages return one of these;
 /// multi-file frameworks/projects return one per file in the project.
-struct PadEnvironmentFile: Decodable, Hashable {
+nonisolated struct PadEnvironmentFile: Decodable, Hashable {
     let path: String?
     let contents: String?
     let history: String?
 }
 
-struct PadEnvironment: Decodable, Identifiable, Hashable {
+nonisolated struct PadEnvironment: Decodable, Identifiable, Hashable {
     let id: Int
     let padID: Int?
     let questionID: Int?
@@ -588,7 +588,7 @@ nonisolated struct CandidateInstruction: Codable, Hashable {
     }
 }
 
-struct Organization: Decodable, Hashable {
+nonisolated struct Organization: Decodable, Hashable {
     let id: Int
     let organizationName: String
     let userCount: Int?
@@ -609,7 +609,7 @@ struct Organization: Decodable, Hashable {
     }
 }
 
-struct OrganizationUser: Decodable, Identifiable, Hashable {
+nonisolated struct OrganizationUser: Decodable, Identifiable, Hashable {
     var id: String { email }
     let email: String
     let name: String?
@@ -622,7 +622,7 @@ struct OrganizationUser: Decodable, Identifiable, Hashable {
     }
 }
 
-struct OrganizationStats: Decodable, Hashable {
+nonisolated struct OrganizationStats: Decodable, Hashable {
     let startTime: Date?
     let endTime: Date?
     let padsCreated: Int
@@ -636,7 +636,7 @@ struct OrganizationStats: Decodable, Hashable {
     }
 }
 
-struct Quota: Decodable, Hashable {
+nonisolated struct Quota: Decodable, Hashable {
     let trialExpiresAt: Date?
     let padsUsed: Int?
     let quotaReset: Date?
@@ -723,6 +723,14 @@ enum CoderPadError: LocalizedError {
     }
 }
 
+// MARK: - Response envelopes
+
+// Small decode-only response shapes shared across endpoints. `nonisolated` so they're
+// Sendable and can be decoded off the main actor (see `CoderPadClient.perform`).
+private nonisolated struct StatusOnly: Decodable { let status: String? }
+private nonisolated struct Empty: Decodable {}
+private nonisolated struct Wrapper: Decodable { let users: [OrganizationUser] }
+
 // MARK: - Client
 
 struct CoderPadClient {
@@ -754,20 +762,38 @@ struct CoderPadClient {
         CoderPadClient(apiKey: "demo", session: MockServer.session(unauthorized: unauthorized))
     }
 
-    static let decoder: JSONDecoder = {
+    // The API mixes fractional- and whole-second ISO-8601 timestamps, so we try both.
+    // `ISO8601DateFormatter` is thread-safe for parsing and these are configured once
+    // and only ever read, so sharing them across the off-main decodes is safe — the
+    // `unsafe` vouches for that, since the type isn't formally `Sendable`.
+    nonisolated(unsafe) private static let fractionalDateFormatter: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+    nonisolated(unsafe) private static let basicDateFormatter: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime]
+        return f
+    }()
+
+    /// Builds a configured decoder. A factory rather than a shared instance because
+    /// decoding runs off the main actor (see `perform`), and `JSONDecoder` isn't safe
+    /// to share across threads — each background decode gets its own.
+    nonisolated static func makeDecoder() -> JSONDecoder {
         let d = JSONDecoder()
-        let fractional = ISO8601DateFormatter()
-        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let basic = ISO8601DateFormatter()
-        basic.formatOptions = [.withInternetDateTime]
         d.dateDecodingStrategy = .custom { decoder in
             let c = try decoder.singleValueContainer()
             let s = try c.decode(String.self)
-            if let date = fractional.date(from: s) ?? basic.date(from: s) { return date }
+            if let date = fractionalDateFormatter.date(from: s) ?? basicDateFormatter.date(from: s) { return date }
             throw DecodingError.dataCorruptedError(in: c, debugDescription: "Unrecognized date: \(s)")
         }
         return d
-    }()
+    }
+
+    /// Shared decoder for callers that decode on the current actor (e.g. tests).
+    /// The network path decodes off-main via `makeDecoder()` instead.
+    static let decoder: JSONDecoder = makeDecoder()
 
     static let encoder: JSONEncoder = {
         let e = JSONEncoder()
@@ -816,21 +842,18 @@ struct CoderPadClient {
     /// The live API replies `{"status":"OK"}` with no pad body, so we re-fetch the
     /// pad to return its fresh server state rather than decoding the (absent) body.
     func updatePad(_ body: PadUpdate) async throws -> Pad {
-        struct StatusOnly: Decodable { let status: String? }
         _ = try await send(StatusOnly.self, method: "PUT", path: "/api/pads/", body: body)
         return try await getPad(id: body.id)
     }
 
     /// Ends the interview. The live API replies `{"status":"OK"}` with no pad body.
     func endPad(id: String) async throws {
-        struct StatusOnly: Decodable { let status: String? }
         _ = try await send(StatusOnly.self, method: "PUT", path: "/api/pads/",
                            body: PadUpdate(id: id, ended: true))
     }
 
     /// Deletes the interview. The live API replies `{"status":"OK"}` with no pad body.
     func deletePad(id: String) async throws {
-        struct StatusOnly: Decodable { let status: String? }
         _ = try await send(StatusOnly.self, method: "PUT", path: "/api/pads/",
                            body: PadUpdate(id: id, deleted: true))
     }
@@ -863,13 +886,11 @@ struct CoderPadClient {
     /// The live API replies `{"status":"OK"}` with no question body, so we re-fetch the
     /// question to return its fresh server state rather than decoding the (absent) body.
     func updateQuestion(_ body: QuestionUpdate) async throws -> Question {
-        struct StatusOnly: Decodable { let status: String? }
         _ = try await send(StatusOnly.self, method: "PUT", path: "/api/questions/\(body.id)", body: body)
         return try await getQuestion(id: body.id)
     }
 
     func deleteQuestion(id: Int) async throws {
-        struct Empty: Decodable {}
         var request = URLRequest(url: baseURL.appending(path:"/api/questions/\(id)"))
         request.httpMethod = "DELETE"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
@@ -918,7 +939,6 @@ struct CoderPadClient {
     /// The organization's users. Passing `email` returns only the matching user — the
     /// reliable way to resolve which user an API key belongs to.
     func organizationUsers(email: String? = nil) async throws -> [OrganizationUser] {
-        struct Wrapper: Decodable { let users: [OrganizationUser] }
         guard !apiKey.isEmpty else { throw CoderPadError.missingAPIKey }
         var comps = URLComponents(url: baseURL.appending(path:"/api/organization/users"),
                                   resolvingAgainstBaseURL: false)
@@ -937,7 +957,7 @@ struct CoderPadClient {
         return request
     }
 
-    private func fetch<T: Decodable>(_ type: T.Type, path: String) async throws -> T {
+    private func fetch<T: Decodable & Sendable>(_ type: T.Type, path: String) async throws -> T {
         guard !apiKey.isEmpty else { throw CoderPadError.missingAPIKey }
         return try await performWithRetry(type, request: authorizedGET(baseURL.appending(path:path)))
     }
@@ -1051,7 +1071,7 @@ struct CoderPadClient {
     /// GET requests are idempotent, so transient failures (5xx, 429, network timeouts)
     /// are retried with exponential backoff before the error surfaces to the UI. Mutating
     /// requests go straight through `perform` to avoid duplicating side effects.
-    private func performWithRetry<T: Decodable>(_ type: T.Type, request: URLRequest, maxAttempts: Int = 3) async throws -> T {
+    private func performWithRetry<T: Decodable & Sendable>(_ type: T.Type, request: URLRequest, maxAttempts: Int = 3) async throws -> T {
         var attempt = 0
         while true {
             do {
@@ -1079,7 +1099,7 @@ struct CoderPadClient {
         return false
     }
 
-    private func send<T: Decodable, B: Encodable>(_ type: T.Type, method: String, path: String, body: B) async throws -> T {
+    private func send<T: Decodable & Sendable, B: Encodable>(_ type: T.Type, method: String, path: String, body: B) async throws -> T {
         guard !apiKey.isEmpty else { throw CoderPadError.missingAPIKey }
         var request = URLRequest(url: baseURL.appending(path:path))
         request.httpMethod = method
@@ -1090,7 +1110,7 @@ struct CoderPadClient {
         return try await perform(type, request: request)
     }
 
-    private func perform<T: Decodable>(_ type: T.Type, request: URLRequest) async throws -> T {
+    private func perform<T: Decodable & Sendable>(_ type: T.Type, request: URLRequest) async throws -> T {
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else {
             throw CoderPadError.http(0, "No HTTP response")
@@ -1100,7 +1120,10 @@ struct CoderPadClient {
             throw CoderPadError.http(http.statusCode, body)
         }
         do {
-            return try Self.decoder.decode(T.self, from: data)
+            // Decode off the main actor: the client is MainActor-isolated, so on a large
+            // account (~40 pages × 50 nested objects) decoding here would hitch the UI.
+            // `Data` and `T` are Sendable, so the work crosses the boundary cleanly.
+            return try await Self.decodeInBackground(T.self, from: data)
         } catch let DecodingError.keyNotFound(key, ctx) {
             throw CoderPadError.decode("missing key '\(key.stringValue)' at \(pathString(ctx.codingPath))")
         } catch let DecodingError.valueNotFound(type, ctx) {
@@ -1114,5 +1137,14 @@ struct CoderPadClient {
 
     private func pathString(_ keys: [CodingKey]) -> String {
         keys.map { $0.stringValue }.joined(separator: ".")
+    }
+
+    /// Decodes `data` on a background task so the (potentially large) parse doesn't run on
+    /// the main actor. Builds a fresh decoder per call — `JSONDecoder` isn't safe to share
+    /// across threads. `DecodingError`s propagate so `perform` can map them as before.
+    nonisolated private static func decodeInBackground<T: Decodable & Sendable>(_ type: T.Type, from data: Data) async throws -> T {
+        try await Task.detached(priority: .userInitiated) {
+            try makeDecoder().decode(T.self, from: data)
+        }.value
     }
 }
