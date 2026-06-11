@@ -455,10 +455,92 @@ enum InterviewType: String, CaseIterable, Identifiable, Hashable {
     }
 }
 
+/// A pad's lifecycle state, normalized from the API's free-form `state` string.
+/// CoderPad reports states like "started"/"ended"/"pending"; older or future
+/// records may use synonyms ("active", "finished", "draft"). `PadState` folds the
+/// known spellings into typed cases and preserves anything unrecognized as
+/// `.other`, so the UI can switch over states without scattering string literals.
+/// Like ``InterviewType`` it round-trips through a stable lowercase `rawValue`,
+/// which keeps saved-search persistence wire-compatible with snapshots that stored
+/// the raw state string.
+enum PadState: Hashable, Identifiable, Codable, RawRepresentable {
+    case active
+    case ended
+    case pending
+    case deleted
+    /// A state the app doesn't model explicitly; carries the raw API spelling so it
+    /// still renders and round-trips.
+    case other(String)
+
+    /// Normalize a raw API `state` string, folding known synonyms into typed cases.
+    init(apiState raw: String) {
+        switch raw.lowercased() {
+        case "started", "active", "live", "running": self = .active
+        case "ended", "finished", "completed": self = .ended
+        case "pending", "draft": self = .pending
+        case "deleted": self = .deleted
+        case let value: self = .other(value)
+        }
+    }
+
+    /// Total over all strings — unrecognized values become `.other` rather than
+    /// failing — so it also serves as the `Codable`/saved-search decode path.
+    init?(rawValue: String) { self.init(apiState: rawValue) }
+
+    /// Canonical lowercase spelling, used for persistence and filter identity.
+    var rawValue: String {
+        switch self {
+        case .active: "active"
+        case .ended: "ended"
+        case .pending: "pending"
+        case .deleted: "deleted"
+        case .other(let raw): raw
+        }
+    }
+
+    var id: String { rawValue }
+
+    /// Whether this is a terminal state.
+    var isEnded: Bool { self == .ended }
+
+    /// Human-facing label for badges and filter menus.
+    var label: String {
+        switch self {
+        case .active: "Active"
+        case .ended: "Ended"
+        case .pending: "Pending"
+        case .deleted: "Deleted"
+        case .other(let raw): raw.replacingOccurrences(of: "_", with: " ").capitalized
+        }
+    }
+
+    init(from decoder: Decoder) throws {
+        self.init(apiState: try decoder.singleValueContainer().decode(String.self))
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.singleValueContainer()
+        try c.encode(rawValue)
+    }
+}
+
 extension Pad {
     /// Live vs take-home, normalized from the API's free-form `type` string.
     /// `nil` when the pad reports no (or an unrecognized) type.
     var interviewType: InterviewType? { InterviewType(rawType: type) }
+
+    /// The pad's lifecycle state, normalized from the free-form `state` string.
+    var status: PadState { PadState(apiState: state) }
+
+    /// Whether the interview has finished. Prefers the explicit `ended_at`
+    /// timestamp, falling back to the reported state.
+    var isEnded: Bool { endedAt != nil || status == .ended }
+
+    /// The pad's web URL, parsed from the API's `url` string.
+    var webURL: URL? { URL(string: url) }
+
+    /// The session playback URL, when the pad has one.
+    var playbackURL: URL? { playback.flatMap(URL.init(string:)) }
 }
 
 extension Question {

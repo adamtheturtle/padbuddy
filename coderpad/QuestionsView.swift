@@ -26,6 +26,9 @@ struct QuestionsView: View {
     @State private var draftFilter: String? = nil
     @State private var sort: QuestionSort = .lastUsedDesc
     @State private var showCreate = false
+    @State private var savedSearches = SavedSearchStore.shared
+    @State private var showSaveSearch = false
+    @State private var saveSearchName = ""
 
     var body: some View {
         sidebar
@@ -46,6 +49,24 @@ struct QuestionsView: View {
                 selection = created
                 showCreate = false
             } onCancel: { showCreate = false }
+        }
+        .sheet(isPresented: $showSaveSearch) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Save Search").font(.title3.bold())
+                TextField("Name", text: $saveSearchName, prompt: Text("e.g. My drafts, Python"))
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit { commitSavedSearch() }
+                HStack {
+                    Spacer()
+                    Button("Cancel", role: .cancel) { showSaveSearch = false }
+                    Button("Save") { commitSavedSearch() }
+                        .keyboardShortcut(.defaultAction)
+                        .buttonStyle(.borderedProminent)
+                        .disabled(saveSearchName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+            .padding()
+            .frame(minWidth: 360)
         }
         .task {
             for await q in NotificationCenter.default.notifications(named: .questionUpdated)
@@ -138,6 +159,7 @@ struct QuestionsView: View {
                                       focused: $searchFieldFocused)
                         .padding(.horizontal, Spacing.paneH)
                         .padding(.bottom, 8)
+                    savedSearchesBar
                     filterBar
                     Divider()
                     List(selection: $selection) {
@@ -258,6 +280,16 @@ struct QuestionsView: View {
                 FilterChipMenu(title: "Status", icon: "doc.badge.ellipsis",
                                selected: $draftFilter, options: ["draft", "published"],
                                formatter: { $0.capitalized })
+                if activeFilterCount > 0 || !search.isEmpty {
+                    Button {
+                        saveSearchName = ""
+                        showSaveSearch = true
+                    } label: {
+                        Label("Save…", systemImage: "bookmark")
+                    }
+                    .buttonStyle(.borderless)
+                    .controlSize(.small)
+                }
                 if activeFilterCount > 0 {
                     Button(role: .destructive) {
                         languageFilter = nil; ownerFilter = nil
@@ -274,6 +306,87 @@ struct QuestionsView: View {
             .padding(.vertical, 8)
             .measuresFilterBarWidth()
         }
+    }
+
+    /// Built-in chips shown ahead of the user's saved searches. "My Questions"
+    /// appears only when the account knows its user's email; "Drafts" filters to
+    /// unpublished questions.
+    private var defaultSearches: [DefaultSearch] {
+        var result: [DefaultSearch] = []
+        if let me = accounts.currentAccount?.userEmail, !me.isEmpty {
+            result.append(DefaultSearch(id: "my-questions", icon: "person.fill",
+                                        search: NamedSearch(name: "My Questions", ownerFilter: me)))
+        }
+        result.append(DefaultSearch(id: "drafts", icon: "doc.badge.ellipsis",
+                                    search: NamedSearch(name: "Drafts", draftFilter: "draft")))
+        return result
+    }
+
+    @ViewBuilder
+    private var savedSearchesBar: some View {
+        let saved = savedSearches.searches(account: accounts.currentAccountID, kind: .questions)
+        let defaults = defaultSearches
+        if !defaults.isEmpty || !saved.isEmpty {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(defaults) { item in
+                        SavedSearchChip(name: item.search.name, systemImage: item.icon,
+                                        isActive: isActiveSearch(item.search)) {
+                            apply(item.search)
+                        }
+                    }
+                    ForEach(saved) { item in
+                        SavedSearchChip(name: item.name, isActive: isActiveSearch(item)) {
+                            apply(item)
+                        } onDelete: {
+                            if let account = accounts.currentAccountID {
+                                savedSearches.remove(id: item.id, account: account, kind: .questions)
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, 12).padding(.top, 6)
+            }
+        }
+    }
+
+    private func commitSavedSearch() {
+        // Return in the text field fires `onSubmit` and the default-action button can
+        // also fire; guarding on the still-open sheet keeps a single keypress from
+        // saving the search twice.
+        guard showSaveSearch else { return }
+        let trimmed = saveSearchName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, let account = accounts.currentAccountID else { return }
+        savedSearches.add(captureCurrentSearch(named: trimmed), account: account, kind: .questions)
+        showSaveSearch = false
+    }
+
+    private func apply(_ saved: NamedSearch) {
+        search = saved.search
+        languageFilter = saved.languageFilter
+        ownerFilter = saved.ownerFilter
+        typeFilter = saved.typeFilter
+        draftFilter = saved.draftFilter
+    }
+
+    /// Whether the list's live filters exactly match `saved`, so its chip can show
+    /// as active. Mirrors `apply` field-for-field — including `draftFilter`, which
+    /// the question list has but pads don't — so editing any filter drops the
+    /// highlight immediately.
+    private func isActiveSearch(_ saved: NamedSearch) -> Bool {
+        search == saved.search &&
+        languageFilter == saved.languageFilter &&
+        ownerFilter == saved.ownerFilter &&
+        typeFilter == saved.typeFilter &&
+        draftFilter == saved.draftFilter
+    }
+
+    private func captureCurrentSearch(named name: String) -> NamedSearch {
+        NamedSearch(
+            name: name, search: search,
+            languageFilter: languageFilter, ownerFilter: ownerFilter,
+            typeFilter: typeFilter, draftFilter: draftFilter
+        )
     }
 
     private func reload() async {
@@ -435,6 +548,9 @@ struct QuestionDetailView: View {
                 if !question.candidateInstructions.isEmpty {
                     instructionsCard
                 }
+                if !question.testCases.isEmpty {
+                    testCasesCard
+                }
                 if let solution = question.solution, !solution.isEmpty {
                     descriptionCard(title: "Solution", body: solution)
                 }
@@ -471,7 +587,7 @@ struct QuestionDetailView: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
-            .background(.thinMaterial)
+            .floatingGlass(in: Rectangle(), fallback: .thinMaterial)
             Divider()
             PadBrowserView(url: url)
         }
@@ -571,6 +687,58 @@ struct QuestionDetailView: View {
         }
     }
 
+    /// The question's test cases, shown to an interviewer in full. The candidate
+    /// only sees the cases marked `visible`, so hidden ones carry a badge to make
+    /// that distinction clear when reviewing.
+    private var testCasesCard: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 10) {
+                SectionHeader(title: "Test Cases", systemImage: "checkmark.seal")
+                ForEach(question.testCases) { testCase in
+                    testCaseRow(testCase)
+                    if testCase.id != question.testCases.last?.id {
+                        Divider()
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func testCaseRow(_ testCase: QuestionTestCase) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                testCaseLine(label: "Input", value: argumentsDisplay(testCase.arguments))
+                testCaseLine(label: "Expected", value: testCase.returnValue ?? "—")
+            }
+            Spacer(minLength: 8)
+            if testCase.visible == false {
+                Chip(text: "Hidden", systemImage: "eye.slash", tint: .gray)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private func testCaseLine(label: String, value: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            Text(label)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 64, alignment: .leading)
+            Text(value)
+                .font(.callout.monospaced())
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    /// The API returns each argument as its own already-formatted string (e.g. a
+    /// quoted string or a JSON literal), so join them into a call-style list.
+    private func argumentsDisplay(_ arguments: [String]?) -> String {
+        guard let arguments, !arguments.isEmpty else { return "—" }
+        return arguments.joined(separator: ", ")
+    }
+
     private func descriptionCard(title: String, body: String) -> some View {
         Card {
             VStack(alignment: .leading, spacing: 10) {
@@ -624,7 +792,7 @@ struct QuestionDetailView: View {
         defer { isCreatingPad = false }
         do {
             let pad = try await client.createPad(.fromQuestion(question))
-            if let url = URL(string: pad.url) {
+            if let url = pad.webURL {
                 createdPadURL = url
                 showBrowser = true
             }

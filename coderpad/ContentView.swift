@@ -127,7 +127,7 @@ struct ContentView: View {
                 Label("Welcome to CoderPad", systemImage: "doc.text.magnifyingglass")
             } actions: {
                 Button("Add Account") { addingAccount = Account(name: "", apiKey: "") }
-                    .buttonStyle(.borderedProminent)
+                    .prominentGlassButtonStyle()
             }
         } else {
             ContentUnavailableView {
@@ -136,7 +136,7 @@ struct ContentView: View {
                 Text("Choose one of your saved accounts in Settings.")
             } actions: {
                 Button("Open Settings") { openSettings() }
-                    .buttonStyle(.borderedProminent)
+                    .prominentGlassButtonStyle()
             }
         }
     }
@@ -267,10 +267,20 @@ private struct MainSplit: View {
     /// filter bar, so it can never be dragged too thin to hold all filters.
     @State private var contentMinWidth: CGFloat = 380
 
+    /// Floor for the sidebar column, derived at runtime from the widest row label
+    /// (see ``SidebarRowWidthKey``) plus the row's fixed chrome, so the longest
+    /// label never wraps or truncates regardless of font or label changes.
+    @State private var sidebarMinWidth: CGFloat = 220
+
+    /// Non-text width of a sidebar row: the VStack + row horizontal insets, the
+    /// icon column and its spacing, and trailing breathing room before the
+    /// selection pill's edge. Added to the measured label width.
+    private static let sidebarRowChrome: CGFloat = 110
+
     private var isSidebarCollapsed: Bool { columnVisibility != .all }
 
     private func toggleSidebar() {
-        withAnimation(.snappy) {
+        withAnimation(.smooth) {
             if isSidebarCollapsed {
                 columnVisibility = .all
             } else {
@@ -368,7 +378,26 @@ private struct MainSplit: View {
     private var threeColumnSplit: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
             Sidebar(section: $section)
-                .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 280)
+                // Grow the sidebar's minimum to fit the widest row label. Rounded
+                // and only reassigned on a real change, so feeding the measured
+                // width back into the same column's min doesn't thrash layout.
+                .onPreferenceChange(SidebarRowWidthKey.self) { width in
+                    guard width > 0 else { return }
+                    let needed = (width + Self.sidebarRowChrome).rounded()
+                    if abs(sidebarMinWidth - needed) > 0.5 { sidebarMinWidth = needed }
+                }
+                // A hard content floor, not just the column's advisory min:
+                // NavigationSplitView will happily compress the sidebar below its
+                // stated min when the window gets narrow, which truncated the
+                // longest label. This frame makes the content itself refuse to go
+                // narrower, so the label stays fully visible (the column clips its
+                // trailing whitespace instead).
+                .frame(minWidth: sidebarMinWidth, alignment: .leading)
+                .navigationSplitViewColumnWidth(
+                    min: sidebarMinWidth,
+                    ideal: max(280, sidebarMinWidth),
+                    max: max(340, sidebarMinWidth)
+                )
                 .navigationTitle("")
                 .toolbar(removing: .sidebarToggle)
         } content: {
@@ -403,7 +432,26 @@ private struct MainSplit: View {
     private var twoColumnSplit: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
             Sidebar(section: $section)
-                .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 280)
+                // Grow the sidebar's minimum to fit the widest row label. Rounded
+                // and only reassigned on a real change, so feeding the measured
+                // width back into the same column's min doesn't thrash layout.
+                .onPreferenceChange(SidebarRowWidthKey.self) { width in
+                    guard width > 0 else { return }
+                    let needed = (width + Self.sidebarRowChrome).rounded()
+                    if abs(sidebarMinWidth - needed) > 0.5 { sidebarMinWidth = needed }
+                }
+                // A hard content floor, not just the column's advisory min:
+                // NavigationSplitView will happily compress the sidebar below its
+                // stated min when the window gets narrow, which truncated the
+                // longest label. This frame makes the content itself refuse to go
+                // narrower, so the label stays fully visible (the column clips its
+                // trailing whitespace instead).
+                .frame(minWidth: sidebarMinWidth, alignment: .leading)
+                .navigationSplitViewColumnWidth(
+                    min: sidebarMinWidth,
+                    ideal: max(280, sidebarMinWidth),
+                    max: max(340, sidebarMinWidth)
+                )
                 .navigationTitle("")
                 .toolbar(removing: .sidebarToggle)
         } detail: {
@@ -598,14 +646,18 @@ private struct Sidebar: View {
                 // label with the accent on the selected row; the label stays primary
                 // white when unselected.
                 Image(systemName: icon)
+                    .imageScale(.large)
                     .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
-                    .frame(width: 18)
+                    .frame(width: 22)
                 Text(label)
+                    .lineLimit(1)
                     .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
                 Spacer(minLength: 0)
             }
-            .font(.callout)
-            .padding(.vertical, 6)
+            // Matches the App Store sidebar's metrics: the system `.body` row font,
+            // larger icons, and a touch more row height than the previous `.callout`.
+            .font(.body)
+            .padding(.vertical, 7)
             .padding(.horizontal, 8)
             .background(
                 isSelected
@@ -617,6 +669,7 @@ private struct Sidebar: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .measuresSidebarRowWidth(label)
     }
 }
 
@@ -646,7 +699,11 @@ struct InlineSearchField: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
-        .background(Color.subtleStroke.opacity(0.6), in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .floatingGlass(
+            in: RoundedRectangle(cornerRadius: 6, style: .continuous),
+            fallback: Color.subtleStroke.opacity(0.6),
+            interactive: true
+        )
     }
 }
 
@@ -738,15 +795,18 @@ private struct AccountFooter: View {
                             .lineLimit(1)
                             .truncationMode(.tail)
                     }
-                    .fixedSize(horizontal: false, vertical: true)
-                    .layoutPriority(-1)
+                    .fixedSize(horizontal: true, vertical: true)
                     Image(systemName: "chevron.up.chevron.down")
                         .font(.caption2)
                         .foregroundStyle(.secondary)
                 }
                 .contentShape(.rect)
             }
-            .menuStyle(.borderlessButton)
+            // `.button` (not `.borderlessButton`) lets the rich label lay out at
+            // its natural size; the borderless style renders a narrow popup that
+            // collapses the avatar and name down to just the initial.
+            .menuStyle(.button)
+            .buttonStyle(.plain)
             .menuIndicator(.hidden)
             .accessibilityLabel("Switch account")
         }
@@ -786,15 +846,13 @@ private struct SectionDetail: View {
                 if let pad = padSelection {
                     PadDetailView(client: client, pad: pad).id(pad.id)
                 } else {
-                    ContentUnavailableView("Select a pad", systemImage: "doc.text",
-                                           description: Text("Pick a pad to see its details."))
+                    ContentUnavailableView("Select a pad", systemImage: "doc.text")
                 }
             case .questions:
                 if let question = questionSelection {
                     QuestionDetailView(client: client, question: question).id(question.id)
                 } else {
-                    ContentUnavailableView("Select a question", systemImage: "questionmark.bubble",
-                                           description: Text("Pick a question to see its details."))
+                    ContentUnavailableView("Select a question", systemImage: "questionmark.bubble")
                 }
             case .organization, .quota:
                 ContentUnavailableView("Nothing selected", systemImage: "sidebar.squares.leading",

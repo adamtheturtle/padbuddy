@@ -212,6 +212,32 @@ struct QuestionDecoderTests {
         #expect(q.id == 2)
         #expect(q.candidateInstructions.isEmpty)
     }
+
+    @Test("decodes test cases, mapping return_value and visibility")
+    func questionTestCases() throws {
+        let json = """
+        {
+          "id": 7,
+          "test_cases_enabled": true,
+          "test_cases": [
+            {"id": 1, "arguments": ["3"], "return_value": "Fizz", "visible": true},
+            {"id": 2, "arguments": ["15"], "return_value": "FizzBuzz", "visible": false}
+          ]
+        }
+        """
+        let q = try decode(json)
+        #expect(q.testCases.count == 2)
+        #expect(q.testCases.first?.arguments == ["3"])
+        #expect(q.testCases.first?.returnValue == "Fizz")
+        #expect(q.testCases.first?.visible == true)
+        #expect(q.testCases.last?.visible == false)
+    }
+
+    @Test("defaults test cases to empty when the field is absent")
+    func questionTestCasesAbsent() throws {
+        let q = try decode(#"{"id": 8}"#)
+        #expect(q.testCases.isEmpty)
+    }
 }
 
 // Serialized: these tests share MockFixtures' process-wide mutable state (created /
@@ -410,6 +436,12 @@ struct MockServerTests {
             _ = try await client.getPad(id: "NOPE")
         }
     }
+
+    @Test("the demo account's user email owns mock pads, so its My Pads isn't empty")
+    func demoEmailOwnsMockPads() async throws {
+        let pads = try await client.listPads()
+        #expect(pads.contains { $0.ownerEmail == Account.demoUserEmail })
+    }
 }
 
 // Backs the "bad key" demo account: the mock server answers 401 for every request,
@@ -444,42 +476,50 @@ struct UnauthorizedMockServerTests {
 
 @Suite("Language helpers")
 struct LanguageHelperTests {
-    @Test("languageDisplayName maps known codes to friendly names")
-    func displayNames() {
-        #expect("python3".languageDisplayName == "Python 3")
-        #expect("python2".languageDisplayName == "Python 2")
-        #expect("javascript".languageDisplayName == "JavaScript")
-        #expect("typescript".languageDisplayName == "TypeScript")
-        #expect("nodejs".languageDisplayName == "Node.js")
-        #expect("cpp".languageDisplayName == "C++")
-        #expect("csharp".languageDisplayName == "C#")
-        #expect("objective-c".languageDisplayName == "Objective-C")
-        #expect("postgresql".languageDisplayName == "PostgreSQL")
-        #expect("fsharp".languageDisplayName == "F#")
+    @Test("languageDisplayName maps known codes to friendly names", arguments: [
+        ("python3", "Python 3"),
+        ("python2", "Python 2"),
+        ("javascript", "JavaScript"),
+        ("typescript", "TypeScript"),
+        ("nodejs", "Node.js"),
+        ("cpp", "C++"),
+        ("csharp", "C#"),
+        ("objective-c", "Objective-C"),
+        ("postgresql", "PostgreSQL"),
+        ("fsharp", "F#"),
+    ])
+    func displayNames(code: String, expected: String) {
+        #expect(code.languageDisplayName == expected)
     }
 
-    @Test("languageDisplayName names multifile project environments")
-    func multifileNames() {
-        #expect("multifile_java".languageDisplayName == "Java Project")
-        #expect("Multifile_java".languageDisplayName == "Java Project")
-        #expect("multifile_python3".languageDisplayName == "Python 3 Project")
-        #expect("multifile_nodejs".languageDisplayName == "Node.js Project")
+    @Test("languageDisplayName names multifile project environments", arguments: [
+        ("multifile_java", "Java Project"),
+        ("Multifile_java", "Java Project"),
+        ("multifile_python3", "Python 3 Project"),
+        ("multifile_nodejs", "Node.js Project"),
+    ])
+    func multifileNames(code: String, expected: String) {
+        #expect(code.languageDisplayName == expected)
     }
 
-    @Test("languageDisplayName capitalizes unknown codes")
-    func unknownNames() {
-        #expect("zig".languageDisplayName == "Zig")
-        #expect("".languageDisplayName == "")
+    @Test("languageDisplayName capitalizes unknown codes", arguments: [
+        ("zig", "Zig"),
+        ("", ""),
+    ])
+    func unknownNames(code: String, expected: String) {
+        #expect(code.languageDisplayName == expected)
     }
 
-    @Test("languageSymbol falls back for unknown languages")
-    func symbolFallback() {
-        #expect("python3".languageSymbol == "terminal")
-        #expect("javascript".languageSymbol == "globe")
-        #expect("swift".languageSymbol == "swift")
-        #expect("rust".languageSymbol == "cpu")
-        #expect("sql".languageSymbol == "cylinder")
-        #expect("zig".languageSymbol == "chevron.left.slash.chevron.right")
+    @Test("languageSymbol falls back for unknown languages", arguments: [
+        ("python3", "terminal"),
+        ("javascript", "globe"),
+        ("swift", "swift"),
+        ("rust", "cpu"),
+        ("sql", "cylinder"),
+        ("zig", "chevron.left.slash.chevron.right"),
+    ])
+    func symbolFallback(code: String, expected: String) {
+        #expect(code.languageSymbol == expected)
     }
 }
 
@@ -503,6 +543,12 @@ struct AccountRoundTripTests {
         let decoded = try JSONDecoder().decode(Account.self, from: data)
         #expect(decoded.isMock == true)
         #expect(decoded.name == "Demo (mock data)")
+    }
+
+    @Test("Demo accounts carry the required user email")
+    func demoAccountsHaveEmail() {
+        #expect(Account.demo().userEmail == Account.demoUserEmail)
+        #expect(Account.demoBadKey().userEmail == Account.demoUserEmail)
     }
 }
 
@@ -572,18 +618,22 @@ struct QuotaDecoderTests {
 
 @Suite("App appearance")
 struct AppAppearanceTests {
-    @Test("raw values are stable (they back the stored preference)")
-    func rawValues() {
-        #expect(AppAppearance.system.rawValue == "system")
-        #expect(AppAppearance.light.rawValue == "light")
-        #expect(AppAppearance.dark.rawValue == "dark")
+    @Test("raw values are stable (they back the stored preference)", arguments: [
+        (AppAppearance.system, "system"),
+        (AppAppearance.light, "light"),
+        (AppAppearance.dark, "dark"),
+    ])
+    func rawValues(appearance: AppAppearance, rawValue: String) {
+        #expect(appearance.rawValue == rawValue)
     }
 
-    @Test("maps to the color scheme it forces, nil for system")
-    func colorScheme() {
-        #expect(AppAppearance.system.colorScheme == nil)
-        #expect(AppAppearance.light.colorScheme == .light)
-        #expect(AppAppearance.dark.colorScheme == .dark)
+    @Test("maps to the color scheme it forces, nil for system", arguments: [
+        (AppAppearance.system, ColorScheme?.none),
+        (AppAppearance.light, .light),
+        (AppAppearance.dark, .dark),
+    ])
+    func colorScheme(appearance: AppAppearance, scheme: ColorScheme?) {
+        #expect(appearance.colorScheme == scheme)
     }
 
     @Test("every case has a non-empty label")

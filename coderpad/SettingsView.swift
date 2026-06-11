@@ -472,8 +472,6 @@ struct SettingsView: View {
         } else {
             ContentUnavailableView {
                 Label("No Account Selected", systemImage: "person.crop.circle")
-            } description: {
-                Text("Select an account to view its settings.")
             }
         }
     }
@@ -691,12 +689,19 @@ struct AccountEditor: View {
                 // gated behind a successful validation.
                 if isValidated {
                     fieldRow("Your Email") {
-                        OrgMemberPicker(
-                            selection: $draft.userEmail,
-                            options: emailOptions,
-                            label: emailLabel
-                        )
-                        .help("Used to show only your pads in the menu bar.")
+                        VStack(alignment: .leading, spacing: 4) {
+                            OrgMemberPicker(
+                                selection: $draft.userEmail,
+                                options: emailOptions,
+                                label: emailLabel
+                            )
+                            .help("Identifies you for the My Pads and My Questions filters and the menu bar. Required to save.")
+                            if !hasEmail {
+                                Text("Required — pick which member you are to finish.")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                     }
                 }
                 fieldRow("") {
@@ -808,11 +813,21 @@ struct AccountEditor: View {
         }
     }
 
+    /// Whether the draft has a non-empty user email. Required to save: the email
+    /// identifies "you" for the My Pads/My Questions filters and the menu bar.
+    private var hasEmail: Bool {
+        draft.userEmail?.trimmingCharacters(in: .whitespaces).isEmpty == false
+    }
+
     /// A saved account whose key and server URL are untouched can be re-saved without
     /// re-validating, so edits to the Description or email persist freely; a new account
-    /// or a changed credential still requires a successful validation first.
+    /// or a changed credential still requires a successful validation first. In every
+    /// case a user email is required — a legacy account saved without one must be
+    /// re-validated (which reveals the picker and auto-detects the email) before it
+    /// can be saved again.
     private var canSave: Bool {
-        isValidated || (isEditing && draft.apiKey == initialAPIKey && draft.baseURL == initialBaseURL)
+        guard hasEmail else { return false }
+        return isValidated || (isEditing && draft.apiKey == initialAPIKey && draft.baseURL == initialBaseURL)
     }
 
     @ViewBuilder

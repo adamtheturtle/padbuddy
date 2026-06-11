@@ -68,7 +68,7 @@ struct MenuBarView: View {
             } else {
                 ForEach(myPads.prefix(topN)) { pad in
                     Button {
-                        if let url = URL(string: pad.url) {
+                        if let url = pad.webURL {
                             BrowserSettings.openExternally(url)
                         }
                     } label: {
@@ -191,7 +191,7 @@ struct MenuBarView: View {
 
     private func padLabel(_ pad: Pad) -> String {
         let title = pad.title.isEmpty ? pad.id : pad.title
-        let language = (pad.language ?? "").isEmpty ? "" : " · \(pad.language!.languageDisplayName)"
+        let language = pad.language.flatMap { $0.isEmpty ? nil : " · \($0.languageDisplayName)" } ?? ""
         return "\(title)\(language)"
     }
 
@@ -216,7 +216,7 @@ struct MenuBarView: View {
         let client = account.makeClient()
         do {
             let pad = try await client.createPad(body)
-            if let url = URL(string: pad.url) {
+            if let url = pad.webURL {
                 BrowserSettings.openExternally(url)
             }
         } catch {

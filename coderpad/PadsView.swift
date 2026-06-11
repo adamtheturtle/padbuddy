@@ -20,7 +20,7 @@ struct PadsView: View {
     @Binding var selection: Pad?
     @State private var search = ""
     @FocusState private var searchFieldFocused: Bool
-    @State private var stateFilter: String? = nil
+    @State private var stateFilter: PadState? = nil
     @State private var languageFilter: String? = nil
     @State private var ownerFilter: String? = nil
     @State private var teamFilter: String? = nil
@@ -94,7 +94,7 @@ struct PadsView: View {
                     Button("Save") { commitSavedSearch() }
                         .keyboardShortcut(.defaultAction)
                         .buttonStyle(.borderedProminent)
-                        .disabled(saveSearchName.trimmingCharacters(in: .whitespaces).isEmpty)
+                        .disabled(saveSearchName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
             .padding()
@@ -124,9 +124,13 @@ struct PadsView: View {
     }
 
     private func commitSavedSearch() {
+        // Return in the text field fires `onSubmit` and the default-action button can
+        // also fire; guarding on the still-open sheet keeps a single keypress from
+        // saving the search twice.
+        guard showSaveSearch else { return }
         let trimmed = saveSearchName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-        savedSearches.add(captureCurrentSearch(named: trimmed))
+        guard !trimmed.isEmpty, let account = accounts.currentAccountID else { return }
+        savedSearches.add(captureCurrentSearch(named: trimmed), account: account, kind: .pads)
         showSaveSearch = false
     }
 
@@ -146,12 +150,12 @@ struct PadsView: View {
         let lowered = search.lowercased()
         let rangeStart = dateRangeFilter.flatMap(dateRangeStart(for:))
         return pads.filter { pad in
-            (stateFilter == nil || pad.state.lowercased() == stateFilter) &&
+            (stateFilter == nil || pad.status == stateFilter) &&
             (languageFilter == nil || (pad.language ?? "").lowercased() == languageFilter) &&
             (ownerFilter == nil || pad.ownerEmail == ownerFilter) &&
             (teamFilter == nil || pad.team?.name == teamFilter) &&
             (typeFilter == nil || pad.interviewType?.rawValue == typeFilter) &&
-            (rangeStart == nil || (pad.updatedAt ?? .distantPast) >= rangeStart!) &&
+            (rangeStart.map { (pad.updatedAt ?? .distantPast) >= $0 } ?? true) &&
             (lowered.isEmpty
              || pad.title.lowercased().contains(lowered)
              || pad.id.lowercased().contains(lowered)
@@ -161,8 +165,8 @@ struct PadsView: View {
         }
     }
 
-    private var availableStates: [String] {
-        Array(Set(pads.map { $0.state.lowercased() })).sorted()
+    private var availableStates: [PadState] {
+        Array(Set(pads.map(\.status))).sorted { $0.label < $1.label }
     }
     private var availableLanguages: [String] {
         Array(Set(pads.compactMap { $0.language?.lowercased() }).filter { !$0.isEmpty }).sorted()
@@ -174,7 +178,8 @@ struct PadsView: View {
         Array(Set(pads.compactMap { $0.team?.name })).sorted()
     }
     private var activeFilterCount: Int {
-        [stateFilter, languageFilter, ownerFilter, teamFilter, typeFilter, dateRangeFilter].compactMap { $0 }.count
+        (stateFilter != nil ? 1 : 0)
+            + [languageFilter, ownerFilter, teamFilter, typeFilter, dateRangeFilter].compactMap { $0 }.count
     }
 
     private var sidebar: some View {
@@ -243,7 +248,7 @@ struct PadsView: View {
         } label: {
             Label("Open Pad", systemImage: "doc.text.image")
         }
-        if let url = URL(string: pad.url) {
+        if let url = pad.webURL {
             ShareLink(item: url) {
                 Label("Share…", systemImage: "square.and.arrow.up")
             }
@@ -272,7 +277,7 @@ struct PadsView: View {
     /// browser pane of its own, so the in-app case opens a separate window —
     /// matching the "Open Pad in Browser" menu command.
     private func openPad(_ pad: Pad) {
-        guard let url = URL(string: pad.url) else { return }
+        guard let url = pad.webURL else { return }
         if BrowserSettings.openLinksIn == .external {
             BrowserSettings.openExternally(url)
         } else {
@@ -285,16 +290,40 @@ struct PadsView: View {
         NSPasteboard.general.setString(text, forType: .string)
     }
 
+    /// Built-in chips shown ahead of the user's saved searches. "My Pads" appears
+    /// only when the account knows its user's email; "Active" filters to in-progress
+    /// sessions (the API's "started" state).
+    private var defaultSearches: [DefaultSearch] {
+        var result: [DefaultSearch] = []
+        if let me = accounts.currentAccount?.userEmail, !me.isEmpty {
+            result.append(DefaultSearch(id: "my-pads", icon: "person.fill",
+                                        search: NamedSearch(name: "My Pads", ownerFilter: me)))
+        }
+        result.append(DefaultSearch(id: "active", icon: "bolt.fill",
+                                    search: NamedSearch(name: "Active", stateFilter: .active)))
+        return result
+    }
+
     @ViewBuilder
     private var savedSearchesBar: some View {
-        if !savedSearches.searches.isEmpty {
+        let saved = savedSearches.searches(account: accounts.currentAccountID, kind: .pads)
+        let defaults = defaultSearches
+        if !defaults.isEmpty || !saved.isEmpty {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 6) {
-                    ForEach(savedSearches.searches) { saved in
-                        SavedSearchChip(search: saved) {
-                            apply(saved)
+                    ForEach(defaults) { item in
+                        SavedSearchChip(name: item.search.name, systemImage: item.icon,
+                                        isActive: isActiveSearch(item.search)) {
+                            apply(item.search)
+                        }
+                    }
+                    ForEach(saved) { item in
+                        SavedSearchChip(name: item.name, isActive: isActiveSearch(item)) {
+                            apply(item)
                         } onDelete: {
-                            savedSearches.remove(id: saved.id)
+                            if let account = accounts.currentAccountID {
+                                savedSearches.remove(id: item.id, account: account, kind: .pads)
+                            }
                         }
                     }
                 }
@@ -311,6 +340,19 @@ struct PadsView: View {
         teamFilter = saved.teamFilter
         typeFilter = saved.typeFilter
         dateRangeFilter = saved.dateRangeFilter
+    }
+
+    /// Whether the list's live filters exactly match `saved`, so its chip can show
+    /// as active. This is the inverse of `apply` — every field it sets is compared
+    /// here — which keeps the highlight honest the instant any filter is changed.
+    private func isActiveSearch(_ saved: NamedSearch) -> Bool {
+        search == saved.search &&
+        stateFilter == saved.stateFilter &&
+        languageFilter == saved.languageFilter &&
+        ownerFilter == saved.ownerFilter &&
+        teamFilter == saved.teamFilter &&
+        typeFilter == saved.typeFilter &&
+        dateRangeFilter == saved.dateRangeFilter
     }
 
     private func captureCurrentSearch(named name: String) -> NamedSearch {
@@ -335,7 +377,7 @@ struct PadsView: View {
                 icon: "circle.fill",
                 selected: $stateFilter,
                 options: availableStates,
-                formatter: { $0.replacingOccurrences(of: "_", with: " ").capitalized }
+                formatter: { $0.label }
             )
             .measuresFilterBarWidth()
             FilterChipMenu(
@@ -464,12 +506,20 @@ private struct TaskKey: Hashable {
     let phase: ScenePhase
 }
 
-struct FilterChipMenu: View {
+struct FilterChipMenu<Option: Hashable>: View {
     let title: String
     let icon: String
-    @Binding var selected: String?
-    let options: [String]
-    let formatter: (String) -> String
+    @Binding var selected: Option?
+    let options: [Option]
+    let formatter: (Option) -> String
+
+    // Match SearchableFilterChip's selected/idle styling so a set filter always
+    // shows the accent capsule. Idle is transparent; a selection paints the same
+    // accent fill, stroke, and text colour the Owner chip uses.
+    private var isActive: Bool { selected != nil }
+    private var fillColor: Color { isActive ? Color.accentColor.opacity(0.18) : Color.clear }
+    private var strokeColor: Color { isActive ? Color.accentColor.opacity(0.4) : Color.clear }
+    private var labelColor: Color { isActive ? Color.accentColor : Color.primary }
 
     var body: some View {
         Menu {
@@ -487,49 +537,92 @@ struct FilterChipMenu: View {
                 }
             }
         } label: {
-            HStack(spacing: 4) {
-                Image(systemName: icon).font(.caption)
-                Text(selected.map(formatter) ?? title)
-                    .font(.callout)
-                Image(systemName: "chevron.down").font(.caption2)
-            }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(
-                (selected == nil ? Color.subtleStroke : Color.accentColor.opacity(0.18)),
-                in: Capsule()
+            // `.borderlessButton` discarded the label's custom capsule (selected
+            // chips rendered as plain text). A `.button` menu style with the plain
+            // button style draws the ChipLabel verbatim, so the accent fill shows.
+            ChipLabel(
+                title: title,
+                icon: icon,
+                text: selected.map(formatter) ?? title,
+                fillColor: fillColor,
+                strokeColor: strokeColor,
+                labelColor: labelColor
             )
-            .foregroundStyle(selected == nil ? Color.primary : Color.accentColor)
-            .overlay(Capsule().stroke(selected == nil ? Color.subtleStroke : Color.accentColor.opacity(0.4), lineWidth: 0.5))
         }
-        .menuStyle(.borderlessButton)
+        .menuStyle(.button)
+        .buttonStyle(.plain)
+        .menuIndicator(.hidden)
         .fixedSize()
         .disabled(options.isEmpty)
     }
 }
 
-private struct SavedSearchChip: View {
+/// A built-in saved search shown as a chip ahead of the user's own. Defaults
+/// aren't persisted or deletable — they're recomputed per account so "My Pads"
+/// and "My Questions" track whoever is signed in.
+struct DefaultSearch: Identifiable {
+    let id: String
+    let icon: String
     let search: NamedSearch
+}
+
+struct SavedSearchChip: View {
+    let name: String
+    var systemImage: String = "bookmark.fill"
+    /// True while the list's current filters exactly match this search — set the
+    /// moment it's applied and cleared as soon as any filter is changed. Derived by
+    /// the parent from filter state rather than stored, so it can never drift.
+    var isActive: Bool = false
     let onApply: () -> Void
-    let onDelete: () -> Void
+    /// Omitted for the built-in defaults, which can't be deleted.
+    var onDelete: (() -> Void)? = nil
+
+    @State private var hovered = false
+
+    // Saved searches are *recall* buttons, not state: tapping one launches a set
+    // of filters rather than toggling a value. They stay neutral until applied, at
+    // which point the accent capsule marks "you are here" — the same accent the
+    // active filter chips use (see FilterChipMenu) — until a filter is modified.
+    private var fillStyle: AnyShapeStyle {
+        if isActive { return AnyShapeStyle(Color.accentColor.opacity(0.16)) }
+        return hovered ? AnyShapeStyle(.tertiary) : AnyShapeStyle(.quaternary)
+    }
+    private var strokeColor: Color {
+        isActive ? Color.accentColor.opacity(0.35) : Color.primary.opacity(0.08)
+    }
+    private var contentColor: AnyShapeStyle {
+        isActive ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.primary)
+    }
 
     var body: some View {
         HStack(spacing: 4) {
-            Image(systemName: "bookmark.fill").font(.caption2)
-            Text(search.name).font(.caption)
-            Button {
-                onDelete()
-            } label: {
-                Image(systemName: "xmark").font(.caption2)
+            Image(systemName: systemImage)
+                .font(.caption2)
+                .foregroundStyle(isActive ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.secondary))
+            Text(name)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(contentColor)
+            if let onDelete {
+                Button {
+                    onDelete()
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.borderless)
+                .accessibilityLabel("Delete saved search \(name)")
             }
-            .buttonStyle(.borderless)
-            .accessibilityLabel("Delete saved search \(search.name)")
         }
         .padding(.horizontal, 8).padding(.vertical, 4)
-        .background(Color.accentColor.opacity(0.14), in: Capsule())
-        .foregroundStyle(Color.accentColor)
-        .overlay(Capsule().stroke(Color.accentColor.opacity(0.3), lineWidth: 0.5))
+        .background(fillStyle, in: Capsule())
+        .overlay(Capsule().strokeBorder(strokeColor, lineWidth: 0.5))
+        .contentShape(Capsule())
         .onTapGesture { onApply() }
+        .onHover { hovered = $0 }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(isActive ? [.isButton, .isSelected] : .isButton)
+        .accessibilityLabel("Apply saved search \(name)")
     }
 }
 
@@ -556,7 +649,7 @@ private struct PadRow: View {
                     .font(.callout.weight(.medium))
                     .lineLimit(1)
                 HStack(spacing: 6) {
-                    StateBadge(state: pad.state)
+                    StateBadge(state: pad.status)
                     if let language = pad.language, !language.isEmpty {
                         Chip(text: language.languageDisplayName, systemImage: language.languageSymbol,
                              tint: language.languageColor)
@@ -624,7 +717,7 @@ struct PadDetailView: View {
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 8)
-                    .background(.thinMaterial)
+                    .floatingGlass(in: Rectangle(), fallback: .thinMaterial)
                     Divider()
                     PadBrowserView(url: url)
                 }
@@ -697,7 +790,7 @@ struct PadDetailView: View {
     }
 
     private var isEnded: Bool {
-        pad.endedAt != nil || pad.state.lowercased() == "ended"
+        pad.isEnded
     }
 
     private func endInterview() async {
@@ -722,6 +815,168 @@ struct PadDetailView: View {
             NotificationCenter.default.post(name: .padDeleted, object: pad.id)
         } catch {
             mutateError = error.localizedDescription
+        }
+    }
+
+    // MARK: - Save code locally
+
+    /// One file to write to disk, with a relative path that preserves any
+    /// project folder structure (e.g. `src/main.rs`) so multi-file pads round-trip.
+    private struct SavableFile {
+        let relativePath: String
+        let contents: String
+    }
+
+    /// Whether there is any code to save yet. Environments load asynchronously,
+    /// so this stays false (disabling the menu item) until at least one carries
+    /// files — or, for a legacy pad, until its inline `contents` is available.
+    private var hasSavableCode: Bool {
+        if environments.contains(where: { !displayFiles(for: $0).isEmpty }) { return true }
+        return !(pad.contents ?? "").isEmpty
+    }
+
+    /// The pad's title, falling back to its ID, used to name the saved file or
+    /// folder. Never empty.
+    private var suggestedBaseName: String {
+        let title = pad.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        return title.isEmpty ? pad.id : title
+    }
+
+    /// Every file the detail view renders, flattened for saving. When several
+    /// environments carry code, each is namespaced into its own subfolder so
+    /// identically-named files (a candidate and a reference `main.py`) don't
+    /// overwrite each other. Falls back to the legacy inline `contents` when no
+    /// environment provided any files.
+    private func savableFiles() -> [SavableFile] {
+        let envs = environments.filter { !displayFiles(for: $0).isEmpty }
+        let namespacePerEnvironment = envs.count > 1
+        var result: [SavableFile] = []
+        for (index, env) in envs.enumerated() {
+            let prefix: String
+            if namespacePerEnvironment {
+                let label = env.language.flatMap { $0.isEmpty ? nil : $0 } ?? "environment"
+                prefix = "\(Self.sanitizeComponent(label))-\(index + 1)/"
+            } else {
+                prefix = ""
+            }
+            for file in displayFiles(for: env) {
+                result.append(SavableFile(relativePath: prefix + Self.relativePath(for: file),
+                                          contents: file.contents))
+            }
+        }
+        if result.isEmpty, let contents = pad.contents, !contents.isEmpty {
+            let ext = Self.fileExtension(forLanguage: pad.language)
+            result.append(SavableFile(relativePath: "\(Self.sanitizeComponent(suggestedBaseName)).\(ext)",
+                                      contents: contents))
+        }
+        return result
+    }
+
+    /// Prompts for a destination and writes the pad's code there. A single file
+    /// uses a save panel (the user names the file); multiple files use a folder
+    /// chooser, then write into a subfolder named after the pad with their
+    /// project structure intact.
+    private func saveCodeLocally() {
+        let files = savableFiles()
+        guard !files.isEmpty else {
+            mutateError = "This pad has no code to save."
+            return
+        }
+        do {
+            if files.count == 1 {
+                let panel = NSSavePanel()
+                panel.canCreateDirectories = true
+                panel.nameFieldStringValue = (files[0].relativePath as NSString).lastPathComponent
+                panel.message = "Save the code from \"\(suggestedBaseName)\""
+                guard panel.runModal() == .OK, let url = panel.url else { return }
+                try files[0].contents.write(to: url, atomically: true, encoding: .utf8)
+            } else {
+                let panel = NSOpenPanel()
+                panel.canChooseFiles = false
+                panel.canChooseDirectories = true
+                panel.canCreateDirectories = true
+                panel.allowsMultipleSelection = false
+                panel.prompt = "Save"
+                panel.message = "Choose where to save the \(files.count) files from \"\(suggestedBaseName)\""
+                guard panel.runModal() == .OK, let directory = panel.url else { return }
+                let root = directory.appending(path: Self.sanitizeComponent(suggestedBaseName))
+                let fileManager = FileManager.default
+                for file in files {
+                    let destination = root.appending(path: file.relativePath)
+                    try fileManager.createDirectory(at: destination.deletingLastPathComponent(),
+                                                    withIntermediateDirectories: true)
+                    try file.contents.write(to: destination, atomically: true, encoding: .utf8)
+                }
+            }
+        } catch {
+            mutateError = error.localizedDescription
+        }
+    }
+
+    /// A file's path with each component made filesystem-safe, preserving the
+    /// `/` separators so folder structure survives. Drops empty and `.`/`..`
+    /// components so a malformed path can't escape the destination folder.
+    private static func relativePath(for file: CodeFile) -> String {
+        if let path = file.path, !path.isEmpty {
+            let components = path.split(separator: "/")
+                .map(String.init)
+                .filter { $0 != "." && $0 != ".." }
+                .map { sanitizeComponent($0) }
+                .filter { !$0.isEmpty }
+            if !components.isEmpty {
+                return components.joined(separator: "/")
+            }
+        }
+        return "untitled-\(file.id).\(fileExtension(forLanguage: file.language))"
+    }
+
+    /// Replaces characters that are unsafe in a single path component, so a pad
+    /// title or file name can't break out of its folder or confuse the shell.
+    private static func sanitizeComponent(_ name: String) -> String {
+        let invalid = CharacterSet(charactersIn: "/\\:?%*|\"<>")
+        let cleaned = name.components(separatedBy: invalid).joined(separator: "-")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return cleaned.isEmpty ? "untitled" : cleaned
+    }
+
+    /// A reasonable file extension for code that has no path of its own (a
+    /// legacy single-file pad), derived from its language.
+    private static func fileExtension(forLanguage language: String?) -> String {
+        var lowered = (language ?? "").lowercased()
+        if lowered.hasPrefix("multifile_") {
+            lowered = String(lowered.dropFirst("multifile_".count))
+        }
+        switch lowered {
+        case "python", "python2", "python3": return "py"
+        case "javascript", "node", "node.js", "nodejs": return "js"
+        case "typescript": return "ts"
+        case "swift": return "swift"
+        case "go", "golang": return "go"
+        case "rust": return "rs"
+        case "java": return "java"
+        case "kotlin": return "kt"
+        case "scala": return "scala"
+        case "ruby": return "rb"
+        case "c": return "c"
+        case "cpp", "c++": return "cpp"
+        case "csharp", "c#": return "cs"
+        case "objective-c", "objc": return "m"
+        case "php": return "php"
+        case "html": return "html"
+        case "css": return "css"
+        case "sql", "mysql", "postgresql", "postgres": return "sql"
+        case "bash", "shell", "sh": return "sh"
+        case "r": return "r"
+        case "elixir": return "ex"
+        case "erlang": return "erl"
+        case "haskell": return "hs"
+        case "perl": return "pl"
+        case "lua": return "lua"
+        case "dart": return "dart"
+        case "clojure": return "clj"
+        case "ocaml": return "ml"
+        case "f#", "fsharp": return "fs"
+        default: return "txt"
         }
     }
 
@@ -781,7 +1036,7 @@ struct PadDetailView: View {
                 }
             }
             HStack(spacing: 6) {
-                StateBadge(state: pad.state)
+                StateBadge(state: pad.status)
                 // Skip the pad-level language chip when a single code card is
                 // shown — that card names the language itself, so repeating it
                 // here is redundant. Keep it when there's no card (nothing else
@@ -847,7 +1102,7 @@ struct PadDetailView: View {
             .buttonStyle(.bordered)
             .help("Edit pad properties")
             .fixedSize()
-            if let url = URL(string: pad.url) {
+            if let url = pad.webURL {
                 ShareLink(item: url) {
                     Label("Share", systemImage: "square.and.arrow.up")
                 }
@@ -856,7 +1111,7 @@ struct PadDetailView: View {
                 .accessibilityLabel("Share pad")
                 .fixedSize()
             }
-            if let url = URL(string: pad.url) {
+            if let url = pad.webURL {
                 Button {
                     if BrowserSettings.openLinksIn == .external {
                         BrowserSettings.openExternally(url)
@@ -871,10 +1126,19 @@ struct PadDetailView: View {
                 .buttonStyle(.borderedProminent)
                 .help("Open the pad")
             }
-            // Destructive and lifecycle actions tucked into an overflow menu.
-            // Each item keeps a full text label and role, so the dangerous
-            // choices are deliberate rather than a one-pixel mistake.
+            // Non-destructive utilities and the destructive/lifecycle actions
+            // share an overflow menu. Each item keeps a full text label and
+            // role, so the dangerous choices are deliberate rather than a
+            // one-pixel mistake.
             Menu {
+                Button {
+                    saveCodeLocally()
+                } label: {
+                    Label("Save Code…", systemImage: "square.and.arrow.down")
+                }
+                .disabled(!hasSavableCode)
+                .help("Save the pad's code to a file or folder on this Mac")
+                Divider()
                 Button {
                     showEndConfirm = true
                 } label: {
@@ -923,7 +1187,7 @@ struct PadDetailView: View {
                 StatTile(title: "Ended", value: endedAt.formatted(date: .abbreviated, time: .shortened),
                          systemImage: "flag.checkered", tint: .gray)
             }
-            if let playback = pad.playback, let url = URL(string: playback) {
+            if let url = pad.playbackURL {
                 Card {
                     VStack(alignment: .leading, spacing: 6) {
                         SectionHeader(title: "Playback", systemImage: "play.rectangle")
@@ -1391,13 +1655,12 @@ private struct EnvironmentCodeCard: View {
 
     private var accessibilityLabel: String {
         // Name the environment by its language, the same identity shown visually.
-        let environmentName = (language?.isEmpty == false) ? language!.languageDisplayName : nil
+        let environmentName = language.flatMap { $0.isEmpty ? nil : $0.languageDisplayName }
         if isMultiFile {
             return "Code preview of \(selected.name)\(environmentName.map { " in \($0)" } ?? "") in pad \(padID)"
         }
-        return environmentName != nil
-            ? "Code preview of \(environmentName!) in pad \(padID)"
-            : "Code preview of pad \(padID)"
+        return environmentName.map { "Code preview of \($0) in pad \(padID)" }
+            ?? "Code preview of pad \(padID)"
     }
 
     private func copy(_ text: String) {

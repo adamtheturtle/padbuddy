@@ -35,10 +35,10 @@ enum Typography {
 }
 
 struct StateBadge: View {
-    let state: String
+    let state: PadState
 
     var body: some View {
-        Text(state.capitalized)
+        Text(state.label)
             .font(.caption.weight(.semibold))
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
@@ -48,14 +48,12 @@ struct StateBadge: View {
     }
 
     private var tint: Color {
-        switch state.lowercased() {
-        case "started", "active", "live": return .green
-        case "ended", "finished": return .gray
-        case "pending", "draft": return .orange
-        case "joined": return .blue
-        case "left": return .secondary
-        case "deleted": return .red
-        default: return .accentColor
+        switch state {
+        case .active: return .green
+        case .ended: return .gray
+        case .pending: return .orange
+        case .deleted: return .red
+        case .other: return .accentColor
         }
     }
 }
@@ -409,7 +407,7 @@ struct GetAPIKeyLink: View {
         Link(destination: CoderPadLinks.apiSettings) {
             Label("Get an API key from CoderPad", systemImage: "key.viewfinder")
         }
-        .if(prominent) { $0.buttonStyle(.borderedProminent) }
+        .if(prominent) { $0.prominentGlassButtonStyle() }
     }
 }
 
@@ -417,6 +415,71 @@ extension View {
     @ViewBuilder
     fileprivate func `if`<T: View>(_ condition: Bool, transform: (Self) -> T) -> some View {
         if condition { transform(self) } else { self }
+    }
+}
+
+extension View {
+    /// Backs the view with Liquid Glass in `shape` on macOS 26, falling back to
+    /// `fallback` painted in the same shape on macOS 15. Reserved for the
+    /// control/overlay layer that floats *above* content — inline search fields,
+    /// embedded-browser toolbars, floating panels. Per Apple's guidance, dense
+    /// content surfaces (cards, list rows, badges, chips) keep an opaque material
+    /// instead, so glass never stacks on glass or sits behind body text.
+    ///
+    /// Pass `interactive: true` for glass that backs a control the user presses,
+    /// so it gains the same responsive ripple the system gives `.buttonStyle(.glass)`.
+    @ViewBuilder
+    func floatingGlass(
+        in shape: some Shape,
+        fallback: some ShapeStyle,
+        interactive: Bool = false
+    ) -> some View {
+        if #available(macOS 26, *) {
+            glassEffect(interactive ? .regular.interactive() : .regular, in: shape)
+        } else {
+            background(fallback, in: shape)
+        }
+    }
+
+    /// Applies the Liquid Glass button style to every button in this subtree on
+    /// macOS 26, leaving the macOS 15 appearance untouched (`.automatic`). Intended
+    /// for a row of icon controls grouped in a ``GlassCluster`` so they read as one
+    /// floating set, rather than buttons already resting on a glass surface.
+    @ViewBuilder
+    func glassButtonStyle() -> some View {
+        if #available(macOS 26, *) {
+            buttonStyle(.glass)
+        } else {
+            buttonStyle(.automatic)
+        }
+    }
+
+    /// Prominent call-to-action style: prominent Liquid Glass on macOS 26,
+    /// `.borderedProminent` on macOS 15 — so existing prominent buttons keep their
+    /// look on Sequoia while gaining glass on Tahoe.
+    @ViewBuilder
+    func prominentGlassButtonStyle() -> some View {
+        if #available(macOS 26, *) {
+            buttonStyle(.glassProminent)
+        } else {
+            buttonStyle(.borderedProminent)
+        }
+    }
+}
+
+/// Groups several `glassEffect`/glass-styled controls so the system can blend and
+/// morph them as a single Liquid Glass shape on macOS 26. On macOS 15 it's a plain
+/// passthrough, so the same call site compiles and lays out identically there.
+struct GlassCluster<Content: View>: View {
+    var spacing: CGFloat = 8
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        if #available(macOS 26, *) {
+            GlassEffectContainer(spacing: spacing) { content }
+        } else {
+            content
+        }
     }
 }
 
@@ -627,6 +690,39 @@ extension View {
     }
 }
 
+// MARK: - Sidebar row width measurement
+
+/// Carries the widest sidebar row's natural (unclipped) label width up the view
+/// tree so the sidebar column can size its minimum to fit the longest label,
+/// rather than relying on a hand-tuned constant that breaks when labels or the
+/// row font change. Reduces to the widest reporter.
+struct SidebarRowWidthKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+extension View {
+    /// Reports the natural width of `label` rendered at the sidebar row font via
+    /// `SidebarRowWidthKey`. Measures a hidden, `fixedSize` copy of the text so the
+    /// reported width is the *untruncated* width even though the visible row is
+    /// line-limited — attach to each row and the key's `max` yields the widest.
+    func measuresSidebarRowWidth(_ label: String) -> some View {
+        background(
+            Text(label)
+                .font(.body)
+                .fixedSize()
+                .hidden()
+                .background(
+                    GeometryReader { proxy in
+                        Color.clear.preference(key: SidebarRowWidthKey.self, value: proxy.size.width)
+                    }
+                )
+        )
+    }
+}
+
 // MARK: - Flow layout
 
 /// Arranges its subviews left-to-right, wrapping to a new line whenever the next
@@ -725,14 +821,10 @@ struct SearchableFilterChip: View {
         // A plain tappable label rather than a `Button`: a macOS `Button` keeps
         // AppKit's default push-button control height and centers its label within
         // it (even with `.fixedSize()`), rendering taller than the FilterChipMenu
-        // chips. The remaining mismatch is that `Menu`'s `.borderlessButton` reports
-        // its layout height *without* the label's 5pt vertical padding (it draws the
-        // capsule overflowing that smaller box), so the menu chips measure ~10pt
-        // shorter than this label's true padded height. Since FlowLayout top-aligns
-        // each chip by its reported height, the taller Owner chip sat lower. The
-        // `.padding(.vertical, -5)` cancels exactly that padding from measurement
-        // while the capsule still draws, so this chip reports the same height as the
-        // menu chips and lines up with them. We re-add button a11y semantics by hand.
+        // chips. Those menu chips now render the same `ChipLabel` under a
+        // `.button` menu style, so they report the same true padded height as this
+        // label and line up without any height compensation. We re-add button a11y
+        // semantics by hand.
         ChipLabel(
             title: title,
             icon: icon,
@@ -741,7 +833,6 @@ struct SearchableFilterChip: View {
             strokeColor: strokeColor,
             labelColor: labelColor
         )
-        .padding(.vertical, -5)
         .contentShape(Capsule())
         .onTapGesture { presented.toggle() }
         .disabled(options.isEmpty)
@@ -766,8 +857,9 @@ struct SearchableFilterChip: View {
 
 // Extracted so the label's styling chain type-checks independently of the
 // chip's outer modifier/popover chain — keeps SearchableFilterChip.body fast
-// to compile (was ~671ms as one expression).
-private struct ChipLabel: View {
+// to compile (was ~671ms as one expression). Shared with FilterChipMenu so
+// the menu-backed chips render the same selected capsule as the Owner chip.
+struct ChipLabel: View {
     let title: String
     let icon: String
     let text: String
@@ -937,7 +1029,7 @@ struct APIErrorView: View {
             } actions: {
                 VStack(spacing: 8) {
                     Button("Open Settings") { openSettings() }
-                        .buttonStyle(.borderedProminent)
+                        .prominentGlassButtonStyle()
                     GetAPIKeyLink()
                     if let onRetry {
                         Button("Retry", action: onRetry)
@@ -952,7 +1044,7 @@ struct APIErrorView: View {
             } actions: {
                 VStack(spacing: 8) {
                     Button("Open Settings") { openSettings() }
-                        .buttonStyle(.borderedProminent)
+                        .prominentGlassButtonStyle()
                     GetAPIKeyLink()
                 }
             }
@@ -964,7 +1056,7 @@ struct APIErrorView: View {
             } actions: {
                 if let onRetry {
                     Button("Retry", action: onRetry)
-                        .buttonStyle(.borderedProminent)
+                        .prominentGlassButtonStyle()
                 }
             }
         }

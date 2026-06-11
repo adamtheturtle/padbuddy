@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import Synchronization
 
 nonisolated enum MockServer {
     static let host = "app.coderpad.io"
@@ -95,7 +96,23 @@ nonisolated final class MockURLProtocol: URLProtocol {
 }
 
 nonisolated enum MockResponses {
+    /// Serializes every request so the mutable fixture state (see `MockFixtures`)
+    /// is never read or written by two requests at once. `startLoading()` on the
+    /// backing `URLProtocol` runs on the URL loading system's background threads,
+    /// and the client fans pages out concurrently, so without this the shared
+    /// dictionaries would be mutated from multiple threads simultaneously.
+    private static let lock = Mutex(())
+
     static func respond(method: String, path: String, query: [String: String] = [:], body: Data?) -> (Int, Data) {
+        lock.withLock { _ in
+            respondLocked(method: method, path: path, query: query, body: body)
+        }
+    }
+
+    /// The request handler proper. Always invoked while `lock` is held, so it (and the
+    /// `MockFixtures` accessors it calls) may touch the fixture state without further
+    /// synchronization. Must not re-enter `respond` — `Mutex` is not reentrant.
+    private static func respondLocked(method: String, path: String, query: [String: String] = [:], body: Data?) -> (Int, Data) {
         if method == "PUT", path == "/api/pads/" || path == "/api/pads" {
             guard let body,
                   var dict = try? JSONSerialization.jsonObject(with: body) as? [String: Any],
@@ -298,6 +315,10 @@ nonisolated enum MockResponses {
 }
 
 nonisolated enum MockFixtures {
+    // The mutable stores below are unsynchronized storage, made safe by the single
+    // `MockResponses.lock` that serializes every request: they are only ever read or
+    // written from within `respondLocked`, which always runs under that lock. The
+    // `unsafe` is the vouch for that external synchronization, not an unchecked race.
     nonisolated(unsafe) static var createdPads: [[String: Any]] = []
     nonisolated(unsafe) static var updatedPads: [String: [String: Any]] = [:]
     nonisolated(unsafe) static var deletedPadIDs: Set<String> = []
@@ -504,6 +525,11 @@ nonisolated enum MockFixtures {
                 "candidate_instructions": [["instructions": "Print numbers 1–100 with Fizz/Buzz rules.", "default_visible": true]],
                 "shared": true, "used": 42, "take_home": false,
                 "test_cases_enabled": true, "solution": "see notion",
+                "test_cases": [
+                    ["id": 1, "arguments": ["3"], "return_value": "Fizz", "visible": true],
+                    ["id": 2, "arguments": ["5"], "return_value": "Buzz", "visible": true],
+                    ["id": 3, "arguments": ["15"], "return_value": "FizzBuzz", "visible": false]
+                ],
                 "pad_type": "live", "is_draft": false,
                 "contents": NSNull(), "custom_files": [],
                 "author_name": "Alex Park", "organization_name": "Demo Org",

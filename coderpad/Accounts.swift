@@ -45,8 +45,13 @@ struct Account: Identifiable, Codable, Hashable {
         return CoderPadClient.defaultBaseURL
     }
 
+    /// Email of the mock data's "Demo User", who owns several of the mock pads and
+    /// questions — so the demo account's "My Pads"/"My Questions" defaults return
+    /// real results, and the account satisfies the required-email rule.
+    static let demoUserEmail = "demo@example.com"
+
     static func demo() -> Account {
-        Account(name: "Demo (mock data)", apiKey: "demo", isMock: true)
+        Account(name: "Demo (mock data)", apiKey: "demo", isMock: true, userEmail: demoUserEmail)
     }
 
     /// Sentinel key marking the "bad key" demo: a mock account whose in-process
@@ -55,7 +60,7 @@ struct Account: Identifiable, Codable, Hashable {
     static let badKeyMockKey = "demo-bad-key"
 
     static func demoBadKey() -> Account {
-        Account(name: "Demo (bad key)", apiKey: badKeyMockKey, isMock: true)
+        Account(name: "Demo (bad key)", apiKey: badKeyMockKey, isMock: true, userEmail: demoUserEmail)
     }
 
     /// Whether this is the bad-key demo, as opposed to the mock-data demo.
@@ -341,22 +346,28 @@ final class PadActivityMonitor {
     }
 }
 
+/// A saved filter+search snapshot. The fields are a superset across the pad and
+/// question lists — pads use state/team/dateRange, questions use draft — so one
+/// shape serves both. Unused fields stay `nil` for a given kind, and all are
+/// optional so snapshots saved before a field existed still decode.
 struct NamedSearch: Identifiable, Codable, Hashable {
     let id: UUID
     var name: String
     var search: String
-    var stateFilter: String?
+    var stateFilter: PadState?
     var languageFilter: String?
     var ownerFilter: String?
     var teamFilter: String?
     var typeFilter: String?
     var dateRangeFilter: String?
+    var draftFilter: String?
 
     init(id: UUID = UUID(), name: String,
          search: String = "",
-         stateFilter: String? = nil, languageFilter: String? = nil,
+         stateFilter: PadState? = nil, languageFilter: String? = nil,
          ownerFilter: String? = nil, teamFilter: String? = nil,
-         typeFilter: String? = nil, dateRangeFilter: String? = nil) {
+         typeFilter: String? = nil, dateRangeFilter: String? = nil,
+         draftFilter: String? = nil) {
         self.id = id
         self.name = name
         self.search = search
@@ -366,35 +377,88 @@ struct NamedSearch: Identifiable, Codable, Hashable {
         self.teamFilter = teamFilter
         self.typeFilter = typeFilter
         self.dateRangeFilter = dateRangeFilter
+        self.draftFilter = draftFilter
     }
 }
 
+/// Which list a saved search belongs to. Pads and questions have distinct filter
+/// sets, so their saved searches are kept in separate buckets even though they
+/// share the `NamedSearch` shape.
+enum SavedSearchKind: String, Codable, Hashable {
+    case pads
+    case questions
+}
+
+/// Per-account saved searches for the pad and question lists. Searches are scoped
+/// to the account that created them — owners, teams, and languages are all
+/// account-specific, so a search saved against one org is meaningless in another —
+/// and further partitioned by list kind. Persisted to UserDefaults as a single
+/// JSON blob keyed by account id then kind; the encoder/decoder pair is symmetric,
+/// so the nested dictionaries round-trip faithfully.
 @Observable
 final class SavedSearchStore {
     static let shared = SavedSearchStore()
-    private(set) var searches: [NamedSearch] = []
-    private static let key = "savedPadSearches.v1"
+    private var byAccount: [UUID: [String: [NamedSearch]]] = [:]
+    /// True while a legacy `v1` blob is still on disk waiting to be folded in. The
+    /// migration needs a current account, which may not exist yet at init, so we
+    /// retry on each mutation until it succeeds.
+    private var legacyPending = false
+    private static let key = "savedSearches.v2"
+    private static let legacyKey = "savedPadSearches.v1"
 
     private init() {
         if let data = UserDefaults.standard.data(forKey: Self.key),
-           let decoded = try? JSONDecoder().decode([NamedSearch].self, from: data) {
-            searches = decoded
+           let decoded = try? JSONDecoder().decode([UUID: [String: [NamedSearch]]].self, from: data) {
+            byAccount = decoded
         }
+        legacyPending = UserDefaults.standard.data(forKey: Self.legacyKey) != nil
+        migrateLegacyIfNeeded()
     }
 
-    func add(_ search: NamedSearch) {
-        searches.append(search)
+    func searches(account: UUID?, kind: SavedSearchKind) -> [NamedSearch] {
+        guard let account else { return [] }
+        return byAccount[account]?[kind.rawValue] ?? []
+    }
+
+    func add(_ search: NamedSearch, account: UUID, kind: SavedSearchKind) {
+        migrateLegacyIfNeeded()
+        byAccount[account, default: [:]][kind.rawValue, default: []].append(search)
         save()
     }
 
-    func remove(id: UUID) {
-        searches.removeAll { $0.id == id }
+    func remove(id: UUID, account: UUID, kind: SavedSearchKind) {
+        migrateLegacyIfNeeded()
+        byAccount[account]?[kind.rawValue]?.removeAll { $0.id == id }
+        save()
+    }
+
+    /// Carries pre-existing global pad searches (saved before searches became
+    /// per-account) into the current account's pad bucket, so upgrading doesn't
+    /// silently drop them. Folds the legacy searches in alongside any existing
+    /// `v2` pad bucket rather than overwriting it, and leaves the legacy blob in
+    /// place to retry later if no account is current yet.
+    private func migrateLegacyIfNeeded() {
+        guard legacyPending else { return }
+        guard let data = UserDefaults.standard.data(forKey: Self.legacyKey),
+              let legacy = try? JSONDecoder().decode([NamedSearch].self, from: data) else {
+            legacyPending = false
+            return
+        }
+        // No account to attribute the searches to yet — keep the blob and retry on
+        // the next mutation (or next launch) once an account exists.
+        guard let account = AccountsStore.shared.currentAccountID else { return }
+        if !legacy.isEmpty {
+            byAccount[account, default: [:]][SavedSearchKind.pads.rawValue, default: []]
+                .insert(contentsOf: legacy, at: 0)
+        }
+        UserDefaults.standard.removeObject(forKey: Self.legacyKey)
+        legacyPending = false
         save()
     }
 
     private func save() {
         do {
-            let data = try JSONEncoder().encode(searches)
+            let data = try JSONEncoder().encode(byAccount)
             UserDefaults.standard.set(data, forKey: Self.key)
         } catch {
             persistenceLogger.error("Failed to encode saved searches: \(error.localizedDescription, privacy: .public)")

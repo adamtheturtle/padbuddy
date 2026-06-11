@@ -373,13 +373,17 @@ struct PadBrowserView: View {
         }
         .padding(32)
         .frame(maxWidth: 420)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .floatingGlass(
+            in: RoundedRectangle(cornerRadius: 16, style: .continuous),
+            fallback: .regularMaterial
+        )
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(.background)
     }
 
     private var toolbar: some View {
+        GlassCluster(spacing: 8) {
         HStack(spacing: 8) {
             Button { controller.goBack() } label: {
                 Image(systemName: "chevron.left")
@@ -447,6 +451,12 @@ struct PadBrowserView: View {
             }
             .help("Copy URL")
             .accessibilityLabel("Copy URL")
+        }
+        // Each control becomes its own Liquid Glass element on macOS 26, blending
+        // and morphing as a cluster via the enclosing GlassCluster. The bar itself
+        // stays a plain material so the glass refracts content rather than stacking
+        // glass-on-glass.
+        .glassButtonStyle()
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)

@@ -280,20 +280,20 @@ struct PadCommands: Commands {
     /// is already ended instead of routing a no-op confirmation.
     private var isEnded: Bool {
         guard let pad else { return false }
-        return pad.endedAt != nil || pad.state.lowercased() == "ended"
+        return pad.isEnded
     }
 
     var body: some Commands {
         CommandMenu("Pad") {
             Button("Open Pad in Browser") {
-                guard let pad, let url = URL(string: pad.url) else { return }
+                guard let pad, let url = pad.webURL else { return }
                 NotificationCenter.default.post(name: .openPadInBrowserRequested, object: url)
             }
             .keyboardShortcut(.return, modifiers: [.command])
             .disabled(pad == nil)
 
             Button("Open Pad in New Window") {
-                guard let pad, let url = URL(string: pad.url) else { return }
+                guard let pad, let url = pad.webURL else { return }
                 NSApp.activate(ignoringOtherApps: true)
                 openWindow(id: "pad-browser", value: url)
             }
