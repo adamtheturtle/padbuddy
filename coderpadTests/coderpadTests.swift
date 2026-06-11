@@ -278,6 +278,17 @@ struct MockServerTests {
         #expect(pad.participants == ["Jane Doe", "Alex Park"])
     }
 
+    @Test("a pad exposes its whiteboard drawing URL")
+    func padDrawing() async throws {
+        let pad = try await client.getPad(id: "DEMOXYZ2")
+        let drawing = try #require(pad.drawing)
+        #expect(!drawing.isEmpty)
+        #expect(URL(string: drawing) != nil)
+        // Pads without a whiteboard decode it as nil rather than an empty string.
+        let noDrawing = try await client.getPad(id: "DEMOABC1")
+        #expect(noDrawing.drawing == nil)
+    }
+
     @Test("padEvents returns events for a pad")
     func padEvents() async throws {
         let events = try await client.padEvents(padID: "DEMOABC1")

@@ -370,6 +370,9 @@ nonisolated enum MockFixtures {
                 createdAt: "2026-06-05T17:30:00Z", updatedAt: "2026-06-06T19:00:00Z",
                 endedAt: "2026-06-06T19:00:00Z",
                 notes: "Strong on arrays, hesitant on recursion.\nFollow up on the time-complexity discussion.",
+                // Stand-in whiteboard image so the demo can show the Whiteboard
+                // card; a real pad's `drawing` is a CoderPad-hosted PNG URL.
+                drawing: "https://placehold.co/900x560/png?text=Whiteboard+sketch",
                 environmentIDs: [1, 2], activeEnvironmentID: 2),
             // Three environments with the active one in the middle, so the Active
             // flag is clearly not just "the first card".
@@ -408,6 +411,7 @@ nonisolated enum MockFixtures {
                     updatedAt: String = "2026-06-10T08:00:00Z",
                     endedAt: String? = nil,
                     notes: String? = nil,
+                    drawing: String? = nil,
                     environmentIDs: [Int] = [1, 2],
                     activeEnvironmentID: Int = 1) -> [String: Any] {
         var dict: [String: Any] = [
@@ -429,7 +433,7 @@ nonisolated enum MockFixtures {
             // The list response carries `contents`/`drawing` keys, null until the
             // pad has editor content or a whiteboard drawing.
             "contents": NSNull(),
-            "drawing": NSNull(),
+            "drawing": drawing as Any? ?? NSNull(),
             "created_at": createdAt,
             "updated_at": updatedAt,
             "type": "live",

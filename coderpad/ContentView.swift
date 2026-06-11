@@ -318,6 +318,9 @@ private struct MainSplit: View {
                 SidebarToggleButton(isCollapsed: isSidebarCollapsed, action: toggleSidebar)
             }
         )
+        // Lets the View menu's "Customize Toolbar…" command enable itself only
+        // while a main window (with its customizable section toolbar) is frontmost.
+        .focusedSceneValue(\.canCustomizeToolbar, true)
         .task(id: store.currentAccountID) {
             if let account = store.currentAccount {
                 if let raw = UserDefaults.standard.string(forKey: "section.\(account.id.uuidString)"),

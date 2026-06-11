@@ -160,6 +160,7 @@ struct coderpadApp: App {
         .commands {
             appCommands
             FindCommands()
+            ViewCommands()
             PadCommands()
             QuestionCommands()
             WindowCommands()

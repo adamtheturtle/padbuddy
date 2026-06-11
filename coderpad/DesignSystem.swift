@@ -1201,6 +1201,16 @@ extension FocusedValues {
     @Entry var findAction: FindAction?
 }
 
+extension FocusedValues {
+    /// Marks the frontmost window as one whose toolbar can be customized — set by
+    /// the main window's `ContentView` (its section panes use `.toolbar(id:)`,
+    /// which AppKit makes user-customizable). The View menu's "Customize Toolbar…"
+    /// command reads this to enable itself only when such a window is key; Settings
+    /// and the Pad Browser (whose toolbar is a plain in-content cluster, not an
+    /// `NSToolbar`) don't publish it, so the command correctly disables there.
+    @Entry var canCustomizeToolbar: Bool?
+}
+
 // MARK: - APIErrorView
 
 struct APIErrorView: View {
