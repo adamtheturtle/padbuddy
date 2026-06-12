@@ -35,17 +35,37 @@ enum Typography {
     static let paneTitle: Font = .largeTitle.bold()
 }
 
+/// Contrast-aware opacities for the app's tinted chips and badges. Their default
+/// fills are deliberately subtle; under the system "Increase Contrast"
+/// accessibility setting they're raised (and the hairline stroke thickened) so
+/// the controls stay legible for low-vision users.
+enum ChipContrast {
+    static func fill(_ base: Double, _ contrast: ColorSchemeContrast) -> Double {
+        contrast == .increased ? min(1, base * 2.2) : base
+    }
+    static func stroke(_ base: Double, _ contrast: ColorSchemeContrast) -> Double {
+        contrast == .increased ? min(1, base * 2.4) : base
+    }
+    static func lineWidth(_ contrast: ColorSchemeContrast) -> CGFloat {
+        contrast == .increased ? 1 : 0.5
+    }
+}
+
 struct StateBadge: View {
     let state: PadState
+    // Under "Increase Contrast" the subtle tinted fill/stroke are strengthened so
+    // the badge stays legible for low-vision users (see ChipContrast).
+    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         Text(state.label)
             .font(.caption.weight(.semibold))
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
-            .background(tint.opacity(0.16), in: Capsule())
+            .background(tint.opacity(ChipContrast.fill(0.16, contrast)), in: Capsule())
             .foregroundStyle(tint)
-            .overlay(Capsule().stroke(tint.opacity(0.25), lineWidth: 0.5))
+            .overlay(Capsule().stroke(tint.opacity(ChipContrast.stroke(0.25, contrast)),
+                                      lineWidth: ChipContrast.lineWidth(contrast)))
     }
 
     private var tint: Color {
@@ -169,6 +189,7 @@ struct Chip: View {
     let text: String
     var systemImage: String? = nil
     var tint: Color = .secondary
+    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         HStack(spacing: 4) {
@@ -179,9 +200,10 @@ struct Chip: View {
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 3)
-        .background(tint.opacity(0.12), in: Capsule())
+        .background(tint.opacity(ChipContrast.fill(0.12, contrast)), in: Capsule())
         .foregroundStyle(tint)
-        .overlay(Capsule().stroke(tint.opacity(0.2), lineWidth: 0.5))
+        .overlay(Capsule().stroke(tint.opacity(ChipContrast.stroke(0.2, contrast)),
+                                  lineWidth: ChipContrast.lineWidth(contrast)))
     }
 }
 
@@ -992,6 +1014,7 @@ struct SearchableFilterChip: View {
 
     @State private var presented = false
     @State private var search = ""
+    @Environment(\.colorSchemeContrast) private var contrast
 
     private var chipText: String {
         guard let selected else { return title }
@@ -1017,8 +1040,8 @@ struct SearchableFilterChip: View {
     private var isActive: Bool { selected != nil }
     // Idle state is transparent so this chip matches the borderless `Menu`-based
     // FilterChipMenu chips, which don't paint a capsule fill until a filter is set.
-    private var fillColor: Color { isActive ? Color.accentColor.opacity(0.18) : Color.clear }
-    private var strokeColor: Color { isActive ? Color.accentColor.opacity(0.4) : Color.clear }
+    private var fillColor: Color { isActive ? Color.accentColor.opacity(ChipContrast.fill(0.18, contrast)) : Color.clear }
+    private var strokeColor: Color { isActive ? Color.accentColor.opacity(ChipContrast.stroke(0.4, contrast)) : Color.clear }
     private var labelColor: Color { isActive ? Color.accentColor : Color.primary }
 
     var body: some View {
@@ -1070,6 +1093,7 @@ struct ChipLabel: View {
     let fillColor: Color
     let strokeColor: Color
     let labelColor: Color
+    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         HStack(spacing: 4) {
@@ -1081,7 +1105,9 @@ struct ChipLabel: View {
         .padding(.horizontal, 10).padding(.vertical, 5)
         .background(fillColor, in: Capsule())
         .foregroundStyle(labelColor)
-        .overlay(Capsule().stroke(strokeColor, lineWidth: 0.5))
+        // Thicken the hairline border under Increase Contrast so the chip outline
+        // stays defined for low-vision users.
+        .overlay(Capsule().stroke(strokeColor, lineWidth: ChipContrast.lineWidth(contrast)))
     }
 }
 
