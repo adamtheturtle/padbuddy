@@ -841,6 +841,16 @@ struct QuestionDetailView: View {
                 if question.isDraft == true {
                     Chip(text: "Draft", systemImage: "doc.badge.ellipsis", tint: .orange)
                 }
+                if question.publicTakeHomeSettingID != nil {
+                    // The API exposes only the setting's ID, not the candidate-facing
+                    // public take-home URL (that link is created and copied inside
+                    // CoderPad's web app and isn't derivable from this ID). So we
+                    // surface the fact that a public link is configured, rather than
+                    // fabricating a URL that might not resolve.
+                    Chip(text: "Public link", systemImage: "globe", tint: .purple)
+                        .help("This question has a public take-home link configured in CoderPad. Copy the link from CoderPad's web app to share it.")
+                        .accessibilityLabel("Public take-home link configured")
+                }
             }
         }
     }

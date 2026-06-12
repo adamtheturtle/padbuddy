@@ -211,6 +211,18 @@ struct QuestionDecoderTests {
         let q = try decode(json)
         #expect(q.id == 2)
         #expect(q.candidateInstructions.isEmpty)
+        #expect(q.publicTakeHomeSettingID == nil)
+    }
+
+    @Test("decodes public_take_home_setting_id when present")
+    func publicTakeHomeSettingID() throws {
+        let withSetting = try decode(#"{"id": 9, "public_take_home_setting_id": 7421}"#)
+        #expect(withSetting.publicTakeHomeSettingID == 7421)
+
+        // Absent in most questions (only take-home questions with a configured
+        // public link carry it), so it must decode to nil rather than fail.
+        let withoutSetting = try decode(#"{"id": 9}"#)
+        #expect(withoutSetting.publicTakeHomeSettingID == nil)
     }
 
     @Test("decodes test cases, mapping return_value and visibility")

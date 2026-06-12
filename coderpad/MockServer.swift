@@ -646,6 +646,7 @@ nonisolated enum MockFixtures {
                 [1]: https://example.com/overflow
                 """,
                 "pad_type": "take-home", "is_draft": false,
+                "public_take_home_setting_id": 7421,
                 "contents": NSNull(), "custom_files": [],
                 "author_name": "Morgan Lin", "organization_name": "Demo Org",
                 "created_at": "2025-11-12T14:00:00Z", "updated_at": "2026-05-30T09:00:00Z"
