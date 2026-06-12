@@ -651,9 +651,9 @@ struct AccountEditor: View {
                     HStack(spacing: 6) {
                         Group {
                             if revealKey {
-                                TextField("", text: $draft.apiKey, prompt: Text("key"))
+                                TextField("", text: $draft.apiKey, prompt: Text("Paste your API key"))
                             } else {
-                                SecureField("", text: $draft.apiKey, prompt: Text("key"))
+                                SecureField("", text: $draft.apiKey, prompt: Text("Paste your API key"))
                             }
                         }
                         .textFieldStyle(.roundedBorder)
