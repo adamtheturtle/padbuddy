@@ -621,6 +621,10 @@ struct AccountEditor: View {
     private let initialBaseURL: String?
     @State private var validation: ValidationState = .idle
     @State private var orgUsers: [OrganizationUser] = []
+    /// A non-blocking note when the key reaches the org but isn't authorized for
+    /// one or more feature endpoints (a 403), so the user learns up front that a
+    /// section will be empty rather than discovering it later. See `missingScopesWarning`.
+    @State private var scopeWarning: String?
     @State private var showDeleteConfirmation = false
     /// Reveals the API key as plain text on explicit request. The field is a
     /// `SecureField` by default so macOS offers password AutoFill suggestions;
@@ -762,6 +766,7 @@ struct AccountEditor: View {
             }
 
             validationBanner
+            scopeWarningBanner
 
             HStack {
                 if onDelete != nil {
@@ -781,7 +786,7 @@ struct AccountEditor: View {
         .padding()
         .frame(minWidth: embedded ? nil : 460, minHeight: embedded ? nil : 320,
                maxHeight: embedded ? .infinity : nil, alignment: .top)
-        .onChange(of: draft.apiKey) { _, _ in validation = .idle }
+        .onChange(of: draft.apiKey) { _, _ in validation = .idle; scopeWarning = nil }
         .onChange(of: draft.baseURL) { _, _ in validation = .idle }
         .confirmationDialog("Delete this account?",
                             isPresented: $showDeleteConfirmation,
@@ -925,8 +930,19 @@ struct AccountEditor: View {
         }
     }
 
+    /// A non-blocking, amber note shown when the key validated against the org but
+    /// lacks the scope for one or more feature endpoints.
+    @ViewBuilder
+    private var scopeWarningBanner: some View {
+        if let scopeWarning {
+            Label(scopeWarning, systemImage: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange).font(.callout)
+        }
+    }
+
     private func validate() async {
         validation = .validating
+        scopeWarning = nil
         do {
             let client = CoderPadClient(apiKey: draft.apiKey.trimmingCharacters(in: .whitespacesAndNewlines),
                                         baseURL: draft.resolvedBaseURL)
@@ -948,9 +964,44 @@ struct AccountEditor: View {
                 }
             }
             validation = .valid(org.organizationName)
+            // The key reaches the org; now surface any feature endpoints it isn't
+            // scoped for, as a non-blocking note (the account still saves).
+            scopeWarning = await missingScopesWarning(client: client)
         } catch {
             validation = .invalid(friendlyValidationMessage(for: error))
         }
+    }
+
+    /// After the key proves it can reach the org, probe the main read endpoints
+    /// with one lightweight request each and report any that return a 403, so the
+    /// user learns up front that, e.g., Questions will be empty rather than hitting
+    /// a silent empty section later. Non-blocking: the account still validates and
+    /// saves. Network/other errors are not treated as missing scopes.
+    private func missingScopesWarning(client: CoderPadClient) async -> String? {
+        func authorized(_ probe: @escaping () async throws -> Void) async -> Bool {
+            do {
+                try await probe()
+                return true
+            } catch let error as CoderPadError where error.isUnauthorized {
+                return false
+            } catch {
+                return true
+            }
+        }
+        // One page proves read access without pulling the whole list.
+        func firstPage<T>(_ stream: AsyncThrowingStream<[T], Error>) async throws {
+            for try await _ in stream { return }
+        }
+        async let padsOK = authorized { try await firstPage(client.listPadsIncrementally()) }
+        async let questionsOK = authorized { try await firstPage(client.listQuestionsIncrementally()) }
+        async let quotaOK = authorized { _ = try await client.quota() }
+
+        var missing: [String] = []
+        if await padsOK == false { missing.append("Pads") }
+        if await questionsOK == false { missing.append("Questions") }
+        if await quotaOK == false { missing.append("Quota") }
+        guard !missing.isEmpty else { return nil }
+        return "This key works, but isn't authorized for: \(missing.joined(separator: ", ")). Those sections may be empty."
     }
 
     /// Derives the signed-in user's email from their own pads. `/api/pads/` is scoped
