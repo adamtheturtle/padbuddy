@@ -56,12 +56,21 @@ struct PadsRequest: Equatable {
     var ownerEmail: String?
     var search: String?
     var startCreating = false
+    /// A saved search to apply wholesale when the pane appears. Carries the full
+    /// filter set so picking a saved search from the sidebar reproduces exactly
+    /// what saving it captured — the same as tapping its in-pane chip.
+    var applySearch: NamedSearch?
 }
 
 /// The Questions-pane equivalent of `PadsRequest`.
 struct QuestionsRequest: Equatable {
     var search: String?
     var startCreating = false
+    /// A saved search to apply wholesale when the pane appears (see `PadsRequest`).
+    var applySearch: NamedSearch?
+    /// A favorite question to select when the pane appears, addressed by id since
+    /// the sidebar that routes it holds favorite ids, not the loaded `Question`s.
+    var selectQuestionID: Int?
 }
 
 /// Single source of truth for the visible section and any pending request queued
@@ -132,6 +141,21 @@ final class AppNavigation {
     func showQuestions(_ request: QuestionsRequest = QuestionsRequest()) {
         section = .questions
         questionsRequest = request
+    }
+
+    /// Switch to the list that owns `search` and apply it, routing a sidebar
+    /// saved-search tap through the same per-pane `apply` the in-list chips use.
+    func applySavedSearch(_ search: NamedSearch, kind: SavedSearchKind) {
+        switch kind {
+        case .pads: showPads(PadsRequest(applySearch: search))
+        case .questions: showQuestions(QuestionsRequest(applySearch: search))
+        }
+    }
+
+    /// Switch to Questions and select the favorite question with `id` once the
+    /// list has it, so a sidebar favorite opens straight into its detail pane.
+    func showFavoriteQuestion(id: Int) {
+        showQuestions(QuestionsRequest(selectQuestionID: id))
     }
 
     /// Queue a pad id to open in the in-app browser, consumed by ContentView.

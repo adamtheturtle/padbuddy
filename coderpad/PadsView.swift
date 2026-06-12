@@ -259,6 +259,9 @@ struct PadsView: View {
     private func applyPendingRequest() {
         guard let request = nav.padsRequest else { return }
         nav.padsRequest = nil
+        // Apply a saved search first so any explicit owner/search below can still
+        // override a single field of it when a request carries both.
+        if let saved = request.applySearch { apply(saved) }
         if let owner = request.ownerEmail { ownerFilter = owner }
         if let query = request.search { search = query }
         if request.startCreating { showCreate = true }

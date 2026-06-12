@@ -32,6 +32,9 @@ struct QuestionsView: View {
     @State private var showSaveSearch = false
     @State private var saveSearchName = ""
     @State private var isSuggestingName = false
+    /// A favorite picked from the sidebar before the list had loaded it. Held so
+    /// the selection can be made once the matching question arrives.
+    @State private var pendingSelectQuestionID: Int?
 
     var body: some View {
         sidebar
@@ -99,6 +102,9 @@ struct QuestionsView: View {
         }
         .onAppear { applyPendingRequest() }
         .onChange(of: nav.questionsRequest) { _, _ in applyPendingRequest() }
+        // A favorite tapped in the sidebar may arrive before the list has loaded;
+        // resolve the deferred selection as soon as the questions land.
+        .onChange(of: questions) { _, _ in resolvePendingSelection() }
         .task {
             for await _ in NotificationCenter.default.notifications(named: .reloadRequested) {
                 await reload()
@@ -111,8 +117,29 @@ struct QuestionsView: View {
     private func applyPendingRequest() {
         guard let request = nav.questionsRequest else { return }
         nav.questionsRequest = nil
+        if let saved = request.applySearch { apply(saved) }
         if let query = request.search { search = query }
         if request.startCreating { showCreate = true }
+        if let id = request.selectQuestionID { selectQuestion(id: id) }
+    }
+
+    /// Selects the question with `id`, deferring until the list loads it when the
+    /// favorite was picked before the questions arrived (e.g. right after a cold
+    /// launch). `resolvePendingSelection` completes the deferred case.
+    private func selectQuestion(id: Int) {
+        if let match = questions.first(where: { $0.id == id }) {
+            selection = match
+            pendingSelectQuestionID = nil
+        } else {
+            pendingSelectQuestionID = id
+        }
+    }
+
+    private func resolvePendingSelection() {
+        guard let id = pendingSelectQuestionID,
+              let match = questions.first(where: { $0.id == id }) else { return }
+        selection = match
+        pendingSelectQuestionID = nil
     }
 
     private var filtered: [Question] {
@@ -581,31 +608,35 @@ private struct QuestionRow: View {
     @State private var hovered = false
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text(question.displayTitle)
-                    .font(.callout.weight(.medium))
-                    .lineLimit(1)
-                HStack(spacing: 6) {
-                    if let lang = question.language, !lang.isEmpty {
-                        Chip(text: lang.languageDisplayName, systemImage: lang.languageSymbol, tint: lang.languageColor)
+        // The text/metadata block keeps its top alignment (title, chips, and the
+        // last-used date all read from the top), while the favorite star is
+        // centered against the row's full height as a row-level action distinct
+        // from the metadata.
+        HStack(alignment: .center, spacing: 8) {
+            HStack(alignment: .top, spacing: 10) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(question.displayTitle)
+                        .font(.callout.weight(.medium))
+                        .lineLimit(1)
+                    HStack(spacing: 6) {
+                        if let lang = question.language, !lang.isEmpty {
+                            Chip(text: lang.languageDisplayName, systemImage: lang.languageSymbol, tint: lang.languageColor)
+                        }
+                        if question.interviewType == .takeHome {
+                            InterviewType.takeHome.chip
+                        }
+                        if let used = question.used, used > 0 {
+                            Chip(text: "Used \(used)×", systemImage: "chart.bar", tint: .blue)
+                        }
+                        if question.isDraft == true {
+                            Chip(text: "Draft", systemImage: "doc.badge.ellipsis", tint: .orange)
+                        }
                     }
-                    if question.interviewType == .takeHome {
-                        InterviewType.takeHome.chip
-                    }
-                    if let used = question.used, used > 0 {
-                        Chip(text: "Used \(used)×", systemImage: "chart.bar", tint: .blue)
-                    }
-                    if question.isDraft == true {
-                        Chip(text: "Draft", systemImage: "doc.badge.ellipsis", tint: .orange)
+                    if let author = question.authorName {
+                        Text(author).font(.caption).foregroundStyle(.secondary)
                     }
                 }
-                if let author = question.authorName {
-                    Text(author).font(.caption).foregroundStyle(.secondary)
-                }
-            }
-            Spacer(minLength: 8)
-            HStack(alignment: .top, spacing: 8) {
+                Spacer(minLength: 8)
                 if let lastUsed = question.updatedAt {
                     Text(lastUsed.formatted(.relative(presentation: .named)))
                         .font(.caption)
@@ -615,8 +646,8 @@ private struct QuestionRow: View {
                         .help("Last used \(lastUsed.formatted(date: .abbreviated, time: .shortened))")
                         .accessibilityLabel("Last used \(lastUsed.formatted(.relative(presentation: .named)))")
                 }
-                favoriteButton
             }
+            favoriteButton
         }
         .padding(.vertical, 4)
         .contentShape(Rectangle())
@@ -647,6 +678,8 @@ struct QuestionDetailView: View {
     let question: Question
     @Environment(\.openWindow) private var openWindow
     @State private var nav = AppNavigation.shared
+    @State private var accounts = AccountsStore.shared
+    @State private var favorites = FavoriteQuestionsStore.shared
     @State private var showEdit = false
     @State private var showDeleteConfirm = false
     @State private var deleteError: String?
@@ -673,6 +706,14 @@ struct QuestionDetailView: View {
         .toolbar(id: "question.detail.toolbar") {
             if #available(macOS 26, *) {
                 ToolbarSpacer(.fixed)
+            }
+            ToolbarItem(id: "favoriteQuestion", placement: .primaryAction) {
+                Button { toggleFavorite() } label: {
+                    Label(isFavorite ? "Favorited" : "Favorite",
+                          systemImage: isFavorite ? "star.fill" : "star")
+                }
+                .help(isFavorite ? "Remove from Favorites" : "Add to Favorites")
+                .accessibilityLabel(isFavorite ? "Remove from Favorites" : "Add to Favorites")
             }
             ToolbarItem(id: "newPad", placement: .primaryAction) {
                 Button { Task { await createPad() } } label: {
@@ -991,6 +1032,17 @@ struct QuestionDetailView: View {
         } catch {
             deleteError = error.localizedDescription
         }
+    }
+
+    /// Whether the displayed question is a favorite of the current account, so the
+    /// toolbar star can reflect and toggle its state.
+    private var isFavorite: Bool {
+        favorites.isFavorite(question.id, account: accounts.currentAccountID)
+    }
+
+    private func toggleFavorite() {
+        guard let account = accounts.currentAccountID else { return }
+        favorites.toggle(question.id, account: account)
     }
 
     /// Honors a "New Pad from Question" request routed via `AppNavigation` (e.g.

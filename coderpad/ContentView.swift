@@ -698,18 +698,29 @@ private struct SidebarMaterial: NSViewRepresentable {
 
 private struct Sidebar: View {
     @Binding var section: AppSection
+    @State private var accounts = AccountsStore.shared
+    @State private var savedSearches = SavedSearchStore.shared
+    @State private var favorites = FavoriteQuestionsStore.shared
+    @State private var questionsCache = QuestionsCacheStore.shared
+    @State private var nav = AppNavigation.shared
 
     var body: some View {
         VStack(spacing: 0) {
-            VStack(spacing: 2) {
-                sidebarRow(.pads, "Pads", "doc.text")
-                sidebarRow(.questions, "Questions", "questionmark.bubble")
-                sidebarRow(.organization, "Organization", "building.2")
-                sidebarRow(.quota, "Quota", "gauge.with.dots.needle.67percent")
+            // Scrolls so the saved-search and favorites lists can grow past the
+            // window height while the account footer stays pinned to the bottom.
+            ScrollView {
+                VStack(spacing: 2) {
+                    sidebarRow(.pads, "Pads", "doc.text")
+                    sidebarRow(.questions, "Questions", "questionmark.bubble")
+                    sidebarRow(.organization, "Organization", "building.2")
+                    sidebarRow(.quota, "Quota", "gauge.with.dots.needle.67percent")
+                }
+                .padding(.horizontal, 8)
+                .padding(.top, 10)
+
+                savedSearchesSection
+                favoritesSection
             }
-            .padding(.horizontal, 8)
-            .padding(.top, 10)
-            Spacer(minLength: 0)
             Divider()
             AccountFooter()
                 .padding(10)
@@ -726,6 +737,135 @@ private struct Sidebar: View {
             SidebarMaterial().ignoresSafeArea()
             Color.black.opacity(0.18).ignoresSafeArea()
         }
+    }
+
+    private var accountID: UUID? { accounts.currentAccountID }
+
+    // MARK: Saved searches
+
+    /// One pad or question saved search, tagged with its list so a tap can route
+    /// to the right pane. `id` is the underlying search's id, unique per kind.
+    private struct SavedItem: Identifiable {
+        let id: UUID
+        let search: NamedSearch
+        let kind: SavedSearchKind
+    }
+
+    /// Both lists' saved searches, pads first, so the sidebar mirrors the section
+    /// order above. Defaults like "My Pads" aren't included — those are recomputed
+    /// per pane and live as chips there, not as persisted entries.
+    private var savedItems: [SavedItem] {
+        let pads = savedSearches.searches(account: accountID, kind: .pads)
+            .map { SavedItem(id: $0.id, search: $0, kind: .pads) }
+        let questions = savedSearches.searches(account: accountID, kind: .questions)
+            .map { SavedItem(id: $0.id, search: $0, kind: .questions) }
+        return pads + questions
+    }
+
+    @ViewBuilder
+    private var savedSearchesSection: some View {
+        let items = savedItems
+        if !items.isEmpty {
+            sidebarSectionHeader("Saved Searches")
+            VStack(spacing: 2) {
+                ForEach(items) { item in
+                    sidebarSubRow(
+                        label: item.search.name,
+                        icon: item.kind == .pads ? "doc.text" : "questionmark.bubble"
+                    ) {
+                        nav.applySavedSearch(item.search, kind: item.kind)
+                    }
+                    .contextMenu {
+                        Button(role: .destructive) {
+                            if let account = accountID {
+                                savedSearches.remove(id: item.id, account: account, kind: item.kind)
+                            }
+                        } label: {
+                            Label("Delete Saved Search", systemImage: "trash")
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 8)
+        }
+    }
+
+    // MARK: Favorites
+
+    private struct FavoriteItem: Identifiable {
+        let id: Int
+        let title: String
+    }
+
+    /// The current account's starred questions, in the order they were starred.
+    /// Titles come from the questions cache (warmed on launch and persisted), so
+    /// they're available even before the Questions pane has been opened; a favorite
+    /// whose question isn't cached yet falls back to its id.
+    private var favoriteItems: [FavoriteItem] {
+        guard let account = accountID else { return [] }
+        let ids = favorites.favorites(account: account)
+        guard !ids.isEmpty else { return [] }
+        let titles = Dictionary(
+            questionsCache.get(account).map { ($0.id, $0.displayTitle) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        return ids.map { FavoriteItem(id: $0, title: titles[$0] ?? "Question #\($0)") }
+    }
+
+    @ViewBuilder
+    private var favoritesSection: some View {
+        let items = favoriteItems
+        if !items.isEmpty {
+            sidebarSectionHeader("Favorites")
+            VStack(spacing: 2) {
+                ForEach(items) { item in
+                    sidebarSubRow(label: item.title, icon: "star.fill", iconTint: .yellow) {
+                        nav.showFavoriteQuestion(id: item.id)
+                    }
+                }
+            }
+            .padding(.horizontal, 8)
+        }
+    }
+
+    // MARK: Row chrome
+
+    private func sidebarSectionHeader(_ title: String) -> some View {
+        HStack {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Spacer()
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 16)
+        .padding(.bottom, 4)
+    }
+
+    /// A lighter row than `sidebarRow`: these are recall/navigation actions rather
+    /// than the persistent section selection, so they carry no selection pill and
+    /// don't feed `SidebarRowWidthKey` — long names truncate instead of widening
+    /// the whole column.
+    private func sidebarSubRow(label: String, icon: String, iconTint: Color = .secondary,
+                               action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .imageScale(.medium)
+                    .foregroundStyle(iconTint)
+                    .frame(width: 22)
+                Text(label)
+                    .font(.callout)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .foregroundStyle(.primary)
+                Spacer(minLength: 0)
+            }
+            .padding(.vertical, 5)
+            .padding(.horizontal, 8)
+            .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder
