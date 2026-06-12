@@ -131,12 +131,20 @@ enum GeneralSettings {
         static let hideDockIcon = "general.hideDockIcon"
         static let refreshSeconds = "general.refreshSeconds"
         static let requireBiometricsToRevealKey = "general.requireBiometricsToRevealKey"
+        static let spotlightIndexing = "general.spotlightIndexing"
     }
 
     /// Whether revealing a saved API key in Settings must be unlocked with Touch ID
     /// (falling back to the login password). Off by default.
     static var requireBiometricsToRevealKey: Bool {
         UserDefaults.standard.bool(forKey: Key.requireBiometricsToRevealKey)
+    }
+
+    /// Whether pads and questions are mirrored into the on-device Spotlight index so
+    /// they're findable system-wide. Off by default — pad titles can carry candidate
+    /// names, so it's opt-in. See `SpotlightIndexer`.
+    static var spotlightIndexing: Bool {
+        UserDefaults.standard.bool(forKey: Key.spotlightIndexing)
     }
 
     /// Default auto-refresh cadence, matching the value the panes used before this
@@ -235,6 +243,8 @@ struct SettingsView: View {
     @AppStorage(GeneralSettings.Key.hideDockIcon) private var hideDockIcon = false
     @AppStorage(GeneralSettings.Key.refreshSeconds) private var refreshSeconds = GeneralSettings.defaultRefreshSeconds
     @AppStorage(GeneralSettings.Key.requireBiometricsToRevealKey) private var requireBiometricsToRevealKey = false
+    @AppStorage(GeneralSettings.Key.spotlightIndexing) private var spotlightIndexing = false
+    @State private var accountsStore = AccountsStore.shared
 
     // Launch-at-login mirrors the live `SMAppService` state rather than UserDefaults,
     // so it's plain view state kept in sync on appear and after each toggle.
@@ -321,6 +331,24 @@ struct SettingsView: View {
                 Toggle("Require Touch ID to reveal API keys", isOn: $requireBiometricsToRevealKey)
             } footer: {
                 Text("When on, showing a saved API key in Settings must be unlocked with Touch ID (or your login password on Macs without it).")
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                Toggle("Make pads searchable in Spotlight", isOn: $spotlightIndexing)
+                    .onChange(of: spotlightIndexing) { _, on in
+                        if on {
+                            // Index what's already cached so results appear without a refresh.
+                            if let id = accountsStore.currentAccountID {
+                                SpotlightIndexer.updatePads(PadsCacheStore.shared.get(id), account: id)
+                                SpotlightIndexer.updateQuestions(QuestionsCacheStore.shared.get(id), account: id)
+                            }
+                        } else {
+                            SpotlightIndexer.clearAll()
+                        }
+                    }
+            } footer: {
+                Text("Mirror your pads and questions into the on-device Spotlight index so you can find them from system search. The index stays on this Mac; nothing is uploaded. Off by default because pad titles can include candidate names.")
                     .foregroundStyle(.secondary)
             }
 

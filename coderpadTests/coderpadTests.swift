@@ -965,6 +965,21 @@ struct PadRefreshIntervalTests {
     }
 }
 
+@Suite("Spotlight item identifiers")
+struct SpotlightIndexerTests {
+    @Test("a pad identifier round-trips the pad id")
+    func padIdentifier() {
+        #expect(SpotlightIndexer.padID(fromItemIdentifier: "pad:ABC123") == "ABC123")
+        #expect(SpotlightIndexer.padID(fromItemIdentifier: "question:42") == nil)
+    }
+
+    @Test("a question identifier is recognized")
+    func questionIdentifier() {
+        #expect(SpotlightIndexer.isQuestion(itemIdentifier: "question:42"))
+        #expect(!SpotlightIndexer.isQuestion(itemIdentifier: "pad:ABC123"))
+    }
+}
+
 @Suite("Pad filtering")
 struct PadFilterTests {
 

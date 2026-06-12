@@ -245,6 +245,7 @@ final class AccountsStore {
         QuestionsCacheStore.shared.remove(id)
         OrganizationCacheStore.shared.remove(id)
         QuotaCacheStore.shared.remove(id)
+        SpotlightIndexer.removeAccount(id)
     }
 
     private func migrateLegacyIfNeeded() {
@@ -690,6 +691,8 @@ final class PadsCacheStore {
         padsByAccount[accountID] = pads
         diskConsulted.insert(accountID)
         guard persist else { return }
+        // Index the complete list (not the streaming snapshots) when the user opted in.
+        SpotlightIndexer.updatePads(pads, account: accountID)
         writeQueue.enqueue {
             CacheDisk.save(pads, kind: "pads", account: accountID)
         }
@@ -727,6 +730,7 @@ final class QuestionsCacheStore {
     func set(_ accountID: UUID, questions: [Question]) {
         questionsByAccount[accountID] = questions
         diskConsulted.insert(accountID)
+        SpotlightIndexer.updateQuestions(questions, account: accountID)
         writeQueue.enqueue {
             CacheDisk.save(questions, kind: "questions", account: accountID)
         }

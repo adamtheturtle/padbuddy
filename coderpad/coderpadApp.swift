@@ -5,6 +5,7 @@
 
 import SwiftUI
 import AppKit
+import CoreSpotlight
 
 let copyrightLine = "Copyright © 2026 Adam Dangoor"
 
@@ -165,6 +166,15 @@ struct coderpadApp: App {
                 // than a hardcoded number here.
                 .frame(minHeight: 540)
                 .preferredColorScheme(appearance.colorScheme)
+                // Open the pad/question behind a tapped Spotlight result.
+                .onContinueUserActivity(CSSearchableItemActionType) { activity in
+                    guard let id = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String else { return }
+                    if let padID = SpotlightIndexer.padID(fromItemIdentifier: id) {
+                        AppNavigation.shared.openPad(id: padID)
+                    } else if SpotlightIndexer.isQuestion(itemIdentifier: id) {
+                        AppNavigation.shared.show(.questions)
+                    }
+                }
         }
         .windowStyle(.hiddenTitleBar)
         .defaultLaunchBehavior(.presented)
