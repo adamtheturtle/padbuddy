@@ -683,6 +683,9 @@ struct QuestionDetailView: View {
     @State private var showEdit = false
     @State private var showDeleteConfirm = false
     @State private var deleteError: String?
+    /// The in-flight delayed deletion, shown as an undoable banner during the grace
+    /// period. Cancelling it (Undo) aborts before the API call fires.
+    @State private var deletionTask: Task<Void, Never>?
     @State private var isCreatingPad = false
     @State private var createPadError: String?
     @State private var showBrowser = false
@@ -696,6 +699,8 @@ struct QuestionDetailView: View {
                 detailScroll
             }
         }
+        .overlay(alignment: .bottom) { undoDeletionBanner }
+        .animation(.spring(duration: 0.3), value: deletionTask == nil)
         .navigationTitle(question.title.isEmpty ? "#\(question.id)" : question.title)
         // Detail-column actions live in the unified window toolbar rather than in
         // the content header: there they float on the system Liquid Glass layer
@@ -749,10 +754,10 @@ struct QuestionDetailView: View {
         }
         .confirmationDialog("Delete \(question.title.isEmpty ? "this question" : question.title)?",
                              isPresented: $showDeleteConfirm) {
-            Button("Delete", role: .destructive) { Task { await deleteQuestion() } }
+            Button("Delete", role: .destructive) { startDeletion() }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This cannot be undone.")
+            Text("You'll have a few seconds to undo before it's permanently deleted.")
         }
         .alert("Couldn’t create pad",
                isPresented: Binding(get: { createPadError != nil },
@@ -1025,12 +1030,53 @@ struct QuestionDetailView: View {
         }
     }
 
-    private func deleteQuestion() async {
+    /// Grace period during which a confirmed deletion can still be undone.
+    private static let deletionGracePeriod: Duration = .seconds(5)
+
+    /// Begins a delayed deletion: an undo banner appears for the grace period, and
+    /// the API delete only fires if it isn't cancelled. A no-op if one is already
+    /// pending (the confirm dialog can't reopen while the banner is up).
+    private func startDeletion() {
+        guard deletionTask == nil else { return }
+        deletionTask = Task {
+            try? await Task.sleep(for: Self.deletionGracePeriod)
+            if Task.isCancelled { return }
+            await performDelete()
+            deletionTask = nil
+        }
+    }
+
+    private func cancelDeletion() {
+        deletionTask?.cancel()
+        deletionTask = nil
+    }
+
+    private func performDelete() async {
         do {
             try await client.deleteQuestion(id: question.id)
             NotificationCenter.default.post(name: .questionDeleted, object: question.id)
         } catch {
             deleteError = error.localizedDescription
+        }
+    }
+
+    @ViewBuilder
+    private var undoDeletionBanner: some View {
+        if deletionTask != nil {
+            HStack(spacing: 12) {
+                Image(systemName: "trash")
+                Text("Deleting “\(question.title.isEmpty ? "this question" : question.title)”…")
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+                Button("Undo") { cancelDeletion() }
+                    .buttonStyle(.borderedProminent)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(.thinMaterial, in: Capsule())
+            .overlay(Capsule().stroke(Color.subtleStroke, lineWidth: 1))
+            .padding(.bottom, 12)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
         }
     }
 
