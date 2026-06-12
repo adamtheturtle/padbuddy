@@ -782,6 +782,25 @@ private struct PadRow: View {
             Spacer(minLength: 0)
         }
         .padding(.vertical, 4)
+        // Read the whole row as one VoiceOver element with a coherent label,
+        // rather than stopping on each badge/label separately. The "changed"
+        // indicator is a color-only dot, so fold it into the label as well.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    private var accessibilityLabel: String {
+        var parts = [pad.title.isEmpty ? pad.id : pad.title, pad.status.label]
+        if let language = pad.language, !language.isEmpty {
+            parts.append(language.languageDisplayName)
+        }
+        if pad.interviewType == .takeHome { parts.append("Take-home") }
+        parts.append(directory.display(pad.ownerEmail))
+        if let updated = pad.informativeUpdatedAt {
+            parts.append("updated \(updated.formatted(.relative(presentation: .named)))")
+        }
+        if isChanged { parts.append("recently updated") }
+        return parts.joined(separator: ", ")
     }
 }
 
