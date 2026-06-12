@@ -1,10 +1,23 @@
 name: Release
 
-# Builds a Release .app and publishes a GitHub Release when a semver tag is
-# pushed (e.g. `git tag v1.0.0 && git push origin v1.0.0`). The produced .app is
-# ad-hoc/unsigned — suitable as a build artifact for testing and archival.
-# Developer ID signing + notarization for redistribution is tracked separately
-# (#29, #150) and requires signing secrets this workflow intentionally omits.
+# Builds a Release build and publishes a GitHub Release when a semver tag is
+# pushed (e.g. `git tag v1.0.0 && git push origin v1.0.0`).
+#
+# When the Developer ID signing + notarization secrets are configured (see
+# below), the workflow signs the app with a Developer ID Application identity,
+# packages it as a notarized, stapled `.dmg`, and attaches that — so it opens
+# cleanly on other people's Macs without a Gatekeeper warning (#150).
+#
+# When those secrets are absent it falls back to an ad-hoc/unsigned `.zip`,
+# which is fine for testing and archival but not redistribution.
+#
+# Required repository secrets for the signed path:
+#   DEVELOPER_ID_APP_CERT_P12_BASE64  base64 of the Developer ID Application
+#                                     certificate + private key, exported as .p12
+#   DEVELOPER_ID_APP_CERT_PASSWORD    password protecting that .p12
+#   NOTARY_APPLE_ID                   Apple ID email for notarytool
+#   NOTARY_PASSWORD                   app-specific password for that Apple ID
+#   NOTARY_TEAM_ID                    Apple Developer Team ID (e.g. 6L9H6Q8CUF)
 on:
   push:
     tags:
@@ -18,6 +31,10 @@ jobs:
     name: Build & publish
     runs-on: macos-26
     timeout-minutes: 30
+    # Derived once from the presence of signing secrets; every conditional step
+    # keys off this so the workflow degrades gracefully to an unsigned .zip.
+    env:
+      SIGNING_AVAILABLE: ${{ secrets.DEVELOPER_ID_APP_CERT_P12_BASE64 != '' && secrets.NOTARY_APPLE_ID != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -41,11 +58,67 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
 
-      - name: Package app
+      - name: Locate built app
+        id: app
         run: |
           APP="$(find DerivedData/Build/Products/Release -maxdepth 1 -name 'coderpad.app' -print -quit)"
           test -n "$APP" || { echo "Built app not found"; exit 1; }
-          ditto -c -k --sequesterRsrc --keepParent "$APP" "coderpad-${GITHUB_REF_NAME}.zip"
+          echo "path=$APP" >> "$GITHUB_OUTPUT"
+
+      # --- Signed path: Developer ID + notarization (when secrets present) ---
+
+      - name: Import signing certificate
+        if: env.SIGNING_AVAILABLE == 'true'
+        env:
+          CERT_P12_BASE64: ${{ secrets.DEVELOPER_ID_APP_CERT_P12_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.DEVELOPER_ID_APP_CERT_PASSWORD }}
+        run: |
+          set -euo pipefail
+          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(uuidgen)"
+          CERT_PATH="$RUNNER_TEMP/developer-id.p12"
+
+          echo "$CERT_P12_BASE64" | base64 --decode > "$CERT_PATH"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          security import "$CERT_PATH" -P "$CERT_PASSWORD" \
+            -A -t cert -f pkcs12 -k "$KEYCHAIN"
+          # Allow codesign to use the key non-interactively.
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+          # Put the new keychain on the search list (keeping the existing ones).
+          security list-keychains -d user -s "$KEYCHAIN" \
+            $(security list-keychains -d user | sed 's/["[:space:]]//g')
+          rm -f "$CERT_PATH"
+
+          IDENTITY="$(security find-identity -v -p codesigning "$KEYCHAIN" \
+            | grep 'Developer ID Application' | head -1 \
+            | sed -E 's/.*"(.*)".*/\1/')"
+          test -n "$IDENTITY" || { echo "No Developer ID Application identity found"; exit 1; }
+          echo "SIGNING_IDENTITY=$IDENTITY" >> "$GITHUB_ENV"
+
+      - name: Sign, notarize, and package (.dmg)
+        if: env.SIGNING_AVAILABLE == 'true'
+        env:
+          NOTARY_APPLE_ID: ${{ secrets.NOTARY_APPLE_ID }}
+          NOTARY_PASSWORD: ${{ secrets.NOTARY_PASSWORD }}
+          NOTARY_TEAM_ID: ${{ secrets.NOTARY_TEAM_ID }}
+        run: |
+          ./scripts/package-and-notarize.sh \
+            "${{ steps.app.outputs.path }}" \
+            "coderpad-${GITHUB_REF_NAME}.dmg"
+
+      # --- Fallback path: ad-hoc/unsigned .zip (when secrets absent) ---------
+
+      - name: Package app (ad-hoc .zip)
+        if: env.SIGNING_AVAILABLE != 'true'
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent \
+            "${{ steps.app.outputs.path }}" "coderpad-${GITHUB_REF_NAME}.zip"
+
+      # --- Publish ----------------------------------------------------------
 
       - name: Generate release notes
         run: ./scripts/release-notes.sh > RELEASE_NOTES.md
@@ -54,7 +127,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          ASSETS=()
+          for f in "coderpad-${GITHUB_REF_NAME}.dmg" "coderpad-${GITHUB_REF_NAME}.zip"; do
+            [ -f "$f" ] && ASSETS+=("$f")
+          done
           gh release create "${GITHUB_REF_NAME}" \
-            "coderpad-${GITHUB_REF_NAME}.zip" \
+            "${ASSETS[@]}" \
             --title "${GITHUB_REF_NAME}" \
             --notes-file RELEASE_NOTES.md
