@@ -1031,9 +1031,13 @@ struct PadDetailView: View {
                             browserURL = url
                         }
                     } label: {
-                        Label("Open Pad", systemImage: "doc.text.image")
+                        // Short title ("Open", not "Open Pad") so it doesn't truncate
+                        // to "O…" when the detail column is narrow and the toolbar is
+                        // crowded; the accessibility label stays descriptive.
+                        Label("Open", systemImage: "doc.text.image")
                     }
                     .help("Open the pad")
+                    .accessibilityLabel("Open pad")
                 }
             }
             if #available(macOS 26, *) {
