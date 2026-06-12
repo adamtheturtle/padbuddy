@@ -6,6 +6,7 @@
 import SwiftUI
 import AppKit
 import ServiceManagement
+import LocalAuthentication
 
 /// Where a pad link opens when you activate it.
 enum LinkDestination: String, CaseIterable, Identifiable {
@@ -129,6 +130,13 @@ enum GeneralSettings {
         static let appearance = "general.appearance"
         static let hideDockIcon = "general.hideDockIcon"
         static let refreshSeconds = "general.refreshSeconds"
+        static let requireBiometricsToRevealKey = "general.requireBiometricsToRevealKey"
+    }
+
+    /// Whether revealing a saved API key in Settings must be unlocked with Touch ID
+    /// (falling back to the login password). Off by default.
+    static var requireBiometricsToRevealKey: Bool {
+        UserDefaults.standard.bool(forKey: Key.requireBiometricsToRevealKey)
     }
 
     /// Default auto-refresh cadence, matching the value the panes used before this
@@ -225,6 +233,7 @@ struct SettingsView: View {
     @AppStorage(GeneralSettings.Key.appearance) private var appearance: AppAppearance = .system
     @AppStorage(GeneralSettings.Key.hideDockIcon) private var hideDockIcon = false
     @AppStorage(GeneralSettings.Key.refreshSeconds) private var refreshSeconds = GeneralSettings.defaultRefreshSeconds
+    @AppStorage(GeneralSettings.Key.requireBiometricsToRevealKey) private var requireBiometricsToRevealKey = false
 
     // Launch-at-login mirrors the live `SMAppService` state rather than UserDefaults,
     // so it's plain view state kept in sync on appear and after each toggle.
@@ -304,6 +313,13 @@ struct SettingsView: View {
                     }
             } footer: {
                 Text("Run CoderPad from the menu bar only. The app stays available from its menu-bar icon.")
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                Toggle("Require Touch ID to reveal API keys", isOn: $requireBiometricsToRevealKey)
+            } footer: {
+                Text("When on, showing a saved API key in Settings must be unlocked with Touch ID (or your login password on Macs without it).")
                     .foregroundStyle(.secondary)
             }
 
@@ -599,6 +615,9 @@ struct AccountEditor: View {
     /// `SecureField` by default so macOS offers password AutoFill suggestions;
     /// revealing it via a toggle (rather than on focus) keeps that intact.
     @State private var revealKey = false
+    /// When set in General settings, revealing a saved key first requires a
+    /// successful Touch ID (or password) check — see `toggleReveal`.
+    @AppStorage(GeneralSettings.Key.requireBiometricsToRevealKey) private var requireBiometricsToRevealKey = false
 
     init(initial: Account,
          embedded: Bool = false,
@@ -617,6 +636,27 @@ struct AccountEditor: View {
         self.onSave = onSave
         self.onCancel = onCancel
         self.onDelete = onDelete
+    }
+
+    /// Reveals or hides the key. Hiding is immediate; revealing is gated behind a
+    /// Touch ID / password check when the user enabled that in General settings.
+    /// If the device can't evaluate the policy (no biometrics and no passcode set),
+    /// reveal anyway rather than lock the user out of their own key.
+    private func toggleReveal() {
+        if revealKey { revealKey = false; return }
+        guard requireBiometricsToRevealKey else { revealKey = true; return }
+        let context = LAContext()
+        var policyError: NSError?
+        guard context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &policyError) else {
+            revealKey = true
+            return
+        }
+        Task {
+            let success = (try? await context.evaluatePolicy(
+                .deviceOwnerAuthentication,
+                localizedReason: "Reveal your saved CoderPad API key")) ?? false
+            if success { revealKey = true }
+        }
     }
 
     var body: some View {
@@ -659,7 +699,7 @@ struct AccountEditor: View {
                         .textFieldStyle(.roundedBorder)
                         .textContentType(.password)
                         Button {
-                            revealKey.toggle()
+                            toggleReveal()
                         } label: {
                             Image(systemName: revealKey ? "eye.slash" : "eye")
                         }
