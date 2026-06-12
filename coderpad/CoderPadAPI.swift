@@ -669,9 +669,12 @@ nonisolated struct Quota: Decodable, Hashable {
 /// rather than walking `next_page` one blocking round-trip at a time.
 private protocol PagedResponse: Decodable, Sendable {
     associatedtype Item: Decodable & Sendable
-    var pageItems: [Item] { get }
-    var nextPage: String? { get }
-    var total: Int? { get }
+    // `nonisolated` so the pagination pipeline can read these off the main actor
+    // (see `streamAllPages`); without it the module's default MainActor isolation
+    // would make the protocol requirements main-actor-isolated.
+    nonisolated var pageItems: [Item] { get }
+    nonisolated var nextPage: String? { get }
+    nonisolated var total: Int? { get }
 }
 
 private nonisolated struct PadsPage: PagedResponse {
@@ -773,9 +776,13 @@ private nonisolated struct Wrapper: Decodable { let users: [OrganizationUser] }
 // MARK: - Client
 
 struct CoderPadClient {
-    let apiKey: String
-    let baseURL: URL
-    let session: URLSession
+    // The client carries only immutable, Sendable configuration and drives pure
+    // networking, so these are `nonisolated`: it lets the low-level request/
+    // pagination methods below run off the main actor (see `streamAllPages`)
+    // rather than being pinned to it by the module's default MainActor isolation.
+    nonisolated let apiKey: String
+    nonisolated let baseURL: URL
+    nonisolated let session: URLSession
 
     /// The standard hosted CoderPad endpoint, used when an account doesn't
     /// override it (e.g. a self-hosted or regional deployment).
@@ -993,7 +1000,7 @@ struct CoderPadClient {
 
     // MARK: Plumbing
 
-    private func authorizedGET(_ url: URL) -> URLRequest {
+    nonisolated private func authorizedGET(_ url: URL) -> URLRequest {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
@@ -1026,12 +1033,15 @@ struct CoderPadClient {
     /// cursor-style pagination) fall back to walking `next_page` sequentially, emitting a
     /// snapshot per page. Without this whole mechanism, callers would silently receive only
     /// the first 50 records.
-    private func streamAllPages<W: PagedResponse>(_ type: W.Type, path: String, sort: String? = nil) -> AsyncThrowingStream<[W.Item], Error> {
+    nonisolated private func streamAllPages<W: PagedResponse>(_ type: W.Type, path: String, sort: String? = nil) -> AsyncThrowingStream<[W.Item], Error> {
         AsyncThrowingStream { continuation in
-            // `CoderPadClient` is a Sendable value type, so the pipeline — including the
-            // concurrent child tasks below — runs off the main actor on the cooperative
-            // pool, keeping the list-building work (URL construction, snapshot
-            // accumulation) off the main thread while pages stream in.
+            // This method and the networking it calls are `nonisolated`, so this
+            // unstructured `Task` does not inherit the module's default main-actor
+            // isolation — the pipeline, including the concurrent child tasks below,
+            // runs on the cooperative pool. That keeps the list-building work (URL
+            // construction, snapshot accumulation) off the main thread while pages
+            // stream in. (Inheriting the main actor is exactly what a plain `Task`
+            // would do from a MainActor-isolated context, regardless of Sendability.)
             let work = Task {
                 do {
                     guard !apiKey.isEmpty else { throw CoderPadError.missingAPIKey }
@@ -1138,7 +1148,7 @@ struct CoderPadClient {
     /// GET requests are idempotent, so transient failures (5xx, 429, network timeouts)
     /// are retried with exponential backoff before the error surfaces to the UI. Mutating
     /// requests go straight through `perform` to avoid duplicating side effects.
-    private func performWithRetry<T: Decodable & Sendable>(_ type: T.Type, request: URLRequest, maxAttempts: Int = 3) async throws -> T {
+    nonisolated private func performWithRetry<T: Decodable & Sendable>(_ type: T.Type, request: URLRequest, maxAttempts: Int = 3) async throws -> T {
         var attempt = 0
         while true {
             do {
@@ -1153,7 +1163,7 @@ struct CoderPadClient {
         }
     }
 
-    private static func isTransient(_ error: Error) -> Bool {
+    nonisolated private static func isTransient(_ error: Error) -> Bool {
         if let api = error as? CoderPadError, case .http(let code, _) = api {
             return (500...599).contains(code) || code == 429 || code == 0
         }
@@ -1177,7 +1187,7 @@ struct CoderPadClient {
         return try await perform(type, request: request)
     }
 
-    private func perform<T: Decodable & Sendable>(_ type: T.Type, request: URLRequest) async throws -> T {
+    nonisolated private func perform<T: Decodable & Sendable>(_ type: T.Type, request: URLRequest) async throws -> T {
         let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else {
             throw CoderPadError.http(0, "No HTTP response")
@@ -1202,7 +1212,7 @@ struct CoderPadClient {
         }
     }
 
-    private func pathString(_ keys: [CodingKey]) -> String {
+    nonisolated private func pathString(_ keys: [CodingKey]) -> String {
         keys.map { $0.stringValue }.joined(separator: ".")
     }
 
