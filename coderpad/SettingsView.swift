@@ -1062,6 +1062,8 @@ struct AccountEditor: View {
                 return "CoderPad couldn't verify the key right now. Try again in a moment."
             case .decode:
                 return "CoderPad returned something unexpected. Try again, and if it keeps happening, regenerate the key."
+            case .network:
+                return api.errorDescription ?? "Couldn't reach CoderPad. Check your internet connection and try again."
             }
         }
         let ns = error as NSError

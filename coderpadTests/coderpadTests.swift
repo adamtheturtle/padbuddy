@@ -803,6 +803,19 @@ struct CoderPadErrorMessageTests {
         let error = CoderPadError.http(422, #"{"message":"Title can't be blank"}"#)
         #expect(error.errorDescription == "Title can't be blank")
     }
+
+    @Test("transport failures map to plain-language, actionable messages")
+    func networkErrors() {
+        #expect(CoderPadError.network(URLError(.notConnectedToInternet)).errorDescription?.contains("offline") == true)
+        #expect(CoderPadError.network(URLError(.networkConnectionLost)).errorDescription?.contains("offline") == true)
+        #expect(CoderPadError.network(URLError(.timedOut)).errorDescription?.contains("timed out") == true)
+        #expect(CoderPadError.network(URLError(.cannotConnectToHost)).errorDescription?.contains("reach CoderPad") == true)
+        #expect(CoderPadError.network(URLError(.cannotFindHost)).errorDescription?.contains("reach CoderPad") == true)
+        // An unmapped code still gets a useful, non-empty fallback (not a raw URLError dump).
+        let fallback = CoderPadError.network(URLError(.badServerResponse)).errorDescription ?? ""
+        #expect(fallback.contains("network error"))
+        #expect(!fallback.contains("Error Domain"))
+    }
 }
 
 // MARK: - Pad list logic (filters, date ranges, event grouping)

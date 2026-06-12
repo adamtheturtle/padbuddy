@@ -707,6 +707,10 @@ enum CoderPadError: LocalizedError {
     case missingAPIKey
     case http(Int, String)
     case decode(String)
+    /// A transport-level failure (offline, timeout, unreachable host) before any HTTP
+    /// response arrived. Mapped to a plain-language sentence rather than surfacing the
+    /// raw `URLError`, which on the sandbox can read as a cryptic "could not connect".
+    case network(URLError)
 
     var errorDescription: String? {
         switch self {
@@ -716,6 +720,23 @@ enum CoderPadError: LocalizedError {
             return Self.message(forStatus: code, body: body)
         case .decode(let detail):
             return "Couldn't read response: \(detail)"
+        case .network(let urlError):
+            return Self.message(forURLError: urlError)
+        }
+    }
+
+    /// A human-facing sentence for a transport failure. Groups the common URL error
+    /// codes (offline, timeout, unreachable) into clear, actionable messages.
+    private static func message(forURLError error: URLError) -> String {
+        switch error.code {
+        case .notConnectedToInternet, .networkConnectionLost:
+            return "You appear to be offline. Check your internet connection and try again."
+        case .timedOut:
+            return "The request timed out. Check your connection and try again."
+        case .cannotConnectToHost, .cannotFindHost, .dnsLookupFailed:
+            return "Couldn't reach CoderPad. Check your connection and try again."
+        default:
+            return "A network error occurred. Check your connection and try again."
         }
     }
 
@@ -1177,8 +1198,14 @@ struct CoderPadClient {
     }
 
     nonisolated private static func isTransient(_ error: Error) -> Bool {
-        if let api = error as? CoderPadError, case .http(let code, _) = api {
-            return (500...599).contains(code) || code == 429 || code == 0
+        if let api = error as? CoderPadError {
+            if case .http(let code, _) = api {
+                return (500...599).contains(code) || code == 429 || code == 0
+            }
+            if case .network(let urlError) = api {
+                return [.timedOut, .networkConnectionLost, .cannotConnectToHost].contains(urlError.code)
+            }
+            return false
         }
         let ns = error as NSError
         if ns.domain == NSURLErrorDomain {
@@ -1201,7 +1228,15 @@ struct CoderPadClient {
     }
 
     nonisolated private func perform<T: Decodable & Sendable>(_ type: T.Type, request: URLRequest) async throws -> T {
-        let (data, response) = try await session.data(for: request)
+        let data: Data
+        let response: URLResponse
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch let urlError as URLError {
+            // Surface transport failures (offline, timeout, unreachable) as a typed,
+            // friendly error rather than leaking the raw URLError into the UI.
+            throw CoderPadError.network(urlError)
+        }
         guard let http = response as? HTTPURLResponse else {
             throw CoderPadError.http(0, "No HTTP response")
         }
