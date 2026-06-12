@@ -796,7 +796,20 @@ struct CoderPadClient {
         self.session = session
     }
 
-    static let liveSession: URLSession = .shared
+    /// The single construction point for the live network session, so request
+    /// policy (timeouts, caching) lives here rather than relying on the
+    /// process-wide `URLSession.shared` singleton. Tests inject
+    /// `MockServer.session(_:)` instead (see `mock(_:)`), so both
+    /// session-construction strategies are owned by this type.
+    static let liveSession: URLSession = makeLiveSession()
+
+    private static func makeLiveSession() -> URLSession {
+        let config = URLSessionConfiguration.default
+        // The retry layer (`performWithRetry`) handles transient timeouts, so keep
+        // the standard 60s per-request timeout rather than failing fast.
+        config.timeoutIntervalForRequest = 60
+        return URLSession(configuration: config)
+    }
 
     static func live(apiKey: String, baseURL: URL = CoderPadClient.defaultBaseURL) -> CoderPadClient {
         CoderPadClient(apiKey: apiKey, baseURL: baseURL, session: liveSession)
