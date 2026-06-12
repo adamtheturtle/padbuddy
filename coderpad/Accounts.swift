@@ -573,6 +573,47 @@ final class FavoriteQuestionsStore {
     }
 }
 
+/// Per-account record of when each pad was last opened, so the pad list can show
+/// an activity dot on a started pad that has changed *since you last looked at it*
+/// — a more personal signal than "changed since the last background refresh".
+/// Scoped per account (a pad id only means something within its org) and
+/// persisted to UserDefaults as a single JSON blob keyed by account id.
+@Observable
+final class PadOpenedStore {
+    static let shared = PadOpenedStore()
+    private var byAccount: [UUID: [String: Date]] = [:]
+    private static let key = "padLastOpened.v1"
+
+    private init() {
+        if let data = UserDefaults.standard.data(forKey: Self.key),
+           let decoded = try? JSONDecoder().decode([UUID: [String: Date]].self, from: data) {
+            byAccount = decoded
+        }
+    }
+
+    /// When the pad was last opened under this account, or `nil` if never opened.
+    func lastOpened(_ padID: String, account: UUID?) -> Date? {
+        guard let account else { return nil }
+        return byAccount[account]?[padID]
+    }
+
+    /// Records that the pad was just opened, clearing its activity dot until it
+    /// next changes. `now` is injectable for tests.
+    func markOpened(_ padID: String, account: UUID, now: Date = Date()) {
+        byAccount[account, default: [:]][padID] = now
+        save()
+    }
+
+    private func save() {
+        do {
+            let data = try JSONEncoder().encode(byAccount)
+            UserDefaults.standard.set(data, forKey: Self.key)
+        } catch {
+            persistenceLogger.error("Failed to encode pad open times: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+}
+
 /// On-disk backing for the per-account list caches. Lets pads and questions a
 /// returning user already loaded appear instantly on the next cold launch, with
 /// the network fetch refreshing them in the background (stale-while-revalidate).

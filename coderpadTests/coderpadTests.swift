@@ -879,6 +879,41 @@ struct PadDateRangeTests {
     }
 }
 
+@Suite("Pad activity since open")
+struct PadActivitySinceOpenTests {
+    private func date(_ s: String) -> Date { ISO8601DateFormatter().date(from: s)! }
+
+    @Test("started pad updated after last open shows the dot")
+    func startedUpdatedAfter() throws {
+        let pad = try makePad(state: "started", updatedAt: "2026-06-12T12:00:00Z")
+        #expect(PadListLogic.hasNewActivitySinceOpen(pad, lastOpened: date("2026-06-12T11:00:00Z")))
+    }
+
+    @Test("started pad updated before last open shows no dot")
+    func startedUpdatedBefore() throws {
+        let pad = try makePad(state: "started", updatedAt: "2026-06-12T10:00:00Z")
+        #expect(!PadListLogic.hasNewActivitySinceOpen(pad, lastOpened: date("2026-06-12T11:00:00Z")))
+    }
+
+    @Test("a never-opened pad shows no dot")
+    func neverOpened() throws {
+        let pad = try makePad(state: "started", updatedAt: "2026-06-12T12:00:00Z")
+        #expect(!PadListLogic.hasNewActivitySinceOpen(pad, lastOpened: nil))
+    }
+
+    @Test("a non-started pad shows no dot even with new activity")
+    func endedPad() throws {
+        let pad = try makePad(state: "ended", updatedAt: "2026-06-12T12:00:00Z")
+        #expect(!PadListLogic.hasNewActivitySinceOpen(pad, lastOpened: date("2026-06-12T11:00:00Z")))
+    }
+
+    @Test("a started pad with no updated_at shows no dot")
+    func noUpdatedAt() throws {
+        let pad = try makePad(state: "started")
+        #expect(!PadListLogic.hasNewActivitySinceOpen(pad, lastOpened: date("2026-06-12T11:00:00Z")))
+    }
+}
+
 @Suite("Pad filtering")
 struct PadFilterTests {
 

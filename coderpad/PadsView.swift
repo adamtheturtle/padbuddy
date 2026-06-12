@@ -14,6 +14,7 @@ struct PadsView: View {
     @State private var accounts = AccountsStore.shared
     @State private var nav = AppNavigation.shared
     @State private var cache = PadsCacheStore.shared
+    @State private var openedStore = PadOpenedStore.shared
     @State private var pads: [Pad] = []
     @State private var isLoading = false
     @State private var error: Error?
@@ -27,7 +28,6 @@ struct PadsView: View {
     @State private var typeFilter: String? = nil
     @State private var showCreate = false
     @State private var previousUpdatedAt: [String: Date] = [:]
-    @State private var changedPadIDs: Set<String> = []
     @State private var hasLoadedOnce = false
     @State private var dateRangeFilter: String? = nil
     @State private var savedSearches = SavedSearchStore.shared
@@ -64,6 +64,12 @@ struct PadsView: View {
         }
         .onAppear { applyPendingRequest() }
         .onChange(of: nav.padsRequest) { _, _ in applyPendingRequest() }
+        // Opening (selecting) a pad clears its "new activity" dot until it next changes.
+        .onChange(of: selection) { _, newValue in
+            if let newValue, let account = accounts.currentAccountID {
+                openedStore.markOpened(newValue.id, account: account)
+            }
+        }
         .task {
             for await _ in NotificationCenter.default.notifications(named: .reloadRequested) {
                 await reload()
@@ -283,7 +289,8 @@ struct PadsView: View {
                     Divider()
                     List(selection: $selection) {
                         ForEach(filtered) { pad in
-                            PadRow(pad: pad, isChanged: changedPadIDs.contains(pad.id))
+                            PadRow(pad: pad, isChanged: PadListLogic.hasNewActivitySinceOpen(
+                                pad, lastOpened: openedStore.lastOpened(pad.id, account: accounts.currentAccountID)))
                                 .tag(pad)
                                 .contextMenu { padContextMenu(pad) }
                                 // Full swipe is allowed because it only opens the
@@ -585,7 +592,6 @@ struct PadsView: View {
                     }
                 }
             }
-            changedPadIDs = changes
             PadActivityMonitor.shared.record(changedCount: changes.count)
             var nextState: [String: Date] = [:]
             for pad in fetched {

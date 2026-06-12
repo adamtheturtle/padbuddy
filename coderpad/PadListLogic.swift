@@ -47,6 +47,15 @@ struct PadFilterCriteria {
 }
 
 enum PadListLogic {
+    /// Whether a pad should show the "new activity" dot: it's a *started* pad that
+    /// has been updated since the user last opened it. A pad never opened (nil
+    /// `lastOpened`) shows no dot — "since last open" has no meaning yet — and only
+    /// started pads qualify, since activity on ended/pending pads isn't actionable.
+    static func hasNewActivitySinceOpen(_ pad: Pad, lastOpened: Date?) -> Bool {
+        guard pad.status == .active, let lastOpened, let updated = pad.updatedAt else { return false }
+        return updated > lastOpened
+    }
+
     /// Filter `pads` by `criteria`. `display` resolves an owner email to a display
     /// name so a search can match the human-readable owner as well as the raw
     /// email; it defaults to the identity so callers without a directory still
