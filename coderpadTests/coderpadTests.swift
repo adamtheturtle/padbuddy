@@ -760,3 +760,30 @@ struct GeneralSettingsTests {
         }
     }
 }
+
+@Suite("CoderPadError messages")
+struct CoderPadErrorMessageTests {
+
+    @Test("HTTP errors never leak the raw response body into the message")
+    func hidesRawBody() {
+        let error = CoderPadError.http(404, #"{"status":404,"error":"Not Found"}"#)
+        let message = try! #require(error.errorDescription)
+        // The old message dumped the JSON verbatim; the new one must not.
+        #expect(!message.contains("{"))
+        #expect(!message.contains("status"))
+        #expect(message.contains("deleted"))
+    }
+
+    @Test("known status codes get a plain-language explanation")
+    func knownCodes() {
+        #expect(CoderPadError.http(401, "").errorDescription?.contains("API key") == true)
+        #expect(CoderPadError.http(429, "").errorDescription?.contains("rate-limiting") == true)
+        #expect(CoderPadError.http(503, "").errorDescription?.contains("server error") == true)
+    }
+
+    @Test("an API-supplied message is preferred over a bare HTTP code")
+    func surfacesAPIMessage() {
+        let error = CoderPadError.http(422, #"{"message":"Title can't be blank"}"#)
+        #expect(error.errorDescription == "Title can't be blank")
+    }
+}

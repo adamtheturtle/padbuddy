@@ -507,7 +507,7 @@ struct SettingsView: View {
     private var menuBarTab: some View {
         Form {
             Section {
-                Stepper(value: $menuBarTopN, in: 3...30, step: 1) {
+                Stepper(value: $menuBarTopN, in: 0...30, step: 1) {
                     HStack {
                         Text("Recent pads in menu bar")
                         Spacer()

@@ -339,7 +339,10 @@ struct PadBrowserView: View {
                     }
                 }
         }
-        .frame(minWidth: 900, minHeight: 700)
+        // No minimum size here: when embedded in the detail pane this view must fit
+        // the (narrower) column, otherwise a 900pt floor pushes the toolbar wider
+        // than the column and clips its trailing controls. The standalone Pad Browser
+        // window applies its own minimum at the call site.
     }
 
     /// Shown over the (blank) web view when a load fails after the automatic retry,

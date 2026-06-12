@@ -710,10 +710,49 @@ enum CoderPadError: LocalizedError {
         case .missingAPIKey:
             return "Missing API key. Open Settings to add an account."
         case .http(let code, let body):
-            return "HTTP \(code): \(body.prefix(300))"
+            return Self.message(forStatus: code, body: body)
         case .decode(let detail):
             return "Couldn't read response: \(detail)"
         }
+    }
+
+    /// A human-facing sentence for an HTTP failure. Deliberately never echoes the raw
+    /// response body — surfacing `{"status":404,"error":"Not Found"}` in an alert leaks
+    /// the transport layer into the UI. Known status codes get a plain-language
+    /// explanation; for anything else we prefer a message the API itself supplied,
+    /// falling back to a generic line that keeps the code for a bug report.
+    private static func message(forStatus code: Int, body: String) -> String {
+        switch code {
+        case 401, 403:
+            return "You're not authorized. Check this account's API key in Settings."
+        case 404:
+            return "The server couldn't find that. It may have already been deleted."
+        case 429:
+            return "CoderPad is rate-limiting requests right now. Try again in a moment."
+        case 500...599:
+            return "CoderPad had a server error. Please try again shortly."
+        default:
+            if let apiMessage = apiMessage(from: body) { return apiMessage }
+            return "The request failed (HTTP \(code))."
+        }
+    }
+
+    /// Pulls a human-readable message out of an error response body, if it carries one.
+    /// CoderPad returns errors as `{"message": …}` or `{"error": …}`; we ignore the bare
+    /// `status`/`error` boilerplate (e.g. "Not Found") so only a real explanation shows.
+    private static func apiMessage(from body: String) -> String? {
+        guard let data = body.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return nil
+        }
+        for key in ["message", "error_description", "error"] {
+            if let value = object[key] as? String,
+               !value.isEmpty,
+               value.caseInsensitiveCompare("Not Found") != .orderedSame {
+                return value
+            }
+        }
+        return nil
     }
 
     var isUnauthorized: Bool {
@@ -841,20 +880,25 @@ struct CoderPadClient {
 
     /// The live API replies `{"status":"OK"}` with no pad body, so we re-fetch the
     /// pad to return its fresh server state rather than decoding the (absent) body.
+    /// The pad id travels in the URL path (`PUT /api/pads/:id`) per the API's
+    /// "Modify a pad" contract — not just in the body.
     func updatePad(_ body: PadUpdate) async throws -> Pad {
-        _ = try await send(StatusOnly.self, method: "PUT", path: "/api/pads/", body: body)
+        _ = try await send(StatusOnly.self, method: "PUT", path: "/api/pads/\(body.id)", body: body)
         return try await getPad(id: body.id)
     }
 
-    /// Ends the interview. The live API replies `{"status":"OK"}` with no pad body.
+    /// Ends the interview, by setting `ended` on the pad. The live API replies
+    /// `{"status":"OK"}` with no pad body.
     func endPad(id: String) async throws {
-        _ = try await send(StatusOnly.self, method: "PUT", path: "/api/pads/",
+        _ = try await send(StatusOnly.self, method: "PUT", path: "/api/pads/\(id)",
                            body: PadUpdate(id: id, ended: true))
     }
 
-    /// Deletes the interview. The live API replies `{"status":"OK"}` with no pad body.
+    /// Deletes the pad. CoderPad has no `DELETE` for pads; deletion is the same
+    /// "Modify a pad" endpoint with `deleted` set — `PUT /api/pads/:id` with the id
+    /// in the URL path. The live API replies `{"status":"OK"}`.
     func deletePad(id: String) async throws {
-        _ = try await send(StatusOnly.self, method: "PUT", path: "/api/pads/",
+        _ = try await send(StatusOnly.self, method: "PUT", path: "/api/pads/\(id)",
                            body: PadUpdate(id: id, deleted: true))
     }
 

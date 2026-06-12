@@ -144,9 +144,6 @@ struct OrganizationView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(organization?.organizationName ?? "…")
                     .font(.title2.weight(.semibold))
-                Text(organization.map { "ID #\($0.id)" } ?? " ")
-                    .foregroundStyle(.secondary)
-                    .font(.callout.monospaced())
             }
             Spacer()
         }

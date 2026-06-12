@@ -180,7 +180,7 @@ struct QuestionsView: View {
                                         selection = q
                                         nav.createPadForQuestionID = q.id
                                     } label: {
-                                        Label("New Pad", systemImage: "plus.rectangle.on.rectangle")
+                                        Label("New Pad", systemImage: "doc.badge.plus")
                                     }
                                     .tint(.accentColor)
                                 }
@@ -467,7 +467,6 @@ private struct QuestionRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
-            AvatarCircle(label: question.ownerEmail, diameter: 30, tint: .indigo)
             VStack(alignment: .leading, spacing: 4) {
                 Text(question.displayTitle)
                     .font(.callout.weight(.medium))
@@ -527,6 +526,42 @@ struct QuestionDetailView: View {
             }
         }
         .navigationTitle(question.title.isEmpty ? "#\(question.id)" : question.title)
+        // Detail-column actions live in the unified window toolbar rather than in
+        // the content header: there they float on the system Liquid Glass layer
+        // automatically, and the header stays free for identity and metadata. A
+        // leading spacer separates them from the Questions list's own toolbar
+        // items (Sort, Reload, New Question) so "New Pad" doesn't read as a
+        // sibling of "New Question".
+        .toolbar(id: "question.detail.toolbar") {
+            if #available(macOS 26, *) {
+                ToolbarSpacer(.fixed)
+            }
+            ToolbarItem(id: "newPad", placement: .primaryAction) {
+                Button { Task { await createPad() } } label: {
+                    if isCreatingPad {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Label("New Pad", systemImage: "doc.badge.plus")
+                    }
+                }
+                .disabled(isCreatingPad)
+                .help("Create a new interview pad from this question")
+                .accessibilityLabel("New Pad")
+            }
+            ToolbarItem(id: "editQuestion", placement: .primaryAction) {
+                Button { showEdit = true } label: {
+                    Label("Edit", systemImage: "pencil")
+                }
+                .help("Edit question")
+            }
+            ToolbarItem(id: "deleteQuestion", placement: .primaryAction) {
+                Button(role: .destructive) { showDeleteConfirm = true } label: {
+                    Label("Delete", systemImage: "trash")
+                }
+                .help("Delete question")
+                .accessibilityLabel("Delete question")
+            }
+        }
         .sheet(isPresented: $showEdit) {
             EditQuestionSheet(client: client, original: question) { updated in
                 NotificationCenter.default.post(name: .questionUpdated, object: updated)
@@ -618,53 +653,9 @@ struct QuestionDetailView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 12) {
-                AvatarCircle(label: question.ownerEmail, diameter: 48, tint: .indigo)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(question.title.isEmpty ? "Untitled Question" : question.title)
-                        .font(.title.bold())
-                        .lineLimit(2)
-                    if let author = question.authorName {
-                        Text("by \(author)")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                    EmailLink(email: question.ownerEmail)
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                }
-                // Claim the leftover width here rather than via a trailing
-                // Spacer: a Spacer competes with the wrapping title Text for
-                // flexible space and, next to the fixed-size button group,
-                // starves it down to a single character per line.
-                .frame(maxWidth: .infinity, alignment: .leading)
-                HStack(spacing: 6) {
-                    Button { Task { await createPad() } } label: {
-                        if isCreatingPad {
-                            ProgressView().controlSize(.small)
-                        } else {
-                            Label("New Pad", systemImage: "plus.rectangle.on.rectangle")
-                                .lineLimit(1)
-                                .fixedSize()
-                        }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(isCreatingPad)
-                    .help("Create a new interview pad from this question")
-                    Button { showEdit = true } label: { Label("Edit", systemImage: "pencil") }
-                        .help("Edit question")
-                    Button(role: .destructive) { showDeleteConfirm = true } label: {
-                        Image(systemName: "trash")
-                    }
-                    .help("Delete question")
-                    .accessibilityLabel("Delete question")
-                }
-                .fixedSize()
-                // Capsule shape matches the pane-title hero CTA and the Pads
-                // detail header, keeping one shape language for action buttons
-                // across panes. Propagates to every bordered button here.
-                .buttonBorderShape(.capsule)
-            }
+            // Actions now live in the window toolbar, so the header only carries
+            // identity and the metadata chips below.
+            headerIdentity
             HStack(spacing: 6) {
                 if let lang = question.language, !lang.isEmpty {
                     Chip(text: lang.languageDisplayName, systemImage: lang.languageSymbol, tint: lang.languageColor)
@@ -683,8 +674,33 @@ struct QuestionDetailView: View {
         }
     }
 
-    private var metaCards: some View {
+    private var headerIdentity: some View {
         HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(question.title.isEmpty ? "Untitled Question" : question.title)
+                    .font(.title.bold())
+                    .lineLimit(2)
+                if let author = question.authorName {
+                    Text("by \(author)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                EmailLink(email: question.ownerEmail)
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+            }
+        }
+    }
+
+    private var metaCards: some View {
+        // An adaptive grid rather than a fixed HStack: three equal tiles fit on
+        // one row in a wide pane, but reflow onto extra rows as it narrows.
+        // A plain HStack instead overflows the pane — clipping the trailing tile
+        // and hyphenating its label (CRE-ATED / UP-DATED) — once the tiles can't
+        // all fit at their minimum width.
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)],
+                  alignment: .leading, spacing: 12) {
             if let used = question.used {
                 StatTile(title: "Times used", value: "\(used)", systemImage: "chart.bar.fill", tint: .blue)
             }

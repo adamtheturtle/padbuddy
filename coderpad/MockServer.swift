@@ -113,12 +113,10 @@ nonisolated enum MockResponses {
     /// `MockFixtures` accessors it calls) may touch the fixture state without further
     /// synchronization. Must not re-enter `respond` — `Mutex` is not reentrant.
     private static func respondLocked(method: String, path: String, query: [String: String] = [:], body: Data?) -> (Int, Data) {
-        if method == "PUT", path == "/api/pads/" || path == "/api/pads" {
-            guard let body,
-                  var dict = try? JSONSerialization.jsonObject(with: body) as? [String: Any],
-                  let id = dict["id"] as? String else {
-                return (400, jsonString(["status": "error", "message": "missing id"]))
-            }
+        // Modify a pad: the live API carries the pad id in the URL path
+        // (`PUT /api/pads/:id`), with the changed attributes in the body.
+        if method == "PUT", let id = match(path, pattern: #"^/api/pads/([^/]+)/?$"#), !id.isEmpty {
+            var dict = (body.flatMap { try? JSONSerialization.jsonObject(with: $0) as? [String: Any] }) ?? [:]
             // The live API mirrors `deleted`/`ended` as side effects, not stored fields.
             if dict["deleted"] as? Bool == true {
                 MockFixtures.deletedPadIDs.insert(id)

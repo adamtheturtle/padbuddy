@@ -34,53 +34,6 @@ struct MenuBarView: View {
                     .font(.caption).foregroundStyle(.orange)
                 Button("Mark All as Seen") { monitor.markSeen() }
             }
-            Text("My Pads · \(account.name)")
-                .font(.caption).foregroundStyle(.secondary)
-            if let quotaSummary {
-                Text(quotaSummary)
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-
-            if store.accounts.count > 1 {
-                Menu("Switch Account") {
-                    ForEach(store.accounts) { acct in
-                        Button {
-                            store.currentAccountID = acct.id
-                        } label: {
-                            if acct.id == store.currentAccountID {
-                                Label(acct.name, systemImage: "checkmark")
-                            } else {
-                                Text(acct.name)
-                            }
-                        }
-                    }
-                }
-            }
-
-            Divider()
-
-            if isLoading && pads.isEmpty {
-                Text("Loading…").foregroundStyle(.secondary)
-            } else if let errorMessage {
-                Text(errorMessage).foregroundStyle(.red).lineLimit(2)
-            } else if myPads.isEmpty {
-                Text("No pads").foregroundStyle(.secondary)
-            } else {
-                ForEach(myPads.prefix(topN)) { pad in
-                    Button {
-                        if let url = pad.webURL {
-                            BrowserSettings.openExternally(url)
-                        }
-                    } label: {
-                        Text(padLabel(pad))
-                    }
-                }
-                if myPads.count > topN {
-                    Text("…\(myPads.count - topN) more").foregroundStyle(.secondary)
-                }
-            }
-
-            Divider()
 
             Button("New Pad…") {
                 Task { await createPad(PadCreate(), account: account) }
@@ -108,6 +61,36 @@ struct MenuBarView: View {
 
             Divider()
 
+            Text("My Pads · \(account.name)")
+                .font(.caption).foregroundStyle(.secondary)
+            if let quotaSummary {
+                Text(quotaSummary)
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+
+            if isLoading && pads.isEmpty {
+                Text("Loading…").foregroundStyle(.secondary)
+            } else if let errorMessage {
+                Text(errorMessage).foregroundStyle(.red).lineLimit(2)
+            } else if myPads.isEmpty {
+                Text("No pads").foregroundStyle(.secondary)
+            } else {
+                ForEach(myPads.prefix(topN)) { pad in
+                    Button {
+                        if let url = pad.webURL {
+                            BrowserSettings.openExternally(url)
+                        }
+                    } label: {
+                        Text(padLabel(pad))
+                    }
+                }
+                if myPads.count > topN {
+                    Text("…\(myPads.count - topN) more").foregroundStyle(.secondary)
+                }
+            }
+
+            Divider()
+
             Menu("Go to") {
                 Button("Pads") { go(.pads) }
                 Button("Questions") { go(.questions) }
@@ -130,6 +113,22 @@ struct MenuBarView: View {
                 NotificationCenter.default.post(name: .openSettingsRequested, object: nil)
             }
             .keyboardShortcut(",")
+
+            if store.accounts.count > 1 {
+                Menu("Switch Account") {
+                    ForEach(store.accounts) { acct in
+                        Button {
+                            store.currentAccountID = acct.id
+                        } label: {
+                            if acct.id == store.currentAccountID {
+                                Label(acct.name, systemImage: "checkmark")
+                            } else {
+                                Text(acct.name)
+                            }
+                        }
+                    }
+                }
+            }
 
             Divider()
 

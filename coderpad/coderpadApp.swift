@@ -151,7 +151,10 @@ struct coderpadApp: App {
     var body: some Scene {
         WindowGroup("CoderPad", id: "main") {
             ContentView()
-                .frame(minWidth: 940, minHeight: 540)
+                // Width floor is owned by `MainSplit`, derived from the live column
+                // minimums (and enforced via the sidebar's auto-collapse) rather
+                // than a hardcoded number here.
+                .frame(minHeight: 540)
                 .preferredColorScheme(appearance.colorScheme)
         }
         .windowStyle(.hiddenTitleBar)
@@ -169,6 +172,7 @@ struct coderpadApp: App {
         WindowGroup("Pad Browser", id: "pad-browser", for: URL.self) { $url in
             if let url {
                 PadBrowserView(url: url)
+                    .frame(minWidth: 900, minHeight: 700)
                     .navigationTitle(url.host ?? "Pad")
                     .preferredColorScheme(appearance.colorScheme)
             }

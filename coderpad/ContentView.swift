@@ -263,6 +263,16 @@ private struct MainSplit: View {
     /// and surface our own toggle in the titlebar instead.
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
+    /// Whether the sidebar's current collapse was driven by the window becoming too
+    /// narrow rather than a manual toggle. We only auto-expand what we auto-collapsed,
+    /// so a deliberate choice is never overridden by a resize.
+    @State private var autoCollapsed = false
+
+    /// Latest observed width of the split-view container, kept so a section change
+    /// (which moves the collapse threshold) can be re-evaluated without waiting for
+    /// the next resize.
+    @State private var containerWidth: CGFloat = 0
+
     /// Floor for the content column: the natural width of the active section's
     /// filter bar, so it can never be dragged too thin to hold all filters.
     @State private var contentMinWidth: CGFloat = 380
@@ -277,6 +287,34 @@ private struct MainSplit: View {
     /// selection pill's edge. Added to the measured label width.
     private static let sidebarRowChrome: CGFloat = 110
 
+    /// Minimum width of the detail column. A single source shared by the column
+    /// definition and the auto-collapse/window-floor math, so they can't drift.
+    private static let detailMinWidth: CGFloat = 360
+
+    /// Ceiling for ``contentMinWidth``. The filter bar reports its full natural
+    /// width, which can exceed the budget the window's own minimum width leaves
+    /// for this column once the sidebar and detail minimums are subtracted. Left
+    /// uncapped, shrinking the window inflates this floor past that budget and the
+    /// list pane gets clipped instead of the filter bar simply scrolling. Holding
+    /// the floor here keeps sidebar + content + detail within the window minimum.
+    private static let contentMinWidthCeiling: CGFloat = 380
+
+    /// Smallest container width at which every visible column fits at its measured
+    /// minimum and the sidebar can stay open. Derived from the live measurements
+    /// (`sidebarMinWidth`, `contentMinWidth`) rather than a hardcoded constant, so
+    /// it tracks label, font, and filter changes automatically.
+    private var sidebarVisibleFloor: CGFloat {
+        sectionHasDetail
+            ? sidebarMinWidth + contentMinWidth + Self.detailMinWidth
+            : sidebarMinWidth + Self.detailMinWidth
+    }
+
+    /// Window floor once the sidebar is collapsed: the remaining columns at their
+    /// minimums. Lets the window shrink below ``sidebarVisibleFloor`` gracefully —
+    /// the sidebar hides — instead of crushing the sidebar against the edge. Kept
+    /// section-independent so the window minimum doesn't jump when switching tabs.
+    private var collapsedFloor: CGFloat { contentMinWidth + Self.detailMinWidth }
+
     private var isSidebarCollapsed: Bool { columnVisibility != .all }
 
     private func toggleSidebar() {
@@ -286,6 +324,27 @@ private struct MainSplit: View {
             } else {
                 columnVisibility = sectionHasDetail ? .doubleColumn : .detailOnly
             }
+        }
+        // A manual toggle takes ownership: stop tracking this as a width-driven
+        // collapse so a later resize doesn't undo the user's choice.
+        autoCollapsed = false
+    }
+
+    /// Collapses the sidebar when the container is too narrow to hold every column
+    /// at its minimum, and restores it once there's room again — but only when the
+    /// collapse was ours to begin with, never a manual one.
+    private func updateSidebarCollapse(for width: CGFloat) {
+        guard width > 0 else { return }
+        if width < sidebarVisibleFloor {
+            if columnVisibility == .all {
+                withAnimation(.smooth) {
+                    columnVisibility = sectionHasDetail ? .doubleColumn : .detailOnly
+                }
+                autoCollapsed = true
+            }
+        } else if autoCollapsed {
+            withAnimation(.smooth) { columnVisibility = .all }
+            autoCollapsed = false
         }
     }
 
@@ -310,7 +369,25 @@ private struct MainSplit: View {
                     twoColumnSplit
                 }
             }
+            // Floor the window at the collapsed layout's needs; auto-collapse keeps
+            // it usable between here and `sidebarVisibleFloor`.
+            .frame(minWidth: collapsedFloor)
+            // Observe the container width without disturbing layout (a background
+            // reader, not a wrapping GeometryReader, so the frame min still
+            // propagates to the window). Drives the sidebar's auto-collapse.
+            .background(
+                GeometryReader { proxy in
+                    Color.clear
+                        .onChange(of: proxy.size.width, initial: true) { _, width in
+                            containerWidth = width
+                        }
+                }
+            )
         }
+        .onChange(of: containerWidth) { _, width in updateSidebarCollapse(for: width) }
+        // A section change moves the threshold (three columns vs. two), so
+        // re-evaluate against the width we already know.
+        .onChange(of: section) { _, _ in updateSidebarCollapse(for: containerWidth) }
         // Pin the sidebar toggle in the titlebar (right of the traffic lights),
         // which the hidden title bar leaves transparent over the sidebar.
         .background(
@@ -407,8 +484,11 @@ private struct MainSplit: View {
             // with sub-pixel-different (or identical) values would re-invalidate the
             // column mid-layout — which AppKit reports as layout recursion.
             .onPreferenceChange(FilterBarWidthKey.self) { width in
-                let rounded = width.rounded()
-                if contentMinWidth != rounded { contentMinWidth = rounded }
+                // Clamp to the ceiling so the column floor never demands more than
+                // the window's minimum width can give it. Past this the filter bar
+                // scrolls horizontally rather than squeezing and clipping the list.
+                let clamped = min(width, Self.contentMinWidthCeiling).rounded()
+                if contentMinWidth != clamped { contentMinWidth = clamped }
             }
             .navigationSplitViewColumnWidth(
                 min: contentMinWidth,
@@ -421,7 +501,7 @@ private struct MainSplit: View {
                 padSelection: $padSelection,
                 questionSelection: $questionSelection
             )
-            .navigationSplitViewColumnWidth(min: 360, ideal: 520)
+            .navigationSplitViewColumnWidth(min: Self.detailMinWidth, ideal: 520)
         }
     }
 

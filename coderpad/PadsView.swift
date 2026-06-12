@@ -80,8 +80,12 @@ struct PadsView: View {
         .task {
             for await id in NotificationCenter.default.notifications(named: .padDeleted)
                 .compactMap({ $0.object as? String }) {
+                // Move the selection to a neighbor before dropping the row, so
+                // deleting the open pad keeps the detail pane populated instead
+                // of snapping to the empty placeholder. Computed while `pads`
+                // still holds the deleted pad so the index lookup is valid.
+                if selection?.id == id { selection = neighborSelection(forDeleted: id) }
                 pads.removeAll { $0.id == id }
-                if selection?.id == id { selection = nil }
             }
         }
         .sheet(isPresented: $showSaveSearch) {
@@ -205,6 +209,19 @@ struct PadsView: View {
              || directory.display(pad.ownerEmail).lowercased().contains(lowered)
              || pad.participants.contains(where: { $0.lowercased().contains(lowered) }))
         }
+    }
+
+    /// The pad to select after the pad with `id` is deleted. Picks the row that
+    /// takes the deleted row's position (the next one down), falling back to the
+    /// previous pad when the deleted pad was last, and to `nil` when it was the
+    /// only visible pad. Resolved against `filtered` — the list the user actually
+    /// sees — so a hidden pad never becomes the new selection.
+    private func neighborSelection(forDeleted id: String) -> Pad? {
+        let visible = filtered
+        guard let i = visible.firstIndex(where: { $0.id == id }) else { return nil }
+        if visible.indices.contains(i + 1) { return visible[i + 1] }
+        if visible.indices.contains(i - 1) { return visible[i - 1] }
+        return nil
     }
 
     private var availableStates: [PadState] {
@@ -789,6 +806,77 @@ struct PadDetailView: View {
             }
         }
         .navigationTitle(pad.title.isEmpty ? pad.id : pad.title)
+        // Detail-column actions live in the unified window toolbar rather than in
+        // the content header: there they float on the system Liquid Glass layer
+        // automatically, and the header stays free for identity and metadata. A
+        // leading spacer separates them from the Pads list's own toolbar items
+        // (Reload, New Pad). The lifecycle/destructive actions (Save Code, End
+        // Interview, Delete Pad) sit in their own trailing group behind a second
+        // spacer; End Interview and Delete Pad each still require a confirmation
+        // dialog, so surfacing them directly can't trigger an irreversible action
+        // from a stray click.
+        .toolbar(id: "pad.detail.toolbar") {
+            if #available(macOS 26, *) {
+                ToolbarSpacer(.fixed)
+            }
+            ToolbarItem(id: "editPad", placement: .primaryAction) {
+                Button { showEdit = true } label: {
+                    Label("Edit", systemImage: "pencil")
+                }
+                .help("Edit pad properties")
+            }
+            if let url = pad.webURL {
+                ToolbarItem(id: "sharePad", placement: .primaryAction) {
+                    ShareLink(item: url) {
+                        Label("Share", systemImage: "square.and.arrow.up")
+                    }
+                    .help("Share pad")
+                    .accessibilityLabel("Share pad")
+                }
+                ToolbarItem(id: "openPad", placement: .primaryAction) {
+                    Button {
+                        if BrowserSettings.openLinksIn == .external {
+                            BrowserSettings.openExternally(url)
+                        } else {
+                            browserURL = url
+                        }
+                    } label: {
+                        Label("Open Pad", systemImage: "doc.text.image")
+                    }
+                    .help("Open the pad")
+                }
+            }
+            if #available(macOS 26, *) {
+                ToolbarSpacer(.fixed)
+            }
+            ToolbarItem(id: "saveCode", placement: .primaryAction) {
+                Button {
+                    saveCodeLocally()
+                } label: {
+                    Label("Save Code…", systemImage: "square.and.arrow.down")
+                }
+                .disabled(!hasSavableCode)
+                .help("Save the pad's code to a file or folder on this Mac")
+            }
+            ToolbarItem(id: "endInterview", placement: .primaryAction) {
+                Button {
+                    showEndConfirm = true
+                } label: {
+                    Label("End Interview", systemImage: "flag.checkered")
+                }
+                .disabled(isEnded || isMutating)
+                .help("End the interview for all participants")
+            }
+            ToolbarItem(id: "deletePad", placement: .primaryAction) {
+                Button(role: .destructive) {
+                    showDeleteConfirm = true
+                } label: {
+                    Label("Delete Pad", systemImage: "trash")
+                }
+                .disabled(isMutating)
+                .help("Delete this pad")
+            }
+        }
         .task(id: pad.id) { await load() }
         .sheet(isPresented: $showEdit) {
             EditPadSheet(
@@ -1084,23 +1172,9 @@ struct PadDetailView: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: 10) {
-            // When the pane is wide, identity and actions share one row. As it
-            // narrows, the actions drop to a row below so the title keeps the full
-            // pane width to wrap across, instead of being starved by the fixed-size
-            // buttons down to a one-character-per-line column.
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .top, spacing: 12) {
-                    identity
-                        .lineLimit(1)
-                        .fixedSize(horizontal: true, vertical: false)
-                    Spacer(minLength: 12)
-                    actionButtons
-                }
-                VStack(alignment: .leading, spacing: 12) {
-                    identity
-                    actionButtons
-                }
-            }
+            // Actions now live in the window toolbar, so the header only carries
+            // identity, the metadata chips, and the raw ID below.
+            identity
             HStack(spacing: 6) {
                 StateBadge(state: pad.status)
                 // Skip the pad-level language chip when a single code card is
@@ -1147,91 +1221,6 @@ struct PadDetailView: View {
                 }
             }
         }
-    }
-
-    private var actionButtons: some View {
-        // Grouped by intent rather than laid out as one flat row: the primary
-        // "Open" CTA stands alone, non-destructive utilities (Edit, Share) join
-        // into a ControlGroup, and the destructive/lifecycle actions live behind
-        // a labelled overflow menu. Keeping End Interview and Delete out of the
-        // visible cluster — and behind full text labels — guards against an
-        // accidental, irreversible click on a bare icon.
-        HStack(spacing: 6) {
-            // Secondary, non-destructive utilities kept adjacent so they read as
-            // a toolbar cluster. These are deliberately *not* wrapped in a
-            // ControlGroup: on macOS a ShareLink nested in a ControlGroup renders
-            // its button but the share-service picker never presents (it has no
-            // view to anchor to), so the Share action was silently swallowed.
-            Button { showEdit = true } label: {
-                Label("Edit", systemImage: "pencil")
-            }
-            .buttonStyle(.bordered)
-            .help("Edit pad properties")
-            .fixedSize()
-            if let url = pad.webURL {
-                ShareLink(item: url) {
-                    Label("Share", systemImage: "square.and.arrow.up")
-                }
-                .buttonStyle(.bordered)
-                .help("Share pad")
-                .accessibilityLabel("Share pad")
-                .fixedSize()
-            }
-            if let url = pad.webURL {
-                Button {
-                    if BrowserSettings.openLinksIn == .external {
-                        BrowserSettings.openExternally(url)
-                    } else {
-                        browserURL = url
-                    }
-                } label: {
-                    Label("Open Pad", systemImage: "doc.text.image")
-                        .lineLimit(1)
-                        .fixedSize()
-                }
-                .buttonStyle(.borderedProminent)
-                .help("Open the pad")
-            }
-            // Non-destructive utilities and the destructive/lifecycle actions
-            // share an overflow menu. Each item keeps a full text label and
-            // role, so the dangerous choices are deliberate rather than a
-            // one-pixel mistake.
-            Menu {
-                Button {
-                    saveCodeLocally()
-                } label: {
-                    Label("Save Code…", systemImage: "square.and.arrow.down")
-                }
-                .disabled(!hasSavableCode)
-                .help("Save the pad's code to a file or folder on this Mac")
-                Divider()
-                Button {
-                    showEndConfirm = true
-                } label: {
-                    Label("End Interview", systemImage: "flag.checkered")
-                }
-                .disabled(isEnded || isMutating)
-                Button(role: .destructive) {
-                    showDeleteConfirm = true
-                } label: {
-                    Label("Delete Pad", systemImage: "trash")
-                }
-                .disabled(isMutating)
-            } label: {
-                Image(systemName: "ellipsis")
-            }
-            .menuIndicator(.hidden)
-            .fixedSize()
-            .help("More actions")
-            .accessibilityLabel("More actions")
-        }
-        .fixedSize()
-        // Match the capsule shape of the pane-title hero CTA so primary actions
-        // share one shape language across the split-view divider. The cluster
-        // stays at the regular control size — size and fill carry the hierarchy,
-        // not corner radius. Propagates to every bordered button in the HStack;
-        // the borderless overflow menu is unaffected.
-        .buttonBorderShape(.capsule)
     }
 
     private var metaCards: some View {
