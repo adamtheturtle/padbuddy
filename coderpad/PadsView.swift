@@ -367,10 +367,6 @@ struct PadsView: View {
             } else {
                 VStack(spacing: 0) {
                     PaneTitle(title: "Pads")
-                    InlineSearchField(query: $search, prompt: "Search title, owner, participants…",
-                                      focused: $searchFieldFocused)
-                        .padding(.horizontal, Spacing.paneH)
-                        .padding(.bottom, 8)
                     savedSearchesBar
                     filterBar
                     Divider()
@@ -411,6 +407,11 @@ struct PadsView: View {
                 }
             }
         }
+        // Search now lives in the window toolbar (the native macOS placement, and the
+        // Liquid Glass search capsule on macOS 26). ⌘F still focuses it via FindAction.
+        .searchable(text: $search, placement: .toolbar,
+                    prompt: "Search title, owner, participants…")
+        .searchFocused($searchFieldFocused)
         .focusedSceneValue(\.findAction, FindAction(id: "pads") { searchFieldFocused = true })
         .toolbar(id: "pads.toolbar") {
             ToolbarItem(id: "reload") {

@@ -933,54 +933,6 @@ private struct Sidebar: View {
     }
 }
 
-struct InlineSearchField: View {
-    @Binding var query: String
-    var prompt: String = "Search"
-    /// Optional external focus binding so a pane can drive focus (e.g. from ⌘F).
-    var focused: FocusState<Bool>.Binding? = nil
-
-    var body: some View {
-        HStack(spacing: 6) {
-            Image(systemName: "magnifyingglass")
-                .foregroundStyle(.secondary)
-                .font(.callout)
-            TextField(prompt, text: $query)
-                .textFieldStyle(.plain)
-                .font(.callout)
-                .modifier(OptionalFocus(binding: focused))
-            if !query.isEmpty {
-                Button { query = "" } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                }
-                .buttonStyle(.borderless)
-                .accessibilityLabel("Clear search")
-            }
-        }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 5)
-        .floatingGlass(
-            in: RoundedRectangle(cornerRadius: 6, style: .continuous),
-            fallback: Color.subtleStroke.opacity(0.6),
-            interactive: true
-        )
-    }
-}
-
-/// Applies a `.focused` binding only when one is supplied, so `InlineSearchField`
-/// can stay usable both with and without an external focus driver.
-private struct OptionalFocus: ViewModifier {
-    let binding: FocusState<Bool>.Binding?
-
-    func body(content: Content) -> some View {
-        if let binding {
-            content.focused(binding)
-        } else {
-            content
-        }
-    }
-}
-
 private struct AccountFooter: View {
     @State private var store = AccountsStore.shared
     @State private var addingAccount: Account?
