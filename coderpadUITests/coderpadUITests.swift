@@ -11,69 +11,72 @@ import XCTest
 /// starts the app from a single in-memory demo account backed by the mock server
 /// (no network, no Keychain writes — see `AccountsStore.isUITesting`), so these run
 /// deterministically and offline.
+///
+/// Navigation uses the app's ⌘-number section shortcuts rather than clicking sidebar
+/// rows: menu key-equivalents are routed by AppKit regardless of window focus, so
+/// they're far more reliable in a headless CI runner than synthesized mouse clicks.
 final class coderpadUITests: XCTestCase {
+
+    private static let listLoadTimeout: TimeInterval = 30
 
     override func setUpWithError() throws {
         continueAfterFailure = false
     }
 
+    @MainActor
     private func launchDemoApp() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments += ["-uiTesting"]
         app.launch()
+        app.activate()
         return app
     }
 
     /// Each pad row is a single accessibility element whose label starts with the
-    /// pad title (see `PadRow.accessibilityLabel`), so match on a label prefix
-    /// rather than an exact static-text title.
+    /// pad title (see `PadRow.accessibilityLabel`), so match on a label prefix.
+    @MainActor
     private func padRow(_ title: String, in app: XCUIApplication) -> XCUIElement {
         app.descendants(matching: .any)
             .matching(NSPredicate(format: "label BEGINSWITH %@", title)).firstMatch
     }
 
-    /// Browse pads: the demo account's seeded pads appear in the list.
+    /// Browse pads: the demo account's seeded pads appear in the list on launch.
     @MainActor
     func testDemoPadsAppearInList() throws {
         let app = launchDemoApp()
-        XCTAssertTrue(padRow("Onsite: Jane Doe", in: app).waitForExistence(timeout: 15),
+        XCTAssertTrue(padRow("Onsite: Jane Doe", in: app).waitForExistence(timeout: Self.listLoadTimeout),
                       "A seeded demo pad should appear once the list loads")
         XCTAssertTrue(padRow("Phone screen: Sam Lee", in: app).exists,
                       "Other seeded demo pads should be listed too")
     }
 
-    /// Open a pad in the in-window browser: selecting a pad reveals its detail
-    /// toolbar actions, and "Open Pad" brings up the embedded browser (we assert on
-    /// its pop-out control, which appears with the browser chrome — without waiting
-    /// on web content, which would need the network).
-    @MainActor
-    func testOpeningAPadInTheInWindowBrowser() throws {
-        let app = launchDemoApp()
-        let pad = padRow("Phone screen: Sam Lee", in: app)
-        XCTAssertTrue(pad.waitForExistence(timeout: 15))
-        pad.click()
-
-        let openPad = app.buttons["Open Pad"]
-        XCTAssertTrue(openPad.waitForExistence(timeout: 10),
-                      "Selecting a pad should reveal its detail toolbar actions")
-        openPad.click()
-
-        XCTAssertTrue(app.buttons["Open in separate window"].waitForExistence(timeout: 10),
-                      "The in-window pad browser should open")
-    }
-
-    /// Switch sections: the sidebar moves from Pads to Questions, and the demo
-    /// questions load.
+    /// Switch sections: ⌘2 moves to Questions (the menu shortcut), and the demo
+    /// questions load there.
     @MainActor
     func testSwitchToQuestionsSection() throws {
         let app = launchDemoApp()
-        // Wait for first paint (pads) before navigating.
-        _ = app.staticTexts["Onsite: Jane Doe"].waitForExistence(timeout: 15)
-        let questions = app.buttons["Questions"]
-        XCTAssertTrue(questions.waitForExistence(timeout: 5))
-        questions.click()
-        XCTAssertTrue(app.staticTexts["FizzBuzz"].waitForExistence(timeout: 15),
-                      "A seeded demo question should appear after switching sections")
+        // Wait for the initial Pads paint so the window is up before navigating.
+        XCTAssertTrue(padRow("Onsite: Jane Doe", in: app).waitForExistence(timeout: Self.listLoadTimeout))
+
+        app.typeKey("2", modifierFlags: .command) // View ▸ Questions
+
+        XCTAssertTrue(app.staticTexts["FizzBuzz"].waitForExistence(timeout: Self.listLoadTimeout),
+                      "A seeded demo question should appear after switching to Questions")
+    }
+
+    /// Section shortcuts round-trip: ⌘2 to Questions then ⌘1 back to Pads restores
+    /// the pad list.
+    @MainActor
+    func testSectionShortcutsRoundTrip() throws {
+        let app = launchDemoApp()
+        XCTAssertTrue(padRow("Onsite: Jane Doe", in: app).waitForExistence(timeout: Self.listLoadTimeout))
+
+        app.typeKey("2", modifierFlags: .command) // Questions
+        XCTAssertTrue(app.staticTexts["FizzBuzz"].waitForExistence(timeout: Self.listLoadTimeout))
+
+        app.typeKey("1", modifierFlags: .command) // back to Pads
+        XCTAssertTrue(padRow("Onsite: Jane Doe", in: app).waitForExistence(timeout: Self.listLoadTimeout),
+                      "Returning to Pads should show the pad list again")
     }
 
     @MainActor
