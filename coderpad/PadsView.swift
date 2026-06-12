@@ -1620,6 +1620,14 @@ private struct EnvironmentCodeCard: View {
     /// Folder paths the user has collapsed. Absence means expanded, so every
     /// folder starts open and the whole project is visible by default.
     @State private var collapsedFolders: Set<String> = []
+    /// The current width of the file sidebar. The user can drag the divider to
+    /// resize it (see `resizeHandle`); a wider sidebar reveals long file names
+    /// that would otherwise truncate. Persisted so the chosen width sticks across
+    /// launches, and shared by every code card so they stay aligned.
+    @AppStorage("padFileSidebarWidth") private var sidebarWidth: Double = 180
+    /// The sidebar width captured when a resize drag began, so each drag is
+    /// measured from where it started rather than accumulating frame to frame.
+    @State private var dragStartWidth: Double?
 
     private var selected: CodeFile {
         files.first { $0.id == selectedFileID } ?? files[0]
@@ -1690,7 +1698,7 @@ private struct EnvironmentCodeCard: View {
             if isMultiFile {
                 HStack(alignment: .top, spacing: 0) {
                     fileSidebar
-                    Divider()
+                    resizeHandle
                     codeScroll
                 }
             } else {
@@ -1752,7 +1760,37 @@ private struct EnvironmentCodeCard: View {
             .padding(6)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(width: 180)
+        .frame(width: CGFloat(sidebarWidth))
+    }
+
+    /// The draggable divider between the file list and the code. It draws the
+    /// same hairline as a plain `Divider` but carries a wider, invisible hit
+    /// target so the resize is easy to grab, and shows the left/right resize
+    /// cursor on hover. Dragging adjusts `sidebarWidth`, clamped so the sidebar
+    /// can't collapse away or crowd out the code.
+    private var resizeHandle: some View {
+        Divider()
+            .overlay {
+                Color.clear
+                    .frame(width: 10)
+                    .contentShape(Rectangle())
+                    .onHover { hovering in
+                        if hovering {
+                            NSCursor.resizeLeftRight.push()
+                        } else {
+                            NSCursor.pop()
+                        }
+                    }
+                    .gesture(
+                        DragGesture()
+                            .onChanged { value in
+                                let base = dragStartWidth ?? sidebarWidth
+                                if dragStartWidth == nil { dragStartWidth = base }
+                                sidebarWidth = min(max(120, base + Double(value.translation.width)), 420)
+                            }
+                            .onEnded { _ in dragStartWidth = nil }
+                    )
+            }
     }
 
     private var codeScroll: some View {

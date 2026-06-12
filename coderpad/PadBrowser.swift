@@ -440,10 +440,18 @@ struct PadBrowserView: View {
             Button {
                 BrowserSettings.openExternally(controller.currentURL ?? url)
             } label: {
-                Label("Open in Browser", systemImage: "safari")
-                    .fixedSize()
+                // Show the full label in the wide standalone Pad Browser window, but
+                // collapse to the icon alone when embedded in the narrower detail
+                // column so this and the trailing Copy button aren't clipped off the
+                // right edge.
+                ViewThatFits(in: .horizontal) {
+                    Label("Open in Browser", systemImage: "safari")
+                        .fixedSize()
+                    Image(systemName: "safari")
+                }
             }
             .help("Open the current page in your default browser")
+            .accessibilityLabel("Open in Browser")
 
             Button {
                 let pb = NSPasteboard.general
