@@ -102,7 +102,10 @@ struct ContentView: View {
                 }
             )
         }
-        .sheet(isPresented: $showWhatsNew) {
+        // Mark the release seen on *any* dismissal (Continue, Esc, or closing the
+        // window), so the sheet doesn't re-show every launch when dismissed without
+        // the button. `onDismiss` is the single place this is recorded.
+        .sheet(isPresented: $showWhatsNew, onDismiss: { WhatsNew.markSeen() }) {
             WhatsNewSheet(release: WhatsNew.current) { showWhatsNew = false }
         }
         .sheet(item: $addingAccount) { account in
@@ -148,29 +151,44 @@ struct WhatsNewRelease {
 }
 
 enum WhatsNew {
-    static let current = WhatsNewRelease(
-        version: "1.0",
-        highlights: [
-            ("magnifyingglass", "Search across the sidebar",
-             "Type in the new sidebar search to jump straight into Pads or Questions."),
-            ("person.crop.circle.badge.plus", "Accounts like Mail",
-             "The Add Account flow auto-fills the name from your org and uses the +/− button set."),
-            ("bolt.horizontal", "Faster section switching",
-             "Pads and Questions are cached per account, so switching sections shows your last data instantly while a background reload runs."),
-            ("keyboard", "More shortcuts",
-             "⌘⇧N New Question, ⌘⌥C Copy Pad URL, ⌘↩ Open Pad in Browser."),
-        ]
-    )
+    // To ship a new release's What's New sheet:
+    //   1. Bump MARKETING_VERSION (CFBundleShortVersionString) in the build settings.
+    //      That alone re-shows the sheet — the gate reads the bundle version below,
+    //      so there is no second version constant to remember.
+    //   2. Replace `highlights` with the new release's bullets.
+    // The version shown to the user and used for gating both come from the bundle,
+    // so they can never drift out of sync with the shipped build.
+    static let highlights: [(symbol: String, title: String, body: String)] = [
+        ("magnifyingglass", "Search across the sidebar",
+         "Type in the new sidebar search to jump straight into Pads or Questions."),
+        ("person.crop.circle.badge.plus", "Accounts like Mail",
+         "The Add Account flow auto-fills the name from your org and uses the +/− button set."),
+        ("bolt.horizontal", "Faster section switching",
+         "Pads and Questions are cached per account, so switching sections shows your last data instantly while a background reload runs."),
+        ("keyboard", "More shortcuts",
+         "⌘⇧N New Question, ⌘⌥C Copy Pad URL, ⌘↩ Open Pad in Browser."),
+    ]
+
+    /// The app's marketing version (CFBundleShortVersionString). Drives both the
+    /// sheet's title and the gate, so a version bump alone re-shows the sheet.
+    /// Falls back to "0" when unreadable (e.g. the unit-test host bundle).
+    static var version: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
+    }
+
+    static var current: WhatsNewRelease {
+        WhatsNewRelease(version: version, highlights: highlights)
+    }
 
     private static let key = "lastSeenWhatsNewVersion"
 
     static func shouldShow() -> Bool {
         let last = UserDefaults.standard.string(forKey: key)
-        return last != current.version
+        return last != version
     }
 
     static func markSeen() {
-        UserDefaults.standard.set(current.version, forKey: key)
+        UserDefaults.standard.set(version, forKey: key)
     }
 }
 
@@ -202,10 +220,9 @@ struct WhatsNewSheet: View {
             }
             HStack {
                 Spacer()
-                Button("Continue") {
-                    WhatsNew.markSeen()
-                    onDismiss()
-                }
+                // Just dismiss; the sheet's `onDismiss` records that it was seen,
+                // so every dismissal path goes through the same single place.
+                Button("Continue") { onDismiss() }
                 .keyboardShortcut(.defaultAction)
                 .buttonStyle(.borderedProminent)
             }

@@ -631,6 +631,23 @@ struct WhatsNewTests {
             #expect(WhatsNew.shouldShow() == true)
         }
     }
+
+    @Test("the gate is keyed on the live app version, not a hardcoded constant")
+    func gatesOnAppVersion() {
+        withCleanDefault {
+            // markSeen must record exactly the version the gate compares against, so
+            // a MARKETING_VERSION bump (which changes WhatsNew.version) re-shows the
+            // sheet without anyone editing a second constant.
+            #expect(!WhatsNew.version.isEmpty)
+            #expect(WhatsNew.current.version == WhatsNew.version)
+            WhatsNew.markSeen()
+            #expect(UserDefaults.standard.string(forKey: Self.key) == WhatsNew.version)
+
+            // Recording any other version re-arms the prompt.
+            UserDefaults.standard.set(WhatsNew.version + "-old", forKey: Self.key)
+            #expect(WhatsNew.shouldShow() == true)
+        }
+    }
 }
 
 @Suite("Quota decoder")
