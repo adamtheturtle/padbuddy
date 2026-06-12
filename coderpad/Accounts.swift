@@ -188,7 +188,19 @@ final class AccountsStore {
 
     private static let currentIDDefaultsKey = "currentAccountID"
 
+    /// True when launched by the UI test suite (`-uiTesting`). In this mode the store
+    /// starts from a single in-memory demo account (which talks to the in-process mock
+    /// server, so no network) and skips all Keychain/UserDefaults persistence — so the
+    /// tests run from a deterministic state and never touch the developer's real
+    /// accounts or the login keychain.
+    static let isUITesting = ProcessInfo.processInfo.arguments.contains("-uiTesting")
+
     private init() {
+        if Self.isUITesting {
+            accounts = [.demo()]
+            currentAccountID = accounts.first?.id
+            return
+        }
         let loaded: [Account] = Self.loadAccounts() ?? []
         accounts = loaded
         if let s = UserDefaults.standard.string(forKey: Self.currentIDDefaultsKey),
@@ -279,6 +291,7 @@ final class AccountsStore {
     private let writeQueue = SerialWriteQueue()
 
     private func persistAccounts() {
+        guard !Self.isUITesting else { return }
         let snapshot = accounts
         // Move Keychain I/O off the main thread to keep the UI responsive, but keep
         // writes ordered so a slower earlier write can't overwrite a newer snapshot.
@@ -297,6 +310,7 @@ final class AccountsStore {
     }
 
     private func persistCurrentID() {
+        guard !Self.isUITesting else { return }
         if let id = currentAccountID {
             UserDefaults.standard.set(id.uuidString, forKey: Self.currentIDDefaultsKey)
         } else {
