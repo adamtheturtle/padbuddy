@@ -940,6 +940,31 @@ struct PadBulkActionTests {
     }
 }
 
+@Suite("Pad refresh cadence")
+struct PadRefreshIntervalTests {
+    let base = Duration.seconds(90)
+
+    @Test("small list with a started pad uses the base cadence")
+    func smallStarted() {
+        #expect(PadListLogic.refreshInterval(base: base, padCount: 10, hasStartedPads: true) == base)
+    }
+
+    @Test("no started pads backs off 2x")
+    func noStarted() {
+        #expect(PadListLogic.refreshInterval(base: base, padCount: 10, hasStartedPads: false) == base * 2)
+    }
+
+    @Test("large list compounds the size and no-started back-offs")
+    func largeNoStarted() {
+        #expect(PadListLogic.refreshInterval(base: base, padCount: 5000, hasStartedPads: false) == base * 8)
+    }
+
+    @Test("medium list with started pads scales by size only")
+    func mediumStarted() {
+        #expect(PadListLogic.refreshInterval(base: base, padCount: 1000, hasStartedPads: true) == base * 2)
+    }
+}
+
 @Suite("Pad filtering")
 struct PadFilterTests {
 

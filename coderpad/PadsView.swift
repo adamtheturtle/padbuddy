@@ -49,15 +49,15 @@ struct PadsView: View {
     /// Big orgs return thousands of pads per sweep, and re-fetching every page on the base
     /// cadence is mostly wasted work for data well below the fold. The auto-refresh cadence
     /// backs off as the list grows, so large orgs poll far less often while small orgs keep
-    /// the snappy refresh. The base cadence is the user's configured auto-refresh interval;
-    /// manual reload and the focused detail refresh are unaffected.
+    /// the snappy refresh. It also backs off further when no pad is *started*, biasing
+    /// refresh effort toward when live interviews are actually in progress. The base cadence
+    /// is the user's configured auto-refresh interval; manual reload and the focused detail
+    /// refresh are unaffected.
     private var nextRefreshInterval: Duration {
-        let base = GeneralSettings.refreshInterval
-        switch pads.count {
-        case ..<500: return base
-        case 500..<2000: return base * 2
-        default: return base * 4
-        }
+        PadListLogic.refreshInterval(
+            base: GeneralSettings.refreshInterval,
+            padCount: pads.count,
+            hasStartedPads: pads.contains { $0.status == .active })
     }
 
     var body: some View {

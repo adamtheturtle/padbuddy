@@ -66,6 +66,21 @@ enum PadListLogic {
         pads.filter { $0.isPrivate != true }
     }
 
+    /// The auto-refresh cadence for the pad list. Backs off as the list grows (large
+    /// orgs poll less often) and backs off a further 2× when no pad is started, since
+    /// with no live interview in progress the list is unlikely to be changing — so
+    /// refresh effort is biased toward when started pads are actually present.
+    static func refreshInterval(base: Duration, padCount: Int, hasStartedPads: Bool) -> Duration {
+        var interval: Duration
+        switch padCount {
+        case ..<500: interval = base
+        case 500..<2000: interval = base * 2
+        default: interval = base * 4
+        }
+        if !hasStartedPads { interval = interval * 2 }
+        return interval
+    }
+
     /// Filter `pads` by `criteria`. `display` resolves an owner email to a display
     /// name so a search can match the human-readable owner as well as the raw
     /// email; it defaults to the identity so callers without a directory still
