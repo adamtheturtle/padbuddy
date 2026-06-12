@@ -718,6 +718,7 @@ private struct Sidebar: View {
                 .padding(.horizontal, 8)
                 .padding(.top, 10)
 
+                defaultsSection
                 savedSearchesSection
                 favoritesSection
             }
@@ -743,23 +744,52 @@ private struct Sidebar: View {
 
     // MARK: Saved searches
 
-    /// One pad or question saved search, tagged with its list so a tap can route
-    /// to the right pane. `id` is the underlying search's id, unique per kind.
+    /// One pad or question search, tagged with its list so a tap can route to the
+    /// right pane and with the icon to show beside it. `id` is unique per row across
+    /// both the built-in defaults and the user's saved searches.
     private struct SavedItem: Identifiable {
-        let id: UUID
+        let id: String
         let search: NamedSearch
         let kind: SavedSearchKind
+        let icon: String
     }
 
     /// Both lists' saved searches, pads first, so the sidebar mirrors the section
-    /// order above. Defaults like "My Pads" aren't included — those are recomputed
-    /// per pane and live as chips there, not as persisted entries.
+    /// order above. The built-in defaults are surfaced separately in `defaultItems`.
     private var savedItems: [SavedItem] {
         let pads = savedSearches.searches(account: accountID, kind: .pads)
-            .map { SavedItem(id: $0.id, search: $0, kind: .pads) }
+            .map { SavedItem(id: "pads-\($0.id.uuidString)", search: $0, kind: .pads, icon: "doc.text") }
         let questions = savedSearches.searches(account: accountID, kind: .questions)
-            .map { SavedItem(id: $0.id, search: $0, kind: .questions) }
+            .map { SavedItem(id: "questions-\($0.id.uuidString)", search: $0, kind: .questions, icon: "questionmark.bubble") }
         return pads + questions
+    }
+
+    /// The built-in pad and question searches mirrored from the chip bars,
+    /// recomputed per account so "My Pads"/"My Questions" track whoever is signed
+    /// in. Unlike the user's saved searches, defaults can't be deleted.
+    private var defaultItems: [SavedItem] {
+        let me = accounts.currentAccount?.userEmail
+        let pads = DefaultSearch.padDefaults(me: me)
+            .map { SavedItem(id: "default-pads-\($0.id)", search: $0.search, kind: .pads, icon: $0.icon) }
+        let questions = DefaultSearch.questionDefaults(me: me)
+            .map { SavedItem(id: "default-questions-\($0.id)", search: $0.search, kind: .questions, icon: $0.icon) }
+        return pads + questions
+    }
+
+    @ViewBuilder
+    private var defaultsSection: some View {
+        let items = defaultItems
+        if !items.isEmpty {
+            sidebarSectionHeader("Suggested")
+            VStack(spacing: 2) {
+                ForEach(items) { item in
+                    sidebarSubRow(label: item.search.name, icon: item.icon) {
+                        nav.applySavedSearch(item.search, kind: item.kind)
+                    }
+                }
+            }
+            .padding(.horizontal, 8)
+        }
     }
 
     @ViewBuilder
@@ -769,16 +799,13 @@ private struct Sidebar: View {
             sidebarSectionHeader("Saved Searches")
             VStack(spacing: 2) {
                 ForEach(items) { item in
-                    sidebarSubRow(
-                        label: item.search.name,
-                        icon: item.kind == .pads ? "doc.text" : "questionmark.bubble"
-                    ) {
+                    sidebarSubRow(label: item.search.name, icon: item.icon) {
                         nav.applySavedSearch(item.search, kind: item.kind)
                     }
                     .contextMenu {
                         Button(role: .destructive) {
                             if let account = accountID {
-                                savedSearches.remove(id: item.id, account: account, kind: item.kind)
+                                savedSearches.remove(id: item.search.id, account: account, kind: item.kind)
                             }
                         } label: {
                             Label("Delete Saved Search", systemImage: "trash")

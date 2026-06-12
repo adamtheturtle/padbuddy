@@ -39,20 +39,40 @@ struct Account: Identifiable, Codable, Hashable {
     var isMock: Bool
     /// The email of the org member this key belongs to, used to show "my" pads.
     /// The CoderPad API doesn't expose the key's owner, so the user picks it when
-    /// validating the key. Optional so accounts saved before this existed still decode.
-    var userEmail: String?
+    /// validating the key — and saving is gated on it (see `canSave`) — so a
+    /// configured account always has one, matching the org-users API where email is
+    /// non-optional. Empty only for an in-progress draft before the owner is picked.
+    var userEmail: String
     /// An optional override for the CoderPad server URL, for self-hosted or regional
     /// deployments. `nil`/empty means the standard hosted endpoint. Optional so
     /// accounts saved before this existed still decode.
     var baseURL: String?
 
-    init(id: UUID = UUID(), name: String, apiKey: String, isMock: Bool = false, userEmail: String? = nil, baseURL: String? = nil) {
+    init(id: UUID = UUID(), name: String, apiKey: String, isMock: Bool = false, userEmail: String = "", baseURL: String? = nil) {
         self.id = id
         self.name = name
         self.apiKey = apiKey
         self.isMock = isMock
         self.userEmail = userEmail
         self.baseURL = baseURL
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, apiKey, isMock, userEmail, baseURL
+    }
+
+    // Custom decoding so the non-optional `userEmail` can't make the whole account
+    // store fail to load: a value persisted before the field existed reads as empty
+    // (treated as unconfigured) rather than throwing and dropping every saved key.
+    // Encoding stays synthesized.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        name = try c.decode(String.self, forKey: .name)
+        apiKey = try c.decode(String.self, forKey: .apiKey)
+        isMock = try c.decodeIfPresent(Bool.self, forKey: .isMock) ?? false
+        userEmail = try c.decodeIfPresent(String.self, forKey: .userEmail) ?? ""
+        baseURL = try c.decodeIfPresent(String.self, forKey: .baseURL)
     }
 
     /// The server URL to talk to: the account's override when set and parseable,
@@ -109,9 +129,8 @@ struct Account: Identifiable, Codable, Hashable {
         let env = ProcessInfo.processInfo.environment
         guard let rawKey = env["CODERPAD_API_KEY"]?.trimmingCharacters(in: .whitespacesAndNewlines),
               !rawKey.isEmpty else { return nil }
-        let trimmedEmail = env["CODERPAD_USER_EMAIL"]?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        let email = (trimmedEmail?.isEmpty == false) ? trimmedEmail : nil
+        let email = env["CODERPAD_USER_EMAIL"]?
+            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return Account(name: "Dev (env key)", apiKey: rawKey, userEmail: email)
         #else
         return nil

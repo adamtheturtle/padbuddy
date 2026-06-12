@@ -71,6 +71,21 @@ enum BrowserSettings {
         }
     }
 
+    /// Bundle identifier of the standalone Passwords app that ships with macOS 15+.
+    private static let passwordsAppBundleID = "com.apple.Passwords"
+
+    /// Open the macOS Passwords app so the user can look up and copy a login to paste
+    /// into the in-app pad browser, where native autofill is unavailable. Falls back to
+    /// the Passwords pane in System Settings on systems without the standalone app.
+    @MainActor
+    static func openPasswordsApp() {
+        if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: passwordsAppBundleID) {
+            NSWorkspace.shared.openApplication(at: appURL, configuration: NSWorkspace.OpenConfiguration())
+        } else if let settingsURL = URL(string: "x-apple.systempreferences:com.apple.Passwords-Settings.extension") {
+            NSWorkspace.shared.open(settingsURL)
+        }
+    }
+
     /// http(s)-capable apps installed on this Mac, de-duplicated and sorted by name.
     static func installedBrowsers() -> [InstalledBrowser] {
         let urls = NSWorkspace.shared.urlsForApplications(toOpen: probeURL)
@@ -866,7 +881,7 @@ struct AccountEditor: View {
     /// org list might not return, sorted for a stable order.
     private var emailOptions: [String] {
         var emails = Set(orgUsers.map(\.email).filter { !$0.isEmpty })
-        if let saved = draft.userEmail, !saved.isEmpty { emails.insert(saved) }
+        if !draft.userEmail.isEmpty { emails.insert(draft.userEmail) }
         return emails.sorted()
     }
 
@@ -900,7 +915,7 @@ struct AccountEditor: View {
     /// Whether the draft has a non-empty user email. Required to save: the email
     /// identifies "you" for the My Pads/My Questions filters and the menu bar.
     private var hasEmail: Bool {
-        draft.userEmail?.trimmingCharacters(in: .whitespaces).isEmpty == false
+        !draft.userEmail.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
     /// A saved account whose key and server URL are untouched can be re-saved without
@@ -984,11 +999,11 @@ struct AccountEditor: View {
             // is "you" — detect it directly rather than making the user pick. Fall back
             // to the single-user org case, then to the manual picker. This runs while
             // still in the validating state so the spinner covers the email retrieval.
-            if draft.userEmail == nil {
+            if draft.userEmail.isEmpty {
                 if let detected = await detectUserEmail(client: client) {
                     draft.userEmail = detected
                 } else if org.users.count == 1 {
-                    draft.userEmail = org.users.first?.email
+                    draft.userEmail = org.users.first?.email ?? ""
                 }
             }
             validation = .valid(org.organizationName)
@@ -1078,7 +1093,8 @@ struct AccountEditor: View {
 /// current selection as a button; tapping opens a popover with a search field that
 /// filters the (potentially large) member list so you don't scroll a huge menu.
 private struct OrgMemberPicker: View {
-    @Binding var selection: String?
+    /// Empty means no member is picked yet — the "Unset" row.
+    @Binding var selection: String
     let options: [String]
     let label: (String) -> String
 
@@ -1097,8 +1113,8 @@ private struct OrgMemberPicker: View {
             isPresented = true
         } label: {
             HStack {
-                Text(selection.map(label) ?? "Unset")
-                    .foregroundStyle(selection == nil ? .secondary : .primary)
+                Text(selection.isEmpty ? "Unset" : label(selection))
+                    .foregroundStyle(selection.isEmpty ? .secondary : .primary)
                     .lineLimit(1)
                 Spacer()
                 Image(systemName: "chevron.up.chevron.down")
@@ -1118,7 +1134,7 @@ private struct OrgMemberPicker: View {
 
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
-                        memberRow(email: nil, title: "Unset")
+                        memberRow(email: "", title: "Unset")
                         ForEach(filtered, id: \.self) { email in
                             memberRow(email: email, title: label(email))
                         }
@@ -1138,7 +1154,7 @@ private struct OrgMemberPicker: View {
     }
 
     @ViewBuilder
-    private func memberRow(email: String?, title: String) -> some View {
+    private func memberRow(email: String, title: String) -> some View {
         let isSelected = email == selection
         Button {
             selection = email
@@ -1146,7 +1162,7 @@ private struct OrgMemberPicker: View {
         } label: {
             HStack {
                 Text(title)
-                    .foregroundStyle(email == nil ? .secondary : .primary)
+                    .foregroundStyle(email.isEmpty ? .secondary : .primary)
                     .lineLimit(1)
                 Spacer()
                 if isSelected {

@@ -167,28 +167,23 @@ struct QuestionsView: View {
         Set(favorites.favorites(account: accounts.currentAccountID))
     }
 
-    /// Filtered questions arranged by the active sort, with favorites pinned to the
-    /// top. "Last used" is backed by `updatedAt` — the only per-question recency
-    /// signal the API exposes. Favorites float up (keeping their relative sort
-    /// order within the group) so a frequently used question stays a glance away,
-    /// except when already filtering to favorites only, where pinning is moot.
+    /// Filtered questions arranged by the active sort. "Last used" is backed by
+    /// `updatedAt` — the only per-question recency signal the API exposes.
+    /// Favorites keep their natural position in the sort order rather than being
+    /// pinned to the top; the Favorites chip is there to filter the list down to
+    /// them when needed.
     private var sorted: [Question] {
         let items = filtered
-        let ordered: [Question]
         switch sort {
         case .titleAsc:
-            ordered = items.sorted { $0.displayTitle.localizedCaseInsensitiveCompare($1.displayTitle) == .orderedAscending }
+            return items.sorted { $0.displayTitle.localizedCaseInsensitiveCompare($1.displayTitle) == .orderedAscending }
         case .titleDesc:
-            ordered = items.sorted { $0.displayTitle.localizedCaseInsensitiveCompare($1.displayTitle) == .orderedDescending }
+            return items.sorted { $0.displayTitle.localizedCaseInsensitiveCompare($1.displayTitle) == .orderedDescending }
         case .lastUsedDesc:
-            ordered = items.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
+            return items.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
         case .lastUsedAsc:
-            ordered = items.sorted { ($0.updatedAt ?? .distantPast) < ($1.updatedAt ?? .distantPast) }
+            return items.sorted { ($0.updatedAt ?? .distantPast) < ($1.updatedAt ?? .distantPast) }
         }
-        let favoriteIDs = favoriteIDSet
-        guard !favoritesOnly, !favoriteIDs.isEmpty else { return ordered }
-        return ordered.filter { favoriteIDs.contains($0.id) }
-            + ordered.filter { !favoriteIDs.contains($0.id) }
     }
 
     private var availableLanguages: [String] {
@@ -335,8 +330,8 @@ struct QuestionsView: View {
         NSPasteboard.general.setString(text, forType: .string)
     }
 
-    /// Context-menu entry that stars or unstars a question. Favorites pin the
-    /// question to the top of the list and lead the menu bar's "New Pad from
+    /// Context-menu entry that stars or unstars a question. Favorites can be
+    /// filtered to via the Favorites chip and lead the menu bar's "New Pad from
     /// Question" submenu, so a frequently used question is quick to reach.
     @ViewBuilder
     private func favoriteToggleButton(_ q: Question) -> some View {
@@ -420,18 +415,10 @@ struct QuestionsView: View {
         .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
     }
 
-    /// Built-in chips shown ahead of the user's saved searches. "My Questions"
-    /// appears only when the account knows its user's email; "Drafts" filters to
-    /// unpublished questions.
+    /// Built-in chips shown ahead of the user's saved searches, mirrored in the
+    /// sidebar's Defaults section.
     private var defaultSearches: [DefaultSearch] {
-        var result: [DefaultSearch] = []
-        if let me = accounts.currentAccount?.userEmail, !me.isEmpty {
-            result.append(DefaultSearch(id: "my-questions", icon: "person.fill",
-                                        search: NamedSearch(name: "My Questions", ownerFilter: me)))
-        }
-        result.append(DefaultSearch(id: "drafts", icon: "doc.badge.ellipsis",
-                                    search: NamedSearch(name: "Drafts", draftFilter: "draft")))
-        return result
+        DefaultSearch.questionDefaults(me: accounts.currentAccount?.userEmail)
     }
 
     @ViewBuilder

@@ -437,6 +437,15 @@ struct PadBrowserView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .layoutPriority(0)
 
+            // Native Passwords/iCloud Keychain autofill can't appear in an embedded
+            // WKWebView, so offer manual help: open the Passwords app to look up and
+            // copy a login to paste into the field.
+            Button { BrowserSettings.openPasswordsApp() } label: {
+                Image(systemName: "key.fill")
+            }
+            .help("Open the Passwords app to look up and copy a login")
+            .accessibilityLabel("Open Passwords")
+
             Button {
                 BrowserSettings.openExternally(controller.currentURL ?? url)
             } label: {

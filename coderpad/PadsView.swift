@@ -500,18 +500,10 @@ struct PadsView: View {
         NSPasteboard.general.setString(text, forType: .string)
     }
 
-    /// Built-in chips shown ahead of the user's saved searches. "My Pads" appears
-    /// only when the account knows its user's email; "Active" filters to in-progress
-    /// sessions (the API's "started" state).
+    /// Built-in chips shown ahead of the user's saved searches, mirrored in the
+    /// sidebar's Defaults section.
     private var defaultSearches: [DefaultSearch] {
-        var result: [DefaultSearch] = []
-        if let me = accounts.currentAccount?.userEmail, !me.isEmpty {
-            result.append(DefaultSearch(id: "my-pads", icon: "person.fill",
-                                        search: NamedSearch(name: "My Pads", ownerFilter: me)))
-        }
-        result.append(DefaultSearch(id: "active", icon: "bolt.fill",
-                                    search: NamedSearch(name: "Active", stateFilter: .active)))
-        return result
+        DefaultSearch.padDefaults(me: accounts.currentAccount?.userEmail)
     }
 
     @ViewBuilder
@@ -781,6 +773,38 @@ struct DefaultSearch: Identifiable {
     let id: String
     let icon: String
     let search: NamedSearch
+}
+
+extension DefaultSearch {
+    /// Built-in pad searches shown ahead of the user's saved searches, recomputed
+    /// per account. "My Pads" appears only when the account knows its user's email;
+    /// "Active" filters to in-progress sessions (the API's "started" state). Shared
+    /// by the pad chip bar and the sidebar so the two never drift.
+    static func padDefaults(me: String?) -> [DefaultSearch] {
+        var result: [DefaultSearch] = []
+        if let me, !me.isEmpty {
+            result.append(DefaultSearch(id: "my-pads", icon: "person.fill",
+                                        search: NamedSearch(name: "My Pads", ownerFilter: me)))
+        }
+        result.append(DefaultSearch(id: "active", icon: "bolt.fill",
+                                    search: NamedSearch(name: "Active", stateFilter: .active)))
+        return result
+    }
+
+    /// Built-in question searches shown ahead of the user's saved searches,
+    /// recomputed per account. "My Questions" appears only when the account knows
+    /// its user's email; "Drafts" filters to unpublished questions. Shared by the
+    /// question chip bar and the sidebar so the two never drift.
+    static func questionDefaults(me: String?) -> [DefaultSearch] {
+        var result: [DefaultSearch] = []
+        if let me, !me.isEmpty {
+            result.append(DefaultSearch(id: "my-questions", icon: "person.fill",
+                                        search: NamedSearch(name: "My Questions", ownerFilter: me)))
+        }
+        result.append(DefaultSearch(id: "drafts", icon: "doc.badge.ellipsis",
+                                    search: NamedSearch(name: "Drafts", draftFilter: "draft")))
+        return result
+    }
 }
 
 struct SavedSearchChip: View {
@@ -1458,7 +1482,7 @@ struct PadDetailView: View {
                         participantGroup(
                             title: roles.interviewers.count == 1 ? "Interviewer" : "Interviewers",
                             systemImage: "person.crop.circle.badge.checkmark",
-                            names: roles.interviewers, tint: .purple)
+                            names: roles.interviewers, tint: .purple, clickable: true)
                     }
                 } else {
                     participantGrid(names: pad.participants, tint: .purple)
@@ -1468,28 +1492,55 @@ struct PadDetailView: View {
         }
     }
 
-    private func participantGroup(title: String, systemImage: String, names: [String], tint: Color) -> some View {
+    private func participantGroup(title: String, systemImage: String, names: [String], tint: Color, clickable: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Label(title, systemImage: systemImage)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(tint)
-            participantGrid(names: names, tint: tint)
+            participantGrid(names: names, tint: tint, clickable: clickable)
         }
     }
 
-    private func participantGrid(names: [String], tint: Color) -> some View {
+    private func participantGrid(names: [String], tint: Color, clickable: Bool = false) -> some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 8)], alignment: .leading, spacing: 8) {
             ForEach(names, id: \.self) { name in
-                HStack(spacing: 8) {
-                    AvatarCircle(label: name, diameter: 26, tint: tint)
-                    Text(name).font(.callout)
-                    Spacer(minLength: 0)
+                // Interviewers are org members, so we can resolve their email and
+                // make the row a button that jumps to their pads, mirroring the
+                // Organization users list. Candidates aren't members, so they
+                // stay as plain rows.
+                if clickable, let email = memberEmail(forName: name) {
+                    Button {
+                        AppNavigation.shared.showPads(PadsRequest(ownerEmail: email))
+                    } label: {
+                        participantRow(name: name, tint: tint)
+                            .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .help("Show pads from \(name)")
+                } else {
+                    participantRow(name: name, tint: tint)
                 }
-                .padding(.vertical, 4)
-                .padding(.horizontal, 8)
-                .background(Color.subtleStroke.opacity(0.6), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
             }
         }
+    }
+
+    private func participantRow(name: String, tint: Color) -> some View {
+        HStack(spacing: 8) {
+            AvatarCircle(label: name, diameter: 26, tint: tint)
+            Text(name).font(.callout)
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 4)
+        .padding(.horizontal, 8)
+        .background(Color.subtleStroke.opacity(0.6), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    /// The org email for a participant matched by display name, used to turn an
+    /// interviewer row into a link to their pads. Names can collide in theory, so
+    /// this returns the first match; `nil` when no member carries that name.
+    private func memberEmail(forName name: String) -> String? {
+        let lowered = name.lowercased()
+        return directory.nameByEmail.first { $0.value.lowercased() == lowered }?.key
     }
 
     /// The pad's whiteboard drawing, when it has one. Parsed once so the card and
