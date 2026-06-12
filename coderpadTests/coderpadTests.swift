@@ -514,6 +514,40 @@ struct UnauthorizedMockServerTests {
     }
 }
 
+/// Fails every request with an offline `URLError`, so the client's transport-error
+/// handling can be exercised without real networking.
+private nonisolated final class OfflineURLProtocol: URLProtocol {
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func startLoading() {
+        client?.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet))
+    }
+    override func stopLoading() {}
+}
+
+@Suite("Transport-error wrapping")
+struct NetworkErrorWrappingTests {
+    private func offlineClient() -> CoderPadClient {
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [OfflineURLProtocol.self]
+        return CoderPadClient(apiKey: "test-key", session: URLSession(configuration: config))
+    }
+
+    @Test("a transport failure surfaces as a friendly CoderPadError.network, end to end")
+    func wrapsURLErrorFromPerform() async throws {
+        let error = await #expect(throws: CoderPadError.self) {
+            _ = try await offlineClient().quota()
+        }
+        guard case .network = error else {
+            Issue.record("Expected a .network error, got \(String(describing: error))")
+            return
+        }
+        // The user-facing copy, not the raw URLError.
+        #expect(error?.errorDescription?.contains("offline") == true)
+        #expect(error?.errorDescription?.contains("Error Domain") != true)
+    }
+}
+
 @Suite("Language helpers")
 struct LanguageHelperTests {
     @Test("languageDisplayName maps known codes to friendly names", arguments: [
