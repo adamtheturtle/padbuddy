@@ -484,6 +484,9 @@ struct SettingsView: View {
                     addingAccount = Account(name: "", apiKey: "")
                 }
                 .buttonStyle(.borderedProminent)
+                // Surface where to obtain a key for someone who doesn't have one yet.
+                GetAPIKeyLink()
+                    .font(.callout)
             }
         } else {
             ContentUnavailableView {
