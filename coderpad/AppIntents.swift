@@ -45,8 +45,12 @@ struct OpenPadByIDIntent: AppIntent {
 
     func perform() async throws -> some IntentResult {
         let trimmed = padID.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Mirror the other intents: warm up briefly on cold launch, then route through
+        // durable AppNavigation state (consumed on appear) so the request isn't lost if
+        // it fires before any view is listening.
+        try? await Task.sleep(for: .milliseconds(300))
         await MainActor.run {
-            NotificationCenter.default.post(name: .openPadIDRequested, object: trimmed)
+            AppNavigation.shared.openPad(id: trimmed)
         }
         return .result()
     }

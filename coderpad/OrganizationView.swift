@@ -48,6 +48,7 @@ struct OrganizationView: View {
     @State private var userSearch = ""
     @FocusState private var userSearchFocused: Bool
     @State private var period: StatsPeriod = .days7
+    @State private var statsTask: Task<Void, Never>?
     @State private var customStart = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
     @State private var customEnd = Date()
 
@@ -95,15 +96,15 @@ struct OrganizationView: View {
             await reload()
         }
         .onChange(of: period) { _, _ in
-            Task { await reloadStats() }
+            scheduleStatsReload()
         }
         .onChange(of: customStart) { _, _ in
             guard period == .custom else { return }
-            Task { await reloadStats() }
+            scheduleStatsReload()
         }
         .onChange(of: customEnd) { _, _ in
             guard period == .custom else { return }
-            Task { await reloadStats() }
+            scheduleStatsReload()
         }
         .focusedSceneValue(\.findAction, FindAction(id: "organization") { userSearchFocused = true })
         .task {
@@ -282,11 +283,22 @@ struct OrganizationView: View {
         }
     }
 
+    /// Cancels any in-flight stats fetch before starting a new one, so rapid period
+    /// or custom-date changes can't land an earlier, slower response on top of a newer
+    /// one and show stats for the wrong window.
+    private func scheduleStatsReload() {
+        statsTask?.cancel()
+        statsTask = Task { await reloadStats() }
+    }
+
     /// Refetches just the stats when the period changes, leaving the rest of the
     /// loaded organization data in place.
     private func reloadStats() async {
         guard !client.apiKey.isEmpty else { return }
         let window = window
-        stats = try? await client.organizationStats(start: window.start, end: window.end)
+        let result = try? await client.organizationStats(start: window.start, end: window.end)
+        // A newer request may have superseded this one while it was in flight.
+        guard !Task.isCancelled else { return }
+        stats = result
     }
 }

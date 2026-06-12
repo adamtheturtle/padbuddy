@@ -33,6 +33,7 @@ struct PadsView: View {
     @State private var savedSearches = SavedSearchStore.shared
     @State private var showSaveSearch = false
     @State private var saveSearchName = ""
+    @State private var isSuggestingName = false
     @State private var padPendingDelete: Pad?
     @State private var deleteError: String?
 
@@ -91,14 +92,19 @@ struct PadsView: View {
         .sheet(isPresented: $showSaveSearch) {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Save Search").font(.title3.bold())
-                TextField("Name", text: $saveSearchName, prompt: Text("e.g. Live pads, my team"))
-                    .textFieldStyle(.roundedBorder)
-                    .onSubmit { commitSavedSearch() }
-                    .onChange(of: saveSearchName) { _, newValue in
-                        if newValue.count > NamedSearch.maxNameLength {
-                            saveSearchName = String(newValue.prefix(NamedSearch.maxNameLength))
+                HStack(spacing: 8) {
+                    TextField("Name", text: $saveSearchName, prompt: Text("e.g. Live pads, my team"))
+                        .textFieldStyle(.roundedBorder)
+                        .onSubmit { commitSavedSearch() }
+                        .onChange(of: saveSearchName) { _, newValue in
+                            if newValue.count > NamedSearch.maxNameLength {
+                                saveSearchName = String(newValue.prefix(NamedSearch.maxNameLength))
+                            }
                         }
+                    if SavedSearchNamer.isAvailable {
+                        suggestNameButton
                     }
+                }
                 HStack {
                     Spacer()
                     Button("Cancel", role: .cancel) { showSaveSearch = false }
@@ -168,6 +174,34 @@ struct PadsView: View {
         if request.startCreating { showCreate = true }
     }
 
+    /// A sparkle button that fills the name field with an on-device suggestion
+    /// built from the active filters. Shown only when the model is available; the
+    /// field stays fully editable and the user opts in per save.
+    @ViewBuilder
+    private var suggestNameButton: some View {
+        Button(action: suggestName) {
+            if isSuggestingName {
+                ProgressView().controlSize(.small)
+            } else {
+                Image(systemName: "sparkles")
+            }
+        }
+        .buttonStyle(.borderless)
+        .disabled(isSuggestingName)
+        .help("Suggest a name from the current filters")
+        .accessibilityLabel("Suggest a name")
+    }
+
+    private func suggestName() {
+        let captured = captureCurrentSearch(named: "")
+        isSuggestingName = true
+        Task {
+            let suggestion = await SavedSearchNamer.suggestName(for: captured)
+            isSuggestingName = false
+            if let suggestion { saveSearchName = suggestion }
+        }
+    }
+
     private func commitSavedSearch() {
         // Return in the text field fires `onSubmit` and the default-action button can
         // also fire; guarding on the still-open sheet keeps a single keypress from
@@ -205,7 +239,10 @@ struct PadsView: View {
     /// sees — so a hidden pad never becomes the new selection.
     private func neighborSelection(forDeleted id: String) -> Pad? {
         let visible = filtered
-        guard let i = visible.firstIndex(where: { $0.id == id }) else { return nil }
+        // If the deleted pad isn't in the visible list (e.g. filters changed after it
+        // was selected), fall back to the first visible pad rather than blanking the
+        // detail pane when there are still pads to show.
+        guard let i = visible.firstIndex(where: { $0.id == id }) else { return visible.first }
         if visible.indices.contains(i + 1) { return visible[i + 1] }
         if visible.indices.contains(i - 1) { return visible[i - 1] }
         return nil
@@ -232,7 +269,7 @@ struct PadsView: View {
         Group {
             if isLoading && pads.isEmpty {
                 ProgressView("Loading pads…").frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let error {
+            } else if let error, pads.isEmpty {
                 APIErrorView(error: error) { Task { await reload() } }
             } else {
                 VStack(spacing: 0) {
@@ -516,6 +553,7 @@ struct PadsView: View {
             // Render page 1 the moment it lands, then keep growing the list as the
             // remaining pages stream in. Snapshots arrive sorted updated_at,desc from the
             // server, so each one only appends below — no reshuffle as the list fills in.
+            let isInitialLoad = pads.isEmpty
             var fetched: [Pad] = []
             for try await snapshot in client.listPadsIncrementally() {
                 // The first snapshot is page 1 — the most-recently-updated pads, already
@@ -526,8 +564,14 @@ struct PadsView: View {
                     isLoading = false
                 }
                 fetched = snapshot
-                pads = snapshot
+                // Paint progressively on the first load; on a refresh keep the current
+                // list until the full result is in, so a later page failing can't
+                // transiently shrink the visible list to just page 1.
+                if isInitialLoad {
+                    pads = snapshot
+                }
             }
+            pads = fetched
             // Finalize diff + cache against the complete list, once.
             var changes: Set<String> = []
             if hasLoadedOnce {
@@ -1453,8 +1497,9 @@ struct PadDetailView: View {
     private func displayFiles(for env: PadEnvironment) -> [CodeFile] {
         env.fileContents.enumerated().compactMap { index, file in
             guard let body = file.contents, !body.isEmpty else { return nil }
+            let stableID = file.path.flatMap { $0.isEmpty ? nil : $0 } ?? "idx-\(index)"
             return CodeFile(
-                id: index,
+                id: stableID,
                 path: file.path,
                 contents: body,
                 language: CodeFile.language(forPath: file.path, fallback: env.language)
@@ -1536,7 +1581,10 @@ struct PadDetailView: View {
 /// language used to highlight it (derived from the file's own extension, with
 /// the environment language as a fallback).
 private struct CodeFile: Identifiable, Hashable {
-    let id: Int
+    /// A stable identifier derived from the file's path (not its array position), so a
+    /// reload that reorders or changes the environment's files doesn't silently remap
+    /// which file a retained selection points at.
+    let id: String
     let path: String?
     let contents: String
     let language: String?
@@ -1616,18 +1664,46 @@ private struct EnvironmentCodeCard: View {
     let padID: String
     let dark: Bool
 
-    @State private var selectedFileID: Int?
+    /// The files arranged into a folder tree by their paths, folders before
+    /// files and each group sorted by name. Built once in `init` rather than on
+    /// every `body` pass so dragging the sidebar handle (which re-evaluates
+    /// `body` each frame) doesn't re-run the recursive grouping and sorting.
+    private let fileTree: [FileTreeNode]
+
+    init(
+        files: [CodeFile],
+        isActive: Bool,
+        showActiveBadge: Bool,
+        language: String?,
+        padID: String,
+        dark: Bool
+    ) {
+        self.files = files
+        self.isActive = isActive
+        self.showActiveBadge = showActiveBadge
+        self.language = language
+        self.padID = padID
+        self.dark = dark
+        self.fileTree = Self.makeFileTree(from: files)
+    }
+
+    @State private var selectedFileID: String?
     /// Folder paths the user has collapsed. Absence means expanded, so every
     /// folder starts open and the whole project is visible by default.
     @State private var collapsedFolders: Set<String> = []
-    /// The current width of the file sidebar. The user can drag the divider to
-    /// resize it (see `resizeHandle`); a wider sidebar reveals long file names
-    /// that would otherwise truncate. Persisted so the chosen width sticks across
-    /// launches, and shared by every code card so they stay aligned.
-    @AppStorage("padFileSidebarWidth") private var sidebarWidth: Double = 180
-    /// The sidebar width captured when a resize drag began, so each drag is
-    /// measured from where it started rather than accumulating frame to frame.
-    @State private var dragStartWidth: Double?
+    /// The persisted file sidebar width. The user can drag the divider to resize
+    /// it (see `resizeHandle`); a wider sidebar reveals long file names that would
+    /// otherwise truncate. Stored so the chosen width sticks across launches, and
+    /// shared by every code card so they stay aligned. The panes only ever render
+    /// at this width — a drag previews with a lightweight indicator and commits
+    /// here on release (see `resizeHandle`), so no heavy relayout runs mid-drag.
+    @AppStorage("padFileSidebarWidth") private var storedWidth: Double = 180
+    /// The previewed width while a resize drag is in progress, or `nil` when not
+    /// dragging. Only a thin indicator line follows this; the actual sidebar keeps
+    /// its committed `storedWidth` until the drag ends, so dragging never forces
+    /// the code pane (a selectable, syntax-highlighted scroll view that is costly
+    /// to re-lay-out) to reflow on every frame — the source of the stutter.
+    @State private var liveWidth: Double?
 
     private var selected: CodeFile {
         files.first { $0.id == selectedFileID } ?? files[0]
@@ -1635,15 +1711,17 @@ private struct EnvironmentCodeCard: View {
 
     private var isMultiFile: Bool { files.count > 1 }
 
-    /// The files arranged into a folder tree by their paths, folders before
-    /// files and each group sorted by name.
-    private var fileTree: [FileTreeNode] {
+    /// Builds the folder tree from a flat file list. Pure and static so it can run
+    /// once at `init` time.
+    private static func makeFileTree(from files: [CodeFile]) -> [FileTreeNode] {
         let entries = files.map { file -> (segments: [String], file: CodeFile) in
             let path = file.path ?? file.name
-            let segments = path.split(separator: "/").map(String.init)
+            let segments = path.split(separator: "/")
+                .map(String.init)
+                .filter { $0 != "." && $0 != ".." }
             return (segments.isEmpty ? [file.name] : segments, file)
         }
-        return Self.makeNodes(entries: entries, prefix: "")
+        return makeNodes(entries: entries, prefix: "")
     }
 
     private static func makeNodes(
@@ -1687,6 +1765,13 @@ private struct EnvironmentCodeCard: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        // When the environment's files change (added/removed/renamed — ids are
+        // path-based), clear the retained selection so `selected` falls back to the
+        // first file rather than pointing at a stale or wrong file. An in-place
+        // contents update keeps the same ids, so the selection survives it.
+        .onChange(of: files.map(\.id)) { _, _ in
+            selectedFileID = nil
+        }
     }
 
     /// Single-file environments render a lone highlighted scroll. Multi-file
@@ -1700,6 +1785,19 @@ private struct EnvironmentCodeCard: View {
                     fileSidebar
                     resizeHandle
                     codeScroll
+                }
+                // While dragging, a thin accent line previews where the divider
+                // will land. The panes themselves don't move until release, so the
+                // (expensive) code pane never reflows mid-drag.
+                .overlay(alignment: .leading) {
+                    if let liveWidth {
+                        Rectangle()
+                            .fill(Color.accentColor)
+                            .frame(width: 2)
+                            .frame(maxHeight: .infinity)
+                            .offset(x: liveWidth)
+                            .allowsHitTesting(false)
+                    }
                 }
             } else {
                 codeScroll
@@ -1760,14 +1858,15 @@ private struct EnvironmentCodeCard: View {
             .padding(6)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(width: CGFloat(sidebarWidth))
+        .frame(width: CGFloat(storedWidth))
     }
 
     /// The draggable divider between the file list and the code. It draws the
     /// same hairline as a plain `Divider` but carries a wider, invisible hit
     /// target so the resize is easy to grab, and shows the left/right resize
-    /// cursor on hover. Dragging adjusts `sidebarWidth`, clamped so the sidebar
-    /// can't collapse away or crowd out the code.
+    /// cursor on hover. Dragging only moves a preview line (`liveWidth`); the new
+    /// width is committed to `storedWidth` on release so the panes relayout once,
+    /// not on every frame.
     private var resizeHandle: some View {
         Divider()
             .overlay {
@@ -1784,29 +1883,33 @@ private struct EnvironmentCodeCard: View {
                     .gesture(
                         DragGesture()
                             .onChanged { value in
-                                let base = dragStartWidth ?? sidebarWidth
-                                if dragStartWidth == nil { dragStartWidth = base }
-                                sidebarWidth = min(max(120, base + Double(value.translation.width)), 420)
+                                // Measure each drag from the committed width and
+                                // move only the lightweight preview indicator —
+                                // the heavy panes stay put until release.
+                                let next = storedWidth + Double(value.translation.width)
+                                liveWidth = min(max(120, next), 420)
                             }
-                            .onEnded { _ in dragStartWidth = nil }
+                            .onEnded { _ in
+                                // Commit the previewed width (one relayout) and
+                                // clear the preview.
+                                if let liveWidth { storedWidth = liveWidth }
+                                liveWidth = nil
+                            }
                     )
             }
     }
 
     private var codeScroll: some View {
-        ScrollView([.vertical, .horizontal]) {
-            Text(SyntaxHighlighter.highlight(selected.contents, language: selected.language, dark: dark))
-                .font(.system(.callout, design: .monospaced))
-                .textSelection(.enabled)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 8)
-        }
-        .defaultScrollAnchor(.topLeading)
-        .frame(maxWidth: .infinity, maxHeight: 360, alignment: .topLeading)
-        .overlay(alignment: .topTrailing) {
-            copyButton
-                .padding(8)
-        }
+        // The highlighted code lives in its own `Equatable` view so resizing the
+        // sidebar — which re-evaluates this card's `body` every drag frame —
+        // doesn't re-run the (expensive) syntax highlighter. It only recomputes
+        // when the file contents, language, or appearance actually change.
+        HighlightedCode(contents: selected.contents, language: selected.language, dark: dark)
+            .equatable()
+            .overlay(alignment: .topTrailing) {
+                copyButton
+                    .padding(8)
+            }
     }
 
     private var accessibilityLabel: String {
@@ -1822,6 +1925,35 @@ private struct EnvironmentCodeCard: View {
     private func copy(_ text: String) {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
+    }
+}
+
+/// The scrollable, syntax-highlighted view of one file's source. Kept separate
+/// and `Equatable` so SwiftUI skips re-running the costly highlighter when the
+/// enclosing card re-renders for unrelated reasons — most importantly while the
+/// user drags the file sidebar's resize handle, which would otherwise re-tokenize
+/// the whole file on every frame and make the drag stutter. `body` (and thus the
+/// highlight pass) runs again only when the contents, language, or appearance
+/// differ from the previous value.
+private struct HighlightedCode: View, Equatable {
+    let contents: String
+    let language: String?
+    let dark: Bool
+
+    static func == (lhs: HighlightedCode, rhs: HighlightedCode) -> Bool {
+        lhs.dark == rhs.dark && lhs.language == rhs.language && lhs.contents == rhs.contents
+    }
+
+    var body: some View {
+        ScrollView([.vertical, .horizontal]) {
+            Text(SyntaxHighlighter.highlight(contents, language: language, dark: dark))
+                .font(.system(.callout, design: .monospaced))
+                .textSelection(.enabled)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+        }
+        .defaultScrollAnchor(.topLeading)
+        .frame(maxWidth: .infinity, maxHeight: 360, alignment: .topLeading)
     }
 }
 
@@ -1842,9 +1974,9 @@ private struct FileTreeNode: Identifiable {
 private struct FileTreeRows: View {
     let nodes: [FileTreeNode]
     let depth: Int
-    let selectedID: Int
+    let selectedID: String
     @Binding var collapsedFolders: Set<String>
-    let onSelect: (Int) -> Void
+    let onSelect: (String) -> Void
 
     var body: some View {
         ForEach(nodes) { node in

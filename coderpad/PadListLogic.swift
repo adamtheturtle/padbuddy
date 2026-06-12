@@ -64,7 +64,7 @@ enum PadListLogic {
             (criteria.owner == nil || pad.ownerEmail == criteria.owner) &&
             (criteria.team == nil || pad.team?.name == criteria.team) &&
             (criteria.type == nil || pad.interviewType?.rawValue == criteria.type) &&
-            (rangeStart.map { (pad.updatedAt ?? .distantPast) >= $0 } ?? true) &&
+            (rangeStart.map { ((pad.updatedAt ?? pad.createdAt) ?? .distantPast) >= $0 } ?? true) &&
             (lowered.isEmpty
              || pad.title.lowercased().contains(lowered)
              || pad.id.lowercased().contains(lowered)

@@ -118,7 +118,7 @@ nonisolated struct PadTeam: Codable, Hashable {
 }
 
 nonisolated struct PadEvent: Decodable, Identifiable, Hashable {
-    var id: String { "\(createdAt?.timeIntervalSince1970 ?? 0)-\(kind)-\(userName ?? "")-\(message.hashValue)" }
+    var id: String { "\(createdAt?.timeIntervalSince1970 ?? 0)-\(kind)-\(userName ?? "")-\(message)" }
     let message: String
     let kind: String
     /// Event-specific context: the language run for `ran`, the question ID for
@@ -1028,11 +1028,11 @@ struct CoderPadClient {
     /// the first 50 records.
     private func streamAllPages<W: PagedResponse>(_ type: W.Type, path: String, sort: String? = nil) -> AsyncThrowingStream<[W.Item], Error> {
         AsyncThrowingStream { continuation in
-            // The client (and thus the page types' Decodable conformances) is
-            // MainActor-isolated, so the whole pipeline — including the concurrent child
-            // tasks below — runs on the main actor. Each `await` on the network call still
-            // suspends and releases the actor, so the page requests genuinely overlap.
-            let work = Task { @MainActor in
+            // `CoderPadClient` is a Sendable value type, so the pipeline — including the
+            // concurrent child tasks below — runs off the main actor on the cooperative
+            // pool, keeping the list-building work (URL construction, snapshot
+            // accumulation) off the main thread while pages stream in.
+            let work = Task {
                 do {
                     guard !apiKey.isEmpty else { throw CoderPadError.missingAPIKey }
                     let baseQuery: [URLQueryItem] = sort.map { [URLQueryItem(name: "sort", value: $0)] } ?? []
@@ -1056,36 +1056,59 @@ struct CoderPadClient {
                     // Fast path: total + page-number URLs let us fetch pages 2…N in parallel.
                     if let total = firstPage.total, !items.isEmpty {
                         let pageSize = items.count
-                        let pageCount = (total + pageSize - 1) / pageSize
-                        guard pageCount > 1 else { continuation.finish(); return }
+                        // `total` is a lower bound on the page count: it can undercount
+                        // if records are created mid-load, and the first page can be
+                        // short. So fetch pages 2…N in parallel, then follow `next_page`
+                        // from the final page to pick up any remainder rather than
+                        // silently dropping records past the estimate.
+                        let pageCount = max(1, (total + pageSize - 1) / pageSize)
+                        var tailNextPage: String? = firstPage.nextPage
 
-                        var pending: [Int: [W.Item]] = [:]
-                        var nextToEmit = 2
-                        try await withThrowingTaskGroup(of: (Int, [W.Item]).self) { group in
-                            func enqueue(_ page: Int) throws {
-                                guard let url = pageURL(page) else { throw CoderPadError.http(0, "Invalid URL") }
-                                group.addTask {
-                                    (page, try await self.performWithRetry(W.self, request: self.authorizedGET(url)).pageItems)
+                        if pageCount > 1 {
+                            var pending: [Int: W] = [:]
+                            var nextToEmit = 2
+                            try await withThrowingTaskGroup(of: (Int, W).self) { group in
+                                func enqueue(_ page: Int) throws {
+                                    guard let url = pageURL(page) else { throw CoderPadError.http(0, "Invalid URL") }
+                                    group.addTask {
+                                        (page, try await self.performWithRetry(W.self, request: self.authorizedGET(url)))
+                                    }
+                                }
+                                // Keep a bounded window in flight — enough to saturate the
+                                // network without unleashing dozens of connections (which
+                                // invite 429s).
+                                let maxConcurrent = 8
+                                var nextToFetch = 2
+                                while nextToFetch <= pageCount, nextToFetch - 2 < maxConcurrent {
+                                    try enqueue(nextToFetch); nextToFetch += 1
+                                }
+                                while let (page, response) = try await group.next() {
+                                    pending[page] = response
+                                    // The final page's `next_page` tells us whether the
+                                    // estimate fell short.
+                                    if page == pageCount { tailNextPage = response.nextPage }
+                                    // Emit a new snapshot whenever the contiguous prefix grows.
+                                    var grew = false
+                                    while let ready = pending.removeValue(forKey: nextToEmit) {
+                                        items.append(contentsOf: ready.pageItems); nextToEmit += 1; grew = true
+                                    }
+                                    if grew { continuation.yield(items) }
+                                    if nextToFetch <= pageCount { try enqueue(nextToFetch); nextToFetch += 1 }
                                 }
                             }
-                            // Keep a bounded window in flight — enough to saturate the
-                            // network without unleashing dozens of connections (which
-                            // invite 429s).
-                            let maxConcurrent = 8
-                            var nextToFetch = 2
-                            while nextToFetch <= pageCount, nextToFetch - 2 < maxConcurrent {
-                                try enqueue(nextToFetch); nextToFetch += 1
-                            }
-                            while let (page, pageItems) = try await group.next() {
-                                pending[page] = pageItems
-                                // Emit a new snapshot whenever the contiguous prefix grows.
-                                var grew = false
-                                while let ready = pending.removeValue(forKey: nextToEmit) {
-                                    items.append(contentsOf: ready); nextToEmit += 1; grew = true
-                                }
-                                if grew { continuation.yield(items) }
-                                if nextToFetch <= pageCount { try enqueue(nextToFetch); nextToFetch += 1 }
-                            }
+                        }
+
+                        // Walk any pages beyond the estimated count sequentially.
+                        var url = tailNextPage.flatMap { URL(string: $0) }
+                        var pages = pageCount
+                        while let current = url {
+                            let page = try await performWithRetry(W.self, request: authorizedGET(current))
+                            items.append(contentsOf: page.pageItems)
+                            continuation.yield(items)
+                            pages += 1
+                            // Safety valve against a server that keeps handing back next_page links.
+                            guard pages < 1000, let next = page.nextPage, let nextURL = URL(string: next) else { break }
+                            url = nextURL
                         }
                         continuation.finish()
                         return

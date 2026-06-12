@@ -263,7 +263,7 @@ extension String {
             let lowered = self.lowercased()
             if lowered.hasPrefix("multifile_") {
                 let base = String(lowered.dropFirst("multifile_".count))
-                return base.languageDisplayName + " Project"
+                return base.isEmpty ? "Project" : base.languageDisplayName + " Project"
             }
             guard !self.isEmpty else { return self }
             return self.prefix(1).uppercased() + self.dropFirst()
@@ -293,7 +293,8 @@ extension String {
         default:
             let lowered = self.lowercased()
             if lowered.hasPrefix("multifile_") {
-                return String(lowered.dropFirst("multifile_".count)).languageSymbol
+                let base = String(lowered.dropFirst("multifile_".count))
+                if !base.isEmpty { return base.languageSymbol }
             }
             return "chevron.left.slash.chevron.right"
         }

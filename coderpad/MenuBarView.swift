@@ -19,6 +19,7 @@ struct MenuBarLabel: View {
 struct MenuBarView: View {
     @State private var store = AccountsStore.shared
     @State private var monitor = PadActivityMonitor.shared
+    @State private var favorites = FavoriteQuestionsStore.shared
     @State private var pads: [Pad] = []
     @State private var questions: [Question] = []
     @State private var quota: Quota?
@@ -26,6 +27,11 @@ struct MenuBarView: View {
     @State private var errorMessage: String?
     @AppStorage("menuBarTopN") private var topN: Int = 3
     @Environment(\.openWindow) private var openWindow
+
+    /// The settings Stepper bounds this to 0…30, but a corrupted/externally-edited
+    /// defaults value could be negative, and `Array.prefix(_:)` traps on a negative
+    /// count — so clamp at every read site.
+    private var topCount: Int { max(0, topN) }
 
     var body: some View {
         if let account = store.currentAccount {
@@ -40,14 +46,24 @@ struct MenuBarView: View {
             }
             .keyboardShortcut("n")
             .disabled(account.isMock == false && account.apiKey.isEmpty)
+            // Load the menu's data here (a stable, always-present action) keyed on the
+            // active account, rather than hanging it off an unrelated leaf button.
+            .task(id: store.currentAccountID) { await load(account: account) }
 
             if !questions.isEmpty {
                 Menu("New Pad from Question") {
-                    ForEach(questions.prefix(topN)) { q in
+                    let favoriteIDs = Set(favorites.favorites(account: store.currentAccountID))
+                    ForEach(questionsForMenu(favoriteIDs: favoriteIDs).prefix(topCount)) { q in
                         Button {
                             Task { await createPad(.fromQuestion(q), account: account) }
                         } label: {
-                            Text(q.title.isEmpty ? "#\(q.id)" : q.title)
+                            // Starred questions lead the list and carry the star so
+                            // a frequently used question is the first one-click pad.
+                            if favoriteIDs.contains(q.id) {
+                                Label(q.title.isEmpty ? "#\(q.id)" : q.title, systemImage: "star.fill")
+                            } else {
+                                Text(q.title.isEmpty ? "#\(q.id)" : q.title)
+                            }
                         }
                     }
                 }
@@ -75,7 +91,7 @@ struct MenuBarView: View {
             } else if myPads.isEmpty {
                 Text("No pads").foregroundStyle(.secondary)
             } else {
-                ForEach(myPads.prefix(topN)) { pad in
+                ForEach(myPads.prefix(topCount)) { pad in
                     Button {
                         if let url = pad.webURL {
                             BrowserSettings.openExternally(url)
@@ -84,8 +100,8 @@ struct MenuBarView: View {
                         Text(padLabel(pad))
                     }
                 }
-                if myPads.count > topN {
-                    Text("…\(myPads.count - topN) more").foregroundStyle(.secondary)
+                if myPads.count > topCount {
+                    Text("…\(myPads.count - topCount) more").foregroundStyle(.secondary)
                 }
             }
 
@@ -141,7 +157,6 @@ struct MenuBarView: View {
 
             Button("Quit") { NSApp.terminate(nil) }
                 .keyboardShortcut("q")
-                .task(id: account.id) { await load(account: account) }
         } else {
             Text("No account configured")
                 .font(.caption).foregroundStyle(.secondary)
@@ -211,6 +226,15 @@ struct MenuBarView: View {
         return pads.filter { $0.ownerEmail == mine }
     }
 
+    /// Questions for the "New Pad from Question" submenu, with favorites floated to
+    /// the top (keeping the underlying most-recently-updated order within each
+    /// group) so the user's starred questions lead the one-click pad list.
+    private func questionsForMenu(favoriteIDs: Set<Int>) -> [Question] {
+        guard !favoriteIDs.isEmpty else { return questions }
+        return questions.filter { favoriteIDs.contains($0.id) }
+            + questions.filter { !favoriteIDs.contains($0.id) }
+    }
+
     private func createPad(_ body: PadCreate, account: Account) async {
         let client = account.makeClient()
         do {
@@ -231,6 +255,11 @@ struct MenuBarView: View {
     private func load(account: Account) async {
         isLoading = true
         errorMessage = nil
+        // Clear the previous account's data so switching accounts doesn't briefly show
+        // the old account's pads/questions/quota until the new fetch lands.
+        pads = []
+        questions = []
+        quota = nil
         defer { isLoading = false }
         let client = account.makeClient()
         do {
@@ -243,7 +272,6 @@ struct MenuBarView: View {
                 questions = qs.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
             }
             quota = try? await quotaTask
-            monitor.markSeen()
         } catch {
             errorMessage = error.localizedDescription
         }

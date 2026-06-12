@@ -69,14 +69,11 @@ struct ContentView: View {
                 showOpenPadURL = true
             }
         }
-        .task {
-            for await id in NotificationCenter.default.notifications(named: .openPadIDRequested)
-                .compactMap({ $0.object as? String }) {
-                if let url = URL(string: "https://app.coderpad.io/\(id)") {
-                    openWindow(id: "pad-browser", value: url)
-                }
-            }
-        }
+        // The "Open Pad by ID" intent routes through durable AppNavigation state so a
+        // cold-launch request isn't dropped: consume whatever is already pending on
+        // appear, and react to any value set afterwards.
+        .task { consumeOpenPadID() }
+        .onChange(of: nav.openPadID) { _, _ in consumeOpenPadID() }
         .task {
             for await _ in NotificationCenter.default.notifications(named: .openSettingsRequested) {
                 openSettings()
@@ -122,6 +119,16 @@ struct ContentView: View {
     }
 
 
+
+    /// Opens any pad id queued by the "Open Pad by ID" intent, then clears it so it
+    /// isn't reopened on the next change.
+    private func consumeOpenPadID() {
+        guard let id = nav.openPadID, !id.isEmpty else { return }
+        nav.openPadID = nil
+        if let url = URL(string: "https://app.coderpad.io/\(id)") {
+            openWindow(id: "pad-browser", value: url)
+        }
+    }
 
     @ViewBuilder
     private var noAccountView: some View {

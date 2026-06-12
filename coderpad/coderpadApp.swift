@@ -43,7 +43,6 @@ extension Notification.Name {
     static let padDeleted = Notification.Name("coderpad.padDeleted")
     static let questionUpdated = Notification.Name("coderpad.questionUpdated")
     static let questionDeleted = Notification.Name("coderpad.questionDeleted")
-    static let openPadIDRequested = Notification.Name("coderpad.openPadIDRequested")
     static let openSettingsRequested = Notification.Name("coderpad.openSettingsRequested")
     static let openPadInBrowserRequested = Notification.Name("coderpad.openPadInBrowserRequested")
 }
@@ -112,6 +111,11 @@ final class AppNavigation {
     /// without that confirmation step.
     var deletePadID: String?
 
+    /// A pad id requested by the "Open Pad by ID" App Intent. Durable state (rather
+    /// than a transient notification) so the request survives a cold launch where the
+    /// intent fires before any view is listening. Consumed/cleared by ContentView.
+    var openPadID: String?
+
     /// Switch to a section with no pending request.
     func show(_ section: AppSection) {
         self.section = section
@@ -127,6 +131,11 @@ final class AppNavigation {
     func showQuestions(_ request: QuestionsRequest = QuestionsRequest()) {
         section = .questions
         questionsRequest = request
+    }
+
+    /// Queue a pad id to open in the in-app browser, consumed by ContentView.
+    func openPad(id: String) {
+        openPadID = id
     }
 }
 
@@ -174,6 +183,13 @@ struct coderpadApp: App {
                 PadBrowserView(url: url)
                     .frame(minWidth: 900, minHeight: 700)
                     .navigationTitle(url.host ?? "Pad")
+                    .preferredColorScheme(appearance.colorScheme)
+            } else {
+                // The system can restore this window without a persisted URL; show a
+                // placeholder rather than a blank, zero-content window.
+                ContentUnavailableView("No Pad", systemImage: "macwindow",
+                                       description: Text("Open a pad to view it here."))
+                    .frame(minWidth: 900, minHeight: 700)
                     .preferredColorScheme(appearance.colorScheme)
             }
         }

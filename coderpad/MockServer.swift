@@ -163,7 +163,12 @@ nonisolated enum MockResponses {
             return ok(response)
         }
 
-        if method == "GET", let id = match(path, pattern: #"^/api/pads/([^/]+)/events/?$"#) {
+        if method == "GET", let id = match(path, pattern: #"^/api/pads/([^/]+)/events/?$"#), !id.isEmpty {
+            // Mirror the single-pad route: an events request for a pad that doesn't
+            // exist (or was deleted) is a 404, not a canned timeline.
+            guard MockFixtures.allPads().contains(where: { ($0["id"] as? String) == id }) else {
+                return (404, jsonString(["status": "error", "message": "pad not found"]))
+            }
             return ok([
                 "status": "OK",
                 "events": MockFixtures.events(forPad: id)
@@ -338,13 +343,18 @@ nonisolated enum MockFixtures {
     }
 
     static func allPads() -> [[String: Any]] {
-        let base = seedPads().map { pad -> [String: Any] in
+        func applyUpdates(_ pad: [String: Any]) -> [String: Any] {
             guard let id = pad["id"] as? String, let updates = updatedPads[id] else { return pad }
             var merged = pad
             for (key, value) in updates where key != "id" { merged[key] = value }
             return merged
         }
-        return (base + createdPads).filter { pad in
+        // Both seed pads and pads created during the session need their `updatedPads`
+        // overrides applied, otherwise ending/editing a freshly-created pad silently
+        // no-ops while still returning HTTP 200.
+        let base = seedPads().map(applyUpdates)
+        let created = createdPads.map(applyUpdates)
+        return (base + created).filter { pad in
             guard let id = pad["id"] as? String else { return true }
             return !deletedPadIDs.contains(id)
         }

@@ -13,6 +13,7 @@ struct QuestionsView: View {
     @State private var accounts = AccountsStore.shared
     @State private var nav = AppNavigation.shared
     @State private var cache = QuestionsCacheStore.shared
+    @State private var favorites = FavoriteQuestionsStore.shared
     @State private var questions: [Question] = []
 
     @State private var isLoading = false
@@ -24,11 +25,13 @@ struct QuestionsView: View {
     @State private var ownerFilter: String? = nil
     @State private var typeFilter: String? = nil
     @State private var draftFilter: String? = nil
+    @State private var favoritesOnly = false
     @State private var sort: QuestionSort = .lastUsedDesc
     @State private var showCreate = false
     @State private var savedSearches = SavedSearchStore.shared
     @State private var showSaveSearch = false
     @State private var saveSearchName = ""
+    @State private var isSuggestingName = false
 
     var body: some View {
         sidebar
@@ -53,14 +56,19 @@ struct QuestionsView: View {
         .sheet(isPresented: $showSaveSearch) {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Save Search").font(.title3.bold())
-                TextField("Name", text: $saveSearchName, prompt: Text("e.g. My drafts, Python"))
-                    .textFieldStyle(.roundedBorder)
-                    .onSubmit { commitSavedSearch() }
-                    .onChange(of: saveSearchName) { _, newValue in
-                        if newValue.count > NamedSearch.maxNameLength {
-                            saveSearchName = String(newValue.prefix(NamedSearch.maxNameLength))
+                HStack(spacing: 8) {
+                    TextField("Name", text: $saveSearchName, prompt: Text("e.g. My drafts, Python"))
+                        .textFieldStyle(.roundedBorder)
+                        .onSubmit { commitSavedSearch() }
+                        .onChange(of: saveSearchName) { _, newValue in
+                            if newValue.count > NamedSearch.maxNameLength {
+                                saveSearchName = String(newValue.prefix(NamedSearch.maxNameLength))
+                            }
                         }
+                    if SavedSearchNamer.isAvailable {
+                        suggestNameButton
                     }
+                }
                 HStack {
                     Spacer()
                     Button("Cancel", role: .cancel) { showSaveSearch = false }
@@ -109,7 +117,9 @@ struct QuestionsView: View {
 
     private var filtered: [Question] {
         let lowered = search.lowercased()
+        let favoriteIDs = favoritesOnly ? favoriteIDSet : nil
         return questions.filter { q in
+            (favoriteIDs == nil || favoriteIDs!.contains(q.id)) &&
             (languageFilter == nil || (q.language ?? "").lowercased() == languageFilter) &&
             (ownerFilter == nil || q.ownerEmail == ownerFilter) &&
             (typeFilter == nil || q.interviewType.rawValue == typeFilter) &&
@@ -124,20 +134,34 @@ struct QuestionsView: View {
         }
     }
 
-    /// Filtered questions arranged by the active sort. "Last used" is backed by
-    /// `updatedAt` — the only per-question recency signal the API exposes.
+    /// The current account's favorite question ids, as a set for quick membership
+    /// tests in filtering, sorting, and row decoration.
+    private var favoriteIDSet: Set<Int> {
+        Set(favorites.favorites(account: accounts.currentAccountID))
+    }
+
+    /// Filtered questions arranged by the active sort, with favorites pinned to the
+    /// top. "Last used" is backed by `updatedAt` — the only per-question recency
+    /// signal the API exposes. Favorites float up (keeping their relative sort
+    /// order within the group) so a frequently used question stays a glance away,
+    /// except when already filtering to favorites only, where pinning is moot.
     private var sorted: [Question] {
         let items = filtered
+        let ordered: [Question]
         switch sort {
         case .titleAsc:
-            return items.sorted { $0.displayTitle.localizedCaseInsensitiveCompare($1.displayTitle) == .orderedAscending }
+            ordered = items.sorted { $0.displayTitle.localizedCaseInsensitiveCompare($1.displayTitle) == .orderedAscending }
         case .titleDesc:
-            return items.sorted { $0.displayTitle.localizedCaseInsensitiveCompare($1.displayTitle) == .orderedDescending }
+            ordered = items.sorted { $0.displayTitle.localizedCaseInsensitiveCompare($1.displayTitle) == .orderedDescending }
         case .lastUsedDesc:
-            return items.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
+            ordered = items.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
         case .lastUsedAsc:
-            return items.sorted { ($0.updatedAt ?? .distantPast) < ($1.updatedAt ?? .distantPast) }
+            ordered = items.sorted { ($0.updatedAt ?? .distantPast) < ($1.updatedAt ?? .distantPast) }
         }
+        let favoriteIDs = favoriteIDSet
+        guard !favoritesOnly, !favoriteIDs.isEmpty else { return ordered }
+        return ordered.filter { favoriteIDs.contains($0.id) }
+            + ordered.filter { !favoriteIDs.contains($0.id) }
     }
 
     private var availableLanguages: [String] {
@@ -155,7 +179,7 @@ struct QuestionsView: View {
         Group {
             if isLoading && questions.isEmpty {
                 ProgressView("Loading questions…").frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let error {
+            } else if let error, questions.isEmpty {
                 APIErrorView(error: error) { Task { await reload() } }
             } else {
                 VStack(spacing: 0) {
@@ -169,9 +193,13 @@ struct QuestionsView: View {
                     Divider()
                     List(selection: $selection) {
                         ForEach(sorted) { q in
-                            QuestionRow(question: q)
+                            QuestionRow(question: q, isFavorite: favoriteIDSet.contains(q.id),
+                                        onToggleFavorite: { toggleFavorite(q) })
                                 .tag(q)
                                 .contextMenu { questionContextMenu(q) }
+                                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                    favoriteSwipeButton(q)
+                                }
                                 .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                     Button {
                                         // Same path as the context menu and detail
@@ -241,6 +269,7 @@ struct QuestionsView: View {
         } label: {
             Label("New Pad from Question", systemImage: "plus.rectangle.on.rectangle")
         }
+        favoriteToggleButton(q)
         Button {
             selection = q
             nav.editQuestionID = q.id
@@ -277,6 +306,44 @@ struct QuestionsView: View {
     private func copyToPasteboard(_ text: String) {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
+    }
+
+    /// Context-menu entry that stars or unstars a question. Favorites pin the
+    /// question to the top of the list and lead the menu bar's "New Pad from
+    /// Question" submenu, so a frequently used question is quick to reach.
+    @ViewBuilder
+    private func favoriteToggleButton(_ q: Question) -> some View {
+        let isFavorite = favoriteIDSet.contains(q.id)
+        Button {
+            toggleFavorite(q)
+        } label: {
+            Label(isFavorite ? "Remove from Favorites" : "Add to Favorites",
+                  systemImage: isFavorite ? "star.slash" : "star")
+        }
+    }
+
+    /// Leading swipe action mirroring the favorite context-menu entry.
+    @ViewBuilder
+    private func favoriteSwipeButton(_ q: Question) -> some View {
+        let isFavorite = favoriteIDSet.contains(q.id)
+        Button {
+            toggleFavorite(q)
+        } label: {
+            Label(isFavorite ? "Unfavorite" : "Favorite",
+                  systemImage: isFavorite ? "star.slash" : "star")
+        }
+        .tint(.yellow)
+    }
+
+    private func toggleFavorite(_ q: Question) {
+        guard let account = accounts.currentAccountID else { return }
+        favorites.toggle(q.id, account: account)
+        // Unstarring the last favorite hides the Favorites chip, so drop the
+        // filter too — otherwise it would strand the list on an empty result with
+        // no visible control to turn it back off.
+        if favoritesOnly && favoriteIDSet.isEmpty {
+            favoritesOnly = false
+        }
     }
 
     @ViewBuilder
@@ -344,11 +411,21 @@ struct QuestionsView: View {
     private var savedSearchesBar: some View {
         let saved = savedSearches.searches(account: accounts.currentAccountID, kind: .questions)
         let defaults = defaultSearches
-        if !defaults.isEmpty || !saved.isEmpty {
+        let hasFavorites = !favoriteIDSet.isEmpty
+        if hasFavorites || !defaults.isEmpty || !saved.isEmpty {
             // A wrapping flow layout rather than a horizontal scroll, so the chips
             // reflow onto extra lines as the pane narrows instead of clipping a
             // long saved-search name off the trailing edge.
             FlowLayout(spacing: 6, lineSpacing: 6) {
+                // A toggle, unlike the recall chips beside it: tapping filters the
+                // list to starred questions and tapping again clears it. Shown only
+                // once at least one question is starred.
+                if hasFavorites {
+                    SavedSearchChip(name: "Favorites", systemImage: "star.fill",
+                                    isActive: favoritesOnly) {
+                        favoritesOnly.toggle()
+                    }
+                }
                 ForEach(defaults) { item in
                     SavedSearchChip(name: item.search.name, systemImage: item.icon,
                                     isActive: isActiveSearch(item.search)) {
@@ -366,6 +443,34 @@ struct QuestionsView: View {
                 }
             }
             .padding(.horizontal, 12).padding(.top, 6)
+        }
+    }
+
+    /// A sparkle button that fills the name field with an on-device suggestion
+    /// built from the active filters. Shown only when the model is available; the
+    /// field stays fully editable and the user opts in per save.
+    @ViewBuilder
+    private var suggestNameButton: some View {
+        Button(action: suggestName) {
+            if isSuggestingName {
+                ProgressView().controlSize(.small)
+            } else {
+                Image(systemName: "sparkles")
+            }
+        }
+        .buttonStyle(.borderless)
+        .disabled(isSuggestingName)
+        .help("Suggest a name from the current filters")
+        .accessibilityLabel("Suggest a name")
+    }
+
+    private func suggestName() {
+        let captured = captureCurrentSearch(named: "")
+        isSuggestingName = true
+        Task {
+            let suggestion = await SavedSearchNamer.suggestName(for: captured)
+            isSuggestingName = false
+            if let suggestion { saveSearchName = suggestion }
         }
     }
 
@@ -415,17 +520,23 @@ struct QuestionsView: View {
         error = nil
         defer { isLoading = false }
         do {
-            // Render page 1 immediately, then grow the list as later pages stream in.
-            // Snapshots arrive sorted updated_at,desc, so rows only append below.
+            // On the first load, render page 1 immediately and grow the list as later
+            // pages stream in. On a refresh we already have content, so only swap in the
+            // complete result at the end — otherwise a later page failing would
+            // transiently shrink the visible list to just page 1.
+            let isInitialLoad = questions.isEmpty
             var fetched: [Question] = []
             for try await snapshot in client.listQuestionsIncrementally() {
                 fetched = snapshot
-                questions = snapshot
+                if isInitialLoad { questions = snapshot }
             }
+            questions = fetched
             if let id = accounts.currentAccountID {
                 cache.set(id, questions: fetched)
             }
         } catch {
+            // Keep whatever is already on screen; the error view only takes over when
+            // there's nothing loaded (gated on `questions.isEmpty`).
             self.error = error
         }
     }
@@ -464,6 +575,10 @@ extension Question {
 
 private struct QuestionRow: View {
     let question: Question
+    var isFavorite: Bool = false
+    var onToggleFavorite: () -> Void = {}
+
+    @State private var hovered = false
 
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
@@ -490,17 +605,40 @@ private struct QuestionRow: View {
                 }
             }
             Spacer(minLength: 8)
-            if let lastUsed = question.updatedAt {
-                Text(lastUsed.formatted(.relative(presentation: .named)))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .fixedSize()
-                    .help("Last used \(lastUsed.formatted(date: .abbreviated, time: .shortened))")
-                    .accessibilityLabel("Last used \(lastUsed.formatted(.relative(presentation: .named)))")
+            HStack(alignment: .top, spacing: 8) {
+                if let lastUsed = question.updatedAt {
+                    Text(lastUsed.formatted(.relative(presentation: .named)))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .fixedSize()
+                        .help("Last used \(lastUsed.formatted(date: .abbreviated, time: .shortened))")
+                        .accessibilityLabel("Last used \(lastUsed.formatted(.relative(presentation: .named)))")
+                }
+                favoriteButton
             }
         }
         .padding(.vertical, 4)
+        .contentShape(Rectangle())
+        .onHover { hovered = $0 }
+    }
+
+    /// Inline favorite toggle, à la Mail's flag: always shown (filled) once the
+    /// question is starred, and revealed faintly on hover otherwise so the resting
+    /// list stays uncluttered. The button always occupies its slot — only opacity
+    /// changes on hover — so rows don't shift as the pointer moves down the list.
+    private var favoriteButton: some View {
+        Button(action: onToggleFavorite) {
+            Image(systemName: isFavorite ? "star.fill" : "star")
+                .font(.caption)
+                .foregroundStyle(isFavorite ? AnyShapeStyle(.yellow) : AnyShapeStyle(.secondary))
+                .contentTransition(.symbolEffect(.replace))
+        }
+        .buttonStyle(.plain)
+        .opacity(isFavorite || hovered ? 1 : 0)
+        .help(isFavorite ? "Remove from Favorites" : "Add to Favorites")
+        .accessibilityLabel(isFavorite ? "Remove \(question.displayTitle) from Favorites"
+                                       : "Add \(question.displayTitle) to Favorites")
     }
 }
 

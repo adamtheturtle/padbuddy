@@ -105,7 +105,7 @@ enum SyntaxHighlighter {
                 let len = delim.count
                 var j = i + len
                 while j < n {
-                    if syntax.escapesWithBackslash && chars[j] == "\\" {
+                    if syntax.escapesWithBackslash && chars[j] == "\\" && j + 1 < n {
                         j += 2
                         continue
                     }
@@ -130,12 +130,27 @@ enum SyntaxHighlighter {
                 let prevIsIdentifier = i > 0 && (chars[i - 1].isLetter || chars[i - 1] == "_")
                 if !prevIsIdentifier {
                     var j = i
+                    // Detect a radix prefix (0x / 0b / 0o) so we only accept digits
+                    // valid for that base and stop at the first identifier character,
+                    // rather than greedily eating trailing letters (e.g. `123abc`).
+                    var isHexLiteral = false
+                    if chars[j] == "0", j + 1 < n {
+                        switch chars[j + 1] {
+                        case "x", "X": isHexLiteral = true; j += 2
+                        case "b", "B", "o", "O": j += 2
+                        default: break
+                        }
+                    }
                     while j < n {
                         let d = chars[j]
-                        if d.isHexDigit || d == "." || d == "_" ||
-                            d == "x" || d == "X" || d == "b" || d == "o" ||
-                            d == "e" || d == "E" {
+                        let isDigit = isHexLiteral ? d.isHexDigit : d.isNumber
+                        if isDigit || d == "_" || d == "." {
                             j += 1
+                        } else if !isHexLiteral && (d == "e" || d == "E")
+                                    && j + 1 < n
+                                    && (chars[j + 1].isNumber || chars[j + 1] == "+" || chars[j + 1] == "-") {
+                            // Decimal exponent, optionally signed.
+                            j += 2
                         } else {
                             break
                         }
