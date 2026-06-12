@@ -36,6 +36,15 @@ struct PadsView: View {
     @State private var isSuggestingName = false
     @State private var padPendingDelete: Pad?
     @State private var deleteError: String?
+    @State private var bulkAction: BulkPadAction?
+    @State private var bulkError: String?
+    @State private var isBulkRunning = false
+
+    /// A bulk operation over the pads currently shown by the list (after filtering).
+    private enum BulkPadAction: String, Identifiable {
+        case endStarted, makePrivate
+        var id: String { rawValue }
+    }
 
     /// Big orgs return thousands of pads per sweep, and re-fetching every page on the base
     /// cadence is mostly wasted work for data well below the fold. The auto-refresh cadence
@@ -154,6 +163,81 @@ struct PadsView: View {
         } message: {
             Text(deleteError ?? "")
         }
+        // Bulk actions operate on the pads currently visible in the list (after the
+        // active filters/search), so the user controls the scope by narrowing first.
+        .confirmationDialog(
+            bulkConfirmTitle,
+            isPresented: .init(get: { bulkAction != nil },
+                               set: { if !$0 { bulkAction = nil } }),
+            titleVisibility: .visible,
+            presenting: bulkAction
+        ) { action in
+            Button(bulkConfirmButton(action), role: .destructive) {
+                Task { await performBulk(action) }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: { action in
+            Text(bulkConfirmMessage(action))
+        }
+        .alert("Some pads couldn't be updated",
+               isPresented: .init(get: { bulkError != nil },
+                                  set: { if !$0 { bulkError = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(bulkError ?? "")
+        }
+    }
+
+    private var bulkConfirmTitle: String {
+        switch bulkAction {
+        case .endStarted: return "End \(PadListLogic.startedPads(in: filtered).count) started pads?"
+        case .makePrivate: return "Make \(PadListLogic.nonPrivatePads(in: filtered).count) pads private?"
+        case nil: return ""
+        }
+    }
+
+    private func bulkConfirmButton(_ action: BulkPadAction) -> String {
+        switch action {
+        case .endStarted: return "End Started Pads"
+        case .makePrivate: return "Make Private"
+        }
+    }
+
+    private func bulkConfirmMessage(_ action: BulkPadAction) -> String {
+        switch action {
+        case .endStarted:
+            return "This ends every started pad currently shown in the list. Ending an interview can't be undone."
+        case .makePrivate:
+            return "This marks every pad currently shown in the list as private."
+        }
+    }
+
+    /// Runs a bulk action over the currently-visible pads, then refreshes. Failures
+    /// are counted and surfaced without aborting the rest of the batch.
+    private func performBulk(_ action: BulkPadAction) async {
+        let targets: [Pad]
+        switch action {
+        case .endStarted: targets = PadListLogic.startedPads(in: filtered)
+        case .makePrivate: targets = PadListLogic.nonPrivatePads(in: filtered)
+        }
+        guard !targets.isEmpty else { return }
+        isBulkRunning = true
+        defer { isBulkRunning = false }
+        var failures = 0
+        for pad in targets {
+            do {
+                switch action {
+                case .endStarted: try await client.endPad(id: pad.id)
+                case .makePrivate: _ = try await client.updatePad(PadUpdate(id: pad.id, isPrivate: true))
+                }
+            } catch {
+                failures += 1
+            }
+        }
+        if failures > 0 {
+            bulkError = "\(failures) of \(targets.count) pads couldn't be updated."
+        }
+        await reload()
     }
 
     /// Delete a pad reached via swipe action. Posts `.padDeleted` so this list —
@@ -339,6 +423,22 @@ struct PadsView: View {
                 .help("Create a new pad (⌘N)")
                 .accessibilityLabel("New Pad")
                 .disabled(client.apiKey.isEmpty)
+            }
+            ToolbarItem(id: "bulk") {
+                Menu {
+                    Button("End Started Pads…", systemImage: "flag.checkered") {
+                        bulkAction = .endStarted
+                    }
+                    .disabled(PadListLogic.startedPads(in: filtered).isEmpty)
+                    Button("Make Visible Pads Private…", systemImage: "lock") {
+                        bulkAction = .makePrivate
+                    }
+                    .disabled(PadListLogic.nonPrivatePads(in: filtered).isEmpty)
+                } label: {
+                    Label("Bulk Actions", systemImage: "ellipsis.circle")
+                }
+                .help("Apply an action to all pads currently shown in the list")
+                .disabled(client.apiKey.isEmpty || filtered.isEmpty || isBulkRunning)
             }
         }
     }

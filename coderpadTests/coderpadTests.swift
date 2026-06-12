@@ -828,7 +828,8 @@ private func makePad(
     type: String? = nil,
     teamName: String? = nil,
     participants: [String] = [],
-    updatedAt: String? = nil
+    updatedAt: String? = nil,
+    isPrivate: Bool? = nil
 ) throws -> Pad {
     var dict: [String: Any] = [
         "id": id,
@@ -841,6 +842,7 @@ private func makePad(
     if let type { dict["type"] = type }
     if let teamName { dict["team"] = ["id": teamName, "name": teamName] }
     if let updatedAt { dict["updated_at"] = updatedAt }
+    if let isPrivate { dict["private"] = isPrivate }
     let data = try JSONSerialization.data(withJSONObject: dict)
     return try CoderPadClient.decoder.decode(Pad.self, from: data)
 }
@@ -911,6 +913,30 @@ struct PadActivitySinceOpenTests {
     func noUpdatedAt() throws {
         let pad = try makePad(state: "started")
         #expect(!PadListLogic.hasNewActivitySinceOpen(pad, lastOpened: date("2026-06-12T11:00:00Z")))
+    }
+}
+
+@Suite("Pad bulk action targets")
+struct PadBulkActionTests {
+    @Test("startedPads keeps only active pads")
+    func startedOnly() throws {
+        let pads = [
+            try makePad(id: "a", state: "started"),
+            try makePad(id: "b", state: "ended"),
+            try makePad(id: "c", state: "started"),
+            try makePad(id: "d", state: "pending"),
+        ]
+        #expect(PadListLogic.startedPads(in: pads).map(\.id) == ["a", "c"])
+    }
+
+    @Test("nonPrivatePads excludes pads already private")
+    func nonPrivate() throws {
+        let pads = [
+            try makePad(id: "a", isPrivate: true),
+            try makePad(id: "b", isPrivate: false),
+            try makePad(id: "c", isPrivate: nil),
+        ]
+        #expect(PadListLogic.nonPrivatePads(in: pads).map(\.id) == ["b", "c"])
     }
 }
 

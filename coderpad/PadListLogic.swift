@@ -56,6 +56,16 @@ enum PadListLogic {
         return updated > lastOpened
     }
 
+    /// Started pads in `pads` — the targets of a bulk "End started pads".
+    static func startedPads(in pads: [Pad]) -> [Pad] {
+        pads.filter { $0.status == .active }
+    }
+
+    /// Pads in `pads` not already private — the targets of a bulk "Make private".
+    static func nonPrivatePads(in pads: [Pad]) -> [Pad] {
+        pads.filter { $0.isPrivate != true }
+    }
+
     /// Filter `pads` by `criteria`. `display` resolves an owner email to a display
     /// name so a search can match the human-readable owner as well as the raw
     /// email; it defaults to the identity so callers without a directory still
