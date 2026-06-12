@@ -1672,13 +1672,31 @@ private struct EnvironmentCodeCard: View {
         Card {
             VStack(alignment: .leading, spacing: 10) {
                 header
-                if isMultiFile {
-                    fileTabs
-                }
-                codePane
+                content
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    /// Single-file environments render a lone highlighted scroll. Multi-file
+    /// environments place a vertical file list beside the code so every file is
+    /// visible at once, the way an IDE shows a project, instead of forcing a
+    /// long sideways scroll through a row of tabs.
+    @ViewBuilder private var content: some View {
+        Group {
+            if isMultiFile {
+                HStack(spacing: 0) {
+                    fileSidebar
+                    Divider()
+                    codeColumn
+                }
+            } else {
+                codeScroll
+            }
+        }
+        .background(Color.subtleStroke.opacity(0.5),
+                    in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .accessibilityLabel(accessibilityLabel)
     }
 
     private var header: some View {
@@ -1714,41 +1732,53 @@ private struct EnvironmentCodeCard: View {
         .accessibilityLabel("Copy code")
     }
 
-    private var fileTabs: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 6) {
+    /// A vertical list of the environment's files, pinned beside the code. It
+    /// scrolls independently so even a project with many files stays browsable
+    /// without the code pane having to grow.
+    private var fileSidebar: some View {
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 2) {
                 ForEach(files) { file in
                     let isSelected = file.id == selected.id
                     Button {
                         selectedFileID = file.id
                     } label: {
-                        HStack(spacing: 5) {
+                        HStack(spacing: 6) {
                             Image(systemName: (file.language ?? "").languageSymbol)
                                 .font(.caption2)
-                            Text(file.name).font(.caption)
+                                .foregroundStyle(isSelected ? Color.accentColor : .secondary)
+                            Text(file.name)
+                                .font(.caption)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                            Spacer(minLength: 0)
                         }
-                        .padding(.horizontal, 9)
-                        .padding(.vertical, 4)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 5)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                         .background(
-                            isSelected ? Color.accentColor.opacity(0.18) : Color.subtleStroke.opacity(0.6),
-                            in: Capsule()
+                            isSelected ? Color.accentColor.opacity(0.18) : Color.clear,
+                            in: RoundedRectangle(cornerRadius: 6, style: .continuous)
                         )
                         .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
-                        .overlay(Capsule().stroke(isSelected ? Color.accentColor.opacity(0.4) : .clear, lineWidth: 0.5))
+                        .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     .help(file.path ?? file.name)
                 }
             }
-            .padding(.vertical, 2)
+            .padding(6)
         }
+        .frame(width: 160)
     }
 
-    private var codePane: some View {
+    /// The code on the right of a multi-file environment: the selected file's
+    /// full path above its highlighted contents.
+    private var codeColumn: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Multi-file projects show the full path above the code so the
-            // selected tab's location in the project is unambiguous.
-            if isMultiFile, let path = selected.path, !path.isEmpty {
+            // Show the full path above the code so the selected file's location
+            // in the project is unambiguous.
+            if let path = selected.path, !path.isEmpty {
                 Text(path)
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
@@ -1757,23 +1787,24 @@ private struct EnvironmentCodeCard: View {
                     .padding(.horizontal, 10)
                     .padding(.top, 8)
             }
-            ScrollView([.vertical, .horizontal]) {
-                Text(SyntaxHighlighter.highlight(selected.contents, language: selected.language, dark: dark))
-                    .font(.system(.callout, design: .monospaced))
-                    .textSelection(.enabled)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-            }
-            .defaultScrollAnchor(.topLeading)
-            .frame(maxWidth: .infinity, maxHeight: 360, alignment: .leading)
-            .overlay(alignment: .topTrailing) {
-                copyButton
-                    .padding(8)
-            }
+            codeScroll
         }
-        .background(Color.subtleStroke.opacity(0.5),
-                    in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .accessibilityLabel(accessibilityLabel)
+    }
+
+    private var codeScroll: some View {
+        ScrollView([.vertical, .horizontal]) {
+            Text(SyntaxHighlighter.highlight(selected.contents, language: selected.language, dark: dark))
+                .font(.system(.callout, design: .monospaced))
+                .textSelection(.enabled)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 8)
+        }
+        .defaultScrollAnchor(.topLeading)
+        .frame(maxWidth: .infinity, maxHeight: 360, alignment: .leading)
+        .overlay(alignment: .topTrailing) {
+            copyButton
+                .padding(8)
+        }
     }
 
     private var accessibilityLabel: String {
