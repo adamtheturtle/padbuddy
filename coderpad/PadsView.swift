@@ -306,6 +306,13 @@ struct PadsView: View {
                         }
                     }
                     .listStyle(.inset)
+                    // ↑/↓ move the selection natively; Return opens the selected pad
+                    // in the in-app browser (honoring the user's browser preference).
+                    .onKeyPress(.return) {
+                        guard let selection else { return .ignored }
+                        openPad(selection)
+                        return .handled
+                    }
                     .macPullToRefresh { await reload() }
                     // Scene-scoped, not view-scoped: the Pad menu commands (Copy
                     // Pad ID/URL, Open in Browser) should stay enabled whenever this
