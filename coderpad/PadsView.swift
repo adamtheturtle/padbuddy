@@ -180,35 +180,22 @@ struct PadsView: View {
         showSaveSearch = false
     }
 
-    private static let dateRangeOptions = ["today", "last 7 days", "last 30 days"]
-
-    private func dateRangeStart(for option: String) -> Date? {
-        let cal = Calendar.current
-        switch option {
-        case "today": return cal.startOfDay(for: Date())
-        case "last 7 days": return cal.date(byAdding: .day, value: -7, to: Date())
-        case "last 30 days": return cal.date(byAdding: .day, value: -30, to: Date())
-        default: return nil
-        }
-    }
+    private static let dateRangeOptions = PadDateRange.options
 
     private var filtered: [Pad] {
-        let lowered = search.lowercased()
-        let rangeStart = dateRangeFilter.flatMap(dateRangeStart(for:))
-        return pads.filter { pad in
-            (stateFilter == nil || pad.status == stateFilter) &&
-            (languageFilter == nil || (pad.language ?? "").lowercased() == languageFilter) &&
-            (ownerFilter == nil || pad.ownerEmail == ownerFilter) &&
-            (teamFilter == nil || pad.team?.name == teamFilter) &&
-            (typeFilter == nil || pad.interviewType?.rawValue == typeFilter) &&
-            (rangeStart.map { (pad.updatedAt ?? .distantPast) >= $0 } ?? true) &&
-            (lowered.isEmpty
-             || pad.title.lowercased().contains(lowered)
-             || pad.id.lowercased().contains(lowered)
-             || pad.ownerEmail.lowercased().contains(lowered)
-             || directory.display(pad.ownerEmail).lowercased().contains(lowered)
-             || pad.participants.contains(where: { $0.lowercased().contains(lowered) }))
-        }
+        PadListLogic.filter(
+            pads,
+            using: PadFilterCriteria(
+                search: search,
+                state: stateFilter,
+                language: languageFilter,
+                owner: ownerFilter,
+                team: teamFilter,
+                type: typeFilter,
+                dateRange: dateRangeFilter
+            ),
+            display: directory.display
+        )
     }
 
     /// The pad to select after the pad with `id` is deleted. Picks the row that
@@ -1192,18 +1179,12 @@ struct PadDetailView: View {
                     Chip(text: "Private", systemImage: "lock", tint: .orange)
                 }
                 if let exec = pad.executionEnabled, exec {
-                    Chip(text: "Execution", systemImage: "play.circle", tint: .green)
+                    Chip(text: "Execution enabled", systemImage: "play.circle", tint: .green)
                 }
                 if let team = pad.team {
                     Chip(text: team.name, systemImage: "person.3", tint: .purple)
                 }
             }
-            // The raw ID stays selectable so it can still be grabbed as a
-            // literal token (API calls, referencing the pad in conversation).
-            Text(pad.id)
-                .font(.caption.monospaced())
-                .textSelection(.enabled)
-                .foregroundStyle(.secondary)
         }
     }
 
@@ -1481,33 +1462,8 @@ struct PadDetailView: View {
         }
     }
 
-    private struct EventGroup: Identifiable {
-        let id: String
-        let representative: PadEvent
-        let count: Int
-        let lastEvent: PadEvent
-    }
-
-    private static let collapsibleKinds: Set<String> = ["typed", "edited", "ran", "executed"]
-
-    private var groupedEvents: [EventGroup] {
-        var groups: [EventGroup] = []
-        for event in events {
-            if let last = groups.last,
-               Self.collapsibleKinds.contains(event.kind.lowercased()),
-               last.representative.kind == event.kind,
-               last.representative.userName == event.userName {
-                groups[groups.count - 1] = EventGroup(
-                    id: last.id,
-                    representative: last.representative,
-                    count: last.count + 1,
-                    lastEvent: event
-                )
-            } else {
-                groups.append(EventGroup(id: event.id, representative: event, count: 1, lastEvent: event))
-            }
-        }
-        return groups
+    private var groupedEvents: [PadEventGroup] {
+        PadEventGrouping.group(events)
     }
 
     private func icon(for kind: String) -> String {
@@ -1533,7 +1489,7 @@ struct PadDetailView: View {
         }
     }
 
-    private func accessibilityLabel(for group: EventGroup) -> String {
+    private func accessibilityLabel(for group: PadEventGroup) -> String {
         var parts = [group.representative.kind]
         if group.count > 1 { parts.append("\(group.count) times") }
         if let user = group.representative.userName, !user.isEmpty { parts.append("by \(user)") }
@@ -1661,12 +1617,59 @@ private struct EnvironmentCodeCard: View {
     let dark: Bool
 
     @State private var selectedFileID: Int?
+    /// Folder paths the user has collapsed. Absence means expanded, so every
+    /// folder starts open and the whole project is visible by default.
+    @State private var collapsedFolders: Set<String> = []
 
     private var selected: CodeFile {
         files.first { $0.id == selectedFileID } ?? files[0]
     }
 
     private var isMultiFile: Bool { files.count > 1 }
+
+    /// The files arranged into a folder tree by their paths, folders before
+    /// files and each group sorted by name.
+    private var fileTree: [FileTreeNode] {
+        let entries = files.map { file -> (segments: [String], file: CodeFile) in
+            let path = file.path ?? file.name
+            let segments = path.split(separator: "/").map(String.init)
+            return (segments.isEmpty ? [file.name] : segments, file)
+        }
+        return Self.makeNodes(entries: entries, prefix: "")
+    }
+
+    private static func makeNodes(
+        entries: [(segments: [String], file: CodeFile)],
+        prefix: String
+    ) -> [FileTreeNode] {
+        var folderOrder: [String] = []
+        var groups: [String: [(segments: [String], file: CodeFile)]] = [:]
+        var leaves: [(name: String, file: CodeFile)] = []
+
+        for entry in entries {
+            if entry.segments.count <= 1 {
+                leaves.append((entry.segments.first ?? entry.file.name, entry.file))
+            } else {
+                let head = entry.segments[0]
+                if groups[head] == nil {
+                    groups[head] = []
+                    folderOrder.append(head)
+                }
+                groups[head]?.append((Array(entry.segments.dropFirst()), entry.file))
+            }
+        }
+
+        var nodes: [FileTreeNode] = []
+        for folder in folderOrder.sorted(by: { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }) {
+            let childPrefix = prefix.isEmpty ? folder : prefix + "/" + folder
+            let children = makeNodes(entries: groups[folder] ?? [], prefix: childPrefix)
+            nodes.append(FileTreeNode(id: "folder:" + childPrefix, name: folder, file: nil, children: children))
+        }
+        for leaf in leaves.sorted(by: { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }) {
+            nodes.append(FileTreeNode(id: "file:\(leaf.file.id)", name: leaf.name, file: leaf.file, children: []))
+        }
+        return nodes
+    }
 
     var body: some View {
         Card {
@@ -1685,10 +1688,10 @@ private struct EnvironmentCodeCard: View {
     @ViewBuilder private var content: some View {
         Group {
             if isMultiFile {
-                HStack(spacing: 0) {
+                HStack(alignment: .top, spacing: 0) {
                     fileSidebar
                     Divider()
-                    codeColumn
+                    codeScroll
                 }
             } else {
                 codeScroll
@@ -1738,57 +1741,18 @@ private struct EnvironmentCodeCard: View {
     private var fileSidebar: some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: 2) {
-                ForEach(files) { file in
-                    let isSelected = file.id == selected.id
-                    Button {
-                        selectedFileID = file.id
-                    } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: (file.language ?? "").languageSymbol)
-                                .font(.caption2)
-                                .foregroundStyle(isSelected ? Color.accentColor : .secondary)
-                            Text(file.name)
-                                .font(.caption)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                            Spacer(minLength: 0)
-                        }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 5)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(
-                            isSelected ? Color.accentColor.opacity(0.18) : Color.clear,
-                            in: RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        )
-                        .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .help(file.path ?? file.name)
-                }
+                FileTreeRows(
+                    nodes: fileTree,
+                    depth: 0,
+                    selectedID: selected.id,
+                    collapsedFolders: $collapsedFolders,
+                    onSelect: { selectedFileID = $0 }
+                )
             }
             .padding(6)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(width: 160)
-    }
-
-    /// The code on the right of a multi-file environment: the selected file's
-    /// full path above its highlighted contents.
-    private var codeColumn: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Show the full path above the code so the selected file's location
-            // in the project is unambiguous.
-            if let path = selected.path, !path.isEmpty {
-                Text(path)
-                    .font(.caption.monospaced())
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
-                    .padding(.horizontal, 10)
-                    .padding(.top, 8)
-            }
-            codeScroll
-        }
+        .frame(width: 180)
     }
 
     private var codeScroll: some View {
@@ -1800,7 +1764,7 @@ private struct EnvironmentCodeCard: View {
                 .padding(.vertical, 8)
         }
         .defaultScrollAnchor(.topLeading)
-        .frame(maxWidth: .infinity, maxHeight: 360, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: 360, alignment: .topLeading)
         .overlay(alignment: .topTrailing) {
             copyButton
                 .padding(8)
@@ -1820,6 +1784,112 @@ private struct EnvironmentCodeCard: View {
     private func copy(_ text: String) {
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(text, forType: .string)
+    }
+}
+
+/// A node in the file tree built from the files' paths. A leaf carries a
+/// `file`; a folder carries `children` and a nil `file`.
+private struct FileTreeNode: Identifiable {
+    let id: String
+    let name: String
+    let file: CodeFile?
+    let children: [FileTreeNode]
+
+    var isFolder: Bool { file == nil }
+}
+
+/// Renders one level of the file tree, recursing into expanded folders. Pulled
+/// out as its own view so the recursion stays straightforward and each row
+/// indents by its depth.
+private struct FileTreeRows: View {
+    let nodes: [FileTreeNode]
+    let depth: Int
+    let selectedID: Int
+    @Binding var collapsedFolders: Set<String>
+    let onSelect: (Int) -> Void
+
+    var body: some View {
+        ForEach(nodes) { node in
+            if node.isFolder {
+                folderRow(node)
+                if !collapsedFolders.contains(node.id) {
+                    FileTreeRows(
+                        nodes: node.children,
+                        depth: depth + 1,
+                        selectedID: selectedID,
+                        collapsedFolders: $collapsedFolders,
+                        onSelect: onSelect
+                    )
+                }
+            } else if let file = node.file {
+                fileRow(node, file: file)
+            }
+        }
+    }
+
+    private func folderRow(_ node: FileTreeNode) -> some View {
+        let collapsed = collapsedFolders.contains(node.id)
+        return Button {
+            if collapsed {
+                collapsedFolders.remove(node.id)
+            } else {
+                collapsedFolders.insert(node.id)
+            }
+        } label: {
+            HStack(spacing: 5) {
+                Image(systemName: collapsed ? "chevron.right" : "chevron.down")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 10)
+                Image(systemName: "folder")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Text(node.name)
+                    .font(.caption)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Spacer(minLength: 0)
+            }
+            .padding(.vertical, 5)
+            .padding(.trailing, 8)
+            .padding(.leading, CGFloat(depth) * 12 + 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func fileRow(_ node: FileTreeNode, file: CodeFile) -> some View {
+        let isSelected = file.id == selectedID
+        return Button {
+            onSelect(file.id)
+        } label: {
+            HStack(spacing: 5) {
+                // Align the file's icon with the folder's name column by
+                // reserving the same width the disclosure chevron takes.
+                Color.clear.frame(width: 10)
+                Image(systemName: (file.language ?? "").languageSymbol)
+                    .font(.caption2)
+                    .foregroundStyle(isSelected ? Color.accentColor : .secondary)
+                Text(file.name)
+                    .font(.caption)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Spacer(minLength: 0)
+            }
+            .padding(.vertical, 5)
+            .padding(.trailing, 8)
+            .padding(.leading, CGFloat(depth) * 12 + 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                isSelected ? Color.accentColor.opacity(0.18) : Color.clear,
+                in: RoundedRectangle(cornerRadius: 6, style: .continuous)
+            )
+            .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(file.path ?? file.name)
     }
 }
 

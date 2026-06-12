@@ -787,3 +787,281 @@ struct CoderPadErrorMessageTests {
         #expect(error.errorDescription == "Title can't be blank")
     }
 }
+
+// MARK: - Pad list logic (filters, date ranges, event grouping)
+
+/// A fixed clock so the date-range tests don't depend on the wall clock, and a
+/// UTC calendar so `startOfDay` lands on a known instant regardless of the
+/// machine's time zone.
+private let fixedNow = ISO8601DateFormatter().date(from: "2026-06-12T12:00:00Z")!
+private var utcCalendar: Calendar {
+    var cal = Calendar(identifier: .gregorian)
+    cal.timeZone = TimeZone(identifier: "UTC")!
+    return cal
+}
+
+/// Builds a `Pad` through the real lenient decoder so the tests exercise the
+/// same construction path the app uses, rather than a hand-rolled initializer.
+private func makePad(
+    id: String = "P1",
+    title: String = "",
+    state: String = "started",
+    ownerEmail: String = "",
+    language: String? = nil,
+    type: String? = nil,
+    teamName: String? = nil,
+    participants: [String] = [],
+    updatedAt: String? = nil
+) throws -> Pad {
+    var dict: [String: Any] = [
+        "id": id,
+        "title": title,
+        "state": state,
+        "owner_email": ownerEmail,
+        "participants": participants,
+    ]
+    if let language { dict["language"] = language }
+    if let type { dict["type"] = type }
+    if let teamName { dict["team"] = ["id": teamName, "name": teamName] }
+    if let updatedAt { dict["updated_at"] = updatedAt }
+    let data = try JSONSerialization.data(withJSONObject: dict)
+    return try CoderPadClient.decoder.decode(Pad.self, from: data)
+}
+
+@Suite("Pad date range")
+struct PadDateRangeTests {
+    @Test("today starts at midnight of the current day")
+    func today() {
+        let start = PadDateRange.start(for: "today", now: fixedNow, calendar: utcCalendar)
+        #expect(start == ISO8601DateFormatter().date(from: "2026-06-12T00:00:00Z"))
+    }
+
+    @Test("last 7 days starts seven days before now")
+    func sevenDays() {
+        let start = PadDateRange.start(for: "last 7 days", now: fixedNow, calendar: utcCalendar)
+        #expect(start == ISO8601DateFormatter().date(from: "2026-06-05T12:00:00Z"))
+    }
+
+    @Test("last 30 days starts thirty days before now")
+    func thirtyDays() {
+        let start = PadDateRange.start(for: "last 30 days", now: fixedNow, calendar: utcCalendar)
+        #expect(start == ISO8601DateFormatter().date(from: "2026-05-13T12:00:00Z"))
+    }
+
+    @Test("an unrecognized option imposes no lower bound")
+    func unknown() {
+        #expect(PadDateRange.start(for: "all time", now: fixedNow) == nil)
+        #expect(PadDateRange.start(for: "", now: fixedNow) == nil)
+    }
+
+    @Test("the chip options match the recognized keys")
+    func optionsAreRecognized() {
+        for option in PadDateRange.options {
+            #expect(PadDateRange.start(for: option, now: fixedNow) != nil)
+        }
+    }
+}
+
+@Suite("Pad filtering")
+struct PadFilterTests {
+
+    private func samplePads() throws -> [Pad] {
+        [
+            try makePad(id: "ABC1", title: "Onsite", state: "started",
+                        ownerEmail: "alex@demo.co", language: "python3", type: "live",
+                        teamName: "Cursor", participants: ["Jane Doe"],
+                        updatedAt: "2026-06-11T09:00:00Z"),
+            try makePad(id: "XYZ2", title: "Take Home Challenge", state: "ended",
+                        ownerEmail: "sam@demo.co", language: "go", type: "take-home",
+                        teamName: nil, participants: [],
+                        updatedAt: "2026-01-01T09:00:00Z"),
+        ]
+    }
+
+    @Test("empty criteria returns every pad")
+    func noFilters() throws {
+        let pads = try samplePads()
+        let result = PadListLogic.filter(pads, using: PadFilterCriteria())
+        #expect(result.map(\.id) == ["ABC1", "XYZ2"])
+    }
+
+    @Test("state filter keeps only matching pads")
+    func byState() throws {
+        let result = PadListLogic.filter(try samplePads(),
+                                         using: PadFilterCriteria(state: .active))
+        #expect(result.map(\.id) == ["ABC1"])
+    }
+
+    @Test("language filter is case-insensitive")
+    func byLanguage() throws {
+        let pads = try samplePads()
+        #expect(PadListLogic.filter(pads, using: PadFilterCriteria(language: "python3")).map(\.id) == ["ABC1"])
+        // An upper-cased criterion still matches the lower-cased pad language.
+        #expect(PadListLogic.filter(pads, using: PadFilterCriteria(language: "PYTHON3")).map(\.id) == ["ABC1"])
+    }
+
+    @Test("owner and team filters match exactly")
+    func byOwnerAndTeam() throws {
+        let pads = try samplePads()
+        #expect(PadListLogic.filter(pads, using: PadFilterCriteria(owner: "sam@demo.co")).map(\.id) == ["XYZ2"])
+        #expect(PadListLogic.filter(pads, using: PadFilterCriteria(team: "Cursor")).map(\.id) == ["ABC1"])
+    }
+
+    @Test("interview-type filter keeps only the matching type")
+    func byType() throws {
+        let pads = try samplePads()
+        #expect(PadListLogic.filter(pads, using: PadFilterCriteria(type: "take-home")).map(\.id) == ["XYZ2"])
+        #expect(PadListLogic.filter(pads, using: PadFilterCriteria(type: "live")).map(\.id) == ["ABC1"])
+    }
+
+    @Test("search matches title, id, owner email, and participants")
+    func searchFields() throws {
+        let pads = try samplePads()
+        #expect(PadListLogic.filter(pads, using: PadFilterCriteria(search: "onsite")).map(\.id) == ["ABC1"])
+        #expect(PadListLogic.filter(pads, using: PadFilterCriteria(search: "abc1")).map(\.id) == ["ABC1"])
+        #expect(PadListLogic.filter(pads, using: PadFilterCriteria(search: "sam@")).map(\.id) == ["XYZ2"])
+        #expect(PadListLogic.filter(pads, using: PadFilterCriteria(search: "jane")).map(\.id) == ["ABC1"])
+        #expect(PadListLogic.filter(pads, using: PadFilterCriteria(search: "nothinghere")).isEmpty)
+    }
+
+    @Test("search also matches the directory-resolved owner display name")
+    func searchByDisplayName() throws {
+        let pads = try samplePads()
+        let display: (String) -> String = { $0 == "alex@demo.co" ? "Alex Park" : $0 }
+        // "Alex Park" appears nowhere in the raw pad, only via the directory.
+        let result = PadListLogic.filter(pads, using: PadFilterCriteria(search: "alex park"), display: display)
+        #expect(result.map(\.id) == ["ABC1"])
+    }
+
+    @Test("filters combine with AND")
+    func combinedFilters() throws {
+        let pads = try samplePads()
+        // Active pads that are written in Go: none, since the only Go pad is ended.
+        let result = PadListLogic.filter(pads, using: PadFilterCriteria(state: .active, language: "go"))
+        #expect(result.isEmpty)
+    }
+
+    @Test("date-range filter keeps pads updated within the window")
+    func byDateRange() throws {
+        let pads = try samplePads()
+        // ABC1 was updated yesterday, XYZ2 back in January.
+        let recent = PadListLogic.filter(pads, using: PadFilterCriteria(dateRange: "last 7 days"), now: fixedNow)
+        #expect(recent.map(\.id) == ["ABC1"])
+        let month = PadListLogic.filter(pads, using: PadFilterCriteria(dateRange: "last 30 days"), now: fixedNow)
+        #expect(month.map(\.id) == ["ABC1"])
+    }
+}
+
+@Suite("Pad event grouping")
+struct PadEventGroupingTests {
+
+    private func event(_ kind: String, user: String?, at seconds: TimeInterval) -> PadEvent {
+        PadEvent(message: "m", kind: kind, metadata: nil, userName: user,
+                 userEmail: nil, createdAt: Date(timeIntervalSince1970: seconds))
+    }
+
+    @Test("an empty log produces no groups")
+    func empty() {
+        #expect(PadEventGrouping.group([]).isEmpty)
+    }
+
+    @Test("consecutive same-kind, same-user events collapse into one group")
+    func collapsesRun() {
+        let events = [
+            event("typed", user: "Alex", at: 1),
+            event("typed", user: "Alex", at: 2),
+            event("typed", user: "Alex", at: 3),
+        ]
+        let groups = PadEventGrouping.group(events)
+        #expect(groups.count == 1)
+        #expect(groups[0].count == 3)
+        // The representative is the first event; lastEvent is the most recent.
+        #expect(groups[0].representative.createdAt == Date(timeIntervalSince1970: 1))
+        #expect(groups[0].lastEvent.createdAt == Date(timeIntervalSince1970: 3))
+    }
+
+    @Test("a different user breaks the run")
+    func breaksOnUserChange() {
+        let groups = PadEventGrouping.group([
+            event("typed", user: "Alex", at: 1),
+            event("typed", user: "Sam", at: 2),
+        ])
+        #expect(groups.count == 2)
+        #expect(groups.allSatisfy { $0.count == 1 })
+    }
+
+    @Test("a different kind breaks the run even when both kinds are collapsible")
+    func breaksOnKindChange() {
+        let groups = PadEventGrouping.group([
+            event("typed", user: "Alex", at: 1),
+            event("edited", user: "Alex", at: 2),
+        ])
+        #expect(groups.count == 2)
+    }
+
+    @Test("non-collapsible kinds are never merged")
+    func lifecycleEventsStaySeparate() {
+        // Two consecutive joins by the same user remain two distinct rows.
+        let groups = PadEventGrouping.group([
+            event("joined", user: "Alex", at: 1),
+            event("joined", user: "Alex", at: 2),
+        ])
+        #expect(groups.count == 2)
+    }
+
+    @Test("a collapsible run is bracketed by lifecycle events")
+    func mixedSequence() {
+        let groups = PadEventGrouping.group([
+            event("started", user: "Alex", at: 1),
+            event("ran", user: "Alex", at: 2),
+            event("ran", user: "Alex", at: 3),
+            event("ended", user: "Alex", at: 4),
+        ])
+        // started (1) + collapsed ran×2 (1) + ended (1) = three groups.
+        #expect(groups.map(\.count) == [1, 2, 1])
+        #expect(groups.map { $0.representative.kind } == ["started", "ran", "ended"])
+    }
+}
+
+// Serialized: OrgDirectory.load reaches a mock client and the suite asserts on
+// the resulting shared lookup; keeping it serial avoids interleaving loads.
+@Suite("Org directory", .serialized)
+struct OrgDirectoryTests {
+
+    @Test("display falls back to the email until a name is known")
+    func displayFallsBack() {
+        let directory = OrgDirectory()
+        #expect(directory.name(for: "who@x.co") == nil)
+        #expect(directory.display("who@x.co") == "who@x.co")
+    }
+
+    @Test("name(for:) trims whitespace and rejects blanks")
+    func nameTrimsAndRejectsBlanks() {
+        let directory = OrgDirectory()
+        // No lookup is populated, so a blank email returns nil rather than a key hit.
+        #expect(directory.name(for: "   ") == nil)
+        #expect(directory.name(for: "") == nil)
+    }
+
+    @Test("loading the demo org populates names and the default language")
+    func loadPopulates() async {
+        let directory = OrgDirectory()
+        await directory.load(for: .demo())
+        #expect(directory.display("alex@demo.co") == "Alex Park")
+        // Trailing whitespace is trimmed before the lookup.
+        #expect(directory.name(for: " alex@demo.co ") == "Alex Park")
+        #expect(directory.defaultLanguage == "go")
+    }
+
+    @Test("a failed load leaves the directory empty and unblocked for a later load")
+    func failedLoadDoesNotPoisonCache() async {
+        let directory = OrgDirectory()
+        // The bad-key account 401s, so nothing is cached and no account is marked loaded.
+        await directory.load(for: .demoBadKey())
+        #expect(directory.display("alex@demo.co") == "alex@demo.co")
+        #expect(directory.defaultLanguage == nil)
+        // A subsequent successful load still populates rather than being skipped.
+        await directory.load(for: .demo())
+        #expect(directory.display("alex@demo.co") == "Alex Park")
+    }
+}
