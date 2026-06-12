@@ -1475,7 +1475,12 @@ struct PadDetailView: View {
                                             Chip(text: "×\(group.count)", tint: .accentColor)
                                         }
                                         if let name = group.representative.userName, !name.isEmpty {
-                                            Text("· \(name)").font(.callout).foregroundStyle(.secondary)
+                                            // Emphasize the most recently-active participant so the
+                                            // eye is drawn to whoever acted last in the session.
+                                            let isActive = name == activeParticipant
+                                            Text("· \(name)")
+                                                .font(.callout.weight(isActive ? .semibold : .regular))
+                                                .foregroundStyle(isActive ? Color.accentColor : Color.secondary)
                                         }
                                     }
                                     if let first = group.representative.createdAt {
@@ -1528,6 +1533,18 @@ struct PadDetailView: View {
 
     private var groupedEvents: [PadEventGroup] {
         PadEventGrouping.group(events)
+    }
+
+    /// The participant who acted most recently in the session. Events are grouped
+    /// oldest-first, so the most recent named actor is found by scanning from the
+    /// end. Nil when no event carries a user name.
+    private var activeParticipant: String? {
+        for group in groupedEvents.reversed() {
+            if let name = group.lastEvent.userName ?? group.representative.userName, !name.isEmpty {
+                return name
+            }
+        }
+        return nil
     }
 
     private func icon(for kind: String) -> String {
