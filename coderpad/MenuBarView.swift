@@ -26,6 +26,7 @@ struct MenuBarView: View {
     @State private var isLoading = false
     @State private var errorMessage: String?
     @AppStorage("menuBarTopN") private var topN: Int = 3
+    @AppStorage("menuBarStartedOnly") private var startedOnly = false
     @Environment(\.openWindow) private var openWindow
 
     /// The settings Stepper bounds this to 0…30, but a corrupted/externally-edited
@@ -213,17 +214,22 @@ struct MenuBarView: View {
     /// Otherwise falls back to the most-frequent owner email in the fetched list, since
     /// the CoderPad API doesn't tell us which user the key belongs to.
     private var myPads: [Pad] {
+        let mineOnly: [Pad]
         if let mine = store.currentAccount?.userEmail, !mine.isEmpty {
-            return pads.filter { $0.ownerEmail == mine }
+            mineOnly = pads.filter { $0.ownerEmail == mine }
+        } else {
+            let owners = pads
+                .map(\.ownerEmail)
+                .filter { !$0.isEmpty }
+                .reduce(into: [String: Int]()) { $0[$1, default: 0] += 1 }
+            if let mine = owners.max(by: { $0.value < $1.value })?.key {
+                mineOnly = pads.filter { $0.ownerEmail == mine }
+            } else {
+                mineOnly = pads
+            }
         }
-        let owners = pads
-            .map(\.ownerEmail)
-            .filter { !$0.isEmpty }
-            .reduce(into: [String: Int]()) { $0[$1, default: 0] += 1 }
-        guard let mine = owners.max(by: { $0.value < $1.value })?.key else {
-            return pads
-        }
-        return pads.filter { $0.ownerEmail == mine }
+        // Optionally narrow to active interviews when the user enables it in Settings.
+        return startedOnly ? mineOnly.filter { $0.status == .active } : mineOnly
     }
 
     /// Questions for the "New Pad from Question" submenu, with favorites floated to

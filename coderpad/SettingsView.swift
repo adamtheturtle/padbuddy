@@ -228,6 +228,7 @@ struct SettingsView: View {
     @AppStorage(BrowserSettings.Key.defaultBrowserBundleID) private var defaultBrowserBundleID: String?
     @AppStorage(BrowserSettings.Key.openInBackground) private var openInBackground = false
     @AppStorage("menuBarTopN") private var menuBarTopN = 3
+    @AppStorage("menuBarStartedOnly") private var menuBarStartedOnly = false
 
     // General preferences, backed by the keys in `GeneralSettings.Key`.
     @AppStorage(GeneralSettings.Key.appearance) private var appearance: AppAppearance = .system
@@ -536,6 +537,13 @@ struct SettingsView: View {
                 }
             } footer: {
                 Text("Controls how many recent pads and questions appear in the menu bar item.")
+                    .foregroundStyle(.secondary)
+            }
+
+            Section {
+                Toggle("Show only started pads", isOn: $menuBarStartedOnly)
+            } footer: {
+                Text("When on, the menu bar lists only your active (started) pads, hiding ended and pending ones.")
                     .foregroundStyle(.secondary)
             }
         }
