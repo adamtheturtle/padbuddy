@@ -2,43 +2,70 @@
 //  DockBadge.swift
 //  coderpad
 //
-//  Drives the count on the Dock icon. The badge reflects the number of *active*
-//  (started) pads across every signed-in account — a live interview in progress
-//  is the app's one genuinely time-sensitive signal, and unlike an "unread" count
-//  it needs no read-tracking: it clears itself the moment a session ends. Gated by
-//  a user preference (see `DockBadge.Key.showActivePads`), default on.
+//  Drives the count on the Dock icon. The user chooses what it counts (see
+//  `DockBadge.Mode`): the active (started) pads across every account — a live
+//  interview in progress — or the pads that have changed since they were last seen,
+//  or nothing at all. Both counts are self-clearing, so neither needs read-tracking
+//  beyond what the app already maintains.
 //
 
 import AppKit
 
 enum DockBadge {
+    /// What the Dock badge counts. Persisted as a raw string under `Key.mode`.
+    enum Mode: String, CaseIterable, Identifiable {
+        /// No badge.
+        case off
+        /// Started pads, summed across all accounts. The default.
+        case activePads
+        /// Pads whose activity advanced since the user last marked them seen, as
+        /// tracked by `PadActivityMonitor` (the same count the menu-bar item shows).
+        case unseenUpdates
+
+        var id: String { rawValue }
+
+        var label: String {
+            switch self {
+            case .off: "Off"
+            case .activePads: "Active pads"
+            case .unseenUpdates: "Pads with new activity"
+            }
+        }
+    }
+
     enum Key {
-        /// Bool, default `true` (registered in `AppDelegate`). When off, the badge is
-        /// cleared and never reapplied.
-        static let showActivePads = "general.showActivePadsBadge"
+        static let mode = "general.dockBadgeMode"
     }
 
-    /// Whether the badge is shown. Defaults to on; `AppDelegate` registers `true` for
-    /// the unset case so this and the `@AppStorage` toggle agree before either is set.
-    static var isEnabled: Bool {
-        UserDefaults.standard.bool(forKey: Key.showActivePads)
+    /// The chosen mode, defaulting to `.activePads` for the unset case — matching the
+    /// `@AppStorage` default in Settings so the two never disagree.
+    static var mode: Mode {
+        Mode(rawValue: UserDefaults.standard.string(forKey: Key.mode) ?? "") ?? .activePads
     }
 
-    /// Recompute the badge from the current pad caches and apply it on the main
-    /// thread. Cheap and idempotent, so it's safe to call after any cache update,
-    /// account change, or when the preference is toggled. Reading the cache and
-    /// touching `NSApp.dockTile` both happen on the main actor.
+    /// Recompute the badge for the current mode and apply it on the main thread.
+    /// Cheap and idempotent, so it's safe to call after any pad-cache change, when
+    /// the unseen-activity count changes, or when the preference is edited. Reading
+    /// the sources and touching `NSApp.dockTile` both happen on the main actor.
     static func refresh() {
         Task { @MainActor in apply() }
     }
 
-    /// Sum the active pads across all accounts and write the badge. An empty string
-    /// (nil) removes the badge entirely, so "no active pads" shows a clean icon
+    /// Resolve the count for the active mode and write the badge. An empty string
+    /// (nil) removes the badge entirely, so "nothing to show" leaves a clean icon
     /// rather than a "0".
     @MainActor
     static func apply() {
-        let count = PadsCacheStore.shared.padsByAccount.values
-            .reduce(0) { running, pads in running + pads.filter { $0.status == .active }.count }
-        NSApp.dockTile.badgeLabel = (isEnabled && count > 0) ? "\(count)" : nil
+        let count: Int
+        switch mode {
+        case .off:
+            count = 0
+        case .activePads:
+            count = PadsCacheStore.shared.padsByAccount.values
+                .reduce(0) { running, pads in running + pads.filter { $0.status == .active }.count }
+        case .unseenUpdates:
+            count = PadActivityMonitor.shared.unseenChangedCount
+        }
+        NSApp.dockTile.badgeLabel = count > 0 ? "\(count)" : nil
     }
 }

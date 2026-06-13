@@ -49,17 +49,22 @@ extension SettingsView {
             }
 
             Section {
-                Toggle("Show active pad count on Dock icon", isOn: $showActivePadsBadge)
-                    .onChange(of: showActivePadsBadge) { _, _ in
-                        // Apply or clear the badge immediately rather than waiting for
-                        // the next pad refresh.
-                        DockBadge.refresh()
+                Picker("Dock badge", selection: $dockBadgeMode) {
+                    ForEach(DockBadge.Mode.allCases) { mode in
+                        Text(mode.label).tag(mode)
                     }
-                    .disabled(hideDockIcon)
+                }
+                .onChange(of: dockBadgeMode) { _, _ in
+                    // Apply or clear the badge immediately rather than waiting for the
+                    // next pad refresh.
+                    DockBadge.refresh()
+                }
+                .disabled(hideDockIcon)
             } footer: {
                 Text("""
-                Badge the Dock icon with the number of started pads across all your accounts, \
-                so a live interview in progress is visible at a glance.
+                Badge the Dock icon with a count across all your accounts: the started pads \
+                (a live interview in progress), or the pads with new activity since you last \
+                marked them seen. Choose Off for a clean icon.
                 """)
                 .foregroundStyle(.secondary)
             }

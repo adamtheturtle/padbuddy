@@ -76,10 +76,15 @@ final class PadActivityMonitor {
     private init() {}
 
     func record(changedCount: Int) {
-        if changedCount > 0 { unseenChangedCount = changedCount }
+        if changedCount > 0 {
+            unseenChangedCount = changedCount
+            // Keep the Dock badge current when it's set to count new activity.
+            DockBadge.refresh()
+        }
     }
 
     func markSeen() {
         unseenChangedCount = 0
+        DockBadge.refresh()
     }
 }
