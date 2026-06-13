@@ -120,8 +120,11 @@ extension PadsView {
         isInterpreting = true
         smartFilterFailed = false
         defer { isInterpreting = false }
+        let owners = availableOwners.map {
+            SearchInterpreter.OwnerOption(email: $0, name: directory.display($0))
+        }
         let result = await SearchInterpreter.interpretPads(
-            query, languages: availableLanguages, owners: availableOwners, teams: availableTeams
+            query, languages: availableLanguages, owners: owners, teams: availableTeams
         )
         if let result {
             apply(result)

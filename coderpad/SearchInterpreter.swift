@@ -10,6 +10,15 @@ import Foundation
 /// one builds one from words. On-device only, macOS 26+ with an available model,
 /// and the caller leaves the filters untouched when it returns nil.
 enum SearchInterpreter {
+    /// An owner the list can filter by, carrying both the email the filter stores
+    /// and the display name the user is likely to type. The model is shown names
+    /// (people say "Rob Di Marco", not an address), and the interpreter matches its
+    /// output against either field before returning the email the chip needs.
+    struct OwnerOption: Hashable, Sendable {
+        let email: String
+        let name: String
+    }
+
     /// Whether the on-device model can interpret a query right now. See
     /// ``PadSummarizer/isAvailable`` for the conditions.
     static var isAvailable: Bool {
@@ -24,7 +33,7 @@ enum SearchInterpreter {
     /// A pad filter set derived from `text`, or nil when the model is unavailable,
     /// the text is empty, or generation fails. `languages`/`owners` are the values
     /// actually present in the list, so the model maps onto real options.
-    static func interpretPads(_ text: String, languages: [String], owners: [String],
+    static func interpretPads(_ text: String, languages: [String], owners: [OwnerOption],
                               teams: [String]) async -> NamedSearch? {
         #if canImport(FoundationModels)
             if #available(macOS 26, *) {
@@ -35,8 +44,8 @@ enum SearchInterpreter {
     }
 
     /// A question filter set derived from `text`, or nil under the same conditions
-    /// as ``interpretPads(_:languages:owners:)``.
-    static func interpretQuestions(_ text: String, languages: [String], owners: [String]) async -> NamedSearch? {
+    /// as ``interpretPads(_:languages:owners:teams:)``.
+    static func interpretQuestions(_ text: String, languages: [String], owners: [OwnerOption]) async -> NamedSearch? {
         #if canImport(FoundationModels)
             if #available(macOS 26, *) {
                 return await generateQuestions(text, languages: languages, owners: owners)
@@ -57,13 +66,22 @@ enum SearchInterpreter {
         return languages.first { $0.languageDisplayName.lowercased() == trimmed }
     }
 
-    /// Matches a free-form owner onto an email present in the list, by exact match
-    /// or substring (so "alice" resolves "alice@acme.com"). Nil when nothing matches.
-    static func resolveOwner(_ raw: String, in owners: [String]) -> String? {
+    /// Matches a free-form owner onto an email present in the list and returns that
+    /// email. The model usually echoes the person's name ("Rob Di Marco"), so this
+    /// matches against the display name as well as the email — by exact match first,
+    /// then substring (so "rob" or a partial address still resolves). Nil when
+    /// nothing matches.
+    static func resolveOwner(_ raw: String, in owners: [OwnerOption]) -> String? {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !trimmed.isEmpty else { return nil }
-        if let exact = owners.first(where: { $0.lowercased() == trimmed }) { return exact }
-        return owners.first { $0.lowercased().contains(trimmed) }
+        if let exact = owners.first(where: {
+            $0.name.lowercased() == trimmed || $0.email.lowercased() == trimmed
+        }) {
+            return exact.email
+        }
+        return owners.first {
+            $0.name.lowercased().contains(trimmed) || $0.email.lowercased().contains(trimmed)
+        }?.email
     }
 
     /// Matches a free-form team onto a team name present in the list, by exact match
@@ -127,8 +145,8 @@ enum SearchInterpreter {
             let text: String
             @Guide(description: "A language code from the provided list, or empty.")
             let language: String
-            @Guide(description: "An owner email (or fragment) of a single person from the provided "
-                + "list, or empty. Never put a team name here.")
+            @Guide(description: "The name of a single person from the provided owners list, or "
+                + "empty. Never put a team name here.")
             let owner: String
             @Guide(description: "A team name from the provided list, or empty. Use this for any "
                 + "request about a team or group, not the owner field.")
@@ -148,7 +166,7 @@ enum SearchInterpreter {
             let text: String
             @Guide(description: "A language code from the provided list, or empty.")
             let language: String
-            @Guide(description: "An owner email (or fragment) from the provided list, or empty.")
+            @Guide(description: "The name of a person from the provided owners list, or empty.")
             let owner: String
             @Guide(description: "Exactly live or take-home, or empty.")
             let type: String
@@ -156,7 +174,7 @@ enum SearchInterpreter {
             let draft: String
         }
 
-        static func generatePads(_ text: String, languages: [String], owners: [String],
+        static func generatePads(_ text: String, languages: [String], owners: [OwnerOption],
                                  teams: [String]) async -> NamedSearch? {
             let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else { return nil }
@@ -167,7 +185,7 @@ enum SearchInterpreter {
             coding interview pads. Fill only the fields the request clearly implies and leave the \
             rest empty. The owner field is for a single named person only; route any team or group \
             request to the team field instead. Languages available: \(optionList(languages, limit: 60)). \
-            Owners available: \(optionList(owners, limit: 40)). \
+            Owners available: \(optionList(owners.map(\.name), limit: 40)). \
             Teams available: \(optionList(teams, limit: 40)).
             """
             let session = LanguageModelSession(instructions: instructions)
@@ -190,7 +208,7 @@ enum SearchInterpreter {
             }
         }
 
-        static func generateQuestions(_ text: String, languages: [String], owners: [String]) async -> NamedSearch? {
+        static func generateQuestions(_ text: String, languages: [String], owners: [OwnerOption]) async -> NamedSearch? {
             let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else { return nil }
             guard SystemLanguageModel.default.availability == .available else { return nil }
@@ -199,7 +217,7 @@ enum SearchInterpreter {
             You translate a user's plain-language request into structured filters for a list of \
             coding interview questions. Fill only the fields the request clearly implies and leave \
             the rest empty. Languages available: \(optionList(languages, limit: 60)). \
-            Owners available: \(optionList(owners, limit: 40)).
+            Owners available: \(optionList(owners.map(\.name), limit: 40)).
             """
             let session = LanguageModelSession(instructions: instructions)
             do {

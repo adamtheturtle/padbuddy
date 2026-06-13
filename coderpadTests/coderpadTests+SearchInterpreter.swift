@@ -14,7 +14,10 @@ import Testing
 /// The model call itself isn't exercised (it's on-device and gated to macOS 26+).
 
 private let languages = ["python3", "javascript", "sql"]
-private let owners = ["alice@acme.com", "bob@acme.com"]
+private let owners = [
+    SearchInterpreter.OwnerOption(email: "alice@acme.com", name: "Alice Adams"),
+    SearchInterpreter.OwnerOption(email: "rdimarco@acme.com", name: "Rob Di Marco")
+]
 
 @Test func resolvesLanguageByExactCode() {
     #expect(SearchInterpreter.resolveLanguage("python3", in: languages) == "python3")
@@ -29,9 +32,13 @@ private let owners = ["alice@acme.com", "bob@acme.com"]
     #expect(SearchInterpreter.resolveLanguage("", in: languages) == nil)
 }
 
-@Test func resolvesOwnerByExactEmailAndBySubstring() {
+@Test func resolvesOwnerByNameEmailAndSubstringReturningEmail() {
+    // A full display name (what the model usually echoes) resolves to the email.
+    #expect(SearchInterpreter.resolveOwner("Rob Di Marco", in: owners) == "rdimarco@acme.com")
+    // A first name still resolves via substring.
+    #expect(SearchInterpreter.resolveOwner("rob", in: owners) == "rdimarco@acme.com")
+    // An exact email resolves too.
     #expect(SearchInterpreter.resolveOwner("alice@acme.com", in: owners) == "alice@acme.com")
-    #expect(SearchInterpreter.resolveOwner("bob", in: owners) == "bob@acme.com")
     #expect(SearchInterpreter.resolveOwner("carol", in: owners) == nil)
 }
 

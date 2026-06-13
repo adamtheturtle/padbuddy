@@ -164,8 +164,11 @@ extension QuestionsView {
         isInterpreting = true
         smartFilterFailed = false
         defer { isInterpreting = false }
+        let owners = availableOwners.map {
+            SearchInterpreter.OwnerOption(email: $0, name: directory.display($0))
+        }
         let result = await SearchInterpreter.interpretQuestions(
-            query, languages: availableLanguages, owners: availableOwners
+            query, languages: availableLanguages, owners: owners
         )
         if let result {
             apply(result)
