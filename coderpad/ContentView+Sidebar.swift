@@ -136,6 +136,20 @@ struct Sidebar: View {
         }
     }
 
+    /// In the combined view the per-account saved searches don't apply; the sidebar
+    /// instead surfaces each merged list's "Mine" preset, which it toggles and
+    /// reflects through `AppNavigation`.
+    private var isMergedView: Bool {
+        accounts.isMergedView
+    }
+
+    private func mergedMineOnly(for kind: SavedSearchKind) -> Bool {
+        switch kind {
+        case .pads: nav.mergedPadsMineOnly
+        case .questions: nav.mergedQuestionsMineOnly
+        }
+    }
+
     /// Whether `item` is the search currently applied in its list. True only while
     /// that list is the active section, so switching sections clears the highlight.
     private func isItemSelected(_ item: SavedItem) -> Bool {
@@ -158,6 +172,9 @@ struct Sidebar: View {
         case .pads, .questions:
             guard nav.section == value else { return false }
             let kind: SavedSearchKind = value == .pads ? .pads : .questions
+            // In merged mode the only suggested row is "Mine"; the root owns the
+            // selection whenever that preset is off.
+            if isMergedView { return !mergedMineOnly(for: kind) }
             return !items(for: kind).contains { liveFilter(for: kind).hasSameFilters(as: $0.search) }
         case .organization, .quota:
             return nav.section == value
@@ -168,27 +185,55 @@ struct Sidebar: View {
     /// "Questions" clears any applied search and the highlight returns to that row.
     private func selectRoot(_ value: AppSection) {
         switch value {
-        case .pads: nav.showPads(PadsRequest(applySearch: NamedSearch(name: "")))
-        case .questions: nav.showQuestions(QuestionsRequest(applySearch: NamedSearch(name: "")))
+        case .pads:
+            if isMergedView { nav.showMergedRoot(kind: .pads) }
+            else { nav.showPads(PadsRequest(applySearch: NamedSearch(name: ""))) }
+        case .questions:
+            if isMergedView { nav.showMergedRoot(kind: .questions) }
+            else { nav.showQuestions(QuestionsRequest(applySearch: NamedSearch(name: ""))) }
         case .organization, .quota: section = value
         }
     }
 
     @ViewBuilder
     private var defaultsSection: some View {
-        let items = defaultItems
-        if !items.isEmpty {
-            sidebarSectionHeader("Suggested")
-            VStack(spacing: 2) {
-                ForEach(items) { item in
-                    sidebarSubRow(label: item.search.name, icon: item.icon,
-                                  isSelected: isItemSelected(item)) {
-                        nav.applySavedSearch(item.search, kind: item.kind)
+        if isMergedView {
+            mergedDefaultsSection
+        } else {
+            let items = defaultItems
+            if !items.isEmpty {
+                sidebarSectionHeader("Suggested")
+                VStack(spacing: 2) {
+                    ForEach(items) { item in
+                        sidebarSubRow(label: item.search.name, icon: item.icon,
+                                      isSelected: isItemSelected(item)) {
+                            nav.applySavedSearch(item.search, kind: item.kind)
+                        }
                     }
                 }
+                .padding(.horizontal, 8)
             }
-            .padding(.horizontal, 8)
         }
+    }
+
+    /// The combined view's suggested rows: "My Pads"/"My Questions" toggle each
+    /// merged list's per-account "Mine" preset (the in-list chip's sidebar twin).
+    /// Tapping one switches to that list and flips the preset; the highlight tracks
+    /// the live state `MergedPadsView`/`MergedQuestionsView` publish back.
+    @ViewBuilder
+    private var mergedDefaultsSection: some View {
+        sidebarSectionHeader("Suggested")
+        VStack(spacing: 2) {
+            sidebarSubRow(label: "My Pads", icon: "person.fill",
+                          isSelected: nav.section == .pads && nav.mergedPadsMineOnly) {
+                nav.toggleMergedMine(kind: .pads)
+            }
+            sidebarSubRow(label: "My Questions", icon: "person.fill",
+                          isSelected: nav.section == .questions && nav.mergedQuestionsMineOnly) {
+                nav.toggleMergedMine(kind: .questions)
+            }
+        }
+        .padding(.horizontal, 8)
     }
 
     @ViewBuilder

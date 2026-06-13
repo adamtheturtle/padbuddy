@@ -125,7 +125,7 @@ struct EnvironmentCodeCard: View {
     @State var liveWidth: Double?
     /// On-device explanation of the selected file, shown in a popover. Keyed to
     /// the file it was generated for so switching files doesn't show a stale one.
-    @State var explanation: String?
+    @State var explanation: CodeExplanation?
     @State var explanationFileID: String?
     @State var isExplaining = false
     @State var showExplanation = false

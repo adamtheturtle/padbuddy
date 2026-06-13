@@ -23,6 +23,18 @@ extension MergedPadsView {
                 })
             }
             .onAppear { selectedID = selection?.id }
+            // Keep the sidebar's "My Pads" row in sync with this list's "Mine"
+            // preset: publish the live state (so the highlight is honest however
+            // it changed — chip or sidebar) and consume any toggle the sidebar
+            // queued. `initial: true` covers the value already set on appear.
+            .onChange(of: mineOnly, initial: true) { _, isOn in
+                if nav.mergedPadsMineOnly != isOn { nav.mergedPadsMineOnly = isOn }
+            }
+            .onChange(of: nav.mergedPadsMineRequest, initial: true) { _, request in
+                guard let request else { return }
+                nav.mergedPadsMineRequest = nil
+                if mineOnly != request { mineOnly = request }
+            }
             .onChange(of: selectedID) { _, newID in
                 if selection?.id != newID {
                     selection = newID.flatMap { id in pad(forID: id) }

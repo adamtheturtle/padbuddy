@@ -90,6 +90,19 @@ final class AppNavigation {
     var padsFilter = NamedSearch(name: "")
     var questionsFilter = NamedSearch(name: "")
 
+    /// The live "Mine" preset state of each combined ("All Accounts") list,
+    /// republished by `MergedPadsView`/`MergedQuestionsView` so the sidebar can
+    /// honestly highlight its "My Pads"/"My Questions" rows in merged mode. The
+    /// combined views own their filters locally rather than through
+    /// `padsFilter`/`padsRequest` (their "Mine" is per-account ownership, not a
+    /// single owner email), so a one-shot `…Request` lets the sidebar set the
+    /// preset; the view consumes and clears it, then republishes the result here.
+    /// Mirrors the padsFilter/padsRequest split the single-account panes use.
+    var mergedPadsMineOnly = false
+    var mergedPadsMineRequest: Bool?
+    var mergedQuestionsMineOnly = false
+    var mergedQuestionsMineRequest: Bool?
+
     /// A question id whose detail pane should immediately create a pad and open it
     /// inline (the in-pane browser), matching the detail view's "New Pad" button.
     /// Set by the Questions list's context menu (after selecting that question) and
@@ -164,6 +177,25 @@ final class AppNavigation {
         switch kind {
         case .pads: showPads(PadsRequest(applySearch: search))
         case .questions: showQuestions(QuestionsRequest(applySearch: search))
+        }
+    }
+
+    /// Toggle a combined list's "Mine" preset from the sidebar, switching to that
+    /// list first. Targets the opposite of the last-published state so repeated taps
+    /// flip it; the merged view consumes the request, applies it, and republishes.
+    func toggleMergedMine(kind: SavedSearchKind) {
+        switch kind {
+        case .pads: section = .pads; mergedPadsMineRequest = !mergedPadsMineOnly
+        case .questions: section = .questions; mergedQuestionsMineRequest = !mergedQuestionsMineOnly
+        }
+    }
+
+    /// Switch to a combined list's plain, unfiltered root, clearing its "Mine"
+    /// preset — the merged counterpart to tapping the "Pads"/"Questions" row.
+    func showMergedRoot(kind: SavedSearchKind) {
+        switch kind {
+        case .pads: section = .pads; mergedPadsMineRequest = false
+        case .questions: section = .questions; mergedQuestionsMineRequest = false
         }
     }
 

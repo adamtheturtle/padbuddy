@@ -68,7 +68,18 @@ struct TitlebarLeadingAccessory<Content: View>: NSViewRepresentable {
     final class AccessoryAnchor<C: View>: NSView {
         private var accessory: NSTitlebarAccessoryViewController?
         private var hosting: NSHostingView<C>?
+        private var container: NSView?
         private let initialContent: C
+
+        /// SidebarToggleButton's fixed footprint, roomy enough for the circular
+        /// Liquid Glass container it adopts when collapsed.
+        private static var glyphSize: NSSize { NSSize(width: 44, height: 36) }
+
+        /// Leading inset applied to the toggle while full screen. Windowed, the
+        /// traffic lights push the accessory inward; full screen has none, so a
+        /// flush-left glyph reads as a layout bug. This margin restores a
+        /// deliberate gap from the screen edge.
+        private static var fullScreenInset: CGFloat { 13 }
 
         init(content: C) {
             initialContent = content
@@ -78,6 +89,10 @@ struct TitlebarLeadingAccessory<Content: View>: NSViewRepresentable {
         @available(*, unavailable)
         required init?(coder _: NSCoder) {
             fatalError("init(coder:) has not been implemented")
+        }
+
+        deinit {
+            NotificationCenter.default.removeObserver(self)
         }
 
         override func viewDidMoveToWindow() {
@@ -97,15 +112,46 @@ struct TitlebarLeadingAccessory<Content: View>: NSViewRepresentable {
         private func installAccessory() {
             guard let window, accessory == nil else { return }
             let hosting = NSHostingView(rootView: initialContent)
-            // Matches SidebarToggleButton's fixed footprint, which is roomy enough
-            // for the circular Liquid Glass container it adopts when collapsed.
-            hosting.frame = NSRect(x: 0, y: 0, width: 44, height: 36)
+            // Wrap the glyph in a container so its leading inset can grow in full
+            // screen without disturbing the SwiftUI content itself.
+            let container = NSView(frame: NSRect(origin: .zero, size: Self.glyphSize))
+            container.autoresizesSubviews = true
+            hosting.frame = NSRect(origin: .zero, size: Self.glyphSize)
+            // AppKit stretches a leading accessory's view to the full title-bar
+            // height. Keep the glyph pinned to the leading edge but vertically
+            // centered as that height grows, rather than sinking to the bottom.
+            hosting.autoresizingMask = [.maxXMargin, .minYMargin, .maxYMargin]
+            container.addSubview(hosting)
             let controller = NSTitlebarAccessoryViewController()
-            controller.view = hosting
+            controller.view = container
             controller.layoutAttribute = .leading
             window.addTitlebarAccessoryViewController(controller)
             accessory = controller
             self.hosting = hosting
+            self.container = container
+
+            let center = NotificationCenter.default
+            for name: NSNotification.Name in [
+                NSWindow.didEnterFullScreenNotification,
+                NSWindow.didExitFullScreenNotification
+            ] {
+                center.addObserver(self, selector: #selector(layoutForFullScreen), name: name, object: window)
+            }
+            layoutForFullScreen()
+        }
+
+        /// Offsets the glyph by ``fullScreenInset`` while full screen and widens the
+        /// container to match, so the toggle keeps a margin from the screen edge in
+        /// the absence of the traffic lights.
+        @objc private func layoutForFullScreen() {
+            guard let container, let hosting else { return }
+            let inset = (window?.styleMask.contains(.fullScreen) ?? false) ? Self.fullScreenInset : 0
+            // Adjust only the width AppKit lets us own; its auto-set title-bar
+            // height and the glyph's centering autoresizing mask handle the rest.
+            var frame = container.frame
+            frame.size.width = Self.glyphSize.width + inset
+            container.frame = frame
+            hosting.frame.origin.x = inset
         }
 
         func update(content: C) {

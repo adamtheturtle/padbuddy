@@ -25,15 +25,45 @@ private struct WindowChromeConfigurator: NSViewRepresentable {
     /// to exist — and again on every SwiftUI update, since toolbar changes can
     /// otherwise reinstate the separator.
     final class ChromeView: NSView {
+        private var observingWindow: NSWindow?
+
+        deinit {
+            NotificationCenter.default.removeObserver(self)
+        }
+
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
+            observeFullScreen()
             applyChrome()
         }
 
-        func applyChrome() {
+        @objc func applyChrome() {
             guard let window else { return }
             window.titleVisibility = .hidden
             window.titlebarSeparatorStyle = .none
+            // `.hiddenTitleBar` makes the title bar transparent so the sidebar
+            // material shows behind the toggle while windowed. In full screen
+            // there's nothing behind that strip, so a transparent title bar
+            // renders the window's black background as an ugly band across the
+            // top. Drop the transparency there and the strip picks up the
+            // standard translucent toolbar material instead (Mail-style).
+            window.titlebarAppearsTransparent = !window.styleMask.contains(.fullScreen)
+        }
+
+        /// Re-asserts the chrome whenever the window crosses the full-screen
+        /// boundary, since the transparent vs. material title bar choice depends
+        /// on which mode it's in.
+        private func observeFullScreen() {
+            guard let window, window !== observingWindow else { return }
+            let center = NotificationCenter.default
+            center.removeObserver(self)
+            observingWindow = window
+            for name: NSNotification.Name in [
+                NSWindow.didEnterFullScreenNotification,
+                NSWindow.didExitFullScreenNotification
+            ] {
+                center.addObserver(self, selector: #selector(applyChrome), name: name, object: window)
+            }
         }
     }
 }

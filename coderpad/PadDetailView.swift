@@ -24,6 +24,98 @@ struct PadDetailView: View {
     @Environment(\.orgDirectory) var directory
     @Environment(\.colorScheme) var colorScheme
 
+    // Detail-column actions live in the unified window toolbar rather than in
+    // the content header: there they float on the system Liquid Glass layer
+    // automatically, and the header stays free for identity and metadata. A
+    // leading spacer separates them from the Pads list's own toolbar items
+    // (Reload, New Pad). The lifecycle/destructive actions (Save Code, End
+    // Interview, Delete Pad) sit in their own trailing group behind a second
+    // spacer; End Interview and Delete Pad each still require a confirmation
+    // dialog, so surfacing them directly can't trigger an irreversible action
+    // from a stray click.
+    @ToolbarContentBuilder
+    private var detailToolbar: some CustomizableToolbarContent {
+        if #available(macOS 26, *) {
+            ToolbarSpacer(.fixed)
+        }
+        ToolbarItem(id: "editPad", placement: .primaryAction) {
+            Button { showEdit = true } label: {
+                Label("Edit", systemImage: "pencil")
+            }
+            .help("Edit pad properties")
+        }
+        if let url = pad.webURL {
+            ToolbarItem(id: "sharePad", placement: .primaryAction) {
+                ShareLink(item: url) {
+                    Label("Share", systemImage: "square.and.arrow.up")
+                }
+                .help("Share pad")
+                .accessibilityLabel("Share pad")
+            }
+            ToolbarItem(id: "openPad", placement: .primaryAction) {
+                Button {
+                    if BrowserSettings.openLinksIn == .external {
+                        BrowserSettings.openExternally(url)
+                    } else {
+                        browserURL = url
+                    }
+                } label: {
+                    // Short title ("Open", not "Open Pad") so it doesn't truncate
+                    // to "O…" when the detail column is narrow and the toolbar is
+                    // crowded; the accessibility label stays descriptive.
+                    Label("Open", systemImage: "doc.text.image")
+                }
+                .help("Open the pad")
+                .accessibilityLabel("Open pad")
+            }
+        }
+        if let playbackURL = pad.playbackURL {
+            ToolbarItem(id: "watchPlayback", placement: .primaryAction) {
+                Button {
+                    if BrowserSettings.openLinksIn == .external {
+                        BrowserSettings.openExternally(playbackURL)
+                    } else {
+                        browserURL = playbackURL
+                    }
+                } label: {
+                    Label("Watch", systemImage: "play.rectangle")
+                }
+                .help("Watch the session playback")
+                .accessibilityLabel("Watch playback")
+            }
+        }
+        if #available(macOS 26, *) {
+            ToolbarSpacer(.fixed)
+        }
+        ToolbarItem(id: "saveCode", placement: .primaryAction) {
+            Button {
+                saveCodeLocally()
+            } label: {
+                Label("Save Code…", systemImage: "square.and.arrow.down")
+            }
+            .disabled(!hasSavableCode)
+            .help("Save the pad's code to a file or folder on this Mac")
+        }
+        ToolbarItem(id: "endInterview", placement: .primaryAction) {
+            Button {
+                showEndConfirm = true
+            } label: {
+                Label("End Interview", systemImage: "flag.checkered")
+            }
+            .disabled(isEnded || isMutating)
+            .help("End the interview for all participants")
+        }
+        ToolbarItem(id: "deletePad", placement: .primaryAction) {
+            Button(role: .destructive) {
+                showDeleteConfirm = true
+            } label: {
+                Label("Delete Pad", systemImage: "trash")
+            }
+            .disabled(isMutating)
+            .help("Delete this pad")
+        }
+    }
+
     var body: some View {
         Group {
             if let url = browserURL {
@@ -56,96 +148,7 @@ struct PadDetailView: View {
             }
         }
         .navigationTitle(pad.title.isEmpty ? pad.id : pad.title)
-        // Detail-column actions live in the unified window toolbar rather than in
-        // the content header: there they float on the system Liquid Glass layer
-        // automatically, and the header stays free for identity and metadata. A
-        // leading spacer separates them from the Pads list's own toolbar items
-        // (Reload, New Pad). The lifecycle/destructive actions (Save Code, End
-        // Interview, Delete Pad) sit in their own trailing group behind a second
-        // spacer; End Interview and Delete Pad each still require a confirmation
-        // dialog, so surfacing them directly can't trigger an irreversible action
-        // from a stray click.
-        .toolbar(id: "pad.detail.toolbar") {
-            if #available(macOS 26, *) {
-                ToolbarSpacer(.fixed)
-            }
-            ToolbarItem(id: "editPad", placement: .primaryAction) {
-                Button { showEdit = true } label: {
-                    Label("Edit", systemImage: "pencil")
-                }
-                .help("Edit pad properties")
-            }
-            if let url = pad.webURL {
-                ToolbarItem(id: "sharePad", placement: .primaryAction) {
-                    ShareLink(item: url) {
-                        Label("Share", systemImage: "square.and.arrow.up")
-                    }
-                    .help("Share pad")
-                    .accessibilityLabel("Share pad")
-                }
-                ToolbarItem(id: "openPad", placement: .primaryAction) {
-                    Button {
-                        if BrowserSettings.openLinksIn == .external {
-                            BrowserSettings.openExternally(url)
-                        } else {
-                            browserURL = url
-                        }
-                    } label: {
-                        // Short title ("Open", not "Open Pad") so it doesn't truncate
-                        // to "O…" when the detail column is narrow and the toolbar is
-                        // crowded; the accessibility label stays descriptive.
-                        Label("Open", systemImage: "doc.text.image")
-                    }
-                    .help("Open the pad")
-                    .accessibilityLabel("Open pad")
-                }
-            }
-            if let playbackURL = pad.playbackURL {
-                ToolbarItem(id: "watchPlayback", placement: .primaryAction) {
-                    Button {
-                        if BrowserSettings.openLinksIn == .external {
-                            BrowserSettings.openExternally(playbackURL)
-                        } else {
-                            browserURL = playbackURL
-                        }
-                    } label: {
-                        Label("Watch", systemImage: "play.rectangle")
-                    }
-                    .help("Watch the session playback")
-                    .accessibilityLabel("Watch playback")
-                }
-            }
-            if #available(macOS 26, *) {
-                ToolbarSpacer(.fixed)
-            }
-            ToolbarItem(id: "saveCode", placement: .primaryAction) {
-                Button {
-                    saveCodeLocally()
-                } label: {
-                    Label("Save Code…", systemImage: "square.and.arrow.down")
-                }
-                .disabled(!hasSavableCode)
-                .help("Save the pad's code to a file or folder on this Mac")
-            }
-            ToolbarItem(id: "endInterview", placement: .primaryAction) {
-                Button {
-                    showEndConfirm = true
-                } label: {
-                    Label("End Interview", systemImage: "flag.checkered")
-                }
-                .disabled(isEnded || isMutating)
-                .help("End the interview for all participants")
-            }
-            ToolbarItem(id: "deletePad", placement: .primaryAction) {
-                Button(role: .destructive) {
-                    showDeleteConfirm = true
-                } label: {
-                    Label("Delete Pad", systemImage: "trash")
-                }
-                .disabled(isMutating)
-                .help("Delete this pad")
-            }
-        }
+        .toolbar(id: "pad.detail.toolbar") { detailToolbar }
         .task(id: pad.id) { await load() }
         .sheet(isPresented: $showEdit) {
             EditPadSheet(

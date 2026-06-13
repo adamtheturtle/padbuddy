@@ -177,14 +177,35 @@ extension EnvironmentCodeCard {
             Label("Explanation", systemImage: "sparkles")
                 .font(.headline)
             ScrollView {
-                Text(explanation ?? "")
+                VStack(alignment: .leading, spacing: 12) {
+                    if let explanation {
+                        explanationSection(title: "What it does", text: explanation.summary)
+                        explanationSection(title: "Quality & readability", text: explanation.readability)
+                        explanationSection(title: "Time & space complexity", text: explanation.optimality)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .padding(14)
+        .frame(width: 320, height: 300)
+    }
+
+    /// One titled paragraph of the explanation popover. Hidden when empty so a
+    /// section the model left blank doesn't show a bare heading.
+    @ViewBuilder
+    private func explanationSection(title: String, text: String) -> some View {
+        if !text.isEmpty {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                Text(text)
                     .font(.callout)
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
-        .padding(14)
-        .frame(width: 320, height: 220)
     }
 
     /// Generates (or reuses) an on-device explanation of the visible file, then

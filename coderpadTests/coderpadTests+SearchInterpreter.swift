@@ -83,3 +83,63 @@ private let owners = [
     let list = SearchInterpreter.optionList(many, limit: 3)
     #expect(list == "lang1, lang2, lang3")
 }
+
+// MARK: - Grounding (reject model values the query doesn't support)
+
+/// The on-device model over-fills fields the request never mentions (grabbing the
+/// first option, echoing the whole query into the free-text search). These cover
+/// the pure guards that keep a value only when the query actually supports it.
+
+@Test func groundsLanguageOnlyWhenQueryNamesIt() {
+    // Named by display name resolves and survives.
+    #expect(SearchInterpreter.groundLanguage("javascript", query: "javascript pads") == "javascript")
+    // The model's habit of grabbing the first option is rejected when unmentioned.
+    #expect(SearchInterpreter.groundLanguage("python3", query: "pads by rob di marco") == nil)
+    // A version-digit code is matched by its display name ("Python").
+    #expect(SearchInterpreter.groundLanguage("python3", query: "draft python questions") == "python3")
+    #expect(SearchInterpreter.groundLanguage(nil, query: "anything") == nil)
+}
+
+@Test func groundsOwnerByWholeNameTokenNotSubstring() {
+    let owners = [
+        SearchInterpreter.OwnerOption(email: "rdimarco@acme.com", name: "Rob Di Marco"),
+        SearchInterpreter.OwnerOption(email: "mlin@acme.com", name: "Morgan Lin")
+    ]
+    #expect(SearchInterpreter.groundOwner("rdimarco@acme.com", query: "pads by rob di marco", owners: owners)
+        == "rdimarco@acme.com")
+    // "lin" must not match inside "linked", so the owner is dropped.
+    #expect(SearchInterpreter.groundOwner("mlin@acme.com", query: "linked list pads", owners: owners) == nil)
+    // The email's local part counts as a whole token.
+    #expect(SearchInterpreter.groundOwner("rdimarco@acme.com", query: "rdimarco pads", owners: owners)
+        == "rdimarco@acme.com")
+    #expect(SearchInterpreter.groundOwner(nil, query: "anything", owners: owners) == nil)
+}
+
+@Test func groundsTeamOnlyWhenNamed() {
+    #expect(SearchInterpreter.groundTeam("Platform", query: "pads for the platform team") == "Platform")
+    #expect(SearchInterpreter.groundTeam("Platform", query: "javascript pads") == nil)
+}
+
+@Test func groundsStateTypeDraftAndDateOnlyWhenMentioned() {
+    #expect(SearchInterpreter.groundState(.ended, query: "ended pads") == .ended)
+    #expect(SearchInterpreter.groundState(.active, query: "recursion questions") == nil)
+    #expect(SearchInterpreter.groundType("take-home", query: "take-home questions by alex") == "take-home")
+    #expect(SearchInterpreter.groundType("live", query: "questions about recursion") == nil)
+    #expect(SearchInterpreter.groundDraft("published", query: "published go questions") == "published")
+    #expect(SearchInterpreter.groundDraft("draft", query: "go questions") == nil)
+    #expect(SearchInterpreter.groundDateRange("last 7 days", query: "python pads from last week") == "last 7 days")
+    #expect(SearchInterpreter.groundDateRange("today", query: "python pads") == nil)
+}
+
+@Test func groundsTextToGenuineKeywordsOnly() {
+    let languages = ["python3", "javascript"]
+    // A query the model echoes wholesale collapses to empty (the owner does the work).
+    #expect(SearchInterpreter.groundText("pads by rob di marco", languages: languages,
+                                         ownerName: "Rob Di Marco", team: "") == "")
+    // A language word the request named is stripped (the language filter does the work).
+    #expect(SearchInterpreter.groundText("javascript pads", languages: languages,
+                                         ownerName: "", team: "") == "")
+    // A real topic survives.
+    #expect(SearchInterpreter.groundText("binary search pads", languages: languages,
+                                         ownerName: "", team: "") == "binary search")
+}

@@ -13,16 +13,29 @@ extension MergedPadsView {
     // MARK: - Combined + filtered data
 
     /// Every account's pads, tagged with their source account and sorted newest
-    /// first. Reads only `padsByAccount` (seeded from cache, then refreshed) so a
-    /// `body` evaluation never triggers a cache read.
+    /// first. Read many times in one render (the filter pass, each filter chip's
+    /// option list, the result count, the empty-state checks), so it's memoized
+    /// into `scopedCache` once per render by `refreshScoped()`. Recomputing the
+    /// cross-account sort on every read beach-balled the main thread on large
+    /// merged orgs — most visibly when toggling a preset like "Mine", which fires
+    /// several re-renders in quick succession.
     var scoped: [AccountScoped<Pad>] {
+        scopedCache.rows
+    }
+
+    /// Rebuild the memoized `scoped` rows for one render. Mirrors `refreshFiltered`
+    /// (and `PadsView`'s `filtered` memo): a reference-type cache so `body` can
+    /// refresh it without mutating SwiftUI state mid-evaluation. Reads only
+    /// `padsByAccount` (seeded from cache, then refreshed) so it never triggers a
+    /// cache read.
+    func refreshScoped() {
         var rows: [AccountScoped<Pad>] = []
         for account in accounts.mergeableAccounts {
             for pad in padsByAccount[account.id] ?? [] {
                 rows.append(AccountScoped(account: account, item: pad, id: pad.id))
             }
         }
-        return rows.sorted {
+        scopedCache.rows = rows.sorted {
             ($0.item.updatedAt ?? $0.item.createdAt ?? .distantPast)
                 > ($1.item.updatedAt ?? $1.item.createdAt ?? .distantPast)
         }

@@ -24,6 +24,52 @@ struct QuestionDetailView: View {
     @State var showBrowser = false
     @State var createdPadURL: URL?
 
+    // Detail-column actions live in the unified window toolbar rather than in
+    // the content header: there they float on the system Liquid Glass layer
+    // automatically, and the header stays free for identity and metadata. A
+    // leading spacer separates them from the Questions list's own toolbar
+    // items (Sort, Reload, New Question) so "New Pad" doesn't read as a
+    // sibling of "New Question".
+    @ToolbarContentBuilder
+    private var detailToolbar: some CustomizableToolbarContent {
+        if #available(macOS 26, *) {
+            ToolbarSpacer(.fixed)
+        }
+        ToolbarItem(id: "favoriteQuestion", placement: .primaryAction) {
+            Button { toggleFavorite() } label: {
+                Label(isFavorite ? "Favorited" : "Favorite",
+                      systemImage: isFavorite ? "star.fill" : "star")
+            }
+            .help(isFavorite ? "Remove from Favorites" : "Add to Favorites")
+            .accessibilityLabel(isFavorite ? "Remove from Favorites" : "Add to Favorites")
+        }
+        ToolbarItem(id: "newPad", placement: .primaryAction) {
+            Button { Task { await createPad() } } label: {
+                if isCreatingPad {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Label("New Pad", systemImage: "doc.badge.plus")
+                }
+            }
+            .disabled(isCreatingPad)
+            .help("Create a new interview pad from this question")
+            .accessibilityLabel("New Pad")
+        }
+        ToolbarItem(id: "editQuestion", placement: .primaryAction) {
+            Button { showEdit = true } label: {
+                Label("Edit", systemImage: "pencil")
+            }
+            .help("Edit question")
+        }
+        ToolbarItem(id: "deleteQuestion", placement: .primaryAction) {
+            Button(role: .destructive) { showDeleteConfirm = true } label: {
+                Label("Delete", systemImage: "trash")
+            }
+            .help("Delete question")
+            .accessibilityLabel("Delete question")
+        }
+    }
+
     var body: some View {
         Group {
             if showBrowser, let url = createdPadURL {
@@ -38,50 +84,7 @@ struct QuestionDetailView: View {
         // Publish the favorite state so the Question menu's Favorite command can
         // show the matching "Add to"/"Remove from Favorites" title and toggle it.
         .focusedSceneValue(\.focusedQuestionIsFavorite, isFavorite)
-        // Detail-column actions live in the unified window toolbar rather than in
-        // the content header: there they float on the system Liquid Glass layer
-        // automatically, and the header stays free for identity and metadata. A
-        // leading spacer separates them from the Questions list's own toolbar
-        // items (Sort, Reload, New Question) so "New Pad" doesn't read as a
-        // sibling of "New Question".
-        .toolbar(id: "question.detail.toolbar") {
-            if #available(macOS 26, *) {
-                ToolbarSpacer(.fixed)
-            }
-            ToolbarItem(id: "favoriteQuestion", placement: .primaryAction) {
-                Button { toggleFavorite() } label: {
-                    Label(isFavorite ? "Favorited" : "Favorite",
-                          systemImage: isFavorite ? "star.fill" : "star")
-                }
-                .help(isFavorite ? "Remove from Favorites" : "Add to Favorites")
-                .accessibilityLabel(isFavorite ? "Remove from Favorites" : "Add to Favorites")
-            }
-            ToolbarItem(id: "newPad", placement: .primaryAction) {
-                Button { Task { await createPad() } } label: {
-                    if isCreatingPad {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Label("New Pad", systemImage: "doc.badge.plus")
-                    }
-                }
-                .disabled(isCreatingPad)
-                .help("Create a new interview pad from this question")
-                .accessibilityLabel("New Pad")
-            }
-            ToolbarItem(id: "editQuestion", placement: .primaryAction) {
-                Button { showEdit = true } label: {
-                    Label("Edit", systemImage: "pencil")
-                }
-                .help("Edit question")
-            }
-            ToolbarItem(id: "deleteQuestion", placement: .primaryAction) {
-                Button(role: .destructive) { showDeleteConfirm = true } label: {
-                    Label("Delete", systemImage: "trash")
-                }
-                .help("Delete question")
-                .accessibilityLabel("Delete question")
-            }
-        }
+        .toolbar(id: "question.detail.toolbar") { detailToolbar }
         .sheet(isPresented: $showEdit) {
             EditQuestionSheet(client: client, original: question) { updated in
                 NotificationCenter.default.post(name: .questionUpdated, object: updated)

@@ -23,6 +23,7 @@ struct MergedPadsView: View {
     @Environment(\.openWindow) var openWindow
     @State var accounts = AccountsStore.shared
     @State var router = MergedRouting.shared
+    @State var nav = AppNavigation.shared
     @State var cache = PadsCacheStore.shared
     @State var openedStore = PadOpenedStore.shared
     /// The latest pads per account. Seeded from each account's disk cache on appear
@@ -61,6 +62,9 @@ struct MergedPadsView: View {
     /// Per-render memo so the several reads of `filtered` in one `body` share a
     /// single filter pass, matching `PadsView`'s approach for large lists.
     @State var filteredCache = FilteredScopedPadsCache()
+    /// Per-render memo for the sorted cross-account rows (`scoped`), refreshed
+    /// once at the top of `body` so its many readers share a single sort.
+    @State var scopedCache = ScopedPadsCache()
 
     enum BulkPadAction: String, Identifiable {
         case endStarted, makePrivate
@@ -70,7 +74,9 @@ struct MergedPadsView: View {
     }
 
     var body: some View {
-        // Recompute the filtered rows once per render; every read below hits the memo.
+        // Recompute the sorted rows and the filtered rows once per render; every
+        // read below (filter pass, chip options, counts) hits the memos.
+        refreshScoped()
         refreshFiltered()
         return decorated
     }
@@ -79,6 +85,12 @@ struct MergedPadsView: View {
 /// Memo holding the merged list's filtered rows for one render, mirroring
 /// `FilteredPadsCache` in `PadsView`.
 final class FilteredScopedPadsCache {
+    var rows: [AccountScoped<Pad>] = []
+}
+
+/// Memo holding the merged list's sorted cross-account rows for one render, so
+/// the many reads of `scoped` in one `body` share a single sort.
+final class ScopedPadsCache {
     var rows: [AccountScoped<Pad>] = []
 }
 

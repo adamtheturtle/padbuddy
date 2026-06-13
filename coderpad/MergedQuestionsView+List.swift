@@ -20,6 +20,17 @@ extension MergedQuestionsView {
                 })
             }
             .onAppear { selectedQuestionID = selection?.id }
+            // Keep the sidebar's "My Questions" row in sync with this list's "Mine"
+            // preset: publish the live state and consume any sidebar toggle, the
+            // same bridge `MergedPadsView` uses for "My Pads".
+            .onChange(of: mineOnly, initial: true) { _, isOn in
+                if nav.mergedQuestionsMineOnly != isOn { nav.mergedQuestionsMineOnly = isOn }
+            }
+            .onChange(of: nav.mergedQuestionsMineRequest, initial: true) { _, request in
+                guard let request else { return }
+                nav.mergedQuestionsMineRequest = nil
+                if mineOnly != request { mineOnly = request }
+            }
             .onChange(of: selectedQuestionID) { _, newID in
                 if selection?.id != newID {
                     selection = newID.flatMap { id in question(forID: id) }

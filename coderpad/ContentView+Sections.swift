@@ -35,10 +35,10 @@ struct SectionContent: View {
         }
     }
 
-    /// The combined-view content. Pads and Questions merge across accounts;
-    /// Organization and Quota stay inherently per-account, so they show the first
-    /// real account (the merged view is about the lists, not these single-org
-    /// sections).
+    /// The combined-view content. Every section merges across accounts: Pads and
+    /// Questions into one list; Organization into an aggregate-plus-breakdown
+    /// overview; and Quota into a per-account stack (quota numbers are per-org, so
+    /// they're shown side by side rather than summed).
     @ViewBuilder
     private var mergedContent: some View {
         switch section {
@@ -47,13 +47,9 @@ struct SectionContent: View {
         case .questions:
             MergedQuestionsView(selection: $questionSelection, search: $questionSearch).id("merged-questions")
         case .organization:
-            if let account = store.mergeableAccounts.first {
-                OrganizationView(client: account.makeClient()).id(account.id)
-            }
+            MergedOrganizationView().id("merged-organization")
         case .quota:
-            if let account = store.mergeableAccounts.first {
-                QuotaView(client: account.makeClient()).id(account.id)
-            }
+            MergedQuotaView().id("merged-quota")
         }
     }
 }

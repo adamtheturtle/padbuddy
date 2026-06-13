@@ -3,6 +3,7 @@
 //  coderpad
 //
 
+import AppKit
 import SwiftUI
 
 // MARK: - Split into small structs to reduce body type complexity
@@ -111,6 +112,7 @@ struct MainSplit: View {
     }
 
     private func toggleSidebar() {
+        let willOpen = isSidebarCollapsed
         withAnimation(.smooth) {
             if isSidebarCollapsed {
                 columnVisibility = .all
@@ -121,6 +123,33 @@ struct MainSplit: View {
         // A manual toggle takes ownership: stop tracking this as a width-driven
         // collapse so a later resize doesn't undo the user's choice.
         autoCollapsed = false
+        // Opening the sidebar while the window is narrower than every column's
+        // combined minimum would squeeze the columns and clip the sidebar — the
+        // auto-collapse only reacts to resizes, not to this manual open. Grow the
+        // window to fit, the way Mail does, so the sidebar always shows in full.
+        if willOpen, containerWidth > 0, containerWidth < sidebarVisibleFloor {
+            growWindowToFitSidebar()
+        }
+    }
+
+    /// Widens the key window enough that every column fits at its minimum, so a
+    /// manual sidebar open at a narrow width never clips the sidebar. Clamps to the
+    /// visible screen and slides the window left if its right edge would spill over.
+    /// A few points of slack keep the resulting width just above
+    /// ``sidebarVisibleFloor`` so the auto-collapse doesn't immediately re-hide it.
+    private func growWindowToFitSidebar() {
+        guard let window = NSApp.keyWindow ?? NSApp.mainWindow else { return }
+        let delta = sidebarVisibleFloor - containerWidth + 4
+        guard delta > 0 else { return }
+        var frame = window.frame
+        frame.size.width += delta
+        if let visible = window.screen?.visibleFrame {
+            frame.size.width = min(frame.size.width, visible.width)
+            if frame.maxX > visible.maxX {
+                frame.origin.x = max(visible.minX, visible.maxX - frame.size.width)
+            }
+        }
+        window.setFrame(frame, display: true, animate: true)
     }
 
     /// Collapses the sidebar when the container is too narrow to hold every column
