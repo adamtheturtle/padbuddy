@@ -54,6 +54,12 @@ struct PadsView: View {
     @State var showSaveSearch = false
     @State var saveSearchName = ""
     @State var isSuggestingName = false
+    /// Natural-language filter entry: the sheet's visibility, the typed query, and
+    /// whether the on-device interpreter is running. See `SearchInterpreter`.
+    @State var showSmartFilter = false
+    @State var smartFilterText = ""
+    @State var isInterpreting = false
+    @State var smartFilterFailed = false
     @State var padPendingDelete: Pad?
     @State var deleteError: String?
     @State var bulkAction: BulkPadAction?
@@ -192,6 +198,16 @@ struct PadsView: View {
                 } onCancel: {
                     showCreate = false
                 }
+            }
+            .sheet(isPresented: $showSmartFilter) {
+                SmartFilterSheet(
+                    text: $smartFilterText,
+                    isInterpreting: isInterpreting,
+                    failed: smartFilterFailed,
+                    placeholder: "e.g. active Python pads from my team",
+                    onSubmit: { Task { await applySmartFilter() } },
+                    onCancel: { showSmartFilter = false }
+                )
             }
             // Swipe-to-delete reaches a pad without selecting it first, so the
             // confirmation lives here at the list level rather than in the detail

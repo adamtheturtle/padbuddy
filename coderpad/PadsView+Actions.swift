@@ -111,6 +111,26 @@ extension PadsView {
         }
     }
 
+    /// Interprets the typed query on device and, when it maps to a real filter set,
+    /// applies it and closes the sheet. A query the model can't turn into any
+    /// filter leaves the list untouched and surfaces a gentle hint in the sheet.
+    func applySmartFilter() async {
+        let query = smartFilterText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return }
+        isInterpreting = true
+        smartFilterFailed = false
+        defer { isInterpreting = false }
+        let result = await SearchInterpreter.interpretPads(
+            query, languages: availableLanguages, owners: availableOwners
+        )
+        if let result {
+            apply(result)
+            showSmartFilter = false
+        } else {
+            smartFilterFailed = true
+        }
+    }
+
     func commitSavedSearch() {
         // Return in the text field fires `onSubmit` and the default-action button can
         // also fire; guarding on the still-open sheet keeps a single keypress from

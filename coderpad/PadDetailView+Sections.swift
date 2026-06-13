@@ -33,6 +33,12 @@ extension PadDetailView {
                         )
                     }
                 }
+                // An on-device digest of the candidate's code and session, shown
+                // only when the model is available and there's code to summarize.
+                // Opt-in per pad via the button — generation never runs on its own.
+                if PadSummarizer.isAvailable, !allCodeFiles.isEmpty {
+                    summaryCard
+                }
                 if whiteboardURL != nil {
                     whiteboardCard
                 }
@@ -211,6 +217,62 @@ extension PadDetailView {
             BrowserSettings.openExternally(url)
         } else {
             browserURL = url
+        }
+    }
+
+    /// Every code file across the pad's environments, used both to gate the
+    /// summary affordance and to feed the on-device summarizer.
+    var allCodeFiles: [CodeFile] {
+        environments.flatMap { displayFiles(for: $0) }
+    }
+
+    /// An on-device "what happened" digest. The sparkle button generates (or
+    /// regenerates) it; the result is plain text shown inline. Mirrors the privacy
+    /// posture of the saved-search namer: nothing leaves the device and nothing
+    /// runs until the user asks.
+    private var summaryCard: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    SectionHeader(title: "Summary", systemImage: "sparkles")
+                    Spacer()
+                    Button {
+                        Task { await generateSummary() }
+                    } label: {
+                        if isSummarizing {
+                            ProgressView().controlSize(.small)
+                        } else {
+                            Label(summary == nil ? "Summarize" : "Regenerate", systemImage: "sparkles")
+                        }
+                    }
+                    .buttonStyle(.borderless)
+                    .controlSize(.small)
+                    .disabled(isSummarizing)
+                    .help("Summarize this pad on device")
+                }
+                if let summary {
+                    Text(summary)
+                        .font(.callout)
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                } else if !isSummarizing {
+                    Text("Generate a private, on-device digest of the candidate's code and session.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    /// Runs the on-device summarizer over the pad's code and events. Leaves the
+    /// existing text in place if generation yields nothing, so a transient failure
+    /// doesn't blank a digest the user already has.
+    func generateSummary() async {
+        isSummarizing = true
+        defer { isSummarizing = false }
+        if let result = await PadSummarizer.summarize(pad: pad, files: allCodeFiles, events: events) {
+            summary = result
         }
     }
 

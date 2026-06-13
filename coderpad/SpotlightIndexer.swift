@@ -21,6 +21,11 @@ enum SpotlightIndexer {
     nonisolated private static let logger = Logger(subsystem: "com.coderpad.app", category: "spotlight")
     private static let padPrefix = "pad:"
     private static let questionPrefix = "question:"
+    /// How many questions one indexing pass will enrich with on-device keywords.
+    /// Each enrichment runs the language model, so a big org's full list would be
+    /// far too costly to summarize in one go; the cap keeps it bounded and the
+    /// dropped remainder is logged rather than silently skipped.
+    private static let maxKeywordEnrichments = 50
 
     private static func domain(_ account: UUID) -> String {
         account.uuidString
@@ -54,6 +59,42 @@ enum SpotlightIndexer {
                                     attributeSet: attrs)
         }
         index(items)
+        enrichQuestionKeywords(questions, account: account)
+    }
+
+    /// Re-indexes a bounded set of questions with on-device-generated keywords so
+    /// Spotlight finds them by topic, not just by words in their title. Runs only
+    /// when the model is available and indexing is on, on top of the items already
+    /// indexed above — so it never indexes anything the user didn't opt into. The
+    /// indexing-on gate is re-checked per item so turning the feature off mid-pass
+    /// stops adding more.
+    private static func enrichQuestionKeywords(_ questions: [Question], account: UUID) {
+        guard SpotlightSummarizer.isAvailable else { return }
+        let candidates = questions.filter { ($0.description?.isEmpty == false) }
+        guard !candidates.isEmpty else { return }
+        let bounded = Array(candidates.prefix(maxKeywordEnrichments))
+        if candidates.count > bounded.count {
+            logger.info("Spotlight keyword enrichment limited to \(maxKeywordEnrichments, privacy: .public) of \(candidates.count, privacy: .public) questions this pass")
+        }
+        Task {
+            for question in bounded {
+                guard GeneralSettings.spotlightIndexing else { return }
+                guard let keywords = await SpotlightSummarizer.keywords(
+                    title: question.title,
+                    language: question.language,
+                    description: question.description ?? ""
+                ) else { continue }
+                let attrs = CSSearchableItemAttributeSet(contentType: .text)
+                attrs.title = question.title.isEmpty ? "#\(question.id)" : question.title
+                attrs.contentDescription = [question.language, question.authorName]
+                    .compactMap(\.self).filter { !$0.isEmpty }.joined(separator: " · ")
+                attrs.keywords = keywords
+                let item = CSSearchableItem(uniqueIdentifier: questionPrefix + String(question.id),
+                                            domainIdentifier: domain(account),
+                                            attributeSet: attrs)
+                index([item])
+            }
+        }
     }
 
     /// Removes all indexed items for an account (e.g. when it's deleted).

@@ -29,11 +29,37 @@ struct NewQuestionSheet: View {
     @State private var padType = "live"
     @State private var isSubmitting = false
     @State private var error: String?
+    @State private var isSuggestingMeta = false
+    @State private var draftPrompt = ""
+    @State private var isDrafting = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("New Question").font(.title3.bold())
             Form {
+                // On-device authoring assist: describe a question and the model
+                // drafts the fields below in the selected language. Shown only when
+                // the model is available; every drafted field stays editable.
+                if QuestionDrafter.isAvailable {
+                    Section("Draft with AI") {
+                        TextField("", text: $draftPrompt,
+                                  prompt: Text("Describe a question, e.g. reverse a linked list"),
+                                  axis: .vertical)
+                            .lineLimit(2 ... 4)
+                        Button(action: draftQuestion) {
+                            if isDrafting {
+                                HStack(spacing: 6) {
+                                    ProgressView().controlSize(.small)
+                                    Text("Drafting…")
+                                }
+                            } else {
+                                Label("Draft fields", systemImage: "sparkles")
+                            }
+                        }
+                        .disabled(isDrafting || draftPrompt.trimmingCharacters(in: .whitespaces).isEmpty)
+                        .help("Draft the title, description, instructions, and solution on device")
+                    }
+                }
                 TextField("Title", text: $title)
                 Picker("Language", selection: languageSelection) {
                     ForEach(CoderPadLanguages.pickerOptions, id: \.self) { Text($0.languageDisplayName).tag($0) }
@@ -43,6 +69,23 @@ struct NewQuestionSheet: View {
                 }
                 Picker("Type", selection: $padType) {
                     ForEach(padTypeOptions, id: \.self) { Text(padTypeLabel($0)).tag($0) }
+                }
+                // On-device suggestion for the language and type, drawn from the
+                // text fields. Shown only when the model is available; the pickers
+                // stay fully editable and nothing runs until the user taps.
+                if QuestionTagger.isAvailable {
+                    Button(action: suggestMetadata) {
+                        if isSuggestingMeta {
+                            HStack(spacing: 6) {
+                                ProgressView().controlSize(.small)
+                                Text("Suggesting…")
+                            }
+                        } else {
+                            Label("Suggest language and type", systemImage: "sparkles")
+                        }
+                    }
+                    .disabled(isSuggestingMeta || !hasTextToCategorize)
+                    .help("Suggest the language and type from the question text, on device")
                 }
                 Section("Description") {
                     TextField("", text: $description, prompt: Text("Optional"), axis: .vertical)
@@ -94,6 +137,49 @@ struct NewQuestionSheet: View {
         language = def
     }
 
+    /// Drafts the question fields from the prompt, in the currently-selected
+    /// language. Fills only the fields the model returned, so a partial draft
+    /// doesn't blank anything the user already typed.
+    private func draftQuestion() {
+        isDrafting = true
+        Task {
+            let draft = await QuestionDrafter.draft(prompt: draftPrompt, language: language)
+            isDrafting = false
+            guard let draft else { return }
+            if !draft.title.isEmpty { title = draft.title }
+            if !draft.description.isEmpty { description = draft.description }
+            if !draft.instructions.isEmpty { instructions = draft.instructions }
+            if !draft.solution.isEmpty { solution = draft.solution }
+        }
+    }
+
+    /// Whether there's enough text for the categorizer to read. Without at least a
+    /// title or some prose there's nothing to base a language guess on.
+    private var hasTextToCategorize: Bool {
+        ![title, description, instructions, solution]
+            .allSatisfy { $0.trimmingCharacters(in: .whitespaces).isEmpty }
+    }
+
+    /// Fills the language and type pickers from an on-device read of the question
+    /// text, leaving any field the model was unsure about as-is. Choosing a
+    /// language this way counts as the user's choice, so a late org default no
+    /// longer overrides it.
+    private func suggestMetadata() {
+        isSuggestingMeta = true
+        Task {
+            let suggestion = await QuestionTagger.suggest(
+                title: title, description: description,
+                instructions: instructions, solution: solution
+            )
+            isSuggestingMeta = false
+            if let language = suggestion?.language {
+                self.language = language
+                languageEdited = true
+            }
+            if let type = suggestion?.type { padType = type }
+        }
+    }
+
     private func submit() async {
         isSubmitting = true
         error = nil
@@ -132,6 +218,7 @@ struct EditQuestionSheet: View {
     @State private var padType: String
     @State private var isSubmitting = false
     @State private var error: String?
+    @State private var isSuggestingMeta = false
 
     init(client: CoderPadClient,
          original: Question,
@@ -168,6 +255,23 @@ struct EditQuestionSheet: View {
                     ForEach(padTypeOptions, id: \.self) { Text(padTypeLabel($0)).tag($0) }
                     if !padTypeOptions.contains(padType) { Text(padType).tag(padType) }
                 }
+                // On-device suggestion for the language and type, drawn from the
+                // text fields. Shown only when the model is available; the pickers
+                // stay fully editable and nothing runs until the user taps.
+                if QuestionTagger.isAvailable {
+                    Button(action: suggestMetadata) {
+                        if isSuggestingMeta {
+                            HStack(spacing: 6) {
+                                ProgressView().controlSize(.small)
+                                Text("Suggesting…")
+                            }
+                        } else {
+                            Label("Suggest language and type", systemImage: "sparkles")
+                        }
+                    }
+                    .disabled(isSuggestingMeta)
+                    .help("Suggest the language and type from the question text, on device")
+                }
                 Section("Description") {
                     TextField("", text: $description, prompt: Text("Optional"), axis: .vertical)
                         .lineLimit(3 ... 8)
@@ -201,6 +305,21 @@ struct EditQuestionSheet: View {
         }
         .padding()
         .frame(minWidth: 520, minHeight: 560)
+    }
+
+    /// Fills the language and type pickers from an on-device read of the question
+    /// text, leaving any field the model was unsure about untouched.
+    private func suggestMetadata() {
+        isSuggestingMeta = true
+        Task {
+            let suggestion = await QuestionTagger.suggest(
+                title: title, description: description,
+                instructions: instructions, solution: solution
+            )
+            isSuggestingMeta = false
+            if let language = suggestion?.language { self.language = language }
+            if let type = suggestion?.type { padType = type }
+        }
     }
 
     private func submit() async {

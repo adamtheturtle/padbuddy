@@ -151,11 +151,77 @@ extension EnvironmentCodeCard {
             .equatable()
             .overlay(alignment: .topTrailing) {
                 HStack(spacing: 6) {
+                    if PadCodeExplainer.isAvailable {
+                        explainButton
+                    }
                     downloadButton
                     copyButton
                 }
                 .padding(8)
             }
+    }
+
+    /// Floats beside Copy and explains the selected file on device. The result
+    /// opens in a popover anchored to the button. Mirrors the privacy posture of
+    /// the rest of the AI features: nothing leaves the Mac and nothing runs until
+    /// the user taps. Disabled while a generation is in flight.
+    private var explainButton: some View {
+        Button {
+            Task { await explainSelected() }
+        } label: {
+            if isExplaining {
+                ProgressView()
+                    .controlSize(.small)
+                    .padding(6)
+            } else {
+                Image(systemName: "sparkles")
+                    .padding(6)
+            }
+        }
+        .buttonStyle(.plain)
+        .disabled(isExplaining)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .stroke(Color.subtleStroke, lineWidth: 0.5)
+        )
+        .help("Explain this file on device")
+        .accessibilityLabel("Explain this file")
+        .popover(isPresented: $showExplanation, arrowEdge: .bottom) {
+            explanationPopover
+        }
+    }
+
+    private var explanationPopover: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label("Explanation", systemImage: "sparkles")
+                .font(.headline)
+            ScrollView {
+                Text(explanation ?? "")
+                    .font(.callout)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .padding(14)
+        .frame(width: 320, height: 220)
+    }
+
+    /// Generates (or reuses) an on-device explanation of the visible file, then
+    /// shows it in the popover. Reuses an explanation already generated for the
+    /// same file so reopening the popover is instant and doesn't re-run the model.
+    private func explainSelected() async {
+        if explanationFileID == selected.id, explanation != nil {
+            showExplanation = true
+            return
+        }
+        isExplaining = true
+        defer { isExplaining = false }
+        if let result = await PadCodeExplainer.explain(file: selected) {
+            explanation = result
+            explanationFileID = selected.id
+            showExplanation = true
+        }
     }
 
     var accessibilityLabel: String {

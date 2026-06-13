@@ -29,6 +29,21 @@ extension QuestionsView {
                            selected: $draftFilter, options: ["draft", "published"],
                            formatter: { $0.capitalized })
                 .measuresFilterBarWidth()
+            // On-device natural-language filtering: describe what you want and the
+            // model maps it onto these chips. A verb-style link like Save, shown
+            // only when the model is available.
+            if SearchInterpreter.isAvailable {
+                Button {
+                    smartFilterText = ""
+                    smartFilterFailed = false
+                    showSmartFilter = true
+                } label: {
+                    Label("Smart Filter…", systemImage: "sparkles")
+                        .labelStyle(.titleAndIcon)
+                }
+                .buttonStyle(.link)
+                .controlSize(.small)
+            }
             if activeFilterCount > 0 || !search.isEmpty {
                 Button {
                     saveSearchName = ""
@@ -137,6 +152,26 @@ extension QuestionsView {
             let suggestion = await SavedSearchNamer.suggestName(for: captured)
             isSuggestingName = false
             if let suggestion { saveSearchName = suggestion }
+        }
+    }
+
+    /// Interprets the typed query on device and, when it maps to a real filter set,
+    /// applies it and closes the sheet. A query the model can't turn into any
+    /// filter leaves the list untouched and surfaces a gentle hint in the sheet.
+    func applySmartFilter() async {
+        let query = smartFilterText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return }
+        isInterpreting = true
+        smartFilterFailed = false
+        defer { isInterpreting = false }
+        let result = await SearchInterpreter.interpretQuestions(
+            query, languages: availableLanguages, owners: availableOwners
+        )
+        if let result {
+            apply(result)
+            showSmartFilter = false
+        } else {
+            smartFilterFailed = true
         }
     }
 

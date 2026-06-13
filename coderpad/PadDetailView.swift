@@ -15,6 +15,11 @@ struct PadDetailView: View {
     @State var isLoading = false
     @State private var showEdit = false
     @State var browserURL: URL?
+    /// The on-device "what happened" digest, once generated, and whether a
+    /// generation is in flight. Held here (not derived) so it survives `body`
+    /// re-renders and is cleared when the displayed pad changes (see `.task`).
+    @State var summary: String?
+    @State var isSummarizing = false
     @State private var showEndConfirm = false
     @State private var showDeleteConfirm = false
     @State private var isMutating = false
@@ -243,6 +248,9 @@ struct PadDetailView: View {
     func load() async {
         isLoading = true
         loadError = nil
+        // Drop any digest from the previously shown pad so a stale summary can't
+        // linger on the new one until it's regenerated.
+        summary = nil
         defer { isLoading = false }
         do {
             async let events = client.padEvents(padID: pad.id)

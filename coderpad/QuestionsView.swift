@@ -40,6 +40,12 @@ struct QuestionsView: View {
     @State var showSaveSearch = false
     @State var saveSearchName = ""
     @State var isSuggestingName = false
+    /// Natural-language filter entry: the sheet's visibility, the typed query, and
+    /// whether the on-device interpreter is running. See `SearchInterpreter`.
+    @State var showSmartFilter = false
+    @State var smartFilterText = ""
+    @State var isInterpreting = false
+    @State var smartFilterFailed = false
     /// A favorite picked from the sidebar before the list had loaded it. Held so
     /// the selection can be made once the matching question arrives.
     @State private var pendingSelectQuestionID: Int?
@@ -66,6 +72,16 @@ struct QuestionsView: View {
             }
             .sheet(isPresented: $showSaveSearch) {
                 saveSearchSheet
+            }
+            .sheet(isPresented: $showSmartFilter) {
+                SmartFilterSheet(
+                    text: $smartFilterText,
+                    isInterpreting: isInterpreting,
+                    failed: smartFilterFailed,
+                    placeholder: "e.g. my draft SQL questions",
+                    onSubmit: { Task { await applySmartFilter() } },
+                    onCancel: { showSmartFilter = false }
+                )
             }
             .task {
                 for await question in NotificationCenter.default.notifications(named: .questionUpdated)

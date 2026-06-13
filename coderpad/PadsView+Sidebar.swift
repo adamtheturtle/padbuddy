@@ -385,6 +385,21 @@ extension PadsView {
                 options: Self.dateRangeOptions
             )
             .measuresFilterBarWidth()
+            // On-device natural-language filtering: describe what you want and the
+            // model maps it onto these chips. A verb-style link like Save, shown
+            // only when the model is available.
+            if SearchInterpreter.isAvailable {
+                Button {
+                    smartFilterText = ""
+                    smartFilterFailed = false
+                    showSmartFilter = true
+                } label: {
+                    Label("Smart Filter…", systemImage: "sparkles")
+                        .labelStyle(.titleAndIcon)
+                }
+                .buttonStyle(.link)
+                .controlSize(.small)
+            }
             if activeFilterCount > 0 || !search.isEmpty {
                 Button {
                     saveSearchName = ""

@@ -123,6 +123,12 @@ struct EnvironmentCodeCard: View {
     /// the code pane (a selectable, syntax-highlighted scroll view that is costly
     /// to re-lay-out) to reflow on every frame — the source of the stutter.
     @State var liveWidth: Double?
+    /// On-device explanation of the selected file, shown in a popover. Keyed to
+    /// the file it was generated for so switching files doesn't show a stale one.
+    @State var explanation: String?
+    @State var explanationFileID: String?
+    @State var isExplaining = false
+    @State var showExplanation = false
 
     var selected: CodeFile {
         files.first { $0.id == selectedFileID } ?? files[0]
