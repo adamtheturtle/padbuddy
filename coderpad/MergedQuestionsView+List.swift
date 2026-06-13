@@ -52,6 +52,8 @@ extension MergedQuestionsView {
                     // open question keeps the detail pane populated, matching pads.
                     if selection?.id == id { selection = neighborSelection(forDeletedQuestion: id) }
                     removeQuestion(id: id)
+                    // Keep the disk cache and Spotlight index in step.
+                    cache.removeQuestion(id: id)
                 }
             }
             .task {

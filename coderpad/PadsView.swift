@@ -160,6 +160,9 @@ struct PadsView: View {
                     // still holds the deleted pad so the index lookup is valid.
                     if selection?.id == id { selection = neighborSelection(forDeleted: id) }
                     pads.removeAll { $0.id == id }
+                    // Keep the disk cache, Spotlight index, and widget in step;
+                    // otherwise the deleted pad lingers there until a full reload.
+                    cache.removePad(id: id)
                 }
             }
             // Mirror the toolbar's Bulk menu: the Pad menu's bulk commands post

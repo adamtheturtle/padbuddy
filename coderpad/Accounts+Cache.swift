@@ -105,6 +105,24 @@ final class PadsCacheStore {
             CacheDisk.delete(kind: "pads", account: accountID)
         }
     }
+
+    /// Drop a single deleted pad from the cache so it stops appearing in Spotlight
+    /// and the Recent Pads widget — re-indexing only adds/updates, so the deleted
+    /// row needs an explicit removal. Finds the owning account by the (globally
+    /// unique) pad id, then persists the reduced list.
+    func removePad(id padID: String) {
+        SpotlightIndexer.removePad(id: padID)
+        for (accountID, pads) in padsByAccount where pads.contains(where: { $0.id == padID }) {
+            let reduced = pads.filter { $0.id != padID }
+            padsByAccount[accountID] = reduced
+            if accountID == AccountsStore.shared.currentAccount?.id {
+                WidgetSync.refresh(pads: reduced)
+            }
+            writeQueue.enqueue {
+                CacheDisk.save(reduced, kind: "pads", account: accountID)
+            }
+        }
+    }
 }
 
 @Observable
@@ -141,6 +159,21 @@ final class QuestionsCacheStore {
         diskConsulted.remove(accountID)
         writeQueue.enqueue {
             CacheDisk.delete(kind: "questions", account: accountID)
+        }
+    }
+
+    /// Drop a single deleted question from the cache so it stops appearing in
+    /// Spotlight — re-indexing only adds/updates, so the deleted row needs an
+    /// explicit removal. Per-org ids aren't unique across accounts, so every
+    /// account that holds the id is updated.
+    func removeQuestion(id questionID: Int) {
+        SpotlightIndexer.removeQuestion(id: questionID)
+        for (accountID, questions) in questionsByAccount where questions.contains(where: { $0.id == questionID }) {
+            let reduced = questions.filter { $0.id != questionID }
+            questionsByAccount[accountID] = reduced
+            writeQueue.enqueue {
+                CacheDisk.save(reduced, kind: "questions", account: accountID)
+            }
         }
     }
 }

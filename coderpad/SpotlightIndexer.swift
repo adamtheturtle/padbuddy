@@ -102,6 +102,18 @@ enum SpotlightIndexer {
         CSSearchableIndex.default().deleteSearchableItems(withDomainIdentifiers: [domain(account)])
     }
 
+    /// Removes a single pad from the index (e.g. when it's deleted). Re-indexing
+    /// the remaining list only adds/updates items, so a dropped pad needs an
+    /// explicit delete by identifier or it lingers in system search.
+    static func removePad(id: String) {
+        CSSearchableIndex.default().deleteSearchableItems(withIdentifiers: [padPrefix + id])
+    }
+
+    /// Removes a single question from the index (e.g. when it's deleted).
+    static func removeQuestion(id: Int) {
+        CSSearchableIndex.default().deleteSearchableItems(withIdentifiers: [questionPrefix + String(id)])
+    }
+
     /// Clears everything this app indexed — used when the user turns the feature off.
     static func clearAll() {
         CSSearchableIndex.default().deleteAllSearchableItems()

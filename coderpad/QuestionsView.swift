@@ -100,6 +100,9 @@ struct QuestionsView: View {
                     // `questions` still holds the deleted row.
                     if selection?.id == id { selection = neighborSelection(forDeletedQuestion: id) }
                     questions.removeAll { $0.id == id }
+                    // Keep the disk cache and Spotlight index in step; otherwise the
+                    // deleted question lingers there until a full reload.
+                    cache.removeQuestion(id: id)
                 }
             }
             .onAppear {

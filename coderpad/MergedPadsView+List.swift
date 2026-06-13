@@ -62,6 +62,8 @@ extension MergedPadsView {
                     .compactMap({ $0.object as? String }) {
                     if selection?.id == id { selection = neighborSelection(forDeleted: id) }
                     removePad(id: id)
+                    // Keep the disk cache, Spotlight index, and widget in step.
+                    cache.removePad(id: id)
                 }
             }
             // Mirror the toolbar's Bulk menu: the Pad menu's bulk commands post
