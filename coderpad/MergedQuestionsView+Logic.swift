@@ -12,23 +12,48 @@ import SwiftUI
 extension MergedQuestionsView {
     // MARK: - Combined + filtered data
 
+    /// Every account's questions, tagged with their source account. Memoized into
+    /// `scopedCache` once per render by `refreshScoped()`; read many times in one
+    /// `body` (chip options, counts, empty-state checks).
     var scoped: [AccountScoped<Question>] {
+        scopedCache.rows
+    }
+
+    /// Rebuild the memoized `scoped` rows for one render. Reads only
+    /// `questionsByAccount` so it never triggers a cache read.
+    func refreshScoped() {
         var rows: [AccountScoped<Question>] = []
         for account in accounts.mergeableAccounts {
             for question in questionsByAccount[account.id] ?? [] {
                 rows.append(AccountScoped(account: account, item: question, id: String(question.id)))
             }
         }
-        return rows
+        scopedCache.rows = rows
     }
 
-    var filtered: [AccountScoped<Question>] {
+    /// Filtered rows arranged by the active sort, matching `QuestionsView.sorted`.
+    /// Memoized into `sortedCache` once per render by `refreshSorted()`.
+    var sorted: [AccountScoped<Question>] {
+        sortedCache.rows
+    }
+
+    /// Rebuild the memoized filtered + sorted rows for one render. Folds the filter
+    /// pass in here (rather than a separately-recomputed `filtered`) so the list,
+    /// overlay, and count bar share a single pass.
+    func refreshSorted() {
         let lowered = search.lowercased()
-        return scoped.filter { row in
+        // Precompute each account's favorites once when filtering by favorites, so
+        // membership is O(1) per row instead of rebuilding the array per row.
+        let favoritesByAccount: [UUID: Set<Int>] = favoritesOnly
+            ? Dictionary(uniqueKeysWithValues: accounts.mergeableAccounts.map {
+                ($0.id, Set(favorites.favorites(account: $0.id)))
+            })
+            : [:]
+        let filtered = scoped.filter { row in
             let item = row.item
             return (accountFilter == nil || row.account.id == accountFilter)
                 && (!mineOnly || isMine(row))
-                && (!favoritesOnly || isFavorite(row))
+                && (!favoritesOnly || (favoritesByAccount[row.account.id]?.contains(item.id) ?? false))
                 && (languageFilter == nil || (item.language ?? "").lowercased() == languageFilter)
                 && (ownerFilter == nil || item.ownerEmail == ownerFilter)
                 && (typeFilter == nil || item.interviewType.rawValue == typeFilter)
@@ -41,24 +66,23 @@ extension MergedQuestionsView {
                     || (item.language ?? "").lowercased().contains(lowered)
                     || (item.authorName ?? "").lowercased().contains(lowered))
         }
-    }
-
-    /// Filtered rows arranged by the active sort, matching `QuestionsView.sorted`.
-    var sorted: [AccountScoped<Question>] {
-        let items = filtered
         switch sort {
         case .titleAsc:
-            return items.sorted {
+            sortedCache.rows = filtered.sorted {
                 $0.item.displayTitle.localizedCaseInsensitiveCompare($1.item.displayTitle) == .orderedAscending
             }
         case .titleDesc:
-            return items.sorted {
+            sortedCache.rows = filtered.sorted {
                 $0.item.displayTitle.localizedCaseInsensitiveCompare($1.item.displayTitle) == .orderedDescending
             }
         case .lastUsedDesc:
-            return items.sorted { ($0.item.updatedAt ?? .distantPast) > ($1.item.updatedAt ?? .distantPast) }
+            sortedCache.rows = filtered.sorted {
+                ($0.item.updatedAt ?? .distantPast) > ($1.item.updatedAt ?? .distantPast)
+            }
         case .lastUsedAsc:
-            return items.sorted { ($0.item.updatedAt ?? .distantPast) < ($1.item.updatedAt ?? .distantPast) }
+            sortedCache.rows = filtered.sorted {
+                ($0.item.updatedAt ?? .distantPast) < ($1.item.updatedAt ?? .distantPast)
+            }
         }
     }
 

@@ -38,7 +38,30 @@ struct MergedQuestionsView: View {
     @AppStorage(QuestionSort.storageKey) var sort: QuestionSort = .lastUsedDesc
     @State var creatingForAccount: Account?
 
+    /// Per-render memo for the combined cross-account rows (`scoped`), refreshed
+    /// once at the top of `body` so its many readers (filter pass, chip options,
+    /// counts, empty-state checks) share a single build, matching `MergedPadsView`.
+    @State var scopedCache = ScopedQuestionsCache()
+    /// Per-render memo for the filtered + sorted rows (`sorted`), so the list,
+    /// overlay, and count bar share one filter+sort pass instead of redoing it on
+    /// every read — the hitch the pads view was already rewritten to avoid.
+    @State var sortedCache = SortedQuestionsCache()
+
     var body: some View {
-        decorated
+        // Recompute the combined rows and the filtered+sorted rows once per render;
+        // every read below hits the memos.
+        refreshScoped()
+        refreshSorted()
+        return decorated
     }
+}
+
+/// Memo holding the merged questions list's combined rows for one render.
+final class ScopedQuestionsCache {
+    var rows: [AccountScoped<Question>] = []
+}
+
+/// Memo holding the merged questions list's filtered + sorted rows for one render.
+final class SortedQuestionsCache {
+    var rows: [AccountScoped<Question>] = []
 }
