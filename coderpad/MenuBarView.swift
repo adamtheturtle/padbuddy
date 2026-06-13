@@ -111,6 +111,31 @@ struct MenuBarView: View {
 
             Divider()
 
+            // Section sub-menus mirroring the app's lists: the most recently
+            // updated questions and pads, so the menu bar offers a quick jump into
+            // recent work without opening the window first.
+            if !questions.isEmpty {
+                Menu("Recent Questions") {
+                    ForEach(questions.prefix(topCount)) { question in
+                        Button(question.displayTitle) { openQuestion(question) }
+                    }
+                }
+            }
+
+            if !pads.isEmpty {
+                Menu("Recent Activity") {
+                    ForEach(pads.prefix(topCount)) { pad in
+                        Button(activityLabel(pad)) {
+                            if let url = pad.webURL {
+                                BrowserSettings.openExternally(url)
+                            }
+                        }
+                    }
+                }
+            }
+
+            Divider()
+
             Menu("Go to") {
                 Button("Pads") { go(.pads) }
                 Button("Questions") { go(.questions) }
@@ -228,6 +253,21 @@ struct MenuBarView: View {
         let title = pad.title.isEmpty ? pad.id : pad.title
         let language = pad.language.flatMap { $0.isEmpty ? nil : " · \($0.languageDisplayName)" } ?? ""
         return "\(title)\(language)"
+    }
+
+    /// Label for a pad in the "Recent Activity" sub-menu, trailing the title with a
+    /// relative "updated" time since recency is the point of that section.
+    private func activityLabel(_ pad: Pad) -> String {
+        let title = pad.title.isEmpty ? pad.id : pad.title
+        guard let updated = pad.informativeUpdatedAt else { return title }
+        return "\(title) · \(updated.formatted(.relative(presentation: .named)))"
+    }
+
+    /// Opens the main window on the Questions list with `question` selected, the
+    /// same route the sidebar uses for a favorite question.
+    private func openQuestion(_ question: Question) {
+        AppNavigation.shared.showQuestions(QuestionsRequest(selectQuestionID: question.id))
+        openMain()
     }
 
     /// Pads owned by the account's configured email, if the user set one in Settings.
