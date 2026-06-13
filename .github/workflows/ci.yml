@@ -24,7 +24,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Run actionlint
         # Pin the version for reproducibility; the download script is fetched at
@@ -45,7 +45,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Run shellcheck
         run: shellcheck scripts/*.sh ci_scripts/*.sh
@@ -60,7 +60,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       # Pin an explicit Xcode rather than the image default, which drifts as
       # Apple ships updates. 26.5 is the newest stable on the macos-26 image.
@@ -104,7 +104,7 @@ jobs:
       # incremental builds. Keyed on the project + sources so it invalidates
       # when they change, with a prefix fallback for partial reuse.
       - name: Cache DerivedData
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: DerivedData
           key: deriveddata-${{ runner.os }}-${{ hashFiles('coderpad.xcodeproj/project.pbxproj', '**/*.swift') }}
@@ -126,7 +126,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: TestResults
           path: TestResults.xcresult
