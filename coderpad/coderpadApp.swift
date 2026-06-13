@@ -235,6 +235,38 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // each account's list loads.
         DockBadge.refresh()
     }
+
+    /// The menu shown when right-clicking the Dock icon. Offers the same quick
+    /// actions as the app's New menu, routed through the app's own `coderpad://`
+    /// deep links so they work — and reopen the main window — whether or not a
+    /// window is currently open. macOS appends its standard items (Show All Windows,
+    /// Quit, …) below these.
+    func applicationDockMenu(_: NSApplication) -> NSMenu? {
+        let menu = NSMenu()
+        addDockItem(to: menu, title: "New Pad", urlString: "coderpad://new-pad")
+        addDockItem(to: menu, title: "New Question", urlString: "coderpad://new-question")
+        menu.addItem(.separator())
+        addDockItem(to: menu, title: "Show Pads", urlString: "coderpad://pads")
+        addDockItem(to: menu, title: "Show Questions", urlString: "coderpad://questions")
+        return menu
+    }
+
+    private func addDockItem(to menu: NSMenu, title: String, urlString: String) {
+        let item = NSMenuItem(title: title, action: #selector(openDockURL(_:)), keyEquivalent: "")
+        item.target = self
+        item.representedObject = urlString
+        menu.addItem(item)
+    }
+
+    @objc private func openDockURL(_ sender: NSMenuItem) {
+        guard let urlString = sender.representedObject as? String,
+              let url = URL(string: urlString) else { return }
+        NSApp.activate(ignoringOtherApps: true)
+        // Route through LaunchServices to our own scheme: this both delivers the deep
+        // link and brings up a main window when none is open, the same path widget
+        // taps use.
+        NSWorkspace.shared.open(url)
+    }
 }
 
 @main
@@ -366,10 +398,14 @@ struct CoderpadApp: App {
             if !id.isEmpty { AppNavigation.shared.openPad(id: id) }
         case "pads":
             AppNavigation.shared.show(.pads)
+        case "questions":
+            AppNavigation.shared.show(.questions)
         case "new-pad":
-            // Backs the "New Pad" control (Control Center / menu bar): switch to Pads
-            // and open the create sheet, the same flow as the ⌘N command.
+            // Backs the "New Pad" control (Control Center / menu bar) and the Dock
+            // menu: switch to Pads and open the create sheet, the same flow as ⌘N.
             AppNavigation.shared.showPads(PadsRequest(startCreating: true))
+        case "new-question":
+            AppNavigation.shared.showQuestions(QuestionsRequest(startCreating: true))
         default:
             break
         }
