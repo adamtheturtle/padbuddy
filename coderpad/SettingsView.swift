@@ -267,6 +267,7 @@ struct SettingsView: View {
     @AppStorage(GeneralSettings.Key.refreshSeconds) var refreshSeconds = GeneralSettings.defaultRefreshSeconds
     @AppStorage(GeneralSettings.Key.requireBiometricsToRevealKey) var requireBiometricsToRevealKey = false
     @AppStorage(GeneralSettings.Key.spotlightIndexing) var spotlightIndexing = false
+    @AppStorage(DockBadge.Key.showActivePads) var showActivePadsBadge = true
     @State var accountsStore = AccountsStore.shared
 
     // Launch-at-login mirrors the live `SMAppService` state rather than UserDefaults,

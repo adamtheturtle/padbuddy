@@ -49,6 +49,22 @@ extension SettingsView {
             }
 
             Section {
+                Toggle("Show active pad count on Dock icon", isOn: $showActivePadsBadge)
+                    .onChange(of: showActivePadsBadge) { _, _ in
+                        // Apply or clear the badge immediately rather than waiting for
+                        // the next pad refresh.
+                        DockBadge.refresh()
+                    }
+                    .disabled(hideDockIcon)
+            } footer: {
+                Text("""
+                Badge the Dock icon with the number of started pads across all your accounts, \
+                so a live interview in progress is visible at a glance.
+                """)
+                .foregroundStyle(.secondary)
+            }
+
+            Section {
                 Toggle("Require Touch ID to reveal API keys", isOn: biometricGateBinding)
             } footer: {
                 Text("""

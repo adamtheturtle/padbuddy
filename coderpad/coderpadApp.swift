@@ -226,8 +226,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_: Notification) {
+        // The Dock badge defaults to on; register it before anything reads the value
+        // so the preference and its Settings toggle agree on the unset case.
+        UserDefaults.standard.register(defaults: [DockBadge.Key.showActivePads: true])
         // Honor the "Hide Dock icon" preference from the moment the app launches.
         GeneralSettings.applyDockVisibility()
+        // Seed the badge from whatever pads are already cached; it refreshes again as
+        // each account's list loads.
+        DockBadge.refresh()
     }
 }
 

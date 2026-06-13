@@ -93,6 +93,9 @@ final class PadsCacheStore {
         if accountID == AccountsStore.shared.currentAccount?.id {
             WidgetSync.refresh(pads: pads)
         }
+        // Reflect this account's active-pad count in the Dock badge (summed across
+        // every account inside `refresh`), now that the complete list is in hand.
+        DockBadge.refresh()
         writeQueue.enqueue {
             CacheDisk.save(pads, kind: "pads", account: accountID)
         }
@@ -104,6 +107,8 @@ final class PadsCacheStore {
         writeQueue.enqueue {
             CacheDisk.delete(kind: "pads", account: accountID)
         }
+        // Removing an account drops its pads from the badge's all-accounts total.
+        DockBadge.refresh()
     }
 
     /// Drop a single deleted pad from the cache so it stops appearing in Spotlight
@@ -122,6 +127,8 @@ final class PadsCacheStore {
                 CacheDisk.save(reduced, kind: "pads", account: accountID)
             }
         }
+        // A deleted pad may have been an active one, so re-derive the Dock badge.
+        DockBadge.refresh()
     }
 }
 
