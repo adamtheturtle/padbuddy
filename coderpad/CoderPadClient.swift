@@ -27,6 +27,15 @@ protocol PagedResponse: Decodable, Sendable {
     nonisolated var pageItems: [Item] { get }
     nonisolated var nextPage: String? { get }
     nonisolated var total: Int? { get }
+    /// A stable identity used to de-duplicate items when stitching parallel pages,
+    /// so a server that echoes page 1 for an over-requested `page` can't produce
+    /// duplicate rows. `nil` opts out (e.g. events, which have no stable unique id
+    /// and take the sequential path anyway).
+    nonisolated static func identity(of item: Item) -> AnyHashable?
+}
+
+extension PagedResponse {
+    nonisolated static func identity(of _: Item) -> AnyHashable? { nil }
 }
 
 private nonisolated struct PadsPage: PagedResponse {
@@ -36,6 +45,8 @@ private nonisolated struct PadsPage: PagedResponse {
     var pageItems: [Pad] {
         pads
     }
+
+    static func identity(of item: Pad) -> AnyHashable? { item.id }
 
     enum CodingKeys: String, CodingKey { case pads; case nextPage = "next_page"; case total }
 }
@@ -47,6 +58,8 @@ private nonisolated struct QuestionsPage: PagedResponse {
     var pageItems: [Question] {
         questions
     }
+
+    static func identity(of item: Question) -> AnyHashable? { item.id }
 
     enum CodingKeys: String, CodingKey { case questions; case nextPage = "next_page"; case total }
 }

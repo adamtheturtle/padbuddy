@@ -185,15 +185,6 @@ struct OrganizationView: View {
                 LabeledRow(label: "To", value: stats?.endTime
                     .map { $0.formatted(date: .abbreviated, time: .shortened) } ?? "…")
                 LabeledRow(label: "Pads created", value: stats.map { "\($0.padsCreated)" } ?? "…")
-                if let quota {
-                    if let reset = quota.quotaReset {
-                        LabeledRow(label: "Quota resets", value: reset.formatted(date: .abbreviated, time: .shortened))
-                    }
-                    if let trial = quota.trialExpiresAt {
-                        LabeledRow(label: "Trial expires", value: trial.formatted(date: .abbreviated, time: .shortened))
-                    }
-                    LabeledRow(label: "Overages", value: quota.overagesEnabled == true ? "Enabled" : "Disabled")
-                }
                 if let supported = organization?.singleSignOnSupported {
                     LabeledRow(label: "Single sign-on", value: supported ? "Enabled" : "Disabled")
                     if supported, let urlString = organization?.singleSignInURL,

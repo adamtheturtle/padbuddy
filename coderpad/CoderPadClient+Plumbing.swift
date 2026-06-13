@@ -99,20 +99,39 @@ extension CoderPadClient {
 
         guard let firstURL = pageURL(nil) else { throw CoderPadError.http(0, "Invalid URL") }
         let firstPage = try await performWithRetry(W.self, request: authorizedGET(firstURL))
-        var items = firstPage.pageItems
+        // `seen` de-dupes by each item's stable identity across every page, so an
+        // over-requested page that echoes page 1 can't duplicate rows.
+        var seen = Set<AnyHashable>()
+        var items: [W.Item] = []
+        Self.appendNew(firstPage.pageItems, to: &items, seen: &seen, identity: W.identity(of:))
         emit(items)
 
         // Fast path: total + page-number URLs let us fetch pages 2…N in parallel.
         if firstPage.total != nil, !items.isEmpty {
             let tailNextPage = try await fetchKnownPages(
-                W.self, firstPage: firstPage, items: &items, pageURL: pageURL, emit: emit
+                W.self, firstPage: firstPage, items: &items, seen: &seen, pageURL: pageURL, emit: emit
             )
-            try await walkNextPages(W.self, from: tailNextPage, items: &items, emit: emit)
+            try await walkNextPages(W.self, from: tailNextPage, items: &items, seen: &seen, emit: emit)
             return
         }
 
         // Fallback: follow `next_page` one page at a time.
-        try await walkNextPages(W.self, from: firstPage.nextPage, items: &items, emit: emit)
+        try await walkNextPages(W.self, from: firstPage.nextPage, items: &items, seen: &seen, emit: emit)
+    }
+
+    /// Appends only items not already seen (by their `PagedResponse` identity),
+    /// updating `seen`. Items whose identity is `nil` opt out of de-duplication and
+    /// are always appended, preserving the prior behavior for events.
+    private nonisolated static func appendNew<Item>(
+        _ newItems: [Item],
+        to items: inout [Item],
+        seen: inout Set<AnyHashable>,
+        identity: (Item) -> AnyHashable?
+    ) {
+        for item in newItems {
+            guard let key = identity(item) else { items.append(item); continue }
+            if seen.insert(key).inserted { items.append(item) }
+        }
     }
 
     /// Fetches pages 2…N concurrently (bounded window), appending each completed page in
@@ -122,6 +141,7 @@ extension CoderPadClient {
         _: W.Type,
         firstPage: W,
         items: inout [W.Item],
+        seen: inout Set<AnyHashable>,
         pageURL: (Int?) -> URL?,
         emit: ([W.Item]) -> Void
     ) async throws -> String? {
@@ -159,7 +179,8 @@ extension CoderPadClient {
                 // Emit a new snapshot whenever the contiguous prefix grows.
                 var grew = false
                 while let ready = pending.removeValue(forKey: nextToEmit) {
-                    collected.append(contentsOf: ready.pageItems); nextToEmit += 1; grew = true
+                    Self.appendNew(ready.pageItems, to: &collected, seen: &seen, identity: W.identity(of:))
+                    nextToEmit += 1; grew = true
                 }
                 if grew { emit(collected) }
                 if nextToFetch <= pageCount { try enqueue(nextToFetch); nextToFetch += 1 }
@@ -175,13 +196,14 @@ extension CoderPadClient {
         _: W.Type,
         from start: String?,
         items: inout [W.Item],
+        seen: inout Set<AnyHashable>,
         emit: ([W.Item]) -> Void
     ) async throws {
         var url = start.flatMap { URL(string: $0) }
         var pages = 0
         while let current = url {
             let page = try await performWithRetry(W.self, request: authorizedGET(current))
-            items.append(contentsOf: page.pageItems)
+            Self.appendNew(page.pageItems, to: &items, seen: &seen, identity: W.identity(of:))
             emit(items)
             pages += 1
             // Safety valve against a server that keeps handing back next_page links.
