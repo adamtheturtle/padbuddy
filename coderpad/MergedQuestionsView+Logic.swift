@@ -48,7 +48,6 @@ extension MergedQuestionsView {
     /// pass in here (rather than a separately-recomputed `filtered`) so the list,
     /// overlay, and count bar share a single pass.
     func refreshSorted() {
-        let lowered = search.lowercased()
         // Precompute each account's favorites once when filtering by favorites, so
         // membership is O(1) per row instead of rebuilding the array per row.
         let favoritesByAccount: [UUID: Set<Int>] = favoritesOnly
@@ -67,11 +66,12 @@ extension MergedQuestionsView {
                 && (draftFilter == nil
                     || (draftFilter == "draft" && item.isDraft == true)
                     || (draftFilter == "published" && item.isDraft != true))
-                && (lowered.isEmpty
-                    || item.title.lowercased().contains(lowered)
-                    || item.ownerEmail.lowercased().contains(lowered)
-                    || (item.language ?? "").lowercased().contains(lowered)
-                    || (item.authorName ?? "").lowercased().contains(lowered))
+                // Locale-aware case-insensitive matching (see PadListLogic.matches).
+                && (search.isEmpty
+                    || item.title.localizedCaseInsensitiveContains(search)
+                    || item.ownerEmail.localizedCaseInsensitiveContains(search)
+                    || (item.language ?? "").localizedCaseInsensitiveContains(search)
+                    || (item.authorName ?? "").localizedCaseInsensitiveContains(search))
         }
         switch sort {
         case .titleAsc:

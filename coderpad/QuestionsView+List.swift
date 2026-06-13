@@ -8,7 +8,6 @@ import SwiftUI
 
 extension QuestionsView {
     var filtered: [Question] {
-        let lowered = search.lowercased()
         let favoriteIDs = favoritesOnly ? favoriteIDSet : nil
         return questions.filter { question in
             (favoriteIDs == nil || favoriteIDs!.contains(question.id)) &&
@@ -18,11 +17,12 @@ extension QuestionsView {
                 (draftFilter == nil
                     || (draftFilter == "draft" && question.isDraft == true)
                     || (draftFilter == "published" && question.isDraft != true)) &&
-                (lowered.isEmpty
-                    || question.title.lowercased().contains(lowered)
-                    || question.ownerEmail.lowercased().contains(lowered)
-                    || (question.language ?? "").lowercased().contains(lowered)
-                    || (question.authorName ?? "").lowercased().contains(lowered))
+                // Locale-aware case-insensitive matching (see PadListLogic.matches).
+                (search.isEmpty
+                    || question.title.localizedCaseInsensitiveContains(search)
+                    || question.ownerEmail.localizedCaseInsensitiveContains(search)
+                    || (question.language ?? "").localizedCaseInsensitiveContains(search)
+                    || (question.authorName ?? "").localizedCaseInsensitiveContains(search))
         }
     }
 

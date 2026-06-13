@@ -135,7 +135,7 @@ enum PadListLogic {
                         criteria: PadFilterCriteria,
                         now: Date = Date(),
                         display: (String) -> String = { $0 }) -> Bool {
-        let lowered = criteria.search.lowercased()
+        let search = criteria.search
         let language = criteria.language?.lowercased()
         // The dates each window compares against. `.distantPast` so a pad with no
         // dates is excluded by any lower bound rather than crashing on a force-unwrap.
@@ -148,12 +148,15 @@ enum PadListLogic {
             (criteria.type == nil || pad.interviewType?.rawValue == criteria.type) &&
             criteria.updated.contains(updatedValue, now: now) &&
             criteria.created.contains(createdValue, now: now) &&
-            (lowered.isEmpty
-                || pad.title.lowercased().contains(lowered)
-                || pad.id.lowercased().contains(lowered)
-                || pad.ownerEmail.lowercased().contains(lowered)
-                || display(pad.ownerEmail).lowercased().contains(lowered)
-                || pad.participants.contains(where: { $0.lowercased().contains(lowered) }))
+            // Locale-aware case-insensitive matching so non-ASCII titles/names fold
+            // correctly for the user's locale (plain `.lowercased()` mishandles some
+            // scripts, e.g. the Turkish dotted/dotless I).
+            (search.isEmpty
+                || pad.title.localizedCaseInsensitiveContains(search)
+                || pad.id.localizedCaseInsensitiveContains(search)
+                || pad.ownerEmail.localizedCaseInsensitiveContains(search)
+                || display(pad.ownerEmail).localizedCaseInsensitiveContains(search)
+                || pad.participants.contains(where: { $0.localizedCaseInsensitiveContains(search) }))
     }
 }
 
