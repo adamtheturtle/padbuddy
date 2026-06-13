@@ -366,6 +366,10 @@ struct CoderpadApp: App {
             if !id.isEmpty { AppNavigation.shared.openPad(id: id) }
         case "pads":
             AppNavigation.shared.show(.pads)
+        case "new-pad":
+            // Backs the "New Pad" control (Control Center / menu bar): switch to Pads
+            // and open the create sheet, the same flow as the ⌘N command.
+            AppNavigation.shared.showPads(PadsRequest(startCreating: true))
         default:
             break
         }
