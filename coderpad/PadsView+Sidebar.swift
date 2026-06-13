@@ -105,54 +105,7 @@ extension PadsView {
                     filterBar
                     resultCountBar
                     Divider()
-                    List(selection: $selection) {
-                        ForEach(filtered) { pad in
-                            PadRow(pad: pad, isChanged: PadListLogic.hasNewActivitySinceOpen(
-                                pad, lastOpened: openedStore.lastOpened(pad.id, account: accounts.currentAccountID)
-                            ))
-                            .tag(pad)
-                            .contextMenu { padContextMenu(pad) }
-                            // Full swipe is allowed because it only opens the
-                            // confirmation dialog below — it never deletes
-                            // outright, so an accidental swipe is recoverable.
-                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                Button(role: .destructive) {
-                                    padPendingDelete = pad
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                            }
-                        }
-                    }
-                    .listStyle(.inset)
-                    // When filters exclude everything, explain why rather than
-                    // leaving a blank list that reads like a load failure.
-                    .overlay {
-                        if filtered.isEmpty, !pads.isEmpty {
-                            ContentUnavailableView {
-                                Label("No Matching Pads", systemImage: "line.3.horizontal.decrease.circle")
-                            } description: {
-                                Text("No pads match the current filters.")
-                            } actions: {
-                                Button("Clear Filters") { clearAllFilters() }
-                            }
-                        }
-                    }
-                    // ↑/↓ move the selection natively; Return opens the selected pad
-                    // in the in-app browser (honoring the user's browser preference).
-                    .onKeyPress(.return) {
-                        guard let selection else { return .ignored }
-                        openPad(selection)
-                        return .handled
-                    }
-                    .macPullToRefresh { await reload() }
-                    // Scene-scoped, not view-scoped: the Pad menu commands (Copy
-                    // Pad ID/URL, Open in Browser) should stay enabled whenever this
-                    // window is frontmost and a pad is selected — not only while the
-                    // list itself holds keyboard focus. Using `.focusedValue` here
-                    // also tripped a "FocusedValue update tried to update multiple
-                    // times per frame" fault as the list took focus on first render.
-                    .focusedSceneValue(\.focusedPad, selection)
+                    padCollection
                 }
             }
         }
@@ -195,6 +148,73 @@ extension PadsView {
         }
     }
 
+    /// The pad list plus the modifiers around it (empty state, Return-to-open,
+    /// pull-to-refresh, focused-pad command target).
+    private var padCollection: some View {
+        padList
+        // When filters exclude everything, explain why rather than leaving a blank
+        // list that reads like a load failure.
+        .overlay {
+            if filtered.isEmpty, !pads.isEmpty {
+                ContentUnavailableView {
+                    Label("No Matching Pads", systemImage: "line.3.horizontal.decrease.circle")
+                } description: {
+                    Text("No pads match the current filters.")
+                } actions: {
+                    Button("Clear Filters") { clearAllFilters() }
+                }
+            }
+        }
+        // ↑/↓ move the selection natively; Return opens the selected pad in the
+        // in-app browser (honoring the user's browser preference).
+        .onKeyPress(.return) {
+            guard let selection else { return .ignored }
+            openPad(selection)
+            return .handled
+        }
+        .macPullToRefresh { await reload() }
+        // Scene-scoped, not view-scoped: the Pad menu commands (Copy Pad ID/URL,
+        // Open in Browser) should stay enabled whenever this window is frontmost and
+        // a pad is selected — not only while the list itself holds keyboard focus.
+        .focusedSceneValue(\.focusedPad, selection)
+    }
+
+    private var padList: some View {
+        List(selection: $selectedID) {
+            ForEach(filtered) { pad in
+                padRow(pad)
+                    .tag(pad.id)
+                    // Full swipe is allowed because it only opens the confirmation
+                    // dialog below — it never deletes outright, so an accidental
+                    // swipe is recoverable.
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                        Button(role: .destructive) {
+                            padPendingDelete = pad
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
+            }
+        }
+        .listStyle(.inset)
+        // Re-identify the list whenever the *filter* changes so SwiftUI does a fresh
+        // render (the fast path — same as the initial load) instead of an in-place
+        // diff of a handful of rows against thousands, which is what made clearing a
+        // filter slow on large orgs. Keyed on `filterSignature` only, so background
+        // `pads` refreshes still take the cheap incremental diff and keep scroll
+        // position. `transaction` then suppresses the cross-fade between identities.
+        .id(filterSignature)
+        .transaction { $0.animation = nil }
+    }
+
+    @ViewBuilder
+    private func padRow(_ pad: Pad) -> some View {
+        PadRow(pad: pad, isChanged: PadListLogic.hasNewActivitySinceOpen(
+            pad, lastOpened: openedStore.lastOpened(pad.id, account: accounts.currentAccountID)
+        ))
+        .contextMenu { padContextMenu(pad) }
+    }
+
     /// Right-click actions for a pad row. These are the quick, self-contained
     /// operations (open, copy, share, narrow the list); the destructive lifecycle
     /// actions stay behind the detail view's confirmations, reached by selecting
@@ -228,6 +248,14 @@ extension PadsView {
             ownerFilter = pad.ownerEmail
         } label: {
             Label("Show Pads from \(directory.display(pad.ownerEmail))", systemImage: "person")
+        }
+        Divider()
+        // Opens the same confirmation dialog as the row's swipe action — a
+        // right-click route to Delete alongside the swipe.
+        Button(role: .destructive) {
+            padPendingDelete = pad
+        } label: {
+            Label("Delete…", systemImage: "trash")
         }
     }
 

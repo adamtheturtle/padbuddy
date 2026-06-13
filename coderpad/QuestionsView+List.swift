@@ -119,11 +119,11 @@ extension QuestionsView {
     }
 
     private var questionsList: some View {
-        List(selection: $selection) {
+        List(selection: $selectedQuestionID) {
             ForEach(sorted) { question in
                 QuestionRow(question: question, isFavorite: favoriteIDSet.contains(question.id),
                             onToggleFavorite: { toggleFavorite(question) })
-                    .tag(question)
+                    .tag(question.id)
                     .contextMenu { questionContextMenu(question) }
                     .swipeActions(edge: .leading, allowsFullSwipe: true) {
                         favoriteSwipeButton(question)
@@ -143,6 +143,14 @@ extension QuestionsView {
             }
         }
         .listStyle(.inset)
+        // Re-identify the list when the filter, favorites toggle, or sort changes so
+        // SwiftUI does a fresh render (fast — same as the initial load) instead of an
+        // in-place diff of the visible set against thousands of rows, which made
+        // clearing a filter slow on large orgs. Keyed off the list-shape inputs only,
+        // so background `questions` refreshes still take the cheap incremental diff
+        // and keep scroll position.
+        .id("\(filterSignature)|\(favoritesOnly)|\(sort.rawValue)")
+        .transaction { $0.animation = nil }
         .macPullToRefresh { await reload() }
         // Scene-scoped, mirroring PadsView: the Question menu commands
         // stay enabled whenever this window is frontmost and a question

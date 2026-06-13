@@ -20,6 +20,14 @@ struct PadsView: View {
     @State var isLoading = false
     @State var error: Error?
     @Binding var selection: Pad?
+    /// The list selects by pad *id*, not by the whole `Pad`. `List(selection:)` with
+    /// a `.tag(pad)` forces SwiftUI to hash and compare every tag to maintain its
+    /// selection model, and `Pad`'s synthesized `Hashable` walks every field
+    /// (participants, environment ids, dates, team…). On a large org that hashing,
+    /// run across thousands of rows each time the filtered set expands, beach-balled
+    /// the main thread. A `String` id tag is a cheap hash; `selection` (the `Pad`)
+    /// stays the source of truth for the detail pane and is kept in sync below.
+    @State var selectedID: String?
     @State var search = ""
     @FocusState var searchFieldFocused: Bool
     @State var stateFilter: PadState?
@@ -92,6 +100,15 @@ struct PadsView: View {
                 restoreFilters()
                 applyPendingRequest()
                 publishLiveFilter()
+                selectedID = selection?.id
+            }
+            // Bridge the lightweight list selection (`selectedID`) to the `Pad`
+            // binding the detail pane reads. Each side writes only when the id truly
+            // differs, so the two `onChange`s can't ping-pong.
+            .onChange(of: selectedID) { _, newID in
+                if selection?.id != newID {
+                    selection = newID.flatMap { id in pads.first { $0.id == id } }
+                }
             }
             .onChange(of: nav.padsRequest) { _, _ in applyPendingRequest() }
             // The account id is often nil on first appear; restore once it lands, and
@@ -104,11 +121,13 @@ struct PadsView: View {
                 persistFilters()
                 publishLiveFilter()
             }
-            // Opening (selecting) a pad clears its "new activity" dot until it next changes.
+            // Opening (selecting) a pad clears its "new activity" dot until it next
+            // changes, and mirrors the change back to the list's id selection.
             .onChange(of: selection) { _, newValue in
                 if let newValue, let account = accounts.currentAccountID {
                     openedStore.markOpened(newValue.id, account: account)
                 }
+                if selectedID != newValue?.id { selectedID = newValue?.id }
             }
             .task {
                 for await _ in NotificationCenter.default.notifications(named: .reloadRequested) {

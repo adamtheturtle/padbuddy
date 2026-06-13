@@ -19,6 +19,12 @@ struct QuestionsView: View {
     @State var isLoading = false
     @State var error: Error?
     @Binding var selection: Question?
+    /// The list selects by question *id*, not the whole `Question`. `.tag(question)`
+    /// makes SwiftUI hash/compare every tag to maintain its selection model, and
+    /// `Question`'s synthesized `Hashable` walks every field; an `Int` id tag is a
+    /// cheap hash instead. `selection` (the `Question`) stays the detail pane's
+    /// source of truth and is kept in sync below. See the same pattern in PadsView.
+    @State var selectedQuestionID: Int?
     @State var search = ""
     @FocusState var searchFieldFocused: Bool
     @State var languageFilter: String?
@@ -78,6 +84,18 @@ struct QuestionsView: View {
             .onAppear {
                 applyPendingRequest()
                 publishLiveFilter()
+                selectedQuestionID = selection?.id
+            }
+            // Bridge the lightweight list selection (`selectedQuestionID`) to the
+            // `Question` binding the detail pane reads. Each side writes only when the
+            // id truly differs, so the two `onChange`s can't ping-pong.
+            .onChange(of: selectedQuestionID) { _, newID in
+                if selection?.id != newID {
+                    selection = newID.flatMap { id in questions.first { $0.id == id } }
+                }
+            }
+            .onChange(of: selection) { _, newValue in
+                if selectedQuestionID != newValue?.id { selectedQuestionID = newValue?.id }
             }
             .onChange(of: nav.questionsRequest) { _, _ in applyPendingRequest() }
             // Republish the live filter so the sidebar highlights whichever suggested or
