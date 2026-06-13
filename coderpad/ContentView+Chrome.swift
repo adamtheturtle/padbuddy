@@ -82,6 +82,19 @@ struct TitlebarLeadingAccessory<Content: View>: NSViewRepresentable {
 
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
+            guard window != nil, accessory == nil else { return }
+            // `viewDidMoveToWindow` fires while SwiftUI is still installing this
+            // hosting subtree — i.e. mid-layout. Adding a titlebar accessory forces
+            // the window's title bar to re-lay-out immediately, which AppKit reports
+            // as layout recursion ("-layoutSubtreeIfNeeded on a view which is already
+            // being laid out"). Defer the install one runloop tick so it lands after
+            // the current layout pass completes.
+            DispatchQueue.main.async { [weak self] in
+                self?.installAccessory()
+            }
+        }
+
+        private func installAccessory() {
             guard let window, accessory == nil else { return }
             let hosting = NSHostingView(rootView: initialContent)
             // Matches SidebarToggleButton's fixed footprint, which is roomy enough

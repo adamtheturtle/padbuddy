@@ -34,7 +34,7 @@ struct QuestionsView: View {
     @State var typeFilter: String?
     @State var draftFilter: String?
     @State var favoritesOnly = false
-    @State var sort: QuestionSort = .lastUsedDesc
+    @AppStorage(QuestionSort.storageKey) var sort: QuestionSort = .lastUsedDesc
     @State var showCreate = false
     @State var savedSearches = SavedSearchStore.shared
     @State var showSaveSearch = false
@@ -230,6 +230,10 @@ enum QuestionSort: String, CaseIterable, Identifiable {
     case lastUsedAsc
     case titleAsc
     case titleDesc
+
+    /// `@AppStorage` key shared by both Questions lists and the Question menu's
+    /// "Sort By" command, so changing the sort anywhere keeps them all in sync.
+    static let storageKey = "questions.sort"
 
     var id: String {
         rawValue

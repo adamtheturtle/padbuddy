@@ -162,6 +162,19 @@ struct PadsView: View {
                     pads.removeAll { $0.id == id }
                 }
             }
+            // Mirror the toolbar's Bulk menu: the Pad menu's bulk commands post
+            // these, and this pane runs them through the same confirmation it
+            // already shows for the toolbar buttons.
+            .task {
+                for await _ in NotificationCenter.default.notifications(named: .bulkEndStartedRequested) {
+                    bulkAction = .endStarted
+                }
+            }
+            .task {
+                for await _ in NotificationCenter.default.notifications(named: .bulkMakePrivateRequested) {
+                    bulkAction = .makePrivate
+                }
+            }
             .sheet(isPresented: $showSaveSearch) {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Save Search").font(.title3.bold())

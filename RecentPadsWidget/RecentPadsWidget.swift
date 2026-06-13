@@ -29,10 +29,12 @@ struct RecentPadsProvider: TimelineProvider {
     }
 
     func getTimeline(in _: Context, completion: @escaping (Timeline<RecentPadsEntry>) -> Void) {
-        // The app reloads timelines whenever the snapshot changes, so a single entry
-        // with `.never` is enough; no need to schedule speculative refreshes.
+        // The app reloads timelines whenever the snapshot changes. We still ask WidgetKit
+        // to refresh about hourly so the relative "updated" labels don't go stale between
+        // app runs; the data itself only changes when the app rewrites the snapshot.
         let entry = RecentPadsEntry(date: Date(), pads: WidgetSharedStore.load())
-        completion(Timeline(entries: [entry], policy: .never))
+        let nextRefresh = Date().addingTimeInterval(60 * 60)
+        completion(Timeline(entries: [entry], policy: .after(nextRefresh)))
     }
 
     /// Gallery/preview placeholder data. Kept free of dashes per the app's copy style.
@@ -95,30 +97,33 @@ struct RecentPadsWidgetEntryView: View {
     /// Small family: a single tap target summarizing the most recent pad.
     private var smallView: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Label("Recent Pads", systemImage: "doc.text")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-            Spacer(minLength: 0)
             if let first = entry.pads.first {
                 Text(first.title)
                     .font(.headline)
                     .lineLimit(3)
-                if let language = first.language, !language.isEmpty {
-                    Text(language.capitalized)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                Spacer(minLength: 0)
+                HStack(spacing: 6) {
+                    if let language = first.languageLabel {
+                        LanguageBadge(text: language)
+                    }
+                    Spacer(minLength: 0)
+                    if let updated = first.relativeUpdated {
+                        Text(updated)
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .widgetURL(entry.pads.first.flatMap { URL(string: "coderpad://pad/\($0.id)") })
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(entry.pads.first.map { "Recent pad, \($0.accessibilityDescription)" } ?? "")
     }
 
     /// Medium/large families: a tappable list, one deep link per row.
     private var listView: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Recent Pads")
-                .font(.headline)
             ForEach(visiblePads) { pad in
                 Link(destination: URL(string: "coderpad://pad/\(pad.id)") ?? fallbackURL) {
                     RecentPadRow(pad: pad)
@@ -134,7 +139,8 @@ struct RecentPadsWidgetEntryView: View {
     }
 
     private var visiblePads: [WidgetPadSnapshot] {
-        let limit = family == .systemLarge ? 7 : 3
+        // Dropping the redundant header frees a row, so large shows the full snapshot.
+        let limit = family == .systemLarge ? 8 : 3
         return Array(entry.pads.prefix(limit))
     }
 }
@@ -143,7 +149,7 @@ private struct RecentPadRow: View {
     let pad: WidgetPadSnapshot
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(alignment: .top, spacing: 8) {
             VStack(alignment: .leading, spacing: 1) {
                 Text(pad.title)
                     .font(.subheadline.weight(.medium))
@@ -156,12 +162,34 @@ private struct RecentPadRow: View {
                 }
             }
             Spacer(minLength: 0)
-            if let language = pad.language, !language.isEmpty {
-                Text(language.capitalized)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+            VStack(alignment: .trailing, spacing: 2) {
+                if let language = pad.languageLabel {
+                    LanguageBadge(text: language)
+                }
+                if let updated = pad.relativeUpdated {
+                    Text(updated)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(pad.accessibilityDescription)
+    }
+}
+
+/// A compact language pill, mirroring the app's accent-tinted `Chip`.
+private struct LanguageBadge: View {
+    let text: String
+
+    var body: some View {
+        Text(text)
+            .font(.caption2.weight(.semibold))
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(Color.accentColor.opacity(0.16), in: Capsule())
+            .foregroundStyle(Color.accentColor)
+            .overlay(Capsule().stroke(Color.accentColor.opacity(0.25), lineWidth: 0.5))
     }
 }
 

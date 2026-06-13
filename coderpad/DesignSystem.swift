@@ -61,6 +61,8 @@ struct StateBadge: View {
     var body: some View {
         Text(state.label)
             .font(.caption.weight(.semibold))
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
             .background(tint.opacity(ChipContrast.fill(0.16, contrast)), in: Capsule())
@@ -287,6 +289,36 @@ extension String {
 enum CoderPadLinks {
     static let apiSettings = URL(string: "https://app.coderpad.io/dashboard/settings")!
     static let apiDocs = URL(string: "https://coderpad.io/resources/docs/coderpad-interview/api/")!
+
+    /// Where "Send Feedback…" delivers. This is an unofficial client, so reports go
+    /// to the developer rather than CoderPad.
+    static let feedbackEmail = "hello@adamdangoor.com"
+
+    /// A pre-filled feedback email addressed to the developer. The app and macOS
+    /// versions are appended so each report carries the context needed to act on it;
+    /// the user types their message above the divider. Falls back to a bare mailto if
+    /// the query somehow fails to encode.
+    static var feedbackMailto: URL {
+        let info = Bundle.main.infoDictionary
+        let version = info?["CFBundleShortVersionString"] as? String ?? "?"
+        let build = info?["CFBundleVersion"] as? String ?? "?"
+        let os = ProcessInfo.processInfo.operatingSystemVersionString
+        let body = """
+
+
+        ---
+        App version: \(version) (\(build))
+        macOS: \(os)
+        """
+        var components = URLComponents()
+        components.scheme = "mailto"
+        components.path = feedbackEmail
+        components.queryItems = [
+            URLQueryItem(name: "subject", value: "CoderPad for Mac feedback"),
+            URLQueryItem(name: "body", value: body)
+        ]
+        return components.url ?? URL(string: "mailto:\(feedbackEmail)")!
+    }
 }
 
 enum CoderPadLanguages {

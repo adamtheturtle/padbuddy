@@ -35,7 +35,7 @@ struct MergedQuestionsView: View {
     @State var accountFilter: UUID?
     @State var mineOnly = false
     @State var favoritesOnly = false
-    @State var sort: QuestionSort = .lastUsedDesc
+    @AppStorage(QuestionSort.storageKey) var sort: QuestionSort = .lastUsedDesc
     @State var creatingForAccount: Account?
 
     var body: some View {

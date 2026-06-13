@@ -49,11 +49,12 @@ extension SettingsView {
             }
 
             Section {
-                Toggle("Require Touch ID to reveal API keys", isOn: $requireBiometricsToRevealKey)
+                Toggle("Require Touch ID to reveal API keys", isOn: biometricGateBinding)
             } footer: {
                 Text("""
                 When on, showing a saved API key in Settings must be unlocked with Touch ID \
-                (or your login password on Macs without it).
+                (or your login password on Macs without it). Turning this off requires the \
+                same check, so it can't be bypassed from an unlocked Mac.
                 """)
                 .foregroundStyle(.secondary)
             }

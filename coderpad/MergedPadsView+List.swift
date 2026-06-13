@@ -52,6 +52,19 @@ extension MergedPadsView {
                     removePad(id: id)
                 }
             }
+            // Mirror the toolbar's Bulk menu: the Pad menu's bulk commands post
+            // these, and either pads pane (this one or the single-account view)
+            // runs them through the same confirmation it already shows.
+            .task {
+                for await _ in NotificationCenter.default.notifications(named: .bulkEndStartedRequested) {
+                    bulkAction = .endStarted
+                }
+            }
+            .task {
+                for await _ in NotificationCenter.default.notifications(named: .bulkMakePrivateRequested) {
+                    bulkAction = .makePrivate
+                }
+            }
             .sheet(item: $creatingForAccount) { account in
                 NewPadSheet(client: account.makeClient()) { created in
                     insert(created, into: account)
@@ -179,6 +192,10 @@ extension MergedPadsView {
             }
             .macPullToRefresh { await reload() }
             .focusedSceneValue(\.focusedPad, selection)
+            .focusedSceneValue(\.padBulkAvailability, PadBulkAvailability(
+                canEndStarted: !isBulkRunning && !PadListLogic.startedPads(in: filtered.map(\.item)).isEmpty,
+                canMakePrivate: !isBulkRunning && !PadListLogic.nonPrivatePads(in: filtered.map(\.item)).isEmpty
+            ))
     }
 
     private var padList: some View {

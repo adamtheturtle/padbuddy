@@ -14,6 +14,10 @@ enum StatsPeriod: String, CaseIterable, Identifiable {
     case months12 = "Last 12 months"
     case custom = "Custom range"
 
+    /// `@AppStorage` key shared by the Organization view and the View menu's
+    /// "Stats Period" command, so the toolbar picker and the menu stay in sync.
+    static let storageKey = "organization.statsPeriod"
+
     var id: String {
         rawValue
     }
@@ -49,7 +53,7 @@ struct OrganizationView: View {
     @State private var error: Error?
     @State private var userSearch = ""
     @FocusState private var userSearchFocused: Bool
-    @State private var period: StatsPeriod = .days7
+    @AppStorage(StatsPeriod.storageKey) private var period: StatsPeriod = .days7
     @State private var statsTask: Task<Void, Never>?
     @State private var customStart = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
     @State private var customEnd = Date()

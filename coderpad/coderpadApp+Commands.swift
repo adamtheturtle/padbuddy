@@ -34,6 +34,9 @@ struct FindCommands: Commands {
 /// spot system apps use.
 struct ViewCommands: Commands {
     @FocusedValue(\.canCustomizeToolbar) private var canCustomizeToolbar
+    // Shares the Organization view's persisted period key, mirroring its toolbar
+    // Period picker as a menu command.
+    @AppStorage(StatsPeriod.storageKey) private var statsPeriod: StatsPeriod = .days7
 
     var body: some Commands {
         CommandGroup(after: .toolbar) {
@@ -41,6 +44,13 @@ struct ViewCommands: Commands {
                 NSApp.keyWindow?.toolbar?.runCustomizationPalette(nil)
             }
             .disabled(canCustomizeToolbar != true)
+
+            Menu("Stats Period") {
+                Picker("Stats Period", selection: $statsPeriod) {
+                    ForEach(StatsPeriod.allCases) { Text($0.rawValue).tag($0) }
+                }
+                .pickerStyle(.inline)
+            }
         }
     }
 }
@@ -58,6 +68,7 @@ struct ViewCommands: Commands {
 /// unambiguous, while the muscle memory carries across both sections.
 struct PadCommands: Commands {
     @FocusedValue(\.focusedPad) private var pad
+    @FocusedValue(\.padBulkAvailability) private var bulkAvailability
     @Environment(\.openWindow) private var openWindow
 
     /// Mirrors `PadDetailView.isEnded`, so "End Interview" disables once the pad
@@ -83,6 +94,13 @@ struct PadCommands: Commands {
             }
             .keyboardShortcut(.return, modifiers: [.command, .option])
             .disabled(pad == nil)
+
+            Button("Watch Playback") {
+                guard let pad else { return }
+                AppNavigation.shared.watchPlaybackPadID = pad.id
+            }
+            .keyboardShortcut("y", modifiers: [.command])
+            .disabled(pad?.playbackURL == nil)
 
             Divider()
 
@@ -118,6 +136,25 @@ struct PadCommands: Commands {
             }
             .disabled(pad == nil)
 
+            // A live `ShareLink` rather than a routed command: it must hand the
+            // system share picker a concrete URL at build time, and the pad's
+            // `webURL` is available right here. Falls back to a disabled button
+            // (so the item still appears) when no pad is selected.
+            if let url = pad?.webURL {
+                ShareLink("Share Pad…", item: url)
+            } else {
+                Button("Share Pad…") {}.disabled(true)
+            }
+
+            Divider()
+
+            Button("Save Code…") {
+                guard let pad else { return }
+                AppNavigation.shared.saveCodePadID = pad.id
+            }
+            .keyboardShortcut("s", modifiers: [.command])
+            .disabled(pad == nil)
+
             Divider()
 
             Button("End Interview…") {
@@ -132,6 +169,22 @@ struct PadCommands: Commands {
             }
             .keyboardShortcut(.delete, modifiers: [.command])
             .disabled(pad == nil)
+
+            Divider()
+
+            // List-wide bulk actions, mirroring the Pads toolbar's Bulk menu.
+            // They act on the whole visible list (not the selected pad), so they
+            // fire via notification to whichever pads pane is mounted and enable
+            // off the availability it publishes rather than off `focusedPad`.
+            Button("End Started Pads…") {
+                NotificationCenter.default.post(name: .bulkEndStartedRequested, object: nil)
+            }
+            .disabled(bulkAvailability?.canEndStarted != true)
+
+            Button("Make Visible Pads Private…") {
+                NotificationCenter.default.post(name: .bulkMakePrivateRequested, object: nil)
+            }
+            .disabled(bulkAvailability?.canMakePrivate != true)
         }
     }
 }
@@ -148,6 +201,10 @@ struct PadCommands: Commands {
 /// sharing shortcuts across the two menus is unambiguous.
 struct QuestionCommands: Commands {
     @FocusedValue(\.focusedQuestion) private var question
+    @FocusedValue(\.focusedQuestionIsFavorite) private var isFavorite
+    // Shares the Questions list's persisted sort key, so the menu's "Sort By"
+    // submenu and the list toolbar's Sort picker stay in lockstep.
+    @AppStorage(QuestionSort.storageKey) private var sort: QuestionSort = .lastUsedDesc
 
     var body: some Commands {
         CommandMenu("Question") {
@@ -157,6 +214,22 @@ struct QuestionCommands: Commands {
             }
             .keyboardShortcut(.return, modifiers: [.command])
             .disabled(question == nil)
+
+            Divider()
+
+            Button(isFavorite == true ? "Remove from Favorites" : "Add to Favorites") {
+                guard let question else { return }
+                AppNavigation.shared.toggleFavoriteQuestionID = question.id
+            }
+            .keyboardShortcut("d", modifiers: [.command])
+            .disabled(question == nil)
+
+            Menu("Sort By") {
+                Picker("Sort By", selection: $sort) {
+                    ForEach(QuestionSort.allCases) { Text($0.label).tag($0) }
+                }
+                .pickerStyle(.inline)
+            }
 
             Divider()
 

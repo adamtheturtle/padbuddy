@@ -297,6 +297,38 @@ struct SettingsView: View {
         .onChange(of: navigation.accountToEdit) { _, id in openPendingEdit(id) }
     }
 
+    /// Binding for the "Require Touch ID to reveal API keys" toggle. Turning the gate
+    /// *on* is free, but turning it *off* removes the protection, so the disable path is
+    /// itself gated behind a Touch ID (or password) check — otherwise anyone at an
+    /// unlocked Mac could simply switch it off and then reveal the key, defeating the
+    /// point. The value flips to off only once authentication succeeds; a failed or
+    /// cancelled prompt leaves it on. If the device can't evaluate the policy (no
+    /// biometrics and no passcode), allow the change rather than trap the user.
+    var biometricGateBinding: Binding<Bool> {
+        Binding(
+            get: { requireBiometricsToRevealKey },
+            set: { newValue in
+                guard !newValue else {
+                    requireBiometricsToRevealKey = true
+                    return
+                }
+                let context = LAContext()
+                var policyError: NSError?
+                guard context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &policyError) else {
+                    requireBiometricsToRevealKey = false
+                    return
+                }
+                Task {
+                    let success = await (try? context.evaluatePolicy(
+                        .deviceOwnerAuthentication,
+                        localizedReason: "Turn off Touch ID protection for your saved API key"
+                    )) ?? false
+                    if success { requireBiometricsToRevealKey = false }
+                }
+            }
+        )
+    }
+
     /// Reveal a requested account in the Accounts tab, switching tabs and selecting
     /// the row so its inline editor appears, then clearing the request so it fires
     /// only once.

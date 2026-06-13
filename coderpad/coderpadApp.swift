@@ -15,24 +15,11 @@ let copyrightLine = "Copyright © 2026 Adam Dangoor"
 func showAboutPanel() {
     let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
     let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
-    let credits = NSAttributedString(
-        string: """
-        A macOS client for the CoderPad Interview API.
-
-        Browse pads, questions, organization stats, and quota.
-        Multi-account, Keychain-backed, with a mock-data demo mode.
-        """,
-        attributes: [
-            .font: NSFont.systemFont(ofSize: 11),
-            .foregroundColor: NSColor.labelColor
-        ]
-    )
     NSApp.activate(ignoringOtherApps: true)
     NSApp.orderFrontStandardAboutPanel(options: [
         NSApplication.AboutPanelOptionKey.applicationName: "CoderPad",
         NSApplication.AboutPanelOptionKey.applicationVersion: version,
         NSApplication.AboutPanelOptionKey.version: "Build \(build)",
-        NSApplication.AboutPanelOptionKey.credits: credits,
         NSApplication.AboutPanelOptionKey(rawValue: "Copyright"): copyrightLine
     ])
 }
@@ -46,6 +33,8 @@ extension Notification.Name {
     static let questionDeleted = Notification.Name("coderpad.questionDeleted")
     static let openSettingsRequested = Notification.Name("coderpad.openSettingsRequested")
     static let openPadInBrowserRequested = Notification.Name("coderpad.openPadInBrowserRequested")
+    static let bulkEndStartedRequested = Notification.Name("coderpad.bulkEndStartedRequested")
+    static let bulkMakePrivateRequested = Notification.Name("coderpad.bulkMakePrivateRequested")
 }
 
 /// A one-shot request for the Pads pane to apply when it next appears. Unlike a
@@ -131,6 +120,21 @@ final class AppNavigation {
     /// confirmation — the pad counterpart to `deleteQuestionID`, never deleting
     /// without that confirmation step.
     var deletePadID: String?
+
+    /// A pad id whose detail pane should open its session playback, routed from
+    /// the Pad menu's "Watch Playback" command so it honors the same in-app vs.
+    /// external browser preference as the detail view's Watch button.
+    var watchPlaybackPadID: String?
+
+    /// A pad id whose detail pane should run its "Save Code" panel, routed from
+    /// the Pad menu so the menu command and the toolbar button share the same
+    /// save logic (and the same knowledge of which files have loaded).
+    var saveCodePadID: String?
+
+    /// A question id whose detail pane should toggle its favorite state, routed
+    /// from the Question menu's Favorite command — the counterpart to the
+    /// detail view's toolbar star.
+    var toggleFavoriteQuestionID: Int?
 
     /// A pad id requested by the "Open Pad by ID" App Intent. Durable state (rather
     /// than a transient notification) so the request survives a cold launch where the
@@ -295,6 +299,8 @@ struct CoderpadApp: App {
         CommandGroup(replacing: .help) {
             Link("CoderPad API Documentation", destination: CoderPadLinks.apiDocs)
             Link("Get API Key", destination: CoderPadLinks.apiSettings)
+            Divider()
+            Link("Send Feedback…", destination: CoderPadLinks.feedbackMailto)
         }
     }
 

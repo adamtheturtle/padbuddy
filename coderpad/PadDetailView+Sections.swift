@@ -50,7 +50,11 @@ extension PadDetailView {
             // Actions now live in the window toolbar, so the header only carries
             // identity, the metadata chips, and the raw ID below.
             identity
-            HStack(spacing: 6) {
+            // A flow layout instead of an HStack so the badges wrap onto a new
+            // row when the detail pane is too narrow to fit them side by side. A
+            // plain HStack let the row overflow the pane, clipping the rightmost
+            // badge at the edge.
+            FlowLayout(spacing: 6, lineSpacing: 6) {
                 StateBadge(state: pad.status)
                 // Skip the pad-level language chip when a single code card is
                 // shown — that card names the language itself, so repeating it

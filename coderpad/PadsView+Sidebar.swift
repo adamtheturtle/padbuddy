@@ -168,6 +168,12 @@ extension PadsView {
         // Open in Browser) should stay enabled whenever this window is frontmost and
         // a pad is selected — not only while the list itself holds keyboard focus.
         .focusedSceneValue(\.focusedPad, selection)
+        .focusedSceneValue(\.padBulkAvailability, PadBulkAvailability(
+            canEndStarted: !client.apiKey.isEmpty && !isBulkRunning
+                && !PadListLogic.startedPads(in: filtered).isEmpty,
+            canMakePrivate: !client.apiKey.isEmpty && !isBulkRunning
+                && !PadListLogic.nonPrivatePads(in: filtered).isEmpty
+        ))
     }
 
     private var padList: some View {

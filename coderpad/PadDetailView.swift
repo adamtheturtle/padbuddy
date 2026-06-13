@@ -181,10 +181,36 @@ struct PadDetailView: View {
             consumePendingEdit()
             consumePendingEnd()
             consumePendingDelete()
+            consumePendingWatch()
+            consumePendingSaveCode()
         }
         .onChange(of: nav.editPadID) { _, _ in consumePendingEdit() }
         .onChange(of: nav.endPadID) { _, _ in consumePendingEnd() }
         .onChange(of: nav.deletePadID) { _, _ in consumePendingDelete() }
+        .onChange(of: nav.watchPlaybackPadID) { _, _ in consumePendingWatch() }
+        .onChange(of: nav.saveCodePadID) { _, _ in consumePendingSaveCode() }
+    }
+
+    /// Honors a "Watch Playback" request from the Pad menu, opening the session
+    /// playback exactly as the toolbar's Watch button does — in-app or external
+    /// per the browser preference.
+    private func consumePendingWatch() {
+        guard nav.watchPlaybackPadID == pad.id else { return }
+        nav.watchPlaybackPadID = nil
+        guard let playbackURL = pad.playbackURL else { return }
+        if BrowserSettings.openLinksIn == .external {
+            BrowserSettings.openExternally(playbackURL)
+        } else {
+            browserURL = playbackURL
+        }
+    }
+
+    /// Honors a "Save Code" request from the Pad menu by running the same save
+    /// panel as the in-pane button (which knows which environments have loaded).
+    private func consumePendingSaveCode() {
+        guard nav.saveCodePadID == pad.id else { return }
+        nav.saveCodePadID = nil
+        saveCodeLocally()
     }
 
     /// Honors an "Edit Pad" request routed via `AppNavigation` from the Pad menu

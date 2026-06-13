@@ -35,6 +35,9 @@ struct QuestionDetailView: View {
         .overlay(alignment: .bottom) { undoDeletionBanner }
         .animation(.spring(duration: 0.3), value: deletionTask == nil)
         .navigationTitle(question.title.isEmpty ? "#\(question.id)" : question.title)
+        // Publish the favorite state so the Question menu's Favorite command can
+        // show the matching "Add to"/"Remove from Favorites" title and toggle it.
+        .focusedSceneValue(\.focusedQuestionIsFavorite, isFavorite)
         // Detail-column actions live in the unified window toolbar rather than in
         // the content header: there they float on the system Liquid Glass layer
         // automatically, and the header stays free for identity and metadata. A
@@ -103,10 +106,20 @@ struct QuestionDetailView: View {
             consumePendingPadCreation()
             consumePendingEdit()
             consumePendingDelete()
+            consumePendingFavoriteToggle()
         }
         .onChange(of: nav.createPadForQuestionID) { _, _ in consumePendingPadCreation() }
         .onChange(of: nav.editQuestionID) { _, _ in consumePendingEdit() }
         .onChange(of: nav.deleteQuestionID) { _, _ in consumePendingDelete() }
+        .onChange(of: nav.toggleFavoriteQuestionID) { _, _ in consumePendingFavoriteToggle() }
+    }
+
+    /// Honors a "Favorite" request from the Question menu by toggling the same
+    /// per-account favorite state as the in-pane toolbar star.
+    private func consumePendingFavoriteToggle() {
+        guard nav.toggleFavoriteQuestionID == question.id else { return }
+        nav.toggleFavoriteQuestionID = nil
+        toggleFavorite()
     }
 
     /// Grace period during which a confirmed deletion can still be undone.
