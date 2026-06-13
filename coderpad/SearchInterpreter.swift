@@ -180,22 +180,25 @@ enum SearchInterpreter {
     }
 
     /// Keeps a resolved owner email only when the query names that person — any word
-    /// of their display name (3+ characters, so initials don't false-match) or the
-    /// email's local part appearing as a whole query token.
+    /// of their display name (2+ characters, so single-letter initials don't
+    /// false-match but real short names like "Jo" or "Li" still do) or the email's
+    /// local part appearing as a whole query token. Matching is whole-token, so a
+    /// short name can't match inside a longer query word.
     static func groundOwner(_ email: String?, query: String, owners: [OwnerOption]) -> String? {
         guard let email else { return nil }
         let queryTokens = tokens(query)
         let name = owners.first { $0.email == email }?.name ?? ""
-        let nameTokens = tokens(name).filter { $0.count >= 3 }
+        let nameTokens = tokens(name).filter { $0.count >= 2 }
         if !queryTokens.isDisjoint(with: nameTokens) { return email }
         let local = email.split(separator: "@").first.map { String($0).lowercased() } ?? ""
         return queryTokens.contains(local) ? email : nil
     }
 
-    /// Keeps a resolved team only when the query names it (any team word, 3+ chars).
+    /// Keeps a resolved team only when the query names it (any team word, 2+ chars,
+    /// so single-letter tokens don't false-match but short team names still do).
     static func groundTeam(_ team: String?, query: String) -> String? {
         guard let team else { return nil }
-        let teamTokens = tokens(team).filter { $0.count >= 3 }
+        let teamTokens = tokens(team).filter { $0.count >= 2 }
         return tokens(query).isDisjoint(with: teamTokens) ? nil : team
     }
 

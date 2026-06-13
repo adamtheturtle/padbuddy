@@ -113,6 +113,12 @@ private let owners = [
     #expect(SearchInterpreter.groundOwner("rdimarco@acme.com", query: "rdimarco pads", owners: owners)
         == "rdimarco@acme.com")
     #expect(SearchInterpreter.groundOwner(nil, query: "anything", owners: owners) == nil)
+    // A real two-letter name still resolves (it's not a single-letter initial), and
+    // it must still match only as a whole token, not inside a longer word.
+    let shortNames = [SearchInterpreter.OwnerOption(email: "jli@acme.com", name: "Jo Li")]
+    #expect(SearchInterpreter.groundOwner("jli@acme.com", query: "pads by jo", owners: shortNames)
+        == "jli@acme.com")
+    #expect(SearchInterpreter.groundOwner("jli@acme.com", query: "join pads", owners: shortNames) == nil)
 }
 
 @Test func groundsTeamOnlyWhenNamed() {
