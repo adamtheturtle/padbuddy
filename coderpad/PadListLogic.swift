@@ -10,22 +10,41 @@
 
 import Foundation
 
-/// The lower bound a pad's `updatedAt` must satisfy for a named date-range
-/// filter. `now` is injectable so tests are deterministic rather than depending
-/// on the wall clock.
+/// Which date a date-range filter compares against. The pad list filters on
+/// "updated" by default; "created" answers "when was this pad set up" instead.
+enum PadDateField: String, CaseIterable, Codable {
+    case updated, created
+
+    var label: String {
+        self == .updated ? "Updated" : "Created"
+    }
+}
+
+/// The lower bound a pad's date must satisfy for a named date-range filter. `now`
+/// is injectable so tests are deterministic rather than depending on the wall
+/// clock.
 enum PadDateRange {
     /// The labels used both for the filter chips and as the keys understood here.
-    static let options = ["today", "last 7 days", "last 30 days"]
+    static let options = ["today", "last 24 hours", "last 7 days", "last 30 days", "last 90 days"]
 
-    /// The earliest `updatedAt` a pad may have to satisfy `option`, or `nil` for
-    /// an unrecognized option (treated as "no lower bound").
+    /// The earliest date a pad may have to satisfy `option`, or `nil` for an
+    /// unrecognized option (treated as "no lower bound").
+    ///
+    /// Multi-day windows anchor to *calendar-day* boundaries rather than a rolling
+    /// count of hours, so "last 7 days" means today plus the six prior whole days
+    /// and stays stable as the clock advances through the day (matching Gmail /
+    /// Linear). "Last 24 hours" is the deliberate exception — it names an hour
+    /// window, so it rolls.
     static func start(for option: String,
                       now: Date = Date(),
                       calendar: Calendar = .current) -> Date? {
+        let startOfToday = calendar.startOfDay(for: now)
         switch option {
-        case "today": return calendar.startOfDay(for: now)
-        case "last 7 days": return calendar.date(byAdding: .day, value: -7, to: now)
-        case "last 30 days": return calendar.date(byAdding: .day, value: -30, to: now)
+        case "today": return startOfToday
+        case "last 24 hours": return calendar.date(byAdding: .hour, value: -24, to: now)
+        case "last 7 days": return calendar.date(byAdding: .day, value: -6, to: startOfToday)
+        case "last 30 days": return calendar.date(byAdding: .day, value: -29, to: startOfToday)
+        case "last 90 days": return calendar.date(byAdding: .day, value: -89, to: startOfToday)
         default: return nil
         }
     }
@@ -35,15 +54,23 @@ enum PadDateRange {
 /// this", matching the optional `@State` filters in PadsView one-for-one.
 struct PadFilterCriteria {
     var search: String = ""
-    var state: PadState? = nil
+    var state: PadState?
     /// Expected lowercase, mirroring the language chips; compared case-insensitively.
-    var language: String? = nil
-    var owner: String? = nil
-    var team: String? = nil
+    var language: String?
+    var owner: String?
+    var team: String?
     /// An `InterviewType.rawValue` ("live" / "take-home").
-    var type: String? = nil
+    var type: String?
     /// A `PadDateRange.options` label.
-    var dateRange: String? = nil
+    var dateRange: String?
+    /// Which date the range filter compares against.
+    var dateField: PadDateField = .updated
+    /// An explicit lower bound, set by the custom date picker. When present it
+    /// overrides `dateRange`; the named-window key is cleared whenever a custom
+    /// range is chosen, so the two never both apply.
+    var customStart: Date?
+    /// An explicit inclusive upper bound, paired with `customStart`.
+    var customEnd: Date?
 }
 
 enum PadListLogic {
@@ -71,13 +98,12 @@ enum PadListLogic {
     /// with no live interview in progress the list is unlikely to be changing — so
     /// refresh effort is biased toward when started pads are actually present.
     static func refreshInterval(base: Duration, padCount: Int, hasStartedPads: Bool) -> Duration {
-        var interval: Duration
-        switch padCount {
-        case ..<500: interval = base
-        case 500..<2000: interval = base * 2
-        default: interval = base * 4
+        var interval: Duration = switch padCount {
+        case ..<500: base
+        case 500 ..< 2000: base * 2
+        default: base * 4
         }
-        if !hasStartedPads { interval = interval * 2 }
+        if !hasStartedPads { interval *= 2 }
         return interval
     }
 
@@ -91,20 +117,35 @@ enum PadListLogic {
                        display: (String) -> String = { $0 }) -> [Pad] {
         let lowered = criteria.search.lowercased()
         let language = criteria.language?.lowercased()
-        let rangeStart = criteria.dateRange.flatMap { PadDateRange.start(for: $0, now: now) }
+        // A custom range takes precedence over a named window; only one of the two
+        // is ever populated at a time (the UI clears the other when either is set).
+        let rangeStart = criteria.customStart
+            ?? criteria.dateRange.flatMap { PadDateRange.start(for: $0, now: now) }
+        let rangeEnd = criteria.customEnd
+        /// The date a range filter compares against: the *created* date when the
+        /// user picks that field, otherwise the freshest activity (updated, falling
+        /// back to created). `.distantPast` so a pad with no dates is excluded by
+        /// any lower bound rather than crashing on a force-unwrap.
+        func dateValue(_ pad: Pad) -> Date {
+            switch criteria.dateField {
+            case .created: pad.createdAt ?? .distantPast
+            case .updated: (pad.updatedAt ?? pad.createdAt) ?? .distantPast
+            }
+        }
         return pads.filter { pad in
             (criteria.state == nil || pad.status == criteria.state) &&
-            (language == nil || (pad.language ?? "").lowercased() == language) &&
-            (criteria.owner == nil || pad.ownerEmail == criteria.owner) &&
-            (criteria.team == nil || pad.team?.name == criteria.team) &&
-            (criteria.type == nil || pad.interviewType?.rawValue == criteria.type) &&
-            (rangeStart.map { ((pad.updatedAt ?? pad.createdAt) ?? .distantPast) >= $0 } ?? true) &&
-            (lowered.isEmpty
-             || pad.title.lowercased().contains(lowered)
-             || pad.id.lowercased().contains(lowered)
-             || pad.ownerEmail.lowercased().contains(lowered)
-             || display(pad.ownerEmail).lowercased().contains(lowered)
-             || pad.participants.contains(where: { $0.lowercased().contains(lowered) }))
+                (language == nil || (pad.language ?? "").lowercased() == language) &&
+                (criteria.owner == nil || pad.ownerEmail == criteria.owner) &&
+                (criteria.team == nil || pad.team?.name == criteria.team) &&
+                (criteria.type == nil || pad.interviewType?.rawValue == criteria.type) &&
+                (rangeStart.map { dateValue(pad) >= $0 } ?? true) &&
+                (rangeEnd.map { dateValue(pad) <= $0 } ?? true) &&
+                (lowered.isEmpty
+                    || pad.title.lowercased().contains(lowered)
+                    || pad.id.lowercased().contains(lowered)
+                    || pad.ownerEmail.lowercased().contains(lowered)
+                    || display(pad.ownerEmail).lowercased().contains(lowered)
+                    || pad.participants.contains(where: { $0.lowercased().contains(lowered) }))
         }
     }
 }

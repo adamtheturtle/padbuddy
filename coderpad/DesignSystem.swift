@@ -43,9 +43,11 @@ enum ChipContrast {
     static func fill(_ base: Double, _ contrast: ColorSchemeContrast) -> Double {
         contrast == .increased ? min(1, base * 2.2) : base
     }
+
     static func stroke(_ base: Double, _ contrast: ColorSchemeContrast) -> Double {
         contrast == .increased ? min(1, base * 2.4) : base
     }
+
     static func lineWidth(_ contrast: ColorSchemeContrast) -> CGFloat {
         contrast == .increased ? 1 : 0.5
     }
@@ -53,8 +55,8 @@ enum ChipContrast {
 
 struct StateBadge: View {
     let state: PadState
-    // Under "Increase Contrast" the subtle tinted fill/stroke are strengthened so
-    // the badge stays legible for low-vision users (see ChipContrast).
+    /// Under "Increase Contrast" the subtle tinted fill/stroke are strengthened so
+    /// the badge stays legible for low-vision users (see ChipContrast).
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
@@ -70,11 +72,11 @@ struct StateBadge: View {
 
     private var tint: Color {
         switch state {
-        case .active: return .green
-        case .ended: return .gray
-        case .pending: return .orange
-        case .deleted: return .red
-        case .other: return .accentColor
+        case .active: .green
+        case .ended: .gray
+        case .pending: .orange
+        case .deleted: .red
+        case .other: .accentColor
         }
     }
 }
@@ -108,9 +110,7 @@ struct AvatarCircle: View {
 }
 
 struct Card<Content: View>: View {
-    let content: Content
-    init(@ViewBuilder content: () -> Content) { self.content = content() }
-
+    @ViewBuilder let content: Content
     var body: some View {
         content
             .padding(Spacing.card)
@@ -121,7 +121,7 @@ struct Card<Content: View>: View {
 
 struct SectionHeader: View {
     let title: String
-    var systemImage: String? = nil
+    var systemImage: String?
 
     var body: some View {
         HStack(spacing: 6) {
@@ -157,7 +157,7 @@ struct LabeledRow: View {
 struct StatTile: View {
     let title: String
     let value: String
-    var systemImage: String? = nil
+    var systemImage: String?
     var tint: Color = .accentColor
 
     var body: some View {
@@ -187,7 +187,7 @@ struct StatTile: View {
 
 struct Chip: View {
     let text: String
-    var systemImage: String? = nil
+    var systemImage: String?
     var tint: Color = .secondary
     @Environment(\.colorSchemeContrast) private var contrast
 
@@ -225,26 +225,14 @@ extension InterviewType {
     }
 
     /// Standard badge for this type, used across list rows and detail headers.
-    var chip: Chip { Chip(text: label, systemImage: systemImage, tint: tint) }
+    var chip: Chip {
+        Chip(text: label, systemImage: systemImage, tint: tint)
+    }
 }
 
 extension String {
-    var languageColor: Color {
-        switch self.lowercased() {
-        case "python", "python3": return .blue
-        case "javascript", "typescript", "node", "node.js": return .yellow
-        case "swift": return .orange
-        case "go", "golang": return .cyan
-        case "rust": return .brown
-        case "java", "kotlin": return .red
-        case "ruby": return .pink
-        case "c", "cpp", "c++", "objective-c": return .gray
-        default: return .accentColor
-        }
-    }
-
     var languageDisplayName: String {
-        switch self.lowercased() {
+        switch lowercased() {
         case "python": return "Python"
         case "python2": return "Python 2"
         case "python3": return "Python 3"
@@ -282,48 +270,18 @@ extension String {
         case "f#", "fsharp": return "F#"
         case "plaintext", "plain-text", "plain_text": return "Plain text"
         default:
-            let lowered = self.lowercased()
+            let lowered = lowercased()
             if lowered.hasPrefix("multifile_") {
                 let base = String(lowered.dropFirst("multifile_".count))
                 return base.isEmpty ? "Project" : base.languageDisplayName + " Project"
             }
-            guard !self.isEmpty else { return self }
-            return self.prefix(1).uppercased() + self.dropFirst()
-        }
-    }
-
-    var languageSymbol: String {
-        switch self.lowercased() {
-        case "html", "css", "javascript", "typescript", "node", "node.js", "nodejs":
-            return "globe"
-        case "python", "python2", "python3", "ruby", "perl", "lua", "r", "bash", "shell", "sh":
-            return "terminal"
-        case "swift", "objective-c", "objc":
-            return "swift"
-        case "go", "golang", "rust", "c", "cpp", "c++", "csharp", "c#", "java", "kotlin", "scala":
-            return "cpu"
-        case "sql", "mysql", "postgresql", "postgres":
-            return "cylinder"
-        case "haskell", "elixir", "erlang", "clojure", "ocaml", "f#", "fsharp":
-            return "function"
-        case "dart":
-            return "iphone"
-        case "php":
-            return "globe.americas"
-        case "plaintext", "plain-text", "plain_text":
-            return "doc.plaintext"
-        default:
-            let lowered = self.lowercased()
-            if lowered.hasPrefix("multifile_") {
-                let base = String(lowered.dropFirst("multifile_".count))
-                if !base.isEmpty { return base.languageSymbol }
-            }
-            return "chevron.left.slash.chevron.right"
+            guard !isEmpty else { return self }
+            return prefix(1).uppercased() + dropFirst()
         }
     }
 }
 
-// MARK: - GetAPIKeyLink
+// MARK: - CoderPad links and languages
 
 enum CoderPadLinks {
     static let apiSettings = URL(string: "https://app.coderpad.io/dashboard/settings")!
@@ -373,7 +331,7 @@ func periodicReload(interval: () -> Duration, work: () async -> Void) async {
 
 struct PaneTitle<Trailing: View>: View {
     let title: String
-    var subtitle: String? = nil
+    var subtitle: String?
     @ViewBuilder var trailing: () -> Trailing
 
     var body: some View {
@@ -422,883 +380,5 @@ struct ReloadToolbarButton: View {
         .help("Reload")
         .accessibilityLabel("Reload")
         .disabled(isLoading)
-    }
-}
-
-// MARK: - Pull to refresh (macOS)
-
-extension View {
-    /// Adds a pull-to-refresh gesture to a scrollable container such as `List`.
-    ///
-    /// SwiftUI's `.refreshable` compiles on macOS but never fires from a gesture —
-    /// AppKit has no system pull-to-refresh control. This bridges to the
-    /// `NSScrollView` underneath the SwiftUI container: it tracks how far the
-    /// content rubber-bands past its top edge and, when the user releases beyond a
-    /// threshold, runs `action`. A circular indicator fades in as the user pulls
-    /// and spins while the refresh is in flight.
-    func macPullToRefresh(_ action: @escaping () async -> Void) -> some View {
-        modifier(MacPullToRefresh(action: action))
-    }
-}
-
-private struct MacPullToRefresh: ViewModifier {
-    let action: () async -> Void
-
-    /// How far (in points) the content must be dragged past the top before
-    /// releasing triggers a refresh. Kept low so a short trackpad pull is enough.
-    private let threshold: CGFloat = 24
-
-    /// 0…1 as the user drags past the top; drives the indicator's reveal.
-    @State private var pull: CGFloat = 0
-    @State private var isRefreshing = false
-
-    func body(content: Content) -> some View {
-        content
-            .background(
-                PullToRefreshScrollBridge(threshold: threshold, pull: $pull) {
-                    guard !isRefreshing else { return }
-                    isRefreshing = true
-                    Task {
-                        await action()
-                        isRefreshing = false
-                    }
-                }
-            )
-            .overlay(alignment: .top) { indicator }
-    }
-
-    /// Whether the user has pulled far enough that releasing will refresh.
-    private var isArmed: Bool { pull >= 1 }
-
-    @ViewBuilder
-    private var indicator: some View {
-        if isRefreshing || pull > 0 {
-            ZStack {
-                if isRefreshing {
-                    ProgressView()
-                        .controlSize(.small)
-                } else {
-                    // A ring that fills as the content is dragged toward the
-                    // threshold, with a chevron that flips up once armed to
-                    // signal "release to refresh".
-                    ZStack {
-                        Circle()
-                            .stroke(Color.secondary.opacity(0.25), lineWidth: 2)
-                        Circle()
-                            .trim(from: 0, to: pull)
-                            .stroke(Color.accentColor,
-                                    style: StrokeStyle(lineWidth: 2, lineCap: .round))
-                            .rotationEffect(.degrees(-90))
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 8, weight: .bold))
-                            .foregroundStyle(isArmed ? Color.accentColor : Color.secondary)
-                            .rotationEffect(.degrees(isArmed ? 180 : 0))
-                    }
-                    .frame(width: 16, height: 16)
-                }
-            }
-            .padding(7)
-            .background(.regularMaterial, in: Circle())
-            .overlay(Circle().stroke(Color.subtleStroke, lineWidth: 0.5))
-            .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
-            .scaleEffect(isRefreshing ? 1 : max(0.6, pull))
-            .opacity(isRefreshing ? 1 : Double(min(1, pull * 1.4)))
-            .padding(.top, 10)
-            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isRefreshing)
-            .animation(.easeOut(duration: 0.12), value: isArmed)
-            .allowsHitTesting(false)
-        }
-    }
-}
-
-/// Locates the `NSScrollView` backing the SwiftUI container it is placed behind
-/// and reports over-scroll past the top edge back to SwiftUI.
-private struct PullToRefreshScrollBridge: NSViewRepresentable {
-    let threshold: CGFloat
-    @Binding var pull: CGFloat
-    let onTrigger: () -> Void
-
-    func makeNSView(context: Context) -> ScrollFinderView {
-        let view = ScrollFinderView()
-        let coordinator = context.coordinator
-        // The enclosing scroll view doesn't exist yet at make time, so connect
-        // once this helper view is committed into the window hierarchy.
-        view.onMoveToWindow = { [weak coordinator, weak view] in
-            guard let coordinator, let view else { return }
-            coordinator.connect(from: view)
-        }
-        return view
-    }
-
-    func updateNSView(_ nsView: ScrollFinderView, context: Context) {
-        context.coordinator.threshold = threshold
-        context.coordinator.pull = $pull
-        context.coordinator.onTrigger = onTrigger
-        // Retry in case the scroll view wasn't reachable at first window attach.
-        context.coordinator.connect(from: nsView)
-    }
-
-    func makeCoordinator() -> Coordinator { Coordinator() }
-
-    /// An otherwise-invisible helper that fires `onMoveToWindow` once it lands in
-    /// the window, giving the coordinator a moment when sibling AppKit views exist.
-    final class ScrollFinderView: NSView {
-        var onMoveToWindow: (() -> Void)?
-        override func viewDidMoveToWindow() {
-            super.viewDidMoveToWindow()
-            if window != nil { onMoveToWindow?() }
-        }
-    }
-
-    @MainActor
-    final class Coordinator: NSObject {
-        var threshold: CGFloat = 80
-        var pull: Binding<CGFloat>?
-        var onTrigger: () -> Void = {}
-
-        private weak var scrollView: NSScrollView?
-        private var overscroll: CGFloat = 0
-
-        func connect(from view: NSView) {
-            guard scrollView == nil, let scrollView = Self.scrollView(near: view) else { return }
-            self.scrollView = scrollView
-            // Guarantee rubber-banding at the top even when the list is short.
-            scrollView.verticalScrollElasticity = .allowed
-            let clip = scrollView.contentView
-            clip.postsBoundsChangedNotifications = true
-            let center = NotificationCenter.default
-            center.addObserver(self, selector: #selector(boundsChanged),
-                               name: NSView.boundsDidChangeNotification, object: clip)
-            center.addObserver(self, selector: #selector(liveScrollEnded),
-                               name: NSScrollView.didEndLiveScrollNotification, object: scrollView)
-        }
-
-        @objc private func boundsChanged() {
-            guard let scrollView else { return }
-            // A `List` uses a flipped clip view, so the visible origin dips below
-            // zero as the content rubber-bands past the top edge.
-            overscroll = max(0, -scrollView.contentView.bounds.origin.y)
-            pull?.wrappedValue = min(1, overscroll / threshold)
-        }
-
-        @objc private func liveScrollEnded() {
-            let shouldTrigger = overscroll >= threshold
-            overscroll = 0
-            pull?.wrappedValue = 0
-            if shouldTrigger { onTrigger() }
-        }
-
-        /// Finds the scroll view this helper is layered over. A `ScrollView`'s
-        /// `.background` lands *inside* its scroll view, so the enclosing one is
-        /// correct. A `List` instead places the background outside its scroll
-        /// view, so fall back to the smallest scroll view in the window whose
-        /// frame sits under the helper — i.e. the one it fronts, not a
-        /// neighbouring pane's, which a naive descendant search can pick by
-        /// mistake.
-        private static func scrollView(near view: NSView) -> NSScrollView? {
-            if let enclosing = view.enclosingScrollView { return enclosing }
-            guard let root = view.window?.contentView else { return nil }
-            let point = view.convert(CGPoint(x: view.bounds.midX, y: view.bounds.midY), to: root)
-            var best: NSScrollView?
-            var bestArea = CGFloat.greatestFiniteMagnitude
-            func walk(_ node: NSView) {
-                if let scroll = node as? NSScrollView {
-                    let frame = scroll.convert(scroll.bounds, to: root)
-                    if frame.contains(point) {
-                        let area = frame.width * frame.height
-                        if area < bestArea {
-                            best = scroll
-                            bestArea = area
-                        }
-                    }
-                }
-                node.subviews.forEach(walk)
-            }
-            walk(root)
-            return best
-        }
-
-        deinit { NotificationCenter.default.removeObserver(self) }
-    }
-}
-
-struct GetAPIKeyLink: View {
-    var prominent: Bool = false
-    var body: some View {
-        Link(destination: CoderPadLinks.apiSettings) {
-            Label("Get an API key from CoderPad", systemImage: "key.viewfinder")
-        }
-        .if(prominent) { $0.prominentGlassButtonStyle() }
-    }
-}
-
-extension View {
-    @ViewBuilder
-    fileprivate func `if`<T: View>(_ condition: Bool, transform: (Self) -> T) -> some View {
-        if condition { transform(self) } else { self }
-    }
-}
-
-extension View {
-    /// Backs the view with Liquid Glass in `shape` on macOS 26, falling back to
-    /// `fallback` painted in the same shape on macOS 15. Reserved for the
-    /// control/overlay layer that floats *above* content — inline search fields,
-    /// embedded-browser toolbars, floating panels. Per Apple's guidance, dense
-    /// content surfaces (cards, list rows, badges, chips) keep an opaque material
-    /// instead, so glass never stacks on glass or sits behind body text.
-    ///
-    /// Pass `interactive: true` for glass that backs a control the user presses,
-    /// so it gains the same responsive ripple the system gives `.buttonStyle(.glass)`.
-    @ViewBuilder
-    func floatingGlass(
-        in shape: some Shape,
-        fallback: some ShapeStyle,
-        interactive: Bool = false
-    ) -> some View {
-        if #available(macOS 26, *) {
-            glassEffect(interactive ? .regular.interactive() : .regular, in: shape)
-        } else {
-            background(fallback, in: shape)
-        }
-    }
-
-    /// Applies the Liquid Glass button style to every button in this subtree on
-    /// macOS 26, leaving the macOS 15 appearance untouched (`.automatic`). Intended
-    /// for a row of icon controls grouped in a ``GlassCluster`` so they read as one
-    /// floating set, rather than buttons already resting on a glass surface.
-    @ViewBuilder
-    func glassButtonStyle() -> some View {
-        if #available(macOS 26, *) {
-            buttonStyle(.glass)
-        } else {
-            buttonStyle(.automatic)
-        }
-    }
-
-    /// Prominent call-to-action style: prominent Liquid Glass on macOS 26,
-    /// `.borderedProminent` on macOS 15 — so existing prominent buttons keep their
-    /// look on Sequoia while gaining glass on Tahoe.
-    @ViewBuilder
-    func prominentGlassButtonStyle() -> some View {
-        if #available(macOS 26, *) {
-            buttonStyle(.glassProminent)
-        } else {
-            buttonStyle(.borderedProminent)
-        }
-    }
-}
-
-/// Groups several `glassEffect`/glass-styled controls so the system can blend and
-/// morph them as a single Liquid Glass shape on macOS 26. On macOS 15 it's a plain
-/// passthrough, so the same call site compiles and lays out identically there.
-struct GlassCluster<Content: View>: View {
-    var spacing: CGFloat = 8
-    @ViewBuilder var content: Content
-
-    var body: some View {
-        if #available(macOS 26, *) {
-            GlassEffectContainer(spacing: spacing) { content }
-        } else {
-            content
-        }
-    }
-}
-
-// MARK: - MarkdownText
-
-/// Renders GitHub-flavored Markdown via swift-markdown-ui, themed to match the
-/// app's typography. Call sites are unchanged: `MarkdownText(raw)`.
-struct MarkdownText: View {
-    let raw: String
-
-    init(_ raw: String) {
-        self.raw = raw
-    }
-
-    var body: some View {
-        if raw.isEmpty {
-            Text("(empty)").foregroundStyle(.secondary)
-        } else {
-            Markdown(raw)
-                .markdownTheme(.coderpad)
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-}
-
-private extension Theme {
-    /// Approximates the app's previous hand-rolled Markdown styling: bold
-    /// headings, monospaced inline/code blocks, and a subtle code-block fill.
-    static let coderpad = Theme()
-        .code {
-            FontFamilyVariant(.monospaced)
-            FontSize(.em(0.9))
-        }
-        .heading1 { configuration in
-            configuration.label
-                .markdownMargin(top: .em(0.8), bottom: .em(0.4))
-                .markdownTextStyle {
-                    FontWeight(.bold)
-                    FontSize(.em(1.5))
-                }
-        }
-        .heading2 { configuration in
-            configuration.label
-                .markdownMargin(top: .em(0.8), bottom: .em(0.4))
-                .markdownTextStyle {
-                    FontWeight(.bold)
-                    FontSize(.em(1.3))
-                }
-        }
-        .heading3 { configuration in
-            configuration.label
-                .markdownMargin(top: .em(0.8), bottom: .em(0.4))
-                .markdownTextStyle {
-                    FontWeight(.semibold)
-                    FontSize(.em(1.15))
-                }
-        }
-        .codeBlock { configuration in
-            configuration.label
-                .markdownTextStyle {
-                    FontFamilyVariant(.monospaced)
-                    FontSize(.em(0.9))
-                }
-                .padding(10)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    Color.subtleStroke.opacity(0.5),
-                    in: RoundedRectangle(cornerRadius: 6, style: .continuous)
-                )
-                .markdownMargin(top: .em(0.5), bottom: .em(0.5))
-        }
-        .tableCell { configuration in
-            configuration.label
-                .markdownTextStyle {
-                    if configuration.row == 0 {
-                        FontWeight(.semibold)
-                    }
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-        }
-}
-
-#Preview("MarkdownText") {
-    ScrollView {
-        MarkdownText(
-            """
-            # Reverse a Linked List
-            Implement a function that reverses a singly linked list **in place**.
-
-            ## Requirements
-            - Run in `O(n)` time and `O(1)` extra space
-            - Handle the *empty list* and single-node cases
-            - Return the new head
-
-            ### Example
-            Given `1 -> 2 -> 3`, return `3 -> 2 -> 1`.
-
-            1. Walk the list
-            2. Re-point each `next`
-            3. Track the previous node
-
-            ```swift
-            func reverse(_ head: Node?) -> Node? {
-                var prev: Node? = nil
-                var node = head
-                while let current = node {
-                    node = current.next
-                    current.next = prev
-                    prev = current
-                }
-                return prev
-            }
-            ```
-
-            | Case | Input | Output |
-            | --- | --- | --- |
-            | Empty | `nil` | `nil` |
-            | Single | `1` | `1` |
-            """
-        )
-        .padding()
-    }
-    .frame(width: 460, height: 640)
-}
-
-// MARK: - EmailLink
-
-struct EmailLink: View {
-    let email: String
-
-    var body: some View {
-        if email.isEmpty {
-            Text("(no email)").foregroundStyle(.secondary)
-        } else if let url = URL(string: "mailto:\(email)") {
-            Link(email, destination: url)
-        } else {
-            Text(email)
-        }
-    }
-}
-
-// MARK: - Org directory (email -> name lookup)
-
-@Observable
-final class OrgDirectory {
-    private(set) var nameByEmail: [String: String] = [:]
-    /// The organization's default coding language, used to pre-select the picker
-    /// in the New Pad / New Question sheets. `nil` until the org loads or when the
-    /// org reports no default.
-    private(set) var defaultLanguage: String?
-    private var loadedAccountID: UUID?
-    private var inFlight: UUID?
-
-    func load(for account: Account) async {
-        guard loadedAccountID != account.id, inFlight != account.id else { return }
-        inFlight = account.id
-        defer { inFlight = nil }
-        let client = account.makeClient()
-        if let org = try? await client.organization() {
-            var map: [String: String] = [:]
-            for user in org.users {
-                if let name = user.name, !name.isEmpty {
-                    map[user.email] = name
-                }
-            }
-            nameByEmail = map
-            defaultLanguage = org.organizationDefaultLanguage.flatMap { $0.isEmpty ? nil : $0 }
-            loadedAccountID = account.id
-        }
-    }
-
-    func name(for email: String) -> String? {
-        let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        return nameByEmail[trimmed]
-    }
-
-    func display(_ email: String) -> String {
-        name(for: email) ?? email
-    }
-}
-
-extension EnvironmentValues {
-    @Entry var orgDirectory = OrgDirectory()
-}
-
-// MARK: - Filter bar width measurement
-
-/// Carries the natural (unclipped) width of a filter bar up the view tree so the
-/// enclosing split-view column can refuse to shrink below it. Reduces to the
-/// widest reporter, and never below a sensible floor.
-struct FilterBarWidthKey: PreferenceKey {
-    static let defaultValue: CGFloat = 380
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = max(value, nextValue())
-    }
-}
-
-extension View {
-    /// Measures this view's laid-out width and reports it via `FilterBarWidthKey`.
-    /// Attach either to a horizontally-scrolling filter bar's content (so the
-    /// measured value is the chips' natural row width) or to each individual chip
-    /// in a wrapping filter bar — because the key reduces by `max`, the per-chip
-    /// case yields the widest single chip, the right floor for a bar that wraps.
-    func measuresFilterBarWidth() -> some View {
-        background(
-            GeometryReader { proxy in
-                Color.clear.preference(key: FilterBarWidthKey.self, value: proxy.size.width)
-            }
-        )
-    }
-}
-
-// MARK: - Sidebar row width measurement
-
-/// Carries the widest sidebar row's natural (unclipped) label width up the view
-/// tree so the sidebar column can size its minimum to fit the longest label,
-/// rather than relying on a hand-tuned constant that breaks when labels or the
-/// row font change. Reduces to the widest reporter.
-struct SidebarRowWidthKey: PreferenceKey {
-    static let defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = max(value, nextValue())
-    }
-}
-
-extension View {
-    /// Reports the natural width of `label` rendered at the sidebar row font via
-    /// `SidebarRowWidthKey`. Measures a hidden, `fixedSize` copy of the text so the
-    /// reported width is the *untruncated* width even though the visible row is
-    /// line-limited — attach to each row and the key's `max` yields the widest.
-    func measuresSidebarRowWidth(_ label: String) -> some View {
-        background(
-            Text(label)
-                .font(.body)
-                .fixedSize()
-                .hidden()
-                .background(
-                    GeometryReader { proxy in
-                        Color.clear.preference(key: SidebarRowWidthKey.self, value: proxy.size.width)
-                    }
-                )
-        )
-    }
-}
-
-// MARK: - Flow layout
-
-/// Arranges its subviews left-to-right, wrapping to a new line whenever the next
-/// subview would overflow the available width. Lets a row of filter chips reflow
-/// onto multiple lines as its container narrows, instead of being clipped or
-/// forcing a horizontal scroll.
-struct FlowLayout: Layout {
-    var spacing: CGFloat = 8
-    var lineSpacing: CGFloat = 8
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) -> CGSize {
-        let maxWidth = proposal.width ?? .infinity
-        var x: CGFloat = 0
-        var y: CGFloat = 0
-        var rowHeight: CGFloat = 0
-        var widestRow: CGFloat = 0
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if x > 0 && x + size.width > maxWidth {
-                widestRow = max(widestRow, x - spacing)
-                x = 0
-                y += rowHeight + lineSpacing
-                rowHeight = 0
-            }
-            x += size.width + spacing
-            rowHeight = max(rowHeight, size.height)
-        }
-        widestRow = max(widestRow, x - spacing)
-        let width = maxWidth.isFinite ? maxWidth : widestRow
-        return CGSize(width: max(0, width), height: y + rowHeight)
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Void) {
-        var x = bounds.minX
-        var y = bounds.minY
-        var rowHeight: CGFloat = 0
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if x > bounds.minX && x + size.width > bounds.maxX {
-                x = bounds.minX
-                y += rowHeight + lineSpacing
-                rowHeight = 0
-            }
-            subview.place(at: CGPoint(x: x, y: y), anchor: .topLeading, proposal: ProposedViewSize(size))
-            x += size.width + spacing
-            rowHeight = max(rowHeight, size.height)
-        }
-    }
-}
-
-// MARK: - Searchable filter chip
-
-struct SearchableFilterChip: View {
-    let title: String
-    let icon: String
-    @Binding var selected: String?
-    let options: [String]
-    let formatter: (String) -> String
-    /// When set, a "Me" shortcut is pinned to the top of the popover and the
-    /// chip reads "Me" while this value is selected. Nil hides the shortcut
-    /// (e.g. when the account has no known user email).
-    var meEmail: String? = nil
-
-    @State private var presented = false
-    @State private var search = ""
-    @Environment(\.colorSchemeContrast) private var contrast
-
-    private var chipText: String {
-        guard let selected else { return title }
-        if let meEmail, selected == meEmail { return "Me" }
-        return formatter(selected)
-    }
-
-    private var accessibilityHint: String {
-        if let selected { return "Filter applied: \(formatter(selected)). Activate to change." }
-        return "No \(title.lowercased()) filter. Activate to choose one."
-    }
-
-    private var filtered: [String] {
-        let q = search.lowercased()
-        guard !q.isEmpty else { return options }
-        return options.filter {
-            formatter($0).lowercased().contains(q) || $0.lowercased().contains(q)
-        }
-    }
-
-    // Explicitly-typed style helpers keep the `body` type-checker from
-    // exploring these ternaries combinatorially (was ~6s to type-check).
-    private var isActive: Bool { selected != nil }
-    // Idle state is transparent so this chip matches the borderless `Menu`-based
-    // FilterChipMenu chips, which don't paint a capsule fill until a filter is set.
-    private var fillColor: Color { isActive ? Color.accentColor.opacity(ChipContrast.fill(0.18, contrast)) : Color.clear }
-    private var strokeColor: Color { isActive ? Color.accentColor.opacity(ChipContrast.stroke(0.4, contrast)) : Color.clear }
-    private var labelColor: Color { isActive ? Color.accentColor : Color.primary }
-
-    var body: some View {
-        // A plain tappable label rather than a `Button`: a macOS `Button` keeps
-        // AppKit's default push-button control height and centers its label within
-        // it (even with `.fixedSize()`), rendering taller than the FilterChipMenu
-        // chips. Those menu chips now render the same `ChipLabel` under a
-        // `.button` menu style, so they report the same true padded height as this
-        // label and line up without any height compensation. We re-add button a11y
-        // semantics by hand.
-        ChipLabel(
-            title: title,
-            icon: icon,
-            text: chipText,
-            fillColor: fillColor,
-            strokeColor: strokeColor,
-            labelColor: labelColor
-        )
-        .contentShape(Capsule())
-        .onTapGesture { presented.toggle() }
-        .disabled(options.isEmpty)
-        .accessibilityElement(children: .ignore)
-        .accessibilityAddTraits(.isButton)
-        .accessibilityLabel("\(title) filter")
-        .accessibilityValue(selected.map(formatter) ?? "All")
-        .accessibilityHint(accessibilityHint)
-        .popover(isPresented: $presented, arrowEdge: .top) {
-            SearchableFilterPopover(
-                title: title,
-                options: filtered,
-                selected: $selected,
-                presented: $presented,
-                formatter: formatter,
-                search: $search,
-                meEmail: meEmail
-            )
-        }
-    }
-}
-
-// Extracted so the label's styling chain type-checks independently of the
-// chip's outer modifier/popover chain — keeps SearchableFilterChip.body fast
-// to compile (was ~671ms as one expression). Shared with FilterChipMenu so
-// the menu-backed chips render the same selected capsule as the Owner chip.
-struct ChipLabel: View {
-    let title: String
-    let icon: String
-    let text: String
-    let fillColor: Color
-    let strokeColor: Color
-    let labelColor: Color
-    @Environment(\.colorSchemeContrast) private var contrast
-
-    var body: some View {
-        HStack(spacing: 4) {
-            Image(systemName: icon).font(.caption)
-            Text(text)
-                .font(.callout).lineLimit(1)
-            Image(systemName: "chevron.down").font(.caption2)
-        }
-        .padding(.horizontal, 10).padding(.vertical, 5)
-        .background(fillColor, in: Capsule())
-        .foregroundStyle(labelColor)
-        // Thicken the hairline border under Increase Contrast so the chip outline
-        // stays defined for low-vision users.
-        .overlay(Capsule().stroke(strokeColor, lineWidth: ChipContrast.lineWidth(contrast)))
-    }
-}
-
-// Extracted so its ScrollView/ForEach/ternary contents type-check independently
-// of the chip's modifier chain, keeping each `body` fast to compile.
-private struct SearchableFilterPopover: View {
-    let title: String
-    let options: [String]
-    @Binding var selected: String?
-    @Binding var presented: Bool
-    let formatter: (String) -> String
-    @Binding var search: String
-    var meEmail: String? = nil
-
-    var body: some View {
-        VStack(spacing: 0) {
-            TextField("Search \(title.lowercased())", text: $search)
-                .textFieldStyle(.roundedBorder)
-                .padding(10)
-            Divider()
-            ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    if let meEmail {
-                        PopoverRow(
-                            label: "Me",
-                            subtitle: formatter(meEmail) == meEmail ? meEmail : formatter(meEmail),
-                            isSelected: selected == meEmail
-                        ) {
-                            selected = meEmail
-                            presented = false
-                        }
-                        Divider()
-                    }
-                    PopoverRow(label: "All", subtitle: nil, isSelected: selected == nil) {
-                        selected = nil
-                        presented = false
-                    }
-                    Divider()
-                    ForEach(options, id: \.self) { option in
-                        PopoverRow(
-                            label: formatter(option),
-                            subtitle: formatter(option) == option ? nil : option,
-                            isSelected: option == selected
-                        ) {
-                            selected = option
-                            presented = false
-                        }
-                    }
-                    if options.isEmpty {
-                        Text("No matches")
-                            .font(.callout).foregroundStyle(.secondary)
-                            .padding(10)
-                    }
-                }
-            }
-            .frame(width: 320, height: 320)
-        }
-    }
-}
-
-private struct PopoverRow: View {
-    let label: String
-    let subtitle: String?
-    let isSelected: Bool
-    let action: () -> Void
-
-    @State private var hovered = false
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: isSelected ? "checkmark" : "circle")
-                    .font(.caption)
-                    .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
-                    .frame(width: 16)
-                Text(label).lineLimit(1)
-                Spacer(minLength: 4)
-                if let subtitle {
-                    Text(subtitle)
-                        .font(.caption.monospaced())
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-            }
-            .padding(.horizontal, 12).padding(.vertical, 6)
-            .background(hovered ? Color.accentColor.opacity(0.10) : Color.clear)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .onHover { hovered = $0 }
-    }
-}
-
-// MARK: - Focused scene value for the selected pad
-
-extension FocusedValues {
-    /// The pad selected in the active window's list, published via
-    /// `focusedSceneValue` so the Pad menu commands can act on it whenever the
-    /// window is frontmost — independent of which subview holds keyboard focus.
-    @Entry var focusedPad: Pad?
-}
-
-extension FocusedValues {
-    /// The question selected in the active window's list, published via
-    /// `focusedSceneValue` so the Question menu commands can act on it whenever the
-    /// window is frontmost — the Questions-pane counterpart to `focusedPad`.
-    @Entry var focusedQuestion: Question?
-}
-
-/// Action published by whichever pane currently owns a search field, so the
-/// global ⌘F command can focus it. Panes set this via `focusedSceneValue` while
-/// visible; the command reads it both to perform the find and to know whether
-/// Find applies in the current context (it's disabled when no pane provides one).
-///
-/// `Equatable` on a stable per-pane `id` is load-bearing: the wrapped closure
-/// can't be compared, so without it every body pass re-publishes a "new" value
-/// for the same scene key. Because `NavigationSplitView` re-evaluates its panes
-/// several times per layout pass, SwiftUI flags those redundant writes as
-/// "FocusedValue update tried to update multiple times per frame." Comparing by
-/// `id` lets SwiftUI dedupe the identical re-assignments instead.
-struct FindAction: Equatable {
-    /// Identifies the owning pane (e.g. "pads"), so re-publishes from the same
-    /// pane compare equal while a genuine pane switch compares unequal.
-    let id: String
-    let perform: () -> Void
-
-    static func == (lhs: FindAction, rhs: FindAction) -> Bool {
-        lhs.id == rhs.id
-    }
-}
-
-extension FocusedValues {
-    @Entry var findAction: FindAction?
-}
-
-extension FocusedValues {
-    /// Marks the frontmost window as one whose toolbar can be customized — set by
-    /// the main window's `ContentView` (its section panes use `.toolbar(id:)`,
-    /// which AppKit makes user-customizable). The View menu's "Customize Toolbar…"
-    /// command reads this to enable itself only when such a window is key; Settings
-    /// and the Pad Browser (whose toolbar is a plain in-content cluster, not an
-    /// `NSToolbar`) don't publish it, so the command correctly disables there.
-    @Entry var canCustomizeToolbar: Bool?
-}
-
-// MARK: - APIErrorView
-
-struct APIErrorView: View {
-    let error: Error
-    var onRetry: (() -> Void)? = nil
-    @Environment(\.openSettings) private var openSettings
-
-    var body: some View {
-        if let api = error as? CoderPadError, api.isUnauthorized {
-            ContentUnavailableView {
-                Label("Key not authorized", systemImage: "lock.shield")
-            } description: {
-                Text("Your API key was rejected (HTTP 401/403). Open Settings to switch accounts or paste a new key.")
-            } actions: {
-                VStack(spacing: 8) {
-                    Button("Open Settings") { openSettings() }
-                        .prominentGlassButtonStyle()
-                    GetAPIKeyLink()
-                    if let onRetry {
-                        Button("Retry", action: onRetry)
-                    }
-                }
-            }
-        } else if let api = error as? CoderPadError, case .missingAPIKey = api {
-            ContentUnavailableView {
-                Label("No API key", systemImage: "key")
-            } description: {
-                Text("Add an account in Settings to start using the app.")
-            } actions: {
-                VStack(spacing: 8) {
-                    Button("Open Settings") { openSettings() }
-                        .prominentGlassButtonStyle()
-                    GetAPIKeyLink()
-                }
-            }
-        } else {
-            ContentUnavailableView {
-                Label("Something went wrong", systemImage: "exclamationmark.triangle")
-            } description: {
-                Text(error.localizedDescription)
-            } actions: {
-                if let onRetry {
-                    Button("Retry", action: onRetry)
-                        .prominentGlassButtonStyle()
-                }
-            }
-        }
     }
 }

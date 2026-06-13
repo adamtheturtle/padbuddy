@@ -15,8 +15,7 @@ import XCTest
 /// Navigation uses the app's ⌘-number section shortcuts rather than clicking sidebar
 /// rows: menu key-equivalents are routed by AppKit regardless of window focus, so
 /// they're far more reliable in a headless CI runner than synthesized mouse clicks.
-final class coderpadUITests: XCTestCase {
-
+final class CoderpadUITests: XCTestCase {
     private static let listLoadTimeout: TimeInterval = 30
 
     override func setUpWithError() throws {
@@ -42,7 +41,7 @@ final class coderpadUITests: XCTestCase {
 
     /// Browse pads: the demo account's seeded pads appear in the list on launch.
     @MainActor
-    func testDemoPadsAppearInList() throws {
+    func testDemoPadsAppearInList() {
         let app = launchDemoApp()
         XCTAssertTrue(padRow("Onsite: Jane Doe", in: app).waitForExistence(timeout: Self.listLoadTimeout),
                       "A seeded demo pad should appear once the list loads")
@@ -53,7 +52,7 @@ final class coderpadUITests: XCTestCase {
     /// Switch sections: ⌘2 moves to Questions (the menu shortcut), and the demo
     /// questions load there.
     @MainActor
-    func testSwitchToQuestionsSection() throws {
+    func testSwitchToQuestionsSection() {
         let app = launchDemoApp()
         // Wait for the initial Pads paint so the window is up before navigating.
         XCTAssertTrue(padRow("Onsite: Jane Doe", in: app).waitForExistence(timeout: Self.listLoadTimeout))
@@ -67,7 +66,7 @@ final class coderpadUITests: XCTestCase {
     /// Section shortcuts round-trip: ⌘2 to Questions then ⌘1 back to Pads restores
     /// the pad list.
     @MainActor
-    func testSectionShortcutsRoundTrip() throws {
+    func testSectionShortcutsRoundTrip() {
         let app = launchDemoApp()
         XCTAssertTrue(padRow("Onsite: Jane Doe", in: app).waitForExistence(timeout: Self.listLoadTimeout))
 
@@ -80,7 +79,7 @@ final class coderpadUITests: XCTestCase {
     }
 
     @MainActor
-    func testLaunchPerformance() throws {
+    func testLaunchPerformance() {
         measure(metrics: [XCTApplicationLaunchMetric()]) {
             XCUIApplication().launch()
         }

@@ -1,0 +1,16 @@
+version: 2
+updates:
+  # Keep the actions used in workflows (actions/checkout, actions/cache, …) up to
+  # date. They are currently pinned to floating major tags; Dependabot opens a PR
+  # when a new version ships, including security fixes. No CI runner cost.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+    groups:
+      # One PR per week for all actions bumps rather than one PR per action.
+      github-actions:
+        patterns:
+          - "*"

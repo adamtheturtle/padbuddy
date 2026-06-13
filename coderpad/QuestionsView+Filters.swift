@@ -1,0 +1,183 @@
+//
+//  QuestionsView+Filters.swift
+//  coderpad
+//
+
+import SwiftUI
+
+extension QuestionsView {
+    var filterBar: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                FilterChipMenu(title: "Language", icon: "chevron.left.slash.chevron.right",
+                               selected: $languageFilter, options: availableLanguages,
+                               formatter: { $0.languageDisplayName })
+                SearchableFilterChip(title: "Owner", icon: "person",
+                                     selected: $ownerFilter, options: availableOwners,
+                                     formatter: { directory.display($0) },
+                                     meEmail: accounts.currentAccount?.userEmail)
+                FilterChipMenu(title: "Type", icon: "tag",
+                               selected: $typeFilter,
+                               options: InterviewType.allCases.map(\.rawValue),
+                               formatter: { InterviewType(rawValue: $0)?.label ?? $0.capitalized })
+                FilterChipMenu(title: "Status", icon: "doc.badge.ellipsis",
+                               selected: $draftFilter, options: ["draft", "published"],
+                               formatter: { $0.capitalized })
+                if activeFilterCount > 0 || !search.isEmpty {
+                    Button {
+                        saveSearchName = ""
+                        showSaveSearch = true
+                    } label: {
+                        Label("Save…", systemImage: "bookmark")
+                    }
+                    // A link-styled action so it reads as a verb, not another
+                    // neutral capsule filter chip sitting in the same bar.
+                    .buttonStyle(.link)
+                    .controlSize(.small)
+                }
+                if activeFilterCount > 0 {
+                    Button(role: .destructive) {
+                        languageFilter = nil; ownerFilter = nil
+                        typeFilter = nil; draftFilter = nil
+                    } label: {
+                        Label("Clear", systemImage: "xmark.circle.fill")
+                    }
+                    .buttonStyle(.borderless)
+                    .controlSize(.small)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .measuresFilterBarWidth()
+        }
+        .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+    }
+
+    /// Built-in chips shown ahead of the user's saved searches, mirrored in the
+    /// sidebar's Defaults section.
+    var defaultSearches: [DefaultSearch] {
+        DefaultSearch.questionDefaults(me: accounts.currentAccount?.userEmail)
+    }
+
+    @ViewBuilder
+    var savedSearchesBar: some View {
+        let saved = savedSearches.searches(account: accounts.currentAccountID, kind: .questions)
+        let defaults = defaultSearches
+        let hasFavorites = !favoriteIDSet.isEmpty
+        if hasFavorites || !defaults.isEmpty || !saved.isEmpty {
+            // A wrapping flow layout rather than a horizontal scroll, so the chips
+            // reflow onto extra lines as the pane narrows instead of clipping a
+            // long saved-search name off the trailing edge.
+            FlowLayout(spacing: 6, lineSpacing: 6) {
+                // A toggle, unlike the recall chips beside it: tapping filters the
+                // list to starred questions and tapping again clears it. Shown only
+                // once at least one question is starred.
+                if hasFavorites {
+                    SavedSearchChip(name: "Favorites", systemImage: "star.fill",
+                                    isActive: favoritesOnly) {
+                        favoritesOnly.toggle()
+                    }
+                }
+                ForEach(defaults) { item in
+                    SavedSearchChip(name: item.search.name, systemImage: item.icon,
+                                    isActive: isActiveSearch(item.search)) {
+                        apply(item.search)
+                    }
+                }
+                ForEach(saved) { item in
+                    SavedSearchChip(name: item.name, isActive: isActiveSearch(item)) {
+                        apply(item)
+                    } onDelete: {
+                        if let account = accounts.currentAccountID {
+                            savedSearches.remove(id: item.id, account: account, kind: .questions)
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 12).padding(.top, 6)
+        }
+    }
+
+    /// A sparkle button that fills the name field with an on-device suggestion
+    /// built from the active filters. Shown only when the model is available; the
+    /// field stays fully editable and the user opts in per save.
+    var suggestNameButton: some View {
+        Button(action: suggestName) {
+            if isSuggestingName {
+                ProgressView().controlSize(.small)
+            } else {
+                Image(systemName: "sparkles")
+            }
+        }
+        .buttonStyle(.borderless)
+        .disabled(isSuggestingName)
+        .help("Suggest a name from the current filters")
+        .accessibilityLabel("Suggest a name")
+    }
+
+    func suggestName() {
+        let captured = captureCurrentSearch(named: "")
+        isSuggestingName = true
+        Task {
+            let suggestion = await SavedSearchNamer.suggestName(for: captured)
+            isSuggestingName = false
+            if let suggestion { saveSearchName = suggestion }
+        }
+    }
+
+    func commitSavedSearch() {
+        // Return in the text field fires `onSubmit` and the default-action button can
+        // also fire; guarding on the still-open sheet keeps a single keypress from
+        // saving the search twice.
+        guard showSaveSearch else { return }
+        let trimmed = String(saveSearchName.trimmingCharacters(in: .whitespacesAndNewlines)
+            .prefix(NamedSearch.maxNameLength))
+        guard !trimmed.isEmpty, let account = accounts.currentAccountID else { return }
+        savedSearches.add(captureCurrentSearch(named: trimmed), account: account, kind: .questions)
+        showSaveSearch = false
+    }
+
+    func apply(_ saved: NamedSearch) {
+        search = saved.search
+        languageFilter = saved.languageFilter
+        ownerFilter = saved.ownerFilter
+        typeFilter = saved.typeFilter
+        draftFilter = saved.draftFilter
+    }
+
+    /// Whether the list's live filters exactly match `saved`, so its chip can show
+    /// as active. Mirrors `apply` field-for-field — including `draftFilter`, which
+    /// the question list has but pads don't — so editing any filter drops the
+    /// highlight immediately.
+    func isActiveSearch(_ saved: NamedSearch) -> Bool {
+        search == saved.search &&
+            languageFilter == saved.languageFilter &&
+            ownerFilter == saved.ownerFilter &&
+            typeFilter == saved.typeFilter &&
+            draftFilter == saved.draftFilter
+    }
+
+    func captureCurrentSearch(named name: String) -> NamedSearch {
+        NamedSearch(
+            name: name, search: search,
+            languageFilter: languageFilter, ownerFilter: ownerFilter,
+            typeFilter: typeFilter, draftFilter: draftFilter
+        )
+    }
+
+    /// A stable, Equatable digest of the live filter fields, so a single `onChange`
+    /// republishes the signature no matter which control edited a filter. Built from
+    /// the same fields as `captureCurrentSearch`.
+    var filterSignature: String {
+        [search, languageFilter, ownerFilter, typeFilter, draftFilter]
+            .map { $0 ?? "·" }.joined(separator: "|")
+    }
+
+    /// Publish the live filter signature for the sidebar to match against the
+    /// suggested and saved rows, falling back to the plain "Questions" row when
+    /// nothing matches.
+    func publishLiveFilter() {
+        nav.questionsFilter = captureCurrentSearch(named: "")
+    }
+}

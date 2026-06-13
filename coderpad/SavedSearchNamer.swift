@@ -1,6 +1,6 @@
 import Foundation
 #if canImport(FoundationModels)
-import FoundationModels
+    import FoundationModels
 #endif
 
 /// Suggests a short, human label for a saved search using Apple's on-device
@@ -13,9 +13,9 @@ enum SavedSearchNamer {
     /// still downloading. Callers use this to decide whether to show the affordance.
     static var isAvailable: Bool {
         #if canImport(FoundationModels)
-        if #available(macOS 26, *) {
-            return SystemLanguageModel.default.availability == .available
-        }
+            if #available(macOS 26, *) {
+                return SystemLanguageModel.default.availability == .available
+            }
         #endif
         return false
     }
@@ -25,48 +25,48 @@ enum SavedSearchNamer {
     /// fails. Callers keep the manual field untouched on nil.
     static func suggestName(for search: NamedSearch) async -> String? {
         #if canImport(FoundationModels)
-        if #available(macOS 26, *) {
-            return await generate(for: search)
-        }
+            if #available(macOS 26, *) {
+                return await generate(for: search)
+            }
         #endif
         return nil
     }
 }
 
 #if canImport(FoundationModels)
-@available(macOS 26, *)
-private extension SavedSearchNamer {
-    /// A single field so guided generation hands back a clean label rather than
-    /// prose we'd have to strip quotes and punctuation out of.
-    @Generable
-    struct Suggestion {
-        @Guide(description: "A concise Title Case label of at most four words, no quotes or trailing punctuation")
-        let name: String
-    }
+    @available(macOS 26, *)
+    private extension SavedSearchNamer {
+        /// A single field so guided generation hands back a clean label rather than
+        /// prose we'd have to strip quotes and punctuation out of.
+        @Generable
+        struct Suggestion {
+            @Guide(description: "A concise Title Case label of at most four words, no quotes or trailing punctuation")
+            let name: String
+        }
 
-    static func generate(for search: NamedSearch) async -> String? {
-        let criteria = search.filterDescription
-        guard !criteria.isEmpty else { return nil }
-        guard SystemLanguageModel.default.availability == .available else { return nil }
+        static func generate(for search: NamedSearch) async -> String? {
+            let criteria = search.filterDescription
+            guard !criteria.isEmpty else { return nil }
+            guard SystemLanguageModel.default.availability == .available else { return nil }
 
-        let instructions = """
-        You name saved searches in a developer tool for browsing coding interview \
-        pads and questions. Given a list of the active filters, produce a concise, \
-        human label the user would recognize at a glance. Use Title Case, at most \
-        four words, no quotes, and no trailing punctuation.
-        """
-        let session = LanguageModelSession(instructions: instructions)
-        do {
-            let response = try await session.respond(
-                to: "Filters: \(criteria)",
-                generating: Suggestion.self
-            )
-            let name = response.content.name.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !name.isEmpty else { return nil }
-            return String(name.prefix(NamedSearch.maxNameLength))
-        } catch {
-            return nil
+            let instructions = """
+            You name saved searches in a developer tool for browsing coding interview \
+            pads and questions. Given a list of the active filters, produce a concise, \
+            human label the user would recognize at a glance. Use Title Case, at most \
+            four words, no quotes, and no trailing punctuation.
+            """
+            let session = LanguageModelSession(instructions: instructions)
+            do {
+                let response = try await session.respond(
+                    to: "Filters: \(criteria)",
+                    generating: Suggestion.self
+                )
+                let name = response.content.name.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !name.isEmpty else { return nil }
+                return String(name.prefix(NamedSearch.maxNameLength))
+            } catch {
+                return nil
+            }
         }
     }
-}
 #endif

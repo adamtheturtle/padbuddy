@@ -3,16 +3,16 @@
 //  coderpad
 //
 
-import SwiftUI
 import AppKit
+import SwiftUI
 
 struct MenuBarLabel: View {
     @State private var monitor = PadActivityMonitor.shared
 
     var body: some View {
         Image(systemName: monitor.unseenChangedCount > 0
-              ? "doc.text.magnifyingglass.badge"
-              : "doc.text.magnifyingglass")
+            ? "doc.text.magnifyingglass.badge"
+            : "doc.text.magnifyingglass")
     }
 }
 
@@ -32,7 +32,9 @@ struct MenuBarView: View {
     /// The settings Stepper bounds this to 0…30, but a corrupted/externally-edited
     /// defaults value could be negative, and `Array.prefix(_:)` traps on a negative
     /// count — so clamp at every read site.
-    private var topCount: Int { max(0, topN) }
+    private var topCount: Int {
+        max(0, topN)
+    }
 
     var body: some View {
         if let account = store.currentAccount {
@@ -54,16 +56,17 @@ struct MenuBarView: View {
             if !questions.isEmpty {
                 Menu("New Pad from Question") {
                     let favoriteIDs = Set(favorites.favorites(account: store.currentAccountID))
-                    ForEach(questionsForMenu(favoriteIDs: favoriteIDs).prefix(topCount)) { q in
+                    ForEach(questionsForMenu(favoriteIDs: favoriteIDs).prefix(topCount)) { question in
                         Button {
-                            Task { await createPad(.fromQuestion(q), account: account) }
+                            Task { await createPad(.fromQuestion(question), account: account) }
                         } label: {
                             // Starred questions lead the list and carry the star so
                             // a frequently used question is the first one-click pad.
-                            if favoriteIDs.contains(q.id) {
-                                Label(q.title.isEmpty ? "#\(q.id)" : q.title, systemImage: "star.fill")
+                            if favoriteIDs.contains(question.id) {
+                                Label(question.title.isEmpty ? "#\(question.id)" : question.title,
+                                      systemImage: "star.fill")
                             } else {
-                                Text(q.title.isEmpty ? "#\(q.id)" : q.title)
+                                Text(question.title.isEmpty ? "#\(question.id)" : question.title)
                             }
                         }
                     }
@@ -85,7 +88,7 @@ struct MenuBarView: View {
                     .font(.caption).foregroundStyle(.secondary)
             }
 
-            if isLoading && pads.isEmpty {
+            if isLoading, pads.isEmpty {
                 Text("Loading…").foregroundStyle(.secondary)
             } else if let errorMessage {
                 Text(errorMessage).foregroundStyle(.red).lineLimit(2)
@@ -274,8 +277,10 @@ struct MenuBarView: View {
             async let quotaTask = client.quota()
             let fetched = try await padsTask
             pads = fetched.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
-            if let qs = try? await qsTask {
-                questions = qs.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
+            if let fetchedQuestions = try? await qsTask {
+                questions = fetchedQuestions.sorted {
+                    ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast)
+                }
             }
             quota = try? await quotaTask
         } catch {

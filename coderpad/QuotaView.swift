@@ -15,7 +15,7 @@ struct QuotaView: View {
 
     var body: some View {
         Group {
-            if isLoading && quota == nil {
+            if isLoading, quota == nil {
                 ProgressView("Loading quota…").frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let error, quota == nil {
                 APIErrorView(error: error) { Task { await reload() } }
@@ -73,49 +73,48 @@ struct QuotaView: View {
         }
     }
 
-    @ViewBuilder
-    private func statTiles(_ q: Quota) -> some View {
+    private func statTiles(_ quota: Quota) -> some View {
         HStack(spacing: 12) {
-            if q.unlimited == true {
+            if quota.unlimited == true {
                 StatTile(title: "Plan", value: "Unlimited", systemImage: "infinity", tint: .green)
-            } else if let used = q.padsUsed {
+            } else if let used = quota.padsUsed {
                 StatTile(title: "Pads used", value: "\(used)", systemImage: "chart.bar.fill", tint: .blue)
             }
-            if q.unlimited != true, let remaining = q.padsRemaining {
+            if quota.unlimited != true, let remaining = quota.padsRemaining {
                 StatTile(title: "Remaining", value: "\(remaining)",
                          systemImage: "tray.fill",
                          tint: remaining <= 0 ? .red : .green)
             }
             StatTile(title: "Overages",
-                     value: q.overagesEnabled == true ? "Enabled" : "Disabled",
+                     value: quota.overagesEnabled == true ? "Enabled" : "Disabled",
                      systemImage: "arrow.up.right.circle",
-                     tint: q.overagesEnabled == true ? .green : .orange)
-            if let reset = q.quotaReset {
+                     tint: quota.overagesEnabled == true ? .green : .orange)
+            if let reset = quota.quotaReset {
                 StatTile(title: "Resets", value: reset.formatted(date: .abbreviated, time: .omitted),
                          systemImage: "arrow.counterclockwise", tint: .teal)
             }
         }
     }
 
-    private func detailsCard(_ q: Quota) -> some View {
+    private func detailsCard(_ quota: Quota) -> some View {
         Card {
             VStack(alignment: .leading, spacing: 10) {
                 SectionHeader(title: "Details", systemImage: "list.bullet")
-                if let used = q.padsUsed {
+                if let used = quota.padsUsed {
                     LabeledRow(label: "Pads used", value: "\(used)")
                 }
-                if q.unlimited != true, let remaining = q.padsRemaining {
+                if quota.unlimited != true, let remaining = quota.padsRemaining {
                     LabeledRow(label: "Pads remaining", value: "\(remaining)")
                 }
-                if q.unlimited != true, let limit = q.billingCyclePadLimit {
+                if quota.unlimited != true, let limit = quota.billingCyclePadLimit {
                     LabeledRow(label: "Billing cycle limit", value: "\(limit)")
                 }
-                LabeledRow(label: "Unlimited", value: q.unlimited == true ? "Yes" : "No")
-                LabeledRow(label: "Overages", value: q.overagesEnabled == true ? "Enabled" : "Disabled")
-                if let reset = q.quotaReset {
+                LabeledRow(label: "Unlimited", value: quota.unlimited == true ? "Yes" : "No")
+                LabeledRow(label: "Overages", value: quota.overagesEnabled == true ? "Enabled" : "Disabled")
+                if let reset = quota.quotaReset {
                     LabeledRow(label: "Quota resets", value: reset.formatted(date: .abbreviated, time: .shortened))
                 }
-                if let trial = q.trialExpiresAt {
+                if let trial = quota.trialExpiresAt {
                     LabeledRow(label: "Trial expires", value: trial.formatted(date: .abbreviated, time: .shortened))
                 }
             }

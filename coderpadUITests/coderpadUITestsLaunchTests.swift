@@ -7,8 +7,8 @@
 
 import XCTest
 
-final class coderpadUITestsLaunchTests: XCTestCase {
-
+final class CoderpadUITestsLaunchTests: XCTestCase {
+    // swiftlint:disable:next static_over_final_class
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true
     }
@@ -18,7 +18,7 @@ final class coderpadUITestsLaunchTests: XCTestCase {
     }
 
     @MainActor
-    func testLaunch() throws {
+    func testLaunch() {
         let app = XCUIApplication()
         app.launch()
 

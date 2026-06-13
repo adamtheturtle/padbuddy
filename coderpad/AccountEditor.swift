@@ -1,0 +1,221 @@
+//
+//  AccountEditor.swift
+//  coderpad
+//
+
+import LocalAuthentication
+import SwiftUI
+
+enum ValidationState: Equatable {
+    case idle
+    case validating
+    case valid(String)
+    case invalid(String)
+}
+
+struct AccountEditor: View {
+    @State var draft: Account
+    let initialName: String
+    /// When true, the editor is embedded inline in the Accounts pane (Mail-style)
+    /// rather than presented as a modal sheet: it drops the fixed sheet frame, hides
+    /// Cancel for saved accounts, and shows the "Use This Account" header control.
+    let embedded: Bool
+    /// Whether this account is the app's active one, shown as a badge in the header.
+    let isCurrent: Bool
+    /// Supplied only for a saved account in embedded mode; makes it the active account.
+    let onUse: (() -> Void)?
+    let onSave: (Account) -> Void
+    let onCancel: () -> Void
+    /// Supplied only when editing a saved account; `nil` hides the Delete button (Add mode).
+    let onDelete: (() -> Void)?
+    /// The credentials the editor opened with. A saved account can be re-saved without
+    /// re-validating as long as these are untouched (e.g. a Description-only change);
+    /// changing either forces a fresh validation before Save re-enables.
+    let initialAPIKey: String
+    let initialBaseURL: String?
+    @State var validation: ValidationState = .idle
+    @State var orgUsers: [OrganizationUser] = []
+    /// A non-blocking note when the key reaches the org but isn't authorized for
+    /// one or more feature endpoints (a 403), so the user learns up front that a
+    /// section will be empty rather than discovering it later. See `missingScopesWarning`.
+    @State var scopeWarning: String?
+    @State var showDeleteConfirmation = false
+    /// Reveals the API key as plain text on explicit request. The field is a
+    /// `SecureField` by default so macOS offers password AutoFill suggestions;
+    /// revealing it via a toggle (rather than on focus) keeps that intact.
+    @State var revealKey = false
+    /// When set in General settings, revealing a saved key first requires a
+    /// successful Touch ID (or password) check — see `toggleReveal`.
+    @AppStorage(GeneralSettings.Key.requireBiometricsToRevealKey) var requireBiometricsToRevealKey = false
+
+    init(initial: Account,
+         embedded: Bool = false,
+         isCurrent: Bool = false,
+         onUse: (() -> Void)? = nil,
+         onSave: @escaping (Account) -> Void,
+         onCancel: @escaping () -> Void,
+         onDelete: (() -> Void)? = nil) {
+        _draft = State(initialValue: initial)
+        initialName = initial.name
+        initialAPIKey = initial.apiKey
+        initialBaseURL = initial.baseURL
+        self.embedded = embedded
+        self.isCurrent = isCurrent
+        self.onUse = onUse
+        self.onSave = onSave
+        self.onCancel = onCancel
+        self.onDelete = onDelete
+    }
+
+    /// Reveals or hides the key. Hiding is immediate; revealing is gated behind a
+    /// Touch ID / password check when the user enabled that in General settings.
+    /// If the device can't evaluate the policy (no biometrics and no passcode set),
+    /// reveal anyway rather than lock the user out of their own key.
+    func toggleReveal() {
+        if revealKey { revealKey = false; return }
+        guard requireBiometricsToRevealKey else { revealKey = true; return }
+        let context = LAContext()
+        var policyError: NSError?
+        guard context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &policyError) else {
+            revealKey = true
+            return
+        }
+        Task {
+            let success = await (try? context.evaluatePolicy(
+                .deviceOwnerAuthentication,
+                localizedReason: "Reveal your saved CoderPad API key"
+            )) ?? false
+            if success { revealKey = true }
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                // Only the modal Add sheet carries a title; the embedded editor shows
+                // the account's identity in the sidebar already, so it omits one and
+                // leads with the Use/Current control instead.
+                if !embedded {
+                    Text("Add account").font(.title3.bold())
+                }
+                Spacer()
+                if let onUse {
+                    if isCurrent {
+                        Label("Current", systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                            .font(.callout)
+                    } else {
+                        Button("Use This Account", action: onUse)
+                            .help("Switch the app to this account.")
+                    }
+                }
+            }
+            // Reserve the button's height so swapping it for the shorter "Current"
+            // label between accounts doesn't shift the rest of the form.
+            .frame(minHeight: 24)
+            // A flat, Mail-style pane: a right-aligned label column with left-aligned,
+            // bordered fields beside it — rather than a grouped form that pushes values
+            // to the trailing edge.
+            VStack(alignment: .leading, spacing: 10) {
+                fieldRow("API Key") {
+                    HStack(spacing: 6) {
+                        Group {
+                            if revealKey {
+                                TextField("", text: $draft.apiKey, prompt: Text("Paste your API key"))
+                            } else {
+                                SecureField("", text: $draft.apiKey, prompt: Text("Paste your API key"))
+                            }
+                        }
+                        .textFieldStyle(.roundedBorder)
+                        .textContentType(.password)
+                        Button {
+                            toggleReveal()
+                        } label: {
+                            Image(systemName: revealKey ? "eye.slash" : "eye")
+                        }
+                        .buttonStyle(.borderless)
+                        .help(revealKey ? "Hide the API key." : "Show the API key.")
+                        .accessibilityLabel(revealKey ? "Hide API key" : "Show API key")
+                    }
+                }
+                fieldRow("Server URL") {
+                    TextField("", text: baseURLBinding,
+                              prompt: Text(CoderPadClient.defaultBaseURL.absoluteString))
+                        .textFieldStyle(.roundedBorder)
+                        .autocorrectionDisabled()
+                        .help("""
+                        Override only for self-hosted or regional CoderPad deployments. \
+                        Leave blank to use the default.
+                        """)
+                }
+                // A saved account always offers its Description so it can be renamed
+                // without re-validating the key; a new account auto-fills it from the
+                // organization once the key validates.
+                if isEditing || isValidated {
+                    fieldRow("Description") {
+                        TextField("", text: $draft.name,
+                                  prompt: Text("Auto-filled from your organization"))
+                            .textFieldStyle(.roundedBorder)
+                    }
+                }
+                // The email picker needs the validated org's member list, so it stays
+                // gated behind a successful validation.
+                if isValidated {
+                    fieldRow("Your Email") {
+                        VStack(alignment: .leading, spacing: 4) {
+                            OrgMemberPicker(
+                                selection: $draft.userEmail,
+                                options: emailOptions,
+                                label: emailLabel
+                            )
+                            .help("""
+                            Identifies you for the My Pads and My Questions filters and the menu bar. \
+                            Required to save.
+                            """)
+                            if !hasEmail {
+                                Text("Required — pick which member you are to finish.")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
+                fieldRow("") {
+                    GetAPIKeyLink()
+                        .font(.callout)
+                }
+            }
+
+            validationBanner
+            scopeWarningBanner
+
+            HStack {
+                if onDelete != nil {
+                    Button("Delete", role: .destructive) { showDeleteConfirmation = true }
+                        .help("Remove this account and its stored API key from this Mac.")
+                }
+                Spacer()
+                // A saved account embedded inline has no Cancel: selecting away simply
+                // discards unsaved edits, the way Mail's account pane works.
+                if !(embedded && onDelete != nil) {
+                    Button("Cancel", role: .cancel, action: onCancel)
+                }
+                validateButton
+                saveButton
+            }
+        }
+        .padding()
+        .frame(minWidth: embedded ? nil : 460, minHeight: embedded ? nil : 320,
+               maxHeight: embedded ? .infinity : nil, alignment: .top)
+        .onChange(of: draft.apiKey) { _, _ in validation = .idle; scopeWarning = nil }
+        .onChange(of: draft.baseURL) { _, _ in validation = .idle }
+        .confirmationDialog("Delete this account?",
+                            isPresented: $showDeleteConfirmation,
+                            titleVisibility: .visible) {
+            Button("Delete Account", role: .destructive) { onDelete?() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("“\(initialName)” and its stored API key will be removed from this Mac. This can’t be undone.")
+        }
+    }
+}

@@ -1,0 +1,169 @@
+//
+//  DesignSystem+Org.swift
+//  coderpad
+//
+
+import SwiftUI
+
+// MARK: - EmailLink
+
+struct EmailLink: View {
+    let email: String
+
+    var body: some View {
+        if email.isEmpty {
+            Text("(no email)").foregroundStyle(.secondary)
+        } else if let url = URL(string: "mailto:\(email)") {
+            Link(email, destination: url)
+        } else {
+            Text(email)
+        }
+    }
+}
+
+// MARK: - Org directory (email -> name lookup)
+
+@Observable
+final class OrgDirectory {
+    private(set) var nameByEmail: [String: String] = [:]
+    /// The organization's default coding language, used to pre-select the picker
+    /// in the New Pad / New Question sheets. `nil` until the org loads or when the
+    /// org reports no default.
+    private(set) var defaultLanguage: String?
+    private var loadedAccountID: UUID?
+    private var inFlight: UUID?
+
+    func load(for account: Account) async {
+        guard loadedAccountID != account.id, inFlight != account.id else { return }
+        inFlight = account.id
+        defer { inFlight = nil }
+        let client = account.makeClient()
+        if let org = try? await client.organization() {
+            var map: [String: String] = [:]
+            for user in org.users {
+                if let name = user.name, !name.isEmpty {
+                    map[user.email] = name
+                }
+            }
+            nameByEmail = map
+            defaultLanguage = org.organizationDefaultLanguage.flatMap { $0.isEmpty ? nil : $0 }
+            loadedAccountID = account.id
+        }
+    }
+
+    func name(for email: String) -> String? {
+        let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        return nameByEmail[trimmed]
+    }
+
+    func display(_ email: String) -> String {
+        name(for: email) ?? email
+    }
+}
+
+extension EnvironmentValues {
+    @Entry var orgDirectory = OrgDirectory()
+}
+
+// MARK: - Focused scene value for the selected pad
+
+extension FocusedValues {
+    /// The pad selected in the active window's list, published via
+    /// `focusedSceneValue` so the Pad menu commands can act on it whenever the
+    /// window is frontmost — independent of which subview holds keyboard focus.
+    @Entry var focusedPad: Pad?
+}
+
+extension FocusedValues {
+    /// The question selected in the active window's list, published via
+    /// `focusedSceneValue` so the Question menu commands can act on it whenever the
+    /// window is frontmost — the Questions-pane counterpart to `focusedPad`.
+    @Entry var focusedQuestion: Question?
+}
+
+/// Action published by whichever pane currently owns a search field, so the
+/// global ⌘F command can focus it. Panes set this via `focusedSceneValue` while
+/// visible; the command reads it both to perform the find and to know whether
+/// Find applies in the current context (it's disabled when no pane provides one).
+///
+/// `Equatable` on a stable per-pane `id` is load-bearing: the wrapped closure
+/// can't be compared, so without it every body pass re-publishes a "new" value
+/// for the same scene key. Because `NavigationSplitView` re-evaluates its panes
+/// several times per layout pass, SwiftUI flags those redundant writes as
+/// "FocusedValue update tried to update multiple times per frame." Comparing by
+/// `id` lets SwiftUI dedupe the identical re-assignments instead.
+struct FindAction: Equatable {
+    /// Identifies the owning pane (e.g. "pads"), so re-publishes from the same
+    /// pane compare equal while a genuine pane switch compares unequal.
+    let id: String
+    let perform: () -> Void
+
+    static func == (lhs: FindAction, rhs: FindAction) -> Bool {
+        lhs.id == rhs.id
+    }
+}
+
+extension FocusedValues {
+    @Entry var findAction: FindAction?
+}
+
+extension FocusedValues {
+    /// Marks the frontmost window as one whose toolbar can be customized — set by
+    /// the main window's `ContentView` (its section panes use `.toolbar(id:)`,
+    /// which AppKit makes user-customizable). The View menu's "Customize Toolbar…"
+    /// command reads this to enable itself only when such a window is key; Settings
+    /// and the Pad Browser (whose toolbar is a plain in-content cluster, not an
+    /// `NSToolbar`) don't publish it, so the command correctly disables there.
+    @Entry var canCustomizeToolbar: Bool?
+}
+
+// MARK: - APIErrorView
+
+struct APIErrorView: View {
+    let error: Error
+    var onRetry: (() -> Void)?
+    @Environment(\.openSettings) private var openSettings
+
+    var body: some View {
+        if let api = error as? CoderPadError, api.isUnauthorized {
+            ContentUnavailableView {
+                Label("Key not authorized", systemImage: "lock.shield")
+            } description: {
+                Text("Your API key was rejected (HTTP 401/403). Open Settings to switch accounts or paste a new key.")
+            } actions: {
+                VStack(spacing: 8) {
+                    Button("Open Settings") { openSettings() }
+                        .prominentGlassButtonStyle()
+                    GetAPIKeyLink()
+                    if let onRetry {
+                        Button("Retry", action: onRetry)
+                    }
+                }
+            }
+        } else if let api = error as? CoderPadError, case .missingAPIKey = api {
+            ContentUnavailableView {
+                Label("No API key", systemImage: "key")
+            } description: {
+                Text("Add an account in Settings to start using the app.")
+            } actions: {
+                VStack(spacing: 8) {
+                    Button("Open Settings") { openSettings() }
+                        .prominentGlassButtonStyle()
+                    GetAPIKeyLink()
+                }
+            }
+        } else {
+            ContentUnavailableView {
+                Label("Something went wrong", systemImage: "exclamationmark.triangle")
+            } description: {
+                Text(error.localizedDescription)
+            } actions: {
+                if let onRetry {
+                    Button("Retry", action: onRetry)
+                        .prominentGlassButtonStyle()
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,20 @@
+# SwiftFormat configuration.
+#
+# Pairs with .swiftlint.yml: SwiftFormat owns *formatting*, SwiftLint owns
+# *correctness*. The two are kept non-overlapping so they never fight.
+#
+# NOTE: not yet enforced in CI. Enabling the `swiftformat . --lint` gate needs a
+# one-time repo-wide `swiftformat .` reformat to establish a clean baseline; run
+# that, commit it on its own, then add the check to .github/workflows/ci.yml.
+
+--swiftversion 6.2
+
+# Keep SwiftFormat from fighting SwiftLint's default rules:
+# SwiftLint's `trailing_comma` forbids trailing commas in collection literals,
+# and its `opening_brace` requires the brace on the same line as the
+# declaration (SwiftFormat's wrapMultilineStatementBraces would move it).
+--trailing-commas never
+--disable wrapMultilineStatementBraces
+
+# Leave vendored code, build output, and SPM checkouts untouched.
+--exclude cmark-gfm,build_release,DerivedData

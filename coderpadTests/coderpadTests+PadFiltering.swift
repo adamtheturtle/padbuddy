@@ -1,0 +1,167 @@
+//
+//  coderpadTests+PadFiltering.swift
+//  coderpadTests
+//
+
+@testable import coderpad
+import Foundation
+import Testing
+
+/// A fixed clock so the date-range filters don't depend on the wall clock.
+private let fixedNow = ISO8601DateFormatter().date(from: "2026-06-12T12:00:00Z")!
+
+/// Builds a `Pad` through the real lenient decoder so the tests exercise the
+/// same construction path the app uses, rather than a hand-rolled initializer.
+private func makePad(
+    id: String = "P1",
+    title: String = "",
+    state: String = "started",
+    ownerEmail: String = "",
+    language: String? = nil,
+    type: String? = nil,
+    teamName: String? = nil,
+    participants: [String] = [],
+    updatedAt: String? = nil,
+    createdAt: String? = nil,
+    isPrivate: Bool? = nil
+) throws -> Pad {
+    var dict: [String: Any] = [
+        "id": id,
+        "title": title,
+        "state": state,
+        "owner_email": ownerEmail,
+        "participants": participants
+    ]
+    if let language { dict["language"] = language }
+    if let type { dict["type"] = type }
+    if let teamName { dict["team"] = ["id": teamName, "name": teamName] }
+    if let updatedAt { dict["updated_at"] = updatedAt }
+    if let createdAt { dict["created_at"] = createdAt }
+    if let isPrivate { dict["private"] = isPrivate }
+    let data = try JSONSerialization.data(withJSONObject: dict)
+    return try CoderPadClient.decoder.decode(Pad.self, from: data)
+}
+
+@Suite("Pad filtering")
+struct PadFilterTests {
+    private func samplePads() throws -> [Pad] {
+        try [
+            makePad(id: "ABC1", title: "Onsite", state: "started",
+                    ownerEmail: "alex@demo.co", language: "python3", type: "live",
+                    teamName: "Cursor", participants: ["Jane Doe"],
+                    updatedAt: "2026-06-11T09:00:00Z"),
+            makePad(id: "XYZ2", title: "Take Home Challenge", state: "ended",
+                    ownerEmail: "sam@demo.co", language: "go", type: "take-home",
+                    teamName: nil, participants: [],
+                    updatedAt: "2026-01-01T09:00:00Z")
+        ]
+    }
+
+    @Test
+    func `empty criteria returns every pad`() throws {
+        let pads = try samplePads()
+        let result = PadListLogic.filter(pads, using: PadFilterCriteria())
+        #expect(result.map(\.id) == ["ABC1", "XYZ2"])
+    }
+
+    @Test
+    func `state filter keeps only matching pads`() throws {
+        let result = try PadListLogic.filter(samplePads(),
+                                             using: PadFilterCriteria(state: .active))
+        #expect(result.map(\.id) == ["ABC1"])
+    }
+
+    @Test
+    func `language filter is case-insensitive`() throws {
+        let pads = try samplePads()
+        #expect(PadListLogic.filter(pads, using: PadFilterCriteria(language: "python3")).map(\.id) == ["ABC1"])
+        // An upper-cased criterion still matches the lower-cased pad language.
+        #expect(PadListLogic.filter(pads, using: PadFilterCriteria(language: "PYTHON3")).map(\.id) == ["ABC1"])
+    }
+
+    @Test
+    func `owner and team filters match exactly`() throws {
+        let pads = try samplePads()
+        #expect(PadListLogic.filter(pads, using: PadFilterCriteria(owner: "sam@demo.co")).map(\.id) == ["XYZ2"])
+        #expect(PadListLogic.filter(pads, using: PadFilterCriteria(team: "Cursor")).map(\.id) == ["ABC1"])
+    }
+
+    @Test
+    func `interview-type filter keeps only the matching type`() throws {
+        let pads = try samplePads()
+        #expect(PadListLogic.filter(pads, using: PadFilterCriteria(type: "take-home")).map(\.id) == ["XYZ2"])
+        #expect(PadListLogic.filter(pads, using: PadFilterCriteria(type: "live")).map(\.id) == ["ABC1"])
+    }
+
+    @Test
+    func `search matches title, id, owner email, and participants`() throws {
+        let pads = try samplePads()
+        #expect(PadListLogic.filter(pads, using: PadFilterCriteria(search: "onsite")).map(\.id) == ["ABC1"])
+        #expect(PadListLogic.filter(pads, using: PadFilterCriteria(search: "abc1")).map(\.id) == ["ABC1"])
+        #expect(PadListLogic.filter(pads, using: PadFilterCriteria(search: "sam@")).map(\.id) == ["XYZ2"])
+        #expect(PadListLogic.filter(pads, using: PadFilterCriteria(search: "jane")).map(\.id) == ["ABC1"])
+        #expect(PadListLogic.filter(pads, using: PadFilterCriteria(search: "nothinghere")).isEmpty)
+    }
+
+    @Test
+    func `search also matches the directory-resolved owner display name`() throws {
+        let pads = try samplePads()
+        let display: (String) -> String = { $0 == "alex@demo.co" ? "Alex Park" : $0 }
+        // "Alex Park" appears nowhere in the raw pad, only via the directory.
+        let result = PadListLogic.filter(pads, using: PadFilterCriteria(search: "alex park"), display: display)
+        #expect(result.map(\.id) == ["ABC1"])
+    }
+
+    @Test
+    func `filters combine with AND`() throws {
+        let pads = try samplePads()
+        // Active pads that are written in Go: none, since the only Go pad is ended.
+        let result = PadListLogic.filter(pads, using: PadFilterCriteria(state: .active, language: "go"))
+        #expect(result.isEmpty)
+    }
+
+    @Test
+    func `date-range filter keeps pads updated within the window`() throws {
+        let pads = try samplePads()
+        // ABC1 was updated yesterday, XYZ2 back in January.
+        let recent = PadListLogic.filter(pads, using: PadFilterCriteria(dateRange: "last 7 days"), now: fixedNow)
+        #expect(recent.map(\.id) == ["ABC1"])
+        let month = PadListLogic.filter(pads, using: PadFilterCriteria(dateRange: "last 30 days"), now: fixedNow)
+        #expect(month.map(\.id) == ["ABC1"])
+    }
+
+    @Test
+    func `created-date filter compares against created_at, not updated_at`() throws {
+        // OLD was created in January but bumped (updated) yesterday; NEW is the
+        // reverse. An updated-date window keeps OLD; a created-date window keeps NEW.
+        let pads = try [
+            makePad(id: "OLD", updatedAt: "2026-06-11T09:00:00Z", createdAt: "2026-01-01T09:00:00Z"),
+            makePad(id: "NEW", updatedAt: "2026-01-02T09:00:00Z", createdAt: "2026-06-11T09:00:00Z")
+        ]
+        let byUpdated = PadListLogic.filter(
+            pads, using: PadFilterCriteria(dateRange: "last 7 days", dateField: .updated), now: fixedNow
+        )
+        #expect(byUpdated.map(\.id) == ["OLD"])
+        let byCreated = PadListLogic.filter(
+            pads, using: PadFilterCriteria(dateRange: "last 7 days", dateField: .created), now: fixedNow
+        )
+        #expect(byCreated.map(\.id) == ["NEW"])
+    }
+
+    @Test
+    func `a custom range bounds pads on both ends and overrides any named window`() throws {
+        let iso = ISO8601DateFormatter()
+        let pads = try [
+            makePad(id: "MAR", updatedAt: "2026-03-15T12:00:00Z"),
+            makePad(id: "APR", updatedAt: "2026-04-15T12:00:00Z"),
+            makePad(id: "MAY", updatedAt: "2026-05-15T12:00:00Z")
+        ]
+        // April only. The named window is set too, to prove custom takes precedence.
+        let criteria = PadFilterCriteria(
+            dateRange: "last 7 days",
+            customStart: iso.date(from: "2026-04-01T00:00:00Z"),
+            customEnd: iso.date(from: "2026-04-30T23:59:59Z")
+        )
+        #expect(PadListLogic.filter(pads, using: criteria, now: fixedNow).map(\.id) == ["APR"])
+    }
+}

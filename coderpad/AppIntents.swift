@@ -66,9 +66,9 @@ struct SearchPadsIntent: AppIntent {
 
     func perform() async throws -> some IntentResult {
         try? await Task.sleep(for: .milliseconds(300))
-        let q = query
+        let searchText = query
         await MainActor.run {
-            AppNavigation.shared.showPads(PadsRequest(search: q))
+            AppNavigation.shared.showPads(PadsRequest(search: searchText))
         }
         return .result()
     }

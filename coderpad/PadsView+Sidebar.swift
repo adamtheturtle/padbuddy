@@ -1,0 +1,393 @@
+//
+//  PadsView+Sidebar.swift
+//  coderpad
+//
+
+import AppKit
+import SwiftUI
+
+extension PadsView {
+    static let dateRangeOptions = PadDateRange.options
+
+    /// The filtered list, memoized for the duration of one render. `filtered` is
+    /// read several times per `body` evaluation (the list, the result count, the
+    /// empty state, and the bulk-action menu), and re-running the full O(n) filter
+    /// on each read beach-balled large pad lists the moment a filter changed.
+    /// `refreshFiltered()` recomputes it once at the top of `body`, so every read in
+    /// that pass is O(1) and always current.
+    var filtered: [Pad] {
+        filteredCache.pads
+    }
+
+    func refreshFiltered() {
+        filteredCache.pads = PadListLogic.filter(
+            pads,
+            using: PadFilterCriteria(
+                search: search,
+                state: stateFilter,
+                language: languageFilter,
+                owner: ownerFilter,
+                team: teamFilter,
+                type: typeFilter,
+                dateRange: dateRangeFilter,
+                dateField: dateFieldFilter,
+                customStart: customDateStart,
+                customEnd: customDateEnd
+            ),
+            display: directory.display
+        )
+    }
+
+    /// The pad to select after the pad with `id` is deleted. Picks the row that
+    /// takes the deleted row's position (the next one down), falling back to the
+    /// previous pad when the deleted pad was last, and to `nil` when it was the
+    /// only visible pad. Resolved against `filtered` — the list the user actually
+    /// sees — so a hidden pad never becomes the new selection.
+    func neighborSelection(forDeleted id: String) -> Pad? {
+        let visible = filtered
+        // If the deleted pad isn't in the visible list (e.g. filters changed after it
+        // was selected), fall back to the first visible pad rather than blanking the
+        // detail pane when there are still pads to show.
+        guard let index = visible.firstIndex(where: { $0.id == id }) else { return visible.first }
+        if visible.indices.contains(index + 1) { return visible[index + 1] }
+        if visible.indices.contains(index - 1) { return visible[index - 1] }
+        return nil
+    }
+
+    var availableStates: [PadState] {
+        Array(Set(pads.map(\.status))).sorted { $0.label < $1.label }
+    }
+
+    var availableLanguages: [String] {
+        Array(Set(pads.compactMap { $0.language?.lowercased() }).filter { !$0.isEmpty }).sorted()
+    }
+
+    var availableOwners: [String] {
+        Array(Set(pads.map(\.ownerEmail)).filter { !$0.isEmpty }).sorted()
+    }
+
+    var availableTeams: [String] {
+        Array(Set(pads.compactMap { $0.team?.name })).sorted()
+    }
+
+    /// A custom range and a named window are mutually exclusive, so the date filter
+    /// counts at most once regardless of which is set. The created/updated field on
+    /// its own narrows nothing, so it doesn't count.
+    var isDateFilterActive: Bool {
+        dateRangeFilter != nil || customDateStart != nil || customDateEnd != nil
+    }
+
+    var activeFilterCount: Int {
+        (stateFilter != nil ? 1 : 0)
+            + [languageFilter, ownerFilter, teamFilter, typeFilter].compactMap(\.self).count
+            + (isDateFilterActive ? 1 : 0)
+    }
+
+    /// Resets every live filter. Shared by the toolbar Clear button and the
+    /// filtered empty state so the two never drift.
+    func clearAllFilters() {
+        stateFilter = nil; languageFilter = nil
+        ownerFilter = nil; teamFilter = nil; typeFilter = nil
+        dateRangeFilter = nil; customDateStart = nil; customDateEnd = nil
+        dateFieldFilter = .updated
+    }
+
+    var sidebar: some View {
+        Group {
+            if isLoading, pads.isEmpty {
+                ProgressView("Loading pads…").frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else if let error, pads.isEmpty {
+                APIErrorView(error: error) { Task { await reload() } }
+            } else {
+                VStack(spacing: 0) {
+                    PaneTitle(title: "Pads")
+                    savedSearchesBar
+                    filterBar
+                    resultCountBar
+                    Divider()
+                    List(selection: $selection) {
+                        ForEach(filtered) { pad in
+                            PadRow(pad: pad, isChanged: PadListLogic.hasNewActivitySinceOpen(
+                                pad, lastOpened: openedStore.lastOpened(pad.id, account: accounts.currentAccountID)
+                            ))
+                            .tag(pad)
+                            .contextMenu { padContextMenu(pad) }
+                            // Full swipe is allowed because it only opens the
+                            // confirmation dialog below — it never deletes
+                            // outright, so an accidental swipe is recoverable.
+                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                Button(role: .destructive) {
+                                    padPendingDelete = pad
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                        }
+                    }
+                    .listStyle(.inset)
+                    // When filters exclude everything, explain why rather than
+                    // leaving a blank list that reads like a load failure.
+                    .overlay {
+                        if filtered.isEmpty, !pads.isEmpty {
+                            ContentUnavailableView {
+                                Label("No Matching Pads", systemImage: "line.3.horizontal.decrease.circle")
+                            } description: {
+                                Text("No pads match the current filters.")
+                            } actions: {
+                                Button("Clear Filters") { clearAllFilters() }
+                            }
+                        }
+                    }
+                    // ↑/↓ move the selection natively; Return opens the selected pad
+                    // in the in-app browser (honoring the user's browser preference).
+                    .onKeyPress(.return) {
+                        guard let selection else { return .ignored }
+                        openPad(selection)
+                        return .handled
+                    }
+                    .macPullToRefresh { await reload() }
+                    // Scene-scoped, not view-scoped: the Pad menu commands (Copy
+                    // Pad ID/URL, Open in Browser) should stay enabled whenever this
+                    // window is frontmost and a pad is selected — not only while the
+                    // list itself holds keyboard focus. Using `.focusedValue` here
+                    // also tripped a "FocusedValue update tried to update multiple
+                    // times per frame" fault as the list took focus on first render.
+                    .focusedSceneValue(\.focusedPad, selection)
+                }
+            }
+        }
+        // Search now lives in the window toolbar (the native macOS placement, and the
+        // Liquid Glass search capsule on macOS 26). ⌘F still focuses it via FindAction.
+        .searchable(text: $search, placement: .toolbar, prompt: "Search pads")
+        .searchFocused($searchFieldFocused)
+        .focusedSceneValue(\.findAction, FindAction(id: "pads") { searchFieldFocused = true })
+        .toolbar(id: "pads.toolbar") {
+            ToolbarItem(id: "reload") {
+                ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
+            }
+            if #available(macOS 26, *) {
+                ToolbarSpacer(.fixed)
+            }
+            ToolbarItem(id: "new", placement: .primaryAction) {
+                Button { showCreate = true } label: {
+                    Label("New Pad", systemImage: "plus")
+                }
+                .help("Create a new pad (⌘N)")
+                .accessibilityLabel("New Pad")
+                .disabled(client.apiKey.isEmpty)
+            }
+            ToolbarItem(id: "bulk") {
+                Menu {
+                    Button("End Started Pads…", systemImage: "flag.checkered") {
+                        bulkAction = .endStarted
+                    }
+                    .disabled(PadListLogic.startedPads(in: filtered).isEmpty)
+                    Button("Make Visible Pads Private…", systemImage: "lock") {
+                        bulkAction = .makePrivate
+                    }
+                    .disabled(PadListLogic.nonPrivatePads(in: filtered).isEmpty)
+                } label: {
+                    Label("Bulk Actions", systemImage: "ellipsis.circle")
+                }
+                .help("Apply an action to all pads currently shown in the list")
+                .disabled(client.apiKey.isEmpty || filtered.isEmpty || isBulkRunning)
+            }
+        }
+    }
+
+    /// Right-click actions for a pad row. These are the quick, self-contained
+    /// operations (open, copy, share, narrow the list); the destructive lifecycle
+    /// actions stay behind the detail view's confirmations, reached by selecting
+    /// the pad first.
+    @ViewBuilder
+    func padContextMenu(_ pad: Pad) -> some View {
+        Button {
+            selection = pad
+            openPad(pad)
+        } label: {
+            Label("Open Pad", systemImage: "doc.text.image")
+        }
+        if let url = pad.webURL {
+            ShareLink(item: url) {
+                Label("Share…", systemImage: "square.and.arrow.up")
+            }
+        }
+        Divider()
+        Button {
+            copyToPasteboard(pad.id)
+        } label: {
+            Label("Copy Pad ID", systemImage: "number")
+        }
+        Button {
+            copyToPasteboard(pad.url)
+        } label: {
+            Label("Copy Pad URL", systemImage: "link")
+        }
+        Divider()
+        Button {
+            ownerFilter = pad.ownerEmail
+        } label: {
+            Label("Show Pads from \(directory.display(pad.ownerEmail))", systemImage: "person")
+        }
+    }
+
+    /// Open a pad honoring the user's browser preference: externally when chosen,
+    /// otherwise in a dedicated in-app browser window. The list has no inline
+    /// browser pane of its own, so the in-app case opens a separate window —
+    /// matching the "Open Pad in Browser" menu command.
+    func openPad(_ pad: Pad) {
+        guard let url = pad.webURL else { return }
+        if BrowserSettings.openLinksIn == .external {
+            BrowserSettings.openExternally(url)
+        } else {
+            openWindow(id: "pad-browser", value: url)
+        }
+    }
+
+    func copyToPasteboard(_ text: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+    }
+
+    /// Built-in chips shown ahead of the user's saved searches, mirrored in the
+    /// sidebar's Defaults section.
+    var defaultSearches: [DefaultSearch] {
+        DefaultSearch.padDefaults(me: accounts.currentAccount?.userEmail)
+    }
+
+    @ViewBuilder
+    var savedSearchesBar: some View {
+        let saved = savedSearches.searches(account: accounts.currentAccountID, kind: .pads)
+        let defaults = defaultSearches
+        if !defaults.isEmpty || !saved.isEmpty {
+            // A wrapping flow layout rather than a horizontal scroll, so the chips
+            // reflow onto extra lines as the pane narrows instead of clipping a
+            // long saved-search name off the trailing edge.
+            FlowLayout(spacing: 6, lineSpacing: 6) {
+                ForEach(defaults) { item in
+                    SavedSearchChip(name: item.search.name, systemImage: item.icon,
+                                    isActive: isActiveSearch(item.search)) {
+                        apply(item.search)
+                    }
+                }
+                ForEach(saved) { item in
+                    SavedSearchChip(name: item.name, isActive: isActiveSearch(item)) {
+                        apply(item)
+                    } onDelete: {
+                        if let account = accounts.currentAccountID {
+                            savedSearches.remove(id: item.id, account: account, kind: .pads)
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 12).padding(.top, 6)
+        }
+    }
+
+    /// A quiet count of how many pads are shown, so an aggressively filtered list
+    /// reads as "few matches" rather than "something's broken". Shows the running
+    /// total against the full set while any filter or search is active.
+    @ViewBuilder
+    var resultCountBar: some View {
+        if !pads.isEmpty {
+            let shown = filtered.count
+            let label = (activeFilterCount > 0 || !search.isEmpty)
+                ? "\(shown) of \(pads.count) pads"
+                : "\(shown) \(shown == 1 ? "pad" : "pads")"
+            HStack {
+                Text(label)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 4)
+            .accessibilityLabel("\(shown) pads shown")
+        }
+    }
+
+    var filterBar: some View {
+        // A wrapping flow layout rather than a horizontal scroll, so the chips
+        // reflow onto extra lines as the pane narrows instead of forcing a wide
+        // minimum column width. Each chip reports its own width; because
+        // `FilterBarWidthKey` reduces by `max`, the column floor becomes the
+        // widest single chip, letting the pane be dragged much thinner.
+        FlowLayout(spacing: 8, lineSpacing: 8) {
+            FilterChipMenu(
+                title: "State",
+                icon: "circle.fill",
+                selected: $stateFilter,
+                options: availableStates,
+                formatter: { $0.label }
+            )
+            .measuresFilterBarWidth()
+            FilterChipMenu(
+                title: "Language",
+                icon: "chevron.left.slash.chevron.right",
+                selected: $languageFilter,
+                options: availableLanguages,
+                formatter: { $0.languageDisplayName }
+            )
+            .measuresFilterBarWidth()
+            SearchableFilterChip(
+                title: "Owner",
+                icon: "person",
+                selected: $ownerFilter,
+                options: availableOwners,
+                formatter: { directory.display($0) },
+                meEmail: accounts.currentAccount?.userEmail
+            )
+            .measuresFilterBarWidth()
+            FilterChipMenu(
+                title: "Team",
+                icon: "person.3",
+                selected: $teamFilter,
+                options: availableTeams,
+                formatter: { $0 }
+            )
+            .measuresFilterBarWidth()
+            FilterChipMenu(
+                title: "Type",
+                icon: "tag",
+                selected: $typeFilter,
+                options: InterviewType.allCases.map(\.rawValue),
+                formatter: { InterviewType(rawValue: $0)?.label ?? $0.capitalized }
+            )
+            .measuresFilterBarWidth()
+            DateRangeFilterChip(
+                range: $dateRangeFilter,
+                field: $dateFieldFilter,
+                customStart: $customDateStart,
+                customEnd: $customDateEnd,
+                options: Self.dateRangeOptions
+            )
+            .measuresFilterBarWidth()
+            if activeFilterCount > 0 || !search.isEmpty {
+                Button {
+                    saveSearchName = ""
+                    showSaveSearch = true
+                } label: {
+                    Label("Save…", systemImage: "bookmark")
+                        .labelStyle(.titleAndIcon)
+                }
+                // A link-styled action so it reads as a verb, not another
+                // neutral capsule filter chip sitting in the same bar.
+                .buttonStyle(.link)
+                .controlSize(.small)
+            }
+            if activeFilterCount > 0 {
+                Button(role: .destructive) {
+                    clearAllFilters()
+                } label: {
+                    Label("Clear", systemImage: "xmark.circle.fill")
+                        .labelStyle(.titleAndIcon)
+                }
+                .buttonStyle(.borderless)
+                .controlSize(.small)
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}

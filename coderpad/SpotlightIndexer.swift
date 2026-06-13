@@ -5,8 +5,8 @@
 
 import CoreSpotlight
 import Foundation
-import UniformTypeIdentifiers
 import os.log
+import UniformTypeIdentifiers
 
 /// Optionally mirrors the user's pads and questions into the on-device Spotlight
 /// index so they're findable system-wide. **Opt-in** (off by default, gated on
@@ -22,7 +22,9 @@ enum SpotlightIndexer {
     private static let padPrefix = "pad:"
     private static let questionPrefix = "question:"
 
-    private static func domain(_ account: UUID) -> String { account.uuidString }
+    private static func domain(_ account: UUID) -> String {
+        account.uuidString
+    }
 
     /// Indexes (or re-indexes) the account's pads. No-op unless the user enabled it.
     static func updatePads(_ pads: [Pad], account: UUID) {
@@ -46,7 +48,7 @@ enum SpotlightIndexer {
             let attrs = CSSearchableItemAttributeSet(contentType: .text)
             attrs.title = question.title.isEmpty ? "#\(question.id)" : question.title
             attrs.contentDescription = [question.language, question.authorName]
-                .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: " · ")
+                .compactMap(\.self).filter { !$0.isEmpty }.joined(separator: " · ")
             return CSSearchableItem(uniqueIdentifier: questionPrefix + String(question.id),
                                     domainIdentifier: domain(account),
                                     attributeSet: attrs)

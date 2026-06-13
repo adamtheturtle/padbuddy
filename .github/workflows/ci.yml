@@ -12,6 +12,41 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Lint the workflow files themselves: catches invalid syntax, bad expressions,
+  # and (via the runner's preinstalled shellcheck) bugs in embedded `run:`
+  # scripts. Runs on Linux — cheap, and unrelated to the macOS build.
+  actionlint:
+    name: Lint workflows
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run actionlint
+        # Pin the version for reproducibility; the download script is fetched at
+        # the matching tag rather than from main.
+        env:
+          ACTIONLINT_VERSION: 1.7.12
+        run: |
+          set -euo pipefail
+          bash <(curl -sSf "https://raw.githubusercontent.com/rhysd/actionlint/v${ACTIONLINT_VERSION}/scripts/download-actionlint.bash") "$ACTIONLINT_VERSION"
+          ./actionlint -color
+
+  # Lint the standalone shell scripts. actionlint only covers shell embedded in
+  # workflow `run:` blocks, so the scripts under scripts/ and ci_scripts/ would
+  # otherwise go unchecked. shellcheck is preinstalled on the runner.
+  shellcheck:
+    name: Lint shell scripts
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run shellcheck
+        run: shellcheck scripts/*.sh ci_scripts/*.sh
+
   test:
     name: Build & Test
     # macos-26 is the newest hosted image; it ships Xcode 26.x, which honors
@@ -33,6 +68,17 @@ jobs:
 
       - name: Show available SDKs
         run: xcodebuild -showsdks
+
+      # Swift linting (SwiftLint + SwiftFormat) is configured in .swiftlint.yml
+      # and .swiftformat but not yet gated here: the codebase needs a one-time
+      # cleanup pass (`swiftlint --fix` + manual fixes + `swiftformat .`) to reach
+      # a strict-clean baseline first. Doing that now would collide with other
+      # in-flight Swift edits. Enable the step below once that lands:
+      #
+      #   - name: SwiftLint
+      #     run: swiftlint lint --strict --reporter github-actions-logging
+      #   - name: SwiftFormat (lint)
+      #     run: swiftformat . --lint --reporter github-actions-log
 
       # Cache DerivedData (build intermediates, module cache) to speed up
       # incremental builds. Keyed on the project + sources so it invalidates

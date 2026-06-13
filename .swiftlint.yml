@@ -1,0 +1,21 @@
+# SwiftLint configuration.
+#
+# Uses SwiftLint's default rule set (nothing disabled). The intended CI gate is
+# `swiftlint --strict`, where any violation fails the build.
+#
+# NOTE: not yet enforced in CI. The codebase currently has ~270 violations under
+# this config; reaching a strict-clean baseline needs a one-time cleanup pass
+# (`swiftlint --fix` clears ~77; the rest are manual identifier renames, line
+# wraps, and file/function refactors). Run that on its own — ideally batched with
+# the SwiftFormat reformat — then uncomment the SwiftLint step in
+# .github/workflows/ci.yml.
+
+included:
+  - coderpad
+  - coderpadTests
+  - coderpadUITests
+
+excluded:
+  - cmark-gfm        # vendored C library
+  - build_release    # SPM checkouts / build output
+  - DerivedData

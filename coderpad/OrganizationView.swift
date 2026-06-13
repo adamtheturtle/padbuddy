@@ -14,15 +14,17 @@ enum StatsPeriod: String, CaseIterable, Identifiable {
     case months12 = "Last 12 months"
     case custom = "Custom range"
 
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
 
     private var days: Int? {
         switch self {
-        case .days7: return 7
-        case .days30: return 30
-        case .days90: return 90
-        case .months12: return 365
-        case .custom: return nil
+        case .days7: 7
+        case .days30: 30
+        case .days90: 90
+        case .months12: 365
+        case .custom: nil
         }
     }
 
@@ -60,7 +62,7 @@ struct OrganizationView: View {
 
     var body: some View {
         Group {
-            if isLoading && organization == nil {
+            if isLoading, organization == nil {
                 ProgressView("Loading organization…")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let error, organization == nil {
@@ -179,14 +181,14 @@ struct OrganizationView: View {
                 LabeledRow(label: "To", value: stats?.endTime
                     .map { $0.formatted(date: .abbreviated, time: .shortened) } ?? "…")
                 LabeledRow(label: "Pads created", value: stats.map { "\($0.padsCreated)" } ?? "…")
-                if let q = quota {
-                    if let reset = q.quotaReset {
+                if let quota {
+                    if let reset = quota.quotaReset {
                         LabeledRow(label: "Quota resets", value: reset.formatted(date: .abbreviated, time: .shortened))
                     }
-                    if let trial = q.trialExpiresAt {
+                    if let trial = quota.trialExpiresAt {
                         LabeledRow(label: "Trial expires", value: trial.formatted(date: .abbreviated, time: .shortened))
                     }
-                    LabeledRow(label: "Overages", value: q.overagesEnabled == true ? "Enabled" : "Disabled")
+                    LabeledRow(label: "Overages", value: quota.overagesEnabled == true ? "Enabled" : "Disabled")
                 }
                 if let supported = organization?.singleSignOnSupported {
                     LabeledRow(label: "Single sign-on", value: supported ? "Enabled" : "Disabled")
@@ -254,7 +256,9 @@ struct OrganizationView: View {
     private func filteredUsers(_ org: Organization) -> [OrganizationUser] {
         let lowered = userSearch.lowercased()
         guard !lowered.isEmpty else { return org.users }
-        return org.users.filter { ($0.name ?? "").lowercased().contains(lowered) || $0.email.lowercased().contains(lowered) }
+        return org.users.filter {
+            ($0.name ?? "").lowercased().contains(lowered) || $0.email.lowercased().contains(lowered)
+        }
     }
 
     private func reload() async {
@@ -264,13 +268,13 @@ struct OrganizationView: View {
         defer { isLoading = false }
         let window = window
         do {
-            async let o = client.organization()
-            async let s = client.organizationStats(start: window.start, end: window.end)
-            async let q = client.quota()
-            let fetchedOrg = try await o
+            async let orgFetch = client.organization()
+            async let statsFetch = client.organizationStats(start: window.start, end: window.end)
+            async let quotaFetch = client.quota()
+            let fetchedOrg = try await orgFetch
             organization = fetchedOrg
-            stats = try? await s
-            let fetchedQuota = try? await q
+            stats = try? await statsFetch
+            let fetchedQuota = try? await quotaFetch
             quota = fetchedQuota
             // Warm the shared caches so re-entering Organization — or visiting
             // the Quota section — shows data instantly instead of a spinner.
