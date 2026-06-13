@@ -221,7 +221,8 @@ extension CoderPadClient {
     private nonisolated static func isTransient(_ error: Error) -> Bool {
         if let api = error as? CoderPadError {
             if case let .http(code, _) = api {
-                return (500 ... 599).contains(code) || code == 429 || code == 0
+                // 408 Request Timeout is retry-worthy for the same reason as 5xx/429.
+                return (500 ... 599).contains(code) || code == 429 || code == 408 || code == 0
             }
             if case let .network(urlError) = api {
                 return [.timedOut, .networkConnectionLost, .cannotConnectToHost].contains(urlError.code)
