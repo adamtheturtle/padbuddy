@@ -242,8 +242,8 @@ struct CoderpadApp: App {
                     guard let id = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String else { return }
                     if let padID = SpotlightIndexer.padID(fromItemIdentifier: id) {
                         AppNavigation.shared.openPad(id: padID)
-                    } else if SpotlightIndexer.isQuestion(itemIdentifier: id) {
-                        AppNavigation.shared.show(.questions)
+                    } else if let questionID = SpotlightIndexer.questionID(fromItemIdentifier: id) {
+                        AppNavigation.shared.showFavoriteQuestion(id: questionID)
                     }
                 }
                 // Open a pad tapped in the Recent Pads widget (coderpad://pad/<id>).

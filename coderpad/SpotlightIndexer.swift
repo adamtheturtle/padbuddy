@@ -125,4 +125,11 @@ enum SpotlightIndexer {
     static func isQuestion(itemIdentifier id: String) -> Bool {
         id.hasPrefix(questionPrefix)
     }
+
+    /// The question id encoded in a Spotlight result identifier, or `nil` if it
+    /// isn't a question.
+    static func questionID(fromItemIdentifier id: String) -> Int? {
+        guard id.hasPrefix(questionPrefix) else { return nil }
+        return Int(id.dropFirst(questionPrefix.count))
+    }
 }
