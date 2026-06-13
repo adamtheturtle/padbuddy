@@ -104,7 +104,7 @@ struct RecentPadsWidgetEntryView: View {
                 Spacer(minLength: 0)
                 HStack(spacing: 6) {
                     if let language = first.languageLabel {
-                        LanguageBadge(text: language)
+                        LanguageBadge(text: language, tint: languageTint(for: first.language))
                     }
                     Spacer(minLength: 0)
                     if let updated = first.relativeUpdated {
@@ -164,7 +164,7 @@ private struct RecentPadRow: View {
             Spacer(minLength: 0)
             VStack(alignment: .trailing, spacing: 2) {
                 if let language = pad.languageLabel {
-                    LanguageBadge(text: language)
+                    LanguageBadge(text: language, tint: languageTint(for: pad.language))
                 }
                 if let updated = pad.relativeUpdated {
                     Text(updated)
@@ -178,18 +178,45 @@ private struct RecentPadRow: View {
     }
 }
 
-/// A compact language pill, mirroring the app's accent-tinted `Chip`.
+/// A compact language pill, mirroring the app's `Chip`. The tint is chosen per
+/// language so the user can tell a Python pad from a Go one at a glance.
 private struct LanguageBadge: View {
     let text: String
+    var tint: Color = .accentColor
 
     var body: some View {
         Text(text)
             .font(.caption2.weight(.semibold))
             .padding(.horizontal, 6)
             .padding(.vertical, 2)
-            .background(Color.accentColor.opacity(0.16), in: Capsule())
-            .foregroundStyle(Color.accentColor)
-            .overlay(Capsule().stroke(Color.accentColor.opacity(0.25), lineWidth: 0.5))
+            .background(tint.opacity(0.16), in: Capsule())
+            .foregroundStyle(tint)
+            .overlay(Capsule().stroke(tint.opacity(0.25), lineWidth: 0.5))
+    }
+}
+
+/// A minimal language→color map, duplicated locally so the widget target stays
+/// dependency-free (it can't import the app's `SyntaxHighlighting`). Colors are
+/// chosen to stay legible as both the capsule tint and its text; an unknown
+/// language falls back to the accent color, preserving the prior look. Grouped
+/// aliases share a hue so, e.g., every Python variant reads the same.
+private func languageTint(for language: String?) -> Color {
+    switch language?.lowercased() {
+    case "python", "python2", "python3": return .blue
+    case "javascript", "node", "node.js", "nodejs": return .orange
+    case "typescript": return .blue
+    case "swift": return .orange
+    case "go", "golang": return .teal
+    case "rust": return .red
+    case "java": return .red
+    case "kotlin": return .purple
+    case "ruby": return .pink
+    case "c", "cpp", "c++": return .indigo
+    case "csharp", "c#": return .green
+    case "php": return .indigo
+    case "html", "css": return .pink
+    case "sql", "mysql", "postgresql", "postgres": return .teal
+    default: return .accentColor
     }
 }
 
