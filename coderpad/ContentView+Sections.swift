@@ -70,8 +70,9 @@ struct SectionDetail: View {
                 ContentUnavailableView("Select a pad", systemImage: "doc.text")
             }
         case .questions:
-            if let question = questionSelection, let client = questionClient(for: question) {
-                QuestionDetailView(client: client, question: question).id(questionDetailID(for: question))
+            if let question = questionSelection, let account = questionAccount(for: question) {
+                QuestionDetailView(client: account.makeClient(), question: question, accountID: account.id)
+                    .id(questionDetailID(for: question))
             } else {
                 ContentUnavailableView("Select a question", systemImage: "questionmark.bubble")
             }
@@ -91,17 +92,17 @@ struct SectionDetail: View {
         return store.currentAccount?.makeClient()
     }
 
-    private func questionClient(for question: Question) -> CoderPadClient? {
+    /// The account a selected question belongs to. Per-org question ids collide
+    /// across accounts, so in the combined view prefer the account the list
+    /// published for the *selected* question; fall back to the (collision-prone)
+    /// id map, then the first merged account.
+    private func questionAccount(for question: Question) -> Account? {
         if store.isMergedView {
-            // Per-org question ids collide across accounts, so prefer the account
-            // the combined list published for the *selected* question; fall back to
-            // the (collision-prone) id map, then the first merged account.
-            let account = router.selectedQuestionAccountID.flatMap { id in store.accounts.first { $0.id == id } }
+            return router.selectedQuestionAccountID.flatMap { id in store.accounts.first { $0.id == id } }
                 ?? router.account(forQuestionID: question.id)
                 ?? store.mergeableAccounts.first
-            return account?.makeClient()
         }
-        return store.currentAccount?.makeClient()
+        return store.currentAccount
     }
 
     /// The detail view's identity. Namespaced by the selected account in the

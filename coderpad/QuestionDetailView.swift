@@ -8,6 +8,10 @@ import SwiftUI
 struct QuestionDetailView: View {
     let client: CoderPadClient
     let question: Question
+    /// The account this question belongs to, so edit/delete notifications can be
+    /// scoped to it — per-org question ids collide across accounts in the combined
+    /// view. `nil` when unknown (consumers then fall back to id-only matching).
+    var accountID: UUID?
     @Environment(\.openWindow) var openWindow
     @Environment(\.orgDirectory) var directory
     @State private var nav = AppNavigation.shared
@@ -87,7 +91,8 @@ struct QuestionDetailView: View {
         .toolbar(id: "question.detail.toolbar") { detailToolbar }
         .sheet(isPresented: $showEdit) {
             EditQuestionSheet(client: client, original: question) { updated in
-                NotificationCenter.default.post(name: .questionUpdated, object: updated)
+                NotificationCenter.default.post(name: .questionUpdated, object: updated,
+                                                userInfo: accountUserInfo)
                 showEdit = false
             } onCancel: { showEdit = false }
         }
@@ -149,7 +154,8 @@ struct QuestionDetailView: View {
     private func performDelete() async {
         do {
             try await client.deleteQuestion(id: question.id)
-            NotificationCenter.default.post(name: .questionDeleted, object: question.id)
+            NotificationCenter.default.post(name: .questionDeleted, object: question.id,
+                                            userInfo: accountUserInfo)
         } catch {
             deleteError = error.localizedDescription
         }
@@ -223,6 +229,13 @@ struct QuestionDetailView: View {
         guard nav.deleteQuestionID == question.id else { return }
         nav.deleteQuestionID = nil
         showDeleteConfirm = true
+    }
+
+    /// The `userInfo` attached to edit/delete notifications, carrying the owning
+    /// account so combined-view consumers scope the change correctly. Empty when
+    /// the account is unknown.
+    private var accountUserInfo: [AnyHashable: Any]? {
+        accountID.map { [QuestionNotificationKey.account: $0] }
     }
 
     /// Creates a pad from this question and browses it inline in this pane. Used by

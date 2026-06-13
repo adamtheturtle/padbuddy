@@ -37,6 +37,15 @@ extension Notification.Name {
     static let bulkMakePrivateRequested = Notification.Name("coderpad.bulkMakePrivateRequested")
 }
 
+/// `userInfo` keys for the question mutation notifications.
+enum QuestionNotificationKey {
+    /// The owning account's `UUID`, so combined-view consumers scope a
+    /// `.questionUpdated` / `.questionDeleted` to the right account when two
+    /// accounts share a per-org question id. Absent means "account unknown" and
+    /// consumers fall back to their prior, id-only behavior.
+    static let account = "coderpad.account"
+}
+
 /// A one-shot request for the Pads pane to apply when it next appears. Unlike a
 /// transient notification, it survives until the destination view actually mounts
 /// and consumes it — so "switch to Pads, then filter/search/create" works even

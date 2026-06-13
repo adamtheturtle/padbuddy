@@ -84,8 +84,11 @@ struct QuestionsView: View {
                 )
             }
             .task {
-                for await question in NotificationCenter.default.notifications(named: .questionUpdated)
-                    .compactMap({ $0.object as? Question }) {
+                for await note in NotificationCenter.default.notifications(named: .questionUpdated) {
+                    guard let question = note.object as? Question else { continue }
+                    // Per-org ids collide across accounts, so ignore a mutation the
+                    // poster scoped to a different account than this view shows.
+                    guard scopedToThisAccount(note) else { continue }
                     if let index = questions.firstIndex(where: { $0.id == question.id }) {
                         questions[index] = question
                         if selection?.id == question.id { selection = question }
@@ -93,8 +96,8 @@ struct QuestionsView: View {
                 }
             }
             .task {
-                for await id in NotificationCenter.default.notifications(named: .questionDeleted)
-                    .compactMap({ $0.object as? Int }) {
+                for await note in NotificationCenter.default.notifications(named: .questionDeleted) {
+                    guard let id = note.object as? Int, scopedToThisAccount(note) else { continue }
                     // Move to a neighbor before dropping the row so deleting the
                     // open question keeps the detail pane populated. Computed while
                     // `questions` still holds the deleted row.
@@ -102,7 +105,7 @@ struct QuestionsView: View {
                     questions.removeAll { $0.id == id }
                     // Keep the disk cache and Spotlight index in step; otherwise the
                     // deleted question lingers there until a full reload.
-                    cache.removeQuestion(id: id)
+                    cache.removeQuestion(id: id, account: accounts.currentAccountID)
                 }
             }
             .onAppear {
@@ -234,6 +237,8 @@ struct QuestionsTaskKey: Hashable {
 enum QuestionSort: String, CaseIterable, Identifiable {
     case lastUsedDesc
     case lastUsedAsc
+    case usedDesc
+    case usedAsc
     case titleAsc
     case titleDesc
 
@@ -249,6 +254,8 @@ enum QuestionSort: String, CaseIterable, Identifiable {
         switch self {
         case .lastUsedDesc: "Last used (newest first)"
         case .lastUsedAsc: "Last used (oldest first)"
+        case .usedDesc: "Most used"
+        case .usedAsc: "Least used"
         case .titleAsc: "Title (A-Z)"
         case .titleDesc: "Title (Z-A)"
         }

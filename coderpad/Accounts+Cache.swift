@@ -164,11 +164,15 @@ final class QuestionsCacheStore {
 
     /// Drop a single deleted question from the cache so it stops appearing in
     /// Spotlight — re-indexing only adds/updates, so the deleted row needs an
-    /// explicit removal. Per-org ids aren't unique across accounts, so every
-    /// account that holds the id is updated.
-    func removeQuestion(id questionID: Int) {
+    /// explicit removal. Per-org ids aren't unique across accounts, so when the
+    /// owning `account` is known only that account is touched; otherwise every
+    /// account holding the id is updated (the prior, id-only behavior).
+    func removeQuestion(id questionID: Int, account: UUID? = nil) {
         SpotlightIndexer.removeQuestion(id: questionID)
-        for (accountID, questions) in questionsByAccount where questions.contains(where: { $0.id == questionID }) {
+        let targets = account.map { [$0] } ?? Array(questionsByAccount.keys)
+        for accountID in targets {
+            guard let questions = questionsByAccount[accountID],
+                  questions.contains(where: { $0.id == questionID }) else { continue }
             let reduced = questions.filter { $0.id != questionID }
             questionsByAccount[accountID] = reduced
             writeQueue.enqueue {

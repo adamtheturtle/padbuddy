@@ -52,6 +52,10 @@ extension QuestionsView {
             return items.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
         case .lastUsedAsc:
             return items.sorted { ($0.updatedAt ?? .distantPast) < ($1.updatedAt ?? .distantPast) }
+        case .usedDesc:
+            return items.sorted { ($0.used ?? 0) > ($1.used ?? 0) }
+        case .usedAsc:
+            return items.sorted { ($0.used ?? 0) < ($1.used ?? 0) }
         }
     }
 
@@ -66,6 +70,15 @@ extension QuestionsView {
         if visible.indices.contains(index + 1) { return visible[index + 1] }
         if visible.indices.contains(index - 1) { return visible[index - 1] }
         return nil
+    }
+
+    /// Whether a question mutation notification applies to this single-account view:
+    /// true when it carries no account (legacy) or names this view's account. Per-org
+    /// ids collide across accounts, so a bare id from another account must not mutate
+    /// this list.
+    func scopedToThisAccount(_ note: Notification) -> Bool {
+        guard let account = note.userInfo?[QuestionNotificationKey.account] as? UUID else { return true }
+        return account == accounts.currentAccountID
     }
 
     var availableLanguages: [String] {

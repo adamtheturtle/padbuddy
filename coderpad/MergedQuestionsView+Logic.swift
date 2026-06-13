@@ -90,6 +90,14 @@ extension MergedQuestionsView {
             sortedCache.rows = filtered.sorted {
                 ($0.item.updatedAt ?? .distantPast) < ($1.item.updatedAt ?? .distantPast)
             }
+        case .usedDesc:
+            sortedCache.rows = filtered.sorted {
+                ($0.item.used ?? 0) > ($1.item.used ?? 0)
+            }
+        case .usedAsc:
+            sortedCache.rows = filtered.sorted {
+                ($0.item.used ?? 0) < ($1.item.used ?? 0)
+            }
         }
     }
 
@@ -240,8 +248,11 @@ extension MergedQuestionsView {
 
     // MARK: - Mutations
 
-    func applyUpdated(_ question: Question) {
-        guard let accountID = router.questionAccountID[question.id],
+    /// Apply an edited question to its account's list. `account` is the owning
+    /// account from the notification; it disambiguates a per-org id collision. When
+    /// absent, fall back to the (collision-prone) routing map as before.
+    func applyUpdated(_ question: Question, account: UUID? = nil) {
+        guard let accountID = account ?? router.questionAccountID[question.id],
               var questions = questionsByAccount[accountID],
               let index = questions.firstIndex(where: { $0.id == question.id }) else { return }
         questions[index] = question
@@ -249,9 +260,13 @@ extension MergedQuestionsView {
         if selection?.id == question.id { selection = question }
     }
 
-    func removeQuestion(id: Int) {
-        for (accountID, questions) in questionsByAccount where questions.contains(where: { $0.id == id }) {
-            questionsByAccount[accountID] = questions.filter { $0.id != id }
+    /// Remove a deleted question. With a known `account`, only that account's copy
+    /// is dropped, so a colliding id in another account is left intact; without it,
+    /// every account holding the id is updated (the prior behavior).
+    func removeQuestion(id: Int, account: UUID? = nil) {
+        let targets = account.map { [$0] } ?? Array(questionsByAccount.keys)
+        for accountID in targets where questionsByAccount[accountID]?.contains(where: { $0.id == id }) == true {
+            questionsByAccount[accountID] = questionsByAccount[accountID]?.filter { $0.id != id }
         }
         publishRoutes()
     }

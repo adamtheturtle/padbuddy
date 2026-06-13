@@ -35,23 +35,25 @@ extension MergedQuestionsView {
             }
             .onChange(of: selectedRowID) { _, newID in selectRow(newID) }
             .task {
-                for await question in NotificationCenter.default.notifications(named: .questionUpdated)
-                    .compactMap({ $0.object as? Question }) {
-                    applyUpdated(question)
+                for await note in NotificationCenter.default.notifications(named: .questionUpdated) {
+                    guard let question = note.object as? Question else { continue }
+                    applyUpdated(question, account: note.userInfo?[QuestionNotificationKey.account] as? UUID)
                 }
             }
             .task {
-                for await id in NotificationCenter.default.notifications(named: .questionDeleted)
-                    .compactMap({ $0.object as? Int }) {
-                    // If the open (selected) row is the deleted question, move to a
-                    // neighbor before dropping the row so the detail pane stays
-                    // populated. Computed while `sorted` still holds the deleted row.
-                    if let current = selectedRowID, row(forRowID: current)?.item.id == id {
+                for await note in NotificationCenter.default.notifications(named: .questionDeleted) {
+                    guard let id = note.object as? Int else { continue }
+                    let account = note.userInfo?[QuestionNotificationKey.account] as? UUID
+                    // If the open (selected) row is the deleted question — matched by
+                    // account too, since per-org ids collide — move to a neighbor
+                    // before dropping the row. Computed while `sorted` still holds it.
+                    if let current = selectedRowID, let selected = row(forRowID: current),
+                       selected.item.id == id, account == nil || selected.account.id == account {
                         selectedRowID = neighborRowID(forDeletedRowID: current)
                     }
-                    removeQuestion(id: id)
+                    removeQuestion(id: id, account: account)
                     // Keep the disk cache and Spotlight index in step.
-                    cache.removeQuestion(id: id)
+                    cache.removeQuestion(id: id, account: account)
                 }
             }
             .task {

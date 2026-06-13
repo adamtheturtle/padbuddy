@@ -96,7 +96,6 @@ extension PadsView {
                     PaneTitle(title: "Pads")
                     savedSearchesBar
                     filterBar
-                    resultCountBar
                     Divider()
                     padCollection
                 }
@@ -306,28 +305,6 @@ extension PadsView {
                 }
             }
             .padding(.horizontal, 12).padding(.top, 6)
-        }
-    }
-
-    /// A quiet count of how many pads are shown, so an aggressively filtered list
-    /// reads as "few matches" rather than "something's broken". Shows the running
-    /// total against the full set while any filter or search is active.
-    @ViewBuilder
-    var resultCountBar: some View {
-        if !pads.isEmpty {
-            let shown = filtered.count
-            let label = (activeFilterCount > 0 || !search.isEmpty)
-                ? "\(shown) of \(pads.count) pads"
-                : "\(shown) \(shown == 1 ? "pad" : "pads")"
-            HStack {
-                Text(label)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Spacer()
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 4)
-            .accessibilityLabel("\(shown) pads shown")
         }
     }
 

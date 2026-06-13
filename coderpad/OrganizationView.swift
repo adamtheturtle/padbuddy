@@ -80,6 +80,9 @@ struct OrganizationView: View {
                             header
                             statTiles
                             if organization != nil { activitySection(stats) }
+                            if let supported = organization?.singleSignOnSupported {
+                                singleSignOnSection(supported)
+                            }
                             if let organization { usersSection(organization) }
                         }
                         .padding(.horizontal, Spacing.paneH)
@@ -185,19 +188,26 @@ struct OrganizationView: View {
                 LabeledRow(label: "To", value: stats?.endTime
                     .map { $0.formatted(date: .abbreviated, time: .shortened) } ?? "…")
                 LabeledRow(label: "Pads created", value: stats.map { "\($0.padsCreated)" } ?? "…")
-                if let supported = organization?.singleSignOnSupported {
-                    LabeledRow(label: "Single sign-on", value: supported ? "Enabled" : "Disabled")
-                    if supported, let urlString = organization?.singleSignInURL,
-                       let url = URL(string: urlString) {
-                        // Always the system browser, never the in-app web view: SSO
-                        // sign-in relies on the user's real browser session and
-                        // password manager.
-                        Button { BrowserSettings.openExternally(url) } label: {
-                            Label("Open sign-in portal", systemImage: "arrow.up.forward.app")
-                                .font(.callout)
-                        }
-                        .buttonStyle(.link)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func singleSignOnSection(_ supported: Bool) -> some View {
+        Card {
+            VStack(alignment: .leading, spacing: 10) {
+                SectionHeader(title: "Single sign-on", systemImage: "key.horizontal")
+                LabeledRow(label: "Single sign-on", value: supported ? "Enabled" : "Disabled")
+                if supported, let urlString = organization?.singleSignInURL,
+                   let url = URL(string: urlString) {
+                    // Always the system browser, never the in-app web view: SSO
+                    // sign-in relies on the user's real browser session and
+                    // password manager.
+                    Button { BrowserSettings.openExternally(url) } label: {
+                        Label("Open sign-in portal", systemImage: "arrow.up.forward.app")
+                            .font(.callout)
                     }
+                    .buttonStyle(.link)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
