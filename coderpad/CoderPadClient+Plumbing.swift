@@ -211,8 +211,9 @@ extension CoderPadClient {
                     retry \(attempt)/\(maxAttempts - 1)
                     """
                 )
-                // 300ms, then 600ms
-                try? await Task.sleep(for: .milliseconds(300 * (1 << (attempt - 1))))
+                // 300ms, then 600ms. Let cancellation propagate so a torn-down
+                // stream stops here rather than issuing another request.
+                try await Task.sleep(for: .milliseconds(300 * (1 << (attempt - 1))))
             }
         }
     }
