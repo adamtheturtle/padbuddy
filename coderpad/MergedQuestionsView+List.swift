@@ -48,8 +48,10 @@ extension MergedQuestionsView {
             .task {
                 for await id in NotificationCenter.default.notifications(named: .questionDeleted)
                     .compactMap({ $0.object as? Int }) {
+                    // Move to a neighbor before dropping the row so deleting the
+                    // open question keeps the detail pane populated, matching pads.
+                    if selection?.id == id { selection = neighborSelection(forDeletedQuestion: id) }
                     removeQuestion(id: id)
-                    if selection?.id == id { selection = nil }
                 }
             }
             .task {

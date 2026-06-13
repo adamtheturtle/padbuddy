@@ -55,6 +55,19 @@ extension QuestionsView {
         }
     }
 
+    /// The question to select after the question with `id` is deleted: the next
+    /// visible row, then the previous, mirroring `PadsView.neighborSelection`, so
+    /// deleting the open question keeps the detail pane populated instead of
+    /// snapping to the empty placeholder. Resolved against `sorted` — the list the
+    /// user actually sees.
+    func neighborSelection(forDeletedQuestion id: Int) -> Question? {
+        let visible = sorted
+        guard let index = visible.firstIndex(where: { $0.id == id }) else { return visible.first }
+        if visible.indices.contains(index + 1) { return visible[index + 1] }
+        if visible.indices.contains(index - 1) { return visible[index - 1] }
+        return nil
+    }
+
     var availableLanguages: [String] {
         Array(Set(questions.compactMap { $0.language?.lowercased() }).filter { !$0.isEmpty }).sorted()
     }

@@ -85,6 +85,17 @@ extension MergedQuestionsView {
         return nil
     }
 
+    /// The question to select after the question with `id` is deleted: the next
+    /// visible row, then the previous, mirroring `MergedPadsView.neighborSelection`,
+    /// so deleting the open question keeps the detail pane populated.
+    func neighborSelection(forDeletedQuestion id: Int) -> Question? {
+        let visible = sorted.map(\.item)
+        guard let index = visible.firstIndex(where: { $0.id == id }) else { return visible.first }
+        if visible.indices.contains(index + 1) { return visible[index + 1] }
+        if visible.indices.contains(index - 1) { return visible[index - 1] }
+        return nil
+    }
+
     // MARK: - Options
 
     var availableLanguages: [String] {
