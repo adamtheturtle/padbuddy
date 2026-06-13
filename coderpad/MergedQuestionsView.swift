@@ -25,7 +25,10 @@ struct MergedQuestionsView: View {
     @State var isLoading = false
 
     @Binding var selection: Question?
-    @State var selectedQuestionID: Int?
+    /// The List's selection, keyed by the account-namespaced row id
+    /// (`AccountScoped.id`) rather than the bare per-org question id, which two
+    /// accounts routinely share. Bridged to the `Question` `selection` below.
+    @State var selectedRowID: String?
     @Binding var search: String
 
     @State var languageFilter: String?

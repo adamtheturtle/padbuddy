@@ -20,10 +20,17 @@ final class MergedRouting {
     /// pad id -> owning account id. Pad ids are CoderPad slugs (globally unique), so
     /// this is unambiguous across accounts.
     private(set) var padAccountID: [String: UUID] = [:]
-    /// question id -> owning account id. Question ids are global database ids, so a
-    /// collision across orgs is not expected; if one ever occurred, the
-    /// last-published account wins.
+    /// question id -> owning account id. Question ids are numbered **per org**, so
+    /// two accounts routinely share the same id; this map collapses on collision
+    /// (last-published account wins). Disambiguation for the *selected* question
+    /// therefore goes through `selectedQuestionAccountID`, set by the combined list.
     private(set) var questionAccountID: [Int: UUID] = [:]
+
+    /// The account of the currently-selected merged question. Set by the combined
+    /// questions list as its selection changes (it knows each row's source
+    /// account), so the detail pane routes to the right client even when two
+    /// accounts share a per-org question id.
+    var selectedQuestionAccountID: UUID?
 
     /// Replace the pad routing map with the accounts that own the currently merged
     /// pads. Replacing (rather than merging) keeps the map from growing without

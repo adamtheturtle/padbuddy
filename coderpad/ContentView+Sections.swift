@@ -71,7 +71,7 @@ struct SectionDetail: View {
             }
         case .questions:
             if let question = questionSelection, let client = questionClient(for: question) {
-                QuestionDetailView(client: client, question: question).id(question.id)
+                QuestionDetailView(client: client, question: question).id(questionDetailID(for: question))
             } else {
                 ContentUnavailableView("Select a question", systemImage: "questionmark.bubble")
             }
@@ -93,8 +93,24 @@ struct SectionDetail: View {
 
     private func questionClient(for question: Question) -> CoderPadClient? {
         if store.isMergedView {
-            return (router.account(forQuestionID: question.id) ?? store.mergeableAccounts.first)?.makeClient()
+            // Per-org question ids collide across accounts, so prefer the account
+            // the combined list published for the *selected* question; fall back to
+            // the (collision-prone) id map, then the first merged account.
+            let account = router.selectedQuestionAccountID.flatMap { id in store.accounts.first { $0.id == id } }
+                ?? router.account(forQuestionID: question.id)
+                ?? store.mergeableAccounts.first
+            return account?.makeClient()
         }
         return store.currentAccount?.makeClient()
+    }
+
+    /// The detail view's identity. Namespaced by the selected account in the
+    /// combined view so switching between two accounts' questions that share a
+    /// per-org id recreates the detail pane instead of reusing stale state.
+    private func questionDetailID(for question: Question) -> String {
+        if store.isMergedView, let account = router.selectedQuestionAccountID {
+            return "\(account.uuidString):\(question.id)"
+        }
+        return String(question.id)
     }
 }

@@ -25,10 +25,17 @@ extension MergedQuestionsView {
         var rows: [AccountScoped<Question>] = []
         for account in accounts.mergeableAccounts {
             for question in questionsByAccount[account.id] ?? [] {
-                rows.append(AccountScoped(account: account, item: question, id: String(question.id)))
+                rows.append(AccountScoped(account: account, item: question,
+                                          id: Self.rowID(account: account.id, question: question.id)))
             }
         }
         scopedCache.rows = rows
+    }
+
+    /// The account-namespaced row id used for selection and `ForEach` identity.
+    /// Per-org question ids collide across accounts, so the id alone isn't unique.
+    static func rowID(account: UUID, question: Int) -> String {
+        "\(account.uuidString):\(question)"
     }
 
     /// Filtered rows arranged by the active sort, matching `QuestionsView.sorted`.
@@ -102,22 +109,46 @@ extension MergedQuestionsView {
         accounts.mergeableAccounts.contains { !favorites.favorites(account: $0.id).isEmpty }
     }
 
-    func question(forID id: Int) -> Question? {
-        for questions in questionsByAccount.values {
-            if let match = questions.first(where: { $0.id == id }) { return match }
-        }
+    /// The scoped row for a namespaced row id, used to resolve the List selection
+    /// back to a specific account's question (not just the first id match).
+    func row(forRowID rowID: String) -> AccountScoped<Question>? {
+        scoped.first { $0.id == rowID }
+    }
+
+    /// The row to select after the row with `rowID` is deleted: the next visible
+    /// row, then the previous, mirroring `MergedPadsView.neighborSelection`, so
+    /// deleting the open question keeps the detail pane populated. Returns a
+    /// namespaced row id since selection is keyed by row, not bare question id.
+    func neighborRowID(forDeletedRowID rowID: String) -> String? {
+        let visible = sorted
+        guard let index = visible.firstIndex(where: { $0.id == rowID }) else { return visible.first?.id }
+        if visible.indices.contains(index + 1) { return visible[index + 1].id }
+        if visible.indices.contains(index - 1) { return visible[index - 1].id }
         return nil
     }
 
-    /// The question to select after the question with `id` is deleted: the next
-    /// visible row, then the previous, mirroring `MergedPadsView.neighborSelection`,
-    /// so deleting the open question keeps the detail pane populated.
-    func neighborSelection(forDeletedQuestion id: Int) -> Question? {
-        let visible = sorted.map(\.item)
-        guard let index = visible.firstIndex(where: { $0.id == id }) else { return visible.first }
-        if visible.indices.contains(index + 1) { return visible[index + 1] }
-        if visible.indices.contains(index - 1) { return visible[index - 1] }
-        return nil
+    /// Bridge a List selection change to the `Question` binding and publish the
+    /// row's source account so the detail pane routes to the right client. A nil id
+    /// clears the selection; a non-nil id that doesn't resolve yet (e.g. a row
+    /// inserted this render) is left untouched so it isn't transiently blanked.
+    func selectRow(_ rowID: String?) {
+        guard let rowID else {
+            selection = nil
+            router.selectedQuestionAccountID = nil
+            return
+        }
+        guard let scopedRow = row(forRowID: rowID) else { return }
+        selection = scopedRow.item
+        router.selectedQuestionAccountID = scopedRow.account.id
+    }
+
+    /// Select a specific scoped row (from a context menu or a freshly inserted
+    /// question), keeping the List selection, the `Question` binding, and the
+    /// routed account in step.
+    func select(_ scopedRow: AccountScoped<Question>) {
+        router.selectedQuestionAccountID = scopedRow.account.id
+        selection = scopedRow.item
+        selectedRowID = scopedRow.id
     }
 
     // MARK: - Options

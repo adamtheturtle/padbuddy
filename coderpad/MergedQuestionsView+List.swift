@@ -19,7 +19,9 @@ extension MergedQuestionsView {
                     await reload()
                 })
             }
-            .onAppear { selectedQuestionID = selection?.id }
+            .onAppear {
+                selectedRowID = selection.flatMap { sel in scoped.first { $0.item.id == sel.id }?.id }
+            }
             // Keep the sidebar's "My Questions" row in sync with this list's "Mine"
             // preset: publish the live state and consume any sidebar toggle, the
             // same bridge `MergedPadsView` uses for "My Pads".
@@ -31,14 +33,7 @@ extension MergedQuestionsView {
                 nav.mergedQuestionsMineRequest = nil
                 if mineOnly != request { mineOnly = request }
             }
-            .onChange(of: selectedQuestionID) { _, newID in
-                if selection?.id != newID {
-                    selection = newID.flatMap { id in question(forID: id) }
-                }
-            }
-            .onChange(of: selection) { _, newValue in
-                if selectedQuestionID != newValue?.id { selectedQuestionID = newValue?.id }
-            }
+            .onChange(of: selectedRowID) { _, newID in selectRow(newID) }
             .task {
                 for await question in NotificationCenter.default.notifications(named: .questionUpdated)
                     .compactMap({ $0.object as? Question }) {
@@ -48,9 +43,12 @@ extension MergedQuestionsView {
             .task {
                 for await id in NotificationCenter.default.notifications(named: .questionDeleted)
                     .compactMap({ $0.object as? Int }) {
-                    // Move to a neighbor before dropping the row so deleting the
-                    // open question keeps the detail pane populated, matching pads.
-                    if selection?.id == id { selection = neighborSelection(forDeletedQuestion: id) }
+                    // If the open (selected) row is the deleted question, move to a
+                    // neighbor before dropping the row so the detail pane stays
+                    // populated. Computed while `sorted` still holds the deleted row.
+                    if let current = selectedRowID, row(forRowID: current)?.item.id == id {
+                        selectedRowID = neighborRowID(forDeletedRowID: current)
+                    }
                     removeQuestion(id: id)
                     // Keep the disk cache and Spotlight index in step.
                     cache.removeQuestion(id: id)
@@ -64,7 +62,8 @@ extension MergedQuestionsView {
             .sheet(item: $creatingForAccount) { account in
                 NewQuestionSheet(client: account.makeClient()) { created in
                     insert(created, into: account)
-                    selection = created
+                    select(AccountScoped(account: account, item: created,
+                                         id: MergedQuestionsView.rowID(account: account.id, question: created.id)))
                     creatingForAccount = nil
                 } onCancel: {
                     creatingForAccount = nil
@@ -123,7 +122,7 @@ extension MergedQuestionsView {
     }
 
     private var questionsList: some View {
-        List(selection: $selectedQuestionID) {
+        List(selection: $selectedRowID) {
             ForEach(sorted) { row in
                 QuestionRow(
                     question: row.item,
@@ -131,7 +130,7 @@ extension MergedQuestionsView {
                     accountName: row.account.name,
                     onToggleFavorite: { toggleFavorite(row) }
                 )
-                .tag(row.item.id)
+                .tag(row.id)
                 .contextMenu { questionContextMenu(row) }
                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
                     Button {
@@ -170,7 +169,7 @@ extension MergedQuestionsView {
     @ViewBuilder
     private func questionContextMenu(_ row: AccountScoped<Question>) -> some View {
         Button {
-            selection = row.item
+            select(row)
             nav.createPadForQuestionID = row.item.id
         } label: {
             Label("New Pad from Question", systemImage: "plus.rectangle.on.rectangle")
@@ -182,7 +181,7 @@ extension MergedQuestionsView {
                   systemImage: isFavorite(row) ? "star.slash" : "star")
         }
         Button {
-            selection = row.item
+            select(row)
             nav.editQuestionID = row.item.id
         } label: {
             Label("Edit Question…", systemImage: "pencil")
@@ -196,7 +195,7 @@ extension MergedQuestionsView {
         }
         Divider()
         Button(role: .destructive) {
-            selection = row.item
+            select(row)
             nav.deleteQuestionID = row.item.id
         } label: {
             Label("Delete Question…", systemImage: "trash")
