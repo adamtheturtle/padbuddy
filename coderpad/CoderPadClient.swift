@@ -255,6 +255,7 @@ struct CoderPadClient {
     }
 
     func deleteQuestion(id: Int) async throws {
+        guard !apiKey.isEmpty else { throw CoderPadError.missingAPIKey }
         var request = URLRequest(url: baseURL.appending(path: "/api/questions/\(id)"))
         request.httpMethod = "DELETE"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
