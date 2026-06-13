@@ -42,6 +42,15 @@ struct Sidebar: View {
                 }
                 .padding(.horizontal, 8)
                 .padding(.top, 10)
+                // The hand-rolled rows (a plain VStack of buttons, kept so the
+                // Mail-style highlight can be painted) lost the arrow-key navigation
+                // a `List` gives for free. Make the section group focusable and step
+                // through it on ↑/↓ so the keyboard can move between the four sections
+                // again, restoring a focus ring at the same time.
+                .focusable()
+                .onMoveCommand(perform: moveSection)
+                .accessibilityElement(children: .contain)
+                .accessibilityLabel("Sections")
 
                 defaultsSection
                 savedSearchesSection
@@ -179,6 +188,32 @@ struct Sidebar: View {
         case .organization, .quota:
             return nav.section == value
         }
+    }
+
+    /// The fixed top-to-bottom order of the four top-level sections, shared by the
+    /// rows above and the arrow-key handler so the two never disagree.
+    private static let sectionOrder: [AppSection] = [.pads, .questions, .organization, .quota]
+
+    /// Step the selected section on ↑/↓ when the section group has keyboard focus.
+    /// Clamps at the ends rather than wrapping, the way a source list does, and routes
+    /// through `selectRoot` so moving onto Pads/Questions shows their plain list (the
+    /// same as clicking the row). Left/right are ignored.
+    private func moveSection(_ direction: MoveCommandDirection) {
+        let order = Self.sectionOrder
+        guard let current = order.firstIndex(of: nav.section) else {
+            // The active section isn't one of the four (a saved search is applied):
+            // ↑/↓ re-enters the list at its current section's plain row.
+            selectRoot(nav.section == .questions ? .questions : .pads)
+            return
+        }
+        let next: Int
+        switch direction {
+        case .up: next = current - 1
+        case .down: next = current + 1
+        default: return
+        }
+        guard order.indices.contains(next) else { return }
+        selectRoot(order[next])
     }
 
     /// Reset to the plain, unfiltered list for a top-level row, so tapping "Pads" or
