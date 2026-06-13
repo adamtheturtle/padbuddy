@@ -96,6 +96,7 @@ extension PadsView {
                     PaneTitle(title: "Pads")
                     savedSearchesBar
                     filterBar
+                    resultCountBar
                     Divider()
                     padCollection
                 }
@@ -410,5 +411,22 @@ extension PadsView {
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// A small count of how many pads the current filters resolve to, so the list
+    /// length is legible at a glance and a short list reads as "filtered to a few"
+    /// rather than "failed to load". Hidden when the org has no pads at all, where a
+    /// "0 pads" line would just restate the empty list. `inflect:` agrees the noun
+    /// with the number ("1 pad" / "2 pads") in the user's locale.
+    @ViewBuilder var resultCountBar: some View {
+        if !pads.isEmpty {
+            Text("^[\(filtered.count) pad](inflect: true)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 12)
+                .padding(.bottom, 6)
+                .accessibilityLabel("^[\(filtered.count) pad](inflect: true) shown")
+        }
     }
 }
