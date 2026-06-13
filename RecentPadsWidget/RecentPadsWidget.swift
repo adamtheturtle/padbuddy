@@ -18,6 +18,11 @@ struct RecentPadsEntry: TimelineEntry {
     /// How many rows the user chose to show. Defaults to automatic for the
     /// placeholder/preview, matching the prior behavior.
     var rowCount: WidgetRowCount = .automatic
+    /// The favourite question the New Pad button is configured to seed from, and the
+    /// account that owns it (question ids are only unique within an org). Both nil
+    /// when the button should just create a blank pad.
+    var newPadAccountID: String?
+    var newPadQuestionID: Int?
 }
 
 /// Feeds the widget from the shared App Group snapshots the app maintains, scoped to
@@ -31,7 +36,7 @@ struct RecentPadsProvider: AppIntentTimelineProvider {
 
     func snapshot(for configuration: RecentPadsConfigurationIntent, in context: Context) async -> RecentPadsEntry {
         let pads = context.isPreview ? RecentPadsProvider.sample : load(for: configuration)
-        return RecentPadsEntry(date: Date(), pads: pads, rowCount: configuration.rowCount)
+        return entry(pads: pads, configuration: configuration)
     }
 
     func timeline(for configuration: RecentPadsConfigurationIntent,
@@ -39,9 +44,18 @@ struct RecentPadsProvider: AppIntentTimelineProvider {
         // The app reloads timelines whenever a snapshot changes. We still ask WidgetKit
         // to refresh about hourly so the relative "updated" labels don't go stale between
         // app runs; the data itself only changes when the app rewrites the snapshot.
-        let entry = RecentPadsEntry(date: Date(), pads: load(for: configuration), rowCount: configuration.rowCount)
+        let entry = entry(pads: load(for: configuration), configuration: configuration)
         let nextRefresh = Date().addingTimeInterval(60 * 60)
         return Timeline(entries: [entry], policy: .after(nextRefresh))
+    }
+
+    /// Builds an entry from the loaded pads and the user's configuration, carrying the
+    /// row count and the New Pad button's seeded question (if any).
+    private func entry(pads: [WidgetPadSnapshot],
+                       configuration: RecentPadsConfigurationIntent) -> RecentPadsEntry {
+        RecentPadsEntry(date: Date(), pads: pads, rowCount: configuration.rowCount,
+                        newPadAccountID: configuration.newPadQuestion?.accountID,
+                        newPadQuestionID: configuration.newPadQuestion?.questionID)
     }
 
     /// Loads the snapshot for the configured account, or the default (current-account)
@@ -93,6 +107,11 @@ struct RecentPadsConfigurationIntent: WidgetConfigurationIntent {
 
     @Parameter(title: "Rows", default: .automatic)
     var rowCount: WidgetRowCount
+
+    /// Seeds the widget's New Pad button with a favourite question. Optional — when
+    /// unset the button creates a blank pad in the current account.
+    @Parameter(title: "New Pad question")
+    var newPadQuestion: WidgetQuestionEntity?
 }
 
 /// A pinnable account, sourced from the account index the app mirrors into the App
@@ -115,6 +134,46 @@ struct WidgetAccountQuery: EntityQuery {
 
     func suggestedEntities() async throws -> [WidgetAccountEntity] {
         WidgetSharedStore.loadAccounts().map { WidgetAccountEntity(id: $0.id, name: $0.name) }
+    }
+}
+
+/// A favourite question the New Pad button can be seeded from, sourced from the
+/// per-account favourites the app mirrors into the App Group. Its id is a composite
+/// `accountUUID:questionID` so the new-pad deep link carries both — question ids are
+/// only unique within their owning org.
+struct WidgetQuestionEntity: AppEntity {
+    let id: String
+    let accountID: String
+    let questionID: Int
+    let title: String
+
+    static var typeDisplayRepresentation: TypeDisplayRepresentation { "Question" }
+    var displayRepresentation: DisplayRepresentation { DisplayRepresentation(title: "\(title)") }
+    static let defaultQuery = WidgetQuestionQuery()
+}
+
+struct WidgetQuestionQuery: EntityQuery {
+    func entities(for identifiers: [String]) async throws -> [WidgetQuestionEntity] {
+        all().filter { identifiers.contains($0.id) }
+    }
+
+    func suggestedEntities() async throws -> [WidgetQuestionEntity] {
+        all()
+    }
+
+    /// Every account's favourite questions, flattened. When more than one account has
+    /// favourites the account name is appended so otherwise-identical titles stay
+    /// distinguishable in the picker.
+    private func all() -> [WidgetQuestionEntity] {
+        let accounts = WidgetSharedStore.loadAccounts()
+        let qualify = accounts.count > 1
+        return accounts.flatMap { account in
+            WidgetSharedStore.loadFavorites(account: account.id).map { question in
+                let label = qualify ? "\(question.title) · \(account.name)" : question.title
+                return WidgetQuestionEntity(id: "\(account.id):\(question.id)",
+                                            accountID: account.id, questionID: question.id, title: label)
+            }
+        }
     }
 }
 
@@ -176,7 +235,7 @@ struct RecentPadsWidgetEntryView: View {
             // surface the New Pad button here too. The small family allows only a
             // single tap target, so it keeps its whole-widget link instead.
             if family != .systemSmall {
-                NewPadButton()
+                NewPadButton(accountID: entry.newPadAccountID, questionID: entry.newPadQuestionID)
                     .padding(.top, 2)
             }
         }
@@ -192,7 +251,7 @@ struct RecentPadsWidgetEntryView: View {
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(.secondary)
             Spacer(minLength: 0)
-            NewPadButton()
+            NewPadButton(accountID: entry.newPadAccountID, questionID: entry.newPadQuestionID)
                 .font(.caption2)
         }
     }
@@ -253,12 +312,26 @@ struct RecentPadsWidgetEntryView: View {
 /// Creates a new pad straight from the widget. It opens the app via the
 /// `coderpad://new-pad` deep link the app already routes (the same one the
 /// Control Center `NewPadControl` uses), so the widget extension stays
-/// dependency-free and never has to compile the app-only `NewPadIntent`.
+/// dependency-free and never has to compile the app-only `NewPadIntent`. When a
+/// favourite question is configured, the link carries its account and id so the app
+/// switches to that account and pre-seeds the create sheet with the question.
 private struct NewPadButton: View {
-    private static let newPadURL = URL(string: "coderpad://new-pad")!
+    var accountID: String?
+    var questionID: Int?
+
+    private var url: URL {
+        var components = URLComponents()
+        components.scheme = "coderpad"
+        components.host = "new-pad"
+        var items: [URLQueryItem] = []
+        if let accountID { items.append(URLQueryItem(name: "account", value: accountID)) }
+        if let questionID { items.append(URLQueryItem(name: "question", value: String(questionID))) }
+        if !items.isEmpty { components.queryItems = items }
+        return components.url ?? URL(string: "coderpad://new-pad")!
+    }
 
     var body: some View {
-        Button(intent: OpenURLIntent(Self.newPadURL)) {
+        Button(intent: OpenURLIntent(url)) {
             Label("New Pad", systemImage: "plus")
         }
         .buttonStyle(.borderless)

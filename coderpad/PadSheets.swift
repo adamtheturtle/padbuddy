@@ -9,8 +9,21 @@ import SwiftUI
 
 struct NewPadSheet: View {
     let client: CoderPadClient
+    /// A question to pre-select when the sheet opens (e.g. the widget's New Pad
+    /// button seeded from a favourite). The matching title/language are filled in
+    /// once the questions list loads.
+    var initialQuestionID: Int?
     let onCreated: (Pad) -> Void
     let onCancel: () -> Void
+
+    init(client: CoderPadClient, initialQuestionID: Int? = nil,
+         onCreated: @escaping (Pad) -> Void, onCancel: @escaping () -> Void) {
+        self.client = client
+        self.initialQuestionID = initialQuestionID
+        self.onCreated = onCreated
+        self.onCancel = onCancel
+        _selectedQuestionID = State(initialValue: initialQuestionID)
+    }
 
     @Environment(\.orgDirectory) private var directory
     @State private var title = ""
@@ -68,11 +81,7 @@ struct NewPadSheet: View {
                 Toggle("Execution enabled", isOn: $executionEnabled)
             }
             .formStyle(.grouped)
-            .onChange(of: selectedQuestionID) { _, newValue in
-                guard let id = newValue, let question = questions.first(where: { $0.id == id }) else { return }
-                if title.isEmpty { title = question.title }
-                if let lang = question.language, !lang.isEmpty { language = lang }
-            }
+            .onChange(of: selectedQuestionID) { _, _ in fillFromSelectedQuestion() }
 
             if let error {
                 Label(error, systemImage: "exclamationmark.triangle")
@@ -120,11 +129,24 @@ struct NewPadSheet: View {
     private func loadQuestions() async {
         if questions.isEmpty, let id = AccountsStore.shared.currentAccountID {
             questions = QuestionsCacheStore.shared.get(id)
+            fillFromSelectedQuestion()
         }
         guard !client.apiKey.isEmpty else { return }
         if let fresh = try? await client.listQuestions() {
             questions = fresh.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
+            fillFromSelectedQuestion()
         }
+    }
+
+    /// Fills the title and language from the selected question, once it's available
+    /// in the loaded list. Used both when the user picks a question and when the
+    /// sheet opens pre-seeded with one (where the picker's `onChange` doesn't fire).
+    /// Doesn't clobber a title the user already typed or a language they chose.
+    private func fillFromSelectedQuestion() {
+        guard let id = selectedQuestionID,
+              let question = questions.first(where: { $0.id == id }) else { return }
+        if title.isEmpty { title = question.title }
+        if !languageEdited, let lang = question.language, !lang.isEmpty { language = lang }
     }
 
     /// One `organization()` call backs both the Team picker and the searchable

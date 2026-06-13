@@ -81,7 +81,10 @@ extension PadsView {
         if let saved = request.applySearch { apply(saved) }
         if let owner = request.ownerEmail { ownerFilter = owner }
         if let query = request.search { search = query }
-        if request.startCreating { showCreate = true }
+        if request.startCreating {
+            seedQuestionID = request.seedQuestionID
+            showCreate = true
+        }
     }
 
     /// A sparkle button that fills the name field with an on-device suggestion

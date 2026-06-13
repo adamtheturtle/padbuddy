@@ -158,6 +158,9 @@ final class QuestionsCacheStore {
         questionsByAccount[accountID] = questions
         diskConsulted.insert(accountID)
         SpotlightIndexer.updateQuestions(questions, account: accountID)
+        // Refresh the widget's favourite-question titles for this account now that
+        // fresh questions (and their titles) are in hand.
+        WidgetSync.syncFavorites(account: accountID)
         writeQueue.enqueue {
             CacheDisk.save(questions, kind: "questions", account: accountID)
         }

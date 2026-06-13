@@ -232,6 +232,9 @@ final class FavoriteQuestionsStore {
         }
         byAccount[account] = ids
         save()
+        // Keep the New Pad widget button's question picker in step with this account's
+        // favourites.
+        WidgetSync.syncFavorites(account: account)
     }
 
     private func save() {

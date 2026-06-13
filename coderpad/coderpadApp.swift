@@ -54,6 +54,9 @@ struct PadsRequest: Equatable {
     var ownerEmail: String?
     var search: String?
     var startCreating = false
+    /// A question to pre-select in the create sheet when `startCreating` is set —
+    /// e.g. the New Pad widget button configured to seed from a favourite question.
+    var seedQuestionID: Int?
     /// A saved search to apply wholesale when the pane appears. Carries the full
     /// filter set so picking a saved search from the sidebar reproduces exactly
     /// what saving it captured — the same as tapping its in-pane chip.
@@ -398,9 +401,22 @@ struct CoderpadApp: App {
         case "questions":
             AppNavigation.shared.show(.questions)
         case "new-pad":
-            // Backs the "New Pad" control (Control Center / menu bar) and the Dock
-            // menu: switch to Pads and open the create sheet, the same flow as ⌘N.
-            AppNavigation.shared.showPads(PadsRequest(startCreating: true))
+            // Backs the "New Pad" control (Control Center / menu bar), the Dock menu,
+            // and the widget button: switch to Pads and open the create sheet, the
+            // same flow as ⌘N. The widget button may also pin an account and seed a
+            // favourite question; switch to that account first (so the seeded id,
+            // which is only unique within its org, resolves against the right account)
+            // then queue the seed for the create sheet.
+            let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
+            if let accountID = components?.queryItems?.first(where: { $0.name == "account" })?.value,
+               let uuid = UUID(uuidString: accountID),
+               AccountsStore.shared.accounts.contains(where: { $0.id == uuid }) {
+                AccountsStore.shared.showAllAccounts = false
+                AccountsStore.shared.currentAccountID = uuid
+            }
+            let seedQuestionID = components?.queryItems?
+                .first(where: { $0.name == "question" })?.value.flatMap(Int.init)
+            AppNavigation.shared.showPads(PadsRequest(startCreating: true, seedQuestionID: seedQuestionID))
         case "new-question":
             AppNavigation.shared.showQuestions(QuestionsRequest(startCreating: true))
         default:

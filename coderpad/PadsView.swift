@@ -38,6 +38,10 @@ struct PadsView: View {
     @State var teamFilter: String?
     @State var typeFilter: String?
     @State var showCreate = false
+    /// A favourite question to pre-select in the create sheet, queued by a New Pad
+    /// request that carried one (e.g. the widget button). Cleared when the sheet
+    /// closes so a later plain "New Pad" starts blank.
+    @State var seedQuestionID: Int?
     @State var previousUpdatedAt: [String: Date] = [:]
     @State var hasLoadedOnce = false
     /// Independent date filters: one constrains the updated date, one the created
@@ -207,12 +211,14 @@ struct PadsView: View {
                 .frame(minWidth: 360)
             }
             .sheet(isPresented: $showCreate) {
-                NewPadSheet(client: client) { created in
+                NewPadSheet(client: client, initialQuestionID: seedQuestionID) { created in
                     pads.insert(created, at: 0)
                     selection = created
                     showCreate = false
+                    seedQuestionID = nil
                 } onCancel: {
                     showCreate = false
+                    seedQuestionID = nil
                 }
             }
             .sheet(isPresented: $showSmartFilter) {

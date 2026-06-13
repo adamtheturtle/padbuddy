@@ -51,6 +51,25 @@ enum WidgetSync {
         })
     }
 
+    /// Mirrors an account's favourite questions (id + title) into the shared
+    /// container so the New Pad button's configuration picker can list them. Titles
+    /// are resolved from whatever questions are cached for the account; ids without a
+    /// cached title fall back to "#id". Safe to call from the favourites/questions
+    /// stores, which are never mutated during `AccountsStore`'s init.
+    static func syncFavorites(account accountID: UUID) {
+        let favoriteIDs = FavoriteQuestionsStore.shared.favorites(account: accountID)
+        guard !favoriteIDs.isEmpty else {
+            WidgetSharedStore.saveFavorites([], account: accountID.uuidString)
+            return
+        }
+        let titles = Dictionary(
+            QuestionsCacheStore.shared.get(accountID).map { ($0.id, $0.displayTitle) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        let favorites = favoriteIDs.map { WidgetQuestion(id: $0, title: titles[$0] ?? "#\($0)") }
+        WidgetSharedStore.saveFavorites(favorites, account: accountID.uuidString)
+    }
+
     /// Drops a removed account's per-account snapshot and reloads. The account index
     /// is refreshed separately when the accounts list itself changes.
     static func removeAccount(_ accountID: UUID) {

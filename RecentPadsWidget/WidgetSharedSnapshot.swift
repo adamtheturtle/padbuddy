@@ -28,6 +28,13 @@ struct WidgetAccount: Codable, Identifiable, Hashable {
     let name: String
 }
 
+/// A favourite question the New Pad button can seed a pad from. Mirrored per
+/// account; kept in lock-step with the app's copy.
+struct WidgetQuestion: Codable, Identifiable, Hashable {
+    let id: Int
+    let title: String
+}
+
 /// Reads the recent-pads snapshots from the App Group container shared with the app.
 /// The app writes one snapshot per account (`recent-pads-<id>.json`), a default
 /// snapshot for the current account (`recent-pads.json`), and the account index
@@ -51,6 +58,11 @@ enum WidgetSharedStore {
         return "recent-pads-\(account).json"
     }
 
+    /// File holding `account`'s favourite questions.
+    private static func favoritesFileName(account: String) -> String {
+        "widget-favorites-\(account).json"
+    }
+
     private static func fileURL(_ name: String) -> URL? {
         FileManager.default
             .containerURL(forSecurityApplicationGroupIdentifier: appGroupID)?
@@ -69,6 +81,13 @@ enum WidgetSharedStore {
     static func loadAccounts() -> [WidgetAccount] {
         guard let url = fileURL(accountsFile), let data = try? Data(contentsOf: url) else { return [] }
         return (try? JSONDecoder().decode([WidgetAccount].self, from: data)) ?? []
+    }
+
+    /// `account`'s mirrored favourite questions, for the New Pad button picker.
+    static func loadFavorites(account: String) -> [WidgetQuestion] {
+        guard let url = fileURL(favoritesFileName(account: account)),
+              let data = try? Data(contentsOf: url) else { return [] }
+        return (try? JSONDecoder().decode([WidgetQuestion].self, from: data)) ?? []
     }
 }
 

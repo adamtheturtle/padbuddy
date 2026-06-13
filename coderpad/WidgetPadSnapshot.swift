@@ -34,6 +34,17 @@ nonisolated struct WidgetAccount: Codable, Identifiable, Hashable, Sendable {
     let name: String
 }
 
+/// A favourite question the New Pad widget button can be configured to seed a new
+/// pad from. Mirrored per account so the configuration picker can list a pinned
+/// account's favourites from inside the widget process. Kept in lock-step with the
+/// widget's copy.
+nonisolated struct WidgetQuestion: Codable, Identifiable, Hashable, Sendable {
+    /// CoderPad's per-org question id. Not unique across accounts, so the new-pad
+    /// deep link always carries the owning account alongside it.
+    let id: Int
+    let title: String
+}
+
 /// Reads and writes the recent-pads snapshots in the App Group container shared by
 /// the app and the widget. All members are `nonisolated` so the widget's timeline
 /// provider can call them off the main actor.
@@ -61,6 +72,11 @@ nonisolated enum WidgetSharedStore {
         return "recent-pads-\(account).json"
     }
 
+    /// File holding `account`'s favourite questions, for the New Pad button picker.
+    private static func favoritesFileName(account: String) -> String {
+        "widget-favorites-\(account).json"
+    }
+
     private static func fileURL(_ name: String) -> URL? {
         FileManager.default
             .containerURL(forSecurityApplicationGroupIdentifier: appGroupID)?
@@ -83,6 +99,13 @@ nonisolated enum WidgetSharedStore {
         return (try? JSONDecoder().decode([WidgetAccount].self, from: data)) ?? []
     }
 
+    /// `account`'s mirrored favourite questions, for the New Pad button picker.
+    static func loadFavorites(account: String) -> [WidgetQuestion] {
+        guard let url = fileURL(favoritesFileName(account: account)),
+              let data = try? Data(contentsOf: url) else { return [] }
+        return (try? JSONDecoder().decode([WidgetQuestion].self, from: data)) ?? []
+    }
+
     /// Atomically replaces `account`'s snapshot (or the default snapshot when nil). A
     /// no-op when the shared container is unavailable, so callers needn't guard the
     /// entitlement themselves.
@@ -98,9 +121,21 @@ nonisolated enum WidgetSharedStore {
         try? data.write(to: url, options: .atomic)
     }
 
-    /// Removes a removed account's per-account snapshot so it stops lingering.
+    /// Atomically replaces `account`'s favourite-questions list.
+    static func saveFavorites(_ favorites: [WidgetQuestion], account: String) {
+        guard let url = fileURL(favoritesFileName(account: account)),
+              let data = try? JSONEncoder().encode(favorites) else { return }
+        try? data.write(to: url, options: .atomic)
+    }
+
+    /// Removes a removed account's per-account snapshot and favourites so they stop
+    /// lingering.
     static func deletePads(account: String) {
-        guard let url = fileURL(padsFileName(account: account)) else { return }
-        try? FileManager.default.removeItem(at: url)
+        if let url = fileURL(padsFileName(account: account)) {
+            try? FileManager.default.removeItem(at: url)
+        }
+        if let url = fileURL(favoritesFileName(account: account)) {
+            try? FileManager.default.removeItem(at: url)
+        }
     }
 }
