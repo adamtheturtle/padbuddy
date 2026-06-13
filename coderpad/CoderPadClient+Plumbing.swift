@@ -296,12 +296,18 @@ extension CoderPadClient {
     /// Decodes `data` on a background task so the (potentially large) parse doesn't run on
     /// the main actor. Builds a fresh decoder per call — `JSONDecoder` isn't safe to share
     /// across threads. `DecodingError`s propagate so `perform` can map them as before.
+    ///
+    /// A structured child task (not `Task.detached`) so it inherits cancellation: when a
+    /// streaming load is torn down, queued decodes bail at the check below instead of
+    /// parsing into a result that's about to be discarded. This function is `nonisolated`,
+    /// so the task still runs off the main actor.
     private nonisolated static func decodeInBackground<T: Decodable & Sendable>(
         _: T.Type,
         from data: Data
     ) async throws -> T {
-        try await Task.detached(priority: .userInitiated) {
-            try makeDecoder().decode(T.self, from: data)
+        try await Task(priority: .userInitiated) {
+            try Task.checkCancellation()
+            return try makeDecoder().decode(T.self, from: data)
         }.value
     }
 }

@@ -116,6 +116,12 @@ struct TitlebarLeadingAccessory<Content: View>: NSViewRepresentable {
             // screen without disturbing the SwiftUI content itself.
             let container = NSView(frame: NSRect(origin: .zero, size: Self.glyphSize))
             container.autoresizesSubviews = true
+            // AppKit sizes the accessory host to the full (tall, macOS 26) titlebar
+            // height but leaves this container at its own frame height unless we let
+            // it grow. Flex the height so the container fills the titlebar; the
+            // hosting view's `[.minYMargin, .maxYMargin]` mask then centers the glyph
+            // on the traffic-light row instead of pinning it to the top.
+            container.autoresizingMask = [.height]
             hosting.frame = NSRect(origin: .zero, size: Self.glyphSize)
             // AppKit stretches a leading accessory's view to the full title-bar
             // height. Keep the glyph pinned to the leading edge but vertically
