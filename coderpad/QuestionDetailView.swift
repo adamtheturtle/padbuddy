@@ -44,7 +44,7 @@ struct QuestionDetailView: View {
             .accessibilityLabel(isFavorite ? "Remove from Favorites" : "Add to Favorites")
         }
         ToolbarItem(id: "newPad", placement: .primaryAction) {
-            Button { Task { await createPad() } } label: {
+            Button { Task { await createPadInline() } } label: {
                 if isCreatingPad {
                     ProgressView().controlSize(.small)
                 } else {
@@ -192,7 +192,20 @@ struct QuestionDetailView: View {
     private func consumePendingPadCreation() {
         guard nav.createPadForQuestionID == question.id else { return }
         nav.createPadForQuestionID = nil
-        Task { await createPad() }
+        // A routed request can outlive this detail pane — the user may select
+        // another question before creation finishes, recreating the view (`.id`)
+        // and discarding its inline-browser state. Open the result in the standard
+        // pad-browser window instead (captured `openWindow` survives the teardown),
+        // matching how pads open elsewhere.
+        let openWindow = openWindow
+        Task {
+            guard let url = await makePadFromQuestion() else { return }
+            if BrowserSettings.openLinksIn == .external {
+                BrowserSettings.openExternally(url)
+            } else {
+                openWindow(id: "pad-browser", value: url)
+            }
+        }
     }
 
     /// Honors an "Edit Question" request routed via `AppNavigation` from the list's
@@ -212,17 +225,27 @@ struct QuestionDetailView: View {
         showDeleteConfirm = true
     }
 
-    private func createPad() async {
+    /// Creates a pad from this question and browses it inline in this pane. Used by
+    /// the in-pane "New Pad" button, where the user is looking at this detail.
+    private func createPadInline() async {
+        if let url = await makePadFromQuestion() {
+            createdPadURL = url
+            showBrowser = true
+        }
+    }
+
+    /// Creates a pad from this question, returning its web URL (or nil on failure,
+    /// after recording the error). Presentation is left to the caller so a routed
+    /// request can open a durable window while the in-pane button browses inline.
+    private func makePadFromQuestion() async -> URL? {
         isCreatingPad = true
         defer { isCreatingPad = false }
         do {
             let pad = try await client.createPad(.fromQuestion(question))
-            if let url = pad.webURL {
-                createdPadURL = url
-                showBrowser = true
-            }
+            return pad.webURL
         } catch {
             createPadError = error.localizedDescription
+            return nil
         }
     }
 }
