@@ -69,16 +69,33 @@ jobs:
       - name: Show available SDKs
         run: xcodebuild -showsdks
 
-      # Swift linting (SwiftLint + SwiftFormat) is configured in .swiftlint.yml
-      # and .swiftformat but not yet gated here: the codebase needs a one-time
-      # cleanup pass (`swiftlint --fix` + manual fixes + `swiftformat .`) to reach
-      # a strict-clean baseline first. Doing that now would collide with other
-      # in-flight Swift edits. Enable the step below once that lands:
-      #
-      #   - name: SwiftLint
-      #     run: swiftlint lint --strict --reporter github-actions-logging
-      #   - name: SwiftFormat (lint)
-      #     run: swiftformat . --lint --reporter github-actions-log
+      # Swift linting gates the strict-clean baseline (.swiftlint.yml /
+      # .swiftformat). Both tools run as prebuilt binaries downloaded at a pinned
+      # version so CI matches the local toolchain exactly; bump these in lockstep
+      # with any local upgrade. They run after the Xcode select above so
+      # SwiftLint can load SourceKit from Xcode 26.5, and before the build so a
+      # style regression fails fast without paying for the full compile.
+      - name: SwiftLint (strict)
+        env:
+          SWIFTLINT_VERSION: 0.63.3
+        run: |
+          set -euo pipefail
+          curl -sSfL -o swiftlint.zip "https://github.com/realm/SwiftLint/releases/download/${SWIFTLINT_VERSION}/portable_swiftlint.zip"
+          unzip -o -q swiftlint.zip swiftlint
+          chmod +x swiftlint
+          ./swiftlint version
+          ./swiftlint lint --strict --reporter github-actions-logging
+
+      - name: SwiftFormat (lint)
+        env:
+          SWIFTFORMAT_VERSION: 0.61.1
+        run: |
+          set -euo pipefail
+          curl -sSfL -o swiftformat.zip "https://github.com/nicklockwood/SwiftFormat/releases/download/${SWIFTFORMAT_VERSION}/swiftformat.zip"
+          unzip -o -q swiftformat.zip swiftformat
+          chmod +x swiftformat
+          ./swiftformat --version
+          ./swiftformat . --lint --reporter github-actions-log
 
       # Cache DerivedData (build intermediates, module cache) to speed up
       # incremental builds. Keyed on the project + sources so it invalidates
