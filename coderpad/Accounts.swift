@@ -217,25 +217,26 @@ final class AccountsStore {
     }
 
     /// Whether the user has opted into the combined "All Accounts" view, which
-    /// merges pads and questions across every real account into one list. Persisted
-    /// like `currentAccountID`. The opt-in is only *honored* when it makes sense (two
-    /// or more real accounts) — see `isMergedView` — so a single-account user who
-    /// once enabled it, then removed an account, silently falls back to that account.
+    /// merges pads and questions across every account into one list. Persisted like
+    /// `currentAccountID`. The opt-in is only *honored* when it makes sense (two or
+    /// more accounts) — see `isMergedView` — so a single-account user who once
+    /// enabled it, then removed an account, silently falls back to that account.
     var showAllAccounts: Bool = false {
         didSet { persistShowAllAccounts() }
     }
 
-    /// The accounts eligible to be merged: the real ones. Mock/demo accounts are
-    /// deliberately excluded so the combined view never folds demo data in with a
-    /// user's live orgs (matching the issue's separation requirement).
+    /// The accounts eligible to be merged: every configured account, including the
+    /// mock/demo ones. Demo accounts are kept in so the combined view is reachable
+    /// for evaluation without two real keys (e.g. "Demo" plus "Demo (bad key)",
+    /// which also exercises the per-account error handling).
     var mergeableAccounts: [Account] {
-        accounts.filter { !$0.isMock }
+        accounts
     }
 
     /// Whether the combined view is actually active: opted in *and* there are at
-    /// least two real accounts to merge. Everywhere that branches on merged mode
-    /// reads this rather than `showAllAccounts`, so the merge can't engage with
-    /// nothing (or only one account) to combine.
+    /// least two accounts to merge. Everywhere that branches on merged mode reads
+    /// this rather than `showAllAccounts`, so the merge can't engage with nothing
+    /// (or only one account) to combine.
     var isMergedView: Bool {
         showAllAccounts && mergeableAccounts.count >= 2
     }
