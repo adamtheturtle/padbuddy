@@ -59,6 +59,13 @@ final class AccountHealthMonitor {
     func isUnauthorized(_ accountID: UUID) -> Bool {
         unauthorizedAccountIDs.contains(accountID)
     }
+
+    /// Clear a stale unauthorized verdict, e.g. when the account's key is changed
+    /// in place. A fresh `checkCurrentAccount` re-flags it if the new key is also
+    /// revoked, but until then the banner shouldn't claim the new key is bad.
+    func clearUnauthorized(_ accountID: UUID) {
+        unauthorizedAccountIDs.remove(accountID)
+    }
 }
 
 @Observable

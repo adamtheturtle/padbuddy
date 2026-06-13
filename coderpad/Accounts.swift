@@ -297,8 +297,20 @@ final class AccountsStore {
     }
 
     func update(_ account: Account) {
-        if let index = accounts.firstIndex(where: { $0.id == account.id }) {
-            accounts[index] = account
+        guard let index = accounts.firstIndex(where: { $0.id == account.id }) else { return }
+        let previous = accounts[index]
+        accounts[index] = account
+        // A changed key or server points at potentially different data (even a
+        // different org), so the caches keyed by this id — and any stale
+        // unauthorized verdict — no longer apply. Invalidate them the way
+        // `remove` does, but keep the account itself; the next reload refills it.
+        if previous.apiKey != account.apiKey || previous.baseURL != account.baseURL {
+            PadsCacheStore.shared.remove(account.id)
+            QuestionsCacheStore.shared.remove(account.id)
+            OrganizationCacheStore.shared.remove(account.id)
+            QuotaCacheStore.shared.remove(account.id)
+            SpotlightIndexer.removeAccount(account.id)
+            AccountHealthMonitor.shared.clearUnauthorized(account.id)
         }
     }
 
@@ -314,6 +326,7 @@ final class AccountsStore {
         OrganizationCacheStore.shared.remove(id)
         QuotaCacheStore.shared.remove(id)
         SpotlightIndexer.removeAccount(id)
+        AccountHealthMonitor.shared.clearUnauthorized(id)
     }
 
     private func migrateLegacyIfNeeded() {
