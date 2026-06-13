@@ -37,7 +37,7 @@ jobs:
       SIGNING_AVAILABLE: ${{ secrets.DEVELOPER_ID_APP_CERT_P12_BASE64 != '' && secrets.NOTARY_APPLE_ID != '' }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           # Full history + tags so release notes can diff against the prior tag.
           fetch-depth: 0
