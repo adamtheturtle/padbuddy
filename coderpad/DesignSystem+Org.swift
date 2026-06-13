@@ -94,6 +94,39 @@ final class OrgDirectory {
         }
     }
 
+    /// Load and union the member directories of several accounts at once, for the
+    /// combined "All Accounts" view where owner emails span every org. Fetches each
+    /// account's organization concurrently and merges the name maps so a pad from
+    /// any account can still resolve its owner's display name. `loadedAccountID` is
+    /// cleared so a later single-account `load` refreshes rather than no-ops.
+    func loadMerged(for accounts: [Account]) async {
+        let clients = accounts.filter { !$0.apiKey.isEmpty }.map { $0.makeClient() }
+        guard !clients.isEmpty else { return }
+        let maps = await withTaskGroup(of: [String: String].self) { group -> [[String: String]] in
+            for client in clients {
+                group.addTask {
+                    guard let org = try? await client.organization() else { return [:] }
+                    var map: [String: String] = [:]
+                    for user in org.users where !(user.name ?? "").isEmpty {
+                        map[user.email] = user.name
+                    }
+                    return map
+                }
+            }
+            var collected: [[String: String]] = []
+            for await map in group {
+                collected.append(map)
+            }
+            return collected
+        }
+        var merged: [String: String] = [:]
+        for map in maps {
+            merged.merge(map) { first, _ in first }
+        }
+        nameByEmail = merged
+        loadedAccountID = nil
+    }
+
     func name(for email: String) -> String? {
         let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }

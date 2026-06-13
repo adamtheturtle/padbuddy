@@ -192,4 +192,30 @@ struct PadFilterTests {
         )
         #expect(PadListLogic.filter(pads, using: mismatch, now: fixedNow).isEmpty)
     }
+
+    /// `filter` is defined as `pads.filter(matches:)`, and the combined "All
+    /// Accounts" list filters its account-tagged rows one at a time through
+    /// `matches` directly. This locks the two to agree so the merged list can never
+    /// drift from the single-account list's filtering.
+    @Test
+    func `matches agrees with filter for every pad and criteria`() throws {
+        let pads = try samplePads()
+        let criteriaSet = [
+            PadFilterCriteria(),
+            PadFilterCriteria(state: .active),
+            PadFilterCriteria(language: "PYTHON3"),
+            PadFilterCriteria(owner: "sam@demo.co"),
+            PadFilterCriteria(team: "Cursor"),
+            PadFilterCriteria(type: "take-home"),
+            PadFilterCriteria(search: "onsite"),
+            PadFilterCriteria(updated: PadDateWindow(range: "last 7 days"))
+        ]
+        for criteria in criteriaSet {
+            let viaFilter = PadListLogic.filter(pads, using: criteria, now: fixedNow).map(\.id)
+            let viaMatches = pads
+                .filter { PadListLogic.matches($0, criteria: criteria, now: fixedNow) }
+                .map(\.id)
+            #expect(viaFilter == viaMatches)
+        }
+    }
 }

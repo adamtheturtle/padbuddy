@@ -136,11 +136,24 @@ struct MenuBarView: View {
 
             if store.accounts.count > 1 {
                 Menu("Switch Account") {
+                    if store.mergeableAccounts.count >= 2 {
+                        Button {
+                            store.showAllAccounts = true
+                        } label: {
+                            if store.isMergedView {
+                                Label("All Accounts", systemImage: "checkmark")
+                            } else {
+                                Text("All Accounts")
+                            }
+                        }
+                        Divider()
+                    }
                     ForEach(store.accounts) { acct in
                         Button {
+                            store.showAllAccounts = false
                             store.currentAccountID = acct.id
                         } label: {
-                            if acct.id == store.currentAccountID {
+                            if !store.isMergedView, acct.id == store.currentAccountID {
                                 Label(acct.name, systemImage: "checkmark")
                             } else {
                                 Text(acct.name)
@@ -155,6 +168,8 @@ struct MenuBarView: View {
             Menu("Help") {
                 Link("CoderPad API Documentation", destination: CoderPadLinks.apiDocs)
                 Link("Get API Key", destination: CoderPadLinks.apiSettings)
+                Divider()
+                Link("Send Feedback…", destination: CoderPadLinks.feedbackMailto)
             }
 
             Button("About CoderPad") { showAboutPanel() }
@@ -176,6 +191,8 @@ struct MenuBarView: View {
             Menu("Help") {
                 Link("CoderPad API Documentation", destination: CoderPadLinks.apiDocs)
                 Link("Get API Key", destination: CoderPadLinks.apiSettings)
+                Divider()
+                Link("Send Feedback…", destination: CoderPadLinks.feedbackMailto)
             }
 
             Button("About CoderPad") { showAboutPanel() }

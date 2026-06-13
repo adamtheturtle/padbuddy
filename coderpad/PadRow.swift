@@ -8,6 +8,10 @@ import SwiftUI
 struct PadRow: View {
     let pad: Pad
     var isChanged: Bool = false
+    /// The owning account's name, shown as a badge only in the combined "All
+    /// Accounts" view so each row says which account it came from. `nil` in the
+    /// normal single-account list, where the badge would be noise.
+    var accountName: String?
     @Environment(\.orgDirectory) private var directory
 
     var body: some View {
@@ -29,6 +33,9 @@ struct PadRow: View {
                     .lineLimit(1)
                 HStack(spacing: 6) {
                     StateBadge(state: pad.status)
+                    if let accountName {
+                        Chip(text: accountName, systemImage: "person.crop.circle", tint: .purple)
+                    }
                     if let language = pad.language, !language.isEmpty {
                         Chip(text: language.languageDisplayName)
                     }
@@ -58,6 +65,7 @@ struct PadRow: View {
 
     private var accessibilityLabel: String {
         var parts = [pad.title.isEmpty ? pad.id : pad.title, pad.status.label]
+        if let accountName { parts.append(accountName) }
         if let language = pad.language, !language.isEmpty {
             parts.append(language.languageDisplayName)
         }

@@ -216,7 +216,32 @@ final class AccountsStore {
         return accounts.first(where: { $0.id == id }) ?? accounts.first
     }
 
+    /// Whether the user has opted into the combined "All Accounts" view, which
+    /// merges pads and questions across every real account into one list. Persisted
+    /// like `currentAccountID`. The opt-in is only *honored* when it makes sense (two
+    /// or more real accounts) — see `isMergedView` — so a single-account user who
+    /// once enabled it, then removed an account, silently falls back to that account.
+    var showAllAccounts: Bool = false {
+        didSet { persistShowAllAccounts() }
+    }
+
+    /// The accounts eligible to be merged: the real ones. Mock/demo accounts are
+    /// deliberately excluded so the combined view never folds demo data in with a
+    /// user's live orgs (matching the issue's separation requirement).
+    var mergeableAccounts: [Account] {
+        accounts.filter { !$0.isMock }
+    }
+
+    /// Whether the combined view is actually active: opted in *and* there are at
+    /// least two real accounts to merge. Everywhere that branches on merged mode
+    /// reads this rather than `showAllAccounts`, so the merge can't engage with
+    /// nothing (or only one account) to combine.
+    var isMergedView: Bool {
+        showAllAccounts && mergeableAccounts.count >= 2
+    }
+
     private static let currentIDDefaultsKey = "currentAccountID"
+    private static let showAllAccountsDefaultsKey = "showAllAccounts"
 
     /// True when launched by the UI test suite (`-uiTesting`). In this mode the store
     /// starts from a single in-memory demo account (which talks to the in-process mock
@@ -244,6 +269,7 @@ final class AccountsStore {
         if loaded.isEmpty {
             migrateLegacyIfNeeded()
         }
+        showAllAccounts = UserDefaults.standard.bool(forKey: Self.showAllAccountsDefaultsKey)
     }
 
     func add(_ account: Account) {
@@ -349,5 +375,10 @@ final class AccountsStore {
         } else {
             UserDefaults.standard.removeObject(forKey: Self.currentIDDefaultsKey)
         }
+    }
+
+    private func persistShowAllAccounts() {
+        guard !Self.isUITesting else { return }
+        UserDefaults.standard.set(showAllAccounts, forKey: Self.showAllAccountsDefaultsKey)
     }
 }

@@ -8,6 +8,9 @@ import SwiftUI
 struct QuestionRow: View {
     let question: Question
     var isFavorite: Bool = false
+    /// The owning account's name, shown as a badge only in the combined "All
+    /// Accounts" view. `nil` in the normal single-account list.
+    var accountName: String?
     var onToggleFavorite: () -> Void = {}
 
     @State private var hovered = false
@@ -24,6 +27,9 @@ struct QuestionRow: View {
                         .font(.callout.weight(.medium))
                         .lineLimit(1)
                     HStack(spacing: 6) {
+                        if let accountName {
+                            Chip(text: accountName, systemImage: "person.crop.circle", tint: .purple)
+                        }
                         if let lang = question.language, !lang.isEmpty {
                             Chip(text: lang.languageDisplayName)
                         }

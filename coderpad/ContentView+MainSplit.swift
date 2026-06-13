@@ -152,7 +152,9 @@ struct MainSplit: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if let id = store.currentAccountID, monitor.isUnauthorized(id) {
+            // In the combined view, per-account fetch failures surface inline in the
+            // merged list, so the single-account unauthorized banner is suppressed.
+            if !store.isMergedView, let id = store.currentAccountID, monitor.isUnauthorized(id) {
                 UnauthorizedBanner(monitor: monitor)
             }
             Group {
@@ -191,8 +193,18 @@ struct MainSplit: View {
         // Lets the View menu's "Customize Toolbar…" command enable itself only
         // while a main window (with its customizable section toolbar) is frontmost.
         .focusedSceneValue(\.canCustomizeToolbar, true)
-        .task(id: store.currentAccountID) {
-            if let account = store.currentAccount {
+        .task(id: SessionKey(accountID: store.currentAccountID, merged: store.isMergedView)) {
+            if store.isMergedView {
+                if let raw = UserDefaults.standard.string(forKey: "section.merged"),
+                   let restored = AppSection(rawValue: raw) {
+                    section = restored
+                }
+                // The owner column spans every org in the merged view, so load and
+                // union all the real accounts' member directories at once.
+                await directory.loadMerged(for: store.mergeableAccounts)
+                await monitor.checkCurrentAccount()
+                monitor.start()
+            } else if let account = store.currentAccount {
                 if let raw = UserDefaults.standard.string(forKey: "section.\(account.id.uuidString)"),
                    let restored = AppSection(rawValue: raw) {
                     section = restored
@@ -208,12 +220,16 @@ struct MainSplit: View {
             }
         }
         .onChange(of: section) { _, newValue in
-            if let account = store.currentAccount {
-                UserDefaults.standard.set(newValue.rawValue,
-                                          forKey: "section.\(account.id.uuidString)")
-            }
+            let key = store.isMergedView ? "section.merged" : store.currentAccount.map { "section.\($0.id.uuidString)" }
+            if let key { UserDefaults.standard.set(newValue.rawValue, forKey: key) }
         }
         .onChange(of: store.currentAccountID) { _, _ in
+            padSelection = nil
+            questionSelection = nil
+        }
+        // Switching into or out of the combined view changes what the panes show, so
+        // drop any stale selection from the previous mode.
+        .onChange(of: store.isMergedView) { _, _ in
             padSelection = nil
             questionSelection = nil
         }
@@ -348,58 +364,11 @@ struct MainSplit: View {
     }
 }
 
-private struct SectionContent: View {
-    @State private var store = AccountsStore.shared
-    let section: AppSection
-    @Binding var padSelection: Pad?
-    @Binding var questionSelection: Question?
-    @Binding var padSearch: String
-    @Binding var questionSearch: String
-
-    var body: some View {
-        if let account = store.currentAccount {
-            let client = account.makeClient()
-            switch section {
-            case .pads:
-                PadsView(client: client, selection: $padSelection, search: $padSearch).id(account.id)
-            case .questions:
-                QuestionsView(client: client, selection: $questionSelection, search: $questionSearch)
-                    .id(account.id)
-            case .organization: OrganizationView(client: client).id(account.id)
-            case .quota: QuotaView(client: client).id(account.id)
-            }
-        }
-    }
-}
-
-private struct SectionDetail: View {
-    @State private var store = AccountsStore.shared
-    let section: AppSection
-    @Binding var padSelection: Pad?
-    @Binding var questionSelection: Question?
-
-    var body: some View {
-        if let account = store.currentAccount {
-            let client = account.makeClient()
-            switch section {
-            case .pads:
-                if let pad = padSelection {
-                    PadDetailView(client: client, pad: pad).id(pad.id)
-                } else {
-                    ContentUnavailableView("Select a pad", systemImage: "doc.text")
-                }
-            case .questions:
-                if let question = questionSelection {
-                    QuestionDetailView(client: client, question: question).id(question.id)
-                } else {
-                    ContentUnavailableView("Select a question", systemImage: "questionmark.bubble")
-                }
-            case .organization, .quota:
-                ContentUnavailableView("Nothing selected", systemImage: "sidebar.squares.leading",
-                                       description: Text("This section shows everything in the list."))
-            }
-        }
-    }
+/// Restart key for the per-session load task: the chosen account plus whether the
+/// combined view is active, so the task re-runs when either changes.
+struct SessionKey: Hashable {
+    let accountID: UUID?
+    let merged: Bool
 }
 
 #Preview { ContentView() }

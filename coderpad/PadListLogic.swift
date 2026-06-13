@@ -124,27 +124,36 @@ enum PadListLogic {
                        using criteria: PadFilterCriteria,
                        now: Date = Date(),
                        display: (String) -> String = { $0 }) -> [Pad] {
+        pads.filter { matches($0, criteria: criteria, now: now, display: display) }
+    }
+
+    /// Whether a single pad satisfies `criteria`. Factored out of `filter` so the
+    /// combined "All Accounts" list can filter account-tagged rows one at a time
+    /// (keeping each row's source account) while reusing the exact same predicate
+    /// the single-account list uses, so the two can never drift.
+    static func matches(_ pad: Pad,
+                        criteria: PadFilterCriteria,
+                        now: Date = Date(),
+                        display: (String) -> String = { $0 }) -> Bool {
         let lowered = criteria.search.lowercased()
         let language = criteria.language?.lowercased()
         // The dates each window compares against. `.distantPast` so a pad with no
         // dates is excluded by any lower bound rather than crashing on a force-unwrap.
-        func updatedValue(_ pad: Pad) -> Date { (pad.updatedAt ?? pad.createdAt) ?? .distantPast }
-        func createdValue(_ pad: Pad) -> Date { pad.createdAt ?? .distantPast }
-        return pads.filter { pad in
-            (criteria.state == nil || pad.status == criteria.state) &&
-                (language == nil || (pad.language ?? "").lowercased() == language) &&
-                (criteria.owner == nil || pad.ownerEmail == criteria.owner) &&
-                (criteria.team == nil || pad.team?.name == criteria.team) &&
-                (criteria.type == nil || pad.interviewType?.rawValue == criteria.type) &&
-                criteria.updated.contains(updatedValue(pad), now: now) &&
-                criteria.created.contains(createdValue(pad), now: now) &&
-                (lowered.isEmpty
-                    || pad.title.lowercased().contains(lowered)
-                    || pad.id.lowercased().contains(lowered)
-                    || pad.ownerEmail.lowercased().contains(lowered)
-                    || display(pad.ownerEmail).lowercased().contains(lowered)
-                    || pad.participants.contains(where: { $0.lowercased().contains(lowered) }))
-        }
+        let updatedValue = (pad.updatedAt ?? pad.createdAt) ?? .distantPast
+        let createdValue = pad.createdAt ?? .distantPast
+        return (criteria.state == nil || pad.status == criteria.state) &&
+            (language == nil || (pad.language ?? "").lowercased() == language) &&
+            (criteria.owner == nil || pad.ownerEmail == criteria.owner) &&
+            (criteria.team == nil || pad.team?.name == criteria.team) &&
+            (criteria.type == nil || pad.interviewType?.rawValue == criteria.type) &&
+            criteria.updated.contains(updatedValue, now: now) &&
+            criteria.created.contains(createdValue, now: now) &&
+            (lowered.isEmpty
+                || pad.title.lowercased().contains(lowered)
+                || pad.id.lowercased().contains(lowered)
+                || pad.ownerEmail.lowercased().contains(lowered)
+                || display(pad.ownerEmail).lowercased().contains(lowered)
+                || pad.participants.contains(where: { $0.lowercased().contains(lowered) }))
     }
 }
 
