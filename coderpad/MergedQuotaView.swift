@@ -221,16 +221,8 @@ struct QuotaDetail: View {
                 if let used = quota.padsUsed {
                     LabeledRow(label: "Pads used", value: "\(used)")
                 }
-                if quota.unlimited != true, let remaining = quota.padsRemaining {
-                    LabeledRow(label: "Pads remaining", value: "\(remaining)")
-                }
                 if quota.unlimited != true, let limit = quota.billingCyclePadLimit {
                     LabeledRow(label: "Billing cycle limit", value: "\(limit)")
-                }
-                LabeledRow(label: "Unlimited", value: quota.unlimited == true ? "Yes" : "No")
-                LabeledRow(label: "Overages", value: quota.overagesEnabled == true ? "Enabled" : "Disabled")
-                if let reset = quota.quotaReset {
-                    LabeledRow(label: "Quota resets", value: reset.formatted(date: .abbreviated, time: .shortened))
                 }
                 if let trial = quota.trialExpiresAt {
                     LabeledRow(label: "Trial expires", value: trial.formatted(date: .abbreviated, time: .shortened))

@@ -119,7 +119,9 @@ extension MergedPadsView {
         ([search, stateFilter?.rawValue, languageFilter, ownerFilter, typeFilter,
           accountFilter?.uuidString, mineOnly ? "mine" : nil]
                 .map { $0 ?? "·" }
-                + [updatedWindow.range ?? "·", createdWindow.range ?? "·"])
+                // Include the custom bounds, not just the named range, so switching
+                // between two custom date ranges actually changes the signature.
+                + [updatedWindow.signatureToken, createdWindow.signatureToken])
             .joined(separator: "|")
     }
 

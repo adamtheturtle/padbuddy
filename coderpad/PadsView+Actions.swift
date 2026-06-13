@@ -194,10 +194,7 @@ extension PadsView {
     }
 
     private static func windowToken(_ window: PadDateWindow) -> String {
-        [window.range,
-         window.customStart.map { String($0.timeIntervalSince1970) },
-         window.customEnd.map { String($0.timeIntervalSince1970) }]
-            .map { $0 ?? "·" }.joined(separator: ",")
+        window.signatureToken
     }
 
     static func liveFilterKey(_ account: UUID) -> String {

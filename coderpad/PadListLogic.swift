@@ -24,6 +24,16 @@ struct PadDateWindow: Equatable, Hashable, Codable {
         range != nil || customStart != nil || customEnd != nil
     }
 
+    /// A stable change token covering the named range *and* the custom bounds, so a
+    /// signature built from it changes when a custom range does. Two different
+    /// custom ranges (both with `range == nil`) must not collapse to one token.
+    var signatureToken: String {
+        [range,
+         customStart.map { String($0.timeIntervalSince1970) },
+         customEnd.map { String($0.timeIntervalSince1970) }]
+            .map { $0 ?? "·" }.joined(separator: ",")
+    }
+
     /// Whether `value` falls within this window. `now` resolves a named window to a
     /// lower bound; a custom range supplies explicit inclusive bounds. An inactive
     /// window contains everything.
