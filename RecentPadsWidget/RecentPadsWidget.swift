@@ -6,6 +6,7 @@
 //  Tapping a pad opens it in the app via the `coderpad://pad/<id>` URL scheme.
 //
 
+import AppIntents
 import SwiftUI
 import WidgetKit
 
@@ -85,13 +86,33 @@ struct RecentPadsWidgetEntryView: View {
                 .foregroundStyle(.secondary)
             Text("No recent pads")
                 .font(.headline)
-            Text("Open CoderPad to see recent pads.")
+            Text("Create one to get started.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
+            // With no pads to open, the most useful action is creating one, so
+            // surface the New Pad button here too. The small family allows only a
+            // single tap target, so it keeps its whole-widget link instead.
+            if family != .systemSmall {
+                NewPadButton()
+                    .padding(.top, 2)
+            }
         }
         .padding()
         .widgetURL(URL(string: "coderpad://pads"))
+    }
+
+    /// A compact header above the pad list carrying the New Pad action, so a pad
+    /// can be created straight from the widget without opening the app first.
+    private var listHeader: some View {
+        HStack(spacing: 4) {
+            Text("Recent Pads")
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Spacer(minLength: 0)
+            NewPadButton()
+                .font(.caption2)
+        }
     }
 
     /// Small family: a single tap target summarizing the most recent pad.
@@ -121,9 +142,11 @@ struct RecentPadsWidgetEntryView: View {
         .accessibilityLabel(entry.pads.first.map { "Recent pad, \($0.accessibilityDescription)" } ?? "")
     }
 
-    /// Medium/large families: a tappable list, one deep link per row.
+    /// Medium/large families: a New Pad header plus a tappable list, one deep link
+    /// per row.
     private var listView: some View {
         VStack(alignment: .leading, spacing: 8) {
+            listHeader
             ForEach(visiblePads) { pad in
                 Link(destination: URL(string: "coderpad://pad/\(pad.id)") ?? fallbackURL) {
                     RecentPadRow(pad: pad)
@@ -139,9 +162,25 @@ struct RecentPadsWidgetEntryView: View {
     }
 
     private var visiblePads: [WidgetPadSnapshot] {
-        // Dropping the redundant header frees a row, so large shows the full snapshot.
-        let limit = family == .systemLarge ? 8 : 3
+        // The New Pad header costs one row, so large shows seven pads beneath it.
+        let limit = family == .systemLarge ? 7 : 3
         return Array(entry.pads.prefix(limit))
+    }
+}
+
+/// Creates a new pad straight from the widget. It opens the app via the
+/// `coderpad://new-pad` deep link the app already routes (the same one the
+/// Control Center `NewPadControl` uses), so the widget extension stays
+/// dependency-free and never has to compile the app-only `NewPadIntent`.
+private struct NewPadButton: View {
+    private static let newPadURL = URL(string: "coderpad://new-pad")!
+
+    var body: some View {
+        Button(intent: OpenURLIntent(Self.newPadURL)) {
+            Label("New Pad", systemImage: "plus")
+        }
+        .buttonStyle(.borderless)
+        .tint(.accentColor)
     }
 }
 

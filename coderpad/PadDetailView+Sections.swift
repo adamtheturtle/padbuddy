@@ -251,7 +251,7 @@ extension PadDetailView {
                         .frame(width: 18)
                     VStack(alignment: .leading, spacing: 2) {
                         HStack(spacing: 6) {
-                            Text(group.representative.kind.capitalized)
+                            Text(displayKind(group.representative.kind))
                                 .font(.callout.weight(.semibold))
                             if group.count > 1 {
                                 Chip(text: "×\(group.count)", tint: .accentColor)
@@ -332,6 +332,13 @@ extension PadDetailView {
         return nil
     }
 
+    /// Turns a raw event kind (e.g. `added_question`) into human-readable copy
+    /// (`Added Question`). The API uses snake_case, so underscores become spaces
+    /// before capitalizing rather than surviving into the UI.
+    private func displayKind(_ kind: String) -> String {
+        kind.replacingOccurrences(of: "_", with: " ").capitalized
+    }
+
     private func icon(for kind: String) -> String {
         switch kind.lowercased() {
         case "joined": "person.fill.badge.plus"
@@ -356,7 +363,7 @@ extension PadDetailView {
     }
 
     private func accessibilityLabel(for group: PadEventGroup) -> String {
-        var parts = [group.representative.kind]
+        var parts = [displayKind(group.representative.kind)]
         if group.count > 1 { parts.append("\(group.count) times") }
         if let user = group.representative.userName, !user.isEmpty { parts.append("by \(user)") }
         if let when = group.representative.createdAt {
