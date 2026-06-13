@@ -52,6 +52,10 @@ enum ChipContrast {
     }
 }
 
+/// A pad's lifecycle state. A live pad is the one status that genuinely benefits
+/// from standing out, so it keeps a subtle green capsule; every other state reads
+/// as restrained secondary metadata (an SF Symbol + text, see ``MetaLabel``) so the
+/// list doesn't fill up with competing coloured pills.
 struct StateBadge: View {
     let state: PadState
     /// Under "Increase Contrast" the subtle tinted fill/stroke are strengthened so
@@ -59,25 +63,19 @@ struct StateBadge: View {
     @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
-        Text(state.label)
-            .font(.caption.weight(.semibold))
-            .lineLimit(1)
-            .fixedSize(horizontal: true, vertical: false)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(tint.opacity(ChipContrast.fill(0.16, contrast)), in: Capsule())
-            .foregroundStyle(tint)
-            .overlay(Capsule().stroke(tint.opacity(ChipContrast.stroke(0.25, contrast)),
-                                      lineWidth: ChipContrast.lineWidth(contrast)))
-    }
-
-    private var tint: Color {
-        switch state {
-        case .active: .green
-        case .ended: .gray
-        case .pending: .orange
-        case .deleted: .red
-        case .other: .accentColor
+        if state == .active {
+            Text(state.label)
+                .font(.caption.weight(.semibold))
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(Color.green.opacity(ChipContrast.fill(0.16, contrast)), in: Capsule())
+                .foregroundStyle(.green)
+                .overlay(Capsule().stroke(Color.green.opacity(ChipContrast.stroke(0.25, contrast)),
+                                          lineWidth: ChipContrast.lineWidth(contrast)))
+        } else {
+            MetaLabel(text: state.label, systemImage: state.systemImage)
         }
     }
 }
@@ -210,8 +208,30 @@ struct Chip: View {
     }
 }
 
+/// A restrained, native-feeling metadata label: an optional SF Symbol plus
+/// secondary text, with no coloured capsule. This is the default treatment for
+/// informational status (account, team, language, interview type, execution…) so
+/// colour stays reserved for the one or two states that genuinely need to pop —
+/// see ``StateBadge`` and the few remaining tinted ``Chip`` uses (e.g. "Draft").
+struct MetaLabel: View {
+    let text: String
+    var systemImage: String?
+
+    var body: some View {
+        HStack(spacing: 4) {
+            if let systemImage {
+                Image(systemName: systemImage).font(.caption2)
+            }
+            Text(text).font(.caption)
+        }
+        .lineLimit(1)
+        .fixedSize(horizontal: true, vertical: false)
+        .foregroundStyle(.secondary)
+    }
+}
+
 extension InterviewType {
-    /// SF Symbol paired with this type in chips and filter menus.
+    /// SF Symbol paired with this type in metadata labels and filter menus.
     var systemImage: String {
         switch self {
         case .live: "dot.radiowaves.left.and.right"
@@ -219,17 +239,11 @@ extension InterviewType {
         }
     }
 
-    /// Accent color for this type's chip.
-    var tint: Color {
-        switch self {
-        case .live: .green
-        case .takeHome: .pink
-        }
-    }
-
-    /// Standard badge for this type, used across list rows and detail headers.
-    var chip: Chip {
-        Chip(text: label, systemImage: systemImage, tint: tint)
+    /// Standard metadata label for this type, used across list rows and detail
+    /// headers. Informational, so it reads as restrained secondary text rather
+    /// than a coloured pill.
+    var chip: MetaLabel {
+        MetaLabel(text: label, systemImage: systemImage)
     }
 }
 

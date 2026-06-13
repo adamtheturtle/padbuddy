@@ -12,13 +12,15 @@ extension EnvironmentCodeCard {
         HStack {
             SectionHeader(title: "Code", systemImage: "chevron.left.slash.chevron.right")
             // When several environments are stacked, flag the active one so the
-            // cards don't blur together. The language chip below names each.
+            // cards don't blur together — the one state here that genuinely needs
+            // to pop, so it keeps the green capsule (matching an active pad's
+            // StateBadge). The language label below names each.
             if showActiveBadge, isActive {
                 Chip(text: "Active", systemImage: "checkmark.seal", tint: .green)
             }
             Spacer()
             if let language, !language.isEmpty {
-                Chip(text: language.languageDisplayName)
+                MetaLabel(text: language.languageDisplayName)
             }
             // The per-file actions live in the header rather than floating over
             // the code so they never overlap the source. The environment-level

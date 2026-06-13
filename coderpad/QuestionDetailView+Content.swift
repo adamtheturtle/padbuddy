@@ -70,16 +70,16 @@ extension QuestionDetailView {
             // Actions now live in the window toolbar, so the header only carries
             // identity and the metadata chips below.
             headerIdentity
-            HStack(spacing: 6) {
+            HStack(spacing: 8) {
                 if let lang = question.language, !lang.isEmpty {
-                    Chip(text: lang.languageDisplayName)
+                    MetaLabel(text: lang.languageDisplayName)
                 }
                 question.interviewType.chip
                 if question.shared == true {
-                    Chip(text: "Shared", systemImage: "person.2", tint: .blue)
+                    MetaLabel(text: "Shared", systemImage: "person.2")
                 }
                 if question.testCasesEnabled == true {
-                    Chip(text: "Test cases", systemImage: "checkmark.seal", tint: .teal)
+                    MetaLabel(text: "Test cases", systemImage: "checkmark.seal")
                 }
                 if question.isDraft == true {
                     Chip(text: "Draft", systemImage: "doc.badge.ellipsis", tint: .orange)
@@ -90,7 +90,7 @@ extension QuestionDetailView {
                     // CoderPad's web app and isn't derivable from this ID). So we
                     // surface the fact that a public link is configured, rather than
                     // fabricating a URL that might not resolve.
-                    Chip(text: "Public link", systemImage: "globe", tint: .purple)
+                    MetaLabel(text: "Public link", systemImage: "globe")
                         .help("This question has a public take-home link configured in CoderPad. "
                             + "Copy the link from CoderPad's web app to share it.")
                         .accessibilityLabel("Public take-home link configured")

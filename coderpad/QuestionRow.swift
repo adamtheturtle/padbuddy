@@ -26,18 +26,18 @@ struct QuestionRow: View {
                     Text(question.displayTitle)
                         .font(.callout.weight(.medium))
                         .lineLimit(1)
-                    HStack(spacing: 6) {
+                    HStack(spacing: 8) {
                         if let accountName {
-                            Chip(text: accountName, systemImage: "person.crop.circle", tint: .purple)
+                            MetaLabel(text: accountName, systemImage: "person.crop.circle")
                         }
                         if let lang = question.language, !lang.isEmpty {
-                            Chip(text: lang.languageDisplayName)
+                            MetaLabel(text: lang.languageDisplayName)
                         }
                         if question.interviewType == .takeHome {
                             InterviewType.takeHome.chip
                         }
                         if let used = question.used, used > 0 {
-                            Chip(text: "Used \(used)×", systemImage: "chart.bar", tint: .blue)
+                            MetaLabel(text: "Used \(used)×", systemImage: "chart.bar")
                         }
                         if question.isDraft == true {
                             Chip(text: "Draft", systemImage: "doc.badge.ellipsis", tint: .orange)

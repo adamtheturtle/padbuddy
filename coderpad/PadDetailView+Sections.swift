@@ -56,24 +56,24 @@ extension PadDetailView {
             // badge at the edge.
             FlowLayout(spacing: 6, lineSpacing: 6) {
                 StateBadge(state: pad.status)
-                // Skip the pad-level language chip when a single code card is
+                // Skip the pad-level language label when a single code card is
                 // shown — that card names the language itself, so repeating it
                 // here is redundant. Keep it when there's no card (nothing else
                 // names the language) or several (this summarizes the active one).
                 if let language = pad.language, !language.isEmpty, codeCardCount != 1 {
-                    Chip(text: language.languageDisplayName)
+                    MetaLabel(text: language.languageDisplayName)
                 }
                 if let type = pad.interviewType {
                     type.chip
                 }
                 if pad.isPrivate == true {
-                    Chip(text: "Private", systemImage: "lock", tint: .orange)
+                    MetaLabel(text: "Private", systemImage: "lock")
                 }
                 if let exec = pad.executionEnabled, exec {
-                    Chip(text: "Execution enabled", systemImage: "play.circle", tint: .green)
+                    MetaLabel(text: "Execution enabled", systemImage: "play.circle")
                 }
                 if let team = pad.team {
-                    Chip(text: team.name, systemImage: "person.3", tint: .purple)
+                    MetaLabel(text: team.name, systemImage: "person.3")
                 }
             }
         }

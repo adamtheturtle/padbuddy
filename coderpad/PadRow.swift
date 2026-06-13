@@ -31,13 +31,13 @@ struct PadRow: View {
                 Text(pad.title.isEmpty ? pad.id : pad.title)
                     .font(.callout.weight(.medium))
                     .lineLimit(1)
-                HStack(spacing: 6) {
+                HStack(spacing: 8) {
                     StateBadge(state: pad.status)
                     if let accountName {
-                        Chip(text: accountName, systemImage: "person.crop.circle", tint: .purple)
+                        MetaLabel(text: accountName, systemImage: "person.crop.circle")
                     }
                     if let language = pad.language, !language.isEmpty {
-                        Chip(text: language.languageDisplayName)
+                        MetaLabel(text: language.languageDisplayName)
                     }
                     if pad.interviewType == .takeHome {
                         InterviewType.takeHome.chip

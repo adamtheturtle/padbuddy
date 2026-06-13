@@ -51,6 +51,12 @@ struct DesignSystemRenderTests {
         expectRenders(Chip(text: "No icon"), "Chip without icon")
     }
 
+    @Test func `meta label renders`() {
+        expectRenders(MetaLabel(text: "Cursor", systemImage: "person.crop.circle"),
+                      "MetaLabel with icon")
+        expectRenders(MetaLabel(text: "Python"), "MetaLabel without icon")
+    }
+
     @Test func `interview type chips render`() {
         for type in InterviewType.allCases {
             expectRenders(type.chip, "InterviewType.\(type.rawValue).chip")

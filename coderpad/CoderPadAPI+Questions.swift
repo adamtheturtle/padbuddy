@@ -179,6 +179,18 @@ enum PadState: Hashable, Identifiable, Codable, RawRepresentable {
         }
     }
 
+    /// SF Symbol paired with this state when it's rendered as restrained
+    /// metadata (every state except the prominent "Active"; see ``StateBadge``).
+    var systemImage: String {
+        switch self {
+        case .active: "dot.radiowaves.left.and.right"
+        case .ended: "checkmark.circle"
+        case .pending: "clock"
+        case .deleted: "trash"
+        case .other: "circle"
+        }
+    }
+
     init(from decoder: Decoder) throws {
         try self.init(apiState: decoder.singleValueContainer().decode(String.self))
     }
