@@ -20,7 +20,18 @@ struct WidgetPadSnapshot: Codable, Identifiable, Hashable {
     let updatedAt: Date?
 }
 
-/// Reads the recent-pads snapshot from the App Group container shared with the app.
+/// A configurable account choice. Mirrored from the app's account list (kept in
+/// lock-step with the app's copy) so the configuration picker can populate its
+/// options from inside the widget process.
+struct WidgetAccount: Codable, Identifiable, Hashable {
+    let id: String
+    let name: String
+}
+
+/// Reads the recent-pads snapshots from the App Group container shared with the app.
+/// The app writes one snapshot per account (`recent-pads-<id>.json`), a default
+/// snapshot for the current account (`recent-pads.json`), and the account index
+/// (`widget-accounts.json`); this reads them back.
 enum WidgetSharedStore {
     /// Must match the app's `WidgetSharedStore.appGroupID`. If `containerURL` ever
     /// returns nil at runtime, this likely needs the team-id prefixed form
@@ -30,18 +41,34 @@ enum WidgetSharedStore {
     /// The widget's kind, shared with the app's reload logic.
     static let widgetKind = "RecentPadsWidget"
 
-    private static let fileName = "recent-pads.json"
+    private static let defaultPadsFile = "recent-pads.json"
+    private static let accountsFile = "widget-accounts.json"
 
-    private static var fileURL: URL? {
-        FileManager.default
-            .containerURL(forSecurityApplicationGroupIdentifier: appGroupID)?
-            .appending(path: fileName, directoryHint: .notDirectory)
+    /// File holding `account`'s pads, or the default (current-account) snapshot when
+    /// `account` is nil.
+    private static func padsFileName(account: String?) -> String {
+        guard let account, !account.isEmpty else { return defaultPadsFile }
+        return "recent-pads-\(account).json"
     }
 
-    /// The last snapshot the app wrote, or an empty list when none exists yet.
-    static func load() -> [WidgetPadSnapshot] {
-        guard let fileURL, let data = try? Data(contentsOf: fileURL) else { return [] }
+    private static func fileURL(_ name: String) -> URL? {
+        FileManager.default
+            .containerURL(forSecurityApplicationGroupIdentifier: appGroupID)?
+            .appending(path: name, directoryHint: .notDirectory)
+    }
+
+    /// Pads for the configured `account`, or the default snapshot when `account` is
+    /// nil. Empty when the file is missing.
+    static func load(account: String? = nil) -> [WidgetPadSnapshot] {
+        guard let url = fileURL(padsFileName(account: account)),
+              let data = try? Data(contentsOf: url) else { return [] }
         return (try? JSONDecoder().decode([WidgetPadSnapshot].self, from: data)) ?? []
+    }
+
+    /// The mirrored account list backing the configuration picker.
+    static func loadAccounts() -> [WidgetAccount] {
+        guard let url = fileURL(accountsFile), let data = try? Data(contentsOf: url) else { return [] }
+        return (try? JSONDecoder().decode([WidgetAccount].self, from: data)) ?? []
     }
 }
 

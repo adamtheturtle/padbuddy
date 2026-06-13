@@ -89,10 +89,11 @@ final class PadsCacheStore {
         guard persist else { return }
         // Index the complete list (not the streaming snapshots) when the user opted in.
         SpotlightIndexer.updatePads(pads, account: accountID)
-        // Keep the Recent Pads widget in step with the account that's on screen.
-        if accountID == AccountsStore.shared.currentAccount?.id {
-            WidgetSync.refresh(pads: pads)
-        }
+        // Mirror every account's pads into the widget container (keyed by id) so a
+        // configured widget can pin any account, updating the default snapshot for
+        // whichever account is on screen.
+        WidgetSync.refresh(pads: pads, account: accountID,
+                           isCurrent: accountID == AccountsStore.shared.currentAccount?.id)
         // Reflect this account's active-pad count in the Dock badge (summed across
         // every account inside `refresh`), now that the complete list is in hand.
         DockBadge.refresh()
@@ -107,6 +108,8 @@ final class PadsCacheStore {
         writeQueue.enqueue {
             CacheDisk.delete(kind: "pads", account: accountID)
         }
+        // Drop the account's mirrored widget snapshot and refresh the picker index.
+        WidgetSync.removeAccount(accountID)
         // Removing an account drops its pads from the badge's all-accounts total.
         DockBadge.refresh()
     }
@@ -120,9 +123,8 @@ final class PadsCacheStore {
         for (accountID, pads) in padsByAccount where pads.contains(where: { $0.id == padID }) {
             let reduced = pads.filter { $0.id != padID }
             padsByAccount[accountID] = reduced
-            if accountID == AccountsStore.shared.currentAccount?.id {
-                WidgetSync.refresh(pads: reduced)
-            }
+            WidgetSync.refresh(pads: reduced, account: accountID,
+                               isCurrent: accountID == AccountsStore.shared.currentAccount?.id)
             writeQueue.enqueue {
                 CacheDisk.save(reduced, kind: "pads", account: accountID)
             }

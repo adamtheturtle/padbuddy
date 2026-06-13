@@ -199,15 +199,29 @@ final class AccountsStore {
     static let shared = AccountsStore()
 
     var accounts: [Account] {
-        didSet { persistAccounts() }
+        didSet {
+            persistAccounts()
+            // Keep the widget's configuration picker in step with adds, removes, and
+            // renames. Pass `accounts` directly — never `AccountsStore.shared` — since
+            // the Observation macro fires this observer during init too, where touching
+            // the still-initializing singleton would deadlock.
+            WidgetSync.syncAccounts(accounts)
+        }
     }
 
     var currentAccountID: UUID? {
         didSet {
             persistCurrentID()
-            // Repaint the Recent Pads widget for the newly selected account from
-            // whatever pads are already cached for it.
-            WidgetSync.refresh(pads: currentAccount.map { PadsCacheStore.shared.get($0.id) } ?? [])
+            // Repaint the unconfigured Recent Pads widget for the newly selected
+            // account from whatever pads are already cached. Uses `self` (via
+            // `currentAccount`), not `AccountsStore.shared`, so it's safe when the
+            // Observation macro routes this through the observer during init.
+            if let account = currentAccount {
+                WidgetSync.refresh(pads: PadsCacheStore.shared.get(account.id),
+                                   account: account.id, isCurrent: true)
+            } else {
+                WidgetSync.clearCurrent()
+            }
         }
     }
 
