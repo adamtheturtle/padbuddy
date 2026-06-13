@@ -1,11 +1,14 @@
 name: CI
 
 on:
-  pull_request:
-  push:
-    branches: [main]
+  # Run once a night rather than on every push/PR — macOS runners bill at 10x
+  # minutes, so a scheduled build plus on-demand runs keeps CI cost predictable.
+  schedule:
+    - cron: '0 3 * * *' # 03:00 UTC nightly
+  # Allow manually kicking off a run from the Actions tab when needed.
+  workflow_dispatch:
 
-# Cancel an in-progress run when a newer commit is pushed to the same ref.
+# Cancel an in-progress run when a newer run starts on the same ref.
 # macOS runners bill at 10x minutes, so not paying for superseded builds matters.
 concurrency:
   group: ci-${{ github.ref }}
