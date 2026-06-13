@@ -57,7 +57,7 @@ struct NewQuestionSheet: View {
                             }
                         }
                         .disabled(isDrafting || draftPrompt.trimmingCharacters(in: .whitespaces).isEmpty)
-                        .help("Draft the title, description, instructions, and solution on device")
+                        .help("Draft the title, description, instructions, and solution")
                     }
                 }
                 TextField("Title", text: $title)
@@ -85,7 +85,7 @@ struct NewQuestionSheet: View {
                         }
                     }
                     .disabled(isSuggestingMeta || !hasTextToCategorize)
-                    .help("Suggest the language and type from the question text, on device")
+                    .help("Suggest the language and type from the question text")
                 }
                 Section("Description") {
                     TextField("", text: $description, prompt: Text("Optional"), axis: .vertical)
@@ -270,7 +270,7 @@ struct EditQuestionSheet: View {
                         }
                     }
                     .disabled(isSuggestingMeta)
-                    .help("Suggest the language and type from the question text, on device")
+                    .help("Suggest the language and type from the question text")
                 }
                 Section("Description") {
                     TextField("", text: $description, prompt: Text("Optional"), axis: .vertical)

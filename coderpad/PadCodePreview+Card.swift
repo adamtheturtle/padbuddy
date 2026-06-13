@@ -20,9 +20,15 @@ extension EnvironmentCodeCard {
             if let language, !language.isEmpty {
                 Chip(text: language.languageDisplayName)
             }
-            // An environment-level action lives in the header (beside the
-            // language chip) rather than on the code pane, so it reads as "save
-            // the whole project" instead of being tied to the one visible file.
+            // The per-file actions live in the header rather than floating over
+            // the code so they never overlap the source. The environment-level
+            // "Download Zip" trails them, reading as "save the whole project"
+            // rather than being tied to the one visible file.
+            if PadCodeExplainer.isAvailable {
+                explainButton
+            }
+            downloadButton
+            copyButton
             if isMultiFile {
                 downloadAllButton
             }
@@ -44,42 +50,32 @@ extension EnvironmentCodeCard {
         .accessibilityLabel("Download all files as a zip")
     }
 
-    /// Floats in the top-right of the code block and copies the selected file.
+    /// Header button that copies the selected file's contents.
     private var copyButton: some View {
         Button {
             copy(selected.contents)
         } label: {
             Image(systemName: "doc.on.doc")
-                .padding(6)
         }
-        .buttonStyle(.plain)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .stroke(Color.subtleStroke, lineWidth: 0.5)
-        )
+        .buttonStyle(.borderless)
+        .controlSize(.small)
         .help("Copy code")
         .accessibilityLabel("Copy code")
     }
 
-    /// Floats beside Copy on the code pane and saves the file currently shown to
-    /// disk via a save panel, pre-filled with its name so its extension carries
-    /// over. It acts on the visible file only; the whole environment is
-    /// downloaded via the header's "Download Zip" button. The help text names
-    /// the file in a multi-file project so it doesn't read as a download-all.
+    /// Header button that saves the file currently shown to disk via a save
+    /// panel, pre-filled with its name so its extension carries over. It acts on
+    /// the visible file only; the whole environment is downloaded via the
+    /// header's "Download Zip" button. The help text names the file in a
+    /// multi-file project so it doesn't read as a download-all.
     private var downloadButton: some View {
         Button {
             download(selected)
         } label: {
             Image(systemName: "square.and.arrow.down")
-                .padding(6)
         }
-        .buttonStyle(.plain)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .stroke(Color.subtleStroke, lineWidth: 0.5)
-        )
+        .buttonStyle(.borderless)
+        .controlSize(.small)
         .help(isMultiFile ? "Download \(selected.name)" : "Download code")
         .accessibilityLabel(isMultiFile ? "Download \(selected.name)" : "Download code")
     }
@@ -149,22 +145,12 @@ extension EnvironmentCodeCard {
         // when the file contents, language, or appearance actually change.
         HighlightedCode(contents: selected.contents, language: selected.language, dark: dark)
             .equatable()
-            .overlay(alignment: .topTrailing) {
-                HStack(spacing: 6) {
-                    if PadCodeExplainer.isAvailable {
-                        explainButton
-                    }
-                    downloadButton
-                    copyButton
-                }
-                .padding(8)
-            }
     }
 
-    /// Floats beside Copy and explains the selected file on device. The result
-    /// opens in a popover anchored to the button. Mirrors the privacy posture of
-    /// the rest of the AI features: nothing leaves the Mac and nothing runs until
-    /// the user taps. Disabled while a generation is in flight.
+    /// Header button that explains the selected file on device. The result opens
+    /// in a popover anchored to the button. Mirrors the privacy posture of the
+    /// rest of the AI features: nothing leaves the Mac and nothing runs until the
+    /// user taps. Disabled while a generation is in flight.
     private var explainButton: some View {
         Button {
             Task { await explainSelected() }
@@ -172,20 +158,14 @@ extension EnvironmentCodeCard {
             if isExplaining {
                 ProgressView()
                     .controlSize(.small)
-                    .padding(6)
             } else {
                 Image(systemName: "sparkles")
-                    .padding(6)
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.borderless)
+        .controlSize(.small)
         .disabled(isExplaining)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .stroke(Color.subtleStroke, lineWidth: 0.5)
-        )
-        .help("Explain this file on device")
+        .help("Explain this file")
         .accessibilityLabel("Explain this file")
         .popover(isPresented: $showExplanation, arrowEdge: .bottom) {
             explanationPopover

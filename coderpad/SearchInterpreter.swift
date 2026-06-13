@@ -24,10 +24,11 @@ enum SearchInterpreter {
     /// A pad filter set derived from `text`, or nil when the model is unavailable,
     /// the text is empty, or generation fails. `languages`/`owners` are the values
     /// actually present in the list, so the model maps onto real options.
-    static func interpretPads(_ text: String, languages: [String], owners: [String]) async -> NamedSearch? {
+    static func interpretPads(_ text: String, languages: [String], owners: [String],
+                              teams: [String]) async -> NamedSearch? {
         #if canImport(FoundationModels)
             if #available(macOS 26, *) {
-                return await generatePads(text, languages: languages, owners: owners)
+                return await generatePads(text, languages: languages, owners: owners, teams: teams)
             }
         #endif
         return nil
@@ -63,6 +64,17 @@ enum SearchInterpreter {
         guard !trimmed.isEmpty else { return nil }
         if let exact = owners.first(where: { $0.lowercased() == trimmed }) { return exact }
         return owners.first { $0.lowercased().contains(trimmed) }
+    }
+
+    /// Matches a free-form team onto a team name present in the list, by exact match
+    /// or substring. Nil when nothing matches — so a vague "my team" (no team is
+    /// literally named that) sets no team filter rather than guessing one, and never
+    /// bleeds into the owner field.
+    static func resolveTeam(_ raw: String, in teams: [String]) -> String? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !trimmed.isEmpty else { return nil }
+        if let exact = teams.first(where: { $0.lowercased() == trimmed }) { return exact }
+        return teams.first { $0.lowercased().contains(trimmed) }
     }
 
     /// Accepts only the pad states the list filters on; maps API synonyms via
@@ -115,8 +127,12 @@ enum SearchInterpreter {
             let text: String
             @Guide(description: "A language code from the provided list, or empty.")
             let language: String
-            @Guide(description: "An owner email (or fragment) from the provided list, or empty.")
+            @Guide(description: "An owner email (or fragment) of a single person from the provided "
+                + "list, or empty. Never put a team name here.")
             let owner: String
+            @Guide(description: "A team name from the provided list, or empty. Use this for any "
+                + "request about a team or group, not the owner field.")
+            let team: String
             @Guide(description: "Pad state: exactly active, ended, or pending, or empty.")
             let state: String
             @Guide(description: "Exactly live or take-home, or empty.")
@@ -140,7 +156,8 @@ enum SearchInterpreter {
             let draft: String
         }
 
-        static func generatePads(_ text: String, languages: [String], owners: [String]) async -> NamedSearch? {
+        static func generatePads(_ text: String, languages: [String], owners: [String],
+                                 teams: [String]) async -> NamedSearch? {
             let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else { return nil }
             guard SystemLanguageModel.default.availability == .available else { return nil }
@@ -148,8 +165,10 @@ enum SearchInterpreter {
             let instructions = """
             You translate a user's plain-language request into structured filters for a list of \
             coding interview pads. Fill only the fields the request clearly implies and leave the \
-            rest empty. Languages available: \(optionList(languages, limit: 60)). \
-            Owners available: \(optionList(owners, limit: 40)).
+            rest empty. The owner field is for a single named person only; route any team or group \
+            request to the team field instead. Languages available: \(optionList(languages, limit: 60)). \
+            Owners available: \(optionList(owners, limit: 40)). \
+            Teams available: \(optionList(teams, limit: 40)).
             """
             let session = LanguageModelSession(instructions: instructions)
             do {
@@ -161,6 +180,7 @@ enum SearchInterpreter {
                     stateFilter: resolveState(q.state),
                     languageFilter: resolveLanguage(q.language, in: languages),
                     ownerFilter: resolveOwner(q.owner, in: owners),
+                    teamFilter: resolveTeam(q.team, in: teams),
                     typeFilter: resolveType(q.type),
                     updatedWindow: window
                 )

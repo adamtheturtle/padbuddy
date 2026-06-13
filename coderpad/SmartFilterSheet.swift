@@ -22,9 +22,6 @@ struct SmartFilterSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Label("Smart Filter", systemImage: "sparkles").font(.title3.bold())
-            Text("Describe what you're looking for. It's interpreted entirely on this Mac.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
             TextField("", text: $text, prompt: Text(placeholder), axis: .vertical)
                 .textFieldStyle(.roundedBorder)
                 .lineLimit(2 ... 4)

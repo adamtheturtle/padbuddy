@@ -121,7 +121,7 @@ extension PadsView {
         smartFilterFailed = false
         defer { isInterpreting = false }
         let result = await SearchInterpreter.interpretPads(
-            query, languages: availableLanguages, owners: availableOwners
+            query, languages: availableLanguages, owners: availableOwners, teams: availableTeams
         )
         if let result {
             apply(result)

@@ -35,6 +35,16 @@ private let owners = ["alice@acme.com", "bob@acme.com"]
     #expect(SearchInterpreter.resolveOwner("carol", in: owners) == nil)
 }
 
+@Test func resolvesTeamByExactAndSubstringButNotVagueTerms() {
+    let teams = ["Platform", "Mobile"]
+    #expect(SearchInterpreter.resolveTeam("Platform", in: teams) == "Platform")
+    #expect(SearchInterpreter.resolveTeam("mob", in: teams) == "Mobile")
+    // A vague "my team" matches no real team, so no team filter is set (and it
+    // must never fall through to the owner field).
+    #expect(SearchInterpreter.resolveTeam("my team", in: teams) == nil)
+    #expect(SearchInterpreter.resolveTeam("", in: teams) == nil)
+}
+
 @Test func resolvesStateSynonymsButRejectsUnknown() {
     #expect(SearchInterpreter.resolveState("started") == .active)
     #expect(SearchInterpreter.resolveState("finished") == .ended)
