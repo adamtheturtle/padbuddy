@@ -71,20 +71,20 @@ final class WebController: NSObject {
         guard self.webView !== webView else { return }
         self.webView = webView
         observers = [
-            webView.observe(\.canGoBack, options: [.initial, .new]) { [weak self] webView, _ in
-                let value = webView.canGoBack
+            webView.observe(\.canGoBack, options: [.initial, .new]) { [weak self] _, change in
+                let value = change.newValue ?? false
                 Task { @MainActor in self?.canGoBack = value }
             },
-            webView.observe(\.canGoForward, options: [.initial, .new]) { [weak self] webView, _ in
-                let value = webView.canGoForward
+            webView.observe(\.canGoForward, options: [.initial, .new]) { [weak self] _, change in
+                let value = change.newValue ?? false
                 Task { @MainActor in self?.canGoForward = value }
             },
-            webView.observe(\.isLoading, options: [.initial, .new]) { [weak self] webView, _ in
-                let value = webView.isLoading
+            webView.observe(\.isLoading, options: [.initial, .new]) { [weak self] _, change in
+                let value = change.newValue ?? false
                 Task { @MainActor in self?.isLoading = value }
             },
-            webView.observe(\.url, options: [.initial, .new]) { [weak self] webView, _ in
-                let value = webView.url
+            webView.observe(\.url, options: [.initial, .new]) { [weak self] _, change in
+                let value = change.newValue ?? nil
                 Task { @MainActor in self?.currentURL = value }
             }
         ]
@@ -209,7 +209,7 @@ extension WebController: WKUIDelegate, NSWindowDelegate {
     func webView(_: WKWebView,
                  runJavaScriptAlertPanelWithMessage message: String,
                  initiatedByFrame _: WKFrameInfo,
-                 completionHandler: @escaping () -> Void) {
+                 completionHandler: @escaping @MainActor @Sendable () -> Void) {
         MainActor.assumeIsolated {
             let alert = NSAlert()
             alert.messageText = message
@@ -222,7 +222,7 @@ extension WebController: WKUIDelegate, NSWindowDelegate {
     func webView(_: WKWebView,
                  runJavaScriptConfirmPanelWithMessage message: String,
                  initiatedByFrame _: WKFrameInfo,
-                 completionHandler: @escaping (Bool) -> Void) {
+                 completionHandler: @escaping @MainActor @Sendable (Bool) -> Void) {
         MainActor.assumeIsolated {
             let alert = NSAlert()
             alert.messageText = message

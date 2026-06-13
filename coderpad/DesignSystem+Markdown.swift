@@ -3,13 +3,18 @@
 //  coderpad
 //
 
-import MarkdownUI
 import SwiftUI
+import Textual
 
 // MARK: - MarkdownText
 
-/// Renders GitHub-flavored Markdown via swift-markdown-ui, themed to match the
-/// app's typography. Call sites are unchanged: `MarkdownText(raw)`.
+/// Renders GitHub-flavored Markdown via Textual, themed to match the app's
+/// typography. Call sites are unchanged: `MarkdownText(raw)`.
+///
+/// Textual's default block styles (sized/bold headings, monospaced inline and
+/// fenced code with a subtle fill, tables) already approximate the app's look,
+/// and `StructuredText` honors the ambient SwiftUI `.font`/`.foregroundStyle`,
+/// so we lean on the defaults rather than carrying a hand-rolled theme.
 struct MarkdownText: View {
     let raw: String
 
@@ -21,70 +26,11 @@ struct MarkdownText: View {
         if raw.isEmpty {
             Text("(empty)").foregroundStyle(.secondary)
         } else {
-            Markdown(raw)
-                .markdownTheme(.coderpad)
-                .textSelection(.enabled)
+            StructuredText(markdown: raw)
+                .textual.textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
-}
-
-private extension Theme {
-    /// Approximates the app's previous hand-rolled Markdown styling: bold
-    /// headings, monospaced inline/code blocks, and a subtle code-block fill.
-    static let coderpad = Theme()
-        .code {
-            FontFamilyVariant(.monospaced)
-            FontSize(.em(0.9))
-        }
-        .heading1 { configuration in
-            configuration.label
-                .markdownMargin(top: .em(0.8), bottom: .em(0.4))
-                .markdownTextStyle {
-                    FontWeight(.bold)
-                    FontSize(.em(1.5))
-                }
-        }
-        .heading2 { configuration in
-            configuration.label
-                .markdownMargin(top: .em(0.8), bottom: .em(0.4))
-                .markdownTextStyle {
-                    FontWeight(.bold)
-                    FontSize(.em(1.3))
-                }
-        }
-        .heading3 { configuration in
-            configuration.label
-                .markdownMargin(top: .em(0.8), bottom: .em(0.4))
-                .markdownTextStyle {
-                    FontWeight(.semibold)
-                    FontSize(.em(1.15))
-                }
-        }
-        .codeBlock { configuration in
-            configuration.label
-                .markdownTextStyle {
-                    FontFamilyVariant(.monospaced)
-                    FontSize(.em(0.9))
-                }
-                .padding(10)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(
-                    Color.subtleStroke.opacity(0.5),
-                    in: RoundedRectangle(cornerRadius: 6, style: .continuous)
-                )
-                .markdownMargin(top: .em(0.5), bottom: .em(0.5))
-        }
-        .tableCell { configuration in
-            configuration.label
-                .markdownTextStyle {
-                    if configuration.row == 0 {
-                        FontWeight(.semibold)
-                    }
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-        }
 }
 
 #Preview("MarkdownText") {

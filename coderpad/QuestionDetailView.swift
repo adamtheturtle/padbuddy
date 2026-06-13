@@ -9,6 +9,7 @@ struct QuestionDetailView: View {
     let client: CoderPadClient
     let question: Question
     @Environment(\.openWindow) var openWindow
+    @Environment(\.orgDirectory) var directory
     @State private var nav = AppNavigation.shared
     @State private var accounts = AccountsStore.shared
     @State private var favorites = FavoriteQuestionsStore.shared

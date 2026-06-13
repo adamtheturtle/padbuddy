@@ -127,14 +127,13 @@ struct FilterChipMenu<Option: Hashable>: View {
     }
 }
 
-/// The "Updated" / "Created" date filter chip. Richer than a `FilterChipMenu`: it
-/// toggles which date the window compares against, offers the named windows, and
-/// opens a custom start/end picker — all while sharing the same chip styling.
+/// A date-range filter chip bound to one `PadDateWindow`. `title` names the date
+/// it constrains ("Updated" / "Created"); the pad bar shows one chip per window so
+/// the two can be set independently. Offers the named windows and a custom
+/// start/end picker, sharing the same chip styling as the other menu chips.
 struct DateRangeFilterChip: View {
-    @Binding var range: String?
-    @Binding var field: PadDateField
-    @Binding var customStart: Date?
-    @Binding var customEnd: Date?
+    let title: String
+    @Binding var window: PadDateWindow
     let options: [String]
 
     @State private var showCustom = false
@@ -142,11 +141,11 @@ struct DateRangeFilterChip: View {
     @State private var draftEnd = Date()
 
     private var isCustom: Bool {
-        customStart != nil || customEnd != nil
+        window.customStart != nil || window.customEnd != nil
     }
 
     private var isActive: Bool {
-        range != nil || isCustom
+        window.isActive
     }
 
     private var fillColor: Color {
@@ -164,15 +163,15 @@ struct DateRangeFilterChip: View {
     /// No dashes in user-facing copy (house style): join the two dates with "to".
     private var customRangeLabel: String {
         let style = Date.FormatStyle.dateTime.month(.abbreviated).day()
-        let start = customStart.map { $0.formatted(style) } ?? "…"
-        let end = customEnd.map { $0.formatted(style) } ?? "…"
+        let start = window.customStart.map { $0.formatted(style) } ?? "…"
+        let end = window.customEnd.map { $0.formatted(style) } ?? "…"
         return "\(start) to \(end)"
     }
 
     private var chipText: String {
         if isCustom { return customRangeLabel }
-        if let range { return range.capitalized }
-        return field.label
+        if let range = window.range { return range.capitalized }
+        return title
     }
 
     var body: some View {
@@ -183,28 +182,20 @@ struct DateRangeFilterChip: View {
             fillColor: fillColor,
             strokeColor: strokeColor,
             labelColor: labelColor,
-            clearLabel: "Clear date filter",
-            onClear: { clear() },
+            clearLabel: "Clear \(title.lowercased()) date filter",
+            onClear: { window = PadDateWindow() },
             menu: {
-                Picker("Date field", selection: $field) {
-                    Text("Updated date").tag(PadDateField.updated)
-                    Text("Created date").tag(PadDateField.created)
-                }
-                .pickerStyle(.inline)
-                Divider()
                 Button {
-                    clear()
+                    window = PadDateWindow()
                 } label: {
                     if isActive { Text("Any time") } else { Label("Any time", systemImage: "checkmark") }
                 }
                 Divider()
                 ForEach(options, id: \.self) { option in
                     Button {
-                        range = option
-                        customStart = nil
-                        customEnd = nil
+                        window = PadDateWindow(range: option)
                     } label: {
-                        if !isCustom, option == range {
+                        if !isCustom, option == window.range {
                             Label(option.capitalized, systemImage: "checkmark")
                         } else {
                             Text(option.capitalized)
@@ -225,7 +216,7 @@ struct DateRangeFilterChip: View {
 
     private var customPopover: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Custom Range").font(.headline)
+            Text("Custom \(title) Range").font(.headline)
             DatePicker("From", selection: $draftStart, displayedComponents: .date)
             DatePicker("To", selection: $draftEnd, in: draftStart..., displayedComponents: .date)
             HStack {
@@ -239,31 +230,24 @@ struct DateRangeFilterChip: View {
         .frame(width: 280)
     }
 
-    private func clear() {
-        range = nil
-        customStart = nil
-        customEnd = nil
-    }
-
     /// Seed the picker from the active custom range, or default to the last seven
     /// days when opening it fresh.
     private func prepareCustomDraft() {
         let calendar = Calendar.current
         let today = Date()
-        draftStart = customStart
+        draftStart = window.customStart
             ?? calendar.date(byAdding: .day, value: -6, to: calendar.startOfDay(for: today))
             ?? today
-        draftEnd = customEnd ?? today
+        draftEnd = window.customEnd ?? today
     }
 
     /// Commit the picker as an inclusive whole-day range: from the start of the
-    /// "From" day to the last second of the "To" day. Clears any named window so
-    /// the two never both apply.
+    /// "From" day to the last second of the "To" day.
     private func applyCustom() {
         let calendar = Calendar.current
-        customStart = calendar.startOfDay(for: draftStart)
-        customEnd = calendar.date(bySettingHour: 23, minute: 59, second: 59, of: draftEnd) ?? draftEnd
-        range = nil
+        let start = calendar.startOfDay(for: draftStart)
+        let end = calendar.date(bySettingHour: 23, minute: 59, second: 59, of: draftEnd) ?? draftEnd
+        window = PadDateWindow(customStart: start, customEnd: end)
         showCustom = false
     }
 }

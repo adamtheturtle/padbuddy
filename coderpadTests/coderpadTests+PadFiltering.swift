@@ -124,32 +124,36 @@ struct PadFilterTests {
     func `date-range filter keeps pads updated within the window`() throws {
         let pads = try samplePads()
         // ABC1 was updated yesterday, XYZ2 back in January.
-        let recent = PadListLogic.filter(pads, using: PadFilterCriteria(dateRange: "last 7 days"), now: fixedNow)
+        let recent = PadListLogic.filter(
+            pads, using: PadFilterCriteria(updated: PadDateWindow(range: "last 7 days")), now: fixedNow
+        )
         #expect(recent.map(\.id) == ["ABC1"])
-        let month = PadListLogic.filter(pads, using: PadFilterCriteria(dateRange: "last 30 days"), now: fixedNow)
+        let month = PadListLogic.filter(
+            pads, using: PadFilterCriteria(updated: PadDateWindow(range: "last 30 days")), now: fixedNow
+        )
         #expect(month.map(\.id) == ["ABC1"])
     }
 
     @Test
-    func `created-date filter compares against created_at, not updated_at`() throws {
+    func `the created window compares against created_at, not updated_at`() throws {
         // OLD was created in January but bumped (updated) yesterday; NEW is the
-        // reverse. An updated-date window keeps OLD; a created-date window keeps NEW.
+        // reverse. An updated window keeps OLD; a created window keeps NEW.
         let pads = try [
             makePad(id: "OLD", updatedAt: "2026-06-11T09:00:00Z", createdAt: "2026-01-01T09:00:00Z"),
             makePad(id: "NEW", updatedAt: "2026-01-02T09:00:00Z", createdAt: "2026-06-11T09:00:00Z")
         ]
         let byUpdated = PadListLogic.filter(
-            pads, using: PadFilterCriteria(dateRange: "last 7 days", dateField: .updated), now: fixedNow
+            pads, using: PadFilterCriteria(updated: PadDateWindow(range: "last 7 days")), now: fixedNow
         )
         #expect(byUpdated.map(\.id) == ["OLD"])
         let byCreated = PadListLogic.filter(
-            pads, using: PadFilterCriteria(dateRange: "last 7 days", dateField: .created), now: fixedNow
+            pads, using: PadFilterCriteria(created: PadDateWindow(range: "last 7 days")), now: fixedNow
         )
         #expect(byCreated.map(\.id) == ["NEW"])
     }
 
     @Test
-    func `a custom range bounds pads on both ends and overrides any named window`() throws {
+    func `a custom range bounds a window on both ends and overrides its named window`() throws {
         let iso = ISO8601DateFormatter()
         let pads = try [
             makePad(id: "MAR", updatedAt: "2026-03-15T12:00:00Z"),
@@ -157,11 +161,35 @@ struct PadFilterTests {
             makePad(id: "MAY", updatedAt: "2026-05-15T12:00:00Z")
         ]
         // April only. The named window is set too, to prove custom takes precedence.
-        let criteria = PadFilterCriteria(
-            dateRange: "last 7 days",
+        let criteria = PadFilterCriteria(updated: PadDateWindow(
+            range: "last 7 days",
             customStart: iso.date(from: "2026-04-01T00:00:00Z"),
             customEnd: iso.date(from: "2026-04-30T23:59:59Z")
-        )
+        ))
         #expect(PadListLogic.filter(pads, using: criteria, now: fixedNow).map(\.id) == ["APR"])
+    }
+
+    @Test
+    func `the updated and created windows both apply at once`() throws {
+        let iso = ISO8601DateFormatter()
+        // Created in April, updated in June.
+        let pads = try [
+            makePad(id: "P", updatedAt: "2026-06-11T09:00:00Z", createdAt: "2026-04-15T09:00:00Z")
+        ]
+        // Updated within the last week AND created in April: both match.
+        let both = PadFilterCriteria(
+            updated: PadDateWindow(range: "last 7 days"),
+            created: PadDateWindow(
+                customStart: iso.date(from: "2026-04-01T00:00:00Z"),
+                customEnd: iso.date(from: "2026-04-30T23:59:59Z")
+            )
+        )
+        #expect(PadListLogic.filter(pads, using: both, now: fixedNow).map(\.id) == ["P"])
+        // The created window (today only) excludes it even though the updated one matches.
+        let mismatch = PadFilterCriteria(
+            updated: PadDateWindow(range: "last 7 days"),
+            created: PadDateWindow(range: "today")
+        )
+        #expect(PadListLogic.filter(pads, using: mismatch, now: fixedNow).isEmpty)
     }
 }

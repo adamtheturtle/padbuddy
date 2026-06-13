@@ -83,11 +83,9 @@ extension QuestionsView {
                 }
             }
         }
-        // Search lives in the window toolbar (the native macOS placement, and the
-        // Liquid Glass search capsule on macOS 26). ⌘F still focuses it via FindAction.
-        .searchable(text: $search, placement: .toolbar, prompt: "Search questions")
-        .searchFocused($searchFieldFocused)
-        .focusedSceneValue(\.findAction, FindAction(id: "questions") { searchFieldFocused = true })
+        // The search field itself lives on the `NavigationSplitView` in `MainSplit`
+        // (trailing window toolbar, Finder-style); this column only owns the section
+        // actions below.
         .toolbar(id: "questions.toolbar") {
             ToolbarItem(id: "sort") {
                 Menu {

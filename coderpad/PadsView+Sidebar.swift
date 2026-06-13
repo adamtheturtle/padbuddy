@@ -29,10 +29,8 @@ extension PadsView {
                 owner: ownerFilter,
                 team: teamFilter,
                 type: typeFilter,
-                dateRange: dateRangeFilter,
-                dateField: dateFieldFilter,
-                customStart: customDateStart,
-                customEnd: customDateEnd
+                updated: updatedWindow,
+                created: createdWindow
             ),
             display: directory.display
         )
@@ -70,17 +68,13 @@ extension PadsView {
         Array(Set(pads.compactMap { $0.team?.name })).sorted()
     }
 
-    /// A custom range and a named window are mutually exclusive, so the date filter
-    /// counts at most once regardless of which is set. The created/updated field on
-    /// its own narrows nothing, so it doesn't count.
-    var isDateFilterActive: Bool {
-        dateRangeFilter != nil || customDateStart != nil || customDateEnd != nil
-    }
-
+    /// The Updated and Created date filters are independent, so each active one
+    /// counts on its own.
     var activeFilterCount: Int {
         (stateFilter != nil ? 1 : 0)
             + [languageFilter, ownerFilter, teamFilter, typeFilter].compactMap(\.self).count
-            + (isDateFilterActive ? 1 : 0)
+            + (updatedWindow.isActive ? 1 : 0)
+            + (createdWindow.isActive ? 1 : 0)
     }
 
     /// Resets every live filter. Shared by the toolbar Clear button and the
@@ -88,8 +82,7 @@ extension PadsView {
     func clearAllFilters() {
         stateFilter = nil; languageFilter = nil
         ownerFilter = nil; teamFilter = nil; typeFilter = nil
-        dateRangeFilter = nil; customDateStart = nil; customDateEnd = nil
-        dateFieldFilter = .updated
+        updatedWindow = PadDateWindow(); createdWindow = PadDateWindow()
     }
 
     var sidebar: some View {
@@ -109,11 +102,9 @@ extension PadsView {
                 }
             }
         }
-        // Search now lives in the window toolbar (the native macOS placement, and the
-        // Liquid Glass search capsule on macOS 26). ⌘F still focuses it via FindAction.
-        .searchable(text: $search, placement: .toolbar, prompt: "Search pads")
-        .searchFocused($searchFieldFocused)
-        .focusedSceneValue(\.findAction, FindAction(id: "pads") { searchFieldFocused = true })
+        // The search field itself lives on the `NavigationSplitView` in `MainSplit`
+        // (trailing window toolbar, Finder-style); this column only owns the section
+        // actions below.
         .toolbar(id: "pads.toolbar") {
             ToolbarItem(id: "reload") {
                 ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
@@ -383,10 +374,14 @@ extension PadsView {
             )
             .measuresFilterBarWidth()
             DateRangeFilterChip(
-                range: $dateRangeFilter,
-                field: $dateFieldFilter,
-                customStart: $customDateStart,
-                customEnd: $customDateEnd,
+                title: "Updated",
+                window: $updatedWindow,
+                options: Self.dateRangeOptions
+            )
+            .measuresFilterBarWidth()
+            DateRangeFilterChip(
+                title: "Created",
+                window: $createdWindow,
                 options: Self.dateRangeOptions
             )
             .measuresFilterBarWidth()

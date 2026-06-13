@@ -110,10 +110,21 @@ extension QuestionDetailView {
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                EmailLink(email: question.ownerEmail)
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-                    .lineLimit(1)
+                // The owner's name links to their pads (the app's person
+                // navigation); the email keeps its mailto below. When the name
+                // isn't known the link falls back to showing the email itself.
+                if let name = directory.name(for: question.ownerEmail), !name.isEmpty {
+                    OwnerPadsLink(email: question.ownerEmail)
+                        .font(.caption)
+                    EmailLink(email: question.ownerEmail)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(1)
+                } else {
+                    OwnerPadsLink(email: question.ownerEmail)
+                        .font(.caption)
+                        .lineLimit(1)
+                }
             }
         }
     }

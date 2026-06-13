@@ -18,7 +18,7 @@ import UniformTypeIdentifiers
 /// domain so an account's items can be removed wholesale. Tapping a result
 /// reopens the app via the handler in `coderpadApp` (see `onContinueUserActivity`).
 enum SpotlightIndexer {
-    private static let logger = Logger(subsystem: "com.coderpad.app", category: "spotlight")
+    nonisolated private static let logger = Logger(subsystem: "com.coderpad.app", category: "spotlight")
     private static let padPrefix = "pad:"
     private static let questionPrefix = "question:"
 

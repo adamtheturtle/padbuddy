@@ -89,6 +89,10 @@ final class PadsCacheStore {
         guard persist else { return }
         // Index the complete list (not the streaming snapshots) when the user opted in.
         SpotlightIndexer.updatePads(pads, account: accountID)
+        // Keep the Recent Pads widget in step with the account that's on screen.
+        if accountID == AccountsStore.shared.currentAccount?.id {
+            WidgetSync.refresh(pads: pads)
+        }
         writeQueue.enqueue {
             CacheDisk.save(pads, kind: "pads", account: accountID)
         }

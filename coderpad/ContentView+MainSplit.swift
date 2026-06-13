@@ -16,6 +16,30 @@ struct MainSplit: View {
     @State private var padSelection: Pad?
     @State private var questionSelection: Question?
 
+    /// The list search text, lifted out of `PadsView`/`QuestionsView` so the
+    /// `.searchable` field can attach to the `NavigationSplitView` itself. That
+    /// places it at the trailing edge of the *window* toolbar (over the detail
+    /// pane, Finder-style) instead of the content column — where the content/detail
+    /// divider used to slide the list under it. Each section keeps its own text; the
+    /// active one is routed to the single searchable field via ``activeSearch``.
+    @State private var padSearch = ""
+    @State private var questionSearch = ""
+
+    /// Drives the lifted searchable field's focus so ⌘F (via ``FindAction``) can
+    /// still jump straight into it from anywhere in the window.
+    @FocusState private var searchFieldFocused: Bool
+
+    /// Routes the single window-toolbar search field to the visible section's text.
+    /// Only `threeColumnSplit` (Pads/Questions) carries the field, so the default
+    /// arm simply covers Pads.
+    private var activeSearch: Binding<String> {
+        section == .questions ? $questionSearch : $padSearch
+    }
+
+    private var searchPrompt: Text {
+        Text(section == .questions ? "Search questions" : "Search pads")
+    }
+
     /// Drives the sidebar collapse/expand. With the title bar hidden there's no
     /// system toolbar to host the automatic sidebar toggle, so we own this state
     /// and surface our own toggle in the titlebar instead.
@@ -57,11 +81,10 @@ struct MainSplit: View {
     /// the floor here keeps sidebar + content + detail within the window minimum.
     private static let contentMinWidthCeiling: CGFloat = 380
 
-    /// Hard floor for ``contentMinWidth``. The list's search now lives in the window
-    /// toolbar (`.searchable(.toolbar)`), which renders a fixed-width field of about
-    /// this size. Without this floor a section whose filter bar measures narrower
-    /// would let the list column be dragged thinner than its own search field — the
-    /// list ending up visibly narrower than the search bar above it. Kept below the
+    /// Hard floor for ``contentMinWidth``. The search field itself now lives on the
+    /// split view (trailing window toolbar, over the detail pane) rather than this
+    /// column, but a baseline keeps the list readable: a section whose filter bar
+    /// measures narrower than this shouldn't collapse to a sliver. Kept below the
     /// ceiling so the adaptive filter-bar narrowing still applies in the band above.
     private static let contentSearchMinWidth: CGFloat = 340
 
@@ -247,7 +270,9 @@ struct MainSplit: View {
             SectionContent(
                 section: section,
                 padSelection: $padSelection,
-                questionSelection: $questionSelection
+                questionSelection: $questionSelection,
+                padSearch: $padSearch,
+                questionSearch: $questionSearch
             )
             // Round to whole points and only assign on a real change. The measured
             // filter-bar width feeds this column's own min width, so re-writing it
@@ -257,8 +282,8 @@ struct MainSplit: View {
                 // Clamp to the ceiling so the column floor never demands more than
                 // the window's minimum width can give it. Past this the filter bar
                 // scrolls horizontally rather than squeezing and clipping the list.
-                // Floor it at the toolbar search width so the list can never be
-                // dragged thinner than its own search field.
+                // Floor it at a readable baseline so the list can't be dragged to a
+                // sliver when a section's filter bar measures narrow.
                 let clamped = min(max(width, Self.contentSearchMinWidth),
                                   Self.contentMinWidthCeiling).rounded()
                 if contentMinWidth != clamped { contentMinWidth = clamped }
@@ -275,6 +300,21 @@ struct MainSplit: View {
                 questionSelection: $questionSelection
             )
             .navigationSplitViewColumnWidth(min: Self.detailMinWidth, ideal: 520)
+            // Attach search to the *detail* (trailing-most) column rather than the
+            // content column or the whole split. Its toolbar items land at the true
+            // window-right, over the detail pane — the Finder position — so the
+            // content/detail divider can never slide the list under it, and it stays
+            // clear of each section's own customizable toolbar (`pads.toolbar` /
+            // `questions.toolbar`). The text is routed to the visible section by
+            // `activeSearch`; ⌘F focuses it via the published FindAction.
+            .searchable(text: activeSearch, placement: .toolbar, prompt: searchPrompt)
+            .searchFocused($searchFieldFocused)
+            .focusedSceneValue(
+                \.findAction,
+                FindAction(id: section == .questions ? "questions" : "pads") {
+                    searchFieldFocused = true
+                }
+            )
         }
     }
 
@@ -300,7 +340,9 @@ struct MainSplit: View {
             SectionContent(
                 section: section,
                 padSelection: $padSelection,
-                questionSelection: $questionSelection
+                questionSelection: $questionSelection,
+                padSearch: $padSearch,
+                questionSearch: $questionSearch
             )
         }
     }
@@ -311,13 +353,18 @@ private struct SectionContent: View {
     let section: AppSection
     @Binding var padSelection: Pad?
     @Binding var questionSelection: Question?
+    @Binding var padSearch: String
+    @Binding var questionSearch: String
 
     var body: some View {
         if let account = store.currentAccount {
             let client = account.makeClient()
             switch section {
-            case .pads: PadsView(client: client, selection: $padSelection).id(account.id)
-            case .questions: QuestionsView(client: client, selection: $questionSelection).id(account.id)
+            case .pads:
+                PadsView(client: client, selection: $padSelection, search: $padSearch).id(account.id)
+            case .questions:
+                QuestionsView(client: client, selection: $questionSelection, search: $questionSearch)
+                    .id(account.id)
             case .organization: OrganizationView(client: client).id(account.id)
             case .quota: QuotaView(client: client).id(account.id)
             }

@@ -7,8 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		66E3CC532FDA19E400FE87A9 /* MarkdownUI in Frameworks */ = {isa = PBXBuildFile; productRef = 66E3CC522FDA19E400FE87A9 /* MarkdownUI */; };
 		66E3CC582FDA31CC00FE87A9 /* Highlightr in Frameworks */ = {isa = PBXBuildFile; productRef = 66E3CC572FDA31CC00FE87A9 /* Highlightr */; };
+		66E3CDB62FDD604600FE87A9 /* Textual in Frameworks */ = {isa = PBXBuildFile; productRef = 66E3CDB52FDD604600FE87A9 /* Textual */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -28,15 +28,43 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		66E3CD202FDD5BA500FE87A9 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		66C8C50B2FA73AB0009B720C /* coderpad.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = coderpad.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		66C8C51A2FA73AB2009B720C /* coderpadTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = coderpadTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		66C8C5242FA73AB2009B720C /* coderpadUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = coderpadUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		66E3CD092FDD5BA300FE87A9 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		66E3CD0B2FDD5BA300FE87A9 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		66E3CDB82FDD67BE00FE87A9 /* Exceptions for "coderpad" folder in "coderpad" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 66C8C50A2FA73AB0009B720C /* coderpad */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		66C8C50D2FA73AB0009B720C /* coderpad */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				66E3CDB82FDD67BE00FE87A9 /* Exceptions for "coderpad" folder in "coderpad" target */,
+			);
 			path = coderpad;
 			sourceTree = "<group>";
 		};
@@ -57,8 +85,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				66E3CDB62FDD604600FE87A9 /* Textual in Frameworks */,
 				66E3CC582FDA31CC00FE87A9 /* Highlightr in Frameworks */,
-				66E3CC532FDA19E400FE87A9 /* MarkdownUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -103,6 +131,8 @@
 		66E3CC512FDA19E400FE87A9 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				66E3CD092FDD5BA300FE87A9 /* WidgetKit.framework */,
+				66E3CD0B2FDD5BA300FE87A9 /* SwiftUI.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -117,6 +147,7 @@
 				66C8C5072FA73AB0009B720C /* Sources */,
 				66C8C5082FA73AB0009B720C /* Frameworks */,
 				66C8C5092FA73AB0009B720C /* Resources */,
+				66E3CD202FDD5BA500FE87A9 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
@@ -127,8 +158,8 @@
 			);
 			name = coderpad;
 			packageProductDependencies = (
-				66E3CC522FDA19E400FE87A9 /* MarkdownUI */,
 				66E3CC572FDA31CC00FE87A9 /* Highlightr */,
+				66E3CDB52FDD604600FE87A9 /* Textual */,
 			);
 			productName = coderpad;
 			productReference = 66C8C50B2FA73AB0009B720C /* coderpad.app */;
@@ -187,7 +218,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2640;
+				LastSwiftUpdateCheck = 2700;
 				LastUpgradeCheck = 2650;
 				TargetAttributes = {
 					66C8C50A2FA73AB0009B720C = {
@@ -213,8 +244,8 @@
 			mainGroup = 66C8C5022FA73AB0009B720C;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				66E3CC502FDA197100FE87A9 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */,
 				66E3CC562FDA31CC00FE87A9 /* XCRemoteSwiftPackageReference "Highlightr" */,
+				66E3CDB42FDD604600FE87A9 /* XCRemoteSwiftPackageReference "textual" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 66C8C50C2FA73AB0009B720C /* Products */;
@@ -438,6 +469,7 @@
 				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = coderpad/Info.plist;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -484,6 +516,7 @@
 				ENABLE_RESOURCE_ACCESS_USB = NO;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = coderpad/Info.plist;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -628,14 +661,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		66E3CC502FDA197100FE87A9 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/gonzalezreal/swift-markdown-ui";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.4.1;
-			};
-		};
 		66E3CC562FDA31CC00FE87A9 /* XCRemoteSwiftPackageReference "Highlightr" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/raspu/Highlightr";
@@ -644,18 +669,26 @@
 				minimumVersion = 2.3.0;
 			};
 		};
+		66E3CDB42FDD604600FE87A9 /* XCRemoteSwiftPackageReference "textual" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/gonzalezreal/textual";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.3.1;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		66E3CC522FDA19E400FE87A9 /* MarkdownUI */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 66E3CC502FDA197100FE87A9 /* XCRemoteSwiftPackageReference "swift-markdown-ui" */;
-			productName = MarkdownUI;
-		};
 		66E3CC572FDA31CC00FE87A9 /* Highlightr */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 66E3CC562FDA31CC00FE87A9 /* XCRemoteSwiftPackageReference "Highlightr" */;
 			productName = Highlightr;
+		};
+		66E3CDB52FDD604600FE87A9 /* Textual */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 66E3CDB42FDD604600FE87A9 /* XCRemoteSwiftPackageReference "textual" */;
+			productName = Textual;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

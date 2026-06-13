@@ -7,51 +7,56 @@ import SwiftUI
 
 extension QuestionsView {
     var filterBar: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                FilterChipMenu(title: "Language", icon: "chevron.left.slash.chevron.right",
-                               selected: $languageFilter, options: availableLanguages,
-                               formatter: { $0.languageDisplayName })
-                SearchableFilterChip(title: "Owner", icon: "person",
-                                     selected: $ownerFilter, options: availableOwners,
-                                     formatter: { directory.display($0) },
-                                     meEmail: accounts.currentAccount?.userEmail)
-                FilterChipMenu(title: "Type", icon: "tag",
-                               selected: $typeFilter,
-                               options: InterviewType.allCases.map(\.rawValue),
-                               formatter: { InterviewType(rawValue: $0)?.label ?? $0.capitalized })
-                FilterChipMenu(title: "Status", icon: "doc.badge.ellipsis",
-                               selected: $draftFilter, options: ["draft", "published"],
-                               formatter: { $0.capitalized })
-                if activeFilterCount > 0 || !search.isEmpty {
-                    Button {
-                        saveSearchName = ""
-                        showSaveSearch = true
-                    } label: {
-                        Label("Save…", systemImage: "bookmark")
-                    }
-                    // A link-styled action so it reads as a verb, not another
-                    // neutral capsule filter chip sitting in the same bar.
-                    .buttonStyle(.link)
-                    .controlSize(.small)
+        // A wrapping flow layout rather than a horizontal scroll, so the chips
+        // reflow onto extra lines as the pane narrows instead of clipping the
+        // trailing chips off the edge. Mirrors the pad filter bar.
+        FlowLayout(spacing: 8, lineSpacing: 8) {
+            FilterChipMenu(title: "Language", icon: "chevron.left.slash.chevron.right",
+                           selected: $languageFilter, options: availableLanguages,
+                           formatter: { $0.languageDisplayName })
+                .measuresFilterBarWidth()
+            SearchableFilterChip(title: "Owner", icon: "person",
+                                 selected: $ownerFilter, options: availableOwners,
+                                 formatter: { directory.display($0) },
+                                 meEmail: accounts.currentAccount?.userEmail)
+                .measuresFilterBarWidth()
+            FilterChipMenu(title: "Type", icon: "tag",
+                           selected: $typeFilter,
+                           options: InterviewType.allCases.map(\.rawValue),
+                           formatter: { InterviewType(rawValue: $0)?.label ?? $0.capitalized })
+                .measuresFilterBarWidth()
+            FilterChipMenu(title: "Status", icon: "doc.badge.ellipsis",
+                           selected: $draftFilter, options: ["draft", "published"],
+                           formatter: { $0.capitalized })
+                .measuresFilterBarWidth()
+            if activeFilterCount > 0 || !search.isEmpty {
+                Button {
+                    saveSearchName = ""
+                    showSaveSearch = true
+                } label: {
+                    Label("Save…", systemImage: "bookmark")
+                        .labelStyle(.titleAndIcon)
                 }
-                if activeFilterCount > 0 {
-                    Button(role: .destructive) {
-                        languageFilter = nil; ownerFilter = nil
-                        typeFilter = nil; draftFilter = nil
-                    } label: {
-                        Label("Clear", systemImage: "xmark.circle.fill")
-                    }
-                    .buttonStyle(.borderless)
-                    .controlSize(.small)
-                }
-                Spacer(minLength: 0)
+                // A link-styled action so it reads as a verb, not another
+                // neutral capsule filter chip sitting in the same bar.
+                .buttonStyle(.link)
+                .controlSize(.small)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .measuresFilterBarWidth()
+            if activeFilterCount > 0 {
+                Button(role: .destructive) {
+                    languageFilter = nil; ownerFilter = nil
+                    typeFilter = nil; draftFilter = nil
+                } label: {
+                    Label("Clear", systemImage: "xmark.circle.fill")
+                        .labelStyle(.titleAndIcon)
+                }
+                .buttonStyle(.borderless)
+                .controlSize(.small)
+            }
         }
-        .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     /// Built-in chips shown ahead of the user's saved searches, mirrored in the
@@ -77,6 +82,15 @@ extension QuestionsView {
                     SavedSearchChip(name: "Favorites", systemImage: "star.fill",
                                     isActive: favoritesOnly) {
                         favoritesOnly.toggle()
+                        // Favorites and the recall chips beside it are mutually
+                        // exclusive presets, so turning Favorites on clears the
+                        // active filters — otherwise a chip like "My Questions"
+                        // would stay highlighted alongside it.
+                        if favoritesOnly {
+                            search = ""
+                            languageFilter = nil; ownerFilter = nil
+                            typeFilter = nil; draftFilter = nil
+                        }
                     }
                 }
                 ForEach(defaults) { item in
@@ -139,6 +153,9 @@ extension QuestionsView {
     }
 
     func apply(_ saved: NamedSearch) {
+        // Applying a recall chip turns Favorites off; the two are mutually
+        // exclusive presets in the saved-search bar.
+        favoritesOnly = false
         search = saved.search
         languageFilter = saved.languageFilter
         ownerFilter = saved.ownerFilter

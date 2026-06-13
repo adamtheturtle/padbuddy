@@ -130,10 +130,8 @@ extension PadsView {
         ownerFilter = saved.ownerFilter
         teamFilter = saved.teamFilter
         typeFilter = saved.typeFilter
-        dateRangeFilter = saved.dateRangeFilter
-        dateFieldFilter = saved.dateFieldFilter.flatMap(PadDateField.init(rawValue:)) ?? .updated
-        customDateStart = saved.customStartFilter
-        customDateEnd = saved.customEndFilter
+        updatedWindow = saved.updatedWindow ?? PadDateWindow()
+        createdWindow = saved.createdWindow ?? PadDateWindow()
     }
 
     /// Whether the list's live filters exactly match `saved`, so its chip can show
@@ -146,10 +144,8 @@ extension PadsView {
             ownerFilter == saved.ownerFilter &&
             teamFilter == saved.teamFilter &&
             typeFilter == saved.typeFilter &&
-            dateRangeFilter == saved.dateRangeFilter &&
-            dateFieldFilter == (saved.dateFieldFilter.flatMap(PadDateField.init(rawValue:)) ?? .updated) &&
-            customDateStart == saved.customStartFilter &&
-            customDateEnd == saved.customEndFilter
+            updatedWindow == (saved.updatedWindow ?? PadDateWindow()) &&
+            createdWindow == (saved.createdWindow ?? PadDateWindow())
     }
 
     func captureCurrentSearch(named name: String) -> NamedSearch {
@@ -157,9 +153,9 @@ extension PadsView {
             name: name, search: search,
             stateFilter: stateFilter, languageFilter: languageFilter,
             ownerFilter: ownerFilter, teamFilter: teamFilter,
-            typeFilter: typeFilter, dateRangeFilter: dateRangeFilter,
-            dateFieldFilter: dateFieldFilter == .updated ? nil : dateFieldFilter.rawValue,
-            customStartFilter: customDateStart, customEndFilter: customDateEnd
+            typeFilter: typeFilter,
+            updatedWindow: updatedWindow.isActive ? updatedWindow : nil,
+            createdWindow: createdWindow.isActive ? createdWindow : nil
         )
     }
 
@@ -168,11 +164,17 @@ extension PadsView {
     /// A change-detection token for the live filters, so they can be re-persisted
     /// the instant any one of them changes without observing each `@State` var.
     var filterSignature: String {
-        [search, stateFilter?.rawValue, languageFilter, ownerFilter, teamFilter,
-         typeFilter, dateRangeFilter, dateFieldFilter.rawValue,
-         customDateStart.map { String($0.timeIntervalSince1970) },
-         customDateEnd.map { String($0.timeIntervalSince1970) }]
-            .map { $0 ?? "·" }.joined(separator: "|")
+        ([search, stateFilter?.rawValue, languageFilter, ownerFilter, teamFilter, typeFilter]
+            .map { $0 ?? "·" }
+            + [Self.windowToken(updatedWindow), Self.windowToken(createdWindow)])
+            .joined(separator: "|")
+    }
+
+    private static func windowToken(_ window: PadDateWindow) -> String {
+        [window.range,
+         window.customStart.map { String($0.timeIntervalSince1970) },
+         window.customEnd.map { String($0.timeIntervalSince1970) }]
+            .map { $0 ?? "·" }.joined(separator: ",")
     }
 
     static func liveFilterKey(_ account: UUID) -> String {

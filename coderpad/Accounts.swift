@@ -203,7 +203,12 @@ final class AccountsStore {
     }
 
     var currentAccountID: UUID? {
-        didSet { persistCurrentID() }
+        didSet {
+            persistCurrentID()
+            // Repaint the Recent Pads widget for the newly selected account from
+            // whatever pads are already cached for it.
+            WidgetSync.refresh(pads: currentAccount.map { PadsCacheStore.shared.get($0.id) } ?? [])
+        }
     }
 
     var currentAccount: Account? {

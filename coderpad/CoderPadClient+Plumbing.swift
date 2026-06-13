@@ -103,7 +103,7 @@ extension CoderPadClient {
         emit(items)
 
         // Fast path: total + page-number URLs let us fetch pages 2…N in parallel.
-        if let total = firstPage.total, !items.isEmpty {
+        if firstPage.total != nil, !items.isEmpty {
             let tailNextPage = try await fetchKnownPages(
                 W.self, firstPage: firstPage, items: &items, pageURL: pageURL, emit: emit
             )

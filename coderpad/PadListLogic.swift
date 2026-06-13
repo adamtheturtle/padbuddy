@@ -10,13 +10,27 @@
 
 import Foundation
 
-/// Which date a date-range filter compares against. The pad list filters on
-/// "updated" by default; "created" answers "when was this pad set up" instead.
-enum PadDateField: String, CaseIterable, Codable {
-    case updated, created
+/// One date-range constraint: a named window key (one of `PadDateRange.options`)
+/// and/or an explicit custom range. A custom range overrides the named window. An
+/// all-nil window imposes no constraint. The pad list carries two of these — one
+/// applied to the updated date, one to the created date — so they can be filtered
+/// independently and at the same time.
+struct PadDateWindow: Equatable, Hashable, Codable {
+    var range: String? = nil
+    var customStart: Date? = nil
+    var customEnd: Date? = nil
 
-    var label: String {
-        self == .updated ? "Updated" : "Created"
+    var isActive: Bool {
+        range != nil || customStart != nil || customEnd != nil
+    }
+
+    /// Whether `value` falls within this window. `now` resolves a named window to a
+    /// lower bound; a custom range supplies explicit inclusive bounds. An inactive
+    /// window contains everything.
+    func contains(_ value: Date, now: Date) -> Bool {
+        let lower = customStart ?? range.flatMap { PadDateRange.start(for: $0, now: now) }
+        return (lower.map { value >= $0 } ?? true)
+            && (customEnd.map { value <= $0 } ?? true)
     }
 }
 
@@ -61,16 +75,11 @@ struct PadFilterCriteria {
     var team: String?
     /// An `InterviewType.rawValue` ("live" / "take-home").
     var type: String?
-    /// A `PadDateRange.options` label.
-    var dateRange: String?
-    /// Which date the range filter compares against.
-    var dateField: PadDateField = .updated
-    /// An explicit lower bound, set by the custom date picker. When present it
-    /// overrides `dateRange`; the named-window key is cleared whenever a custom
-    /// range is chosen, so the two never both apply.
-    var customStart: Date?
-    /// An explicit inclusive upper bound, paired with `customStart`.
-    var customEnd: Date?
+    /// Date constraints applied independently and together: `updated` is compared
+    /// against the pad's updated date (falling back to created), `created` against
+    /// its created date. A pad must satisfy every active window.
+    var updated = PadDateWindow()
+    var created = PadDateWindow()
 }
 
 enum PadListLogic {
@@ -117,29 +126,18 @@ enum PadListLogic {
                        display: (String) -> String = { $0 }) -> [Pad] {
         let lowered = criteria.search.lowercased()
         let language = criteria.language?.lowercased()
-        // A custom range takes precedence over a named window; only one of the two
-        // is ever populated at a time (the UI clears the other when either is set).
-        let rangeStart = criteria.customStart
-            ?? criteria.dateRange.flatMap { PadDateRange.start(for: $0, now: now) }
-        let rangeEnd = criteria.customEnd
-        /// The date a range filter compares against: the *created* date when the
-        /// user picks that field, otherwise the freshest activity (updated, falling
-        /// back to created). `.distantPast` so a pad with no dates is excluded by
-        /// any lower bound rather than crashing on a force-unwrap.
-        func dateValue(_ pad: Pad) -> Date {
-            switch criteria.dateField {
-            case .created: pad.createdAt ?? .distantPast
-            case .updated: (pad.updatedAt ?? pad.createdAt) ?? .distantPast
-            }
-        }
+        // The dates each window compares against. `.distantPast` so a pad with no
+        // dates is excluded by any lower bound rather than crashing on a force-unwrap.
+        func updatedValue(_ pad: Pad) -> Date { (pad.updatedAt ?? pad.createdAt) ?? .distantPast }
+        func createdValue(_ pad: Pad) -> Date { pad.createdAt ?? .distantPast }
         return pads.filter { pad in
             (criteria.state == nil || pad.status == criteria.state) &&
                 (language == nil || (pad.language ?? "").lowercased() == language) &&
                 (criteria.owner == nil || pad.ownerEmail == criteria.owner) &&
                 (criteria.team == nil || pad.team?.name == criteria.team) &&
                 (criteria.type == nil || pad.interviewType?.rawValue == criteria.type) &&
-                (rangeStart.map { dateValue(pad) >= $0 } ?? true) &&
-                (rangeEnd.map { dateValue(pad) <= $0 } ?? true) &&
+                criteria.updated.contains(updatedValue(pad), now: now) &&
+                criteria.created.contains(createdValue(pad), now: now) &&
                 (lowered.isEmpty
                     || pad.title.lowercased().contains(lowered)
                     || pad.id.lowercased().contains(lowered)

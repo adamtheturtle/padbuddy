@@ -81,11 +81,14 @@ extension PadDetailView {
             VStack(alignment: .leading, spacing: 4) {
                 Text(pad.title.isEmpty ? "Untitled Pad" : pad.title)
                     .font(.title.bold())
-                if let name = directory.name(for: pad.ownerEmail) {
-                    Text(name).font(.callout)
+                // The owner's name links to their pads (the app's person
+                // navigation); the email keeps its mailto below. When the name
+                // isn't known the link falls back to showing the email itself.
+                if let name = directory.name(for: pad.ownerEmail), !name.isEmpty {
+                    OwnerPadsLink(email: pad.ownerEmail).font(.callout)
                     EmailLink(email: pad.ownerEmail).font(.caption).foregroundStyle(.secondary)
                 } else {
-                    EmailLink(email: pad.ownerEmail).foregroundStyle(.secondary)
+                    OwnerPadsLink(email: pad.ownerEmail)
                 }
             }
         }
@@ -98,37 +101,49 @@ extension PadDetailView {
         // width, so it overflowed and the rightmost tile was clipped by the pane
         // edge.
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 160), spacing: 12)], alignment: .leading, spacing: 12) {
+            // The timestamps are routine bookkeeping dates, so they render as
+            // compact tiles rather than full-size StatTiles — keeping the visual
+            // weight on the pad's identity and code.
             if let createdAt = pad.createdAt {
-                StatTile(title: "Created", value: createdAt.formatted(date: .abbreviated, time: .shortened),
-                         systemImage: "calendar.badge.plus", tint: .blue)
+                timestampTile(title: "Created", value: createdAt.formatted(date: .abbreviated, time: .shortened),
+                              systemImage: "calendar.badge.plus", tint: .blue)
             }
             if let updatedAt = pad.informativeUpdatedAt {
-                StatTile(title: "Updated", value: updatedAt.formatted(date: .abbreviated, time: .shortened),
-                         systemImage: "clock.arrow.circlepath", tint: .teal)
+                timestampTile(title: "Updated", value: updatedAt.formatted(date: .abbreviated, time: .shortened),
+                              systemImage: "clock.arrow.circlepath", tint: .teal)
             }
             if let endedAt = pad.endedAt {
-                StatTile(title: "Ended", value: endedAt.formatted(date: .abbreviated, time: .shortened),
-                         systemImage: "flag.checkered", tint: .gray)
-            }
-            if let url = pad.playbackURL {
-                Card {
-                    VStack(alignment: .leading, spacing: 6) {
-                        SectionHeader(title: "Playback", systemImage: "play.rectangle")
-                        Button("Watch") {
-                            if BrowserSettings.openLinksIn == .external {
-                                BrowserSettings.openExternally(url)
-                            } else {
-                                browserURL = url
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(.tint)
-                        .font(.title3.weight(.semibold))
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
+                timestampTile(title: "Ended", value: endedAt.formatted(date: .abbreviated, time: .shortened),
+                              systemImage: "flag.checkered", tint: .gray)
             }
         }
+    }
+
+    /// A condensed timestamp tile: a small caption-sized value and tight padding,
+    /// far less prominent than a `StatTile`. Used for the Created/Updated dates so
+    /// they stay legible without dominating the detail pane.
+    private func timestampTile(title: String, value: String, systemImage: String, tint: Color) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 5) {
+                Image(systemName: systemImage)
+                    .font(.caption2)
+                    .foregroundStyle(tint)
+                Text(title.uppercased())
+                    .font(.caption2.weight(.semibold))
+                    .tracking(0.5)
+                    .foregroundStyle(.secondary)
+            }
+            Text(value)
+                .font(.caption)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .background(Color.cardBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(Color.subtleStroke, lineWidth: 1))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(title): \(value)")
     }
 
     /// The pad's whiteboard drawing, when it has one. Parsed once so the card and

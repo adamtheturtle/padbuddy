@@ -25,8 +25,10 @@ struct QuestionsView: View {
     /// cheap hash instead. `selection` (the `Question`) stays the detail pane's
     /// source of truth and is kept in sync below. See the same pattern in PadsView.
     @State var selectedQuestionID: Int?
-    @State var search = ""
-    @FocusState var searchFieldFocused: Bool
+    /// Owned by `MainSplit` so the `.searchable` field can live on the split view
+    /// (trailing window toolbar) rather than this content column. All the filter,
+    /// saved-search, and persistence logic here still reads and writes it.
+    @Binding var search: String
     @State var languageFilter: String?
     @State var ownerFilter: String?
     @State var typeFilter: String?

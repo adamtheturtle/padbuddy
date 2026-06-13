@@ -100,6 +100,21 @@ struct PadDetailView: View {
                     .accessibilityLabel("Open pad")
                 }
             }
+            if let playbackURL = pad.playbackURL {
+                ToolbarItem(id: "watchPlayback", placement: .primaryAction) {
+                    Button {
+                        if BrowserSettings.openLinksIn == .external {
+                            BrowserSettings.openExternally(playbackURL)
+                        } else {
+                            browserURL = playbackURL
+                        }
+                    } label: {
+                        Label("Watch", systemImage: "play.rectangle")
+                    }
+                    .help("Watch the session playback")
+                    .accessibilityLabel("Watch playback")
+                }
+            }
             if #available(macOS 26, *) {
                 ToolbarSpacer(.fixed)
             }

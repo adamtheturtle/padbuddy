@@ -29,23 +29,19 @@ struct NamedSearch: Identifiable, Codable, Hashable {
     var ownerFilter: String?
     var teamFilter: String?
     var typeFilter: String?
-    var dateRangeFilter: String?
-    /// A `PadDateField.rawValue`; nil decodes (and a missing key from searches
-    /// saved before this field existed) as the default "updated".
-    var dateFieldFilter: String?
-    /// An explicit custom date-range, paired. Both nil unless the search was saved
-    /// with a custom range, in which case they override `dateRangeFilter`.
-    var customStartFilter: Date?
-    var customEndFilter: Date?
+    /// Independent date constraints for the pad list: one applied to the updated
+    /// date, one to the created date. Nil when the search has no such constraint.
+    /// Optional so snapshots saved before these existed still decode.
+    var updatedWindow: PadDateWindow?
+    var createdWindow: PadDateWindow?
     var draftFilter: String?
 
     init(id: UUID = UUID(), name: String,
          search: String = "",
          stateFilter: PadState? = nil, languageFilter: String? = nil,
          ownerFilter: String? = nil, teamFilter: String? = nil,
-         typeFilter: String? = nil, dateRangeFilter: String? = nil,
-         dateFieldFilter: String? = nil,
-         customStartFilter: Date? = nil, customEndFilter: Date? = nil,
+         typeFilter: String? = nil,
+         updatedWindow: PadDateWindow? = nil, createdWindow: PadDateWindow? = nil,
          draftFilter: String? = nil) {
         self.id = id
         self.name = name
@@ -55,10 +51,8 @@ struct NamedSearch: Identifiable, Codable, Hashable {
         self.ownerFilter = ownerFilter
         self.teamFilter = teamFilter
         self.typeFilter = typeFilter
-        self.dateRangeFilter = dateRangeFilter
-        self.dateFieldFilter = dateFieldFilter
-        self.customStartFilter = customStartFilter
-        self.customEndFilter = customEndFilter
+        self.updatedWindow = updatedWindow
+        self.createdWindow = createdWindow
         self.draftFilter = draftFilter
     }
 
@@ -75,14 +69,19 @@ struct NamedSearch: Identifiable, Codable, Hashable {
         if let ownerFilter { parts.append("owner is \(ownerFilter)") }
         if let teamFilter { parts.append("team is \(teamFilter)") }
         if let typeFilter { parts.append("type is \(typeFilter)") }
-        let dateNoun = (dateFieldFilter == PadDateField.created.rawValue) ? "created" : "updated"
-        if customStartFilter != nil || customEndFilter != nil {
-            parts.append("\(dateNoun) within a custom date range")
-        } else if let dateRangeFilter {
-            parts.append("\(dateNoun) date range is \(dateRangeFilter)")
-        }
+        appendWindowDescription(updatedWindow, noun: "updated", to: &parts)
+        appendWindowDescription(createdWindow, noun: "created", to: &parts)
         if let draftFilter { parts.append("draft status is \(draftFilter)") }
         return parts.joined(separator: ", ")
+    }
+
+    private func appendWindowDescription(_ window: PadDateWindow?, noun: String, to parts: inout [String]) {
+        guard let window, window.isActive else { return }
+        if window.customStart != nil || window.customEnd != nil {
+            parts.append("\(noun) within a custom date range")
+        } else if let range = window.range {
+            parts.append("\(noun) date range is \(range)")
+        }
     }
 
     /// Whether two searches carry the same filter criteria, ignoring `id` and
@@ -98,10 +97,8 @@ struct NamedSearch: Identifiable, Codable, Hashable {
             ownerFilter == other.ownerFilter &&
             teamFilter == other.teamFilter &&
             typeFilter == other.typeFilter &&
-            dateRangeFilter == other.dateRangeFilter &&
-            dateFieldFilter == other.dateFieldFilter &&
-            customStartFilter == other.customStartFilter &&
-            customEndFilter == other.customEndFilter &&
+            updatedWindow == other.updatedWindow &&
+            createdWindow == other.createdWindow &&
             draftFilter == other.draftFilter
     }
 }

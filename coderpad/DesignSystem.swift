@@ -4,7 +4,6 @@
 //
 
 import AppKit
-import MarkdownUI
 import SwiftUI
 
 extension Color {
@@ -198,6 +197,8 @@ struct Chip: View {
             }
             Text(text).font(.caption)
         }
+        .lineLimit(1)
+        .fixedSize(horizontal: true, vertical: false)
         .padding(.horizontal, 8)
         .padding(.vertical, 3)
         .background(tint.opacity(ChipContrast.fill(0.12, contrast)), in: Capsule())

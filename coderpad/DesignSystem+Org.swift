@@ -21,6 +21,49 @@ struct EmailLink: View {
     }
 }
 
+// MARK: - OwnerPadsLink
+
+/// A pad or question owner's name, rendered as a link that jumps to that
+/// person's pads — the same person-navigation the Organization list and
+/// interviewer rows already use. Pairs with `EmailLink` at the call sites: the
+/// name links to their pads while the email keeps its mailto, so the owner
+/// identity gains navigation without losing the address it used to carry. When
+/// the org directory doesn't know the name, the email itself becomes the label
+/// and the mailto stays reachable from the context menu.
+struct OwnerPadsLink: View {
+    let email: String
+    @Environment(\.orgDirectory) private var directory
+
+    var body: some View {
+        if email.isEmpty {
+            Text("(no owner)").foregroundStyle(.secondary)
+        } else {
+            let name = directory.display(email)
+            Button {
+                AppNavigation.shared.showPads(PadsRequest(ownerEmail: email))
+            } label: {
+                Text(name)
+            }
+            .buttonStyle(.link)
+            .help("Show pads from \(name)")
+            .contextMenu {
+                Button {
+                    AppNavigation.shared.showPads(PadsRequest(ownerEmail: email))
+                } label: {
+                    Label("Show Pads from \(name)", systemImage: "person")
+                }
+                if let url = URL(string: "mailto:\(email)") {
+                    Link(destination: url) {
+                        Label("Send Email", systemImage: "envelope")
+                    }
+                }
+            }
+            .accessibilityLabel("Owner \(name)")
+            .accessibilityHint("Shows pads from \(name)")
+        }
+    }
+}
+
 // MARK: - Org directory (email -> name lookup)
 
 @Observable

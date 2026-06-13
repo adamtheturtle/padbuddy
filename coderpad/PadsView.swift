@@ -28,8 +28,10 @@ struct PadsView: View {
     /// the main thread. A `String` id tag is a cheap hash; `selection` (the `Pad`)
     /// stays the source of truth for the detail pane and is kept in sync below.
     @State var selectedID: String?
-    @State var search = ""
-    @FocusState var searchFieldFocused: Bool
+    /// Owned by `MainSplit` so the `.searchable` field can live on the split view
+    /// (trailing window toolbar) rather than this content column. All the filter,
+    /// saved-search, and persistence logic here still reads and writes it.
+    @Binding var search: String
     @State var stateFilter: PadState?
     @State var languageFilter: String?
     @State var ownerFilter: String?
@@ -38,10 +40,10 @@ struct PadsView: View {
     @State var showCreate = false
     @State var previousUpdatedAt: [String: Date] = [:]
     @State var hasLoadedOnce = false
-    @State var dateRangeFilter: String?
-    @State var dateFieldFilter: PadDateField = .updated
-    @State var customDateStart: Date?
-    @State var customDateEnd: Date?
+    /// Independent date filters: one constrains the updated date, one the created
+    /// date. Both apply at once, so a pad must satisfy each active window.
+    @State var updatedWindow = PadDateWindow()
+    @State var createdWindow = PadDateWindow()
     /// Guards the once-per-account restore of persisted live filters so the
     /// `onChange` that saves them doesn't fire before the restore has run.
     @State var didRestoreFilters = false

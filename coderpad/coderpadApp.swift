@@ -210,6 +210,10 @@ struct CoderpadApp: App {
                         AppNavigation.shared.show(.questions)
                     }
                 }
+                // Open a pad tapped in the Recent Pads widget (coderpad://pad/<id>).
+                .onOpenURL { url in
+                    handleDeepLink(url)
+                }
         }
         .windowStyle(.hiddenTitleBar)
         .defaultLaunchBehavior(.presented)
@@ -296,6 +300,22 @@ struct CoderpadApp: App {
 
     private func post(_ section: AppSection) {
         AppNavigation.shared.show(section)
+    }
+
+    /// Routes a `coderpad://` deep link from the widget. `coderpad://pad/<id>` opens
+    /// that pad in the in-app browser; `coderpad://pads` just brings the Pads list
+    /// forward. Reuses the same durable navigation as the Spotlight and intent paths.
+    private func handleDeepLink(_ url: URL) {
+        guard url.scheme == "coderpad" else { return }
+        switch url.host {
+        case "pad":
+            let id = url.path().trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            if !id.isEmpty { AppNavigation.shared.openPad(id: id) }
+        case "pads":
+            AppNavigation.shared.show(.pads)
+        default:
+            break
+        }
     }
 
     /// Moves the visible section forward (`+1`) or back (`-1`) through the fixed
