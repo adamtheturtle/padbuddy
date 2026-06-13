@@ -323,6 +323,14 @@ private struct MainSplit: View {
     /// the floor here keeps sidebar + content + detail within the window minimum.
     private static let contentMinWidthCeiling: CGFloat = 380
 
+    /// Hard floor for ``contentMinWidth``. The list's search now lives in the window
+    /// toolbar (`.searchable(.toolbar)`), which renders a fixed-width field of about
+    /// this size. Without this floor a section whose filter bar measures narrower
+    /// would let the list column be dragged thinner than its own search field — the
+    /// list ending up visibly narrower than the search bar above it. Kept below the
+    /// ceiling so the adaptive filter-bar narrowing still applies in the band above.
+    private static let contentSearchMinWidth: CGFloat = 340
+
     /// Smallest container width at which every visible column fits at its measured
     /// minimum and the sidebar can stay open. Derived from the live measurements
     /// (`sidebarMinWidth`, `contentMinWidth`) rather than a hardcoded constant, so
@@ -511,7 +519,10 @@ private struct MainSplit: View {
                 // Clamp to the ceiling so the column floor never demands more than
                 // the window's minimum width can give it. Past this the filter bar
                 // scrolls horizontally rather than squeezing and clipping the list.
-                let clamped = min(width, Self.contentMinWidthCeiling).rounded()
+                // Floor it at the toolbar search width so the list can never be
+                // dragged thinner than its own search field.
+                let clamped = min(max(width, Self.contentSearchMinWidth),
+                                  Self.contentMinWidthCeiling).rounded()
                 if contentMinWidth != clamped { contentMinWidth = clamped }
             }
             .navigationSplitViewColumnWidth(

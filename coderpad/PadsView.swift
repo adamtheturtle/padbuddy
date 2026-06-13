@@ -409,8 +409,7 @@ struct PadsView: View {
         }
         // Search now lives in the window toolbar (the native macOS placement, and the
         // Liquid Glass search capsule on macOS 26). ⌘F still focuses it via FindAction.
-        .searchable(text: $search, placement: .toolbar,
-                    prompt: "Search title, owner, participants…")
+        .searchable(text: $search, placement: .toolbar, prompt: "Search pads")
         .searchFocused($searchFieldFocused)
         .focusedSceneValue(\.findAction, FindAction(id: "pads") { searchFieldFocused = true })
         .toolbar(id: "pads.toolbar") {
