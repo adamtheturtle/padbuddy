@@ -276,6 +276,10 @@ struct PadDetailView: View {
         do {
             async let events = client.padEvents(padID: pad.id)
             async let envs = loadEnvironments()
+            // Assign environments first — `loadEnvironments` can't throw — so a
+            // failing events fetch doesn't leave environments (and the Save Code
+            // availability that depends on them) stale. Both still run concurrently.
+            environments = await envs
             // The API returns events newest-first; display them oldest-first so the
             // log reads top-to-bottom in chronological order (and so the grouping
             // logic, which collapses consecutive same-kind events into an
@@ -283,7 +287,6 @@ struct PadDetailView: View {
             self.events = try await events.sorted {
                 ($0.createdAt ?? .distantPast) < ($1.createdAt ?? .distantPast)
             }
-            environments = await envs
         } catch {
             loadError = error
         }
