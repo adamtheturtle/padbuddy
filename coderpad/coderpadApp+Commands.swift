@@ -37,30 +37,17 @@ struct PrintCommands: Commands {
     }
 }
 
-/// Adds "Customize Toolbar…" to the View menu, matching Mail, Finder, and other
-/// system apps. SwiftUI makes the section toolbars user-customizable (via
-/// `.toolbar(id:)`) and offers customization through the toolbar's right-click
-/// menu, but provides no menu command for it — so this bridges to AppKit's
-/// `runCustomizationPalette(_:)` on the frontmost window's `NSToolbar`.
-///
-/// The item enables only while `canCustomizeToolbar` is published — i.e. a main
-/// window is key. Settings and the Pad Browser don't have a customizable
-/// `NSToolbar`, so it stays disabled there rather than presenting nothing.
-/// Placed `after: .toolbar` so it sits just below "Show/Hide Toolbar", the same
-/// spot system apps use.
+/// Adds a "Stats Period" submenu to the View menu, mirroring the Organization
+/// view's toolbar Period picker as a menu command. "Show/Hide Toolbar" and
+/// "Customize Toolbar…" themselves come from SwiftUI's `ToolbarCommands()`
+/// (wired up in the scene), so no AppKit bridge is needed for them.
 struct ViewCommands: Commands {
-    @FocusedValue(\.canCustomizeToolbar) private var canCustomizeToolbar
     // Shares the Organization view's persisted period key, mirroring its toolbar
     // Period picker as a menu command.
     @AppStorage(StatsPeriod.storageKey) private var statsPeriod: StatsPeriod = .days7
 
     var body: some Commands {
         CommandGroup(after: .toolbar) {
-            Button("Customize Toolbar…") {
-                NSApp.keyWindow?.toolbar?.runCustomizationPalette(nil)
-            }
-            .disabled(canCustomizeToolbar != true)
-
             Menu("Stats Period") {
                 Picker("Stats Period", selection: $statsPeriod) {
                     ForEach(StatsPeriod.allCases) { Text($0.rawValue).tag($0) }

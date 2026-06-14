@@ -291,6 +291,10 @@ struct CoderpadApp: App {
             appCommands
             FindCommands()
             PrintCommands()
+            // The system's own toolbar commands: Show/Hide Toolbar and
+            // "Customize Toolbar…", which enable automatically while a window with a
+            // customizable toolbar (our `.toolbar(id:)` section toolbars) is key.
+            ToolbarCommands()
             ViewCommands()
             PadCommands()
             QuestionCommands()

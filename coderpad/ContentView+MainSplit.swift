@@ -198,9 +198,6 @@ struct MainSplit: View {
         // A section change moves the threshold (three columns vs. two), so
         // re-evaluate against the width we already know.
         .onChange(of: section) { _, _ in updateSidebarCollapse(for: containerWidth) }
-        // Lets the View menu's "Customize Toolbar…" command enable itself only
-        // while a main window (with its customizable section toolbar) is frontmost.
-        .focusedSceneValue(\.canCustomizeToolbar, true)
         .task(id: SessionKey(accountID: store.currentAccountID, merged: store.isMergedView)) {
             if store.isMergedView {
                 if let raw = UserDefaults.standard.string(forKey: "section.merged"),
