@@ -345,22 +345,20 @@ struct MainSplit: View {
                 questionSelection: $questionSelection
             )
             .navigationSplitViewColumnWidth(min: Self.detailMinWidth, ideal: 520)
-            // Attach search to the *detail* (trailing-most) column rather than the
-            // content column or the whole split. Its toolbar items land at the true
-            // window-right, over the detail pane — the Finder position — so the
-            // content/detail divider can never slide the list under it, and it stays
-            // clear of each section's own customizable toolbar (`pads.toolbar` /
-            // `questions.toolbar`). The text is routed to the visible section by
-            // `activeSearch`; ⌘F focuses it via the published FindAction.
-            .searchable(text: activeSearch, placement: .toolbar, prompt: searchPrompt)
-            .searchFocused($searchFieldFocused)
-            .focusedSceneValue(
-                \.findAction,
-                FindAction(id: section == .questions ? "questions" : "pads") {
-                    searchFieldFocused = true
-                }
-            )
         }
+        // Attach search to the whole split rather than a single column. The system
+        // then hosts it as one search item pinned at the window's top-right (the
+        // Passwords/Finder position), so it can't stretch across and overlap the
+        // middle list pane the way a column-scoped field did. The text is routed to
+        // the visible section by `activeSearch`; ⌘F focuses it via the FindAction.
+        .searchable(text: activeSearch, placement: .toolbar, prompt: searchPrompt)
+        .searchFocused($searchFieldFocused)
+        .focusedSceneValue(
+            \.findAction,
+            FindAction(id: section == .questions ? "questions" : "pads") {
+                searchFieldFocused = true
+            }
+        )
     }
 
     private var twoColumnSplit: some View {
