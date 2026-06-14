@@ -37,6 +37,24 @@ struct PrintCommands: Commands {
     }
 }
 
+/// Adds a "Hide List"/"Show List" item to the View menu (with ⌃⌘L), toggling the
+/// main split's user-initiated reference-strip mode. The split publishes a
+/// `toggleListAction`; the command titles itself from its `isHidden` flag and
+/// disables in sections (Organization, Quota) that have no list to hide.
+struct ListVisibilityCommands: Commands {
+    @FocusedValue(\.toggleListAction) private var toggleListAction
+
+    var body: some Commands {
+        CommandGroup(after: .sidebar) {
+            Button(toggleListAction?.isHidden == true ? "Show List" : "Hide List") {
+                toggleListAction?.perform()
+            }
+            .keyboardShortcut("l", modifiers: [.command, .control])
+            .disabled(toggleListAction == nil)
+        }
+    }
+}
+
 /// Adds a "Stats Period" submenu to the View menu, mirroring the Organization
 /// view's toolbar Period picker as a menu command. "Show/Hide Toolbar" and
 /// "Customize Toolbar…" themselves come from SwiftUI's `ToolbarCommands()`
