@@ -213,11 +213,19 @@ extension QuestionsView {
         } label: {
             Label("Edit Question…", systemImage: "pencil")
         }
+        ShareLink(item: question.webURL(baseURL: client.baseURL)) {
+            Label("Share…", systemImage: "square.and.arrow.up")
+        }
         Divider()
         Button {
             copyToPasteboard(question.displayTitle)
         } label: {
             Label("Copy Title", systemImage: "doc.on.doc")
+        }
+        Button {
+            copyToPasteboard(question.webURL(baseURL: client.baseURL).absoluteString)
+        } label: {
+            Label("Copy Question URL", systemImage: "link")
         }
         Button {
             ownerFilter = question.ownerEmail

@@ -165,6 +165,15 @@ extension FocusedValues {
     @Entry var focusedQuestionIsFavorite: Bool?
 }
 
+extension FocusedValues {
+    /// The selected question's web URL, published by `QuestionDetailView` so the
+    /// Question menu's Share/Copy URL commands can act on it. Built from the
+    /// account's server URL there (the question model has no URL of its own), so
+    /// the menu honors a custom CoderPad domain — the Pad menu's counterpart reads
+    /// `focusedPad.webURL` directly because pads carry an absolute API URL.
+    @Entry var focusedQuestionURL: URL?
+}
+
 /// Action published by whichever pane currently owns a search field, so the
 /// global ⌘F command can focus it. Panes set this via `focusedSceneValue` while
 /// visible; the command reads it both to perform the find and to know whether

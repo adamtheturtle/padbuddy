@@ -237,6 +237,15 @@ extension Question {
     var interviewType: InterviewType {
         InterviewType(rawType: padType) ?? (takeHome == true ? .takeHome : .live)
     }
+
+    /// The question's page in the CoderPad web dashboard — the same `/questions/:id`
+    /// link the web app uses. Unlike a pad (which carries an absolute `url` from the
+    /// API), a question has no URL of its own, so it's built from the owning
+    /// account's server URL. Always succeeds, so callers gate Share/Copy URL on
+    /// having a selected question rather than on a missing URL.
+    func webURL(baseURL: URL) -> URL {
+        baseURL.appending(path: "questions/\(id)")
+    }
 }
 
 nonisolated struct QuestionCustomFile: Codable, Hashable, Identifiable {

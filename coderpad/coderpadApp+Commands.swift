@@ -193,6 +193,7 @@ struct PadCommands: Commands {
 struct QuestionCommands: Commands {
     @FocusedValue(\.focusedQuestion) private var question
     @FocusedValue(\.focusedQuestionIsFavorite) private var isFavorite
+    @FocusedValue(\.focusedQuestionURL) private var questionURL
     // Shares the Questions list's persisted sort key, so the menu's "Sort By"
     // submenu and the list toolbar's Sort picker stay in lockstep.
     @AppStorage(QuestionSort.storageKey) private var sort: QuestionSort = .lastUsedDesc
@@ -238,12 +239,30 @@ struct QuestionCommands: Commands {
             .keyboardShortcut("c", modifiers: [.command, .shift])
             .disabled(question == nil)
 
+            Button("Copy Question URL") {
+                guard let questionURL else { return }
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString(questionURL.absoluteString, forType: .string)
+            }
+            .keyboardShortcut("c", modifiers: [.command, .option])
+            .disabled(questionURL == nil)
+
             Button("Copy Question Title") {
                 guard let question else { return }
                 NSPasteboard.general.clearContents()
                 NSPasteboard.general.setString(question.displayTitle, forType: .string)
             }
             .disabled(question == nil)
+
+            // A live `ShareLink` rather than a routed command, mirroring the Pad
+            // menu: it needs a concrete URL at build time, published here as
+            // `focusedQuestionURL`. Falls back to a disabled button (so the item
+            // still appears) when no question is selected.
+            if let questionURL {
+                ShareLink("Share Question…", item: questionURL)
+            } else {
+                Button("Share Question…") {}.disabled(true)
+            }
 
             Divider()
 

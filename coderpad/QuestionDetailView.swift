@@ -60,6 +60,12 @@ struct QuestionDetailView: View {
             .help("Create a new interview pad from this question")
             .accessibilityLabel("New Pad")
         }
+        ToolbarItem(id: "shareQuestion", placement: .primaryAction) {
+            ShareLink(item: question.webURL(baseURL: client.baseURL)) {
+                Label("Share", systemImage: "square.and.arrow.up")
+            }
+            .help("Share a link to this question")
+        }
         ToolbarItem(id: "editQuestion", placement: .primaryAction) {
             Button { showEdit = true } label: {
                 Label("Edit", systemImage: "pencil")
@@ -88,6 +94,9 @@ struct QuestionDetailView: View {
         // Publish the favorite state so the Question menu's Favorite command can
         // show the matching "Add to"/"Remove from Favorites" title and toggle it.
         .focusedSceneValue(\.focusedQuestionIsFavorite, isFavorite)
+        // Publish the question's web URL so the Question menu's Share/Copy URL
+        // commands act on the same link, built from this account's server URL.
+        .focusedSceneValue(\.focusedQuestionURL, question.webURL(baseURL: client.baseURL))
         .toolbar(id: "question.detail.toolbar") { detailToolbar }
         .sheet(isPresented: $showEdit) {
             EditQuestionSheet(client: client, original: question) { updated in

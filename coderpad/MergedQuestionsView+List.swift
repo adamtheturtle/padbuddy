@@ -192,9 +192,15 @@ extension MergedQuestionsView {
         } label: {
             Label("Edit Question…", systemImage: "pencil")
         }
+        ShareLink(item: row.item.webURL(baseURL: row.account.resolvedBaseURL)) {
+            Label("Share…", systemImage: "square.and.arrow.up")
+        }
         Divider()
         Button { copyToPasteboard(row.item.displayTitle) } label: {
             Label("Copy Title", systemImage: "doc.on.doc")
+        }
+        Button { copyToPasteboard(row.item.webURL(baseURL: row.account.resolvedBaseURL).absoluteString) } label: {
+            Label("Copy Question URL", systemImage: "link")
         }
         Button { accountFilter = row.account.id } label: {
             Label("Show Only \(row.account.name)", systemImage: "person.crop.circle")
