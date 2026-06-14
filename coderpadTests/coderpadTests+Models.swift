@@ -457,6 +457,48 @@ struct GeneralSettingsTests {
     }
 }
 
+@Suite("Pad request execution_enabled encoding")
+struct PadExecutionEncodingTests {
+    private func json(_ value: some Encodable) throws -> String {
+        String(decoding: try CoderPadClient.encoder.encode(value), as: UTF8.self)
+    }
+
+    @Test
+    func `PadCreate encodes execution_enabled as a JSON string, not a boolean`() throws {
+        // CoderPad's pad API ignores a real boolean here and only honors the string
+        // form, contrary to its published docs. See issue #305.
+        let on = try json(PadCreate(language: "python3", executionEnabled: true))
+        #expect(on.contains(#""execution_enabled":"true""#))
+        #expect(!on.contains(#""execution_enabled":true"#))
+
+        let off = try json(PadCreate(executionEnabled: false))
+        #expect(off.contains(#""execution_enabled":"false""#))
+    }
+
+    @Test
+    func `PadUpdate encodes execution_enabled as a JSON string`() throws {
+        let body = try json(PadUpdate(id: "ABC", executionEnabled: true))
+        #expect(body.contains(#""execution_enabled":"true""#))
+        #expect(!body.contains(#""execution_enabled":true"#))
+    }
+
+    @Test
+    func `a nil execution flag is omitted entirely`() throws {
+        #expect(!(try json(PadUpdate(id: "ABC", executionEnabled: nil))).contains("execution_enabled"))
+        #expect(!(try json(PadCreate(language: "python3"))).contains("execution_enabled"))
+    }
+
+    @Test
+    func `execution_enabled decodes from either the string or the boolean shape`() throws {
+        // The string form we now send.
+        let stringForm = Data(#"{"id":"ABC","execution_enabled":"true"}"#.utf8)
+        #expect(try JSONDecoder().decode(PadUpdate.self, from: stringForm).executionEnabled == true)
+        // The boolean shape (older payloads / the published-docs shape) still decodes.
+        let boolForm = Data(#"{"id":"ABC","execution_enabled":false}"#.utf8)
+        #expect(try JSONDecoder().decode(PadUpdate.self, from: boolForm).executionEnabled == false)
+    }
+}
+
 @Suite("CoderPadError messages")
 struct CoderPadErrorMessageTests {
     @Test

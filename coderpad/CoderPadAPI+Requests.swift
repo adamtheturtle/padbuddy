@@ -168,3 +168,91 @@ nonisolated struct PadCreate: Codable {
         )
     }
 }
+
+// MARK: - execution_enabled string quirk
+
+/// Encodes the optional execution flag the way CoderPad's pad endpoints actually
+/// expect it: as the JSON **string** `"true"`/`"false"`, not a JSON boolean.
+///
+/// This contradicts the published API docs, which document `execution_enabled` as a
+/// boolean. A real boolean is accepted by the request but silently ignored — the pad
+/// falls back to the account default, so a new pad comes back execution-disabled even
+/// when `true` was sent. Sending the string form is what actually takes effect. See
+/// issue #305. `nil` is omitted entirely.
+private nonisolated func encodeExecutionEnabled<K: CodingKey>(
+    _ value: Bool?,
+    into container: inout KeyedEncodingContainer<K>,
+    forKey key: K
+) throws {
+    try container.encodeIfPresent(value.map { $0 ? "true" : "false" }, forKey: key)
+}
+
+/// Decodes `execution_enabled` tolerantly, accepting either the string form we now
+/// send or a plain boolean (older payloads / the published-docs shape).
+private nonisolated func decodeExecutionEnabled<K: CodingKey>(
+    from container: KeyedDecodingContainer<K>,
+    forKey key: K
+) throws -> Bool? {
+    if let string = try? container.decode(String.self, forKey: key) { return string == "true" }
+    return try container.decodeIfPresent(Bool.self, forKey: key)
+}
+
+extension PadCreate {
+    nonisolated init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        title = try c.decodeIfPresent(String.self, forKey: .title)
+        language = try c.decodeIfPresent(String.self, forKey: .language)
+        ownerEmail = try c.decodeIfPresent(String.self, forKey: .ownerEmail)
+        contents = try c.decodeIfPresent(String.self, forKey: .contents)
+        notes = try c.decodeIfPresent(String.self, forKey: .notes)
+        isPrivate = try c.decodeIfPresent(Bool.self, forKey: .isPrivate)
+        executionEnabled = try decodeExecutionEnabled(from: c, forKey: .executionEnabled)
+        questionID = try c.decodeIfPresent(Int.self, forKey: .questionID)
+        teamID = try c.decodeIfPresent(String.self, forKey: .teamID)
+    }
+
+    nonisolated func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encodeIfPresent(title, forKey: .title)
+        try c.encodeIfPresent(language, forKey: .language)
+        try c.encodeIfPresent(ownerEmail, forKey: .ownerEmail)
+        try c.encodeIfPresent(contents, forKey: .contents)
+        try c.encodeIfPresent(notes, forKey: .notes)
+        try c.encodeIfPresent(isPrivate, forKey: .isPrivate)
+        try encodeExecutionEnabled(executionEnabled, into: &c, forKey: .executionEnabled)
+        try c.encodeIfPresent(questionID, forKey: .questionID)
+        try c.encodeIfPresent(teamID, forKey: .teamID)
+    }
+}
+
+extension PadUpdate {
+    nonisolated init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(String.self, forKey: .id)
+        title = try c.decodeIfPresent(String.self, forKey: .title)
+        language = try c.decodeIfPresent(String.self, forKey: .language)
+        ownerEmail = try c.decodeIfPresent(String.self, forKey: .ownerEmail)
+        notes = try c.decodeIfPresent(String.self, forKey: .notes)
+        isPrivate = try c.decodeIfPresent(Bool.self, forKey: .isPrivate)
+        executionEnabled = try decodeExecutionEnabled(from: c, forKey: .executionEnabled)
+        contents = try c.decodeIfPresent(String.self, forKey: .contents)
+        questionID = try c.decodeIfPresent(Int.self, forKey: .questionID)
+        ended = try c.decodeIfPresent(Bool.self, forKey: .ended)
+        deleted = try c.decodeIfPresent(Bool.self, forKey: .deleted)
+    }
+
+    nonisolated func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encodeIfPresent(title, forKey: .title)
+        try c.encodeIfPresent(language, forKey: .language)
+        try c.encodeIfPresent(ownerEmail, forKey: .ownerEmail)
+        try c.encodeIfPresent(notes, forKey: .notes)
+        try c.encodeIfPresent(isPrivate, forKey: .isPrivate)
+        try encodeExecutionEnabled(executionEnabled, into: &c, forKey: .executionEnabled)
+        try c.encodeIfPresent(contents, forKey: .contents)
+        try c.encodeIfPresent(questionID, forKey: .questionID)
+        try c.encodeIfPresent(ended, forKey: .ended)
+        try c.encodeIfPresent(deleted, forKey: .deleted)
+    }
+}
