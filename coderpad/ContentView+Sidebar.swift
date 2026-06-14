@@ -30,8 +30,12 @@ struct Sidebar: View {
                 // Mail-style highlight can be painted) lost the arrow-key navigation
                 // a `List` gives for free. Make the section group focusable and step
                 // through it on ↑/↓ so the keyboard can move between the four sections
-                // again, restoring a focus ring at the same time.
+                // again. `focusEffectDisabled` suppresses the default group focus
+                // ring (an ugly blue box drawn around all four rows); the selected
+                // row's own highlight is the "you are here" cue, so the ring is
+                // redundant as well as unsightly.
                 .focusable()
+                .focusEffectDisabled()
                 .onMoveCommand(perform: moveSection)
                 .accessibilityElement(children: .contain)
                 .accessibilityLabel("Sections")
