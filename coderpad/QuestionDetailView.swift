@@ -14,6 +14,7 @@ struct QuestionDetailView: View {
     var accountID: UUID?
     @Environment(\.openWindow) var openWindow
     @Environment(\.orgDirectory) var directory
+    @Environment(\.colorScheme) var colorScheme
     @State private var nav = AppNavigation.shared
     @State private var accounts = AccountsStore.shared
     @State private var favorites = FavoriteQuestionsStore.shared

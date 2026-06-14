@@ -23,6 +23,7 @@ extension QuestionDetailView {
                 if !question.customFiles.isEmpty {
                     filesCard
                 }
+                starterCodeCards
                 if let solution = question.solution, !solution.isEmpty {
                     descriptionCard(title: "Solution", body: solution)
                 }
@@ -275,6 +276,31 @@ extension QuestionDetailView {
         if let filename = file.filename, !filename.isEmpty { return filename }
         if let title = file.title, !title.isEmpty { return title }
         return "Untitled file"
+    }
+
+    /// The starter code a candidate begins from when this question is used (the
+    /// API's `contents`), plus the test-cases variant when it's present and
+    /// meaningfully different. Already in hand from the question fetch — no extra
+    /// call — and hidden when absent.
+    @ViewBuilder
+    var starterCodeCards: some View {
+        if let contents = question.contents, !contents.isEmpty {
+            starterCodeCard(title: "Starter Code", code: contents)
+        }
+        if let testContents = question.contentsForTestCases, !testContents.isEmpty,
+           testContents != question.contents {
+            starterCodeCard(title: "Starter Code (Test Cases)", code: testContents)
+        }
+    }
+
+    func starterCodeCard(title: String, code: String) -> some View {
+        Card {
+            VStack(alignment: .leading, spacing: 10) {
+                SectionHeader(title: title, systemImage: "chevron.left.slash.chevron.right")
+                HighlightedCode(contents: code, language: question.language, dark: colorScheme == .dark)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 
     func descriptionCard(title: String, body: String) -> some View {
