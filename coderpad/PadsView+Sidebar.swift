@@ -122,13 +122,31 @@ extension PadsView {
                 .accessibilityLabel("New Pad")
                 .disabled(client.apiKey.isEmpty)
             }
+            // List vs. Table presentation. Defaults to List, so this only adds a
+            // capability; switching to Table reveals sortable, resizable columns.
+            ToolbarItem(id: "viewMode") {
+                Picker("View", selection: $presentation) {
+                    ForEach(PadListPresentation.allCases) { mode in
+                        Label(mode.label, systemImage: mode.systemImage).tag(mode)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .help("Show the pads as a list or a sortable table")
+                .accessibilityLabel("List or table view")
+            }
         }
     }
 
     /// The pad list plus the modifiers around it (empty state, Return-to-open,
     /// pull-to-refresh, focused-pad command target).
     private var padCollection: some View {
-        padList
+        Group {
+            if presentation == .table {
+                padTable
+            } else {
+                padList
+            }
+        }
         // When filters exclude everything, explain why rather than leaving a blank
         // list that reads like a load failure.
         .overlay {
@@ -182,6 +200,43 @@ extension PadsView {
         // position. `transaction` then suppresses the cross-fade between identities.
         .id(filterSignature)
         .transaction { $0.animation = nil }
+    }
+
+    /// A sortable, resizable Table alternative to `padList`, shown when the view-mode
+    /// toggle selects Table. Each column carries the metadata a row already shows;
+    /// clicking a header sorts by that column (ascending/descending), and columns can
+    /// be resized and reordered natively — the Finder/Mail data-table convention.
+    /// `sortOrder` is applied here rather than by the API sort, so a header click
+    /// re-orders the visible rows immediately. Selection reuses `selectedID`, so the
+    /// detail pane tracks the highlighted row exactly as it does for the List.
+    private var padTable: some View {
+        Table(filtered.sorted(using: sortOrder), selection: $selectedID, sortOrder: $sortOrder) {
+            TableColumn("Title", value: \.title) { pad in
+                Text(pad.title.isEmpty ? "Untitled" : pad.title).lineLimit(1)
+            }
+            TableColumn("Language", value: \.languageSortKey) { pad in
+                Text(pad.language?.languageDisplayName ?? "—")
+            }
+            TableColumn("Owner", value: \.ownerEmail) { pad in
+                Text(directory.display(pad.ownerEmail)).lineLimit(1)
+            }
+            TableColumn("Status", value: \.statusSortKey) { pad in
+                Text(pad.status.label)
+            }
+            TableColumn("Created", value: \.createdSortKey) { pad in
+                Text(pad.createdAt.map { $0.formatted(date: .abbreviated, time: .shortened) } ?? "—")
+            }
+            TableColumn("Updated", value: \.updatedSortKey) { pad in
+                Text(pad.updatedAt.map { $0.formatted(date: .abbreviated, time: .shortened) } ?? "—")
+            }
+        }
+        // Right-click a row for the same actions as the List's row menu, resolving the
+        // clicked id back to its pad.
+        .contextMenu(forSelectionType: Pad.ID.self) { ids in
+            if let id = ids.first, let pad = filtered.first(where: { $0.id == id }) {
+                padContextMenu(pad)
+            }
+        }
     }
 
     @ViewBuilder
@@ -403,4 +458,16 @@ extension PadsView {
         let count = filtered.count
         return "\(count) \(count == 1 ? "pad" : "pads")"
     }
+}
+
+/// Non-optional sort keys for the Table columns. `KeyPathComparator` (and so a
+/// sortable `TableColumn`) needs a `Comparable` value, but `language`, the dates,
+/// and the derived status aren't directly usable: optionals aren't `Comparable`
+/// and `PadState` isn't either. These project each onto a stable comparable key
+/// (empty string / `.distantPast` / status label) so every column can sort.
+extension Pad {
+    var languageSortKey: String { (language ?? "").lowercased() }
+    var statusSortKey: String { status.label }
+    var createdSortKey: Date { createdAt ?? .distantPast }
+    var updatedSortKey: Date { updatedAt ?? .distantPast }
 }
