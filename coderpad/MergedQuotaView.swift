@@ -139,7 +139,12 @@ struct QuotaDetail: View {
             if let pace = QuotaPace(quota: quota, now: Date()) {
                 paceCard(pace)
             }
-            detailsCard
+            // Only an active (future) trial is worth surfacing, and as its own card
+            // rather than a Details row — matching the single-account Quota view. An
+            // expired trial's end date is noise, so it's omitted entirely.
+            if let trial = quota.trialExpiresAt, trial > Date() {
+                trialCard(trial)
+            }
         }
     }
 
@@ -211,13 +216,16 @@ struct QuotaDetail: View {
         .accessibilityLabel(pace.accessibilityLabel)
     }
 
-    private var detailsCard: some View {
+    /// Highlights an active trial and when it ends. Shown only while the trial is
+    /// still in the future; expired trials are omitted (see `body`). Mirrors the
+    /// single-account `QuotaView.trialCard`.
+    private func trialCard(_ expiresAt: Date) -> some View {
         Card {
-            VStack(alignment: .leading, spacing: 10) {
-                SectionHeader(title: "Details", systemImage: "list.bullet")
-                if let trial = quota.trialExpiresAt {
-                    LabeledRow(label: "Trial expires", value: trial.formatted(date: .long, time: .shortened))
-                }
+            VStack(alignment: .leading, spacing: 8) {
+                SectionHeader(title: "Trial", systemImage: "clock.badge.checkmark")
+                Text("Your trial expires \(expiresAt.formatted(date: .long, time: .shortened)).")
+                    .font(.callout)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
