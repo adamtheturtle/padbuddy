@@ -249,6 +249,19 @@ final class FavoriteQuestionsStore {
         WidgetSync.syncFavorites(account: account)
     }
 
+    /// Reorders `id` to sit immediately before `targetID`, persisting the new order
+    /// (drag-to-reorder in the sidebar, #299). A no-op if either id isn't present.
+    func move(_ id: Int, before targetID: Int, account: UUID) {
+        var ids = byAccount[account] ?? []
+        guard let from = ids.firstIndex(of: id), ids.contains(targetID), id != targetID else { return }
+        ids.remove(at: from)
+        let insertAt = ids.firstIndex(of: targetID) ?? ids.count
+        ids.insert(id, at: insertAt)
+        byAccount[account] = ids
+        save()
+        WidgetSync.syncFavorites(account: account)
+    }
+
     private func save() {
         do {
             let data = try JSONEncoder().encode(byAccount)
@@ -314,6 +327,18 @@ final class FavoritePadsStore {
     func remove(_ id: String, account: UUID) {
         guard var ids = byAccount[account], let index = ids.firstIndex(of: id) else { return }
         ids.remove(at: index)
+        byAccount[account] = ids
+        save()
+    }
+
+    /// Reorders `id` to sit immediately before `targetID`, persisting the new order
+    /// (drag-to-reorder in the sidebar, #299). A no-op if either id isn't present.
+    func move(_ id: String, before targetID: String, account: UUID) {
+        var ids = byAccount[account] ?? []
+        guard let from = ids.firstIndex(of: id), ids.contains(targetID), id != targetID else { return }
+        ids.remove(at: from)
+        let insertAt = ids.firstIndex(of: targetID) ?? ids.count
+        ids.insert(id, at: insertAt)
         byAccount[account] = ids
         save()
     }

@@ -18,6 +18,9 @@ struct Sidebar: View {
     /// Highlights the Favorites section while a pad or question is dragged over it,
     /// the Finder-style cue that dropping there will pin the item.
     @State private var droppingFavorite = false
+    /// The favorite row id a reorder drag is currently hovering, so an insertion line
+    /// can be drawn above it (#299). Nil when no reorder drag is in flight.
+    @State private var reorderTargetID: String?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -386,29 +389,37 @@ struct Sidebar: View {
         sidebarSectionHeader("Favorites")
         VStack(spacing: 2) {
             ForEach(pads) { item in
-                sidebarSubRow(label: item.title, icon: "star.fill", iconTint: .yellow) {
-                    if item.account != nil {
-                        section = .pads
-                        MergedRouting.shared.selectFavoritePad(id: item.padID)
-                    } else {
-                        nav.showFavoritePad(id: item.padID)
+                favoriteRowChrome(rowID: item.id,
+                                  payload: padReorderPayload(item),
+                                  onReorder: { reorderPad($0, before: item) }) {
+                    sidebarSubRow(label: item.title, icon: "star.fill", iconTint: .yellow) {
+                        if item.account != nil {
+                            section = .pads
+                            MergedRouting.shared.selectFavoritePad(id: item.padID)
+                        } else {
+                            nav.showFavoritePad(id: item.padID)
+                        }
                     }
+                    .contextMenu { removeFavoriteButton { unfavoritePad(item) } }
                 }
-                .contextMenu { removeFavoriteButton { unfavoritePad(item) } }
             }
             ForEach(questions) { item in
-                sidebarSubRow(label: item.title, icon: "star.fill", iconTint: .yellow) {
-                    if let account = item.account {
-                        // Merged view: switch to the combined questions list and let
-                        // it select the right account's row (per-org ids collide, so
-                        // the account must travel with the id).
-                        section = .questions
-                        MergedRouting.shared.selectFavoriteQuestion(account: account, id: item.questionID)
-                    } else {
-                        nav.showFavoriteQuestion(id: item.questionID)
+                favoriteRowChrome(rowID: item.id,
+                                  payload: questionReorderPayload(item),
+                                  onReorder: { reorderQuestion($0, before: item) }) {
+                    sidebarSubRow(label: item.title, icon: "star.fill", iconTint: .yellow) {
+                        if let account = item.account {
+                            // Merged view: switch to the combined questions list and let
+                            // it select the right account's row (per-org ids collide, so
+                            // the account must travel with the id).
+                            section = .questions
+                            MergedRouting.shared.selectFavoriteQuestion(account: account, id: item.questionID)
+                        } else {
+                            nav.showFavoriteQuestion(id: item.questionID)
+                        }
                     }
+                    .contextMenu { removeFavoriteButton { unfavoriteQuestion(item) } }
                 }
-                .contextMenu { removeFavoriteButton { unfavoriteQuestion(item) } }
             }
             if pads.isEmpty, questions.isEmpty {
                 Text("Drag pads or questions here.")
@@ -461,6 +472,69 @@ struct Sidebar: View {
             }
         }
         return accepted
+    }
+
+    /// Wraps a favorite row so it can be dragged to reorder (#299): it carries a
+    /// `FavoriteReorder` payload, draws a Finder-style insertion line above itself
+    /// while a reorder drag hovers, and reorders on drop. The reorder type is
+    /// distinct from the add-a-favorite `FavoriteDrop`, so a row's own drop target
+    /// only ever reacts to a reorder, never to a row dragged in from a list.
+    @ViewBuilder
+    private func favoriteRowChrome(
+        rowID: String,
+        payload: FavoriteReorder?,
+        onReorder: @escaping (FavoriteReorder) -> Void,
+        @ViewBuilder row: () -> some View
+    ) -> some View {
+        let decorated = row()
+            .overlay(alignment: .top) {
+                if reorderTargetID == rowID {
+                    Capsule()
+                        .fill(Color.accentColor)
+                        .frame(height: 2)
+                        .padding(.horizontal, 8)
+                }
+            }
+            .dropDestination(for: FavoriteReorder.self) { items, _ in
+                reorderTargetID = nil
+                guard let first = items.first else { return false }
+                onReorder(first)
+                return true
+            } isTargeted: { targeted in
+                reorderTargetID = targeted ? rowID : (reorderTargetID == rowID ? nil : reorderTargetID)
+            }
+        // Only rows whose owning account is known can be dragged to reorder.
+        if let payload {
+            decorated.draggable(payload)
+        } else {
+            decorated
+        }
+    }
+
+    private func padReorderPayload(_ item: FavoritePadItem) -> FavoriteReorder? {
+        guard let account = item.account ?? accountID else { return nil }
+        return .pad(account: account, id: item.padID)
+    }
+
+    private func questionReorderPayload(_ item: FavoriteItem) -> FavoriteReorder? {
+        guard let account = item.account ?? accountID else { return nil }
+        return .question(account: account, id: item.questionID)
+    }
+
+    /// Reorders a dropped pad favorite to sit before `item`, but only within the
+    /// same account (a reorder never moves a favorite between accounts).
+    private func reorderPad(_ dropped: FavoriteReorder, before item: FavoritePadItem) {
+        guard case let .pad(account, id) = dropped,
+              let targetAccount = item.account ?? accountID,
+              account == targetAccount else { return }
+        favoritePads.move(id, before: item.padID, account: account)
+    }
+
+    private func reorderQuestion(_ dropped: FavoriteReorder, before item: FavoriteItem) {
+        guard case let .question(account, id) = dropped,
+              let targetAccount = item.account ?? accountID,
+              account == targetAccount else { return }
+        favorites.move(id, before: item.questionID, account: account)
     }
 
     // MARK: Row chrome

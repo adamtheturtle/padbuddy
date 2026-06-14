@@ -20,6 +20,11 @@ extension UTType {
     /// `nonisolated` so the `Transferable` representations (which build in a
     /// nonisolated context) can reference it.
     nonisolated static let coderpadFavorite = UTType(exportedAs: "com.coderpad.favorite")
+
+    /// In-process type for reordering a favorite *within* the sidebar (#299). Kept
+    /// distinct from ``coderpadFavorite`` so a reorder drag (favorite row → favorite
+    /// row) never triggers the add-a-favorite drop, and vice versa.
+    nonisolated static let coderpadFavoriteReorder = UTType(exportedAs: "com.coderpad.favorite-reorder")
 }
 
 /// What a pad or question row hands the sidebar Favorites drop target. Codable so
@@ -49,5 +54,17 @@ struct PadDragPayload: Transferable {
         ProxyRepresentation(exporting: { payload in
             FavoriteDrop.pad(account: payload.account, id: payload.id, title: payload.title)
         })
+    }
+}
+
+/// Identifies a favorite being dragged to reorder it within the sidebar (#299).
+/// Separate from ``FavoriteDrop`` so reorder and add-to-favorites never cross-fire.
+/// The account travels so reordering stays scoped to the right account's list.
+enum FavoriteReorder: Codable, Transferable {
+    case pad(account: UUID, id: String)
+    case question(account: UUID, id: Int)
+
+    static var transferRepresentation: some TransferRepresentation {
+        CodableRepresentation(contentType: .coderpadFavoriteReorder)
     }
 }
