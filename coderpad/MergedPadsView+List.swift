@@ -189,6 +189,14 @@ extension MergedPadsView {
             accountName: row.account.name
         )
         .contextMenu { padContextMenu(row) }
+        // Double-click opens the pad in its own window, the standard macOS
+        // accelerator (single click selects, double click opens). A simultaneous
+        // gesture so the list's own single-click selection still fires; the handler
+        // also selects the row so the detail pane tracks what was opened.
+        .simultaneousGesture(TapGesture(count: 2).onEnded {
+            selection = row.item
+            openPad(row.item)
+        })
     }
 
     @ViewBuilder
