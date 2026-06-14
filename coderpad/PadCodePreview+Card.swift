@@ -87,7 +87,9 @@ extension EnvironmentCodeCard {
     /// without the code pane having to grow.
     var fileSidebar: some View {
         ScrollView(.vertical, showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 2) {
+            // Lazy so a project with many files only materializes the rows visible
+            // at the top level (nested folders still build when expanded).
+            LazyVStack(alignment: .leading, spacing: 2) {
                 FileTreeRows(
                     nodes: fileTree,
                     depth: 0,
