@@ -111,12 +111,15 @@ jobs:
           restore-keys: |
             deriveddata-${{ runner.os }}-
 
+      # The shared scheme defaults to the Fast plan (unit + render only) for quick
+      # local iteration; CI runs the Full plan so it keeps the UI-test coverage.
       - name: Build & test
         run: |
           set -o pipefail
           xcodebuild test \
             -project coderpad.xcodeproj \
             -scheme coderpad \
+            -testPlan Full \
             -destination 'platform=macOS' \
             -derivedDataPath DerivedData \
             -resultBundlePath TestResults.xcresult \
