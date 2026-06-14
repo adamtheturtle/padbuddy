@@ -261,6 +261,87 @@ enum QuestionSort: String, CaseIterable, Identifiable {
         case .titleDesc: "Title (Z-A)"
         }
     }
+
+    /// The field this sort orders by, independent of direction.
+    var field: QuestionSortField {
+        switch self {
+        case .lastUsedDesc, .lastUsedAsc: .lastUsed
+        case .usedDesc, .usedAsc: .used
+        case .titleAsc, .titleDesc: .title
+        }
+    }
+
+    /// The two directions available for `field`, in menu order, each with a
+    /// field-appropriate label and arrow (e.g. "Newest First" / "Oldest First" for
+    /// a date field, "A to Z" / "Z to A" for the title). The first is the default.
+    static func directions(for field: QuestionSortField) -> [(sort: QuestionSort, label: String, systemImage: String)] {
+        switch field {
+        case .lastUsed:
+            [(.lastUsedDesc, "Newest First", "arrow.down"), (.lastUsedAsc, "Oldest First", "arrow.up")]
+        case .used:
+            [(.usedDesc, "Most Used", "arrow.down"), (.usedAsc, "Least Used", "arrow.up")]
+        case .title:
+            [(.titleAsc, "A to Z", "arrow.down"), (.titleDesc, "Z to A", "arrow.up")]
+        }
+    }
+
+    /// Switching to `field` while keeping the current direction slot (so toggling
+    /// the field doesn't reset newest↔oldest).
+    func withField(_ newField: QuestionSortField) -> QuestionSort {
+        let slot = Self.directions(for: field).firstIndex { $0.sort == self } ?? 0
+        let options = Self.directions(for: newField)
+        return options[min(slot, options.count - 1)].sort
+    }
+}
+
+/// The field a ``QuestionSort`` orders by. Pairs with a direction to form the full
+/// sort, so the Sort menu can offer field and direction as two sections (à la the
+/// Passwords app) rather than one list of combined options.
+enum QuestionSortField: String, CaseIterable, Identifiable {
+    case lastUsed
+    case used
+    case title
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .lastUsed: "Last Used"
+        case .used: "Times Used"
+        case .title: "Title"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .lastUsed: "clock"
+        case .used: "chart.bar"
+        case .title: "textformat"
+        }
+    }
+}
+
+/// The Sort menu's contents, shared by the Questions toolbar button and the
+/// Question menu's "Sort By" command so they stay in lockstep. Two inline radio
+/// sections — sort field, then direction — mirroring the Passwords app.
+struct QuestionSortMenuContent: View {
+    @Binding var sort: QuestionSort
+
+    var body: some View {
+        Picker("Sort By", selection: Binding(get: { sort.field }, set: { sort = sort.withField($0) })) {
+            ForEach(QuestionSortField.allCases) { field in
+                Label(field.label, systemImage: field.systemImage).tag(field)
+            }
+        }
+        .pickerStyle(.inline)
+
+        Picker("Order", selection: $sort) {
+            ForEach(QuestionSort.directions(for: sort.field), id: \.sort) { option in
+                Label(option.label, systemImage: option.systemImage).tag(option.sort)
+            }
+        }
+        .pickerStyle(.inline)
+    }
 }
 
 extension Question {

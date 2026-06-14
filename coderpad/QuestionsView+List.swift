@@ -115,10 +115,7 @@ extension QuestionsView {
         .toolbar(id: "questions.toolbar") {
             ToolbarItem(id: "sort") {
                 Menu {
-                    Picker("Sort", selection: $sort) {
-                        ForEach(QuestionSort.allCases) { Text($0.label).tag($0) }
-                    }
-                    .pickerStyle(.inline)
+                    QuestionSortMenuContent(sort: $sort)
                 } label: {
                     Label("Sort", systemImage: "arrow.up.arrow.down")
                 }

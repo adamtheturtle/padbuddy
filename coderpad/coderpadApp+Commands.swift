@@ -225,10 +225,7 @@ struct QuestionCommands: Commands {
             .disabled(question == nil)
 
             Menu("Sort By") {
-                Picker("Sort By", selection: $sort) {
-                    ForEach(QuestionSort.allCases) { Text($0.label).tag($0) }
-                }
-                .pickerStyle(.inline)
+                QuestionSortMenuContent(sort: $sort)
             }
 
             Divider()

@@ -8,6 +8,35 @@ import Foundation
 import SwiftUI
 import Testing
 
+@Suite("Question sort field/direction")
+struct QuestionSortTests {
+    @Test func `each sort maps to the expected field`() {
+        #expect(QuestionSort.lastUsedDesc.field == .lastUsed)
+        #expect(QuestionSort.lastUsedAsc.field == .lastUsed)
+        #expect(QuestionSort.usedDesc.field == .used)
+        #expect(QuestionSort.usedAsc.field == .used)
+        #expect(QuestionSort.titleAsc.field == .title)
+        #expect(QuestionSort.titleDesc.field == .title)
+    }
+
+    @Test func `directions list the field's two sorts, default first`() {
+        #expect(QuestionSort.directions(for: .lastUsed).map(\.sort) == [.lastUsedDesc, .lastUsedAsc])
+        #expect(QuestionSort.directions(for: .used).map(\.sort) == [.usedDesc, .usedAsc])
+        #expect(QuestionSort.directions(for: .title).map(\.sort) == [.titleAsc, .titleDesc])
+    }
+
+    @Test func `withField keeps the current direction slot`() {
+        // Slot 0 (default) stays slot 0 across fields.
+        #expect(QuestionSort.lastUsedDesc.withField(.title) == .titleAsc)
+        #expect(QuestionSort.titleAsc.withField(.used) == .usedDesc)
+        // Slot 1 (reverse) stays slot 1.
+        #expect(QuestionSort.lastUsedAsc.withField(.title) == .titleDesc)
+        #expect(QuestionSort.titleDesc.withField(.lastUsed) == .lastUsedAsc)
+        // Switching to the same field is a no-op.
+        #expect(QuestionSort.usedAsc.withField(.used) == .usedAsc)
+    }
+}
+
 @Suite("Language helpers")
 struct LanguageHelperTests {
     @Test(arguments: [
