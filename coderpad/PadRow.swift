@@ -50,10 +50,6 @@ struct PadRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(pad.title.isEmpty ? pad.id : pad.title)
                     .font(.callout.weight(.medium))
-                    // Full contrast: the row's VStack tints everything .tertiary for
-                    // the secondary metadata, but the title is the primary content and
-                    // was getting dragged down to the same faint grey, which read as
-                    // hard-to-see in both light and dark mode.
                     .foregroundStyle(.primary)
                     .lineLimit(1)
                 HStack(spacing: 8) {
@@ -72,13 +68,19 @@ struct PadRow: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
-                if let updated = pad.informativeUpdatedAt {
-                    Text("Updated \(updated.formatted(.relative(presentation: .named)))")
-                }
             }
-            .font(.caption2)
-            .foregroundStyle(.tertiary)
-            Spacer(minLength: 0)
+            Spacer(minLength: 8)
+            // Mirror the question row: the relative date sits on the trailing edge in
+            // the same .caption/.secondary styling, rather than as a faint extra line
+            // tucked under the metadata.
+            if let updated = pad.informativeUpdatedAt {
+                Text(updated.formatted(.relative(presentation: .named)))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .fixedSize()
+                    .help("Updated \(updated.formatted(date: .long, time: .shortened))")
+            }
         }
         .padding(.vertical, 4)
         // Read the whole row as one VoiceOver element with a coherent label,
