@@ -30,6 +30,11 @@ struct PadRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(pad.title.isEmpty ? pad.id : pad.title)
                     .font(.callout.weight(.medium))
+                    // Full contrast: the row's VStack tints everything .tertiary for
+                    // the secondary metadata, but the title is the primary content and
+                    // was getting dragged down to the same faint grey, which read as
+                    // hard-to-see in both light and dark mode.
+                    .foregroundStyle(.primary)
                     .lineLimit(1)
                 HStack(spacing: 8) {
                     StateBadge(state: pad.status)
