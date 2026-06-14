@@ -172,10 +172,10 @@ struct PadPrintDocument: View {
             rows.append(("Participants", pad.participants.map(displayName).joined(separator: ", ")))
         }
         if let createdAt = pad.createdAt {
-            rows.append(("Created", createdAt.formatted(date: .abbreviated, time: .shortened)))
+            rows.append(("Created", createdAt.formatted(date: .long, time: .shortened)))
         }
         if let endedAt = pad.endedAt {
-            rows.append(("Ended", endedAt.formatted(date: .abbreviated, time: .shortened)))
+            rows.append(("Ended", endedAt.formatted(date: .long, time: .shortened)))
         }
         return rows
     }

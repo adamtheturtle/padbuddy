@@ -113,13 +113,13 @@ extension PadDetailView {
         DetailSection(title: "Details", systemImage: "info.circle") {
             VStack(alignment: .leading, spacing: 6) {
                 if let createdAt = pad.createdAt {
-                    LabeledRow(label: "Created", value: createdAt.formatted(date: .abbreviated, time: .shortened))
+                    LabeledRow(label: "Created", value: createdAt.formatted(date: .long, time: .shortened))
                 }
                 if let updatedAt = pad.informativeUpdatedAt {
-                    LabeledRow(label: "Updated", value: updatedAt.formatted(date: .abbreviated, time: .shortened))
+                    LabeledRow(label: "Updated", value: updatedAt.formatted(date: .long, time: .shortened))
                 }
                 if let endedAt = pad.endedAt {
-                    LabeledRow(label: "Ended", value: endedAt.formatted(date: .abbreviated, time: .shortened))
+                    LabeledRow(label: "Ended", value: endedAt.formatted(date: .long, time: .shortened))
                 }
             }
         }
@@ -261,12 +261,12 @@ extension PadDetailView {
     private func eventTimestamp(for group: PadEventGroup) -> some View {
         if let first = group.representative.createdAt {
             if group.count > 1, let last = group.lastEvent.createdAt {
-                let firstText = first.formatted(date: .abbreviated, time: .shortened)
+                let firstText = first.formatted(date: .long, time: .shortened)
                 let lastText = last.formatted(date: .omitted, time: .shortened)
                 Text("\(firstText) - \(lastText)")
                     .font(.caption).foregroundStyle(.tertiary)
             } else {
-                Text(first.formatted(date: .abbreviated, time: .shortened))
+                Text(first.formatted(date: .long, time: .shortened))
                     .font(.caption).foregroundStyle(.tertiary)
             }
         }
@@ -373,7 +373,7 @@ extension PadDetailView {
         if group.count > 1 { parts.append("\(group.count) times") }
         if let user = eventActor(group.representative) { parts.append("by \(user)") }
         if let when = group.representative.createdAt {
-            parts.append("at \(when.formatted(date: .abbreviated, time: .shortened))")
+            parts.append("at \(when.formatted(date: .long, time: .shortened))")
         }
         return parts.joined(separator: " ")
     }

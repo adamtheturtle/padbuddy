@@ -160,7 +160,7 @@ struct QuotaDetail: View {
                      systemImage: "arrow.up.right.circle",
                      tint: quota.overagesEnabled == true ? .green : .orange)
             if let reset = quota.quotaReset {
-                StatTile(title: "Resets", value: reset.formatted(date: .abbreviated, time: .omitted),
+                StatTile(title: "Resets", value: reset.formatted(date: .long, time: .omitted),
                          systemImage: "arrow.counterclockwise", tint: .teal)
             }
         }
@@ -222,7 +222,7 @@ struct QuotaDetail: View {
                     LabeledRow(label: "Billing cycle limit", value: "\(limit)")
                 }
                 if let trial = quota.trialExpiresAt {
-                    LabeledRow(label: "Trial expires", value: trial.formatted(date: .abbreviated, time: .shortened))
+                    LabeledRow(label: "Trial expires", value: trial.formatted(date: .long, time: .shortened))
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

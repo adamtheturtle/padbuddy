@@ -162,7 +162,7 @@ struct DateRangeFilterChip: View {
 
     /// No dashes in user-facing copy (house style): join the two dates with "to".
     private var customRangeLabel: String {
-        let style = Date.FormatStyle.dateTime.month(.abbreviated).day()
+        let style = Date.FormatStyle.dateTime.month(.wide).day()
         let start = window.customStart.map { $0.formatted(style) } ?? "…"
         let end = window.customEnd.map { $0.formatted(style) } ?? "…"
         return "\(start) to \(end)"

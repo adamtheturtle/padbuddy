@@ -189,9 +189,9 @@ struct OrganizationView: View {
                 // Show the rows from the first frame (even before stats load) so
                 // the card doesn't pop in and shove the layout; values fill in.
                 LabeledRow(label: "From", value: stats?.startTime
-                    .map { $0.formatted(date: .abbreviated, time: .shortened) } ?? "…")
+                    .map { $0.formatted(date: .long, time: .shortened) } ?? "…")
                 LabeledRow(label: "To", value: stats?.endTime
-                    .map { $0.formatted(date: .abbreviated, time: .shortened) } ?? "…")
+                    .map { $0.formatted(date: .long, time: .shortened) } ?? "…")
                 LabeledRow(label: "Pads created", value: stats.map { "\($0.padsCreated)" } ?? "…")
             }
             .frame(maxWidth: .infinity, alignment: .leading)

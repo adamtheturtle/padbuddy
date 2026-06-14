@@ -54,7 +54,7 @@ struct QuestionRow: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .fixedSize()
-                        .help("Last used \(lastUsed.formatted(date: .abbreviated, time: .shortened))")
+                        .help("Last used \(lastUsed.formatted(date: .long, time: .shortened))")
                         .accessibilityLabel("Last used \(lastUsed.formatted(.relative(presentation: .named)))")
                 }
             }

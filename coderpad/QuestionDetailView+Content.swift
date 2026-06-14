@@ -142,11 +142,11 @@ extension QuestionDetailView {
                 StatTile(title: "Times used", value: "\(used)", systemImage: "chart.bar.fill", tint: .blue)
             }
             if let createdAt = question.createdAt {
-                StatTile(title: "Created", value: createdAt.formatted(date: .abbreviated, time: .omitted),
+                StatTile(title: "Created", value: createdAt.formatted(date: .long, time: .omitted),
                          systemImage: "calendar.badge.plus", tint: .teal)
             }
             if let updatedAt = question.updatedAt {
-                StatTile(title: "Updated", value: updatedAt.formatted(date: .abbreviated, time: .omitted),
+                StatTile(title: "Updated", value: updatedAt.formatted(date: .long, time: .omitted),
                          systemImage: "clock.arrow.circlepath", tint: .orange)
             }
         }
