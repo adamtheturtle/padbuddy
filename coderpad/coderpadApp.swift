@@ -202,6 +202,10 @@ final class AppNavigation {
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    /// Backs the "Open Pad in CoderPad" macOS Service; retained for the app's
+    /// lifetime so `NSApp.servicesProvider` keeps a live target.
+    private let servicesProvider = ServicesProvider()
+
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
         false
     }
@@ -212,6 +216,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Seed the badge from whatever pads are already cached; it refreshes again as
         // each account's list loads.
         DockBadge.refresh()
+        // Offer the "Open Pad in CoderPad" Service (declared in Info.plist) to other
+        // apps. NSUpdateDynamicServices refreshes the registry so the item appears
+        // without needing a log-out/in during development.
+        NSApp.servicesProvider = servicesProvider
+        NSUpdateDynamicServices()
     }
 
     /// The menu shown when right-clicking the Dock icon. Offers the same quick

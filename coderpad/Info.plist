@@ -15,5 +15,24 @@
 			</array>
 		</dict>
 	</array>
+	<key>NSServices</key>
+	<array>
+		<dict>
+			<key>NSMenuItem</key>
+			<dict>
+				<key>default</key>
+				<string>Open Pad in CoderPad</string>
+			</dict>
+			<key>NSMessage</key>
+			<string>openPad</string>
+			<key>NSPortName</key>
+			<string>CoderPad</string>
+			<key>NSSendTypes</key>
+			<array>
+				<string>public.url</string>
+				<string>public.utf8-plain-text</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

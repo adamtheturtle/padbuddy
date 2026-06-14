@@ -273,3 +273,33 @@ struct QuestionDecoderTests {
         #expect(question.customFiles.isEmpty)
     }
 }
+
+@Suite("Open Pad service id extraction")
+struct ServicesProviderTests {
+    @Test
+    func `extracts the id from a CoderPad web URL`() {
+        #expect(ServicesProvider.padID(fromSelection: "https://app.coderpad.io/ABC123") == "ABC123")
+    }
+
+    @Test
+    func `ignores trailing path components like playback`() {
+        #expect(ServicesProvider.padID(fromSelection: "https://app.coderpad.io/ABC123/playback") == "ABC123")
+    }
+
+    @Test
+    func `reads the id from a coderpad deep link`() {
+        #expect(ServicesProvider.padID(fromSelection: "coderpad://pad/XYZ789") == "XYZ789")
+    }
+
+    @Test
+    func `accepts a bare alphanumeric id token`() {
+        #expect(ServicesProvider.padID(fromSelection: "  ABC123  ") == "ABC123")
+    }
+
+    @Test
+    func `rejects arbitrary prose so it doesn't fire a bogus open`() {
+        #expect(ServicesProvider.padID(fromSelection: "let's open the pad") == nil)
+        #expect(ServicesProvider.padID(fromSelection: "") == nil)
+        #expect(ServicesProvider.padID(fromSelection: "coderpad://pad/") == nil)
+    }
+}
