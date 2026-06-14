@@ -28,16 +28,6 @@ struct PadsView: View {
     /// the main thread. A `String` id tag is a cheap hash; `selection` (the `Pad`)
     /// stays the source of truth for the detail pane and is kept in sync below.
     @State var selectedID: String?
-    /// List vs. Table presentation, persisted across launches. Defaults to List so
-    /// the standard experience is unchanged; switching to Table reveals sortable,
-    /// resizable columns (see `padTable`).
-    @AppStorage(PadListPresentation.storageKey) var presentation: PadListPresentation = .list
-    /// The Table's active column sort, applied to the rows in `padTable`. Starts empty
-    /// so the table opens in the list's natural order (the API's `updated_at,desc`);
-    /// clicking a column header then drives the sort. Empty rather than a default
-    /// `KeyPathComparator` because a key-path literal isn't `Sendable` in the `@State`
-    /// macro's stored default under Swift 6.
-    @State var sortOrder: [KeyPathComparator<Pad>] = []
     /// Owned by `MainSplit` so the `.searchable` field can live on the split view
     /// (trailing window toolbar) rather than this content column. All the filter,
     /// saved-search, and persistence logic here still reads and writes it.
@@ -261,32 +251,6 @@ struct PadsView: View {
 private struct TaskKey: Hashable {
     let apiKey: String
     let phase: ScenePhase
-}
-
-/// How the pad list is presented: the default inset `List`, or a sortable, resizable
-/// `Table` with columns. Persisted via `storageKey` so the choice survives launches.
-/// Opt-in: the default stays `.list`, so anyone who never switches sees no change.
-enum PadListPresentation: String, CaseIterable, Identifiable {
-    case list
-    case table
-
-    static let storageKey = "pads.presentation"
-
-    var id: String { rawValue }
-
-    var label: String {
-        switch self {
-        case .list: "List"
-        case .table: "Table"
-        }
-    }
-
-    var systemImage: String {
-        switch self {
-        case .list: "list.bullet"
-        case .table: "tablecells"
-        }
-    }
 }
 
 /// Holds the filtered pad list across one render so the several reads of `filtered`

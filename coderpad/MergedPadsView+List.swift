@@ -135,28 +135,10 @@ extension MergedPadsView {
             .help("Create a new pad in one of your accounts")
             .accessibilityLabel("New Pad")
         }
-        // List vs. Table presentation, sharing the single-account list's preference
-        // key so the choice is consistent across both pad lists.
-        ToolbarItem(id: "viewMode") {
-            Picker("View", selection: $presentation) {
-                ForEach(PadListPresentation.allCases) { mode in
-                    Label(mode.label, systemImage: mode.systemImage).tag(mode)
-                }
-            }
-            .pickerStyle(.segmented)
-            .help("Show the pads as a list or a sortable table")
-            .accessibilityLabel("List or table view")
-        }
     }
 
     private var padCollection: some View {
-        Group {
-            if presentation == .table {
-                padTable
-            } else {
-                padList
-            }
-        }
+        padList
             .overlay {
                 if filtered.isEmpty, !scoped.isEmpty {
                     ContentUnavailableView {
@@ -196,42 +178,6 @@ extension MergedPadsView {
         .listStyle(.inset)
         .id(filterSignature)
         .transaction { $0.animation = nil }
-    }
-
-    /// A sortable, resizable Table alternative to `padList`, shown when the view-mode
-    /// toggle selects Table. Adds an Account column (this is the combined list) beside
-    /// the same metadata the rows show; clicking a header sorts and columns resize and
-    /// reorder natively. Rows are `AccountScoped<Pad>` whose `id` is the pad id, so
-    /// selection reuses `selectedID` exactly as the List does.
-    private var padTable: some View {
-        Table(filtered.sorted(using: sortOrder), selection: $selectedID, sortOrder: $sortOrder) {
-            TableColumn("Title", value: \.item.title) { row in
-                Text(row.item.title.isEmpty ? "Untitled" : row.item.title).lineLimit(1)
-            }
-            TableColumn("Account", value: \.account.name) { row in
-                Text(row.account.name).lineLimit(1)
-            }
-            TableColumn("Language", value: \.item.languageSortKey) { row in
-                Text(row.item.language?.languageDisplayName ?? "—")
-            }
-            TableColumn("Owner", value: \.item.ownerEmail) { row in
-                Text(directory.display(row.item.ownerEmail)).lineLimit(1)
-            }
-            TableColumn("Status", value: \.item.statusSortKey) { row in
-                Text(row.item.status.label)
-            }
-            TableColumn("Created", value: \.item.createdSortKey) { row in
-                Text(row.item.createdAt.map { $0.formatted(date: .long, time: .shortened) } ?? "—")
-            }
-            TableColumn("Updated", value: \.item.updatedSortKey) { row in
-                Text(row.item.updatedAt.map { $0.formatted(date: .long, time: .shortened) } ?? "—")
-            }
-        }
-        .contextMenu(forSelectionType: AccountScoped<Pad>.ID.self) { ids in
-            if let id = ids.first, let row = filtered.first(where: { $0.id == id }) {
-                padContextMenu(row)
-            }
-        }
     }
 
     private func padRow(_ row: AccountScoped<Pad>) -> some View {

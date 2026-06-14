@@ -125,37 +125,9 @@ extension MergedQuestionsView {
             .help("Sort questions")
             .accessibilityLabel("Sort questions")
         }
-        // List vs. Table presentation, sharing the single-account list's preference
-        // key so the choice is consistent across both question lists.
-        ToolbarItem(id: "viewMode") {
-            Picker("View", selection: $presentation) {
-                ForEach(QuestionListPresentation.allCases) { mode in
-                    Label(mode.label, systemImage: mode.systemImage).tag(mode)
-                }
-            }
-            .pickerStyle(.segmented)
-            .help("Show the questions as a list or a sortable table")
-            .accessibilityLabel("List or table view")
-        }
     }
 
-    /// The questions presentation: either the inset List or the sortable Table, with
-    /// the shared empty-state overlay, pull-to-refresh, and focused-question command
-    /// target around both.
     private var questionsList: some View {
-        Group {
-            if presentation == .table {
-                questionsTable
-            } else {
-                questionsListView
-            }
-        }
-        .overlay { questionsOverlay }
-        .macPullToRefresh { await reload() }
-        .focusedSceneValue(\.focusedQuestion, selection)
-    }
-
-    private var questionsListView: some View {
         List(selection: $selectedRowID) {
             ForEach(sorted) { row in
                 QuestionRow(
@@ -180,39 +152,9 @@ extension MergedQuestionsView {
         .listStyle(.inset)
         .id("\(filterSignature)|\(favoritesOnly)|\(sort.rawValue)")
         .transaction { $0.animation = nil }
-    }
-
-    /// A sortable, resizable Table alternative to the List, shown when the view-mode
-    /// toggle selects Table. Adds an Account column (this is the combined list);
-    /// clicking a header sorts and columns resize/reorder natively. Rows are
-    /// `AccountScoped<Question>` whose `id` is the namespaced row id, so selection
-    /// reuses `selectedRowID` exactly as the List does.
-    private var questionsTable: some View {
-        Table(sorted.sorted(using: sortOrder), selection: $selectedRowID, sortOrder: $sortOrder) {
-            TableColumn("Title", value: \.item.displayTitle) { row in
-                Text(row.item.displayTitle).lineLimit(1)
-            }
-            TableColumn("Account", value: \.account.name) { row in
-                Text(row.account.name).lineLimit(1)
-            }
-            TableColumn("Language", value: \.item.languageSortKey) { row in
-                Text(row.item.language?.languageDisplayName ?? "—")
-            }
-            TableColumn("Owner", value: \.item.ownerEmail) { row in
-                Text(directory.display(row.item.ownerEmail)).lineLimit(1)
-            }
-            TableColumn("Used", value: \.item.usedSortKey) { row in
-                Text(row.item.used.map(String.init) ?? "—")
-            }
-            TableColumn("Last used", value: \.item.updatedSortKey) { row in
-                Text(row.item.updatedAt.map { $0.formatted(date: .long, time: .shortened) } ?? "—")
-            }
-        }
-        .contextMenu(forSelectionType: AccountScoped<Question>.ID.self) { ids in
-            if let id = ids.first, let row = sorted.first(where: { $0.id == id }) {
-                questionContextMenu(row)
-            }
-        }
+        .overlay { questionsOverlay }
+        .macPullToRefresh { await reload() }
+        .focusedSceneValue(\.focusedQuestion, selection)
     }
 
     @ViewBuilder

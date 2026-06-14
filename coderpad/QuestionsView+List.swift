@@ -148,39 +148,10 @@ extension QuestionsView {
                 .help("Sort questions")
                 .accessibilityLabel("Sort questions")
             }
-            // List vs. Table presentation. Defaults to List, so this only adds a
-            // capability; switching to Table reveals sortable, resizable columns.
-            ToolbarItem(id: "viewMode") {
-                Picker("View", selection: $presentation) {
-                    ForEach(QuestionListPresentation.allCases) { mode in
-                        Label(mode.label, systemImage: mode.systemImage).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .help("Show the questions as a list or a sortable table")
-                .accessibilityLabel("List or table view")
-            }
         }
     }
 
-    /// The questions presentation: either the inset List or the sortable Table, with
-    /// the shared pull-to-refresh and focused-question command target around both.
     private var questionsList: some View {
-        Group {
-            if presentation == .table {
-                questionsTable
-            } else {
-                questionsListView
-            }
-        }
-        .macPullToRefresh { await reload() }
-        // Scene-scoped, mirroring PadsView: the Question menu commands
-        // stay enabled whenever this window is frontmost and a question
-        // is selected, not only while the list holds keyboard focus.
-        .focusedSceneValue(\.focusedQuestion, selection)
-    }
-
-    private var questionsListView: some View {
         List(selection: $selectedQuestionID) {
             ForEach(sorted) { question in
                 QuestionRow(question: question, isFavorite: favoriteIDSet.contains(question.id),
@@ -213,39 +184,11 @@ extension QuestionsView {
         // and keep scroll position.
         .id("\(filterSignature)|\(favoritesOnly)|\(sort.rawValue)")
         .transaction { $0.animation = nil }
-    }
-
-    /// A sortable, resizable Table alternative to the List, shown when the view-mode
-    /// toggle selects Table. Columns carry the metadata each row already shows;
-    /// clicking a header sorts by that column and columns resize/reorder natively.
-    /// `sortOrder` is applied on top of the Sort menu's order, so a header click
-    /// re-orders immediately; selection reuses `selectedQuestionID` so the detail
-    /// pane tracks the highlighted row.
-    private var questionsTable: some View {
-        Table(sorted.sorted(using: sortOrder), selection: $selectedQuestionID, sortOrder: $sortOrder) {
-            TableColumn("Title", value: \.displayTitle) { question in
-                Text(question.displayTitle).lineLimit(1)
-            }
-            TableColumn("Language", value: \.languageSortKey) { question in
-                Text(question.language?.languageDisplayName ?? "—")
-            }
-            TableColumn("Owner", value: \.ownerEmail) { question in
-                Text(directory.display(question.ownerEmail)).lineLimit(1)
-            }
-            TableColumn("Used", value: \.usedSortKey) { question in
-                Text(question.used.map(String.init) ?? "—")
-            }
-            TableColumn("Last used", value: \.updatedSortKey) { question in
-                Text(question.updatedAt.map { $0.formatted(date: .abbreviated, time: .shortened) } ?? "—")
-            }
-        }
-        // Right-click a row for the same actions as the List's row menu, resolving the
-        // clicked id back to its question.
-        .contextMenu(forSelectionType: Question.ID.self) { ids in
-            if let id = ids.first, let question = sorted.first(where: { $0.id == id }) {
-                questionContextMenu(question)
-            }
-        }
+        .macPullToRefresh { await reload() }
+        // Scene-scoped, mirroring PadsView: the Question menu commands
+        // stay enabled whenever this window is frontmost and a question
+        // is selected, not only while the list holds keyboard focus.
+        .focusedSceneValue(\.focusedQuestion, selection)
     }
 
     /// Right-click actions for a question row. Actions that need the detail pane's
@@ -348,14 +291,4 @@ extension QuestionsView {
             favoritesOnly = false
         }
     }
-}
-
-/// Non-optional sort keys for the Table columns. A sortable `TableColumn` needs a
-/// `Comparable` value, but `language`, `used`, and `updatedAt` are optional (and
-/// optionals aren't `Comparable`). These project each onto a stable comparable key
-/// (empty string / `0` / `.distantPast`) so every column can sort.
-extension Question {
-    var languageSortKey: String { (language ?? "").lowercased() }
-    var usedSortKey: Int { used ?? 0 }
-    var updatedSortKey: Date { updatedAt ?? .distantPast }
 }

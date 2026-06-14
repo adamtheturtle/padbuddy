@@ -36,15 +36,6 @@ struct MergedPadsView: View {
 
     @Binding var selection: Pad?
     @State var selectedID: String?
-    /// List vs. Table presentation, sharing `PadsView`'s preference key so the choice
-    /// is consistent across the single-account and combined pad lists. Defaults to
-    /// List, so the standard experience is unchanged.
-    @AppStorage(PadListPresentation.storageKey) var presentation: PadListPresentation = .list
-    /// The Table's active column sort, applied to the rows in `padTable`. Starts empty
-    /// so the table opens in the merged list's natural order; clicking a header drives
-    /// it. Empty rather than a default `KeyPathComparator` because a key-path literal
-    /// isn't `Sendable` in the `@State` macro's stored default under Swift 6.
-    @State var sortOrder: [KeyPathComparator<AccountScoped<Pad>>] = []
     @Binding var search: String
 
     @State var stateFilter: PadState?
