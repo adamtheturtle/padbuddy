@@ -276,7 +276,6 @@ struct CoderpadApp: App {
                     handleDeepLink(url)
                 }
         }
-        .windowStyle(.hiddenTitleBar)
         .defaultLaunchBehavior(.presented)
         .defaultSize(width: 1100, height: 720)
         .commands {

@@ -10,8 +10,10 @@ enum AppSection: String, Hashable {
     case pads, questions, organization, quota
 }
 
-/// Strips the chrome Mail also omits: the window title (otherwise shown big at
-/// the top of the sidebar) and the hairline separator under the unified toolbar.
+/// Strips the chrome Mail also omits: the window title (otherwise shown in the
+/// title bar over the standard sidebar toggle) and the hairline separator under
+/// the unified toolbar. The title bar itself stays standard so the system's own
+/// sidebar toggle and View ▸ Show/Hide Sidebar command are present.
 private struct WindowChromeConfigurator: NSViewRepresentable {
     func makeNSView(context _: Context) -> NSView {
         ChromeView()
@@ -25,15 +27,8 @@ private struct WindowChromeConfigurator: NSViewRepresentable {
     /// to exist — and again on every SwiftUI update, since toolbar changes can
     /// otherwise reinstate the separator.
     final class ChromeView: NSView {
-        private var observingWindow: NSWindow?
-
-        deinit {
-            NotificationCenter.default.removeObserver(self)
-        }
-
         override func viewDidMoveToWindow() {
             super.viewDidMoveToWindow()
-            observeFullScreen()
             applyChrome()
         }
 
@@ -41,29 +36,6 @@ private struct WindowChromeConfigurator: NSViewRepresentable {
             guard let window else { return }
             window.titleVisibility = .hidden
             window.titlebarSeparatorStyle = .none
-            // `.hiddenTitleBar` makes the title bar transparent so the sidebar
-            // material shows behind the toggle while windowed. In full screen
-            // there's nothing behind that strip, so a transparent title bar
-            // renders the window's black background as an ugly band across the
-            // top. Drop the transparency there and the strip picks up the
-            // standard translucent toolbar material instead (Mail-style).
-            window.titlebarAppearsTransparent = !window.styleMask.contains(.fullScreen)
-        }
-
-        /// Re-asserts the chrome whenever the window crosses the full-screen
-        /// boundary, since the transparent vs. material title bar choice depends
-        /// on which mode it's in.
-        private func observeFullScreen() {
-            guard let window, window !== observingWindow else { return }
-            let center = NotificationCenter.default
-            center.removeObserver(self)
-            observingWindow = window
-            for name: NSNotification.Name in [
-                NSWindow.didEnterFullScreenNotification,
-                NSWindow.didExitFullScreenNotification
-            ] {
-                center.addObserver(self, selector: #selector(applyChrome), name: name, object: window)
-            }
         }
     }
 }

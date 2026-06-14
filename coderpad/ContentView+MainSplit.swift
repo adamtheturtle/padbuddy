@@ -3,7 +3,6 @@
 //  coderpad
 //
 
-import AppKit
 import SwiftUI
 
 // MARK: - Split into small structs to reduce body type complexity
@@ -41,9 +40,9 @@ struct MainSplit: View {
         Text(section == .questions ? "Search questions" : "Search pads")
     }
 
-    /// Drives the sidebar collapse/expand. With the title bar hidden there's no
-    /// system toolbar to host the automatic sidebar toggle, so we own this state
-    /// and surface our own toggle in the titlebar instead.
+    /// Drives the sidebar collapse/expand. Bound to the `NavigationSplitView` so
+    /// the system's standard sidebar toggle (and ⌃⌘S) flips it, while the
+    /// width-driven auto-collapse below shares the same state.
     @State private var columnVisibility: NavigationSplitViewVisibility = .all
 
     /// Whether the sidebar's current collapse was driven by the window becoming too
@@ -107,51 +106,6 @@ struct MainSplit: View {
         contentMinWidth + Self.detailMinWidth
     }
 
-    private var isSidebarCollapsed: Bool {
-        columnVisibility != .all
-    }
-
-    private func toggleSidebar() {
-        let willOpen = isSidebarCollapsed
-        withAnimation(.smooth) {
-            if isSidebarCollapsed {
-                columnVisibility = .all
-            } else {
-                columnVisibility = sectionHasDetail ? .doubleColumn : .detailOnly
-            }
-        }
-        // A manual toggle takes ownership: stop tracking this as a width-driven
-        // collapse so a later resize doesn't undo the user's choice.
-        autoCollapsed = false
-        // Opening the sidebar while the window is narrower than every column's
-        // combined minimum would squeeze the columns and clip the sidebar — the
-        // auto-collapse only reacts to resizes, not to this manual open. Grow the
-        // window to fit, the way Mail does, so the sidebar always shows in full.
-        if willOpen, containerWidth > 0, containerWidth < sidebarVisibleFloor {
-            growWindowToFitSidebar()
-        }
-    }
-
-    /// Widens the key window enough that every column fits at its minimum, so a
-    /// manual sidebar open at a narrow width never clips the sidebar. Clamps to the
-    /// visible screen and slides the window left if its right edge would spill over.
-    /// A few points of slack keep the resulting width just above
-    /// ``sidebarVisibleFloor`` so the auto-collapse doesn't immediately re-hide it.
-    private func growWindowToFitSidebar() {
-        guard let window = NSApp.keyWindow ?? NSApp.mainWindow else { return }
-        let delta = sidebarVisibleFloor - containerWidth + 4
-        guard delta > 0 else { return }
-        var frame = window.frame
-        frame.size.width += delta
-        if let visible = window.screen?.visibleFrame {
-            frame.size.width = min(frame.size.width, visible.width)
-            if frame.maxX > visible.maxX {
-                frame.origin.x = max(visible.minX, visible.maxX - frame.size.width)
-            }
-        }
-        window.setFrame(frame, display: true, animate: true)
-    }
-
     /// Collapses the sidebar when the container is too narrow to hold every column
     /// at its minimum, and restores it once there's room again — but only when the
     /// collapse was ours to begin with, never a manual one.
@@ -176,6 +130,18 @@ struct MainSplit: View {
         switch section {
         case .pads, .questions: true
         case .organization, .quota: false
+        }
+    }
+
+    /// The window/toolbar title, driven by the visible section so it reads like
+    /// Mail's current-mailbox title ("Pads", "Questions", …) instead of falling
+    /// back to the "CoderPad" scene name when nothing is selected.
+    private var sectionTitle: String {
+        switch section {
+        case .pads: "Pads"
+        case .questions: "Questions"
+        case .organization: "Organization"
+        case .quota: "Quota"
         }
     }
 
@@ -212,13 +178,6 @@ struct MainSplit: View {
         // A section change moves the threshold (three columns vs. two), so
         // re-evaluate against the width we already know.
         .onChange(of: section) { _, _ in updateSidebarCollapse(for: containerWidth) }
-        // Pin the sidebar toggle in the titlebar (right of the traffic lights),
-        // which the hidden title bar leaves transparent over the sidebar.
-        .background(
-            TitlebarLeadingAccessory {
-                SidebarToggleButton(isCollapsed: isSidebarCollapsed, action: toggleSidebar)
-            }
-        )
         // Lets the View menu's "Customize Toolbar…" command enable itself only
         // while a main window (with its customizable section toolbar) is frontmost.
         .focusedSceneValue(\.canCustomizeToolbar, true)
@@ -310,7 +269,6 @@ struct MainSplit: View {
                     max: max(340, sidebarMinWidth)
                 )
                 .navigationTitle("")
-                .toolbar(removing: .sidebarToggle)
         } content: {
             SectionContent(
                 section: section,
@@ -359,6 +317,7 @@ struct MainSplit: View {
                 searchFieldFocused = true
             }
         )
+        .navigationTitle(sectionTitle)
     }
 
     private var twoColumnSplit: some View {
@@ -378,7 +337,6 @@ struct MainSplit: View {
                     max: max(340, sidebarMinWidth)
                 )
                 .navigationTitle("")
-                .toolbar(removing: .sidebarToggle)
         } detail: {
             SectionContent(
                 section: section,
@@ -388,6 +346,7 @@ struct MainSplit: View {
                 questionSearch: $questionSearch
             )
         }
+        .navigationTitle(sectionTitle)
     }
 }
 
