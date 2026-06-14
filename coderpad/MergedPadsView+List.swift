@@ -22,7 +22,14 @@ extension MergedPadsView {
                     await reload()
                 })
             }
-            .onAppear { selectedID = selection?.id }
+            .onAppear { selectedIDs = selection.map { [$0.id] } ?? [] }
+            // The List edits `selectedIDs`; derive the primary row from it so the
+            // detail pane, command target, and per-row bridging keep working off the
+            // single `selectedID`. One-way (set → primary), so there's no two-way loop.
+            .onChange(of: selectedIDs) { previous, current in
+                let primary = MultiSelectLogic.primaryID(previous: previous, current: current)
+                if selectedID != primary { selectedID = primary }
+            }
             // Keep the sidebar's "My Pads" row in sync with this list's "Mine"
             // preset: publish the live state (so the highlight is honest however
             // it changed — chip or sidebar) and consume any toggle the sidebar
@@ -58,16 +65,25 @@ extension MergedPadsView {
             }
             .task {
                 for await id in AppRouter.padDeletions {
-                    if selection?.id == id { selection = neighborSelection(forDeleted: id) }
+                    // Drop the deleted id from the selection. If it was the primary,
+                    // a neighbor (computed while the row is still present) takes over
+                    // only when no other rows remain selected; otherwise the primary
+                    // falls to a still-selected row via the `selectedIDs` observer.
+                    let wasPrimary = selection?.id == id
+                    let neighbor = wasPrimary ? neighborSelection(forDeleted: id) : nil
+                    selectedIDs.remove(id)
                     removePad(id: id)
                     // Keep the disk cache, Spotlight index, and widget in step.
                     cache.removePad(id: id)
+                    if wasPrimary, selectedIDs.isEmpty {
+                        selectedIDs = neighbor.map { [$0.id] } ?? []
+                    }
                 }
             }
             .sheet(item: $creatingForAccount) { account in
                 NewPadSheet(client: account.makeClient()) { created in
                     insert(created, into: account)
-                    selection = created
+                    selectedIDs = [created.id]
                     creatingForAccount = nil
                 } onCancel: {
                     creatingForAccount = nil
@@ -84,6 +100,20 @@ extension MergedPadsView {
                 Button("Cancel", role: .cancel) {}
             } message: { pad in
                 Text("“\(pad.title)” will be permanently deleted. This can't be undone.")
+            }
+            .confirmationDialog(
+                "Delete \(padsPendingBulkDelete?.count ?? 0) pads?",
+                isPresented: .init(get: { padsPendingBulkDelete != nil },
+                                   set: { if !$0 { padsPendingBulkDelete = nil } }),
+                titleVisibility: .visible,
+                presenting: padsPendingBulkDelete
+            ) { pads in
+                Button("Delete \(pads.count) Pads", role: .destructive) {
+                    Task { for pad in pads { await deletePad(pad) } }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: { pads in
+                Text("These \(pads.count) pads will be permanently deleted. This can't be undone.")
             }
             .alert("Couldn't delete pad",
                    isPresented: .init(get: { deleteError != nil },
@@ -159,13 +189,24 @@ extension MergedPadsView {
             }
             .macPullToRefresh { await reload() }
             .focusedSceneValue(\.focusedPad, selection)
-            // Edit ▸ Copy / ⌘C copies the selected pad's web URL while the list
-            // holds focus, matching the row's "Copy Pad URL" context action.
-            .onCopyCommand(perform: copyLinkCommand(selection?.url))
+            // Edit ▸ Copy / ⌘C copies the selected pads' web URLs (one per line)
+            // while the list holds focus, matching the row's "Copy Pad URL" action
+            // and extending it to a multi-row selection.
+            .onCopyCommand(perform: copyLinkCommand(
+                selectedPadsInOrder.isEmpty ? nil
+                    : selectedPadsInOrder.map(\.url).joined(separator: "\n")
+            ))
+    }
+
+    /// The selected pads in the order they appear in the list (rather than the
+    /// selection set's arbitrary order), so a multi-row Copy or Delete reads top to
+    /// bottom. Resolved against `filtered` — the rows the user can actually see.
+    private var selectedPadsInOrder: [Pad] {
+        filtered.compactMap { selectedIDs.contains($0.item.id) ? $0.item : nil }
     }
 
     private var padList: some View {
-        List(selection: $selectedID) {
+        List(selection: $selectedIDs) {
             ForEach(filtered) { row in
                 padRow(row)
                     .tag(row.item.id)
@@ -196,34 +237,58 @@ extension MergedPadsView {
 
     @ViewBuilder
     private func padContextMenu(_ row: AccountScoped<Pad>) -> some View {
+        // Right-clicking a row that's part of a multi-row selection acts on the whole
+        // selection, the way Finder does; otherwise it's the usual single-row menu.
+        if selectedIDs.count > 1, selectedIDs.contains(row.item.id) {
+            bulkContextMenu
+        } else {
+            Button {
+                selectedIDs = [row.item.id]
+                openPad(row.item)
+            } label: {
+                Label("Open Pad", systemImage: "doc.text.image")
+            }
+            if let url = row.item.webURL {
+                ShareLink(item: url) { Label("Share…", systemImage: "square.and.arrow.up") }
+            }
+            Divider()
+            Button { copyToPasteboard(row.item.id) } label: {
+                Label("Copy Pad ID", systemImage: "number")
+            }
+            Button { copyToPasteboard(row.item.url) } label: {
+                Label("Copy Pad URL", systemImage: "link")
+            }
+            Divider()
+            Button { accountFilter = row.account.id } label: {
+                Label("Show Only \(row.account.name)", systemImage: "person.crop.circle")
+            }
+            Button { ownerFilter = row.item.ownerEmail } label: {
+                Label("Show Pads from \(directory.display(row.item.ownerEmail))", systemImage: "person")
+            }
+            Divider()
+            Button(role: .destructive) {
+                padPendingDelete = row.item
+            } label: {
+                Label("Delete…", systemImage: "trash")
+            }
+        }
+    }
+
+    /// The actions offered when right-clicking inside a multi-row selection: copy
+    /// every selected pad's link at once, or delete them all (behind a confirmation).
+    @ViewBuilder
+    private var bulkContextMenu: some View {
+        let pads = selectedPadsInOrder
         Button {
-            selection = row.item
-            openPad(row.item)
+            copyToPasteboard(pads.map(\.url).joined(separator: "\n"))
         } label: {
-            Label("Open Pad", systemImage: "doc.text.image")
-        }
-        if let url = row.item.webURL {
-            ShareLink(item: url) { Label("Share…", systemImage: "square.and.arrow.up") }
-        }
-        Divider()
-        Button { copyToPasteboard(row.item.id) } label: {
-            Label("Copy Pad ID", systemImage: "number")
-        }
-        Button { copyToPasteboard(row.item.url) } label: {
-            Label("Copy Pad URL", systemImage: "link")
-        }
-        Divider()
-        Button { accountFilter = row.account.id } label: {
-            Label("Show Only \(row.account.name)", systemImage: "person.crop.circle")
-        }
-        Button { ownerFilter = row.item.ownerEmail } label: {
-            Label("Show Pads from \(directory.display(row.item.ownerEmail))", systemImage: "person")
+            Label("Copy \(pads.count) Pad Links", systemImage: "link")
         }
         Divider()
         Button(role: .destructive) {
-            padPendingDelete = row.item
+            padsPendingBulkDelete = pads
         } label: {
-            Label("Delete…", systemImage: "trash")
+            Label("Delete \(pads.count) Pads…", systemImage: "trash")
         }
     }
 }

@@ -325,3 +325,23 @@ struct OrgDirectoryTests {
         #expect(directory.display("alex@demo.co") == "Alex Park")
     }
 }
+
+@Suite("Multi-select primary")
+struct MultiSelectLogicTests {
+    @Test("Prefers the newly added row as the primary")
+    func prefersNewlyAdded() {
+        #expect(MultiSelectLogic.primaryID(previous: ["a"], current: ["a", "b"]) == "b")
+    }
+
+    @Test("Falls back to a remaining row when none was added")
+    func fallsBackToRemaining() {
+        // Deselecting "b" from {a,b} leaves {a}: nothing was added, so the sole
+        // remaining row becomes the primary.
+        #expect(MultiSelectLogic.primaryID(previous: ["a", "b"], current: ["a"]) == "a")
+    }
+
+    @Test("Is nil when the selection is cleared")
+    func nilWhenEmpty() {
+        #expect(MultiSelectLogic.primaryID(previous: ["a"], current: Set<String>()) == nil)
+    }
+}

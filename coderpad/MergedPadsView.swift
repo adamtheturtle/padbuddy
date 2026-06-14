@@ -35,7 +35,17 @@ struct MergedPadsView: View {
     @State var isLoading = false
 
     @Binding var selection: Pad?
+    /// The row whose detail is shown: the "primary" of the multi-selection, derived
+    /// from `selectedIDs` (see `MultiSelectLogic.primaryID`). Stays the single source
+    /// for the detail pane, command target, and per-row bridging.
     @State var selectedID: String?
+    /// The List's selection. A set so several rows can be selected for a bulk action
+    /// (Copy links, Delete); `selectedID`/`selection` track the primary within it.
+    @State var selectedIDs: Set<String> = []
+    /// The pads queued for a multi-row delete, awaiting the confirmation dialog.
+    /// Separate from `padPendingDelete` (the single swipe/context delete) so the two
+    /// confirmations don't interfere.
+    @State var padsPendingBulkDelete: [Pad]?
     @Binding var search: String
 
     @State var stateFilter: PadState?
