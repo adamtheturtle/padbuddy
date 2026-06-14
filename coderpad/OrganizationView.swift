@@ -170,7 +170,7 @@ struct OrganizationView: View {
                      systemImage: "person.3.fill", tint: .blue)
             StatTile(title: "Teams", value: organization.map { "\($0.teams.count)" } ?? "…",
                      systemImage: "rectangle.stack.person.crop", tint: .indigo)
-            StatTile(title: "Pads (\(period.rawValue.lowercased()))", value: stats.map { "\($0.padsCreated)" } ?? "…",
+            StatTile(title: "Pads", value: stats.map { "\($0.padsCreated)" } ?? "…",
                      systemImage: "doc.text.fill", tint: .teal)
             if let quota {
                 if quota.unlimited == true {
@@ -192,7 +192,6 @@ struct OrganizationView: View {
                     .map { $0.formatted(date: .long, time: .shortened) } ?? "…")
                 LabeledRow(label: "To", value: stats?.endTime
                     .map { $0.formatted(date: .long, time: .shortened) } ?? "…")
-                LabeledRow(label: "Pads created", value: stats.map { "\($0.padsCreated)" } ?? "…")
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
