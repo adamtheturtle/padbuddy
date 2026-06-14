@@ -25,10 +25,13 @@ struct MergedQuestionsView: View {
     @State var isLoading = false
 
     @Binding var selection: Question?
-    /// The List's selection, keyed by the account-namespaced row id
-    /// (`AccountScoped.id`) rather than the bare per-org question id, which two
-    /// accounts routinely share. Bridged to the `Question` `selection` below.
+    /// The primary row, keyed by the account-namespaced row id (`AccountScoped.id`)
+    /// rather than the bare per-org question id, which two accounts routinely share.
+    /// Derived from `selectedRowIDs` and bridged to the `Question` `selection` below.
     @State var selectedRowID: String?
+    /// The List's selection. A set so several rows can be selected to copy their
+    /// links at once; `selectedRowID`/`selection` track the primary within it.
+    @State var selectedRowIDs: Set<String> = []
     @Binding var search: String
 
     @State var languageFilter: String?

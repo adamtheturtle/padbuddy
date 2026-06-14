@@ -20,7 +20,16 @@ extension MergedQuestionsView {
                 })
             }
             .onAppear {
-                selectedRowID = selection.flatMap { sel in scoped.first { $0.item.id == sel.id }?.id }
+                selectedRowIDs = selection
+                    .flatMap { sel in scoped.first { $0.item.id == sel.id }?.id }
+                    .map { [$0] } ?? []
+            }
+            // The List edits `selectedRowIDs`; derive the primary row from it so the
+            // detail pane and routing keep working off the single `selectedRowID`.
+            // One-way (set → primary), so there's no two-way binding loop.
+            .onChange(of: selectedRowIDs) { previous, current in
+                let primary = MultiSelectLogic.primaryID(previous: previous, current: current)
+                if selectedRowID != primary { selectedRowID = primary }
             }
             // Keep the sidebar's "My Questions" row in sync with this list's "Mine"
             // preset: publish the live state and consume any sidebar toggle, the
@@ -43,16 +52,24 @@ extension MergedQuestionsView {
                 for await deletion in AppRouter.questionDeletions {
                     let id = deletion.id
                     let account = deletion.account
-                    // If the open (selected) row is the deleted question — matched by
-                    // account too, since per-org ids collide — move to a neighbor
-                    // before dropping the row. Computed while `sorted` still holds it.
-                    if let current = selectedRowID, let selected = row(forRowID: current),
-                       selected.item.id == id, account == nil || selected.account.id == account {
-                        selectedRowID = neighborRowID(forDeletedRowID: current)
+                    // Drop every selected row matching the deleted question (matched by
+                    // account too, since per-org ids collide). If the primary was among
+                    // them, move to a neighbor — computed while `sorted` still holds the
+                    // row — but only when no other rows remain selected.
+                    let removed = selectedRowIDs.filter { rowID in
+                        guard let row = row(forRowID: rowID) else { return false }
+                        return row.item.id == id && (account == nil || row.account.id == account)
                     }
+                    let primaryDeleted = selectedRowID.map { removed.contains($0) } ?? false
+                    let neighbor = primaryDeleted
+                        ? selectedRowID.flatMap { neighborRowID(forDeletedRowID: $0) } : nil
+                    selectedRowIDs.subtract(removed)
                     removeQuestion(id: id, account: account)
                     // Keep the disk cache and Spotlight index in step.
                     cache.removeQuestion(id: id, account: account)
+                    if primaryDeleted, selectedRowIDs.isEmpty {
+                        selectedRowIDs = neighbor.map { [$0] } ?? []
+                    }
                 }
             }
             .task {
@@ -63,8 +80,9 @@ extension MergedQuestionsView {
             .sheet(item: $creatingForAccount) { account in
                 NewQuestionSheet(client: account.makeClient()) { created in
                     insert(created, into: account)
-                    select(AccountScoped(account: account, item: created,
-                                         id: MergedQuestionsView.rowID(account: account.id, question: created.id)))
+                    let rowID = MergedQuestionsView.rowID(account: account.id, question: created.id)
+                    select(AccountScoped(account: account, item: created, id: rowID))
+                    selectedRowIDs = [rowID]
                     creatingForAccount = nil
                 } onCancel: {
                     creatingForAccount = nil
@@ -128,7 +146,7 @@ extension MergedQuestionsView {
     }
 
     private var questionsList: some View {
-        List(selection: $selectedRowID) {
+        List(selection: $selectedRowIDs) {
             ForEach(sorted) { row in
                 QuestionRow(
                     question: row.item,
@@ -155,14 +173,24 @@ extension MergedQuestionsView {
         .overlay { questionsOverlay }
         .macPullToRefresh { await reload() }
         .focusedSceneValue(\.focusedQuestion, selection)
-        // Edit ▸ Copy / ⌘C copies the selected question's web URL while the list
-        // holds focus, matching the row's "Copy Question URL" context action. The
-        // link is built from the originating account's server URL, resolved via the
-        // selected row, so a merged-list copy honors each account's custom domain.
+        // Edit ▸ Copy / ⌘C copies the selected questions' web URLs (one per line)
+        // while the list holds focus, matching the row's "Copy Question URL" action
+        // and extending it to a multi-row selection. Each link is built from its
+        // originating account's server URL, so a merged-list copy honors custom domains.
         .onCopyCommand(perform: copyLinkCommand(
-            selectedRowID.flatMap { row(forRowID: $0) }
-                .map { $0.item.webURL(baseURL: $0.account.resolvedBaseURL).absoluteString }
+            selectedQuestionURLsInOrder.isEmpty ? nil
+                : selectedQuestionURLsInOrder.joined(separator: "\n")
         ))
+    }
+
+    /// The selected questions' web URLs in the order they appear in the list (not
+    /// the selection set's arbitrary order), so a multi-row Copy reads top to bottom.
+    /// Each is resolved against its own account's server URL to honor custom domains.
+    private var selectedQuestionURLsInOrder: [String] {
+        sorted.compactMap { row in
+            selectedRowIDs.contains(row.id)
+                ? row.item.webURL(baseURL: row.account.resolvedBaseURL).absoluteString : nil
+        }
     }
 
     @ViewBuilder
@@ -182,43 +210,54 @@ extension MergedQuestionsView {
 
     @ViewBuilder
     private func questionContextMenu(_ row: AccountScoped<Question>) -> some View {
-        Button {
-            select(row)
-            nav.createPadForQuestionID = row.item.id
-        } label: {
-            Label("New Pad from Question", systemImage: "plus.rectangle.on.rectangle")
-        }
-        Button {
-            toggleFavorite(row)
-        } label: {
-            Label(isFavorite(row) ? "Remove from Favorites" : "Add to Favorites",
-                  systemImage: isFavorite(row) ? "star.slash" : "star")
-        }
-        Button {
-            select(row)
-            nav.editQuestionID = row.item.id
-        } label: {
-            Label("Edit Question…", systemImage: "pencil")
-        }
-        ShareLink(item: row.item.webURL(baseURL: row.account.resolvedBaseURL)) {
-            Label("Share…", systemImage: "square.and.arrow.up")
-        }
-        Divider()
-        Button { copyToPasteboard(row.item.displayTitle) } label: {
-            Label("Copy Title", systemImage: "doc.on.doc")
-        }
-        Button { copyToPasteboard(row.item.webURL(baseURL: row.account.resolvedBaseURL).absoluteString) } label: {
-            Label("Copy Question URL", systemImage: "link")
-        }
-        Button { accountFilter = row.account.id } label: {
-            Label("Show Only \(row.account.name)", systemImage: "person.crop.circle")
-        }
-        Divider()
-        Button(role: .destructive) {
-            select(row)
-            nav.deleteQuestionID = row.item.id
-        } label: {
-            Label("Delete Question…", systemImage: "trash")
+        // Right-clicking a row that's part of a multi-row selection copies every
+        // selected link at once, Finder-style; a single row keeps its full menu.
+        if selectedRowIDs.count > 1, selectedRowIDs.contains(row.id) {
+            let urls = selectedQuestionURLsInOrder
+            Button {
+                copyToPasteboard(urls.joined(separator: "\n"))
+            } label: {
+                Label("Copy \(urls.count) Question Links", systemImage: "link")
+            }
+        } else {
+            Button {
+                select(row)
+                nav.createPadForQuestionID = row.item.id
+            } label: {
+                Label("New Pad from Question", systemImage: "plus.rectangle.on.rectangle")
+            }
+            Button {
+                toggleFavorite(row)
+            } label: {
+                Label(isFavorite(row) ? "Remove from Favorites" : "Add to Favorites",
+                      systemImage: isFavorite(row) ? "star.slash" : "star")
+            }
+            Button {
+                select(row)
+                nav.editQuestionID = row.item.id
+            } label: {
+                Label("Edit Question…", systemImage: "pencil")
+            }
+            ShareLink(item: row.item.webURL(baseURL: row.account.resolvedBaseURL)) {
+                Label("Share…", systemImage: "square.and.arrow.up")
+            }
+            Divider()
+            Button { copyToPasteboard(row.item.displayTitle) } label: {
+                Label("Copy Title", systemImage: "doc.on.doc")
+            }
+            Button { copyToPasteboard(row.item.webURL(baseURL: row.account.resolvedBaseURL).absoluteString) } label: {
+                Label("Copy Question URL", systemImage: "link")
+            }
+            Button { accountFilter = row.account.id } label: {
+                Label("Show Only \(row.account.name)", systemImage: "person.crop.circle")
+            }
+            Divider()
+            Button(role: .destructive) {
+                select(row)
+                nav.deleteQuestionID = row.item.id
+            } label: {
+                Label("Delete Question…", systemImage: "trash")
+            }
         }
     }
 }
