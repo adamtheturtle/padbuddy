@@ -233,13 +233,14 @@ extension PadDetailView {
                             if group.count > 1 {
                                 Chip(text: "×\(group.count)", tint: .accentColor)
                             }
-                            if let name = group.representative.userName, !name.isEmpty {
+                            if let actor = eventActor(group.representative) {
                                 // Emphasize the most recently-active participant so the
                                 // eye is drawn to whoever acted last in the session.
-                                let isActive = name == activeParticipant
-                                Text("· \(name)")
+                                let isActive = group.representative.userName == activeParticipant
+                                Text("· \(actor)")
                                     .font(.callout.weight(isActive ? .semibold : .regular))
                                     .foregroundStyle(isActive ? Color.accentColor : Color.secondary)
+                                    .help(group.representative.userEmail ?? actor)
                             }
                         }
                         eventTimestamp(for: group)
@@ -316,6 +317,15 @@ extension PadDetailView {
         kind.replacingOccurrences(of: "_", with: " ").capitalized
     }
 
+    /// The actor to show for an event: the participant's name, falling back to their
+    /// email when the API gives no name (so an email-only actor still appears rather
+    /// than vanishing). `nil` when neither is present.
+    private func eventActor(_ event: PadEvent) -> String? {
+        if let name = event.userName, !name.isEmpty { return name }
+        if let email = event.userEmail, !email.isEmpty { return email }
+        return nil
+    }
+
     /// A short, human-readable detail drawn from an event's `metadata`, interpreted
     /// by kind: the language for a run ("Ran Python"), the question id for an added
     /// question ("Added Question #123"), or a spectator join ("Joined as spectator").
@@ -358,7 +368,7 @@ extension PadDetailView {
         var parts = [displayKind(group.representative.kind)]
         if let context = eventContext(group.representative) { parts.append(context) }
         if group.count > 1 { parts.append("\(group.count) times") }
-        if let user = group.representative.userName, !user.isEmpty { parts.append("by \(user)") }
+        if let user = eventActor(group.representative) { parts.append("by \(user)") }
         if let when = group.representative.createdAt {
             parts.append("at \(when.formatted(date: .abbreviated, time: .shortened))")
         }

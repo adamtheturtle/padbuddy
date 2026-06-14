@@ -57,6 +57,11 @@ nonisolated struct Pad: Codable, Identifiable, Hashable {
     let isPrivate: Bool?
     let activeEnvironmentID: Int?
     let padEnvironmentIDs: [Int]
+    /// The pad-level list of attached question ids. The detail view loads questions
+    /// via each environment's own `questionID`, so this isn't read for display, but
+    /// it's the pad-level reflection of an attached question (exercised by the
+    /// create/update linkage tests) and is reserved for a future "linked questions"
+    /// navigation from a pad to its question(s).
     let questionIDs: [Int]
     let team: PadTeam?
 
