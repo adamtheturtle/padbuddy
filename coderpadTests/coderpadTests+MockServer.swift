@@ -58,9 +58,22 @@ struct MockServerTests {
     @Test
     func `padEvents returns events for a pad`() async throws {
         let events = try await client.padEvents(padID: "DEMOABC1")
-        #expect(events.count == 4)
+        #expect(events.count == 6)
         #expect(events.first?.kind == "started")
         #expect(events.contains(where: { $0.kind == "ran" }))
+        #expect(events.contains(where: { $0.kind == "added_question" }))
+    }
+
+    @Test
+    func `padEvents vary per pad rather than returning one canned list`() async throws {
+        let onsite = try await client.padEvents(padID: "DEMOABC1")
+        let draft = try await client.padEvents(padID: "DEMOOLD4")
+        // The untouched draft has a deliberately thin, distinct timeline.
+        #expect(draft.count == 1)
+        #expect(draft.count != onsite.count)
+        // The ended phone screen reaches a terminal `ended` event.
+        let ended = try await client.padEvents(padID: "DEMOXYZ2")
+        #expect(ended.contains(where: { $0.kind == "ended" }))
     }
 
     @Test
@@ -77,6 +90,18 @@ struct MockServerTests {
         let questions = try await client.listQuestions()
         #expect(questions.count == 3)
         #expect(questions.contains(where: { $0.title == "FizzBuzz" }))
+    }
+
+    @Test
+    func `the seeded FizzBuzz question carries both starter-code variants`() async throws {
+        let questions = try await client.listQuestions()
+        let fizzBuzz = try #require(questions.first { $0.title == "FizzBuzz" })
+        let contents = try #require(fizzBuzz.contents)
+        let testContents = try #require(fizzBuzz.contentsForTestCases)
+        #expect(!contents.isEmpty)
+        #expect(!testContents.isEmpty)
+        // The two variants differ, so the question detail shows both starter-code cards.
+        #expect(contents != testContents)
     }
 
     @Test

@@ -151,20 +151,85 @@ nonisolated enum MockFixtures {
         return dict
     }
 
-    static func events(forPad _: String) -> [[String: Any]] {
+    /// A distinct, plausible timeline per seed pad, so the demo shows histories
+    /// that fit each pad's state and participants rather than one canned list.
+    /// Exercises the full range the timeline can render: question-added and
+    /// spectator-join (both via `metadata`), multiple runs, edits, a terminal
+    /// `ended` event for the ended pad, and a deliberately thin one-event log for
+    /// the untouched draft.
+    static func events(forPad id: String) -> [[String: Any]] {
+        switch id {
+        case "DEMOABC1": onsiteEvents()
+        case "DEMOXYZ2": phoneScreenEvents()
+        case "DEMOPLY3": backendEvents()
+        case "DEMOOLD4": draftEvents()
+        default: sampleEvents()
+        }
+    }
+
+    // The active onsite: a question added, the candidate joining, then editing
+    // and running twice — the grouped "×2" run path.
+    private static func onsiteEvents() -> [[String: Any]] {
         [
-            ["message": "Pad started", "kind": "started",
-             "user_name": "Alex Park", "user_email": "alex@demo.co",
-             "created_at": "2026-06-09T18:00:00Z"],
-            ["message": "Jane Doe joined the pad", "kind": "joined",
-             "user_name": "Jane Doe", "user_email": NSNull(),
-             "created_at": "2026-06-09T18:01:42Z"],
-            ["message": "Code executed", "kind": "ran", "metadata": "python3",
-             "user_name": "Jane Doe", "user_email": NSNull(),
-             "created_at": "2026-06-09T18:14:08Z"],
-            ["message": "Jane Doe left the pad", "kind": "left",
-             "user_name": "Jane Doe", "user_email": NSNull(),
-             "created_at": "2026-06-09T18:46:20Z"]
+            event("Pad started", "started", "Alex Park", "alex@demo.co", "2026-06-08T15:00:00Z"),
+            event("Question added", "added_question", "Alex Park", "alex@demo.co", "2026-06-08T15:01:10Z",
+                  metadata: "101"),
+            event("Jane Doe joined the pad", "joined", "Jane Doe", nil, "2026-06-08T15:02:38Z"),
+            event("Code edited", "edited", "Jane Doe", nil, "2026-06-08T15:20:04Z"),
+            event("Code executed", "ran", "Jane Doe", nil, "2026-06-08T15:34:12Z", metadata: "python3"),
+            event("Code executed", "ran", "Jane Doe", nil, "2026-06-08T15:41:55Z", metadata: "python3")
         ]
+    }
+
+    // The ended phone screen: a complete arc that finishes with `ended`.
+    private static func phoneScreenEvents() -> [[String: Any]] {
+        [
+            event("Pad started", "started", "Morgan Lin", "morgan@demo.co", "2026-06-05T17:30:00Z"),
+            event("Sam Lee joined the pad", "joined", "Sam Lee", nil, "2026-06-05T17:31:20Z"),
+            event("Code executed", "ran", "Sam Lee", nil, "2026-06-05T17:45:09Z", metadata: "javascript"),
+            event("Sam Lee left the pad", "left", "Sam Lee", nil, "2026-06-05T18:55:40Z"),
+            event("Pad ended", "ended", "Morgan Lin", "morgan@demo.co", "2026-06-06T19:00:00Z")
+        ]
+    }
+
+    // The active backend pad has execution disabled, so no runs — instead it
+    // shows a spectator joining (via `metadata`) alongside the candidate.
+    private static func backendEvents() -> [[String: Any]] {
+        [
+            event("Pad started", "started", "Alex Park", "alex@demo.co", "2026-06-09T18:00:00Z"),
+            event("Question added", "added_question", "Alex Park", "alex@demo.co", "2026-06-09T18:02:30Z",
+                  metadata: "101"),
+            event("Casey Wu joined the pad", "joined", "Casey Wu", nil, "2026-06-09T18:05:11Z"),
+            event("Morgan Lin joined the pad", "joined", "Morgan Lin", "morgan@demo.co", "2026-06-09T18:10:47Z",
+                  metadata: "spectator"),
+            event("Code edited", "edited", "Casey Wu", nil, "2026-06-09T18:18:02Z")
+        ]
+    }
+
+    // The untouched pending take-home draft: a single creation event, so the
+    // timeline shows a believably thin history rather than a full session.
+    private static func draftEvents() -> [[String: Any]] {
+        [event("Pad started", "started", "Morgan Lin", "morgan@demo.co", "2026-05-12T10:00:00Z")]
+    }
+
+    // The single-participant sample pad.
+    private static func sampleEvents() -> [[String: Any]] {
+        [
+            event("Pad started", "started", "Demo User", "demo@example.com", "2026-06-09T09:00:00Z"),
+            event("Demo User joined the pad", "joined", "Demo User", "demo@example.com", "2026-06-09T09:00:30Z"),
+            event("Code executed", "ran", "Demo User", "demo@example.com", "2026-06-09T09:15:18Z", metadata: "swift")
+        ]
+    }
+
+    private static func event(_ message: String, _ kind: String, _ userName: String,
+                              _ userEmail: String?, _ createdAt: String,
+                              metadata: String? = nil) -> [String: Any] {
+        var dict: [String: Any] = [
+            "message": message, "kind": kind,
+            "user_name": userName, "user_email": userEmail as Any? ?? NSNull(),
+            "created_at": createdAt
+        ]
+        if let metadata { dict["metadata"] = metadata }
+        return dict
     }
 }

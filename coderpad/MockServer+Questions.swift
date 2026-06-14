@@ -30,7 +30,8 @@ nonisolated extension MockFixtures {
                 ["id": 3, "arguments": ["15"], "return_value": "FizzBuzz", "visible": false]
             ],
             "pad_type": "live", "is_draft": false,
-            "contents": NSNull(),
+            "contents": fizzBuzzContents(),
+            "contents_for_test_cases": fizzBuzzTestCaseContents(),
             "custom_files": [
                 ["id": "cf1", "title": "Starter", "description": "Boilerplate the candidate begins from",
                  "filename": "fizzbuzz.py", "filesize": "1.2 KB"],
@@ -56,7 +57,7 @@ nonisolated extension MockFixtures {
             "test_cases_enabled": false, "solution": urlShortenerSolution(),
             "pad_type": "take-home", "is_draft": false,
             "public_take_home_setting_id": 7421,
-            "contents": NSNull(), "custom_files": [],
+            "contents": urlShortenerContents(), "custom_files": [],
             "author_name": "Morgan Lin", "organization_name": "Demo Org",
             "created_at": "2025-11-12T14:00:00Z", "updated_at": "2026-05-30T09:00:00Z"
         ]
@@ -172,5 +173,44 @@ nonisolated extension MockFixtures {
             "author_name": "Alex Park", "organization_name": "Demo Org",
             "created_at": "2026-06-05T11:00:00Z", "updated_at": "2026-06-05T11:00:00Z"
         ]
+    }
+
+    // The starter code a candidate begins from. The plain `contents` prints its
+    // output, while the test-cases variant returns a value so the harness can
+    // assert on it — exercising both "Starter Code" cards in the question detail.
+    private static func fizzBuzzContents() -> String {
+        """
+        def fizzbuzz(n):
+            # TODO: print Fizz/Buzz/FizzBuzz for each number from 1 to n
+            pass
+
+
+        if __name__ == "__main__":
+            fizzbuzz(100)
+        """
+    }
+
+    private static func fizzBuzzTestCaseContents() -> String {
+        """
+        def fizzbuzz(n):
+            # TODO: return "Fizz", "Buzz", "FizzBuzz", or str(n)
+            return ""
+        """
+    }
+
+    private static func urlShortenerContents() -> String {
+        """
+        package main
+
+        // Store persists the mapping from short code to original URL.
+        type Store interface {
+            Save(code, url string) error
+            Lookup(code string) (string, bool)
+        }
+
+        func main() {
+            // TODO: wire up POST /shorten and GET /{code}
+        }
+        """
     }
 }
