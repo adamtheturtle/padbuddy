@@ -30,7 +30,6 @@ struct QuotaView: View {
                             if let trial = quota.trialExpiresAt, trial > Date() {
                                 trialCard(trial)
                             }
-                            detailsCard(quota)
                         }
                     }
                     .padding(.horizontal, Spacing.paneH)
@@ -143,18 +142,6 @@ struct QuotaView: View {
                 Text("Your trial expires \(expiresAt.formatted(date: .long, time: .shortened)).")
                     .font(.callout)
                     .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    private func detailsCard(_ quota: Quota) -> some View {
-        Card {
-            VStack(alignment: .leading, spacing: 10) {
-                SectionHeader(title: "Details", systemImage: "list.bullet")
-                if quota.unlimited != true, let limit = quota.billingCyclePadLimit {
-                    LabeledRow(label: "Billing cycle limit", value: "\(limit)")
-                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }

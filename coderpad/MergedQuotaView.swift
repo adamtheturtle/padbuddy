@@ -215,9 +215,6 @@ struct QuotaDetail: View {
         Card {
             VStack(alignment: .leading, spacing: 10) {
                 SectionHeader(title: "Details", systemImage: "list.bullet")
-                if quota.unlimited != true, let limit = quota.billingCyclePadLimit {
-                    LabeledRow(label: "Billing cycle limit", value: "\(limit)")
-                }
                 if let trial = quota.trialExpiresAt {
                     LabeledRow(label: "Trial expires", value: trial.formatted(date: .long, time: .shortened))
                 }
