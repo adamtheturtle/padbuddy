@@ -25,6 +25,15 @@ struct QuestionsView: View {
     /// cheap hash instead. `selection` (the `Question`) stays the detail pane's
     /// source of truth and is kept in sync below. See the same pattern in PadsView.
     @State var selectedQuestionID: Int?
+    /// List vs. Table presentation, persisted across launches. Defaults to List so
+    /// the standard experience is unchanged; switching to Table reveals sortable,
+    /// resizable columns (see `questionsTable`).
+    @AppStorage(QuestionListPresentation.storageKey) var presentation: QuestionListPresentation = .list
+    /// The Table's active column sort, applied on top of the Sort menu's order. Starts
+    /// empty so the table opens in the menu's order; clicking a header then drives it.
+    /// Empty rather than a default `KeyPathComparator` because a key-path literal isn't
+    /// `Sendable` in the `@State` macro's stored default under Swift 6.
+    @State var sortOrder: [KeyPathComparator<Question>] = []
     /// Owned by `MainSplit` so the `.searchable` field can live on the split view
     /// (trailing window toolbar) rather than this content column. All the filter,
     /// saved-search, and persistence logic here still reads and writes it.
@@ -419,5 +428,32 @@ extension Question {
     /// Title to display, falling back to `#id` when a question has no title.
     var displayTitle: String {
         title.isEmpty ? "#\(id)" : title
+    }
+}
+
+/// How the questions list is presented: the default inset `List`, or a sortable,
+/// resizable `Table`. Persisted via `storageKey` so the choice survives launches.
+/// Opt-in: the default stays `.list`, so anyone who never switches sees no change.
+/// The pad-list counterpart is `PadListPresentation`.
+enum QuestionListPresentation: String, CaseIterable, Identifiable {
+    case list
+    case table
+
+    static let storageKey = "questions.presentation"
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .list: "List"
+        case .table: "Table"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .list: "list.bullet"
+        case .table: "tablecells"
+        }
     }
 }
