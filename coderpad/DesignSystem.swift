@@ -36,24 +36,15 @@ extension Color {
 /// Shared layout constants so pane chrome stays in sync across detail views.
 /// Tweak these here instead of hunting for matching literals in every view.
 enum Spacing {
-    /// Horizontal inset for pane content, matched to ``PaneTitle``.
+    /// Horizontal inset for pane content.
     static let paneH: CGFloat = 22
-    /// ``PaneTitle``'s top inset.
-    static let paneTitleTop: CGFloat = 18
-    /// ``PaneTitle``'s bottom inset.
-    static let paneTitleBottom: CGFloat = 10
-    /// Vertical inset for pane content (below a ``PaneTitle`` or search field).
+    /// Vertical inset for pane content (its top gap below the toolbar and its
+    /// bottom padding).
     static let paneV: CGFloat = 22
     /// Interior padding for ``Card``.
     static let card: CGFloat = 16
     /// Horizontal inset for the inline banner.
     static let bannerH: CGFloat = 14
-}
-
-/// Shared typography so matching text styles stay in sync across views.
-enum Typography {
-    /// The large title shown by ``PaneTitle`` at the top of a pane.
-    static let paneTitle: Font = .largeTitle.bold()
 }
 
 /// Contrast-aware opacities for the app's tinted chips and badges. Their default
@@ -487,38 +478,6 @@ func periodicReload(interval: () -> Duration, work: () async -> Void) async {
         }
         last = fire
         await work()
-    }
-}
-
-struct PaneTitle<Trailing: View>: View {
-    let title: String
-    var subtitle: String?
-    @ViewBuilder var trailing: () -> Trailing
-
-    var body: some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(Typography.paneTitle)
-                if let subtitle, !subtitle.isEmpty {
-                    Text(subtitle)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            Spacer(minLength: 0)
-            trailing()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, Spacing.paneH)
-        .padding(.top, Spacing.paneTitleTop)
-        .padding(.bottom, Spacing.paneTitleBottom)
-    }
-}
-
-extension PaneTitle where Trailing == EmptyView {
-    init(title: String, subtitle: String? = nil) {
-        self.init(title: title, subtitle: subtitle) { EmptyView() }
     }
 }
 

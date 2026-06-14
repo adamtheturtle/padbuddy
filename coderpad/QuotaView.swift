@@ -21,22 +21,19 @@ struct QuotaView: View {
                 APIErrorView(error: error) { Task { await reload() } }
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        PaneTitle(title: "Quota")
-                        VStack(alignment: .leading, spacing: 18) {
-                            header
-                            if let quota {
-                                statTiles(quota)
-                                if let pace = QuotaPace(quota: quota, now: Date()) {
-                                    paceCard(pace)
-                                }
-                                detailsCard(quota)
+                    VStack(alignment: .leading, spacing: 18) {
+                        header
+                        if let quota {
+                            statTiles(quota)
+                            if let pace = QuotaPace(quota: quota, now: Date()) {
+                                paceCard(pace)
                             }
+                            detailsCard(quota)
                         }
-                        .padding(.horizontal, Spacing.paneH)
-                        .padding(.top, 4)
-                        .padding(.bottom, Spacing.paneV)
                     }
+                    .padding(.horizontal, Spacing.paneH)
+                    .padding(.top, Spacing.paneV)
+                    .padding(.bottom, Spacing.paneV)
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .macPullToRefresh { await reload() }

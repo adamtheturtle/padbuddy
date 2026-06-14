@@ -53,7 +53,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		66C8C50B2FA73AB0009B720C /* coderpad.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = coderpad.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		66C8C50B2FA73AB0009B720C /* CoderPad.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CoderPad.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		66C8C51A2FA73AB2009B720C /* coderpadTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = coderpadTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		66C8C5242FA73AB2009B720C /* coderpadUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = coderpadUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		66E3CD092FDD5BA300FE87A9 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
@@ -160,7 +160,7 @@
 		66C8C50C2FA73AB0009B720C /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				66C8C50B2FA73AB0009B720C /* coderpad.app */,
+				66C8C50B2FA73AB0009B720C /* CoderPad.app */,
 				66C8C51A2FA73AB2009B720C /* coderpadTests.xctest */,
 				66C8C5242FA73AB2009B720C /* coderpadUITests.xctest */,
 				66E3CDBD2FDD6D1C00FE87A9 /* RecentPadsWidgetExtension.appex */,
@@ -203,7 +203,7 @@
 				66E3CDB52FDD604600FE87A9 /* Textual */,
 			);
 			productName = coderpad;
-			productReference = 66C8C50B2FA73AB0009B720C /* coderpad.app */;
+			productReference = 66C8C50B2FA73AB0009B720C /* CoderPad.app */;
 			productType = "com.apple.product-type.application";
 		};
 		66C8C5192FA73AB2009B720C /* coderpadTests */ = {
@@ -556,6 +556,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = coderpad/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = CoderPad;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -564,7 +565,7 @@
 				MARKETING_VERSION = 1.0;
 				OTHER_SWIFT_FLAGS = "-Xfrontend -warn-long-function-bodies=250 -Xfrontend -warn-long-expression-type-checking=250";
 				PRODUCT_BUNDLE_IDENTIFIER = ptn.coderpad;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = CoderPad;
 				REGISTER_APP_GROUPS = YES;
 				RUNTIME_EXCEPTION_ALLOW_JIT = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -603,6 +604,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = coderpad/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = CoderPad;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -611,7 +613,7 @@
 				MARKETING_VERSION = 1.0;
 				OTHER_SWIFT_FLAGS = "-Xfrontend -warn-long-function-bodies=250 -Xfrontend -warn-long-expression-type-checking=250";
 				PRODUCT_BUNDLE_IDENTIFIER = ptn.coderpad;
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = CoderPad;
 				REGISTER_APP_GROUPS = YES;
 				RUNTIME_EXCEPTION_ALLOW_JIT = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -641,7 +643,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/coderpad.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/coderpad";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CoderPad.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/CoderPad";
 			};
 			name = Debug;
 		};
@@ -663,7 +665,7 @@
 				SWIFT_EMIT_LOC_STRINGS = NO;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/coderpad.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/coderpad";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CoderPad.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/CoderPad";
 			};
 			name = Release;
 		};

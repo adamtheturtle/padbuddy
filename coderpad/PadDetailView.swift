@@ -147,7 +147,6 @@ struct PadDetailView: View {
                 detailScroll
             }
         }
-        .navigationTitle(pad.title.isEmpty ? pad.id : pad.title)
         .toolbar(id: "pad.detail.toolbar") { detailToolbar }
         .task(id: pad.id) { await load() }
         .sheet(isPresented: $showEdit) {

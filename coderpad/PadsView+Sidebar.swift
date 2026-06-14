@@ -93,15 +93,16 @@ extension PadsView {
                 APIErrorView(error: error) { Task { await reload() } }
             } else {
                 VStack(spacing: 0) {
-                    PaneTitle(title: "Pads")
                     savedSearchesBar
                     filterBar
-                    resultCountBar
                     Divider()
                     padCollection
                 }
             }
         }
+        // Bubble the count up to the window toolbar (shown beneath the "Pads" title)
+        // rather than as an inline bar above the list.
+        .reportsSectionCount(countSubtitle)
         // The search field itself lives on the `NavigationSplitView` in `MainSplit`
         // (trailing window toolbar, Finder-style); this column only owns the section
         // actions below.
@@ -391,20 +392,14 @@ extension PadsView {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// A small count of how many pads the current filters resolve to, so the list
-    /// length is legible at a glance and a short list reads as "filtered to a few"
-    /// rather than "failed to load". Hidden when the org has no pads at all, where a
-    /// "0 pads" line would just restate the empty list. `inflect:` agrees the noun
-    /// with the number ("1 pad" / "2 pads") in the user's locale.
-    @ViewBuilder var resultCountBar: some View {
-        if !pads.isEmpty {
-            Text("^[\(filtered.count) pad](inflect: true)")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 12)
-                .padding(.bottom, 6)
-                .accessibilityLabel("^[\(filtered.count) pad](inflect: true) shown")
-        }
+    /// How many pads the current filters resolve to, shown as the window's toolbar
+    /// subtitle beneath the "Pads" title so the list length is legible at a glance
+    /// and a short list reads as "filtered to a few" rather than "failed to load".
+    /// Empty when the org has no pads at all, where a "0 pads" line would just
+    /// restate the empty list.
+    var countSubtitle: String {
+        guard !pads.isEmpty else { return "" }
+        let count = filtered.count
+        return "\(count) \(count == 1 ? "pad" : "pads")"
     }
 }

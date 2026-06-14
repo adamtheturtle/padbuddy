@@ -40,23 +40,22 @@ struct MergedOrganizationView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                PaneTitle(title: "Organization", subtitle: "Across all accounts")
+        VStack(spacing: 0) {
+            if period == .custom { customRangeHeader }
+            ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    if period == .custom { customRangeControls }
                     aggregateTiles
                     ForEach(accounts.mergeableAccounts) { account in
                         accountSection(account)
                     }
                 }
                 .padding(.horizontal, Spacing.paneH)
-                .padding(.top, 4)
+                .padding(.top, Spacing.paneV)
                 .padding(.bottom, Spacing.paneV)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .macPullToRefresh { await reload() }
         }
-        .macPullToRefresh { await reload() }
         .task(id: accountKey) {
             seedFromCache()
             await reload()
@@ -89,13 +88,21 @@ struct MergedOrganizationView: View {
         }
     }
 
-    private var customRangeControls: some View {
-        HStack(spacing: 8) {
-            DatePicker("From", selection: $customStart, in: ...customEnd, displayedComponents: .date)
-                .datePickerStyle(.field)
-            DatePicker("To", selection: $customEnd, in: customStart..., displayedComponents: .date)
-                .datePickerStyle(.field)
-            Spacer(minLength: 0)
+    /// The custom From/To range, pinned above the ScrollView so it stays visible
+    /// while scrolling the per-account breakdown. It stays out of the toolbar
+    /// because the date fields' width varies and they only apply to one period.
+    private var customRangeHeader: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                DatePicker("From", selection: $customStart, in: ...customEnd, displayedComponents: .date)
+                    .datePickerStyle(.field)
+                DatePicker("To", selection: $customEnd, in: customStart..., displayedComponents: .date)
+                    .datePickerStyle(.field)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, Spacing.paneH)
+            .padding(.vertical, 12)
+            Divider()
         }
     }
 

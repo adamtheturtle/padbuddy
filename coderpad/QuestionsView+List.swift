@@ -101,7 +101,6 @@ extension QuestionsView {
                 APIErrorView(error: error) { Task { await reload() } }
             } else {
                 VStack(spacing: 0) {
-                    PaneTitle(title: "Questions")
                     savedSearchesBar
                     filterBar
                     Divider()
@@ -109,6 +108,9 @@ extension QuestionsView {
                 }
             }
         }
+        // Bubble the count up to the window toolbar (shown beneath the "Questions"
+        // title) so the list length is legible at a glance.
+        .reportsSectionCount(countSubtitle)
         // The search field itself lives on the `NavigationSplitView` in `MainSplit`
         // (trailing window toolbar, Finder-style); this column only owns the section
         // actions below.

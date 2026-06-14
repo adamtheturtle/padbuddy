@@ -100,7 +100,6 @@ extension MergedPadsView {
                 ProgressView("Loading pads…").frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 VStack(spacing: 0) {
-                    PaneTitle(title: "Pads")
                     presetsBar
                     filterBar
                     resultCountBar

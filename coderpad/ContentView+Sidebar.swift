@@ -3,23 +3,7 @@
 //  coderpad
 //
 
-import AppKit
 import SwiftUI
-
-/// The vibrant translucent material macOS source lists use. Painted as the
-/// sidebar's background (extended under the titlebar) so the traffic lights read
-/// as sitting on the sidebar, the way they do in Mail.
-private struct SidebarMaterial: NSViewRepresentable {
-    func makeNSView(context _: Context) -> NSVisualEffectView {
-        let view = NSVisualEffectView()
-        view.material = .sidebar
-        view.blendingMode = .behindWindow
-        view.state = .followsWindowActiveState
-        return view
-    }
-
-    func updateNSView(_: NSVisualEffectView, context _: Context) {}
-}
 
 struct Sidebar: View {
     @Binding var section: AppSection
@@ -62,14 +46,13 @@ struct Sidebar: View {
                 .background(.thinMaterial)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        // Paint the vibrant sidebar material all the way up behind the titlebar,
-        // so the traffic lights sit on the sidebar like Mail. The rows above still
-        // respect the safe area, so only the material extends under the lights.
-        // A subtle dark scrim over the material deepens the sidebar so it reads as
-        // distinctly darker than the content pane, the way Mail's does, while still
-        // letting the translucency show through.
+        // The NavigationSplitView sidebar column already paints the vibrant source
+        // list material all the way up behind the titlebar, so the traffic lights
+        // sit on the sidebar like Mail without a custom NSVisualEffectView. A subtle
+        // dark scrim over it deepens the sidebar so it reads as distinctly darker
+        // than the content pane, the way Mail's does, while still letting the
+        // translucency show through.
         .background {
-            SidebarMaterial().ignoresSafeArea()
             Color.black.opacity(0.18).ignoresSafeArea()
         }
     }

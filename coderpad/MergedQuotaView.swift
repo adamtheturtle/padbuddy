@@ -28,17 +28,14 @@ struct MergedQuotaView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                PaneTitle(title: "Quota", subtitle: "Across all accounts")
-                VStack(alignment: .leading, spacing: 24) {
-                    ForEach(accounts.mergeableAccounts) { account in
-                        accountSection(account)
-                    }
+            VStack(alignment: .leading, spacing: 24) {
+                ForEach(accounts.mergeableAccounts) { account in
+                    accountSection(account)
                 }
-                .padding(.horizontal, Spacing.paneH)
-                .padding(.top, 4)
-                .padding(.bottom, Spacing.paneV)
             }
+            .padding(.horizontal, Spacing.paneH)
+            .padding(.top, Spacing.paneV)
+            .padding(.bottom, Spacing.paneV)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .macPullToRefresh { await reload() }

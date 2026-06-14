@@ -74,11 +74,6 @@ struct MenuBarView: View {
                 .disabled(account.isMock == false && account.apiKey.isEmpty)
             }
 
-            Button("Open Pad by URL…") {
-                openMain()
-                AppRouter.requestOpenPadByURL()
-            }
-
             Divider()
 
             Text("My Pads · \(account.name)")

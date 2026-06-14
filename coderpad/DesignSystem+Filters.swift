@@ -32,6 +32,30 @@ extension View {
     }
 }
 
+// MARK: - Section result count
+
+/// Carries a list section's result-count summary (e.g. "12 pads") up the view tree
+/// so `MainSplit` can show it as the window's navigation subtitle, directly beneath
+/// the section title in the toolbar, instead of as an inline bar above the list.
+/// Reduces to the last non-empty reporter so the visible section's count wins and
+/// sections without a count (Organization, Quota) leave it empty.
+struct SectionCountKey: PreferenceKey {
+    static let defaultValue: String = ""
+    static func reduce(value: inout String, nextValue: () -> String) {
+        let next = nextValue()
+        if !next.isEmpty { value = next }
+    }
+}
+
+extension View {
+    /// Reports this section's result-count summary via `SectionCountKey` so the
+    /// enclosing split view can render it as the toolbar subtitle. Pass an empty
+    /// string when there's nothing to show (e.g. an empty or still-loading list).
+    func reportsSectionCount(_ summary: String) -> some View {
+        preference(key: SectionCountKey.self, value: summary)
+    }
+}
+
 // MARK: - Sidebar row width measurement
 
 /// Carries the widest sidebar row's natural (unclipped) label width up the view

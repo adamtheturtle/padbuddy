@@ -72,11 +72,10 @@ struct OrganizationView: View {
             } else if let error, organization == nil {
                 APIErrorView(error: error) { Task { await reload() } }
             } else {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 0) {
-                        PaneTitle(title: "Organization")
+                VStack(spacing: 0) {
+                    if period == .custom { customRangeHeader }
+                    ScrollView {
                         VStack(alignment: .leading, spacing: 18) {
-                            if period == .custom { customRangeControls }
                             header
                             statTiles
                             if organization != nil { activitySection(stats) }
@@ -86,12 +85,12 @@ struct OrganizationView: View {
                             if let organization { usersSection(organization) }
                         }
                         .padding(.horizontal, Spacing.paneH)
-                        .padding(.top, 4)
+                        .padding(.top, Spacing.paneV)
                         .padding(.bottom, Spacing.paneV)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .macPullToRefresh { await reload() }
                 }
-                .macPullToRefresh { await reload() }
             }
         }
         .task(id: client.apiKey) {
@@ -135,16 +134,22 @@ struct OrganizationView: View {
         }
     }
 
-    /// The custom From/To range, shown inline below the title only when the
-    /// "Custom range" period is selected. These stay in the pane rather than the
-    /// toolbar because their width varies and they only apply to one period.
-    private var customRangeControls: some View {
-        HStack(spacing: 8) {
-            DatePicker("From", selection: $customStart, in: ...customEnd, displayedComponents: .date)
-                .datePickerStyle(.field)
-            DatePicker("To", selection: $customEnd, in: customStart..., displayedComponents: .date)
-                .datePickerStyle(.field)
-            Spacer(minLength: 0)
+    /// The custom From/To range, pinned above the ScrollView (only when the
+    /// "Custom range" period is selected) so it stays visible while scrolling the
+    /// user grid. It stays out of the toolbar because the date fields' width varies
+    /// and they only apply to one period.
+    private var customRangeHeader: some View {
+        VStack(spacing: 0) {
+            HStack(spacing: 8) {
+                DatePicker("From", selection: $customStart, in: ...customEnd, displayedComponents: .date)
+                    .datePickerStyle(.field)
+                DatePicker("To", selection: $customEnd, in: customStart..., displayedComponents: .date)
+                    .datePickerStyle(.field)
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, Spacing.paneH)
+            .padding(.vertical, 12)
+            Divider()
         }
     }
 
@@ -260,9 +265,13 @@ struct OrganizationView: View {
 
     private func filteredUsers(_ org: Organization) -> [OrganizationUser] {
         let lowered = userSearch.lowercased()
-        guard !lowered.isEmpty else { return org.users }
-        return org.users.filter {
+        let matched = lowered.isEmpty ? org.users : org.users.filter {
             ($0.name ?? "").lowercased().contains(lowered) || $0.email.lowercased().contains(lowered)
+        }
+        // Sort by display name so the list reads alphabetically rather than in
+        // the API's arbitrary order.
+        return matched.sorted {
+            ($0.name ?? $0.email).localizedCaseInsensitiveCompare($1.name ?? $1.email) == .orderedAscending
         }
     }
 

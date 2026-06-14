@@ -145,6 +145,26 @@ struct MainSplit: View {
         }
     }
 
+    /// The window subtitle, shown beside the title in the toolbar. In the combined
+    /// view it flags that the section spans every account (the cue the per-pane
+    /// "Across all accounts" title used to carry); empty otherwise so single-account
+    /// sections show just the section name.
+    private var sectionSubtitle: String {
+        store.isMergedView ? "All accounts" : ""
+    }
+
+    /// The active section's result-count summary, bubbled up from the list views via
+    /// `SectionCountKey` (e.g. "12 pads"). Pads/Questions report a count; the merged
+    /// variants already name the account span, so they supersede the "All accounts"
+    /// cue while empty-count sections (Organization, Quota) fall back to it.
+    @State private var sectionCount = ""
+
+    /// What actually shows beneath the title: the count when a section publishes one,
+    /// otherwise the static section subtitle.
+    private var displaySubtitle: String {
+        sectionCount.isEmpty ? sectionSubtitle : sectionCount
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // In the combined view, per-account fetch failures surface inline in the
@@ -291,6 +311,9 @@ struct MainSplit: View {
                                   Self.contentMinWidthCeiling).rounded()
                 if contentMinWidth != clamped { contentMinWidth = clamped }
             }
+            // Surface the visible list's result count (e.g. "12 pads") as the toolbar
+            // subtitle beneath the section title, bubbled up via `SectionCountKey`.
+            .onPreferenceChange(SectionCountKey.self) { sectionCount = $0 }
             .navigationSplitViewColumnWidth(
                 min: contentMinWidth,
                 ideal: max(480, contentMinWidth),
@@ -318,6 +341,7 @@ struct MainSplit: View {
             }
         )
         .navigationTitle(sectionTitle)
+        .navigationSubtitle(displaySubtitle)
     }
 
     private var twoColumnSplit: some View {
@@ -345,8 +369,12 @@ struct MainSplit: View {
                 padSearch: $padSearch,
                 questionSearch: $questionSearch
             )
+            // Organization and Quota publish no count, so this resets the subtitle
+            // back to the static section subtitle when switching in from a list.
+            .onPreferenceChange(SectionCountKey.self) { sectionCount = $0 }
         }
         .navigationTitle(sectionTitle)
+        .navigationSubtitle(displaySubtitle)
     }
 }
 

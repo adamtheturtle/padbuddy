@@ -78,7 +78,6 @@ extension MergedQuestionsView {
                 ProgressView("Loading questions…").frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 VStack(spacing: 0) {
-                    PaneTitle(title: "Questions")
                     presetsBar
                     filterBar
                     resultCountBar

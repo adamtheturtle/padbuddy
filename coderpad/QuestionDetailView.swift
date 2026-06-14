@@ -85,7 +85,6 @@ struct QuestionDetailView: View {
         }
         .overlay(alignment: .bottom) { undoDeletionBanner }
         .animation(.spring(duration: 0.3), value: deletionTask == nil)
-        .navigationTitle(question.title.isEmpty ? "#\(question.id)" : question.title)
         // Publish the favorite state so the Question menu's Favorite command can
         // show the matching "Add to"/"Remove from Favorites" title and toggle it.
         .focusedSceneValue(\.focusedQuestionIsFavorite, isFavorite)
