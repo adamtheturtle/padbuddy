@@ -156,8 +156,16 @@ extension QuestionDetailView {
         Card {
             VStack(alignment: .leading, spacing: 10) {
                 SectionHeader(title: "Candidate Instructions", systemImage: "text.book.closed")
-                ForEach(Array(question.candidateInstructions.enumerated()), id: \.offset) { _, item in
+                let instructions = question.candidateInstructions
+                ForEach(Array(instructions.enumerated()), id: \.offset) { index, item in
                     VStack(alignment: .leading, spacing: 6) {
+                        // When a question has several instruction parts, label each so
+                        // they read as distinct sections rather than one run-on block.
+                        if instructions.count > 1 {
+                            Text("Part \(index + 1)")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                        }
                         // Mirror the test-case "Hidden" badge: an instruction the
                         // candidate doesn't see by default is meaningful review context.
                         if !item.defaultVisible {
@@ -169,6 +177,11 @@ extension QuestionDetailView {
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    // A hairline between parts, like the Test Cases card, so multiple
+                    // instructions are visually separated instead of blurring together.
+                    if index != instructions.count - 1 {
+                        Divider()
+                    }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

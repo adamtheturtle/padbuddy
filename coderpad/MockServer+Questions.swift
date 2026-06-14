@@ -51,7 +51,8 @@ nonisolated extension MockFixtures {
             "language": "go",
             "description": urlShortenerDescription(),
             "candidate_instructions": [
-                ["instructions": urlShortenerInstructions(), "default_visible": true]
+                ["instructions": urlShortenerInstructions(), "default_visible": true],
+                ["instructions": urlShortenerHint(), "default_visible": false]
             ],
             "shared": true, "used": 5, "take_home": true,
             "test_cases_enabled": false, "solution": urlShortenerSolution(),
@@ -116,6 +117,21 @@ nonisolated extension MockFixtures {
         - [ ] Sketch the data model
         - [ ] Implement `POST /shorten`
         - [ ] Implement `GET /{code}`
+        """
+    }
+
+    /// A second candidate-instruction part — hidden from the candidate by default —
+    /// so the demo exercises both multi-part instruction separation and the
+    /// "Hidden by default" badge.
+    private static func urlShortenerHint() -> String {
+        """
+        ## Interviewer Hint
+
+        If the candidate stalls, nudge them toward **collision handling**: what
+        happens when two long URLs hash to the same code?
+
+        A good answer mentions either a longer code space or a retry-on-conflict
+        loop, and notes the tradeoff against `code` length.
         """
     }
 
