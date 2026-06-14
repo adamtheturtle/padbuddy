@@ -49,6 +49,13 @@ struct QuestionsView: View {
     /// A favorite picked from the sidebar before the list had loaded it. Held so
     /// the selection can be made once the matching question arrives.
     @State private var pendingSelectQuestionID: Int?
+    /// Gates the once-per-account restore of persisted live filters so the `onChange`
+    /// that saves them doesn't clobber the saved snapshot before restore runs. The
+    /// question counterpart to `PadsView.didRestoreFilters`.
+    @State var didRestoreFilters = false
+    /// Gates the once-per-load restore of the previously-open question, so persistence
+    /// doesn't overwrite the saved id before the list has loaded.
+    @State var didRestoreSelection = false
 
     var body: some View {
         sidebar
@@ -110,6 +117,8 @@ struct QuestionsView: View {
                 }
             }
             .onAppear {
+                // Restore first so a deep-link/favorite request can still override it.
+                restoreFilters()
                 applyPendingRequest()
                 publishLiveFilter()
                 selectedQuestionID = selection?.id
@@ -121,19 +130,31 @@ struct QuestionsView: View {
                 if selection?.id != newID {
                     selection = newID.flatMap { id in questions.first { $0.id == id } }
                 }
+                // Remember the open question per account so it reopens next launch.
+                persistSelectedQuestion()
             }
             .onChange(of: selection) { _, newValue in
                 if selectedQuestionID != newValue?.id { selectedQuestionID = newValue?.id }
             }
+            // The account id is often nil on first appear; restore once it lands, and
+            // swap to the new account's saved filters whenever the account changes.
+            .onChange(of: accounts.currentAccountID) { _, _ in restoreFiltersForAccountChange() }
             .onChange(of: nav.questionsRequest) { _, _ in applyPendingRequest() }
             // Republish the live filter so the sidebar highlights whichever suggested or
             // saved row is applied, and falls back to the plain "Questions" row the moment
             // any filter is edited. Keyed off a stable digest because a fresh
             // `captureCurrentSearch` carries a new UUID each call and would fire endlessly.
-            .onChange(of: filterSignature) { _, _ in publishLiveFilter() }
+            .onChange(of: filterSignature) { _, _ in
+                persistFilters()
+                publishLiveFilter()
+            }
             // A favorite tapped in the sidebar may arrive before the list has loaded;
-            // resolve the deferred selection as soon as the questions land.
-            .onChange(of: questions) { _, _ in resolvePendingSelection() }
+            // resolve the deferred selection as soon as the questions land. The
+            // last-open question is likewise restored once a list exists for it.
+            .onChange(of: questions) { _, _ in
+                restoreSelectedQuestionIfNeeded()
+                resolvePendingSelection()
+            }
             .task {
                 for await _ in AppRouter.reloads {
                     await reload()
@@ -198,6 +219,38 @@ struct QuestionsView: View {
               let match = questions.first(where: { $0.id == id }) else { return }
         selection = match
         pendingSelectQuestionID = nil
+    }
+
+    static func selectedQuestionKey(_ account: UUID) -> String {
+        "questions.selectedQuestion.\(account.uuidString)"
+    }
+
+    /// Persist the id of the question shown in the detail pane, per account, so the
+    /// list reopens to it next launch. Skipped until the restore has run so the empty
+    /// startup state can't clobber the saved id; clearing the selection removes the
+    /// stored id so a blank detail pane is restored faithfully too.
+    func persistSelectedQuestion() {
+        guard didRestoreSelection, let account = accounts.currentAccountID else { return }
+        let key = Self.selectedQuestionKey(account)
+        if let selectedQuestionID {
+            UserDefaults.standard.set(selectedQuestionID, forKey: key)
+        } else {
+            UserDefaults.standard.removeObject(forKey: key)
+        }
+    }
+
+    /// Restore the previously-open question once its list is loaded. Marks the restore
+    /// complete as soon as questions exist (so later changes persist), then reselects
+    /// the saved question only when nothing is selected, no sidebar favorite is
+    /// pending, and no request is queued — so an explicit navigation always wins.
+    func restoreSelectedQuestionIfNeeded() {
+        guard !didRestoreSelection, !questions.isEmpty else { return }
+        didRestoreSelection = true
+        guard selection == nil, pendingSelectQuestionID == nil, nav.questionsRequest == nil,
+              let account = accounts.currentAccountID,
+              let stored = UserDefaults.standard.object(forKey: Self.selectedQuestionKey(account)) as? Int,
+              questions.contains(where: { $0.id == stored }) else { return }
+        selectedQuestionID = stored
     }
 
     func reload() async {

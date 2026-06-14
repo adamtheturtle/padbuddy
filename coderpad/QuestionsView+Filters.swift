@@ -235,4 +235,46 @@ extension QuestionsView {
     func publishLiveFilter() {
         nav.questionsFilter = captureCurrentSearch(named: "")
     }
+
+    // MARK: - Live filter persistence
+
+    static func liveFilterKey(_ account: UUID) -> String {
+        "questions.liveFilter.\(account.uuidString)"
+    }
+
+    /// Persist the current live filters for the signed-in account, so the list
+    /// reopens with the same view next launch. Scoped per account because owners and
+    /// languages are org-specific. Skipped until the initial restore has run, so the
+    /// empty startup state never clobbers a saved snapshot. Mirrors `PadsView`.
+    func persistFilters() {
+        guard didRestoreFilters, let account = accounts.currentAccountID else { return }
+        if let data = try? JSONEncoder().encode(captureCurrentSearch(named: "")) {
+            UserDefaults.standard.set(data, forKey: Self.liveFilterKey(account))
+        }
+    }
+
+    /// Restore the persisted live filters for the current account, once. A pending
+    /// request (handled by `applyPendingRequest`) is applied afterward so it always
+    /// wins over a restored snapshot. The `Favorites` preset isn't part of the saved
+    /// `NamedSearch`, matching how `PadsView` leaves its "Mine" preset unpersisted.
+    func restoreFilters() {
+        guard let account = accounts.currentAccountID else { return }
+        didRestoreFilters = true
+        guard let data = UserDefaults.standard.data(forKey: Self.liveFilterKey(account)),
+              let snapshot = try? JSONDecoder().decode(NamedSearch.self, from: data) else { return }
+        apply(snapshot)
+    }
+
+    /// Re-restore for a newly selected account: clear the previous account's filters
+    /// (meaningless against a different org) then load that account's own, and let the
+    /// new account restore its own last-open question once its list loads.
+    func restoreFiltersForAccountChange() {
+        didRestoreFilters = false
+        search = ""
+        languageFilter = nil; ownerFilter = nil
+        typeFilter = nil; draftFilter = nil
+        favoritesOnly = false
+        restoreFilters()
+        didRestoreSelection = false
+    }
 }
