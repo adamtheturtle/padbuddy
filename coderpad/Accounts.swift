@@ -92,8 +92,8 @@ struct Account: Identifiable, Codable, Hashable {
     /// and generic so the picker stays a quick visual choice rather than a search
     /// through the full symbol library.
     static let iconSymbolChoices = [
-        "briefcase.fill", "building.2.fill", "person.fill", "star.fill",
-        "flag.fill", "bolt.fill", "leaf.fill", "globe"
+        "building.2.fill", "briefcase.fill", "person.2.fill", "house.fill",
+        "star.fill", "flag.fill", "hammer.fill", "globe.americas.fill"
     ]
 
     /// The user-chosen avatar tint parsed from `tintHex`, or `nil` when unset or
@@ -103,12 +103,25 @@ struct Account: Identifiable, Codable, Hashable {
         return color
     }
 
-    /// The tint to draw this account's avatar with: the custom color when set,
-    /// otherwise the historical default (purple for demo accounts, the app accent
-    /// for real ones).
-    var avatarTint: Color {
-        tintColor ?? (isMock ? .purple : .accentColor)
+    /// The fallback tint when no custom color is chosen: purple for demo accounts,
+    /// the app accent for real ones.
+    var defaultTint: Color {
+        isMock ? .purple : .accentColor
     }
+
+    /// The tint to draw this account's avatar with: the custom color when set,
+    /// otherwise `defaultTint`.
+    var avatarTint: Color {
+        tintColor ?? defaultTint
+    }
+
+    /// The curated tint palette offered for an account's avatar, as "#RRGGBB" hex.
+    /// A small fixed set (plus the "default" option in the picker) keeps choosing a
+    /// color a quick visual pick rather than a full color well.
+    static let tintChoices = [
+        "#3478F6", "#9B59B6", "#FF2D55", "#FF3B30",
+        "#FF9500", "#34C759", "#30B0C7", "#8E8E93"
+    ]
 
     /// The server URL to talk to: the account's override when set and parseable,
     /// otherwise the standard hosted endpoint.

@@ -170,7 +170,9 @@ extension SettingsView {
                 ForEach(store.accounts) { account in
                     AccountRow(
                         account: account,
-                        isCurrent: account.id == store.currentAccountID
+                        // In the merged "All Accounts" view no single account is
+                        // current, so don't single one out (matches the menu bar).
+                        isCurrent: account.id == store.currentAccountID && !store.isMergedView
                     )
                     .tag(account.id)
                 }
@@ -240,13 +242,21 @@ extension SettingsView {
             AccountEditor(
                 initial: account,
                 embedded: true,
-                isCurrent: id == store.currentAccountID,
+                isCurrent: id == store.currentAccountID && !store.isMergedView,
                 onUse: { store.currentAccountID = id },
                 onSave: { updated in store.update(updated) },
                 onCancel: {},
                 onDelete: {
                     store.remove(id: id)
                     selectedAccountID = nil
+                },
+                // Persist icon/tint immediately, merging only those fields onto the
+                // saved account so unsaved edits to other fields aren't flushed too.
+                onAppearanceChange: { symbol, tint in
+                    guard var account = store.accounts.first(where: { $0.id == id }) else { return }
+                    account.iconSymbol = symbol
+                    account.tintHex = tint
+                    store.update(account)
                 }
             )
             .id(id)

@@ -85,22 +85,16 @@ extension MergedPadsView {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    @ViewBuilder
-    var resultCountBar: some View {
-        if !scoped.isEmpty {
-            let shown = filtered.count
-            let accountCount = accounts.mergeableAccounts.count
-            let label = (activeFilterCount > 0 || !search.isEmpty)
-                ? "\(shown) of \(scoped.count) pads across \(accountCount) accounts"
-                : "\(shown) \(shown == 1 ? "pad" : "pads") across \(accountCount) accounts"
-            HStack {
-                Text(label).font(.caption).foregroundStyle(.secondary)
-                Spacer()
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 4)
-            .accessibilityLabel("\(shown) pads shown across \(accountCount) accounts")
-        }
+    /// The result-count summary shown as the window's toolbar subtitle beneath the
+    /// "Pads" title. Names the account span the merged list covers; empty while the
+    /// list is empty so the subtitle falls back to the static "All accounts" cue.
+    var countSubtitle: String {
+        guard !scoped.isEmpty else { return "" }
+        let shown = filtered.count
+        let accountCount = accounts.mergeableAccounts.count
+        return (activeFilterCount > 0 || !search.isEmpty)
+            ? "\(shown) of \(scoped.count) pads across \(accountCount) accounts"
+            : "\(shown) \(shown == 1 ? "pad" : "pads") across \(accountCount) accounts"
     }
 
     /// A quiet note naming any accounts whose fetch failed, so the merged list

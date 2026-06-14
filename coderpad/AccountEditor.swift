@@ -28,6 +28,10 @@ struct AccountEditor: View {
     let onCancel: () -> Void
     /// Supplied only when editing a saved account; `nil` hides the Delete button (Add mode).
     let onDelete: (() -> Void)?
+    /// Supplied for a saved account so icon/tint edits persist immediately, without
+    /// the Save button: those are cosmetic and need no validation. `nil` (Add mode)
+    /// keeps the appearance in the draft until the account is saved.
+    let onAppearanceChange: ((_ iconSymbol: String?, _ tintHex: String?) -> Void)?
     /// The credentials the editor opened with. A saved account can be re-saved without
     /// re-validating as long as these are untouched (e.g. a Description-only change);
     /// changing either forces a fresh validation before Save re-enables.
@@ -54,7 +58,8 @@ struct AccountEditor: View {
          onUse: (() -> Void)? = nil,
          onSave: @escaping (Account) -> Void,
          onCancel: @escaping () -> Void,
-         onDelete: (() -> Void)? = nil) {
+         onDelete: (() -> Void)? = nil,
+         onAppearanceChange: ((String?, String?) -> Void)? = nil) {
         _draft = State(initialValue: initial)
         initialName = initial.name
         initialAPIKey = initial.apiKey
@@ -65,6 +70,7 @@ struct AccountEditor: View {
         self.onSave = onSave
         self.onCancel = onCancel
         self.onDelete = onDelete
+        self.onAppearanceChange = onAppearanceChange
     }
 
     /// Reveals or hides the key. Hiding is immediate; revealing is gated behind a
@@ -158,13 +164,16 @@ struct AccountEditor: View {
                             .textFieldStyle(.roundedBorder)
                     }
                     fieldRow("Icon") {
-                        HStack(spacing: 8) {
+                        HStack(alignment: .top, spacing: 8) {
                             // Live preview of how the avatar will look elsewhere.
                             AvatarCircle(account: draft, diameter: 30)
                             AccountSymbolPicker(selection: $draft.iconSymbol)
-                            ColorPicker("", selection: tintColorBinding, supportsOpacity: false)
-                                .labelsHidden()
-                                .help("Tint color for this account's avatar.")
+                        }
+                    }
+                    fieldRow("Color") {
+                        HStack(alignment: .top, spacing: 10) {
+                            AccountTintPicker(selection: $draft.tintHex,
+                                              defaultColor: draft.defaultTint)
                             if hasCustomAppearance {
                                 Button("Reset") {
                                     draft.iconSymbol = nil
@@ -173,13 +182,14 @@ struct AccountEditor: View {
                                 .buttonStyle(.borderless)
                                 .help("Use the default initials and color.")
                             }
-                            Spacer()
                         }
                     }
                 }
-                // The email picker needs the validated org's member list, so it stays
-                // gated behind a successful validation.
-                if isValidated {
+                // Picking a *different* member needs the validated org's member list,
+                // but a saved account already carries its email, so show the row when
+                // editing too: it surfaces the existing email automatically (via
+                // `emailOptions`) without forcing a re-validation just to see it.
+                if isValidated || isEditing {
                     fieldRow("Your Email") {
                         VStack(alignment: .leading, spacing: 4) {
                             OrgMemberPicker(
@@ -228,6 +238,10 @@ struct AccountEditor: View {
                maxHeight: embedded ? .infinity : nil, alignment: .top)
         .onChange(of: draft.apiKey) { _, _ in validation = .idle; scopeWarning = nil }
         .onChange(of: draft.baseURL) { _, _ in validation = .idle }
+        // Icon and tint are cosmetic, so persist them the moment they change rather
+        // than waiting for Save (which gates on validation/email for the credentials).
+        .onChange(of: draft.iconSymbol) { _, _ in onAppearanceChange?(draft.iconSymbol, draft.tintHex) }
+        .onChange(of: draft.tintHex) { _, _ in onAppearanceChange?(draft.iconSymbol, draft.tintHex) }
         .confirmationDialog("Delete this account?",
                             isPresented: $showDeleteConfirmation,
                             titleVisibility: .visible) {
@@ -244,8 +258,12 @@ struct AccountEditor: View {
 struct AccountSymbolPicker: View {
     @Binding var selection: String?
 
+    // An adaptive grid wraps to the available width rather than forcing one long
+    // row that would push the whole settings pane wider than the window.
+    private let columns = [GridItem(.adaptive(minimum: 28), spacing: 6, alignment: .leading)]
+
     var body: some View {
-        HStack(spacing: 6) {
+        LazyVGrid(columns: columns, alignment: .leading, spacing: 6) {
             symbolButton(nil, glyph: "textformat", help: "Use initials")
             ForEach(Account.iconSymbolChoices, id: \.self) { symbol in
                 symbolButton(symbol, glyph: symbol, help: "Account icon")
@@ -267,6 +285,44 @@ struct AccountSymbolPicker: View {
                 .overlay(RoundedRectangle(cornerRadius: 6)
                     .stroke(isSelected ? Color.accentColor : Color.secondary.opacity(0.3),
                             lineWidth: isSelected ? 1.5 : 0.5))
+        }
+        .buttonStyle(.plain)
+        .help(help)
+        .accessibilityLabel(help)
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
+    }
+}
+
+/// A compact row of curated tint swatches for an account's avatar. The first
+/// swatch (`defaultColor`) clears the custom tint, falling back to the default.
+struct AccountTintPicker: View {
+    @Binding var selection: String?
+    let defaultColor: Color
+
+    // Wraps to the available width so the swatches never overflow the pane.
+    private let columns = [GridItem(.adaptive(minimum: 24), spacing: 6, alignment: .leading)]
+
+    var body: some View {
+        LazyVGrid(columns: columns, alignment: .leading, spacing: 6) {
+            swatch(nil, color: defaultColor, help: "Default color")
+            ForEach(Account.tintChoices, id: \.self) { hex in
+                swatch(hex, color: Color(hex: hex) ?? .gray, help: "Account color")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func swatch(_ value: String?, color: Color, help: String) -> some View {
+        let isSelected = selection == value
+        Button {
+            selection = value
+        } label: {
+            Circle()
+                .fill(color)
+                .frame(width: 18, height: 18)
+                .overlay(Circle().stroke(Color.primary.opacity(isSelected ? 0.9 : 0.15),
+                                         lineWidth: isSelected ? 2 : 0.5))
+                .padding(2)
         }
         .buttonStyle(.plain)
         .help(help)

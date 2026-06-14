@@ -129,6 +129,15 @@ struct AccountRoundTripTests {
     }
 
     @Test
+    func `tint choices are unique and parse as colors`() {
+        #expect(!Account.tintChoices.isEmpty)
+        #expect(Set(Account.tintChoices).count == Account.tintChoices.count)
+        for hex in Account.tintChoices {
+            #expect(Color(hex: hex) != nil)
+        }
+    }
+
+    @Test
     func `avatarTint prefers the custom color over the default`() {
         let custom = Account(name: "A", apiKey: "k", tintHex: "#112233")
         #expect(custom.tintColor != nil)

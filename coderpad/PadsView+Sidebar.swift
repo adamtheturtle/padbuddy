@@ -110,10 +110,11 @@ extension PadsView {
             ToolbarItem(id: "reload") {
                 ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
             }
-            if #available(macOS 26, *) {
-                ToolbarSpacer(.fixed)
-            }
-            ToolbarItem(id: "new", placement: .primaryAction) {
+            // Grouped beside Reload at the list column's leading edge rather than
+            // floating at the trailing edge: a `.primaryAction` here shares the
+            // window's trailing region with the detail pane's actions, so selecting
+            // a pad would shove this button leftward. Anchoring it left keeps it put.
+            ToolbarItem(id: "new") {
                 Button { showCreate = true } label: {
                     Label("New Pad", systemImage: "plus")
                 }

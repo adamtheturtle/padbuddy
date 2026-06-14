@@ -58,6 +58,13 @@ struct DesignSystemRenderTests {
                       "AccountSymbolPicker with a selection")
     }
 
+    @Test func `account tint picker renders`() {
+        expectRenders(AccountTintPicker(selection: .constant(nil), defaultColor: .accentColor),
+                      "AccountTintPicker with default selection")
+        expectRenders(AccountTintPicker(selection: .constant("#FF9500"), defaultColor: .accentColor),
+                      "AccountTintPicker with a selection")
+    }
+
     @Test func `chip renders`() {
         expectRenders(Chip(text: "Python", systemImage: "chevron.left.slash.chevron.right"),
                       "Chip with icon")

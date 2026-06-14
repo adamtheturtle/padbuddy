@@ -102,13 +102,15 @@ extension MergedPadsView {
                 VStack(spacing: 0) {
                     presetsBar
                     filterBar
-                    resultCountBar
                     errorBar
                     Divider()
                     padCollection
                 }
             }
         }
+        // Surface the count beneath the "Pads" title in the window toolbar rather
+        // than as an inline bar above the list.
+        .reportsSectionCount(countSubtitle)
         .toolbar(id: "pads.toolbar") { padsToolbar }
     }
 
@@ -117,7 +119,11 @@ extension MergedPadsView {
         ToolbarItem(id: "reload") {
             ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
         }
-        ToolbarItem(id: "new", placement: .primaryAction) {
+        // Grouped beside Reload at the list column's leading edge rather than
+        // floating at the trailing edge: a `.primaryAction` here shares the window's
+        // trailing region with the detail pane's actions, so selecting a pad would
+        // shove this button leftward. Anchoring it left keeps it put.
+        ToolbarItem(id: "new") {
             Menu {
                 ForEach(accounts.mergeableAccounts) { account in
                     Button(account.name) { creatingForAccount = account }

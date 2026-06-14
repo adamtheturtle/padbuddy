@@ -3,41 +3,10 @@
 //  coderpad
 //
 
-import AppKit
 import SwiftUI
 
 enum AppSection: String, Hashable {
     case pads, questions, organization, quota
-}
-
-/// Strips the chrome Mail also omits: the window title (otherwise shown in the
-/// title bar over the standard sidebar toggle) and the hairline separator under
-/// the unified toolbar. The title bar itself stays standard so the system's own
-/// sidebar toggle and View ▸ Show/Hide Sidebar command are present.
-private struct WindowChromeConfigurator: NSViewRepresentable {
-    func makeNSView(context _: Context) -> NSView {
-        ChromeView()
-    }
-
-    func updateNSView(_ nsView: NSView, context _: Context) {
-        (nsView as? ChromeView)?.applyChrome()
-    }
-
-    /// Applies the chrome in `viewDidMoveToWindow`, when the window is guaranteed
-    /// to exist — and again on every SwiftUI update, since toolbar changes can
-    /// otherwise reinstate the separator.
-    final class ChromeView: NSView {
-        override func viewDidMoveToWindow() {
-            super.viewDidMoveToWindow()
-            applyChrome()
-        }
-
-        @objc func applyChrome() {
-            guard let window else { return }
-            window.titleVisibility = .hidden
-            window.titlebarSeparatorStyle = .none
-        }
-    }
 }
 
 struct ContentView: View {
@@ -66,7 +35,13 @@ struct ContentView: View {
             }
         }
 
-        .background(WindowChromeConfigurator())
+        // Strip the chrome Mail also omits: the window title (otherwise shown in
+        // the title bar over the standard sidebar toggle) and the hairline
+        // separator under the unified toolbar. The title bar itself stays standard
+        // so the system's own sidebar toggle and View ▸ Show/Hide Sidebar command
+        // are present.
+        .toolbar(removing: .title)
+        .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
         .environment(\.orgDirectory, directory)
         .task {
             for await _ in AppRouter.openPadByURLRequests {

@@ -40,15 +40,6 @@ extension AccountEditor {
         return false
     }
 
-    /// Bridges the optional tint to a `ColorPicker`: an unset tint shows the
-    /// account's current default swatch, and picking any color stores its hex.
-    var tintColorBinding: Binding<Color> {
-        Binding(
-            get: { draft.tintColor ?? draft.avatarTint },
-            set: { draft.tintHex = $0.hexString }
-        )
-    }
-
     /// Whether the account carries a custom icon or tint, gating the Reset control.
     var hasCustomAppearance: Bool {
         draft.iconSymbol != nil || draft.tintHex != nil
