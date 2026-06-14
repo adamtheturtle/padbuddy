@@ -25,6 +25,10 @@ struct QuestionsView: View {
     /// cheap hash instead. `selection` (the `Question`) stays the detail pane's
     /// source of truth and is kept in sync below. See the same pattern in PadsView.
     @State var selectedQuestionID: Int?
+    /// The List's selection. A set so several rows can be selected to copy their
+    /// links at once; `selectedQuestionID`/`selection` track the primary within it,
+    /// keeping the detail pane and per-account restore/persistence working off one id.
+    @State var selectedQuestionIDs: Set<Int> = []
     /// Owned by `MainSplit` so the `.searchable` field can live on the split view
     /// (trailing window toolbar) rather than this content column. All the filter,
     /// saved-search, and persistence logic here still reads and writes it.
@@ -73,7 +77,7 @@ struct QuestionsView: View {
             .sheet(isPresented: $showCreate) {
                 NewQuestionSheet(client: client) { created in
                     questions.insert(created, at: 0)
-                    selection = created
+                    selectedQuestionIDs = [created.id]
                     showCreate = false
                 } onCancel: { showCreate = false }
             }
@@ -106,14 +110,20 @@ struct QuestionsView: View {
                 for await deletion in AppRouter.questionDeletions {
                     guard scopedToThisAccount(deletion.account) else { continue }
                     let id = deletion.id
-                    // Move to a neighbor before dropping the row so deleting the
-                    // open question keeps the detail pane populated. Computed while
-                    // `questions` still holds the deleted row.
-                    if selection?.id == id { selection = neighborSelection(forDeletedQuestion: id) }
+                    // Drop the deleted id from the selection. If it was the primary,
+                    // move to a neighbor (computed while `questions` still holds the
+                    // row) only when no other rows stay selected; otherwise the primary
+                    // falls to a still-selected row via the `selectedQuestionIDs` observer.
+                    let wasPrimary = selection?.id == id
+                    let neighbor = wasPrimary ? neighborSelection(forDeletedQuestion: id) : nil
+                    selectedQuestionIDs.remove(id)
                     questions.removeAll { $0.id == id }
                     // Keep the disk cache and Spotlight index in step; otherwise the
                     // deleted question lingers there until a full reload.
                     cache.removeQuestion(id: id, account: accounts.currentAccountID)
+                    if wasPrimary, selectedQuestionIDs.isEmpty {
+                        selectedQuestionIDs = neighbor.map { [$0.id] } ?? []
+                    }
                 }
             }
             .onAppear {
@@ -121,7 +131,14 @@ struct QuestionsView: View {
                 restoreFilters()
                 applyPendingRequest()
                 publishLiveFilter()
-                selectedQuestionID = selection?.id
+                selectedQuestionIDs = selection.map { [$0.id] } ?? []
+            }
+            // The List edits `selectedQuestionIDs`; derive the primary row from it so
+            // the detail pane, restore, and persistence keep working off the single
+            // `selectedQuestionID`. One-way (set → primary), so there's no binding loop.
+            .onChange(of: selectedQuestionIDs) { previous, current in
+                let primary = MultiSelectLogic.primaryID(previous: previous, current: current)
+                if selectedQuestionID != primary { selectedQuestionID = primary }
             }
             // Bridge the lightweight list selection (`selectedQuestionID`) to the
             // `Question` binding the detail pane reads. Each side writes only when the
@@ -207,7 +224,7 @@ struct QuestionsView: View {
     /// launch). `resolvePendingSelection` completes the deferred case.
     private func selectQuestion(id: Int) {
         if let match = questions.first(where: { $0.id == id }) {
-            selection = match
+            selectedQuestionIDs = [match.id]
             pendingSelectQuestionID = nil
         } else {
             pendingSelectQuestionID = id
@@ -217,7 +234,7 @@ struct QuestionsView: View {
     private func resolvePendingSelection() {
         guard let id = pendingSelectQuestionID,
               let match = questions.first(where: { $0.id == id }) else { return }
-        selection = match
+        selectedQuestionIDs = [match.id]
         pendingSelectQuestionID = nil
     }
 
@@ -268,7 +285,7 @@ struct QuestionsView: View {
             hasPendingNavigation: pendingSelectQuestionID != nil || nav.questionsRequest != nil,
             availableIDs: Set(questions.map(\.id))
         ) else { return }
-        selectedQuestionID = id
+        selectedQuestionIDs = [id]
     }
 
     func reload() async {

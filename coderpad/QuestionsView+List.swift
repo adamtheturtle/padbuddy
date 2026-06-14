@@ -152,7 +152,7 @@ extension QuestionsView {
     }
 
     private var questionsList: some View {
-        List(selection: $selectedQuestionID) {
+        List(selection: $selectedQuestionIDs) {
             ForEach(sorted) { question in
                 QuestionRow(question: question, isFavorite: favoriteIDSet.contains(question.id),
                             onToggleFavorite: { toggleFavorite(question) })
@@ -166,7 +166,7 @@ extension QuestionsView {
                             // Same path as the context menu and detail
                             // "New Pad" button: select the question, then
                             // let its detail pane create and open the pad.
-                            selection = question
+                            selectedQuestionIDs = [question.id]
                             nav.createPadForQuestionID = question.id
                         } label: {
                             Label("New Pad", systemImage: "doc.badge.plus")
@@ -189,9 +189,22 @@ extension QuestionsView {
         // stay enabled whenever this window is frontmost and a question
         // is selected, not only while the list holds keyboard focus.
         .focusedSceneValue(\.focusedQuestion, selection)
-        // Edit ▸ Copy / ⌘C copies the selected question's web URL while the list
-        // holds focus, matching the row's "Copy Question URL" context action.
-        .onCopyCommand(perform: copyLinkCommand(selection.map { $0.webURL(baseURL: client.baseURL).absoluteString }))
+        // Edit ▸ Copy / ⌘C copies the selected questions' web URLs (one per line)
+        // while the list holds focus, matching the row's "Copy Question URL" action
+        // and extending it to a multi-row selection.
+        .onCopyCommand(perform: copyLinkCommand(
+            selectedQuestionURLsInOrder.isEmpty ? nil
+                : selectedQuestionURLsInOrder.joined(separator: "\n")
+        ))
+    }
+
+    /// The selected questions' web URLs in the order they appear in the list (not
+    /// the selection set's arbitrary order), so a multi-row Copy reads top to bottom.
+    private var selectedQuestionURLsInOrder: [String] {
+        sorted.compactMap { question in
+            selectedQuestionIDs.contains(question.id)
+                ? question.webURL(baseURL: client.baseURL).absoluteString : nil
+        }
     }
 
     /// Right-click actions for a question row. Actions that need the detail pane's
@@ -200,55 +213,66 @@ extension QuestionsView {
     /// from Question" — so the detail view performs them with its existing UI.
     @ViewBuilder
     func questionContextMenu(_ question: Question) -> some View {
-        Button {
-            // Mirror the detail view's "New Pad" button: select the question so
-            // its detail pane shows, then let that pane create the pad and open
-            // it inline.
-            selection = question
-            nav.createPadForQuestionID = question.id
-        } label: {
-            Label("New Pad from Question", systemImage: "plus.rectangle.on.rectangle")
-        }
-        favoriteToggleButton(question)
-        Button {
-            selection = question
-            nav.editQuestionID = question.id
-        } label: {
-            Label("Edit Question…", systemImage: "pencil")
-        }
-        ShareLink(item: question.webURL(baseURL: client.baseURL)) {
-            Label("Share…", systemImage: "square.and.arrow.up")
-        }
-        Divider()
-        Button {
-            copyToPasteboard(question.displayTitle)
-        } label: {
-            Label("Copy Title", systemImage: "doc.on.doc")
-        }
-        Button {
-            copyToPasteboard(question.webURL(baseURL: client.baseURL).absoluteString)
-        } label: {
-            Label("Copy Question URL", systemImage: "link")
-        }
-        Button {
-            ownerFilter = question.ownerEmail
-        } label: {
-            Label("Show Questions from \(directory.display(question.ownerEmail))", systemImage: "person")
-        }
-        if let lang = question.language, !lang.isEmpty {
+        // Right-clicking a row that's part of a multi-row selection copies every
+        // selected link at once, Finder-style; a single row keeps its full menu.
+        if selectedQuestionIDs.count > 1, selectedQuestionIDs.contains(question.id) {
+            let urls = selectedQuestionURLsInOrder
             Button {
-                languageFilter = lang.lowercased()
+                copyToPasteboard(urls.joined(separator: "\n"))
             } label: {
-                Label("Show \(lang.languageDisplayName) Questions",
-                      systemImage: "chevron.left.slash.chevron.right")
+                Label("Copy \(urls.count) Question Links", systemImage: "link")
             }
-        }
-        Divider()
-        Button(role: .destructive) {
-            selection = question
-            nav.deleteQuestionID = question.id
-        } label: {
-            Label("Delete Question…", systemImage: "trash")
+        } else {
+            Button {
+                // Mirror the detail view's "New Pad" button: select the question so
+                // its detail pane shows, then let that pane create the pad and open
+                // it inline.
+                selectedQuestionIDs = [question.id]
+                nav.createPadForQuestionID = question.id
+            } label: {
+                Label("New Pad from Question", systemImage: "plus.rectangle.on.rectangle")
+            }
+            favoriteToggleButton(question)
+            Button {
+                selectedQuestionIDs = [question.id]
+                nav.editQuestionID = question.id
+            } label: {
+                Label("Edit Question…", systemImage: "pencil")
+            }
+            ShareLink(item: question.webURL(baseURL: client.baseURL)) {
+                Label("Share…", systemImage: "square.and.arrow.up")
+            }
+            Divider()
+            Button {
+                copyToPasteboard(question.displayTitle)
+            } label: {
+                Label("Copy Title", systemImage: "doc.on.doc")
+            }
+            Button {
+                copyToPasteboard(question.webURL(baseURL: client.baseURL).absoluteString)
+            } label: {
+                Label("Copy Question URL", systemImage: "link")
+            }
+            Button {
+                ownerFilter = question.ownerEmail
+            } label: {
+                Label("Show Questions from \(directory.display(question.ownerEmail))", systemImage: "person")
+            }
+            if let lang = question.language, !lang.isEmpty {
+                Button {
+                    languageFilter = lang.lowercased()
+                } label: {
+                    Label("Show \(lang.languageDisplayName) Questions",
+                          systemImage: "chevron.left.slash.chevron.right")
+                }
+            }
+            Divider()
+            Button(role: .destructive) {
+                selectedQuestionIDs = [question.id]
+                nav.deleteQuestionID = question.id
+            } label: {
+                Label("Delete Question…", systemImage: "trash")
+            }
         }
     }
 
