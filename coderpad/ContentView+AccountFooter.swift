@@ -10,6 +10,11 @@ struct AccountFooter: View {
     @State private var store = AccountsStore.shared
     @State private var monitor = AccountHealthMonitor.shared
     @State private var addingAccount: Account?
+    /// Size of the combined-view glyph, paired with (and roughly matching) the 30pt
+    /// avatar shown in the single-account branch. Scales with the user's text size so
+    /// it honors accessibility sizing; the two branches are mutually exclusive, so this
+    /// growing independently of the fixed avatar never causes a mismatch.
+    @ScaledMetric(relativeTo: .largeTitle) private var mergedIconSize: CGFloat = 28
 
     var body: some View {
         HStack(spacing: 10) {
@@ -123,7 +128,7 @@ struct AccountFooter: View {
         return HStack(spacing: 10) {
             if isMerged {
                 Image(systemName: "person.2.circle.fill")
-                    .font(.system(size: 28))
+                    .font(.system(size: mergedIconSize))
                     .foregroundStyle(.purple)
             } else if let account = store.currentAccount {
                 AvatarCircle(account: account, diameter: 30)
