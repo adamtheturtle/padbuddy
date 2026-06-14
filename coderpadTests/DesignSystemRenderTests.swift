@@ -11,7 +11,7 @@
 //  dependency and nothing to keep in sync.
 //
 
-@testable import coderpad
+@testable import CoderPad
 import SwiftUI
 import Testing
 

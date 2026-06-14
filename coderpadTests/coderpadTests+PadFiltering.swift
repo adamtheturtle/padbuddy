@@ -3,7 +3,7 @@
 //  coderpadTests
 //
 
-@testable import coderpad
+@testable import CoderPad
 import Foundation
 import Testing
 
