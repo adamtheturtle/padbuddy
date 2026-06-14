@@ -39,40 +39,28 @@ final class CoderpadUITests: XCTestCase {
             .matching(NSPredicate(format: "label BEGINSWITH %@", title)).firstMatch
     }
 
-    /// Browse pads: the demo account's seeded pads appear in the list on launch.
+    /// The core navigation flow in a single cold launch: the seeded Pads paint, ⌘2
+    /// switches to Questions (and they load), and ⌘1 returns to Pads with the list
+    /// restored. Collapses what were three separate tests — each re-launching and
+    /// re-waiting the same initial Pads paint — into one launch, since the
+    /// round-trip is a superset of the other two. UI tests stay a thin smoke layer;
+    /// the unit + render tiers carry the real coverage.
     @MainActor
-    func testDemoPadsAppearInList() {
+    func testSectionNavigationFlow() {
         let app = launchDemoApp()
+
+        // Pads paint on launch.
         XCTAssertTrue(padRow("Onsite: Jane Doe", in: app).waitForExistence(timeout: Self.listLoadTimeout),
                       "A seeded demo pad should appear once the list loads")
         XCTAssertTrue(padRow("Phone screen: Sam Lee", in: app).exists,
                       "Other seeded demo pads should be listed too")
-    }
 
-    /// Switch sections: ⌘2 moves to Questions (the menu shortcut), and the demo
-    /// questions load there.
-    @MainActor
-    func testSwitchToQuestionsSection() {
-        let app = launchDemoApp()
-        // Wait for the initial Pads paint so the window is up before navigating.
-        XCTAssertTrue(padRow("Onsite: Jane Doe", in: app).waitForExistence(timeout: Self.listLoadTimeout))
-
+        // ⌘2 → Questions, and the seeded questions load there.
         app.typeKey("2", modifierFlags: .command) // View ▸ Questions
-
         XCTAssertTrue(app.staticTexts["FizzBuzz"].waitForExistence(timeout: Self.listLoadTimeout),
                       "A seeded demo question should appear after switching to Questions")
-    }
 
-    /// Section shortcuts round-trip: ⌘2 to Questions then ⌘1 back to Pads restores
-    /// the pad list.
-    @MainActor
-    func testSectionShortcutsRoundTrip() {
-        let app = launchDemoApp()
-        XCTAssertTrue(padRow("Onsite: Jane Doe", in: app).waitForExistence(timeout: Self.listLoadTimeout))
-
-        app.typeKey("2", modifierFlags: .command) // Questions
-        XCTAssertTrue(app.staticTexts["FizzBuzz"].waitForExistence(timeout: Self.listLoadTimeout))
-
+        // ⌘1 → back to Pads restores the list.
         app.typeKey("1", modifierFlags: .command) // back to Pads
         XCTAssertTrue(padRow("Onsite: Jane Doe", in: app).waitForExistence(timeout: Self.listLoadTimeout),
                       "Returning to Pads should show the pad list again")
