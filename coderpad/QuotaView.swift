@@ -12,10 +12,6 @@ struct QuotaView: View {
     @State private var quota: Quota?
     @State private var isLoading = false
     @State private var error: Error?
-    /// The header gauge glyph's point size, scaled with the user's preferred text
-    /// size (tracking Large Title) so it grows with the accessibility setting
-    /// rather than staying fixed.
-    @ScaledMetric(relativeTo: .largeTitle) private var gaugeGlyphSize: CGFloat = 36
 
     var body: some View {
         Group {
@@ -26,7 +22,6 @@ struct QuotaView: View {
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
-                        header
                         if let quota {
                             statTiles(quota)
                             if let pace = QuotaPace(quota: quota, now: Date()) {
@@ -63,20 +58,6 @@ struct QuotaView: View {
             ToolbarItem(placement: .automatic) {
                 ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
             }
-        }
-    }
-
-    private var header: some View {
-        HStack(spacing: 14) {
-            Image(systemName: "gauge.with.dots.needle.67percent")
-                .font(.system(size: gaugeGlyphSize))
-                .foregroundStyle(.tint)
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Plan & Quota").font(.title2.weight(.semibold))
-                Text("Usage and limits on your CoderPad subscription.")
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
         }
     }
 
@@ -171,9 +152,6 @@ struct QuotaView: View {
         Card {
             VStack(alignment: .leading, spacing: 10) {
                 SectionHeader(title: "Details", systemImage: "list.bullet")
-                if let used = quota.padsUsed {
-                    LabeledRow(label: "Pads used", value: "\(used)")
-                }
                 if quota.unlimited != true, let limit = quota.billingCyclePadLimit {
                     LabeledRow(label: "Billing cycle limit", value: "\(limit)")
                 }

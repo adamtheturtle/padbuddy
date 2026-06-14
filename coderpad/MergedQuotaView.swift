@@ -215,9 +215,6 @@ struct QuotaDetail: View {
         Card {
             VStack(alignment: .leading, spacing: 10) {
                 SectionHeader(title: "Details", systemImage: "list.bullet")
-                if let used = quota.padsUsed {
-                    LabeledRow(label: "Pads used", value: "\(used)")
-                }
                 if quota.unlimited != true, let limit = quota.billingCyclePadLimit {
                     LabeledRow(label: "Billing cycle limit", value: "\(limit)")
                 }
