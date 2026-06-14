@@ -156,10 +156,18 @@ extension QuestionDetailView {
             VStack(alignment: .leading, spacing: 10) {
                 SectionHeader(title: "Candidate Instructions", systemImage: "text.book.closed")
                 ForEach(Array(question.candidateInstructions.enumerated()), id: \.offset) { _, item in
-                    MarkdownText(item.instructions)
-                        .font(.callout)
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    VStack(alignment: .leading, spacing: 6) {
+                        // Mirror the test-case "Hidden" badge: an instruction the
+                        // candidate doesn't see by default is meaningful review context.
+                        if !item.defaultVisible {
+                            Chip(text: "Hidden by default", systemImage: "eye.slash", tint: .gray)
+                        }
+                        MarkdownText(item.instructions)
+                            .font(.callout)
+                            .textSelection(.enabled)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
