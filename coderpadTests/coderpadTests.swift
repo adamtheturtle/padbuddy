@@ -303,3 +303,74 @@ struct ServicesProviderTests {
         #expect(ServicesProvider.padID(fromSelection: "coderpad://pad/") == nil)
     }
 }
+
+@Suite("Model conveniences")
+struct ModelConveniencesTests {
+    private func pad(_ json: String) throws -> Pad {
+        try CoderPadClient.decoder.decode(Pad.self, from: Data(json.utf8))
+    }
+
+    private func question(_ json: String) throws -> Question {
+        try CoderPadClient.decoder.decode(Question.self, from: Data(json.utf8))
+    }
+
+    @Test
+    func `pad webURL and playbackURL parse the API strings`() throws {
+        let decoded = try pad(#"""
+        {"id": "P1", "url": "https://app.coderpad.io/P1", "playback": "https://app.coderpad.io/P1/playback"}
+        """#)
+        #expect(decoded.webURL == URL(string: "https://app.coderpad.io/P1"))
+        #expect(decoded.playbackURL == URL(string: "https://app.coderpad.io/P1/playback"))
+
+        // No playback string → no playback URL.
+        #expect(try pad(#"{"id": "P2", "url": "https://app.coderpad.io/P2"}"#).playbackURL == nil)
+    }
+
+    @Test
+    func `question webURL is built from the account's base URL`() throws {
+        let decoded = try question(#"{"id": 42, "title": "Two Sum"}"#)
+        #expect(decoded.webURL(baseURL: URL(string: "https://app.coderpad.io")!)
+            == URL(string: "https://app.coderpad.io/questions/42"))
+        // Honors a custom CoderPad domain.
+        #expect(decoded.webURL(baseURL: URL(string: "https://acme.coderpad.io")!)
+            == URL(string: "https://acme.coderpad.io/questions/42"))
+    }
+
+    @Test
+    func `pad isEnded prefers ended_at then falls back to state`() throws {
+        #expect(try pad(#"{"id": "P", "state": "started"}"#).isEnded == false)
+        #expect(try pad(#"{"id": "P", "state": "ended"}"#).isEnded == true)
+        // ended_at present overrides a non-terminal state.
+        #expect(try pad(#"{"id": "P", "state": "started", "ended_at": "2026-06-09T23:02:35Z"}"#).isEnded == true)
+    }
+
+    @Test
+    func `InterviewType normalizes the spellings the API has used`() {
+        #expect(InterviewType(rawType: "live") == .live)
+        #expect(InterviewType(rawType: "take-home") == .takeHome)
+        #expect(InterviewType(rawType: "take_home") == .takeHome)
+        #expect(InterviewType(rawType: "takehome") == .takeHome)
+        #expect(InterviewType(rawType: "TAKE-HOME") == .takeHome)
+        #expect(InterviewType(rawType: nil) == nil)
+        #expect(InterviewType(rawType: "mystery") == nil)
+    }
+
+    @Test
+    func `question interviewType prefers pad_type then take_home, defaulting to live`() throws {
+        #expect(try question(#"{"id": 1, "pad_type": "take-home", "take_home": false}"#).interviewType == .takeHome)
+        #expect(try question(#"{"id": 2, "take_home": true}"#).interviewType == .takeHome)
+        #expect(try question(#"{"id": 3}"#).interviewType == .live)
+    }
+
+    @Test
+    func `PadState folds synonyms and preserves unknown values`() {
+        #expect(PadState(apiState: "started") == .active)
+        #expect(PadState(apiState: "running") == .active)
+        #expect(PadState(apiState: "finished") == .ended)
+        #expect(PadState(apiState: "draft") == .pending)
+        #expect(PadState(apiState: "queued") == .other("queued"))
+        // Round-trips through its rawValue (backs saved-search persistence).
+        #expect(PadState(rawValue: "ended") == .ended)
+        #expect(PadState.other("queued").rawValue == "queued")
+    }
+}
