@@ -38,18 +38,25 @@ enum DockBadge {
         }
         // Only the user's own started pads, scoped per account: ownership is compared
         // against each account's configured email (matching `MergedPadsView.isMine`),
-        // so other interviewers' live pads don't count.
-        let emails = Dictionary(
-            AccountsStore.shared.accounts.map { ($0.id, $0.userEmail) },
+        // so other interviewers' live pads don't count. Emails are canonicalized once
+        // per account (case- and plus-addressing-folded; see `String.canonicalOwnerEmail`)
+        // so a pad owned via a sub-address alias still counts as the account user's.
+        let canonicalEmails = Dictionary(
+            AccountsStore.shared.accounts
+                .filter { !$0.userEmail.isEmpty }
+                .map { ($0.id, $0.userEmail.canonicalOwnerEmail) },
             uniquingKeysWith: { first, _ in first }
         )
         let count = PadsCacheStore.shared.padsByAccount.reduce(0) { running, entry in
             let (accountID, pads) = entry
-            guard let email = emails[accountID] else { return running }
+            guard let email = canonicalEmails[accountID] else { return running }
             return running + pads.filter {
-                $0.status == .active && $0.ownerEmail.caseInsensitiveCompare(email) == .orderedSame
+                $0.status == .active && $0.ownerEmail.canonicalOwnerEmail == email
             }.count
         }
         NSApp.dockTile.badgeLabel = count > 0 ? "\(count)" : nil
+        // Force the tile to redraw. Setting `badgeLabel` alone doesn't always refresh a
+        // tile that's already on screen, so the new count can otherwise go unshown.
+        NSApp.dockTile.display()
     }
 }

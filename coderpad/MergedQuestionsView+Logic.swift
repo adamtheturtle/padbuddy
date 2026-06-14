@@ -102,7 +102,7 @@ extension MergedQuestionsView {
     }
 
     func isMine(_ row: AccountScoped<Question>) -> Bool {
-        row.item.ownerEmail.caseInsensitiveCompare(row.account.userEmail) == .orderedSame
+        row.account.owns(row.item.ownerEmail)
     }
 
     func isFavorite(_ row: AccountScoped<Question>) -> Bool {

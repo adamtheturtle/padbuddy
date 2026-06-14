@@ -171,6 +171,45 @@ struct AccountRoundTripTests {
     }
 }
 
+@Suite("Account ownership matching")
+struct AccountOwnershipTests {
+    @Test
+    func `owns matches the exact address, ignoring case`() {
+        let account = Account(name: "A", apiKey: "k", userEmail: "Me@Acme.co")
+        #expect(account.owns("me@acme.co"))
+        #expect(account.owns("ME@ACME.CO"))
+    }
+
+    @Test
+    func `owns folds plus-addressing in either direction`() {
+        // A pad owned via a sub-address alias still counts as the base mailbox's owner.
+        let base = Account(name: "A", apiKey: "k", userEmail: "hello@acme.co")
+        #expect(base.owns("hello+cursor@acme.co"))
+        // And an account configured with the alias still owns base-addressed pads.
+        let alias = Account(name: "B", apiKey: "k", userEmail: "hello+cursor@acme.co")
+        #expect(alias.owns("hello@acme.co"))
+        #expect(alias.owns("hello+other@acme.co"))
+    }
+
+    @Test
+    func `owns rejects a different mailbox or domain`() {
+        let account = Account(name: "A", apiKey: "k", userEmail: "hello@acme.co")
+        #expect(!account.owns("someone@acme.co"))
+        #expect(!account.owns("hello@other.co"))
+    }
+
+    @Test
+    func `owns never matches when either side is empty`() {
+        // A draft account (empty email) must not claim an unowned pad, and a real
+        // account must not match a pad whose owner_email is blank.
+        let draft = Account(name: "A", apiKey: "k", userEmail: "")
+        #expect(!draft.owns(""))
+        #expect(!draft.owns("hello@acme.co"))
+        let real = Account(name: "B", apiKey: "k", userEmail: "hello@acme.co")
+        #expect(!real.owns(""))
+    }
+}
+
 @Suite("Color hex")
 struct ColorHexTests {
     @Test func `hex string round-trips through Color`() {

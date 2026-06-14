@@ -31,6 +31,22 @@ final class SerialWriteQueue: Sendable {
     }
 }
 
+extension String {
+    /// This email address reduced to a canonical mailbox form for ownership checks:
+    /// trimmed, lowercased, with any plus-addressing tag removed. People route pads to
+    /// one mailbox via sub-addresses (`hello+cursor@acme.co`), and CoderPad records the
+    /// alias verbatim as the owner, so folding the `+tag` lets the app still recognize
+    /// those as the account user's. Only the explicit `+tag` convention is folded; dots
+    /// and other provider-specific quirks are left untouched.
+    var canonicalOwnerEmail: String {
+        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard let at = trimmed.firstIndex(of: "@") else { return trimmed }
+        let local = trimmed[..<at]
+        guard let plus = local.firstIndex(of: "+") else { return trimmed }
+        return String(local[..<plus]) + trimmed[at...]
+    }
+}
+
 struct Account: Identifiable, Codable, Hashable {
     let id: UUID
     var name: String
@@ -143,6 +159,15 @@ struct Account: Identifiable, Codable, Hashable {
             return url
         }
         return CoderPadClient.defaultBaseURL
+    }
+
+    /// Whether `ownerEmail` (a pad or question owner) belongs to this account's user,
+    /// folding case and plus-addressing so an item owned via a sub-address alias
+    /// (`hello+cursor@acme.co`) still counts as the base mailbox (`hello@acme.co`).
+    /// This backs "my pads"/"my questions" and the Dock badge. Guards against an
+    /// empty account email so a draft account (or a pad with no owner) never matches.
+    func owns(_ ownerEmail: String) -> Bool {
+        !userEmail.isEmpty && ownerEmail.canonicalOwnerEmail == userEmail.canonicalOwnerEmail
     }
 
     /// Email of the mock data's "Demo User", who owns several of the mock pads and

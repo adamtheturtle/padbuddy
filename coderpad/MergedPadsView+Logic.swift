@@ -62,7 +62,7 @@ extension MergedPadsView {
     /// Whether `row`'s pad is owned by its own account's user. Ownership is account
     /// scoped, so "mine" is compared against each pad's source account.
     func isMine(_ row: AccountScoped<Pad>) -> Bool {
-        row.item.ownerEmail.caseInsensitiveCompare(row.account.userEmail) == .orderedSame
+        row.account.owns(row.item.ownerEmail)
     }
 
     func pad(forID id: String) -> Pad? {
