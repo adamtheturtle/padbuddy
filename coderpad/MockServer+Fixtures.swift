@@ -10,53 +10,12 @@
 import Foundation
 
 nonisolated enum MockFixtures {
-    // The mutable stores below are unsynchronized storage, made safe by the single
-    // `MockResponses.lock` that serializes every request: they are only ever read or
-    // written from within `respondLocked`, which always runs under that lock. The
-    // `unsafe` is the vouch for that external synchronization, not an unchecked race.
-    nonisolated(unsafe) static var createdPads: [[String: Any]] = []
-    nonisolated(unsafe) static var updatedPads: [String: [String: Any]] = [:]
-    nonisolated(unsafe) static var deletedPadIDs: Set<String> = []
-    nonisolated(unsafe) static var createdQuestions: [[String: Any]] = []
-    nonisolated(unsafe) static var updatedQuestions: [Int: [String: Any]] = [:]
-    nonisolated(unsafe) static var deletedQuestionIDs: Set<Int> = []
+    // Session edits (created / updated / deleted pads and questions) and the
+    // `allPads()` / `allQuestions()` merge over these seeds now live on `MockState`,
+    // one instance per API key, so concurrent tests don't share mutable state.
+    // Everything below is immutable seed data, safe to read from any thread.
 
-    static func allQuestions() -> [[String: Any]] {
-        let merged = questions().map { question -> [String: Any] in
-            guard let id = question["id"] as? Int, let updates = updatedQuestions[id] else { return question }
-            var combined = question
-            for (key, value) in updates where key != "id" {
-                combined[key] = value
-            }
-            return combined
-        }
-        return (merged + createdQuestions).filter { question in
-            guard let id = question["id"] as? Int else { return true }
-            return !deletedQuestionIDs.contains(id)
-        }
-    }
-
-    static func allPads() -> [[String: Any]] {
-        func applyUpdates(_ pad: [String: Any]) -> [String: Any] {
-            guard let id = pad["id"] as? String, let updates = updatedPads[id] else { return pad }
-            var merged = pad
-            for (key, value) in updates where key != "id" {
-                merged[key] = value
-            }
-            return merged
-        }
-        // Both seed pads and pads created during the session need their `updatedPads`
-        // overrides applied, otherwise ending/editing a freshly-created pad silently
-        // no-ops while still returning HTTP 200.
-        let base = seedPads().map(applyUpdates)
-        let created = createdPads.map(applyUpdates)
-        return (base + created).filter { pad in
-            guard let id = pad["id"] as? String else { return true }
-            return !deletedPadIDs.contains(id)
-        }
-    }
-
-    private static func seedPads() -> [[String: Any]] {
+    static func seedPads() -> [[String: Any]] {
         [
             // Two environments: an active single-file Python and a multi-file
             // JavaScript. Exercises the stacked Code cards, the Active flag, and

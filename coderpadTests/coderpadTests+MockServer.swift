@@ -7,11 +7,13 @@
 import Foundation
 import Testing
 
-// Serialized: these tests share MockFixtures' process-wide mutable state (created /
-// updated / deleted pads), so concurrent execution would race on pad counts.
-@Suite("Mock server end-to-end", .serialized)
+// Each test gets its own mock client keyed by a unique API key, so its created /
+// updated / deleted pads land in an isolated `MockState` rather than process-wide
+// storage. With no shared mutable state to race on, the suite runs in parallel
+// (no `.serialized`).
+@Suite("Mock server end-to-end")
 struct MockServerTests {
-    private let client = CoderPadClient.mock()
+    private let client = CoderPadClient.mock(key: "test-\(UUID().uuidString)")
 
     @Test
     func `listPads returns the seeded pads`() async throws {

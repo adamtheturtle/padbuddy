@@ -71,7 +71,11 @@ final nonisolated class MockURLProtocol: URLProtocol {
             .queryItems?
             .reduce(into: [String: String]()) { $0[$1.name] = $1.value } ?? [:]
 
-        let (status, body) = MockResponses.respond(method: method, path: path, query: query, body: bodyData)
+        // Route to the per-API-key state (carried in the Authorization header the
+        // client sets on every request), so each client — the app's demo account,
+        // and each test — sees an isolated store.
+        let state = MockStateRegistry.state(forKey: Self.apiKey(from: request))
+        let (status, body) = MockResponses.respond(state: state, method: method, path: path, query: query, body: bodyData)
 
         let headers = ["Content-Type": "application/json"]
         let response = HTTPURLResponse(url: url, statusCode: status, httpVersion: "HTTP/1.1", headerFields: headers)!
@@ -81,6 +85,15 @@ final nonisolated class MockURLProtocol: URLProtocol {
     }
 
     override func stopLoading() {}
+
+    /// The API key from the request's `Authorization: Bearer <key>` header, used to
+    /// pick the request's `MockState`. Falls back to "demo" when absent so a stray
+    /// unauthenticated request still resolves to a valid store.
+    private static func apiKey(from request: URLRequest) -> String {
+        let header = request.value(forHTTPHeaderField: "Authorization") ?? ""
+        let key = header.hasPrefix("Bearer ") ? String(header.dropFirst("Bearer ".count)) : header
+        return key.isEmpty ? "demo" : key
+    }
 
     private static func drain(stream: InputStream?) -> Data? {
         guard let stream else { return nil }

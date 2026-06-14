@@ -126,9 +126,12 @@ struct CoderPadClient {
     }
 
     /// `unauthorized: true` returns a client whose mock server answers 401 for every
-    /// request, backing the "bad key" demo account.
-    static func mock(unauthorized: Bool = false) -> CoderPadClient {
-        CoderPadClient(apiKey: "demo", session: MockServer.session(unauthorized: unauthorized))
+    /// request, backing the "bad key" demo account. `key` selects the mock's
+    /// per-client state store (see `MockState`): it defaults to "demo" so the app's
+    /// demo account shares one session store, while tests pass a unique key each so
+    /// their mutations stay isolated and the suite can run in parallel.
+    static func mock(unauthorized: Bool = false, key: String = "demo") -> CoderPadClient {
+        CoderPadClient(apiKey: key, session: MockServer.session(unauthorized: unauthorized))
     }
 
     /// The API mixes fractional- and whole-second ISO-8601 timestamps, so we try both.
