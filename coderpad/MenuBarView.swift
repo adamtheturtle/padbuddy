@@ -10,9 +10,18 @@ struct MenuBarLabel: View {
     @State private var monitor = PadActivityMonitor.shared
 
     var body: some View {
-        Image(systemName: monitor.unseenChangedCount > 0
-            ? "doc.text.magnifyingglass.badge"
-            : "doc.text.magnifyingglass")
+        // `doc.text.magnifyingglass` has no `.badge` variant, so when there are
+        // unseen pad changes we overlay a small dot rather than swap the glyph.
+        // The menu bar renders the label as a monochrome template, so the dot
+        // tracks the bar's foreground tint instead of showing red.
+        Image(systemName: "doc.text.magnifyingglass")
+            .overlay(alignment: .topTrailing) {
+                if monitor.unseenChangedCount > 0 {
+                    Circle()
+                        .frame(width: 5, height: 5)
+                        .offset(x: 3, y: -2)
+                }
+            }
     }
 }
 
