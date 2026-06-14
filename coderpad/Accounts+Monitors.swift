@@ -68,6 +68,56 @@ final class AccountHealthMonitor {
     }
 }
 
+/// Keeps the current account's pads fresh on a timer, independent of any UI.
+///
+/// Normal use already refreshes the cache: opening the menu bar, opening a window,
+/// or switching sections all refetch. The one gap is an app left running with no
+/// window open and the menu never clicked while pads change server-side — nothing
+/// fetches in that state, so the Recent Pads widget and Dock badge show the last
+/// snapshot until the next interaction. This closes that gap.
+///
+/// Writing the result through `PadsCacheStore.set` is what makes it worthwhile: that
+/// cascades to the widget's shared snapshot and the active-pads Dock badge, so both
+/// stay current without any window on screen.
+final class PadsBackgroundRefresher {
+    static let shared = PadsBackgroundRefresher()
+    private var refreshTask: Task<Void, Never>?
+    private init() {}
+
+    /// Refetches the current account's pads on a fixed interval (default 5 min).
+    /// Idempotent: repeated calls keep the single existing timer. Started once at
+    /// launch so it runs whether or not a window is open — unlike the per-section
+    /// loads, which only fire while the UI is on screen.
+    func start(every interval: Duration = .seconds(300)) {
+        guard refreshTask == nil else { return }
+        refreshTask = Task { [weak self] in
+            while !Task.isCancelled {
+                // No immediate fetch: launch already presents a window that loads the
+                // current account, so the first useful background tick is one interval out.
+                try? await Task.sleep(for: interval)
+                if Task.isCancelled { break }
+                await self?.refreshCurrentAccount()
+            }
+        }
+    }
+
+    func stop() {
+        refreshTask?.cancel()
+        refreshTask = nil
+    }
+
+    func refreshCurrentAccount() async {
+        // Skip mock/demo accounts (their data is static, so a refresh would only churn
+        // the widget timeline) and any account without a key to fetch with.
+        guard let account = AccountsStore.shared.currentAccount,
+              !account.isMock, !account.apiKey.isEmpty else { return }
+        let client = account.makeClient()
+        guard let fetched = try? await client.listPads(sort: "updated_at,desc") else { return }
+        // `set` cascades to the widget snapshot and the active-pads Dock badge.
+        PadsCacheStore.shared.set(account.id, pads: fetched)
+    }
+}
+
 @Observable
 final class PadActivityMonitor {
     static let shared = PadActivityMonitor()
@@ -78,13 +128,10 @@ final class PadActivityMonitor {
     func record(changedCount: Int) {
         if changedCount > 0 {
             unseenChangedCount = changedCount
-            // Keep the Dock badge current when it's set to count new activity.
-            DockBadge.refresh()
         }
     }
 
     func markSeen() {
         unseenChangedCount = 0
-        DockBadge.refresh()
     }
 }
