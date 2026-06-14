@@ -7,6 +7,7 @@ import SwiftUI
 
 struct Sidebar: View {
     @Binding var section: AppSection
+    @Environment(\.colorScheme) private var colorScheme
     @State private var accounts = AccountsStore.shared
     @State private var savedSearches = SavedSearchStore.shared
     @State private var favorites = FavoriteQuestionsStore.shared
@@ -52,12 +53,16 @@ struct Sidebar: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         // The NavigationSplitView sidebar column already paints the vibrant source
         // list material all the way up behind the titlebar, so the traffic lights
-        // sit on the sidebar like Mail without a custom NSVisualEffectView. A subtle
-        // dark scrim over it deepens the sidebar so it reads as distinctly darker
-        // than the content pane, the way Mail's does, while still letting the
-        // translucency show through.
+        // sit on the sidebar like Mail without a custom NSVisualEffectView. In dark
+        // mode a subtle dark scrim deepens the sidebar so it reads as distinctly
+        // darker than the content pane, the way Mail's does. In light mode the App
+        // Store (and Mail) keep the sidebar light — so the scrim is omitted there
+        // and the native light source-list material shows through, instead of the
+        // grey wash a dark scrim would leave over a light background.
         .background {
-            Color.black.opacity(0.18).ignoresSafeArea()
+            if colorScheme == .dark {
+                Color.black.opacity(0.18).ignoresSafeArea()
+            }
         }
     }
 
