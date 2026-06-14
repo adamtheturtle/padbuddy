@@ -221,6 +221,14 @@ extension PadDetailView {
                         HStack(spacing: 6) {
                             Text(displayKind(group.representative.kind))
                                 .font(.callout.weight(.semibold))
+                            // Event-specific context from `metadata` — e.g. the language
+                            // for a run, the question id, or a spectator join — kept as
+                            // restrained secondary text to match the timeline.
+                            if let context = eventContext(group.representative) {
+                                Text(context)
+                                    .font(.callout)
+                                    .foregroundStyle(.secondary)
+                            }
                             if group.count > 1 {
                                 Chip(text: "×\(group.count)", tint: .accentColor)
                             }
@@ -307,6 +315,21 @@ extension PadDetailView {
         kind.replacingOccurrences(of: "_", with: " ").capitalized
     }
 
+    /// A short, human-readable detail drawn from an event's `metadata`, interpreted
+    /// by kind: the language for a run ("Ran Python"), the question id for an added
+    /// question ("Added Question #123"), or a spectator join ("Joined as spectator").
+    /// `nil` when there's no metadata or it isn't one of these recognized shapes.
+    private func eventContext(_ event: PadEvent) -> String? {
+        guard let meta = event.metadata?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !meta.isEmpty else { return nil }
+        switch event.kind.lowercased() {
+        case "ran", "executed": return meta.languageDisplayName
+        case "added_question": return "#\(meta)"
+        case "joined" where meta.lowercased() == "spectator": return "as spectator"
+        default: return nil
+        }
+    }
+
     private func icon(for kind: String) -> String {
         switch kind.lowercased() {
         case "joined": "person.fill.badge.plus"
@@ -332,6 +355,7 @@ extension PadDetailView {
 
     private func accessibilityLabel(for group: PadEventGroup) -> String {
         var parts = [displayKind(group.representative.kind)]
+        if let context = eventContext(group.representative) { parts.append(context) }
         if group.count > 1 { parts.append("\(group.count) times") }
         if let user = group.representative.userName, !user.isEmpty { parts.append("by \(user)") }
         if let when = group.representative.createdAt {
