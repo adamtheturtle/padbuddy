@@ -374,3 +374,33 @@ struct ModelConveniencesTests {
         #expect(PadState.other("queued").rawValue == "queued")
     }
 }
+
+@Suite("CodeFile language and name")
+struct CodeFileTests {
+    @Test
+    func `maps known extensions to highlighter languages`() {
+        #expect(CodeFile.language(forPath: "main.py", fallback: nil) == "python")
+        #expect(CodeFile.language(forPath: "app.tsx", fallback: nil) == "typescript")
+        #expect(CodeFile.language(forPath: "src/lib/Foo.swift", fallback: nil) == "swift")
+        // Extension match is case-insensitive.
+        #expect(CodeFile.language(forPath: "Main.PY", fallback: nil) == "python")
+    }
+
+    @Test
+    func `falls back to the environment language, stripping the multifile prefix`() {
+        // No usable extension → use the fallback, with `multifile_` stripped.
+        #expect(CodeFile.language(forPath: "Makefile", fallback: "multifile_python") == "python")
+        #expect(CodeFile.language(forPath: nil, fallback: "multifile_javascript") == "javascript")
+        // An unknown extension also defers to the fallback.
+        #expect(CodeFile.language(forPath: "data.xyz", fallback: "go") == "go")
+        // A trailing dot has no real extension, so it falls back too.
+        #expect(CodeFile.language(forPath: "file.", fallback: nil) == nil)
+    }
+
+    @Test
+    func `name is the last path component, or untitled when absent`() {
+        #expect(CodeFile(id: "1", path: "src/main.rs", contents: "", language: nil).name == "main.rs")
+        #expect(CodeFile(id: "2", path: nil, contents: "", language: nil).name == "untitled")
+        #expect(CodeFile(id: "3", path: "", contents: "", language: nil).name == "untitled")
+    }
+}
