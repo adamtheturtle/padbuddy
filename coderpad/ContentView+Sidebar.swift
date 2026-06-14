@@ -11,8 +11,13 @@ struct Sidebar: View {
     @State private var accounts = AccountsStore.shared
     @State private var savedSearches = SavedSearchStore.shared
     @State private var favorites = FavoriteQuestionsStore.shared
+    @State private var favoritePads = FavoritePadsStore.shared
     @State private var questionsCache = QuestionsCacheStore.shared
+    @State private var padsCache = PadsCacheStore.shared
     @State private var nav = AppNavigation.shared
+    /// Highlights the Favorites section while a pad or question is dragged over it,
+    /// the Finder-style cue that dropping there will pin the item.
+    @State private var droppingFavorite = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -302,6 +307,44 @@ struct Sidebar: View {
         let title: String
     }
 
+    private struct FavoritePadItem: Identifiable {
+        /// Unique per row. Pad ids are globally unique, but the merged view still
+        /// namespaces by account so removing a favorite targets the right account.
+        let id: String
+        let padID: String
+        /// The owning account when shown in the merged view; `nil` single-account.
+        let account: UUID?
+        let title: String
+    }
+
+    /// The pinned pads to show, mirroring `favoriteItems` for questions: the current
+    /// account's in a single-account view, or every mergeable account's in the
+    /// combined view. Titles come from each account's pads cache, falling back to the id.
+    private var favoritePadItems: [FavoritePadItem] {
+        if isMergedView {
+            return accounts.mergeableAccounts.flatMap { favoritePadItems(forAccount: $0.id, namespaced: true) }
+        }
+        guard let account = accountID else { return [] }
+        return favoritePadItems(forAccount: account, namespaced: false)
+    }
+
+    private func favoritePadItems(forAccount account: UUID, namespaced: Bool) -> [FavoritePadItem] {
+        let ids = favoritePads.favorites(account: account)
+        guard !ids.isEmpty else { return [] }
+        let titles = Dictionary(
+            padsCache.get(account).map { ($0.id, $0.title.isEmpty ? $0.id : $0.title) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        return ids.map { id in
+            FavoritePadItem(
+                id: namespaced ? "\(account.uuidString)-\(id)" : id,
+                padID: id,
+                account: namespaced ? account : nil,
+                title: titles[id] ?? id
+            )
+        }
+    }
+
     /// The starred questions to show: the current account's in a single-account view,
     /// or every mergeable account's (in account order) in the combined "All Accounts"
     /// view, so favorites stay reachable from the sidebar there too. Titles come from
@@ -331,28 +374,93 @@ struct Sidebar: View {
         }
     }
 
+    /// The Favorites section is always shown, even when empty, so a pad or question
+    /// row can be dragged onto it to create the first favorite (#297). Pinned pads
+    /// lead, then starred questions; an empty section shows a drop hint. Dropping
+    /// pins the dragged item to the account it came from (carried in the payload),
+    /// which is what makes a drop in the combined view land on the right account.
     @ViewBuilder
     private var favoritesSection: some View {
-        let items = favoriteItems
-        if !items.isEmpty {
-            sidebarSectionHeader("Favorites")
-            VStack(spacing: 2) {
-                ForEach(items) { item in
-                    sidebarSubRow(label: item.title, icon: "star.fill", iconTint: .yellow) {
-                        if let account = item.account {
-                            // Merged view: switch to the combined questions list and let
-                            // it select the right account's row (per-org ids collide, so
-                            // the account must travel with the id).
-                            section = .questions
-                            MergedRouting.shared.selectFavoriteQuestion(account: account, id: item.questionID)
-                        } else {
-                            nav.showFavoriteQuestion(id: item.questionID)
-                        }
+        let pads = favoritePadItems
+        let questions = favoriteItems
+        sidebarSectionHeader("Favorites")
+        VStack(spacing: 2) {
+            ForEach(pads) { item in
+                sidebarSubRow(label: item.title, icon: "star.fill", iconTint: .yellow) {
+                    if item.account != nil {
+                        section = .pads
+                        MergedRouting.shared.selectFavoritePad(id: item.padID)
+                    } else {
+                        nav.showFavoritePad(id: item.padID)
                     }
                 }
+                .contextMenu { removeFavoriteButton { unfavoritePad(item) } }
             }
-            .padding(.horizontal, 8)
+            ForEach(questions) { item in
+                sidebarSubRow(label: item.title, icon: "star.fill", iconTint: .yellow) {
+                    if let account = item.account {
+                        // Merged view: switch to the combined questions list and let
+                        // it select the right account's row (per-org ids collide, so
+                        // the account must travel with the id).
+                        section = .questions
+                        MergedRouting.shared.selectFavoriteQuestion(account: account, id: item.questionID)
+                    } else {
+                        nav.showFavoriteQuestion(id: item.questionID)
+                    }
+                }
+                .contextMenu { removeFavoriteButton { unfavoriteQuestion(item) } }
+            }
+            if pads.isEmpty, questions.isEmpty {
+                Text("Drag pads or questions here.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, 8)
+            }
         }
+        .padding(.horizontal, 8)
+        .background(
+            droppingFavorite ? Color.accentColor.opacity(0.12) : Color.clear,
+            in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+        )
+        .dropDestination(for: FavoriteDrop.self) { drops, _ in
+            handleFavoriteDrop(drops)
+        } isTargeted: { droppingFavorite = $0 }
+    }
+
+    private func removeFavoriteButton(_ action: @escaping () -> Void) -> some View {
+        Button(role: .destructive, action: action) {
+            Label("Remove from Favorites", systemImage: "star.slash")
+        }
+    }
+
+    private func unfavoritePad(_ item: FavoritePadItem) {
+        guard let account = item.account ?? accountID else { return }
+        favoritePads.remove(item.padID, account: account)
+    }
+
+    private func unfavoriteQuestion(_ item: FavoriteItem) {
+        guard let account = item.account ?? accountID else { return }
+        favorites.toggle(item.questionID, account: account)
+    }
+
+    /// Pins each dropped pad or question to the account carried in its payload (the
+    /// originating account, so a drop in the combined view lands on the right one).
+    /// Returns whether anything was accepted, which drives the drop animation.
+    private func handleFavoriteDrop(_ drops: [FavoriteDrop]) -> Bool {
+        var accepted = false
+        for drop in drops {
+            switch drop {
+            case let .pad(account, id, _):
+                favoritePads.add(id, account: account)
+                accepted = true
+            case let .question(account, id, _):
+                favorites.add(id, account: account)
+                accepted = true
+            }
+        }
+        return accepted
     }
 
     // MARK: Row chrome

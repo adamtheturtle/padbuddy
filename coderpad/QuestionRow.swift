@@ -11,11 +11,28 @@ struct QuestionRow: View {
     /// The owning account's name, shown as a badge only in the combined "All
     /// Accounts" view. `nil` in the normal single-account list.
     var accountName: String?
+    /// The owning account's id, so dragging the row onto the sidebar can pin the
+    /// question to the right account (the originating one in the merged view).
+    var account: UUID?
     var onToggleFavorite: () -> Void = {}
 
     @State private var hovered = false
 
     var body: some View {
+        // Drag onto the sidebar Favorites to pin the question (#297). Only when the
+        // owning account is known, so the drop can pin it to the right account.
+        if let account {
+            rowContent.draggable(FavoriteDrop.question(
+                account: account,
+                id: question.id,
+                title: question.displayTitle
+            ))
+        } else {
+            rowContent
+        }
+    }
+
+    private var rowContent: some View {
         // The text/metadata block keeps its top alignment (title, chips, and the
         // last-used date all read from the top), while the favorite star is
         // centered against the row's full height as a row-level action distinct

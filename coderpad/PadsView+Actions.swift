@@ -34,6 +34,27 @@ extension PadsView {
             seedQuestionID = request.seedQuestionID
             showCreate = true
         }
+        if let id = request.selectPadID { selectPad(id: id) }
+    }
+
+    /// Selects the pad with `id`, deferring until the list loads it when the favorite
+    /// was picked before the pads arrived (e.g. right after a cold launch).
+    /// `resolvePendingPadSelection` completes the deferred case.
+    func selectPad(id: String) {
+        if pads.contains(where: { $0.id == id }) {
+            selectedIDs = [id]
+            pendingSelectPadID = nil
+        } else {
+            pendingSelectPadID = id
+        }
+    }
+
+    /// Applies a deferred favorite-pad selection once its pad has loaded. A no-op
+    /// when nothing is pending, so it's safe to call after every load.
+    func resolvePendingPadSelection() {
+        guard let id = pendingSelectPadID, pads.contains(where: { $0.id == id }) else { return }
+        selectedIDs = [id]
+        pendingSelectPadID = nil
     }
 
     /// A sparkle button that fills the name field with an on-device suggestion
@@ -298,6 +319,9 @@ extension PadsView {
         // earliest point the saved selection can be resolved. Idempotent (guarded by
         // `didRestoreSelection`), so the per-refresh calls after this are no-ops.
         restoreSelectedPadIfNeeded()
+        // A sidebar favorite picked before the list loaded takes priority over the
+        // restored selection, so resolve it last.
+        resolvePendingPadSelection()
     }
 
     /// The pads that are new or whose `updatedAt` advanced since the last sweep,

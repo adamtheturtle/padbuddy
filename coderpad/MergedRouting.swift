@@ -49,6 +49,16 @@ final class MergedRouting {
         pendingFavoriteQuestion = PendingFavorite(account: account, id: id)
     }
 
+    /// A favourite pad chosen from the sidebar in the merged view. Pad ids are
+    /// CoderPad slugs (globally unique), so — unlike questions — no account needs to
+    /// travel with it: the id alone selects the right row. Set by the sidebar,
+    /// consumed and cleared by `MergedPadsView`.
+    var pendingFavoritePadID: String?
+
+    func selectFavoritePad(id: String) {
+        pendingFavoritePadID = id
+    }
+
     /// Replace the pad routing map with the accounts that own the currently merged
     /// pads. Replacing (rather than merging) keeps the map from growing without
     /// bound as lists refresh, and drops entries for pads that no longer appear.

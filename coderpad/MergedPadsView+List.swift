@@ -42,6 +42,15 @@ extension MergedPadsView {
                 nav.mergedPadsMineRequest = nil
                 if mineOnly != request { mineOnly = request }
             }
+            // A favourite pad tapped in the merged sidebar arrives here by id (pad ids
+            // are globally unique, so no account need travel with it). Cleared once
+            // consumed; left as the selection if the row hasn't loaded yet — the same
+            // best-effort the per-account view uses.
+            .onChange(of: router.pendingFavoritePadID) { _, id in
+                guard let id else { return }
+                router.pendingFavoritePadID = nil
+                selectedIDs = [id]
+            }
             .onChange(of: selectedID) { _, newID in
                 if selection?.id != newID {
                     selection = newID.flatMap { id in pad(forID: id) }
@@ -230,7 +239,8 @@ extension MergedPadsView {
             isChanged: PadListLogic.hasNewActivitySinceOpen(
                 row.item, lastOpened: openedStore.lastOpened(row.item.id, account: row.account.id)
             ),
-            accountName: row.account.name
+            accountName: row.account.name,
+            account: row.account.id
         )
         .contextMenu { padContextMenu(row) }
     }

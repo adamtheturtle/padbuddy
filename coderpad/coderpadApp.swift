@@ -39,6 +39,10 @@ struct PadsRequest: Equatable {
     /// filter set so picking a saved search from the sidebar reproduces exactly
     /// what saving it captured — the same as tapping its in-pane chip.
     var applySearch: NamedSearch?
+    /// A favorite pad to select when the pane appears, addressed by id since the
+    /// sidebar that routes it holds favorite ids, not the loaded `Pad`s (mirrors
+    /// `QuestionsRequest.selectQuestionID`).
+    var selectPadID: String?
 }
 
 /// The Questions-pane equivalent of `PadsRequest`.
@@ -193,6 +197,13 @@ final class AppNavigation {
     /// list has it, so a sidebar favorite opens straight into its detail pane.
     func showFavoriteQuestion(id: Int) {
         showQuestions(QuestionsRequest(selectQuestionID: id))
+    }
+
+    /// Switch to Pads and select the favorite pad with `id` once the list has it,
+    /// so a sidebar pad favorite opens straight into its detail pane — the pad
+    /// counterpart to ``showFavoriteQuestion(id:)``.
+    func showFavoritePad(id: String) {
+        showPads(PadsRequest(selectPadID: id))
     }
 
     /// Queue a pad id to open in the in-app browser, consumed by ContentView.

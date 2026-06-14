@@ -12,14 +12,28 @@ struct PadRow: View {
     /// Accounts" view so each row says which account it came from. `nil` in the
     /// normal single-account list, where the badge would be noise.
     var accountName: String?
+    /// The owning account's id, so a drag onto the sidebar can pin the pad to the
+    /// right account (the originating one in the merged view, not the active one).
+    var account: UUID?
     @Environment(\.orgDirectory) private var directory
 
     var body: some View {
         // Drag a pad out as its web URL, so it can be dropped into Slack, Mail,
-        // Notes, etc. as a link that reopens the pad. Only when the URL parses;
-        // otherwise the row is simply not draggable. Drop-in is tracked separately.
+        // Notes, etc. as a link that reopens the pad — and, when we know the owning
+        // account, also carry an internal favorite payload so it can be dropped onto
+        // the sidebar Favorites to pin it (#297). Only when the URL parses; otherwise
+        // the row is simply not draggable.
         if let url = pad.webURL {
-            rowContent.draggable(url)
+            if let account {
+                rowContent.draggable(PadDragPayload(
+                    account: account,
+                    id: pad.id,
+                    title: pad.title.isEmpty ? pad.id : pad.title,
+                    url: url
+                ))
+            } else {
+                rowContent.draggable(url)
+            }
         } else {
             rowContent
         }

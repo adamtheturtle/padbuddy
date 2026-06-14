@@ -155,6 +155,7 @@ extension QuestionsView {
         List(selection: $selectedQuestionIDs) {
             ForEach(sorted) { question in
                 QuestionRow(question: question, isFavorite: favoriteIDSet.contains(question.id),
+                            account: accounts.currentAccountID,
                             onToggleFavorite: { toggleFavorite(question) })
                     .tag(question.id)
                     .contextMenu { questionContextMenu(question) }

@@ -49,6 +49,10 @@ struct PadsView: View {
     /// request that carried one (e.g. the widget button). Cleared when the sheet
     /// closes so a later plain "New Pad" starts blank.
     @State var seedQuestionID: Int?
+    /// A favorite pad picked from the sidebar before the list had loaded it. Held so
+    /// the selection can be made once the matching pad arrives (mirrors
+    /// `QuestionsView.pendingSelectQuestionID`).
+    @State var pendingSelectPadID: String?
     @State var previousActivity: [String: PadActivitySnapshot] = [:]
     @State var hasLoadedOnce = false
     /// Independent date filters: one constrains the updated date, one the created

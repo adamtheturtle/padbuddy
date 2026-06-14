@@ -182,6 +182,7 @@ extension MergedQuestionsView {
                     question: row.item,
                     isFavorite: isFavorite(row),
                     accountName: row.account.name,
+                    account: row.account.id,
                     onToggleFavorite: { toggleFavorite(row) }
                 )
                 .tag(row.id)
