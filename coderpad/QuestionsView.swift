@@ -29,6 +29,11 @@ struct QuestionsView: View {
     /// links at once; `selectedQuestionID`/`selection` track the primary within it,
     /// keeping the detail pane and per-account restore/persistence working off one id.
     @State var selectedQuestionIDs: Set<Int> = []
+    /// Questions queued for a multi-row delete, awaiting the confirmation dialog, plus
+    /// the error from a failed delete. Single-row delete is delegated to the detail
+    /// view, but a bulk delete needs its own confirmation + API loop here.
+    @State var questionsPendingBulkDelete: [Question]?
+    @State var bulkDeleteError: String?
     /// Owned by `MainSplit` so the `.searchable` field can live on the split view
     /// (trailing window toolbar) rather than this content column. All the filter,
     /// saved-search, and persistence logic here still reads and writes it.
@@ -93,6 +98,27 @@ struct QuestionsView: View {
                     onSubmit: { Task { await applySmartFilter() } },
                     onCancel: { showSmartFilter = false }
                 )
+            }
+            .confirmationDialog(
+                "Delete \(questionsPendingBulkDelete?.count ?? 0) questions?",
+                isPresented: .init(get: { questionsPendingBulkDelete != nil },
+                                   set: { if !$0 { questionsPendingBulkDelete = nil } }),
+                titleVisibility: .visible,
+                presenting: questionsPendingBulkDelete
+            ) { questions in
+                Button("Delete \(questions.count) Questions", role: .destructive) {
+                    Task { await bulkDelete(questions) }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: { questions in
+                Text("These \(questions.count) questions will be permanently deleted. This can't be undone.")
+            }
+            .alert("Couldn't delete question",
+                   isPresented: .init(get: { bulkDeleteError != nil },
+                                      set: { if !$0 { bulkDeleteError = nil } })) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(bulkDeleteError ?? "")
             }
             .task {
                 for await update in AppRouter.questionUpdates {

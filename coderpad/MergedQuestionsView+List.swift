@@ -88,6 +88,27 @@ extension MergedQuestionsView {
                     creatingForAccount = nil
                 }
             }
+            .confirmationDialog(
+                "Delete \(rowsPendingBulkDelete?.count ?? 0) questions?",
+                isPresented: .init(get: { rowsPendingBulkDelete != nil },
+                                   set: { if !$0 { rowsPendingBulkDelete = nil } }),
+                titleVisibility: .visible,
+                presenting: rowsPendingBulkDelete
+            ) { rows in
+                Button("Delete \(rows.count) Questions", role: .destructive) {
+                    Task { await bulkDelete(rows) }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: { rows in
+                Text("These \(rows.count) questions will be permanently deleted. This can't be undone.")
+            }
+            .alert("Couldn't delete question",
+                   isPresented: .init(get: { bulkDeleteError != nil },
+                                      set: { if !$0 { bulkDeleteError = nil } })) {
+                Button("OK", role: .cancel) {}
+            } message: {
+                Text(bulkDeleteError ?? "")
+            }
     }
 
     var content: some View {
@@ -187,9 +208,26 @@ extension MergedQuestionsView {
     /// the selection set's arbitrary order), so a multi-row Copy reads top to bottom.
     /// Each is resolved against its own account's server URL to honor custom domains.
     private var selectedQuestionURLsInOrder: [String] {
-        sorted.compactMap { row in
-            selectedRowIDs.contains(row.id)
-                ? row.item.webURL(baseURL: row.account.resolvedBaseURL).absoluteString : nil
+        selectedRowsInOrder.map { $0.item.webURL(baseURL: $0.account.resolvedBaseURL).absoluteString }
+    }
+
+    /// The selected rows in list order, carrying their source account, for a
+    /// multi-row Copy or Delete.
+    private var selectedRowsInOrder: [AccountScoped<Question>] {
+        sorted.filter { selectedRowIDs.contains($0.id) }
+    }
+
+    /// Delete several selected questions at once, each against its own account's
+    /// client (per-org), looping the same delete-then-broadcast path the detail view
+    /// uses so every list drops the row and the selection follows. Surfaces a failure.
+    func bulkDelete(_ rows: [AccountScoped<Question>]) async {
+        for row in rows {
+            do {
+                try await row.account.makeClient().deleteQuestion(id: row.item.id)
+                AppRouter.questionDeleted(id: row.item.id, account: row.account.id)
+            } catch {
+                bulkDeleteError = error.localizedDescription
+            }
         }
     }
 
@@ -213,11 +251,19 @@ extension MergedQuestionsView {
         // Right-clicking a row that's part of a multi-row selection copies every
         // selected link at once, Finder-style; a single row keeps its full menu.
         if selectedRowIDs.count > 1, selectedRowIDs.contains(row.id) {
-            let urls = selectedQuestionURLsInOrder
+            let rows = selectedRowsInOrder
             Button {
-                copyToPasteboard(urls.joined(separator: "\n"))
+                copyToPasteboard(rows
+                    .map { $0.item.webURL(baseURL: $0.account.resolvedBaseURL).absoluteString }
+                    .joined(separator: "\n"))
             } label: {
-                Label("Copy \(urls.count) Question Links", systemImage: "link")
+                Label("Copy \(rows.count) Question Links", systemImage: "link")
+            }
+            Divider()
+            Button(role: .destructive) {
+                rowsPendingBulkDelete = rows
+            } label: {
+                Label("Delete \(rows.count) Questions…", systemImage: "trash")
             }
         } else {
             Button {

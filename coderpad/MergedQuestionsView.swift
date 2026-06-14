@@ -32,6 +32,11 @@ struct MergedQuestionsView: View {
     /// The List's selection. A set so several rows can be selected to copy their
     /// links at once; `selectedRowID`/`selection` track the primary within it.
     @State var selectedRowIDs: Set<String> = []
+    /// Rows queued for a multi-row delete (carrying their source account, so each
+    /// deletes against the right client), awaiting the confirmation dialog, plus the
+    /// error from a failed delete. Single-row delete is delegated to the detail view.
+    @State var rowsPendingBulkDelete: [AccountScoped<Question>]?
+    @State var bulkDeleteError: String?
     @Binding var search: String
 
     @State var languageFilter: String?

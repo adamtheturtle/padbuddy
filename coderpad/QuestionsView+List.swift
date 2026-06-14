@@ -201,9 +201,25 @@ extension QuestionsView {
     /// The selected questions' web URLs in the order they appear in the list (not
     /// the selection set's arbitrary order), so a multi-row Copy reads top to bottom.
     private var selectedQuestionURLsInOrder: [String] {
-        sorted.compactMap { question in
-            selectedQuestionIDs.contains(question.id)
-                ? question.webURL(baseURL: client.baseURL).absoluteString : nil
+        selectedQuestionsInOrder.map { $0.webURL(baseURL: client.baseURL).absoluteString }
+    }
+
+    /// The selected questions in list order, for a multi-row Copy or Delete.
+    private var selectedQuestionsInOrder: [Question] {
+        sorted.filter { selectedQuestionIDs.contains($0.id) }
+    }
+
+    /// Delete several selected questions at once, looping the same per-question API
+    /// path the detail view uses (delete, then broadcast so every list drops the row
+    /// and the selection follows). Surfaces a failure in the alert.
+    func bulkDelete(_ questions: [Question]) async {
+        for question in questions {
+            do {
+                try await client.deleteQuestion(id: question.id)
+                AppRouter.questionDeleted(id: question.id, account: accounts.currentAccountID)
+            } catch {
+                bulkDeleteError = error.localizedDescription
+            }
         }
     }
 
@@ -216,11 +232,18 @@ extension QuestionsView {
         // Right-clicking a row that's part of a multi-row selection copies every
         // selected link at once, Finder-style; a single row keeps its full menu.
         if selectedQuestionIDs.count > 1, selectedQuestionIDs.contains(question.id) {
-            let urls = selectedQuestionURLsInOrder
+            let questions = selectedQuestionsInOrder
             Button {
-                copyToPasteboard(urls.joined(separator: "\n"))
+                copyToPasteboard(questions.map { $0.webURL(baseURL: client.baseURL).absoluteString }
+                    .joined(separator: "\n"))
             } label: {
-                Label("Copy \(urls.count) Question Links", systemImage: "link")
+                Label("Copy \(questions.count) Question Links", systemImage: "link")
+            }
+            Divider()
+            Button(role: .destructive) {
+                questionsPendingBulkDelete = questions
+            } label: {
+                Label("Delete \(questions.count) Questions…", systemImage: "trash")
             }
         } else {
             Button {
