@@ -51,14 +51,6 @@ struct MainSplit: View {
     /// so a deliberate choice is never overridden by a resize.
     @State private var autoCollapsed = false
 
-    /// User-initiated "reference strip" mode: the user explicitly hid the list
-    /// (content) column to dock a thin, detail-only window beside their editor.
-    /// Only ever entered via the toggle control, never by window width (see #294),
-    /// so unlike a width-forced collapse it carries no browsing trap. While set, the
-    /// window floor drops to the lone detail pane's minimum and the width-driven
-    /// sidebar auto-collapse stands down so the two never fight.
-    @State private var listHidden = false
-
     /// Latest observed width of the split-view container, kept so a section change
     /// (which moves the collapse threshold) can be re-evaluated without waiting for
     /// the next resize.
@@ -125,19 +117,14 @@ struct MainSplit: View {
     /// sidebar collapse handles narrowing, and the window never collapses to a
     /// width-forced single column (see #293).
     private var windowMinWidth: CGFloat {
-        // In user-initiated reference mode the list is hidden, so floor at the lone
-        // detail pane — a true thin strip — rather than the list+detail collapsed floor.
-        if listHidden, sectionHasDetail { return Self.detailMinWidth }
-        return sectionHasDetail ? collapsedFloor : Self.detailMinWidth
+        sectionHasDetail ? collapsedFloor : Self.detailMinWidth
     }
 
     /// Collapses the sidebar when the container is too narrow to hold every column
     /// at its minimum, and restores it once there's room again — but only when the
     /// collapse was ours to begin with, never a manual one.
     private func updateSidebarCollapse(for width: CGFloat) {
-        // Reference mode owns the column visibility while it's on; the width-driven
-        // collapse stands down so it never reopens what the user deliberately hid.
-        guard width > 0, !listHidden else { return }
+        guard width > 0 else { return }
         if width < sidebarVisibleFloor {
             if columnVisibility == .all {
                 withAnimation(.smooth) {
@@ -148,27 +135,6 @@ struct MainSplit: View {
         } else if autoCollapsed {
             withAnimation(.smooth) { columnVisibility = .all }
             autoCollapsed = false
-        }
-    }
-
-    /// Toggles the user-initiated reference-strip mode: hides the list (content)
-    /// column down to a focused, detail-only strip, or restores the full layout.
-    /// Available only for sections that actually have a detail pane. On restore it
-    /// re-applies the width-driven collapse so a narrow window lands back in
-    /// sidebar-hidden (list + detail) rather than all three columns; the raised
-    /// window floor then grows the strip back out via ``WindowMinWidth``.
-    private func toggleListHidden() {
-        guard sectionHasDetail else { return }
-        withAnimation(.smooth) {
-            if listHidden {
-                listHidden = false
-                autoCollapsed = false
-                columnVisibility = .all
-                updateSidebarCollapse(for: containerWidth)
-            } else {
-                listHidden = true
-                columnVisibility = .detailOnly
-            }
         }
     }
 
@@ -249,14 +215,8 @@ struct MainSplit: View {
         }
         .onChange(of: containerWidth) { _, width in updateSidebarCollapse(for: width) }
         // A section change moves the threshold (three columns vs. two), so
-        // re-evaluate against the width we already know. Leaving reference mode for a
-        // single-pane section (Organization/Quota) also exits it, since there's no
-        // detail strip to keep — restoring the full columns for the new section.
+        // re-evaluate against the width we already know.
         .onChange(of: section) { _, _ in
-            if listHidden, !sectionHasDetail {
-                listHidden = false
-                columnVisibility = .all
-            }
             updateSidebarCollapse(for: containerWidth)
         }
         .task(id: SessionKey(accountID: store.currentAccountID, merged: store.isMergedView)) {
@@ -404,37 +364,6 @@ struct MainSplit: View {
                 searchFieldFocused = true
             }
         )
-        // Publish the list toggle so the View menu's "Hide List"/"Show List" command
-        // (and its ⌃⌘L shortcut) can drive the same reference-strip mode. Only the
-        // detail-bearing split publishes it, so it disables in Organization/Quota.
-        .focusedSceneValue(
-            \.toggleListAction,
-            ToggleListAction(id: "list-\(listHidden)", isHidden: listHidden) {
-                toggleListHidden()
-            }
-        )
-        // A plain toolbar item (not `.toolbar(id:)`, which crashes the split view on
-        // selection) giving the reference-strip mode a discoverable, direct control.
-        .toolbar {
-            ToolbarItem(placement: .navigation) {
-                Button {
-                    toggleListHidden()
-                } label: {
-                    Label(listHidden ? "Show List" : "Hide List",
-                          systemImage: listHidden
-                              ? "rectangle.trailinghalf.inset.filled"
-                              : "rectangle.leadinghalf.inset.filled")
-                }
-                // Show the title beside the icon: on its own the half-filled
-                // rectangle glyph is cryptic (it isn't obvious it hides the middle
-                // list column), so spell out what it does rather than relying on the
-                // hover tooltip alone.
-                .labelStyle(.titleAndIcon)
-                .help(listHidden
-                          ? "Show the list."
-                          : "Hide the list for a thin reference strip beside another window.")
-            }
-        }
         .navigationTitle(sectionTitle)
         .navigationSubtitle(displaySubtitle)
     }
@@ -509,9 +438,10 @@ private struct WindowMinWidth: NSViewRepresentable {
             if window.contentMinSize.width != target {
                 window.contentMinSize.width = target
             }
-            // Raising the floor (e.g. leaving the reference strip) doesn't resize an
-            // already-narrower window, so grow the content back out to honor it. Only
-            // ever grows, never shrinks, so it can't fight a user dragging narrower.
+            // Raising the floor (e.g. switching to a section with a wider minimum)
+            // doesn't resize an already-narrower window, so grow the content back out
+            // to honor it. Only ever grows, never shrinks, so it can't fight a user
+            // dragging narrower.
             if let content = window.contentView, content.frame.width < target {
                 window.setContentSize(NSSize(width: target, height: content.frame.height))
             }

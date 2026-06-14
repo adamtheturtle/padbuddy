@@ -285,32 +285,6 @@ extension FocusedValues {
     @Entry var printAction: PrintAction?
 }
 
-/// Action published by the main split when it can hide or show the list (content)
-/// column for a focused, single-column "reference strip" of the detail pane — the
-/// View menu's "Hide List"/"Show List" command reads it to toggle and to title
-/// itself, and disables when no detail-bearing section is focused. Like
-/// `FindAction`, it's `Equatable` on a stable `id`; here the id also encodes the
-/// current hidden state so the menu title flips when it changes while redundant
-/// same-state re-publishes still dedupe through `NavigationSplitView`'s repeated
-/// layout passes.
-struct ToggleListAction: Equatable {
-    /// Identifies the action and encodes the hidden state (e.g. "list-true"), so a
-    /// genuine toggle compares unequal (re-titling the command) while same-state
-    /// re-publishes compare equal and dedupe.
-    let id: String
-    /// Whether the list is currently hidden, so the command titles itself.
-    let isHidden: Bool
-    let perform: () -> Void
-
-    static func == (lhs: ToggleListAction, rhs: ToggleListAction) -> Bool {
-        lhs.id == rhs.id
-    }
-}
-
-extension FocusedValues {
-    @Entry var toggleListAction: ToggleListAction?
-}
-
 // MARK: - APIErrorView
 
 struct APIErrorView: View {

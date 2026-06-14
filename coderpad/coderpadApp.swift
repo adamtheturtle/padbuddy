@@ -324,7 +324,6 @@ struct CoderpadApp: App {
             // NavigationSplitView crash where the auto-inserted split separator was
             // duplicated during a toolbar update on selection.)
             ToolbarCommands()
-            ListVisibilityCommands()
             ViewCommands()
             PadCommands()
             QuestionCommands()
