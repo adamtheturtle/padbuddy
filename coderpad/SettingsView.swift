@@ -235,6 +235,44 @@ private struct AppearanceSwatch: View {
     }
 }
 
+/// Where the app makes itself visible: the Dock, the menu bar, or both. Replaces the
+/// older boolean "Hide Dock icon" toggle, which couldn't express "Dock only".
+/// "Neither" is intentionally omitted — the app would have no visible affordance.
+enum AppPresence: String, CaseIterable, Identifiable {
+    case dockAndMenuBar
+    case menuBarOnly
+    case dockOnly
+
+    var id: String {
+        rawValue
+    }
+
+    var label: String {
+        switch self {
+        case .dockAndMenuBar: "Dock and menu bar"
+        case .menuBarOnly: "Menu bar only"
+        case .dockOnly: "Dock only"
+        }
+    }
+
+    /// Whether a Dock icon is shown — drives the activation policy and whether the
+    /// Dock-badge picker is available.
+    var showsDockIcon: Bool {
+        switch self {
+        case .dockAndMenuBar, .dockOnly: true
+        case .menuBarOnly: false
+        }
+    }
+
+    /// Whether the menu-bar extra is inserted.
+    var showsMenuBarIcon: Bool {
+        switch self {
+        case .dockAndMenuBar, .menuBarOnly: true
+        case .dockOnly: false
+        }
+    }
+}
+
 /// General app preferences (appearance, Dock visibility, auto-refresh cadence)
 /// stored in `UserDefaults`. Mirrors `BrowserSettings`: the keys are shared by the
 /// settings UI (via `@AppStorage`) and by the app-wide static getters here, so a
@@ -243,6 +281,9 @@ private struct AppearanceSwatch: View {
 enum GeneralSettings {
     enum Key {
         static let appearance = "general.appearance"
+        static let presence = "general.presence"
+        /// Legacy boolean ("Hide Dock icon") superseded by `presence`. Read once at
+        /// launch to migrate the user's choice, then removed. See `migratePresenceIfNeeded`.
         static let hideDockIcon = "general.hideDockIcon"
         static let refreshSeconds = "general.refreshSeconds"
         static let requireBiometricsToRevealKey = "general.requireBiometricsToRevealKey"
@@ -280,8 +321,21 @@ enum GeneralSettings {
         AppAppearance(rawValue: UserDefaults.standard.string(forKey: Key.appearance) ?? "") ?? .system
     }
 
-    static var hideDockIcon: Bool {
-        UserDefaults.standard.bool(forKey: Key.hideDockIcon)
+    /// Where the app appears (Dock, menu bar, or both). Defaults to showing in both.
+    static var presence: AppPresence {
+        AppPresence(rawValue: UserDefaults.standard.string(forKey: Key.presence) ?? "") ?? .dockAndMenuBar
+    }
+
+    /// One-time migration of the legacy `hideDockIcon` Bool into the `presence` enum so
+    /// existing users keep their choice: a hidden Dock icon maps to "Menu bar only".
+    /// Runs at launch before `applyDockVisibility`; no-ops once `presence` is set.
+    static func migratePresenceIfNeeded() {
+        let defaults = UserDefaults.standard
+        guard defaults.string(forKey: Key.presence) == nil,
+              defaults.object(forKey: Key.hideDockIcon) != nil else { return }
+        let presence: AppPresence = defaults.bool(forKey: Key.hideDockIcon) ? .menuBarOnly : .dockAndMenuBar
+        defaults.set(presence.rawValue, forKey: Key.presence)
+        defaults.removeObject(forKey: Key.hideDockIcon)
     }
 
     /// Auto-refresh cadence in seconds, clamped to a sane range. A never-set value
@@ -296,11 +350,11 @@ enum GeneralSettings {
         .seconds(refreshSeconds)
     }
 
-    /// Reflect the Dock-visibility preference by switching the activation policy:
-    /// `.accessory` runs menu-bar-only (no Dock icon), `.regular` shows in the Dock.
+    /// Reflect the presence preference by switching the activation policy:
+    /// `.regular` shows a Dock icon, `.accessory` runs menu-bar-only (no Dock icon).
     @MainActor
     static func applyDockVisibility() {
-        NSApp.setActivationPolicy(hideDockIcon ? .accessory : .regular)
+        NSApp.setActivationPolicy(presence.showsDockIcon ? .regular : .accessory)
     }
 }
 
@@ -365,12 +419,12 @@ struct SettingsView: View {
 
     // General preferences, backed by the keys in `GeneralSettings.Key`.
     @AppStorage(GeneralSettings.Key.appearance) var appearance: AppAppearance = .system
-    @AppStorage(GeneralSettings.Key.hideDockIcon) var hideDockIcon = false
+    @AppStorage(GeneralSettings.Key.presence) var presence: AppPresence = .dockAndMenuBar
     @AppStorage(GeneralSettings.Key.refreshSeconds) var refreshSeconds = GeneralSettings.defaultRefreshSeconds
     @AppStorage(GeneralSettings.Key.requireBiometricsToRevealKey) var requireBiometricsToRevealKey = false
     @AppStorage(GeneralSettings.Key.spotlightIndexing) var spotlightIndexing = false
     @AppStorage(GeneralSettings.Key.notifyOnPadUpdates) var notifyOnPadUpdates = false
-    @AppStorage(DockBadge.Key.mode) var dockBadgeMode: DockBadge.Mode = .activePads
+    @AppStorage(DockBadge.Key.enabled) var dockBadgeEnabled = true
     @State var accountsStore = AccountsStore.shared
 
     // Launch-at-login mirrors the live `SMAppService` state rather than UserDefaults,

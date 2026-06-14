@@ -24,9 +24,6 @@ extension SettingsView {
             } footer: {
                 if let loginItemError {
                     Text(loginItemError).foregroundStyle(.red)
-                } else {
-                    Text("Open CoderPad automatically when you log in to your Mac.")
-                        .foregroundStyle(.secondary)
                 }
             }
 
@@ -37,45 +34,36 @@ extension SettingsView {
             }
 
             Section {
-                Toggle("Hide Dock icon", isOn: $hideDockIcon)
-                    .onChange(of: hideDockIcon) { _, _ in
-                        GeneralSettings.applyDockVisibility()
-                    }
-            } footer: {
-                Text("Run CoderPad from the menu bar only. The app stays available from its menu-bar icon.")
-                    .foregroundStyle(.secondary)
-            }
-
-            Section {
-                Picker("Dock badge", selection: $dockBadgeMode) {
-                    ForEach(DockBadge.Mode.allCases) { mode in
+                Picker("Show CoderPad in", selection: $presence) {
+                    ForEach(AppPresence.allCases) { mode in
                         Text(mode.label).tag(mode)
                     }
                 }
-                .onChange(of: dockBadgeMode) { _, _ in
-                    // Apply or clear the badge immediately rather than waiting for the
-                    // next pad refresh.
-                    DockBadge.refresh()
+                .onChange(of: presence) { _, _ in
+                    // Switch the activation policy immediately; the menu-bar icon follows
+                    // the same preference via the MenuBarExtra's isInserted binding.
+                    GeneralSettings.applyDockVisibility()
                 }
-                .disabled(hideDockIcon)
+            }
+
+            Section {
+                Toggle("Show my active pads on the Dock icon", isOn: $dockBadgeEnabled)
+                    .onChange(of: dockBadgeEnabled) { _, _ in
+                        // Apply or clear the badge immediately rather than waiting for the
+                        // next pad refresh.
+                        DockBadge.refresh()
+                    }
+                    .disabled(!presence.showsDockIcon)
             } footer: {
-                Text("""
-                Badge the Dock icon with a count across all your accounts: the started pads \
-                (a live interview in progress), or the pads with new activity since you last \
-                marked them seen. Choose Off for a clean icon.
-                """)
-                .foregroundStyle(.secondary)
+                Text("Counts the started pads you own across all your accounts.")
+                    .foregroundStyle(.secondary)
             }
 
             Section {
                 Toggle("Require Touch ID to reveal API keys", isOn: biometricGateBinding)
             } footer: {
-                Text("""
-                When on, showing a saved API key in Settings must be unlocked with Touch ID \
-                (or your login password on Macs without it). Turning this off requires the \
-                same check, so it can't be bypassed from an unlocked Mac.
-                """)
-                .foregroundStyle(.secondary)
+                Text("Turning this off also requires Touch ID, so it can't be bypassed.")
+                    .foregroundStyle(.secondary)
             }
 
             Section {
@@ -92,12 +80,8 @@ extension SettingsView {
                         }
                     }
             } footer: {
-                Text("""
-                Mirror your pads and questions into the on-device Spotlight index so you can find \
-                them from system search. The index stays on this Mac; nothing is uploaded. Off by \
-                default because pad titles can include candidate names.
-                """)
-                .foregroundStyle(.secondary)
+                Text("Indexed on this Mac only. Pad titles can include candidate names.")
+                    .foregroundStyle(.secondary)
             }
 
             Section {
@@ -108,12 +92,8 @@ extension SettingsView {
                         if isOn { PadUpdateNotifier.shared.requestAuthorization() }
                     }
             } footer: {
-                Text("""
-                Post a Notification Center alert when pads gain new activity while CoderPad is in \
-                the background. Tapping the alert opens the pad. You'll be asked to allow \
-                notifications the first time. Off by default.
-                """)
-                .foregroundStyle(.secondary)
+                Text("Alerts when pads gain activity while CoderPad is in the background.")
+                    .foregroundStyle(.secondary)
             }
 
             Section {
@@ -128,11 +108,8 @@ extension SettingsView {
                     }
                 }
             } footer: {
-                Text("""
-                How often pads and questions reload in the background. Large organizations refresh \
-                less often automatically.
-                """)
-                .foregroundStyle(.secondary)
+                Text("How often pads and questions reload in the background.")
+                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
@@ -206,25 +183,18 @@ extension SettingsView {
 
     var sidebarToolbar: some View {
         HStack(spacing: 2) {
-            Button {
-                addingAccount = Account(name: "", apiKey: "")
-            } label: {
-                Image(systemName: "plus")
-            }
-            .help("Add account")
-            .accessibilityLabel("Add account")
-
-            Button {
-                if let id = selectedAccountID {
-                    store.remove(id: id)
-                    selectedAccountID = nil
-                }
-            } label: {
-                Image(systemName: "minus")
-            }
-            .help("Remove selected account")
-            .disabled(selectedAccountID == nil)
-            .accessibilityLabel("Remove selected account")
+            // A single Mail-style segmented add/remove control: a rounded pill holding
+            // +/- split by a hairline divider, rather than two free-standing buttons.
+            AddRemoveControl(
+                onAdd: { addingAccount = Account(name: "", apiKey: "") },
+                onRemove: {
+                    if let id = selectedAccountID {
+                        store.remove(id: id)
+                        selectedAccountID = nil
+                    }
+                },
+                canRemove: selectedAccountID != nil
+            )
 
             Spacer()
 
@@ -245,7 +215,6 @@ extension SettingsView {
                 """)
             #endif
         }
-        .buttonStyle(.borderless)
     }
 
     @ViewBuilder
@@ -255,27 +224,34 @@ extension SettingsView {
             // Editing a saved account. `onUse` makes it the active account (Mail's
             // "Enable this account"); `.id(id)` reloads the draft when the selection
             // changes so edits don't bleed between accounts.
-            AccountEditor(
-                initial: account,
-                embedded: true,
-                isCurrent: id == store.currentAccountID && !store.isMergedView,
-                onUse: { store.currentAccountID = id },
-                onSave: { updated in store.update(updated) },
-                onCancel: {},
-                onDelete: {
-                    store.remove(id: id)
-                    selectedAccountID = nil
-                },
-                // Persist icon/tint immediately, merging only those fields onto the
-                // saved account so unsaved edits to other fields aren't flushed too.
-                onAppearanceChange: { symbol, tint in
-                    guard var account = store.accounts.first(where: { $0.id == id }) else { return }
-                    account.iconSymbol = symbol
-                    account.tintHex = tint
-                    store.update(account)
-                }
-            )
-            .id(id)
+            //
+            // Wrapped in a ScrollView so an editor that's taller for one account (more
+            // rows once validated, banners, etc.) scrolls within a fixed pane rather
+            // than pushing the whole window taller — which would otherwise shift the
+            // sidebar's +/− toolbar each time the selection changed.
+            ScrollView {
+                AccountEditor(
+                    initial: account,
+                    embedded: true,
+                    isCurrent: id == store.currentAccountID && !store.isMergedView,
+                    onUse: { store.currentAccountID = id },
+                    onSave: { updated in store.update(updated) },
+                    onCancel: {},
+                    onDelete: {
+                        store.remove(id: id)
+                        selectedAccountID = nil
+                    },
+                    // Persist icon/tint immediately, merging only those fields onto the
+                    // saved account so unsaved edits to other fields aren't flushed too.
+                    onAppearanceChange: { symbol, tint in
+                        guard var account = store.accounts.first(where: { $0.id == id }) else { return }
+                        account.iconSymbol = symbol
+                        account.tintHex = tint
+                        store.update(account)
+                    }
+                )
+                .id(id)
+            }
         } else {
             accountDetailPlaceholder
         }
@@ -325,11 +301,8 @@ extension SettingsView {
             Section {
                 Toggle("Open links in background", isOn: $openInBackground)
             } footer: {
-                Text("""
-                Please note that some third-party browsers do not support opening links \
-                in the background.
-                """)
-                .foregroundStyle(.secondary)
+                Text("Some third-party browsers don't support this.")
+                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
@@ -346,28 +319,63 @@ extension SettingsView {
                             .foregroundStyle(.secondary)
                     }
                 }
-            } footer: {
-                Text("Controls how many recent pads and questions appear in the menu bar item.")
-                    .foregroundStyle(.secondary)
             }
 
             Section {
                 Toggle("Show only started pads", isOn: $menuBarStartedOnly)
-            } footer: {
-                Text("""
-                When on, the menu bar lists only your active (started) pads, hiding ended \
-                and pending ones.
-                """)
-                .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
     }
 }
 
+/// The Mail-style segmented add/remove control shown at the foot of the accounts
+/// sidebar: a single rounded pill with a `+` and `−` separated by a hairline divider,
+/// mirroring the table-footer control used throughout macOS System Settings and Mail.
+struct AddRemoveControl: View {
+    let onAdd: () -> Void
+    let onRemove: () -> Void
+    let canRemove: Bool
+
+    var body: some View {
+        HStack(spacing: 0) {
+            segment("plus", help: "Add account", label: "Add account", action: onAdd)
+            Divider()
+                .frame(height: 14)
+            segment("minus", help: "Remove selected account",
+                    label: "Remove selected account", action: onRemove)
+                .disabled(!canRemove)
+        }
+        .frame(height: 22)
+        .background(Color(nsColor: .controlBackgroundColor),
+                    in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .stroke(Color.subtleStroke, lineWidth: 1)
+        )
+        .fixedSize()
+    }
+
+    private func segment(_ symbol: String,
+                         help: String,
+                         label: String,
+                         action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 12, weight: .medium))
+                .frame(width: 28, height: 22)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(help)
+        .accessibilityLabel(label)
+    }
+}
+
 struct AccountRow: View {
     let account: Account
     let isCurrent: Bool
+    @State private var monitor = AccountHealthMonitor.shared
 
     var body: some View {
         HStack(spacing: 10) {
@@ -383,7 +391,7 @@ struct AccountRow: View {
                         .background(Color.purple.opacity(0.18), in: Capsule())
                         .foregroundStyle(.purple)
                 }
-                if account.isBadKeyDemo {
+                if account.isBadKeyDemo || monitor.isUnauthorized(account.id) {
                     Text("Bad key")
                         .font(.caption2)
                         .padding(.horizontal, 6).padding(.vertical, 1)

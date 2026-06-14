@@ -211,11 +211,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_: Notification) {
-        // Honor the "Hide Dock icon" preference from the moment the app launches.
+        // Carry an existing "Hide Dock icon" choice into the new presence preference,
+        // then honor it from the moment the app launches.
+        GeneralSettings.migratePresenceIfNeeded()
         GeneralSettings.applyDockVisibility()
         // Seed the badge from whatever pads are already cached; it refreshes again as
         // each account's list loads.
         DockBadge.refresh()
+        // Keep the current account's pads fresh on a timer even when no window is open
+        // and the menu is never clicked — the one state where nothing else fetches.
+        // Writing to PadsCacheStore cascades to the widget snapshot and Dock badge.
+        PadsBackgroundRefresher.shared.start()
         // Become the notification-center delegate so taps on pad-update alerts route
         // back into the app. Posting itself is opt-in (see `PadUpdateNotifier`).
         PadUpdateNotifier.shared.register()
@@ -268,6 +274,10 @@ struct CoderpadApp: App {
 
     /// Drives the app-wide light/dark override; nil follows the system appearance.
     @AppStorage(GeneralSettings.Key.appearance) private var appearance: AppAppearance = .system
+
+    /// Whether the app shows in the Dock, the menu bar, or both. Gates the menu-bar
+    /// extra below so "Dock only" removes the menu-bar icon.
+    @AppStorage(GeneralSettings.Key.presence) private var presence: AppPresence = .dockAndMenuBar
 
     var body: some Scene {
         WindowGroup("CoderPad", id: "main") {
@@ -330,7 +340,21 @@ struct CoderpadApp: App {
                 .preferredColorScheme(appearance.colorScheme)
         }
 
-        MenuBarExtra {
+        // The system can flip `isInserted` to false if the user drags the icon out of
+        // the menu bar; mirror that back into the preference so the change sticks and
+        // the Settings picker stays honest. Removing the icon switches to "Dock only"
+        // (revealing the Dock icon if it was hidden, so the app never ends up with no
+        // visible affordance); re-inserting it restores a menu-bar mode.
+        MenuBarExtra(isInserted: Binding(
+            get: { presence.showsMenuBarIcon },
+            set: { inserted in
+                guard inserted != presence.showsMenuBarIcon else { return }
+                presence = inserted
+                    ? (presence.showsDockIcon ? .dockAndMenuBar : .menuBarOnly)
+                    : .dockOnly
+                GeneralSettings.applyDockVisibility()
+            }
+        )) {
             MenuBarView()
         } label: {
             MenuBarLabel()
@@ -367,7 +391,6 @@ struct CoderpadApp: App {
             Button("Pads") { post(.pads) }.keyboardShortcut("1", modifiers: [.command])
             Button("Questions") { post(.questions) }.keyboardShortcut("2", modifiers: [.command])
             Button("Organization") { post(.organization) }.keyboardShortcut("3", modifiers: [.command])
-            Button("Quota") { post(.quota) }.keyboardShortcut("4", modifiers: [.command])
             Divider()
             Button("Next Section") { cycleSection(by: 1) }
                 .keyboardShortcut("]", modifiers: [.command, .shift])
@@ -426,7 +449,7 @@ struct CoderpadApp: App {
     /// Moves the visible section forward (`+1`) or back (`-1`) through the fixed
     /// section order, wrapping at the ends. Backs the Go menu's Next/Previous items.
     private func cycleSection(by delta: Int) {
-        let order: [AppSection] = [.pads, .questions, .organization, .quota]
+        let order: [AppSection] = [.pads, .questions, .organization]
         let current = AppNavigation.shared.section
         let index = order.firstIndex(of: current) ?? 0
         let count = order.count

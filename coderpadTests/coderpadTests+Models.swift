@@ -78,7 +78,7 @@ struct LanguageHelperTests {
 struct AccountRoundTripTests {
     @Test
     func `account encodes/decodes through JSON without loss`() throws {
-        let original = Account(name: "Production", apiKey: "secret-key", isMock: false)
+        let original = Account(name: "Production", apiKey: "secret-key", isMock: false, userEmail: "me@acme.com")
         let data = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(Account.self, from: data)
         #expect(decoded.id == original.id)
@@ -104,7 +104,7 @@ struct AccountRoundTripTests {
 
     @Test
     func `icon symbol and tint survive the round-trip`() throws {
-        let original = Account(name: "Acme", apiKey: "k", iconSymbol: "star.fill", tintHex: "#FF8800")
+        let original = Account(name: "Acme", apiKey: "k", userEmail: "me@acme.com", iconSymbol: "star.fill", tintHex: "#FF8800")
         let data = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(Account.self, from: data)
         #expect(decoded.iconSymbol == "star.fill")
@@ -115,11 +115,35 @@ struct AccountRoundTripTests {
     func `account saved before icon/tint existed still decodes`() throws {
         // JSON from an older build with no iconSymbol/tintHex keys must not fail to load.
         let legacy = """
-        {"id":"\(UUID().uuidString)","name":"Old","apiKey":"k","isMock":false,"userEmail":""}
+        {"id":"\(UUID().uuidString)","name":"Old","apiKey":"k","isMock":false,"userEmail":"me@acme.com"}
         """
         let decoded = try JSONDecoder().decode(Account.self, from: Data(legacy.utf8))
         #expect(decoded.iconSymbol == nil)
         #expect(decoded.tintHex == nil)
+    }
+
+    @Test
+    func `an account persisted without a user email fails to decode`() {
+        let json = """
+        {"id":"\(UUID().uuidString)","name":"Old","apiKey":"k","isMock":false,"userEmail":""}
+        """
+        #expect(throws: DecodingError.self) {
+            try JSONDecoder().decode(Account.self, from: Data(json.utf8))
+        }
+    }
+
+    @Test
+    func `a missing-email account is dropped on load without sinking valid siblings`() throws {
+        // The store decodes elements leniently, so one invalid account must not take
+        // the rest down with it.
+        let valid = Account(name: "Good", apiKey: "k", userEmail: "me@acme.com")
+        let validJSON = String(data: try JSONEncoder().encode(valid), encoding: .utf8)!
+        let array = """
+        [\(validJSON),{"id":"\(UUID().uuidString)","name":"Bad","apiKey":"k","userEmail":""}]
+        """
+        let decoded = try JSONDecoder().decode([LenientElement<Account>].self, from: Data(array.utf8))
+            .compactMap(\.value)
+        #expect(decoded.map(\.name) == ["Good"])
     }
 
     @Test
@@ -273,12 +297,44 @@ struct AppAppearanceTests {
     }
 }
 
+@Suite("App presence")
+struct AppPresenceTests {
+    @Test(arguments: [
+        (AppPresence.dockAndMenuBar, "dockAndMenuBar"),
+        (AppPresence.menuBarOnly, "menuBarOnly"),
+        (AppPresence.dockOnly, "dockOnly")
+    ])
+    func `raw values are stable (they back the stored preference)`(presence: AppPresence, rawValue: String) {
+        #expect(presence.rawValue == rawValue)
+    }
+
+    @Test(arguments: [
+        (AppPresence.dockAndMenuBar, true, true),
+        (AppPresence.menuBarOnly, false, true),
+        (AppPresence.dockOnly, true, false)
+    ])
+    func `visibility flags match each mode`(presence: AppPresence, dock: Bool, menuBar: Bool) {
+        #expect(presence.showsDockIcon == dock)
+        #expect(presence.showsMenuBarIcon == menuBar)
+    }
+
+    @Test
+    func `every case is visible somewhere and has a non-empty label`() {
+        for presence in AppPresence.allCases {
+            #expect(!presence.label.isEmpty)
+            // "Neither" is not a valid mode: every case shows at least one affordance.
+            #expect(presence.showsDockIcon || presence.showsMenuBarIcon)
+        }
+    }
+}
+
 // Serialized: these read and mutate process-wide UserDefaults under the
 // `general.*` keys, so concurrent runs would clobber each other's values.
 @Suite("General settings", .serialized)
 struct GeneralSettingsTests {
     private static let keys = [
         GeneralSettings.Key.appearance,
+        GeneralSettings.Key.presence,
         GeneralSettings.Key.hideDockIcon,
         GeneralSettings.Key.refreshSeconds
     ]
@@ -345,11 +401,58 @@ struct GeneralSettingsTests {
     }
 
     @Test
-    func `hideDockIcon defaults to false and reflects a stored true`() {
+    func `presence defaults to dock and menu bar and reads back a stored choice`() {
         withCleanDefaults {
-            #expect(GeneralSettings.hideDockIcon == false)
+            #expect(GeneralSettings.presence == .dockAndMenuBar)
+
+            UserDefaults.standard.set(AppPresence.dockOnly.rawValue, forKey: GeneralSettings.Key.presence)
+            #expect(GeneralSettings.presence == .dockOnly)
+
+            // An unrecognized stored value falls back to the default rather than crashing.
+            UserDefaults.standard.set("bogus", forKey: GeneralSettings.Key.presence)
+            #expect(GeneralSettings.presence == .dockAndMenuBar)
+        }
+    }
+
+    @Test
+    func `migration maps a hidden Dock icon to menu bar only`() {
+        withCleanDefaults {
             UserDefaults.standard.set(true, forKey: GeneralSettings.Key.hideDockIcon)
-            #expect(GeneralSettings.hideDockIcon == true)
+            GeneralSettings.migratePresenceIfNeeded()
+            #expect(GeneralSettings.presence == .menuBarOnly)
+            // The legacy key is cleared so it can't override a later picker change.
+            #expect(UserDefaults.standard.object(forKey: GeneralSettings.Key.hideDockIcon) == nil)
+        }
+    }
+
+    @Test
+    func `migration maps a shown Dock icon to dock and menu bar`() {
+        withCleanDefaults {
+            UserDefaults.standard.set(false, forKey: GeneralSettings.Key.hideDockIcon)
+            GeneralSettings.migratePresenceIfNeeded()
+            #expect(GeneralSettings.presence == .dockAndMenuBar)
+            #expect(UserDefaults.standard.object(forKey: GeneralSettings.Key.hideDockIcon) == nil)
+        }
+    }
+
+    @Test
+    func `migration leaves an explicit presence choice untouched`() {
+        withCleanDefaults {
+            // A user who already picked "Dock only" then somehow has a stale legacy key:
+            // the new preference wins and the legacy key is not consulted.
+            UserDefaults.standard.set(AppPresence.dockOnly.rawValue, forKey: GeneralSettings.Key.presence)
+            UserDefaults.standard.set(true, forKey: GeneralSettings.Key.hideDockIcon)
+            GeneralSettings.migratePresenceIfNeeded()
+            #expect(GeneralSettings.presence == .dockOnly)
+        }
+    }
+
+    @Test
+    func `migration is a no-op when nothing was ever set`() {
+        withCleanDefaults {
+            GeneralSettings.migratePresenceIfNeeded()
+            #expect(UserDefaults.standard.string(forKey: GeneralSettings.Key.presence) == nil)
+            #expect(GeneralSettings.presence == .dockAndMenuBar)
         }
     }
 }
