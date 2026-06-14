@@ -32,6 +32,9 @@ struct QuotaView: View {
                             if let pace = QuotaPace(quota: quota, now: Date()) {
                                 paceCard(pace)
                             }
+                            if let trial = quota.trialExpiresAt, trial > Date() {
+                                trialCard(trial)
+                            }
                             detailsCard(quota)
                         }
                     }
@@ -150,6 +153,20 @@ struct QuotaView: View {
         .accessibilityLabel(pace.accessibilityLabel)
     }
 
+    /// Highlights an active trial and when it ends. Only shown while the trial
+    /// is still in the future; expired trials are omitted entirely.
+    private func trialCard(_ expiresAt: Date) -> some View {
+        Card {
+            VStack(alignment: .leading, spacing: 8) {
+                SectionHeader(title: "Trial", systemImage: "clock.badge.checkmark")
+                Text("Your trial expires \(expiresAt.formatted(date: .long, time: .shortened)).")
+                    .font(.callout)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
     private func detailsCard(_ quota: Quota) -> some View {
         Card {
             VStack(alignment: .leading, spacing: 10) {
@@ -159,9 +176,6 @@ struct QuotaView: View {
                 }
                 if quota.unlimited != true, let limit = quota.billingCyclePadLimit {
                     LabeledRow(label: "Billing cycle limit", value: "\(limit)")
-                }
-                if let trial = quota.trialExpiresAt {
-                    LabeledRow(label: "Trial expires", value: trial.formatted(date: .long, time: .shortened))
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
