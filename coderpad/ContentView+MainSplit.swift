@@ -3,6 +3,7 @@
 //  coderpad
 //
 
+import AppKit
 import SwiftUI
 
 // MARK: - Split into small structs to reduce body type complexity
@@ -106,6 +107,19 @@ struct MainSplit: View {
         contentMinWidth + Self.detailMinWidth
     }
 
+    /// The host window's hard minimum content width — a single honest floor pinned on
+    /// the `NSWindow` (see ``WindowMinWidth``), because `.frame(minWidth:)` inside a
+    /// `NavigationSplitView` doesn't reliably reach the window's `contentMinSize`, so
+    /// without it the window can be dragged narrow enough to crush/overlap the panes.
+    /// Pads/Questions floor at list + detail; single-pane sections (Organization,
+    /// Quota) floor at their lone content pane. Keyed off the section, not the live
+    /// column visibility, so it stays constant while the user drags — the width-driven
+    /// sidebar collapse handles narrowing, and the window never collapses to a
+    /// width-forced single column (see #293).
+    private var windowMinWidth: CGFloat {
+        sectionHasDetail ? collapsedFloor : Self.detailMinWidth
+    }
+
     /// Collapses the sidebar when the container is too narrow to hold every column
     /// at its minimum, and restores it once there's room again — but only when the
     /// collapse was ours to begin with, never a manual one.
@@ -179,9 +193,9 @@ struct MainSplit: View {
                     twoColumnSplit
                 }
             }
-            // Floor the window at the collapsed layout's needs; auto-collapse keeps
-            // it usable between here and `sidebarVisibleFloor`.
-            .frame(minWidth: collapsedFloor)
+            // Floor the layout at the active section's needs; the width-driven
+            // auto-collapse hides the sidebar between here and `sidebarVisibleFloor`.
+            .frame(minWidth: windowMinWidth)
             // Observe the container width without disturbing layout (a background
             // reader, not a wrapping GeometryReader, so the frame min still
             // propagates to the window). Drives the sidebar's auto-collapse.
@@ -193,6 +207,11 @@ struct MainSplit: View {
                         }
                 }
             )
+            // Pin the floor on the host window itself, since `.frame(minWidth:)`
+            // doesn't reliably reach the window's `contentMinSize` from inside a
+            // NavigationSplitView. Keyed off the section (constant during a drag),
+            // so it never crushes the panes and never forces a single column.
+            .background(WindowMinWidth(width: windowMinWidth))
         }
         .onChange(of: containerWidth) { _, width in updateSidebarCollapse(for: width) }
         // A section change moves the threshold (three columns vs. two), so
@@ -380,6 +399,37 @@ struct MainSplit: View {
 struct SessionKey: Hashable {
     let accountID: UUID?
     let merged: Bool
+}
+
+/// Pins the host window's minimum content width. SwiftUI's `.frame(minWidth:)`
+/// doesn't reliably propagate from inside a `NavigationSplitView` to the window's
+/// `contentMinSize`, so without this the split can be dragged narrow enough to
+/// crush or overlap its columns. A single floor (set by the caller per section);
+/// the sidebar's width-driven auto-collapse handles narrowing above it.
+private struct WindowMinWidth: NSViewRepresentable {
+    let width: CGFloat
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        apply(from: view)
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        apply(from: nsView)
+    }
+
+    /// Deferred to the next runloop turn: at make/update time the view isn't in a
+    /// window yet and the content size is still settling. The width is constant for
+    /// a given section, so this only runs on section change — never mid-drag — which
+    /// keeps the floor from ever lagging behind a live resize.
+    private func apply(from view: NSView) {
+        let target = width
+        DispatchQueue.main.async {
+            guard let window = view.window, window.contentMinSize.width != target else { return }
+            window.contentMinSize.width = target
+        }
+    }
 }
 
 #Preview { ContentView() }
