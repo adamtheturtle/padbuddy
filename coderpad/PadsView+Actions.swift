@@ -242,7 +242,7 @@ extension PadsView {
             availableIDs: Set(pads.map(\.id))
         ) else { return }
         isRestoringSelection = true
-        selectedID = id
+        selectedIDs = [id]
     }
 
     // MARK: - Reload

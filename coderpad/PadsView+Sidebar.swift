@@ -154,13 +154,23 @@ extension PadsView {
         // Open in Browser) should stay enabled whenever this window is frontmost and
         // a pad is selected — not only while the list itself holds keyboard focus.
         .focusedSceneValue(\.focusedPad, selection)
-        // Edit ▸ Copy / ⌘C copies the selected pad's web URL while the list holds
-        // focus, matching the row's "Copy Pad URL" context action.
-        .onCopyCommand(perform: copyLinkCommand(selection?.url))
+        // Edit ▸ Copy / ⌘C copies the selected pads' web URLs (one per line) while
+        // the list holds focus, matching the row's "Copy Pad URL" action and
+        // extending it to a multi-row selection.
+        .onCopyCommand(perform: copyLinkCommand(
+            selectedPadsInOrder.isEmpty ? nil
+                : selectedPadsInOrder.map(\.url).joined(separator: "\n")
+        ))
+    }
+
+    /// The selected pads in the order they appear in the list (not the selection
+    /// set's arbitrary order), so a multi-row Copy or Delete reads top to bottom.
+    private var selectedPadsInOrder: [Pad] {
+        filtered.filter { selectedIDs.contains($0.id) }
     }
 
     private var padList: some View {
-        List(selection: $selectedID) {
+        List(selection: $selectedIDs) {
             ForEach(filtered) { pad in
                 padRow(pad)
                     .tag(pad.id)
@@ -201,41 +211,58 @@ extension PadsView {
     /// the pad first.
     @ViewBuilder
     func padContextMenu(_ pad: Pad) -> some View {
-        Button {
-            selection = pad
-            openPad(pad)
-        } label: {
-            Label("Open Pad", systemImage: "doc.text.image")
-        }
-        if let url = pad.webURL {
-            ShareLink(item: url) {
-                Label("Share…", systemImage: "square.and.arrow.up")
+        // Right-clicking a row that's part of a multi-row selection acts on the whole
+        // selection, the way Finder does; otherwise it's the usual single-row menu.
+        if selectedIDs.count > 1, selectedIDs.contains(pad.id) {
+            let pads = selectedPadsInOrder
+            Button {
+                copyToPasteboard(pads.map(\.url).joined(separator: "\n"))
+            } label: {
+                Label("Copy \(pads.count) Pad Links", systemImage: "link")
             }
-        }
-        Divider()
-        Button {
-            copyToPasteboard(pad.id)
-        } label: {
-            Label("Copy Pad ID", systemImage: "number")
-        }
-        Button {
-            copyToPasteboard(pad.url)
-        } label: {
-            Label("Copy Pad URL", systemImage: "link")
-        }
-        Divider()
-        Button {
-            ownerFilter = pad.ownerEmail
-        } label: {
-            Label("Show Pads from \(directory.display(pad.ownerEmail))", systemImage: "person")
-        }
-        Divider()
-        // Opens the same confirmation dialog as the row's swipe action — a
-        // right-click route to Delete alongside the swipe.
-        Button(role: .destructive) {
-            padPendingDelete = pad
-        } label: {
-            Label("Delete…", systemImage: "trash")
+            Divider()
+            Button(role: .destructive) {
+                padsPendingBulkDelete = pads
+            } label: {
+                Label("Delete \(pads.count) Pads…", systemImage: "trash")
+            }
+        } else {
+            Button {
+                selectedIDs = [pad.id]
+                openPad(pad)
+            } label: {
+                Label("Open Pad", systemImage: "doc.text.image")
+            }
+            if let url = pad.webURL {
+                ShareLink(item: url) {
+                    Label("Share…", systemImage: "square.and.arrow.up")
+                }
+            }
+            Divider()
+            Button {
+                copyToPasteboard(pad.id)
+            } label: {
+                Label("Copy Pad ID", systemImage: "number")
+            }
+            Button {
+                copyToPasteboard(pad.url)
+            } label: {
+                Label("Copy Pad URL", systemImage: "link")
+            }
+            Divider()
+            Button {
+                ownerFilter = pad.ownerEmail
+            } label: {
+                Label("Show Pads from \(directory.display(pad.ownerEmail))", systemImage: "person")
+            }
+            Divider()
+            // Opens the same confirmation dialog as the row's swipe action — a
+            // right-click route to Delete alongside the swipe.
+            Button(role: .destructive) {
+                padPendingDelete = pad
+            } label: {
+                Label("Delete…", systemImage: "trash")
+            }
         }
     }
 

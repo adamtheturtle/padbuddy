@@ -28,6 +28,13 @@ struct PadsView: View {
     /// the main thread. A `String` id tag is a cheap hash; `selection` (the `Pad`)
     /// stays the source of truth for the detail pane and is kept in sync below.
     @State var selectedID: String?
+    /// The List's selection. A set so several rows can be selected for a bulk action
+    /// (Copy links, Delete); `selectedID`/`selection` track the primary within it,
+    /// keeping the detail pane, restore, and persistence working off a single id.
+    @State var selectedIDs: Set<String> = []
+    /// Pads queued for a multi-row delete, awaiting the confirmation dialog. Separate
+    /// from `padPendingDelete` (the single swipe/context delete) so the two don't clash.
+    @State var padsPendingBulkDelete: [Pad]?
     /// Owned by `MainSplit` so the `.searchable` field can live on the split view
     /// (trailing window toolbar) rather than this content column. All the filter,
     /// saved-search, and persistence logic here still reads and writes it.
@@ -112,7 +119,14 @@ struct PadsView: View {
                 restoreFilters()
                 applyPendingRequest()
                 publishLiveFilter()
-                selectedID = selection?.id
+                selectedIDs = selection.map { [$0.id] } ?? []
+            }
+            // The List edits `selectedIDs`; derive the primary row from it so the
+            // detail pane, restore, and persistence keep working off the single
+            // `selectedID`. One-way (set → primary), so there's no two-way loop.
+            .onChange(of: selectedIDs) { previous, current in
+                let primary = MultiSelectLogic.primaryID(previous: previous, current: current)
+                if selectedID != primary { selectedID = primary }
             }
             // Bridge the lightweight list selection (`selectedID`) to the `Pad`
             // binding the detail pane reads. Each side writes only when the id truly
@@ -163,15 +177,20 @@ struct PadsView: View {
             }
             .task {
                 for await id in AppRouter.padDeletions {
-                    // Move the selection to a neighbor before dropping the row, so
-                    // deleting the open pad keeps the detail pane populated instead
-                    // of snapping to the empty placeholder. Computed while `pads`
-                    // still holds the deleted pad so the index lookup is valid.
-                    if selection?.id == id { selection = neighborSelection(forDeleted: id) }
+                    // Drop the deleted id from the selection. If it was the primary,
+                    // move to a neighbor (computed while `pads` still holds the row)
+                    // only when no other rows stay selected; otherwise the primary
+                    // falls to a still-selected row via the `selectedIDs` observer.
+                    let wasPrimary = selection?.id == id
+                    let neighbor = wasPrimary ? neighborSelection(forDeleted: id) : nil
+                    selectedIDs.remove(id)
                     pads.removeAll { $0.id == id }
                     // Keep the disk cache, Spotlight index, and widget in step;
                     // otherwise the deleted pad lingers there until a full reload.
                     cache.removePad(id: id)
+                    if wasPrimary, selectedIDs.isEmpty {
+                        selectedIDs = neighbor.map { [$0.id] } ?? []
+                    }
                 }
             }
             .sheet(isPresented: $showSaveSearch) {
@@ -205,7 +224,7 @@ struct PadsView: View {
             .sheet(isPresented: $showCreate) {
                 NewPadSheet(client: client, initialQuestionID: seedQuestionID) { created in
                     pads.insert(created, at: 0)
-                    selection = created
+                    selectedIDs = [created.id]
                     showCreate = false
                     seedQuestionID = nil
                 } onCancel: {
@@ -237,6 +256,20 @@ struct PadsView: View {
                 Button("Cancel", role: .cancel) {}
             } message: { pad in
                 Text("“\(pad.title)” will be permanently deleted. This can't be undone.")
+            }
+            .confirmationDialog(
+                "Delete \(padsPendingBulkDelete?.count ?? 0) pads?",
+                isPresented: .init(get: { padsPendingBulkDelete != nil },
+                                   set: { if !$0 { padsPendingBulkDelete = nil } }),
+                titleVisibility: .visible,
+                presenting: padsPendingBulkDelete
+            ) { pads in
+                Button("Delete \(pads.count) Pads", role: .destructive) {
+                    Task { for pad in pads { await deletePad(pad) } }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: { pads in
+                Text("These \(pads.count) pads will be permanently deleted. This can't be undone.")
             }
             .alert("Couldn't delete pad",
                    isPresented: .init(get: { deleteError != nil },
