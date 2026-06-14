@@ -26,18 +26,13 @@ struct PadRow: View {
     }
 
     private var rowContent: some View {
-        HStack(alignment: .top, spacing: 10) {
-            ZStack(alignment: .topTrailing) {
-                AvatarCircle(label: directory.display(pad.ownerEmail), diameter: 30)
-                if isChanged {
-                    Circle()
-                        .fill(Color.blue)
-                        .frame(width: 9, height: 9)
-                        .overlay(Circle().stroke(Color.cardBackground, lineWidth: 2))
-                        .offset(x: 2, y: -2)
-                        .help("Updated since last refresh")
-                }
-            }
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            // A small leading dot marking activity since the row was last opened,
+            // in a fixed-width gutter so titles stay aligned whether or not a row
+            // has it. Replaces the owner-initials avatar this row used to show; the
+            // owner is still named in the subtitle below.
+            changedIndicator
+                .frame(width: 8)
             VStack(alignment: .leading, spacing: 4) {
                 Text(pad.title.isEmpty ? pad.id : pad.title)
                     .font(.callout.weight(.medium))
@@ -77,6 +72,19 @@ struct PadRow: View {
         // indicator is a color-only dot, so fold it into the label as well.
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
+    }
+
+    /// The "updated since last refresh" dot, shown only when the pad changed since
+    /// the user last opened it. Color-only, so its meaning is folded into the row's
+    /// accessibility label (see `accessibilityLabel`) rather than announced on its own.
+    @ViewBuilder
+    private var changedIndicator: some View {
+        if isChanged {
+            Circle()
+                .fill(Color.blue)
+                .frame(width: 8, height: 8)
+                .help("Updated since last refresh")
+        }
     }
 
     private var accessibilityLabel: String {
