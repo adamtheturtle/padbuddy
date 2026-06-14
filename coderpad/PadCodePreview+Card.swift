@@ -5,7 +5,6 @@
 
 import AppKit
 import SwiftUI
-import UniformTypeIdentifiers
 
 extension EnvironmentCodeCard {
     var header: some View {
@@ -18,38 +17,21 @@ extension EnvironmentCodeCard {
             if showActiveBadge, isActive {
                 Chip(text: "Active", systemImage: "checkmark.seal", tint: .green)
             }
-            Spacer()
+            // The language is informational, so it sits with the title and badge
+            // on the left rather than among the action buttons — otherwise the
+            // gray label reads as a fourth tappable control next to them.
             if let language, !language.isEmpty {
                 MetaLabel(text: language.languageDisplayName)
             }
+            Spacer()
             // The per-file actions live in the header rather than floating over
-            // the code so they never overlap the source. The environment-level
-            // "Download Zip" trails them, reading as "save the whole project"
-            // rather than being tied to the one visible file.
+            // the code so they never overlap the source.
             if PadCodeExplainer.isAvailable {
                 explainButton
             }
             downloadButton
             copyButton
-            if isMultiFile {
-                downloadAllButton
-            }
         }
-    }
-
-    /// Header button that saves every file in a multi-file environment as one
-    /// zip. Kept out of the per-file code pane so it doesn't read as acting on
-    /// the single file currently shown.
-    private var downloadAllButton: some View {
-        Button {
-            downloadAll(files)
-        } label: {
-            Label("Download Zip", systemImage: "arrow.down.circle")
-        }
-        .buttonStyle(.borderless)
-        .controlSize(.small)
-        .help("Download all files as a zip")
-        .accessibilityLabel("Download all files as a zip")
     }
 
     /// Header button that copies the selected file's contents.
@@ -65,21 +47,24 @@ extension EnvironmentCodeCard {
         .accessibilityLabel("Copy code")
     }
 
-    /// Header button that saves the file currently shown to disk via a save
-    /// panel, pre-filled with its name so its extension carries over. It acts on
-    /// the visible file only; the whole environment is downloaded via the
-    /// header's "Download Zip" button. The help text names the file in a
-    /// multi-file project so it doesn't read as a download-all.
+    /// Header button that saves the environment to disk via a save panel. A
+    /// multi-file project is downloaded as a folder (keeping each file's relative
+    /// path); a single-file environment saves that one file, pre-filled with its
+    /// name so its extension carries over.
     private var downloadButton: some View {
         Button {
-            download(selected)
+            if isMultiFile {
+                downloadAll(files)
+            } else {
+                download(selected)
+            }
         } label: {
             Image(systemName: "square.and.arrow.down")
         }
         .buttonStyle(.borderless)
         .controlSize(.small)
-        .help(isMultiFile ? "Download \(selected.name)" : "Download code")
-        .accessibilityLabel(isMultiFile ? "Download \(selected.name)" : "Download code")
+        .help(isMultiFile ? "Download all files as a folder" : "Download code")
+        .accessibilityLabel(isMultiFile ? "Download all files as a folder" : "Download code")
     }
 
     /// A vertical list of the environment's files, pinned beside the code. It
@@ -263,59 +248,39 @@ extension EnvironmentCodeCard {
         try? file.contents.write(to: url, atomically: true, encoding: .utf8)
     }
 
-    /// Saves every file in the environment as a single zip, chosen via a save
-    /// panel pre-filled with the pad id. The archive keeps each file's relative
-    /// folder path so a multi-file project unzips back into its original layout.
+    /// Saves every file in the environment into a folder chosen via a save panel
+    /// pre-filled with the pad id. Each file keeps its relative path so a
+    /// multi-file project lands back in its original layout. The save panel
+    /// grants write access to the picked location, so the folder can be created
+    /// there with no extra entitlement beyond user-selected read-write.
     private func downloadAll(_ files: [CodeFile]) {
         let panel = NSSavePanel()
-        panel.nameFieldStringValue = "pad-\(padID).zip"
-        panel.allowedContentTypes = [.zip]
+        panel.nameFieldStringValue = "pad-\(padID)"
         panel.canCreateDirectories = true
         guard panel.runModal() == .OK, let destination = panel.url else { return }
-        try? writeZip(of: files, to: destination)
+        try? writeFolder(of: files, to: destination)
     }
 
-    /// Stages the files into a temporary folder (named so the archive's root
-    /// reads as `pad-<id>`), then uses `NSFileCoordinator`'s `.forUploading`
-    /// option to produce a zip of that folder and copies it to `destination`.
-    /// This avoids pulling in a third-party archiving dependency.
-    private func writeZip(of files: [CodeFile], to destination: URL) throws {
+    /// Writes the files into a fresh folder at `destination`, recreating each
+    /// file's relative path beneath it.
+    private func writeFolder(of files: [CodeFile], to destination: URL) throws {
         let fileManager = FileManager.default
-        let container = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
-        let root = container.appendingPathComponent("pad-\(padID)", isDirectory: true)
-        try fileManager.createDirectory(at: root, withIntermediateDirectories: true)
-        defer { try? fileManager.removeItem(at: container) }
+        if fileManager.fileExists(atPath: destination.path) {
+            try fileManager.removeItem(at: destination)
+        }
+        try fileManager.createDirectory(at: destination, withIntermediateDirectories: true)
 
         for file in files {
             // Keep the file's relative path, dropping any `.`/`..` segments so a
-            // crafted path can't escape the staging folder.
+            // crafted path can't escape the destination folder.
             let relative = (file.path ?? file.name)
                 .split(separator: "/")
                 .filter { $0 != "." && $0 != ".." }
                 .joined(separator: "/")
-            let fileURL = root.appendingPathComponent(relative.isEmpty ? file.name : relative)
+            let fileURL = destination.appendingPathComponent(relative.isEmpty ? file.name : relative)
             try fileManager.createDirectory(at: fileURL.deletingLastPathComponent(),
                                             withIntermediateDirectories: true)
             try file.contents.write(to: fileURL, atomically: true, encoding: .utf8)
         }
-
-        var coordinatorError: NSError?
-        var copyError: Error?
-        NSFileCoordinator().coordinate(
-            readingItemAt: root,
-            options: .forUploading,
-            error: &coordinatorError
-        ) { zippedURL in
-            do {
-                if fileManager.fileExists(atPath: destination.path) {
-                    try fileManager.removeItem(at: destination)
-                }
-                try fileManager.copyItem(at: zippedURL, to: destination)
-            } catch {
-                copyError = error
-            }
-        }
-        if let coordinatorError { throw coordinatorError }
-        if let copyError { throw copyError }
     }
 }

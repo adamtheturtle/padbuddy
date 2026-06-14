@@ -76,6 +76,32 @@ final class OrgDirectory {
     private var loadedAccountID: UUID?
     private var inFlight: UUID?
 
+    /// Seed the name map from disk so pad/question rows resolve owner names on the
+    /// very first render after a cold launch, instead of flashing the raw email
+    /// until the organization fetch returns. Mirrors the pads/questions caches'
+    /// stale-while-revalidate: the persisted snapshot warms the UI, then the async
+    /// `load`/`loadMerged` refreshes it from the network.
+    init() {
+        nameByEmail = Self.cachedSeed()
+    }
+
+    /// The persisted name map for whichever list appears first: the union of every
+    /// mergeable account in the combined view, or just the current account
+    /// otherwise. Read synchronously so the first row render already has names.
+    private static func cachedSeed() -> [String: String] {
+        let store = AccountsStore.shared
+        if store.isMergedView {
+            var merged: [String: String] = [:]
+            for account in store.mergeableAccounts {
+                merged.merge(DirectoryCache.load(account: account.id)) { first, _ in first }
+            }
+            return merged
+        } else if let id = store.currentAccount?.id {
+            return DirectoryCache.load(account: id)
+        }
+        return [:]
+    }
+
     func load(for account: Account) async {
         guard loadedAccountID != account.id, inFlight != account.id else { return }
         inFlight = account.id
@@ -91,6 +117,9 @@ final class OrgDirectory {
             nameByEmail = map
             defaultLanguage = org.organizationDefaultLanguage.flatMap { $0.isEmpty ? nil : $0 }
             loadedAccountID = account.id
+            // Persist for the next cold launch. Skip an empty map so a transient
+            // fetch hiccup can't wipe a previously good snapshot.
+            if !map.isEmpty { DirectoryCache.save(map, account: account.id) }
         }
     }
 
@@ -100,28 +129,34 @@ final class OrgDirectory {
     /// any account can still resolve its owner's display name. `loadedAccountID` is
     /// cleared so a later single-account `load` refreshes rather than no-ops.
     func loadMerged(for accounts: [Account]) async {
-        let clients = accounts.filter { !$0.apiKey.isEmpty }.map { $0.makeClient() }
-        guard !clients.isEmpty else { return }
-        let maps = await withTaskGroup(of: [String: String].self) { group -> [[String: String]] in
-            for client in clients {
+        let realAccounts = accounts.filter { !$0.apiKey.isEmpty }
+        guard !realAccounts.isEmpty else { return }
+        let maps = await withTaskGroup(of: (UUID, [String: String]).self) { group -> [(UUID, [String: String])] in
+            for account in realAccounts {
+                let client = account.makeClient()
+                let id = account.id
                 group.addTask {
-                    guard let org = try? await client.organization() else { return [:] }
+                    guard let org = try? await client.organization() else { return (id, [:]) }
                     var map: [String: String] = [:]
                     for user in org.users where !(user.name ?? "").isEmpty {
                         map[user.email] = user.name
                     }
-                    return map
+                    return (id, map)
                 }
             }
-            var collected: [[String: String]] = []
-            for await map in group {
-                collected.append(map)
+            var collected: [(UUID, [String: String])] = []
+            for await pair in group {
+                collected.append(pair)
             }
             return collected
         }
         var merged: [String: String] = [:]
-        for map in maps {
+        for (account, map) in maps {
             merged.merge(map) { first, _ in first }
+            // Persist each account's own map (not the union) so a later single-account
+            // launch seeds from just that account. Skip empties to preserve a good
+            // snapshot through a transient fetch hiccup.
+            if !map.isEmpty { DirectoryCache.save(map, account: account) }
         }
         nameByEmail = merged
         loadedAccountID = nil
@@ -135,6 +170,20 @@ final class OrgDirectory {
 
     func display(_ email: String) -> String {
         name(for: email) ?? email
+    }
+}
+
+/// Disk backing for `OrgDirectory`'s email -> name map, one JSON file per account
+/// under Application Support (via the shared `CacheDisk`). Lets owner names resolve
+/// on the first render after a cold launch, the same stale-while-revalidate trick
+/// the pads and questions lists already use.
+private enum DirectoryCache {
+    nonisolated static func load(account: UUID) -> [String: String] {
+        CacheDisk.load([String: String].self, kind: "directory", account: account) ?? [:]
+    }
+
+    nonisolated static func save(_ map: [String: String], account: UUID) {
+        CacheDisk.save(map, kind: "directory", account: account)
     }
 }
 

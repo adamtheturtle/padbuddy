@@ -240,10 +240,8 @@ extension PadDetailView {
                                 // Emphasize the most recently-active participant so the
                                 // eye is drawn to whoever acted last in the session.
                                 let isActive = group.representative.userName == activeParticipant
-                                Text("· \(actor)")
-                                    .font(.callout.weight(isActive ? .semibold : .regular))
-                                    .foregroundStyle(isActive ? Color.accentColor : Color.secondary)
-                                    .help(group.representative.userEmail ?? actor)
+                                eventActorView(actor: actor, isActive: isActive,
+                                               email: group.representative.userEmail)
                             }
                         }
                         eventTimestamp(for: group)
@@ -254,6 +252,31 @@ extension PadDetailView {
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel(accessibilityLabel(for: group))
             }
+        }
+    }
+
+    /// The actor name shown beside an event. Org members resolve to an email, so
+    /// their name becomes a link to their pads, mirroring the Participants card.
+    /// Everyone else stays plain text using weight (not link-blue) for the active
+    /// emphasis, so the color never implies a tap target that isn't there.
+    @ViewBuilder
+    private func eventActorView(actor: String, isActive: Bool, email: String?) -> some View {
+        let weight: Font.Weight = isActive ? .semibold : .regular
+        if let memberEmail = memberEmail(forName: actor) {
+            Button {
+                AppNavigation.shared.showPads(PadsRequest(ownerEmail: memberEmail))
+            } label: {
+                Text("· \(actor)")
+                    .font(.callout.weight(weight))
+                    .foregroundStyle(Color.accentColor)
+            }
+            .buttonStyle(.plain)
+            .help("Show pads from \(actor)")
+        } else {
+            Text("· \(actor)")
+                .font(.callout.weight(weight))
+                .foregroundStyle(isActive ? Color.primary : Color.secondary)
+                .help(email ?? actor)
         }
     }
 

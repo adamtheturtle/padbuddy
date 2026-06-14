@@ -102,9 +102,7 @@ extension MergedQuestionsView {
     }
 
     func isMine(_ row: AccountScoped<Question>) -> Bool {
-        let email = row.account.userEmail.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !email.isEmpty else { return false }
-        return row.item.ownerEmail.caseInsensitiveCompare(email) == .orderedSame
+        row.item.ownerEmail.caseInsensitiveCompare(row.account.userEmail) == .orderedSame
     }
 
     func isFavorite(_ row: AccountScoped<Question>) -> Bool {

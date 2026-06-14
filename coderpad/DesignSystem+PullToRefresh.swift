@@ -84,7 +84,10 @@ private struct MacPullToRefresh: ViewModifier {
                 }
             }
             .padding(7)
-            .background(.regularMaterial, in: Circle())
+            // A floating indicator above the scrolling list, so it gets Liquid
+            // Glass to refract the content sliding under it on macOS 26, keeping
+            // the opaque material as the macOS 15 fallback.
+            .floatingGlass(in: Circle(), fallback: .regularMaterial)
             .overlay(Circle().stroke(Color.subtleStroke, lineWidth: 0.5))
             .shadow(color: .black.opacity(0.12), radius: 4, y: 2)
             .scaleEffect(isRefreshing ? 1 : max(0.6, pull))

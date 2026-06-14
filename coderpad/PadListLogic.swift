@@ -194,7 +194,10 @@ enum PadEventGrouping {
                     lastEvent: event
                 )
             } else {
-                groups.append(PadEventGroup(id: event.id, representative: event, count: 1, lastEvent: event))
+                // Two distinct events can share an `event.id` (same timestamp, kind,
+                // user, and message, e.g. duplicate `enabled_ai_assist` entries), so
+                // prefix the group position to keep ForEach identities unique.
+                groups.append(PadEventGroup(id: "\(groups.count)-\(event.id)", representative: event, count: 1, lastEvent: event))
             }
         }
         return groups
