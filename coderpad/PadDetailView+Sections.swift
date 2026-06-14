@@ -10,7 +10,9 @@ extension PadDetailView {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 header
-                metaCards
+                if hasTimestamps {
+                    metaCards
+                }
                 if !pad.participants.isEmpty {
                     participantsCard
                 }
@@ -98,56 +100,28 @@ extension PadDetailView {
         }
     }
 
-    private var metaCards: some View {
-        // An adaptive grid instead of a fixed HStack so the tiles wrap onto a
-        // new row when the detail pane is too narrow to fit them side by side.
-        // A plain HStack can't shrink the date-bearing tiles below their content
-        // width, so it overflowed and the rightmost tile was clipped by the pane
-        // edge.
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 160), spacing: 12)], alignment: .leading, spacing: 12) {
-            // The timestamps are routine bookkeeping dates, so they render as
-            // compact tiles rather than full-size StatTiles — keeping the visual
-            // weight on the pad's identity and code.
-            if let createdAt = pad.createdAt {
-                timestampTile(title: "Created", value: createdAt.formatted(date: .abbreviated, time: .shortened),
-                              systemImage: "calendar.badge.plus", tint: .blue)
-            }
-            if let updatedAt = pad.informativeUpdatedAt {
-                timestampTile(title: "Updated", value: updatedAt.formatted(date: .abbreviated, time: .shortened),
-                              systemImage: "clock.arrow.circlepath", tint: .teal)
-            }
-            if let endedAt = pad.endedAt {
-                timestampTile(title: "Ended", value: endedAt.formatted(date: .abbreviated, time: .shortened),
-                              systemImage: "flag.checkered", tint: .gray)
-            }
-        }
+    /// Whether the pad carries any of the timestamps the Details section shows, so an
+    /// empty section (a bare header) is never rendered.
+    private var hasTimestamps: Bool {
+        pad.createdAt != nil || pad.informativeUpdatedAt != nil || pad.endedAt != nil
     }
 
-    /// A condensed timestamp tile: a small caption-sized value and tight padding,
-    /// far less prominent than a `StatTile`. Used for the Created/Updated dates so
-    /// they stay legible without dominating the detail pane.
-    private func timestampTile(title: String, value: String, systemImage: String, tint: Color) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            HStack(spacing: 5) {
-                Image(systemName: systemImage)
-                    .font(.caption2)
-                    .foregroundStyle(tint)
-                Text(title.uppercased())
-                    .font(.caption2.weight(.semibold))
-                    .tracking(0.5)
-                    .foregroundStyle(.secondary)
+    /// The pad's routine bookkeeping dates, as a native grouped section of labeled
+    /// rows rather than free-floating tinted tiles.
+    private var metaCards: some View {
+        DetailSection(title: "Details", systemImage: "info.circle") {
+            VStack(alignment: .leading, spacing: 6) {
+                if let createdAt = pad.createdAt {
+                    LabeledRow(label: "Created", value: createdAt.formatted(date: .abbreviated, time: .shortened))
+                }
+                if let updatedAt = pad.informativeUpdatedAt {
+                    LabeledRow(label: "Updated", value: updatedAt.formatted(date: .abbreviated, time: .shortened))
+                }
+                if let endedAt = pad.endedAt {
+                    LabeledRow(label: "Ended", value: endedAt.formatted(date: .abbreviated, time: .shortened))
+                }
             }
-            Text(value)
-                .font(.caption)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(10)
-        .background(Color.cardBackground, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(Color.subtleStroke, lineWidth: 1))
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(title): \(value)")
     }
 
     /// The pad's whiteboard drawing, when it has one. Parsed once so the card and
@@ -219,26 +193,20 @@ extension PadDetailView {
     }
 
     private var eventsCard: some View {
-        Card {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    SectionHeader(title: "Events", systemImage: "list.bullet.rectangle")
-                    Spacer()
-                    if isLoading {
-                        ProgressView().controlSize(.small)
-                    }
-                }
-                if let loadError {
-                    Label(loadError.localizedDescription, systemImage: "exclamationmark.triangle")
-                        .foregroundStyle(.orange)
-                        .font(.callout)
-                } else if events.isEmpty, !isLoading {
-                    Text("No events yet.").foregroundStyle(.secondary).font(.callout)
-                } else {
-                    eventList
-                }
+        DetailSection(title: "Events", systemImage: "list.bullet.rectangle") {
+            if isLoading {
+                ProgressView().controlSize(.small)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+        } content: {
+            if let loadError {
+                Label(loadError.localizedDescription, systemImage: "exclamationmark.triangle")
+                    .foregroundStyle(.orange)
+                    .font(.callout)
+            } else if events.isEmpty, !isLoading {
+                Text("No events yet.").foregroundStyle(.secondary).font(.callout)
+            } else {
+                eventList
+            }
         }
     }
 

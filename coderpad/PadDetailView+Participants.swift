@@ -27,9 +27,8 @@ extension PadDetailView {
     }
 
     var participantsCard: some View {
-        Card {
+        DetailSection(title: "Participants", systemImage: "person.2") {
             VStack(alignment: .leading, spacing: 12) {
-                SectionHeader(title: "Participants", systemImage: "person.2")
                 if let roles = participantRoles {
                     if !roles.candidates.isEmpty {
                         participantGroup(
@@ -49,7 +48,6 @@ extension PadDetailView {
                     participantGrid(names: pad.participants, tint: .purple)
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 

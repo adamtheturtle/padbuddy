@@ -118,6 +118,46 @@ struct Card<Content: View>: View {
     }
 }
 
+/// A native-feeling grouped detail section: a section header (with an optional
+/// trailing accessory) over its content, separated by a hairline — no card fill or
+/// border. Used for pad-detail metadata (details, participants, events) so the pane
+/// reads like a native grouped list rather than a stack of dashboard cards. ``Card``
+/// is reserved for genuine card affordances (code and whiteboard previews).
+struct DetailSection<Content: View, Trailing: View>: View {
+    let title: String
+    var systemImage: String?
+    let trailing: Trailing
+    let content: Content
+
+    init(title: String, systemImage: String? = nil,
+         @ViewBuilder trailing: () -> Trailing,
+         @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.systemImage = systemImage
+        self.trailing = trailing()
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                SectionHeader(title: title, systemImage: systemImage)
+                Spacer(minLength: 0)
+                trailing
+            }
+            Divider()
+            content
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+extension DetailSection where Trailing == EmptyView {
+    init(title: String, systemImage: String? = nil, @ViewBuilder content: () -> Content) {
+        self.init(title: title, systemImage: systemImage, trailing: { EmptyView() }, content: content)
+    }
+}
+
 struct SectionHeader: View {
     let title: String
     var systemImage: String?

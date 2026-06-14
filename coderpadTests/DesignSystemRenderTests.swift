@@ -67,6 +67,24 @@ struct DesignSystemRenderTests {
         expectRenders(Card { Text("Body") }, "Card wrapping content")
     }
 
+    @Test func `detail section renders`() {
+        expectRenders(
+            DetailSection(title: "Details", systemImage: "info.circle") {
+                LabeledRow(label: "Created", value: "1 Jan 2026").frame(width: 240)
+            },
+            "DetailSection without trailing"
+        )
+        expectRenders(
+            DetailSection(title: "Events", systemImage: "list.bullet.rectangle") {
+                ProgressView().controlSize(.small)
+            } content: {
+                Text("No events yet.")
+            }
+            .frame(width: 240),
+            "DetailSection with trailing accessory"
+        )
+    }
+
     @Test func `section header renders`() {
         expectRenders(SectionHeader(title: "Pads", systemImage: "doc.text"), "SectionHeader with icon")
         expectRenders(SectionHeader(title: "Pads"), "SectionHeader without icon")
