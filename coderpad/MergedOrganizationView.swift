@@ -133,7 +133,9 @@ struct MergedOrganizationView: View {
                      systemImage: "person.3.fill", tint: .blue)
             StatTile(title: "Teams", value: "\(totalTeams)",
                      systemImage: "rectangle.stack.person.crop", tint: .indigo)
-            StatTile(title: "Pads (\(period.rawValue.lowercased()))", value: "\(totalPads)",
+            // No timeframe in the title: the toolbar's period picker already states
+            // the window these pad counts cover, so repeating it here is redundant.
+            StatTile(title: "Pads", value: "\(totalPads)",
                      systemImage: "doc.text.fill", tint: .teal)
         }
     }
@@ -183,7 +185,7 @@ struct MergedOrganizationView: View {
             LabeledRow(label: "Users", value: "\(org.userCount ?? org.users.count)")
             LabeledRow(label: "Teams", value: "\(org.teams.count)")
             if let stats = statsByAccount[account.id] {
-                LabeledRow(label: "Pads (\(period.rawValue.lowercased()))", value: "\(stats.padsCreated)")
+                LabeledRow(label: "Pads", value: "\(stats.padsCreated)")
             }
             if let quota = quotaByAccount[account.id] {
                 LabeledRow(label: "Quota", value: quotaSummary(quota))
