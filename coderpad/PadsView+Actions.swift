@@ -213,18 +213,34 @@ extension PadsView {
         }
     }
 
+    /// The saved pad to reselect on launch: the stored id, but only when nothing is
+    /// already selected, no deep link is pending, and the id is still in the loaded
+    /// list. Pure so the restore decision is unit-testable in isolation.
+    static func padToRestore(
+        savedID: String?,
+        hasSelection: Bool,
+        hasPendingOpen: Bool,
+        availableIDs: Set<String>
+    ) -> String? {
+        guard !hasSelection, !hasPendingOpen,
+              let savedID, availableIDs.contains(savedID) else { return nil }
+        return savedID
+    }
+
     /// Restore the previously-open pad once its list is loaded. Marks the restore
     /// complete as soon as pads exist (so later selection changes persist), then
-    /// reselects the saved pad only when nothing is selected yet, no deep link is
-    /// pending, and the saved pad is still in the list. Sets `isRestoringSelection`
-    /// so the reselection doesn't count as freshly opening the pad.
+    /// reselects via `padToRestore`. Sets `isRestoringSelection` so the reselection
+    /// doesn't count as freshly opening the pad (which would clear its activity dot).
     func restoreSelectedPadIfNeeded() {
         guard !didRestoreSelection, !pads.isEmpty else { return }
         didRestoreSelection = true
-        guard selection == nil, nav.openPadID == nil,
-              let account = accounts.currentAccountID,
-              let id = UserDefaults.standard.string(forKey: Self.selectedPadKey(account)),
-              pads.contains(where: { $0.id == id }) else { return }
+        guard let account = accounts.currentAccountID else { return }
+        guard let id = Self.padToRestore(
+            savedID: UserDefaults.standard.string(forKey: Self.selectedPadKey(account)),
+            hasSelection: selection != nil,
+            hasPendingOpen: nav.openPadID != nil,
+            availableIDs: Set(pads.map(\.id))
+        ) else { return }
         isRestoringSelection = true
         selectedID = id
     }

@@ -239,18 +239,36 @@ struct QuestionsView: View {
         }
     }
 
+    /// The saved question to reselect on launch: the stored id, but only when nothing
+    /// is already selected, no navigation is pending, and the id is still in the loaded
+    /// list. Pure so the restore decision is unit-testable in isolation.
+    static func questionToRestore(
+        savedID: Int?,
+        hasSelection: Bool,
+        hasPendingNavigation: Bool,
+        availableIDs: Set<Int>
+    ) -> Int? {
+        guard !hasSelection, !hasPendingNavigation,
+              let savedID, availableIDs.contains(savedID) else { return nil }
+        return savedID
+    }
+
     /// Restore the previously-open question once its list is loaded. Marks the restore
     /// complete as soon as questions exist (so later changes persist), then reselects
-    /// the saved question only when nothing is selected, no sidebar favorite is
-    /// pending, and no request is queued — so an explicit navigation always wins.
+    /// via `questionToRestore` — which yields to a pending favorite or queued request
+    /// so an explicit navigation always wins.
     func restoreSelectedQuestionIfNeeded() {
         guard !didRestoreSelection, !questions.isEmpty else { return }
         didRestoreSelection = true
-        guard selection == nil, pendingSelectQuestionID == nil, nav.questionsRequest == nil,
-              let account = accounts.currentAccountID,
-              let stored = UserDefaults.standard.object(forKey: Self.selectedQuestionKey(account)) as? Int,
-              questions.contains(where: { $0.id == stored }) else { return }
-        selectedQuestionID = stored
+        guard let account = accounts.currentAccountID else { return }
+        let stored = UserDefaults.standard.object(forKey: Self.selectedQuestionKey(account)) as? Int
+        guard let id = Self.questionToRestore(
+            savedID: stored,
+            hasSelection: selection != nil,
+            hasPendingNavigation: pendingSelectQuestionID != nil || nav.questionsRequest != nil,
+            availableIDs: Set(questions.map(\.id))
+        ) else { return }
+        selectedQuestionID = id
     }
 
     func reload() async {
