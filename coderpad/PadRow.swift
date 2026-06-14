@@ -15,6 +15,17 @@ struct PadRow: View {
     @Environment(\.orgDirectory) private var directory
 
     var body: some View {
+        // Drag a pad out as its web URL, so it can be dropped into Slack, Mail,
+        // Notes, etc. as a link that reopens the pad. Only when the URL parses;
+        // otherwise the row is simply not draggable. Drop-in is tracked separately.
+        if let url = pad.webURL {
+            rowContent.draggable(url)
+        } else {
+            rowContent
+        }
+    }
+
+    private var rowContent: some View {
         HStack(alignment: .top, spacing: 10) {
             ZStack(alignment: .topTrailing) {
                 AvatarCircle(label: directory.display(pad.ownerEmail), diameter: 30)

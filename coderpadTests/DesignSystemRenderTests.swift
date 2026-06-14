@@ -132,6 +132,18 @@ struct DesignSystemRenderTests {
             "StatTile")
     }
 
+    @Test func `pad row renders, draggable and not`() throws {
+        // A pad with a parseable URL takes the `.draggable` branch; one without
+        // falls back to the plain row. Both must still rasterize.
+        let withURL = try CoderPadClient.decoder.decode(
+            Pad.self,
+            from: Data(#"{"id": "ABC123", "title": "Onsite", "state": "started", "url": "https://app.coderpad.io/ABC123"}"#.utf8)
+        )
+        let noURL = try CoderPadClient.decoder.decode(Pad.self, from: Data(#"{"id": "X1", "url": ""}"#.utf8))
+        expectRenders(PadRow(pad: withURL).frame(width: 320), "PadRow draggable")
+        expectRenders(PadRow(pad: noURL).frame(width: 320), "PadRow without URL")
+    }
+
     @Test func `question print document renders`() throws {
         let json = #"""
         {"id": 1, "title": "Two Sum", "language": "python3",
