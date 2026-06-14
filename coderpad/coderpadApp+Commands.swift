@@ -135,6 +135,14 @@ struct PadCommands: Commands {
             }
             .disabled(pad == nil)
 
+            Button("Copy as Markdown") {
+                guard let pad else { return }
+                let title = pad.title.isEmpty ? pad.id : pad.title
+                NSPasteboard.general.clearContents()
+                NSPasteboard.general.setString("[\(title)](\(pad.url))", forType: .string)
+            }
+            .disabled(pad == nil)
+
             // A live `ShareLink` rather than a routed command: it must hand the
             // system share picker a concrete URL at build time, and the pad's
             // `webURL` is available right here. Falls back to a disabled button

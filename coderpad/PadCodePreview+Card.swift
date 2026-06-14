@@ -238,8 +238,15 @@ extension EnvironmentCodeCard {
     }
 
     private func copy(_ text: String) {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
+        // Also offer a syntax-highlighted RTF representation, so pasting into Pages,
+        // Mail, or a doc keeps the colours; plain `.string` stays as the fallback for
+        // editors and the terminal.
+        if let rtf = SyntaxHighlighter.rtf(text, language: selected.language, dark: dark) {
+            pasteboard.setData(rtf, forType: .rtf)
+        }
     }
 
     /// Writes the file's contents to a user-chosen location. The save panel

@@ -44,6 +44,15 @@ enum SyntaxHighlighter {
         return lexerHighlight(source, language: language)
     }
 
+    /// A syntax-highlighted RTF representation of `source`, for copying code to the
+    /// pasteboard so it pastes into Pages/Mail/docs with its colours intact. `nil`
+    /// for plain text, unmapped languages, or oversized input, so the caller falls
+    /// back to copying plain text only.
+    static func rtf(_ source: String, language: String?, dark: Bool) -> Data? {
+        guard source.count <= maxLength, !HighlightrEngine.isPlainText(language) else { return nil }
+        return HighlightrEngine.shared.rtf(source, language: language, dark: dark)
+    }
+
     /// Single-pass fallback lexer (comments, strings, numbers, keywords) tuned
     /// per language family. Used only when Highlightr declines a language.
     private static func lexerHighlight(_ source: String, language: String?) -> AttributedString {
@@ -248,6 +257,24 @@ private final class HighlightrEngine {
 
         guard let rendered = highlightr.highlight(source, as: hljsName, fastRender: true) else { return nil }
         return Self.foregroundOnly(rendered)
+    }
+
+    /// The Highlightr-coloured `source` serialized to RTF, with a monospaced font
+    /// applied across it so the pasted code reads as code. `nil` when the language
+    /// is unmapped or Highlightr can't parse it.
+    func rtf(_ source: String, language: String?, dark: Bool) -> Data? {
+        guard let highlightr, let hljsName = Self.highlightJSName(for: language) else { return nil }
+        let themeName = dark ? "atom-one-dark" : "xcode"
+        if currentTheme != themeName {
+            _ = highlightr.setTheme(to: themeName)
+            currentTheme = themeName
+        }
+        guard let rendered = highlightr.highlight(source, as: hljsName, fastRender: true) else { return nil }
+        let mutable = NSMutableAttributedString(attributedString: rendered)
+        let full = NSRange(location: 0, length: mutable.length)
+        mutable.addAttribute(.font, value: NSFont.monospacedSystemFont(ofSize: 12, weight: .regular), range: full)
+        return try? mutable.data(from: full,
+                                 documentAttributes: [.documentType: NSAttributedString.DocumentType.rtf])
     }
 
     /// Converts a Highlightr `NSAttributedString` into a SwiftUI
