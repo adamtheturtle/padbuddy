@@ -93,6 +93,15 @@ extension QuestionsView {
         [languageFilter, ownerFilter, typeFilter, draftFilter].compactMap(\.self).count
     }
 
+    /// How many questions the current filters resolve to, shown as the window's
+    /// toolbar subtitle beneath the "Questions" title. Empty when the org has no
+    /// questions at all, where a "0 questions" line would just restate the empty list.
+    var countSubtitle: String {
+        guard !questions.isEmpty else { return "" }
+        let count = sorted.count
+        return "\(count) \(count == 1 ? "question" : "questions")"
+    }
+
     var sidebar: some View {
         Group {
             if isLoading, questions.isEmpty {
@@ -115,6 +124,21 @@ extension QuestionsView {
         // (trailing window toolbar, Finder-style); this column only owns the section
         // actions below.
         .toolbar(id: "questions.toolbar") {
+            ToolbarItem(id: "reload") {
+                ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
+            }
+            // Grouped beside Reload at the list column's leading edge rather
+            // than floating at the trailing edge: a `.primaryAction` here shares the
+            // window's trailing region with the detail pane's actions, so selecting
+            // a question would shove this button leftward. Anchoring it left keeps it put.
+            ToolbarItem(id: "new") {
+                Button { showCreate = true } label: {
+                    Label("New Question", systemImage: "plus")
+                }
+                .help("Create a new question (⇧⌘N)")
+                .accessibilityLabel("New Question")
+                .disabled(client.apiKey.isEmpty)
+            }
             ToolbarItem(id: "sort") {
                 Menu {
                     QuestionSortMenuContent(sort: $sort)
@@ -123,20 +147,6 @@ extension QuestionsView {
                 }
                 .help("Sort questions")
                 .accessibilityLabel("Sort questions")
-            }
-            ToolbarItem(id: "reload") {
-                ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
-            }
-            if #available(macOS 26, *) {
-                ToolbarSpacer(.fixed)
-            }
-            ToolbarItem(id: "new", placement: .primaryAction) {
-                Button { showCreate = true } label: {
-                    Label("New Question", systemImage: "plus")
-                }
-                .help("Create a new question (⇧⌘N)")
-                .accessibilityLabel("New Question")
-                .disabled(client.apiKey.isEmpty)
             }
         }
     }

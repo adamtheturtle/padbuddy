@@ -80,18 +80,39 @@ extension MergedQuestionsView {
                 VStack(spacing: 0) {
                     presetsBar
                     filterBar
-                    resultCountBar
                     errorBar
                     Divider()
                     questionsList
                 }
             }
         }
+        // Surface the count beneath the "Questions" title in the window toolbar
+        // rather than as an inline bar above the list.
+        .reportsSectionCount(countSubtitle)
         .toolbar(id: "questions.toolbar") { questionsToolbar }
     }
 
     @ToolbarContentBuilder
     var questionsToolbar: some CustomizableToolbarContent {
+        ToolbarItem(id: "reload") {
+            ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
+        }
+        // Grouped beside Reload at the list column's leading edge rather than
+        // floating at the trailing edge: a `.primaryAction` here shares the window's
+        // trailing region with the detail pane's actions, so selecting a question
+        // would shove this button leftward. Anchoring it left keeps it put.
+        ToolbarItem(id: "new") {
+            Menu {
+                ForEach(accounts.mergeableAccounts) { account in
+                    Button(account.name) { creatingForAccount = account }
+                        .disabled(account.apiKey.isEmpty)
+                }
+            } label: {
+                Label("New Question", systemImage: "plus")
+            }
+            .help("Create a new question in one of your accounts")
+            .accessibilityLabel("New Question")
+        }
         ToolbarItem(id: "sort") {
             Menu {
                 Picker("Sort", selection: $sort) {
@@ -103,21 +124,6 @@ extension MergedQuestionsView {
             }
             .help("Sort questions")
             .accessibilityLabel("Sort questions")
-        }
-        ToolbarItem(id: "reload") {
-            ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
-        }
-        ToolbarItem(id: "new", placement: .primaryAction) {
-            Menu {
-                ForEach(accounts.mergeableAccounts) { account in
-                    Button(account.name) { creatingForAccount = account }
-                        .disabled(account.apiKey.isEmpty)
-                }
-            } label: {
-                Label("New Question", systemImage: "plus")
-            }
-            .help("Create a new question in one of your accounts")
-            .accessibilityLabel("New Question")
         }
     }
 
