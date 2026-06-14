@@ -14,6 +14,7 @@ struct Sidebar: View {
     @State private var favoritePads = FavoritePadsStore.shared
     @State private var questionsCache = QuestionsCacheStore.shared
     @State private var padsCache = PadsCacheStore.shared
+    @State private var quotaCache = QuotaCacheStore.shared
     @State private var nav = AppNavigation.shared
     /// Highlights the Favorites section while a pad or question is dragged over it,
     /// the Finder-style cue that dropping there will pin the item.
@@ -31,7 +32,13 @@ struct Sidebar: View {
                     sidebarRow(.pads, "Pads", "doc.text")
                     sidebarRow(.questions, "Questions", "questionmark.bubble")
                     sidebarRow(.organization, "Organization", "building.2")
-                    sidebarRow(.quota, "Quota", "gauge.with.dots.needle.67percent")
+                    // On an unlimited plan the quota page has nothing to count down, so
+                    // the row becomes a non-navigable "Unlimited" indicator instead (#306).
+                    if quotaIsUnlimited {
+                        unlimitedQuotaRow
+                    } else {
+                        sidebarRow(.quota, "Quota", "gauge.with.dots.needle.67percent")
+                    }
                 }
                 .padding(.horizontal, 8)
                 .padding(.top, 10)
@@ -72,10 +79,50 @@ struct Sidebar: View {
                 Color.black.opacity(0.18).ignoresSafeArea()
             }
         }
+        // If the plan is revealed as unlimited while the quota page is open (e.g. the
+        // restored section was Quota and the warm-up only now confirmed unlimited),
+        // step away to Pads so the user isn't left on a page they can no longer reach.
+        .onChange(of: quotaIsUnlimited) { _, unlimited in
+            if unlimited, section == .quota { section = .pads }
+        }
     }
 
     private var accountID: UUID? {
         accounts.currentAccountID
+    }
+
+    /// Whether the current account's plan is unlimited, read synchronously from the
+    /// quota cache (warmed on session load). Only in the single-account view — the
+    /// combined view spans accounts that may differ, so it keeps the normal Quota row.
+    private var quotaIsUnlimited: Bool {
+        guard !isMergedView, let id = accountID else { return false }
+        return quotaCache.get(id)?.unlimited == true
+    }
+
+    /// The non-navigable Quota row shown on an unlimited plan: it states the plan is
+    /// unlimited rather than linking to a countdown page that has nothing to count.
+    private var unlimitedQuotaRow: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "infinity")
+                .imageScale(.large)
+                .foregroundStyle(.secondary)
+                .frame(width: 22)
+            Text("Quota")
+                .foregroundStyle(.primary)
+            Spacer(minLength: 0)
+            Text("Unlimited")
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(Color.secondary.opacity(0.15), in: Capsule())
+        }
+        .font(.body)
+        .padding(.vertical, 7)
+        .padding(.horizontal, 8)
+        .help("Your plan has unlimited pads.")
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Quota, unlimited plan")
     }
 
     // MARK: Saved searches
@@ -190,16 +237,21 @@ struct Sidebar: View {
         }
     }
 
-    /// The fixed top-to-bottom order of the four top-level sections, shared by the
-    /// rows above and the arrow-key handler so the two never disagree.
-    private static let sectionOrder: [AppSection] = [.pads, .questions, .organization, .quota]
+    /// The top-to-bottom order of the navigable top-level sections, shared by the
+    /// rows above and the arrow-key handler so the two never disagree. Quota drops
+    /// out on an unlimited plan, where its row is a non-navigable indicator (#306).
+    private var sectionOrder: [AppSection] {
+        quotaIsUnlimited
+            ? [.pads, .questions, .organization]
+            : [.pads, .questions, .organization, .quota]
+    }
 
     /// Step the selected section on ↑/↓ when the section group has keyboard focus.
     /// Clamps at the ends rather than wrapping, the way a source list does, and routes
     /// through `selectRoot` so moving onto Pads/Questions shows their plain list (the
     /// same as clicking the row). Left/right are ignored.
     private func moveSection(_ direction: MoveCommandDirection) {
-        let order = Self.sectionOrder
+        let order = sectionOrder
         guard let current = order.firstIndex(of: nav.section) else {
             // The active section isn't one of the four (a saved search is applied):
             // ↑/↓ re-enters the list at its current section's plain row.
@@ -226,7 +278,11 @@ struct Sidebar: View {
         case .questions:
             if isMergedView { nav.showMergedRoot(kind: .questions) }
             else { nav.showQuestions(QuestionsRequest(applySearch: NamedSearch(name: ""))) }
-        case .organization, .quota: section = value
+        case .organization: section = value
+        case .quota:
+            // The quota page is unreachable on an unlimited plan (#306); the row is a
+            // plain indicator there and never calls this, but guard anyway.
+            if !quotaIsUnlimited { section = value }
         }
     }
 

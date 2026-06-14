@@ -328,6 +328,12 @@ struct MainSplit: View {
         if active != .questions, let questions = try? await client.listQuestions(sort: "updated_at,desc") {
             QuestionsCacheStore.shared.set(id, questions: questions)
         }
+        // Warm the quota too, so the sidebar knows up front whether the plan is
+        // unlimited (and hides the unreachable Quota page) without the user having to
+        // open Quota or Organization first. See #306.
+        if let quota = try? await client.quota() {
+            QuotaCacheStore.shared.set(id, quota: quota)
+        }
     }
 
     private var threeColumnSplit: some View {
