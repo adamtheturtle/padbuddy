@@ -425,6 +425,11 @@ struct MainSplit: View {
                               ? "rectangle.trailinghalf.inset.filled"
                               : "rectangle.leadinghalf.inset.filled")
                 }
+                // Show the title beside the icon: on its own the half-filled
+                // rectangle glyph is cryptic (it isn't obvious it hides the middle
+                // list column), so spell out what it does rather than relying on the
+                // hover tooltip alone.
+                .labelStyle(.titleAndIcon)
                 .help(listHidden
                           ? "Show the list."
                           : "Hide the list for a thin reference strip beside another window.")
