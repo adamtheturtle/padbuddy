@@ -35,12 +35,12 @@ struct ContentView: View {
             }
         }
 
-        // Strip the chrome Mail also omits: the window title (otherwise shown in
-        // the title bar over the standard sidebar toggle) and the hairline
-        // separator under the unified toolbar. The title bar itself stays standard
-        // so the system's own sidebar toggle and View ▸ Show/Hide Sidebar command
-        // are present.
-        .toolbar(removing: .title)
+        // Keep the title bar standard so the system's own sidebar toggle and
+        // View ▸ Show/Hide Sidebar command are present, and let MainSplit's
+        // `.navigationTitle`/`.navigationSubtitle` read out the current section
+        // ("Pads", "Questions", "All accounts") like Mail's mailbox title. Only the
+        // hairline separator under the unified toolbar is dropped, for the seamless
+        // look — the title itself stays visible.
         .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
         .environment(\.orgDirectory, directory)
         .task {
