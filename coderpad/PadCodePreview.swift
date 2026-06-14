@@ -80,6 +80,10 @@ struct EnvironmentCodeCard: View {
     let showActiveBadge: Bool
     /// The environment-level language, shown as a chip (e.g. "Python Project").
     let language: String?
+    /// When the environment was seeded from one of CoderPad's built-in examples,
+    /// its identifier (e.g. "examples/035-django-shopping-list"). `nil` for a custom
+    /// or question-backed environment. Surfaced as a "From example" attribution.
+    let exampleQuestionID: String?
     let padID: String
     let dark: Bool
 
@@ -94,6 +98,7 @@ struct EnvironmentCodeCard: View {
         isActive: Bool,
         showActiveBadge: Bool,
         language: String?,
+        exampleQuestionID: String? = nil,
         padID: String,
         dark: Bool
     ) {
@@ -101,9 +106,31 @@ struct EnvironmentCodeCard: View {
         self.isActive = isActive
         self.showActiveBadge = showActiveBadge
         self.language = language
+        self.exampleQuestionID = exampleQuestionID
         self.padID = padID
         self.dark = dark
         fileTree = Self.makeFileTree(from: files)
+    }
+
+    /// A humanized name for a built-in example identifier, or `nil` when the
+    /// environment isn't from an example. Strips the `examples/` prefix and any
+    /// leading `NNN-` ordinal, then turns dashes into spaces (e.g.
+    /// "examples/035-django-shopping-list" → "Django shopping list").
+    var exampleAttribution: String? {
+        guard let raw = exampleQuestionID?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !raw.isEmpty else { return nil }
+        var slug = raw
+        if let slash = slug.lastIndex(of: "/") { slug = String(slug[slug.index(after: slash)...]) }
+        // Drop a leading ordinal like "035-".
+        if let dash = slug.firstIndex(of: "-"),
+           slug[slug.startIndex ..< dash].allSatisfy(\.isNumber), slug.startIndex != dash {
+            slug = String(slug[slug.index(after: dash)...])
+        }
+        let words = slug.replacingOccurrences(of: "-", with: " ")
+            .replacingOccurrences(of: "_", with: " ")
+            .trimmingCharacters(in: .whitespaces)
+        guard !words.isEmpty else { return nil }
+        return words.prefix(1).uppercased() + words.dropFirst()
     }
 
     @State var selectedFileID: String?
@@ -188,6 +215,9 @@ struct EnvironmentCodeCard: View {
         Card {
             VStack(alignment: .leading, spacing: 10) {
                 header
+                if let exampleAttribution {
+                    MetaLabel(text: "From example: \(exampleAttribution)", systemImage: "shippingbox")
+                }
                 content
             }
             .frame(maxWidth: .infinity, alignment: .leading)

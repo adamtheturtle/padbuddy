@@ -30,6 +30,7 @@ extension PadDetailView {
                             isActive: env.id == pad.activeEnvironmentID,
                             showActiveBadge: environments.count > 1,
                             language: env.language,
+                            exampleQuestionID: env.exampleQuestionID,
                             padID: pad.id,
                             dark: colorScheme == .dark
                         )
