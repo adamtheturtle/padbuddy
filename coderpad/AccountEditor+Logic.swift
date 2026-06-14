@@ -40,6 +40,29 @@ extension AccountEditor {
         return false
     }
 
+    /// Bridges the optional emoji to the text field, normalizing input to a single
+    /// glyph and storing an empty field as `nil` (so the avatar shows initials).
+    var iconEmojiBinding: Binding<String> {
+        Binding(
+            get: { draft.iconEmoji ?? "" },
+            set: { draft.iconEmoji = Account.normalizedEmoji($0) }
+        )
+    }
+
+    /// Bridges the optional tint to a `ColorPicker`: an unset tint shows the
+    /// account's current default swatch, and picking any color stores its hex.
+    var tintColorBinding: Binding<Color> {
+        Binding(
+            get: { draft.tintColor ?? draft.avatarTint },
+            set: { draft.tintHex = $0.hexString }
+        )
+    }
+
+    /// Whether the account carries a custom icon or tint, gating the Reset control.
+    var hasCustomAppearance: Bool {
+        draft.iconEmoji != nil || draft.tintHex != nil
+    }
+
     /// Whether the editor is modifying a saved account (vs. adding a new one); the
     /// Delete callback is supplied only in that case.
     var isEditing: Bool {

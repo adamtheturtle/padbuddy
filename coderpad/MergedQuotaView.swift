@@ -240,7 +240,7 @@ struct AccountSectionHeader: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            AvatarCircle(label: account.name, diameter: 32)
+            AvatarCircle(account: account, diameter: 32)
             VStack(alignment: .leading, spacing: 1) {
                 Text(account.name).font(.headline)
                 if !account.userEmail.isEmpty {

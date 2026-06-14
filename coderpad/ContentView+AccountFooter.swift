@@ -72,9 +72,9 @@ struct AccountFooter: View {
                         store.currentAccountID = account.id
                     } label: {
                         if !store.isMergedView, account.id == store.currentAccount?.id {
-                            Label(account.name, systemImage: "checkmark")
+                            Label(account.menuTitle, systemImage: "checkmark")
                         } else {
-                            Text(account.name)
+                            Text(account.menuTitle)
                         }
                     }
                 }
@@ -109,8 +109,8 @@ struct AccountFooter: View {
                 Image(systemName: "person.2.circle.fill")
                     .font(.system(size: 28))
                     .foregroundStyle(.purple)
-            } else {
-                AvatarCircle(label: title, diameter: 30)
+            } else if let account = store.currentAccount {
+                AvatarCircle(account: account, diameter: 30)
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).font(.callout.weight(.medium)).lineLimit(1)

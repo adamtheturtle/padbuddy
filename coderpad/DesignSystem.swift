@@ -9,6 +9,28 @@ import SwiftUI
 extension Color {
     static let cardBackground = Color(nsColor: .controlBackgroundColor)
     static let subtleStroke = Color.primary.opacity(0.08)
+
+    /// Parses an "#RRGGBB" (or "RRGGBB") hex string into an sRGB color, or `nil` if
+    /// it isn't a well-formed six-digit hex value.
+    init?(hex: String) {
+        var string = hex.trimmingCharacters(in: .whitespacesAndNewlines)
+        if string.hasPrefix("#") { string.removeFirst() }
+        guard string.count == 6, let value = UInt32(string, radix: 16) else { return nil }
+        self.init(.sRGB,
+                  red: Double((value >> 16) & 0xFF) / 255,
+                  green: Double((value >> 8) & 0xFF) / 255,
+                  blue: Double(value & 0xFF) / 255)
+    }
+
+    /// This color as an "#RRGGBB" sRGB hex string, or `nil` if it can't be resolved
+    /// to fixed components (e.g. a dynamic/catalog color).
+    var hexString: String? {
+        guard let resolved = NSColor(self).usingColorSpace(.sRGB) else { return nil }
+        let r = Int((resolved.redComponent * 255).rounded())
+        let g = Int((resolved.greenComponent * 255).rounded())
+        let b = Int((resolved.blueComponent * 255).rounded())
+        return String(format: "#%02X%02X%02X", r, g, b)
+    }
 }
 
 /// Shared layout constants so pane chrome stays in sync across detail views.
@@ -84,14 +106,21 @@ struct AvatarCircle: View {
     let label: String
     var diameter: CGFloat = 32
     var tint: Color = .accentColor
+    /// When set, the avatar shows this emoji instead of the name's initials.
+    var emoji: String?
 
     var body: some View {
         ZStack {
             Circle().fill(tint.opacity(0.18))
             Circle().stroke(tint.opacity(0.25), lineWidth: 0.5)
-            Text(initials)
-                .font(.system(size: diameter * 0.4, weight: .semibold))
-                .foregroundStyle(tint)
+            if let emoji, !emoji.isEmpty {
+                Text(emoji)
+                    .font(.system(size: diameter * 0.5))
+            } else {
+                Text(initials)
+                    .font(.system(size: diameter * 0.4, weight: .semibold))
+                    .foregroundStyle(tint)
+            }
         }
         .frame(width: diameter, height: diameter)
     }
@@ -105,6 +134,15 @@ struct AvatarCircle: View {
         let letters = parts.prefix(2).compactMap { $0.first.map(String.init) }
         let result = letters.joined().uppercased()
         return result.isEmpty ? "?" : result
+    }
+}
+
+extension AvatarCircle {
+    /// Builds the avatar from an account: its chosen emoji and tint when set,
+    /// otherwise the name's initials on the account's default tint.
+    init(account: Account, diameter: CGFloat = 32) {
+        self.init(label: account.name, diameter: diameter,
+                  tint: account.avatarTint, emoji: account.iconEmoji)
     }
 }
 

@@ -157,6 +157,28 @@ struct AccountEditor: View {
                                   prompt: Text("Auto-filled from your organization"))
                             .textFieldStyle(.roundedBorder)
                     }
+                    fieldRow("Icon") {
+                        HStack(spacing: 8) {
+                            // Live preview of how the avatar will look elsewhere.
+                            AvatarCircle(account: draft, diameter: 30)
+                            TextField("", text: iconEmojiBinding, prompt: Text("🙂"))
+                                .textFieldStyle(.roundedBorder)
+                                .frame(width: 56)
+                                .help("Pick an emoji to tell this account apart. Leave blank to show initials.")
+                            ColorPicker("", selection: tintColorBinding, supportsOpacity: false)
+                                .labelsHidden()
+                                .help("Tint color for this account's avatar.")
+                            if hasCustomAppearance {
+                                Button("Reset") {
+                                    draft.iconEmoji = nil
+                                    draft.tintHex = nil
+                                }
+                                .buttonStyle(.borderless)
+                                .help("Use the default initials and color.")
+                            }
+                            Spacer()
+                        }
+                    }
                 }
                 // The email picker needs the validated org's member list, so it stays
                 // gated behind a successful validation.

@@ -101,6 +101,63 @@ struct AccountRoundTripTests {
         #expect(Account.demo().userEmail == Account.demoUserEmail)
         #expect(Account.demoBadKey().userEmail == Account.demoUserEmail)
     }
+
+    @Test
+    func `icon and tint survive the round-trip`() throws {
+        let original = Account(name: "Acme", apiKey: "k", iconEmoji: "🚀", tintHex: "#FF8800")
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(Account.self, from: data)
+        #expect(decoded.iconEmoji == "🚀")
+        #expect(decoded.tintHex == "#FF8800")
+    }
+
+    @Test
+    func `account saved before icon/tint existed still decodes`() throws {
+        // JSON from an older build with no iconEmoji/tintHex keys must not fail to load.
+        let legacy = """
+        {"id":"\(UUID().uuidString)","name":"Old","apiKey":"k","isMock":false,"userEmail":""}
+        """
+        let decoded = try JSONDecoder().decode(Account.self, from: Data(legacy.utf8))
+        #expect(decoded.iconEmoji == nil)
+        #expect(decoded.tintHex == nil)
+    }
+
+    @Test
+    func `normalizedEmoji keeps a single glyph and clears when empty`() {
+        #expect(Account.normalizedEmoji("🚀") == "🚀")
+        // Only the last grapheme is kept, so typing a replacement swaps cleanly.
+        #expect(Account.normalizedEmoji("🚀🎯") == "🎯")
+        #expect(Account.normalizedEmoji("   ") == nil)
+        #expect(Account.normalizedEmoji("") == nil)
+    }
+
+    @Test
+    func `avatarTint prefers the custom color over the default`() {
+        let custom = Account(name: "A", apiKey: "k", tintHex: "#112233")
+        #expect(custom.tintColor != nil)
+        // An unset tint falls back to the default (no custom color resolved).
+        let plain = Account(name: "B", apiKey: "k")
+        #expect(plain.tintColor == nil)
+    }
+}
+
+@Suite("Color hex")
+struct ColorHexTests {
+    @Test func `hex string round-trips through Color`() {
+        let color = Color(hex: "#3478F6")
+        #expect(color != nil)
+        #expect(color?.hexString == "#3478F6")
+    }
+
+    @Test func `a leading hash is optional`() {
+        #expect(Color(hex: "3478F6")?.hexString == "#3478F6")
+    }
+
+    @Test func `malformed hex returns nil`() {
+        #expect(Color(hex: "nope") == nil)
+        #expect(Color(hex: "#12345") == nil)
+        #expect(Color(hex: "") == nil)
+    }
 }
 
 @Suite("What's New gating", .serialized)

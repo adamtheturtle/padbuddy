@@ -345,8 +345,7 @@ struct AccountRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            AvatarCircle(label: account.name, diameter: 30,
-                         tint: account.isMock ? .purple : .accentColor)
+            AvatarCircle(account: account, diameter: 30)
 
             HStack(spacing: 6) {
                 Text(account.name.isEmpty ? "Untitled account" : account.name)
