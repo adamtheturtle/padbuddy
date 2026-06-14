@@ -18,6 +18,7 @@
 import SwiftUI
 
 struct MergedOrganizationView: View {
+    @Environment(\.openSettings) private var openSettings
     @State private var accounts = AccountsStore.shared
     @State private var orgCache = OrganizationCacheStore.shared
     @State private var quotaCache = QuotaCacheStore.shared
@@ -146,8 +147,16 @@ struct MergedOrganizationView: View {
                 if let org = orgByAccount[account.id] {
                     orgBreakdown(org, account: account)
                 } else if let error = accountErrors[account.id] {
-                    Label(error, systemImage: "exclamationmark.triangle")
-                        .font(.callout).foregroundStyle(.secondary)
+                    // The unauthorized message points the user at this account's
+                    // settings; give them a one-click way there rather than leaving
+                    // them to hunt for it (no detail pane carries the linked button
+                    // the single-account APIErrorView shows).
+                    VStack(alignment: .leading, spacing: 6) {
+                        Label(error, systemImage: "exclamationmark.triangle")
+                            .font(.callout).foregroundStyle(.secondary)
+                        Button("Open Account Settings") { openAccountSettings(account) }
+                            .buttonStyle(.link)
+                    }
                 } else if account.apiKey.isEmpty {
                     Text("No API key for this account.")
                         .font(.callout).foregroundStyle(.secondary)
@@ -157,6 +166,15 @@ struct MergedOrganizationView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    /// Opens Settings on the Accounts tab with this account selected for editing,
+    /// so a rejected key can be fixed where the error told the user to look.
+    private func openAccountSettings(_ account: Account) {
+        let navigation = SettingsNavigation.shared
+        navigation.selectedTab = .accounts
+        navigation.accountToEdit = account.id
+        openSettings()
     }
 
     private func orgBreakdown(_ org: Organization, account: Account) -> some View {
