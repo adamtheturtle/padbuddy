@@ -212,7 +212,10 @@ extension PadDetailView {
     }
 
     private var eventList: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        // Lazy so only the visible timeline rows are built: an active session can
+        // emit hundreds of grouped events, each a non-trivial row (icon, chips,
+        // actor, timestamp), and this sits inside the detail pane's ScrollView.
+        LazyVStack(alignment: .leading, spacing: 8) {
             ForEach(groupedEvents) { group in
                 HStack(alignment: .top, spacing: 10) {
                     Image(systemName: icon(for: group.representative.kind))
