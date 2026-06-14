@@ -74,15 +74,15 @@ struct MergedOrganizationView: View {
                 await reload()
             }
         }
-        .toolbar(id: "org.toolbar") {
-            ToolbarItem(id: "period") {
+        .toolbar {
+            ToolbarItem(placement: .automatic) {
                 Picker("Period", selection: $period) {
                     ForEach(StatsPeriod.allCases) { Text($0.rawValue).tag($0) }
                 }
                 .pickerStyle(.menu)
                 .help("Stats period")
             }
-            ToolbarItem(id: "reload") {
+            ToolbarItem(placement: .automatic) {
                 ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
             }
         }

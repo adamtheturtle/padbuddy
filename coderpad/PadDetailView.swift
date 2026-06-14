@@ -34,25 +34,25 @@ struct PadDetailView: View {
     // dialog, so surfacing them directly can't trigger an irreversible action
     // from a stray click.
     @ToolbarContentBuilder
-    private var detailToolbar: some CustomizableToolbarContent {
+    private var detailToolbar: some ToolbarContent {
         if #available(macOS 26, *) {
             ToolbarSpacer(.fixed)
         }
-        ToolbarItem(id: "editPad", placement: .primaryAction) {
+        ToolbarItem(placement: .primaryAction) {
             Button { showEdit = true } label: {
                 Label("Edit", systemImage: "pencil")
             }
             .help("Edit pad properties")
         }
         if let url = pad.webURL {
-            ToolbarItem(id: "sharePad", placement: .primaryAction) {
+            ToolbarItem(placement: .primaryAction) {
                 ShareLink(item: url) {
                     Label("Share", systemImage: "square.and.arrow.up")
                 }
                 .help("Share pad")
                 .accessibilityLabel("Share pad")
             }
-            ToolbarItem(id: "openPad", placement: .primaryAction) {
+            ToolbarItem(placement: .primaryAction) {
                 Button {
                     if BrowserSettings.openLinksIn == .external {
                         BrowserSettings.openExternally(url)
@@ -70,7 +70,7 @@ struct PadDetailView: View {
             }
         }
         if let playbackURL = pad.playbackURL {
-            ToolbarItem(id: "watchPlayback", placement: .primaryAction) {
+            ToolbarItem(placement: .primaryAction) {
                 Button {
                     if BrowserSettings.openLinksIn == .external {
                         BrowserSettings.openExternally(playbackURL)
@@ -87,7 +87,7 @@ struct PadDetailView: View {
         if #available(macOS 26, *) {
             ToolbarSpacer(.fixed)
         }
-        ToolbarItem(id: "saveCode", placement: .primaryAction) {
+        ToolbarItem(placement: .primaryAction) {
             Button {
                 saveCodeLocally()
             } label: {
@@ -96,7 +96,7 @@ struct PadDetailView: View {
             .disabled(!hasSavableCode)
             .help("Save the pad's code to a file or folder on this Mac")
         }
-        ToolbarItem(id: "endInterview", placement: .primaryAction) {
+        ToolbarItem(placement: .primaryAction) {
             Button {
                 showEndConfirm = true
             } label: {
@@ -105,7 +105,7 @@ struct PadDetailView: View {
             .disabled(isEnded || isMutating)
             .help("End the interview for all participants")
         }
-        ToolbarItem(id: "deletePad", placement: .primaryAction) {
+        ToolbarItem(placement: .primaryAction) {
             Button(role: .destructive) {
                 showDeleteConfirm = true
             } label: {
@@ -147,7 +147,7 @@ struct PadDetailView: View {
                 detailScroll
             }
         }
-        .toolbar(id: "pad.detail.toolbar") { detailToolbar }
+        .toolbar { detailToolbar }
         // Publish a print rendering so File ▸ Print (⌘P) can produce a hard copy
         // or PDF of the pad's summary and code (whatever has loaded so far).
         .focusedSceneValue(\.printAction, PrintAction(id: "pad-\(pad.id)") {
