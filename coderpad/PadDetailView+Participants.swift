@@ -77,10 +77,11 @@ extension PadDetailView {
                     Button {
                         AppNavigation.shared.showPads(PadsRequest(ownerEmail: email))
                     } label: {
-                        participantRow(name: name, tint: tint)
+                        participantRow(name: name, tint: tint, clickable: true)
                             .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                     }
                     .buttonStyle(.plain)
+                    .pointerStyle(.link)
                     .help("Show pads from \(name)")
                 } else {
                     participantRow(name: name, tint: tint)
@@ -89,11 +90,19 @@ extension PadDetailView {
         }
     }
 
-    private func participantRow(name: String, tint: Color) -> some View {
+    private func participantRow(name: String, tint: Color, clickable: Bool = false) -> some View {
         HStack(spacing: 8) {
             AvatarCircle(label: name, diameter: 26, tint: tint)
             Text(name).font(.callout)
             Spacer(minLength: 0)
+            // A trailing chevron marks the row as a link to the member's pads, so
+            // a clickable interviewer reads differently from a plain candidate row
+            // that only carries the same name and avatar.
+            if clickable {
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(tint)
+            }
         }
         .padding(.vertical, 4)
         .padding(.horizontal, 8)
@@ -103,7 +112,7 @@ extension PadDetailView {
     /// The org email for a participant matched by display name, used to turn an
     /// interviewer row into a link to their pads. Names can collide in theory, so
     /// this returns the first match; `nil` when no member carries that name.
-    private func memberEmail(forName name: String) -> String? {
+    func memberEmail(forName name: String) -> String? {
         let lowered = name.lowercased()
         return directory.nameByEmail.first { $0.value.lowercased() == lowered }?.key
     }
