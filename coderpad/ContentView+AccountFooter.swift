@@ -8,6 +8,7 @@ import SwiftUI
 
 struct AccountFooter: View {
     @State private var store = AccountsStore.shared
+    @State private var monitor = AccountHealthMonitor.shared
     @State private var addingAccount: Account?
 
     var body: some View {
@@ -71,13 +72,7 @@ struct AccountFooter: View {
                         store.showAllAccounts = false
                         store.currentAccountID = account.id
                     } label: {
-                        if !store.isMergedView, account.id == store.currentAccount?.id {
-                            Label(account.name, systemImage: "checkmark")
-                        } else if let symbol = account.iconSymbol {
-                            Label(account.name, systemImage: symbol)
-                        } else {
-                            Text(account.name)
-                        }
+                        accountMenuLabel(for: account)
                     }
                 }
                 Divider()
@@ -98,6 +93,25 @@ struct AccountFooter: View {
         }
     }
 
+    /// A single account's menu row. An account the health monitor has flagged as
+    /// unauthorized gets a warning triangle and a "(bad key)" suffix; otherwise the
+    /// checkmark (when active) or the account's own icon takes the symbol slot.
+    @ViewBuilder
+    private func accountMenuLabel(for account: Account) -> some View {
+        let isSelected = !store.isMergedView && account.id == store.currentAccount?.id
+        let isUnauthorized = monitor.isUnauthorized(account.id)
+        let title = isUnauthorized ? "\(account.name) (bad key)" : account.name
+        if isSelected {
+            Label(title, systemImage: "checkmark")
+        } else if isUnauthorized {
+            Label(title, systemImage: "exclamationmark.triangle.fill")
+        } else if let symbol = account.iconSymbol {
+            Label(title, systemImage: symbol)
+        } else {
+            Text(title)
+        }
+    }
+
     /// The menu's trigger: the active account's identity, or "All Accounts" while
     /// the combined view is on.
     private var triggerLabel: some View {
@@ -113,6 +127,15 @@ struct AccountFooter: View {
                     .foregroundStyle(.purple)
             } else if let account = store.currentAccount {
                 AvatarCircle(account: account, diameter: 30)
+                    .overlay(alignment: .bottomTrailing) {
+                        if monitor.isUnauthorized(account.id) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: 11))
+                                .foregroundStyle(.red)
+                                .background(Circle().fill(.background).padding(-1))
+                                .help("This account's API key is invalid")
+                        }
+                    }
             }
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).font(.callout.weight(.medium)).lineLimit(1)
