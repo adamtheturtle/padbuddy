@@ -189,6 +189,44 @@ extension PadsView {
         search = ""
         clearAllFilters()
         restoreFilters()
+        // Let the new account restore its own last-open pad once its list loads.
+        didRestoreSelection = false
+    }
+
+    // MARK: - Selection persistence
+
+    static func selectedPadKey(_ account: UUID) -> String {
+        "pads.selectedPad.\(account.uuidString)"
+    }
+
+    /// Persist the id of the pad currently shown in the detail pane, per account, so
+    /// the list reopens to it next launch. Skipped until the restore has run so the
+    /// empty startup state can't clobber the saved id; clearing the selection removes
+    /// the stored id so a blank detail pane is also restored faithfully.
+    func persistSelectedPad() {
+        guard didRestoreSelection, let account = accounts.currentAccountID else { return }
+        let key = Self.selectedPadKey(account)
+        if let selectedID {
+            UserDefaults.standard.set(selectedID, forKey: key)
+        } else {
+            UserDefaults.standard.removeObject(forKey: key)
+        }
+    }
+
+    /// Restore the previously-open pad once its list is loaded. Marks the restore
+    /// complete as soon as pads exist (so later selection changes persist), then
+    /// reselects the saved pad only when nothing is selected yet, no deep link is
+    /// pending, and the saved pad is still in the list. Sets `isRestoringSelection`
+    /// so the reselection doesn't count as freshly opening the pad.
+    func restoreSelectedPadIfNeeded() {
+        guard !didRestoreSelection, !pads.isEmpty else { return }
+        didRestoreSelection = true
+        guard selection == nil, nav.openPadID == nil,
+              let account = accounts.currentAccountID,
+              let id = UserDefaults.standard.string(forKey: Self.selectedPadKey(account)),
+              pads.contains(where: { $0.id == id }) else { return }
+        isRestoringSelection = true
+        selectedID = id
     }
 
     // MARK: - Reload
@@ -240,6 +278,10 @@ extension PadsView {
             cache.set(id, pads: fetched)
         }
         hasLoadedOnce = true
+        // Cold start with an empty cache: the list first appears here, so this is the
+        // earliest point the saved selection can be resolved. Idempotent (guarded by
+        // `didRestoreSelection`), so the per-refresh calls after this are no-ops.
+        restoreSelectedPadIfNeeded()
     }
 
     /// The ids of pads that are new or whose `updatedAt` advanced since the last

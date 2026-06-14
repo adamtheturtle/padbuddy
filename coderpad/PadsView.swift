@@ -51,6 +51,14 @@ struct PadsView: View {
     /// Guards the once-per-account restore of persisted live filters so the
     /// `onChange` that saves them doesn't fire before the restore has run.
     @State var didRestoreFilters = false
+    /// The pad-selection counterpart to `didRestoreFilters`: gates the once-per-load
+    /// restore of the previously-open pad, so the `onChange` that persists the
+    /// selection doesn't clobber the saved id before the list has loaded.
+    @State var didRestoreSelection = false
+    /// True only while a restored selection is being applied, so the `selection`
+    /// observer skips marking that pad freshly opened (which would clear its
+    /// "new activity" dot before the user has actually looked).
+    @State var isRestoringSelection = false
     /// Per-render memo for `filtered` (see `refreshFiltered()`). A reference type so
     /// `body` can refresh it without mutating SwiftUI state mid-evaluation.
     @State var filteredCache = FilteredPadsCache()
@@ -92,6 +100,9 @@ struct PadsView: View {
                 if pads.isEmpty, let id = accounts.currentAccountID {
                     pads = cache.get(id)
                 }
+                // Reopen the pad that was selected last session, once a list exists
+                // to resolve it against (the cache above, or the reload below).
+                restoreSelectedPadIfNeeded()
                 await periodicReload(interval: { nextRefreshInterval }, work: {
                     await reload()
                 })
@@ -110,6 +121,8 @@ struct PadsView: View {
                 if selection?.id != newID {
                     selection = newID.flatMap { id in pads.first { $0.id == id } }
                 }
+                // Remember the open pad per account so the list reopens to it next launch.
+                persistSelectedPad()
             }
             .onChange(of: nav.padsRequest) { _, _ in applyPendingRequest() }
             // The account id is often nil on first appear; restore once it lands, and
@@ -125,7 +138,12 @@ struct PadsView: View {
             // Opening (selecting) a pad clears its "new activity" dot until it next
             // changes, and mirrors the change back to the list's id selection.
             .onChange(of: selection) { _, newValue in
-                if let newValue, let account = accounts.currentAccountID {
+                // A selection restored from the last session must not be re-marked
+                // opened, or a pad that changed while the app was closed would lose
+                // its "new activity" dot before being seen. The flag is consumed once.
+                if isRestoringSelection {
+                    isRestoringSelection = false
+                } else if let newValue, let account = accounts.currentAccountID {
                     openedStore.markOpened(newValue.id, account: account)
                 }
                 if selectedID != newValue?.id { selectedID = newValue?.id }
