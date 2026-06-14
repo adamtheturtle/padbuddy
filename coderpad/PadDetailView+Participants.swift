@@ -68,7 +68,10 @@ extension PadDetailView {
 
     private func participantGrid(names: [String], tint: Color, clickable: Bool = false) -> some View {
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 8)], alignment: .leading, spacing: 8) {
-            ForEach(names, id: \.self) { name in
+            // Key by position rather than the name itself: two participants can
+            // share a display name (or the same name can appear twice), and
+            // `id: \.self` would then hand the grid duplicate IDs.
+            ForEach(Array(names.enumerated()), id: \.offset) { _, name in
                 // Interviewers are org members, so we can resolve their email and
                 // make the row a button that jumps to their pads, mirroring the
                 // Organization users list. Candidates aren't members, so they
