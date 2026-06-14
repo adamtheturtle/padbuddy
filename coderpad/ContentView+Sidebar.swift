@@ -292,23 +292,43 @@ struct Sidebar: View {
     // MARK: Favorites
 
     private struct FavoriteItem: Identifiable {
-        let id: Int
+        /// Unique per row. In the merged view two accounts can both star a question
+        /// with the same per-org id, so the row id namespaces by account.
+        let id: String
+        let questionID: Int
+        /// The owning account when shown in the merged view, so a tap selects the
+        /// right account's row; `nil` in a single-account view.
+        let account: UUID?
         let title: String
     }
 
-    /// The current account's starred questions, in the order they were starred.
-    /// Titles come from the questions cache (warmed on launch and persisted), so
-    /// they're available even before the Questions pane has been opened; a favorite
-    /// whose question isn't cached yet falls back to its id.
+    /// The starred questions to show: the current account's in a single-account view,
+    /// or every mergeable account's (in account order) in the combined "All Accounts"
+    /// view, so favorites stay reachable from the sidebar there too. Titles come from
+    /// each account's questions cache (warmed on launch), falling back to the id.
     private var favoriteItems: [FavoriteItem] {
+        if isMergedView {
+            return accounts.mergeableAccounts.flatMap { favoriteItems(forAccount: $0.id, namespaced: true) }
+        }
         guard let account = accountID else { return [] }
+        return favoriteItems(forAccount: account, namespaced: false)
+    }
+
+    private func favoriteItems(forAccount account: UUID, namespaced: Bool) -> [FavoriteItem] {
         let ids = favorites.favorites(account: account)
         guard !ids.isEmpty else { return [] }
         let titles = Dictionary(
             questionsCache.get(account).map { ($0.id, $0.displayTitle) },
             uniquingKeysWith: { first, _ in first }
         )
-        return ids.map { FavoriteItem(id: $0, title: titles[$0] ?? "Question #\($0)") }
+        return ids.map { id in
+            FavoriteItem(
+                id: namespaced ? "\(account.uuidString)-\(id)" : "\(id)",
+                questionID: id,
+                account: namespaced ? account : nil,
+                title: titles[id] ?? "Question #\(id)"
+            )
+        }
     }
 
     @ViewBuilder
@@ -319,7 +339,15 @@ struct Sidebar: View {
             VStack(spacing: 2) {
                 ForEach(items) { item in
                     sidebarSubRow(label: item.title, icon: "star.fill", iconTint: .yellow) {
-                        nav.showFavoriteQuestion(id: item.id)
+                        if let account = item.account {
+                            // Merged view: switch to the combined questions list and let
+                            // it select the right account's row (per-org ids collide, so
+                            // the account must travel with the id).
+                            section = .questions
+                            MergedRouting.shared.selectFavoriteQuestion(account: account, id: item.questionID)
+                        } else {
+                            nav.showFavoriteQuestion(id: item.questionID)
+                        }
                     }
                 }
             }

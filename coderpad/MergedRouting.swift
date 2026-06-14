@@ -32,6 +32,23 @@ final class MergedRouting {
     /// accounts share a per-org question id.
     var selectedQuestionAccountID: UUID?
 
+    /// A favourite question chosen from the sidebar in the merged view, carrying its
+    /// account so the combined questions list selects the right row — per-org ids
+    /// collide, so the id alone is ambiguous. Set by the sidebar, consumed and cleared
+    /// by `MergedQuestionsView`.
+    var pendingFavoriteQuestion: PendingFavorite?
+
+    /// Switch-to-merged-questions request for a sidebar favourite: the question id and
+    /// the account it belongs to.
+    struct PendingFavorite: Equatable {
+        let account: UUID
+        let id: Int
+    }
+
+    func selectFavoriteQuestion(account: UUID, id: Int) {
+        pendingFavoriteQuestion = PendingFavorite(account: account, id: id)
+    }
+
     /// Replace the pad routing map with the accounts that own the currently merged
     /// pads. Replacing (rather than merging) keeps the map from growing without
     /// bound as lists refresh, and drops entries for pads that no longer appear.

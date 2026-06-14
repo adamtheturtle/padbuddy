@@ -31,6 +31,15 @@ extension MergedQuestionsView {
                 let primary = MultiSelectLogic.primaryID(previous: previous, current: current)
                 if selectedRowID != primary { selectedRowID = primary }
             }
+            // A favourite tapped in the merged sidebar arrives here with its account,
+            // so it selects the right row even when two orgs share a per-org id. Cleared
+            // once consumed; left untouched if the row hasn't loaded yet (the row id
+            // simply won't resolve, the same best-effort the per-account view uses).
+            .onChange(of: router.pendingFavoriteQuestion) { _, request in
+                guard let request else { return }
+                router.pendingFavoriteQuestion = nil
+                selectedRowIDs = [MergedQuestionsView.rowID(account: request.account, question: request.id)]
+            }
             // Keep the sidebar's "My Questions" row in sync with this list's "Mine"
             // preset: publish the live state and consume any sidebar toggle, the
             // same bridge `MergedPadsView` uses for "My Pads".
