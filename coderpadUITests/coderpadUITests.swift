@@ -66,8 +66,14 @@ final class CoderpadUITests: XCTestCase {
                       "Returning to Pads should show the pad list again")
     }
 
+    /// Tracks cold-launch time, but `measure` re-runs the launch ~5 times — a cost
+    /// nobody watches locally. It exists only to catch regressions in CI, so it's
+    /// skipped unless `RUN_LAUNCH_PERF_TESTS` is set (the CI scheme sets it); local
+    /// and PR runs no longer pay for it.
     @MainActor
-    func testLaunchPerformance() {
+    func testLaunchPerformance() throws {
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["RUN_LAUNCH_PERF_TESTS"] != nil,
+                          "Set RUN_LAUNCH_PERF_TESTS to run launch-performance metrics.")
         measure(metrics: [XCTApplicationLaunchMetric()]) {
             XCUIApplication().launch()
         }
