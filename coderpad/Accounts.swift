@@ -39,8 +39,10 @@ struct Account: Identifiable, Codable, Hashable {
     /// The email of the org member this key belongs to, used to show "my" pads.
     /// The CoderPad API doesn't expose the key's owner, so the user picks it when
     /// validating the key — and saving is gated on it (see `canSave`) — so a
-    /// configured account always has one, matching the org-users API where email is
-    /// non-optional. Empty only for an in-progress draft before the owner is picked.
+    /// persisted account always has one, matching the org-users API where email is
+    /// non-optional. A persisted account without one is invalid and dropped on load
+    /// (see `init(from:)`). Empty only for an in-progress draft before the owner is
+    /// picked.
     var userEmail: String
     /// An optional override for the CoderPad server URL, for self-hosted or regional
     /// deployments. `nil`/empty means the standard hosted endpoint. Optional so
@@ -72,9 +74,10 @@ struct Account: Identifiable, Codable, Hashable {
         case id, name, apiKey, isMock, userEmail, baseURL, iconSymbol, tintHex
     }
 
-    /// Custom decoding so the non-optional `userEmail` can't make the whole account
-    /// store fail to load: a value persisted before the field existed reads as empty
-    /// (treated as unconfigured) rather than throwing and dropping every saved key.
+    /// Custom decoding to enforce that a persisted account carries a user email: it's
+    /// required to save (see `canSave`), so a stored account without one is invalid.
+    /// Throwing here drops that single account on load (the store decodes elements
+    /// leniently — see `loadAccounts`) rather than corrupting an otherwise-good account.
     /// Encoding stays synthesized.
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -82,7 +85,14 @@ struct Account: Identifiable, Codable, Hashable {
         name = try container.decode(String.self, forKey: .name)
         apiKey = try container.decode(String.self, forKey: .apiKey)
         isMock = try container.decodeIfPresent(Bool.self, forKey: .isMock) ?? false
-        userEmail = try container.decodeIfPresent(String.self, forKey: .userEmail) ?? ""
+        let email = try container.decodeIfPresent(String.self, forKey: .userEmail) ?? ""
+        guard !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .userEmail, in: container,
+                debugDescription: "Account has no user email; treated as invalid and skipped."
+            )
+        }
+        userEmail = email
         baseURL = try container.decodeIfPresent(String.self, forKey: .baseURL)
         iconSymbol = try container.decodeIfPresent(String.self, forKey: .iconSymbol)
         tintHex = try container.decodeIfPresent(String.self, forKey: .tintHex)
@@ -412,7 +422,11 @@ final class AccountsStore {
     private static func loadAccounts() -> [Account]? {
         guard let data = Keychain.readData(account: Keychain.accountsAccount) else { return nil }
         do {
-            return try JSONDecoder().decode([Account].self, from: data)
+            // Decode element-by-element so a single invalid account (e.g. one persisted
+            // without a user email) is dropped rather than failing the whole store and
+            // taking every valid account down with it.
+            return try JSONDecoder().decode([LenientElement<Account>].self, from: data)
+                .compactMap(\.value)
         } catch {
             let reason = error.localizedDescription
             persistenceLogger.error(
@@ -456,5 +470,16 @@ final class AccountsStore {
     private func persistShowAllAccounts() {
         guard !Self.isUITesting else { return }
         UserDefaults.standard.set(showAllAccounts, forKey: Self.showAllAccountsDefaultsKey)
+    }
+}
+
+/// Wraps a decodable element so a per-element decode failure yields `nil` instead of
+/// aborting the whole array — letting `loadAccounts` drop an individual invalid account
+/// while keeping the rest.
+struct LenientElement<Wrapped: Decodable>: Decodable {
+    let value: Wrapped?
+
+    init(from decoder: Decoder) throws {
+        value = try? decoder.singleValueContainer().decode(Wrapped.self)
     }
 }
