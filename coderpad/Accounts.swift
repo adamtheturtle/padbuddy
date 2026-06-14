@@ -46,10 +46,10 @@ struct Account: Identifiable, Codable, Hashable {
     /// deployments. `nil`/empty means the standard hosted endpoint. Optional so
     /// accounts saved before this existed still decode.
     var baseURL: String?
-    /// An optional emoji shown in place of the name's initials on the account's
-    /// avatar, so multi-account users can tell similar accounts apart at a glance.
-    /// `nil` means fall back to initials. Stored as a single grapheme.
-    var iconEmoji: String?
+    /// An optional SF Symbol name shown in place of the name's initials on the
+    /// account's avatar, so multi-account users can tell similar accounts apart at a
+    /// glance. `nil` means fall back to initials. Chosen from `iconSymbolChoices`.
+    var iconSymbol: String?
     /// An optional avatar tint as an "#RRGGBB" hex string. `nil` means use the
     /// default (the app accent, or purple for demo accounts). A string rather than
     /// a `Color` so it encodes cleanly into the Keychain JSON.
@@ -57,19 +57,19 @@ struct Account: Identifiable, Codable, Hashable {
 
     init(id: UUID = UUID(), name: String, apiKey: String, isMock: Bool = false,
          userEmail: String = "", baseURL: String? = nil,
-         iconEmoji: String? = nil, tintHex: String? = nil) {
+         iconSymbol: String? = nil, tintHex: String? = nil) {
         self.id = id
         self.name = name
         self.apiKey = apiKey
         self.isMock = isMock
         self.userEmail = userEmail
         self.baseURL = baseURL
-        self.iconEmoji = iconEmoji
+        self.iconSymbol = iconSymbol
         self.tintHex = tintHex
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, name, apiKey, isMock, userEmail, baseURL, iconEmoji, tintHex
+        case id, name, apiKey, isMock, userEmail, baseURL, iconSymbol, tintHex
     }
 
     /// Custom decoding so the non-optional `userEmail` can't make the whole account
@@ -84,9 +84,17 @@ struct Account: Identifiable, Codable, Hashable {
         isMock = try container.decodeIfPresent(Bool.self, forKey: .isMock) ?? false
         userEmail = try container.decodeIfPresent(String.self, forKey: .userEmail) ?? ""
         baseURL = try container.decodeIfPresent(String.self, forKey: .baseURL)
-        iconEmoji = try container.decodeIfPresent(String.self, forKey: .iconEmoji)
+        iconSymbol = try container.decodeIfPresent(String.self, forKey: .iconSymbol)
         tintHex = try container.decodeIfPresent(String.self, forKey: .tintHex)
     }
+
+    /// The curated SF Symbols offered for an account's avatar. Deliberately small
+    /// and generic so the picker stays a quick visual choice rather than a search
+    /// through the full symbol library.
+    static let iconSymbolChoices = [
+        "briefcase.fill", "building.2.fill", "person.fill", "star.fill",
+        "flag.fill", "bolt.fill", "leaf.fill", "globe"
+    ]
 
     /// The user-chosen avatar tint parsed from `tintHex`, or `nil` when unset or
     /// unparseable — leaving the default tint to apply.
@@ -100,21 +108,6 @@ struct Account: Identifiable, Codable, Hashable {
     /// for real ones).
     var avatarTint: Color {
         tintColor ?? (isMock ? .purple : .accentColor)
-    }
-
-    /// The account's name prefixed with its emoji when set, for plain-text menus
-    /// (account switchers) where a tinted avatar can't be drawn.
-    var menuTitle: String {
-        guard let iconEmoji, !iconEmoji.isEmpty else { return name }
-        return "\(iconEmoji)  \(name)"
-    }
-
-    /// Normalizes raw text-field input to at most one emoji grapheme, or `nil` when
-    /// empty — keeping the icon a single glyph and letting it clear cleanly.
-    static func normalizedEmoji(_ raw: String) -> String? {
-        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let last = trimmed.last else { return nil }
-        return String(last)
     }
 
     /// The server URL to talk to: the account's override when set and parseable,

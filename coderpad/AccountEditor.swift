@@ -161,16 +161,13 @@ struct AccountEditor: View {
                         HStack(spacing: 8) {
                             // Live preview of how the avatar will look elsewhere.
                             AvatarCircle(account: draft, diameter: 30)
-                            TextField("", text: iconEmojiBinding, prompt: Text("🙂"))
-                                .textFieldStyle(.roundedBorder)
-                                .frame(width: 56)
-                                .help("Pick an emoji to tell this account apart. Leave blank to show initials.")
+                            AccountSymbolPicker(selection: $draft.iconSymbol)
                             ColorPicker("", selection: tintColorBinding, supportsOpacity: false)
                                 .labelsHidden()
                                 .help("Tint color for this account's avatar.")
                             if hasCustomAppearance {
                                 Button("Reset") {
-                                    draft.iconEmoji = nil
+                                    draft.iconSymbol = nil
                                     draft.tintHex = nil
                                 }
                                 .buttonStyle(.borderless)
@@ -239,5 +236,41 @@ struct AccountEditor: View {
         } message: {
             Text("“\(initialName)” and its stored API key will be removed from this Mac. This can’t be undone.")
         }
+    }
+}
+
+/// A compact row of curated SF Symbols for an account's avatar. The first option
+/// (a "textformat" glyph) clears the symbol so the avatar falls back to initials.
+struct AccountSymbolPicker: View {
+    @Binding var selection: String?
+
+    var body: some View {
+        HStack(spacing: 6) {
+            symbolButton(nil, glyph: "textformat", help: "Use initials")
+            ForEach(Account.iconSymbolChoices, id: \.self) { symbol in
+                symbolButton(symbol, glyph: symbol, help: "Account icon")
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func symbolButton(_ value: String?, glyph: String, help: String) -> some View {
+        let isSelected = selection == value
+        Button {
+            selection = value
+        } label: {
+            Image(systemName: glyph)
+                .font(.system(size: 13))
+                .frame(width: 24, height: 24)
+                .background(isSelected ? Color.accentColor.opacity(0.2) : .clear,
+                            in: RoundedRectangle(cornerRadius: 6))
+                .overlay(RoundedRectangle(cornerRadius: 6)
+                    .stroke(isSelected ? Color.accentColor : Color.secondary.opacity(0.3),
+                            lineWidth: isSelected ? 1.5 : 0.5))
+        }
+        .buttonStyle(.plain)
+        .help(help)
+        .accessibilityLabel(help)
+        .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
 }

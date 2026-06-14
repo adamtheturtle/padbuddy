@@ -103,32 +103,29 @@ struct AccountRoundTripTests {
     }
 
     @Test
-    func `icon and tint survive the round-trip`() throws {
-        let original = Account(name: "Acme", apiKey: "k", iconEmoji: "🚀", tintHex: "#FF8800")
+    func `icon symbol and tint survive the round-trip`() throws {
+        let original = Account(name: "Acme", apiKey: "k", iconSymbol: "star.fill", tintHex: "#FF8800")
         let data = try JSONEncoder().encode(original)
         let decoded = try JSONDecoder().decode(Account.self, from: data)
-        #expect(decoded.iconEmoji == "🚀")
+        #expect(decoded.iconSymbol == "star.fill")
         #expect(decoded.tintHex == "#FF8800")
     }
 
     @Test
     func `account saved before icon/tint existed still decodes`() throws {
-        // JSON from an older build with no iconEmoji/tintHex keys must not fail to load.
+        // JSON from an older build with no iconSymbol/tintHex keys must not fail to load.
         let legacy = """
         {"id":"\(UUID().uuidString)","name":"Old","apiKey":"k","isMock":false,"userEmail":""}
         """
         let decoded = try JSONDecoder().decode(Account.self, from: Data(legacy.utf8))
-        #expect(decoded.iconEmoji == nil)
+        #expect(decoded.iconSymbol == nil)
         #expect(decoded.tintHex == nil)
     }
 
     @Test
-    func `normalizedEmoji keeps a single glyph and clears when empty`() {
-        #expect(Account.normalizedEmoji("🚀") == "🚀")
-        // Only the last grapheme is kept, so typing a replacement swaps cleanly.
-        #expect(Account.normalizedEmoji("🚀🎯") == "🎯")
-        #expect(Account.normalizedEmoji("   ") == nil)
-        #expect(Account.normalizedEmoji("") == nil)
+    func `icon symbol choices are non-empty and unique`() {
+        #expect(!Account.iconSymbolChoices.isEmpty)
+        #expect(Set(Account.iconSymbolChoices).count == Account.iconSymbolChoices.count)
     }
 
     @Test

@@ -179,9 +179,11 @@ struct MenuBarView: View {
                             store.currentAccountID = acct.id
                         } label: {
                             if !store.isMergedView, acct.id == store.currentAccountID {
-                                Label(acct.menuTitle, systemImage: "checkmark")
+                                Label(acct.name, systemImage: "checkmark")
+                            } else if let symbol = acct.iconSymbol {
+                                Label(acct.name, systemImage: symbol)
                             } else {
-                                Text(acct.menuTitle)
+                                Text(acct.name)
                             }
                         }
                     }

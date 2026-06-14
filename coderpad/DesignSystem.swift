@@ -106,16 +106,17 @@ struct AvatarCircle: View {
     let label: String
     var diameter: CGFloat = 32
     var tint: Color = .accentColor
-    /// When set, the avatar shows this emoji instead of the name's initials.
-    var emoji: String?
+    /// When set, the avatar shows this SF Symbol (tinted) instead of the initials.
+    var symbol: String?
 
     var body: some View {
         ZStack {
             Circle().fill(tint.opacity(0.18))
             Circle().stroke(tint.opacity(0.25), lineWidth: 0.5)
-            if let emoji, !emoji.isEmpty {
-                Text(emoji)
-                    .font(.system(size: diameter * 0.5))
+            if let symbol, !symbol.isEmpty {
+                Image(systemName: symbol)
+                    .font(.system(size: diameter * 0.42, weight: .medium))
+                    .foregroundStyle(tint)
             } else {
                 Text(initials)
                     .font(.system(size: diameter * 0.4, weight: .semibold))
@@ -138,11 +139,11 @@ struct AvatarCircle: View {
 }
 
 extension AvatarCircle {
-    /// Builds the avatar from an account: its chosen emoji and tint when set,
+    /// Builds the avatar from an account: its chosen symbol and tint when set,
     /// otherwise the name's initials on the account's default tint.
     init(account: Account, diameter: CGFloat = 32) {
         self.init(label: account.name, diameter: diameter,
-                  tint: account.avatarTint, emoji: account.iconEmoji)
+                  tint: account.avatarTint, symbol: account.iconSymbol)
     }
 }
 

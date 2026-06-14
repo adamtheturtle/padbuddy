@@ -72,9 +72,11 @@ struct AccountFooter: View {
                         store.currentAccountID = account.id
                     } label: {
                         if !store.isMergedView, account.id == store.currentAccount?.id {
-                            Label(account.menuTitle, systemImage: "checkmark")
+                            Label(account.name, systemImage: "checkmark")
+                        } else if let symbol = account.iconSymbol {
+                            Label(account.name, systemImage: symbol)
                         } else {
-                            Text(account.menuTitle)
+                            Text(account.name)
                         }
                     }
                 }

@@ -43,12 +43,19 @@ struct DesignSystemRenderTests {
         expectRenders(AvatarCircle(label: "Jane Doe"), "AvatarCircle with a name")
         // Empty label falls back to "?" — still must render.
         expectRenders(AvatarCircle(label: ""), "AvatarCircle with empty label")
-        // The emoji + tint variant (custom account icon) must also rasterize.
-        expectRenders(AvatarCircle(label: "Acme", tint: .orange, emoji: "🚀"),
-                      "AvatarCircle with emoji")
+        // The symbol + tint variant (custom account icon) must also rasterize.
+        expectRenders(AvatarCircle(label: "Acme", tint: .orange, symbol: "star.fill"),
+                      "AvatarCircle with symbol")
         expectRenders(AvatarCircle(account: Account(name: "Acme", apiKey: "k",
-                                                    iconEmoji: "🎯", tintHex: "#FF8800")),
+                                                    iconSymbol: "briefcase.fill", tintHex: "#FF8800")),
                       "AvatarCircle from account")
+    }
+
+    @Test func `account symbol picker renders`() {
+        expectRenders(AccountSymbolPicker(selection: .constant(nil)),
+                      "AccountSymbolPicker with no selection")
+        expectRenders(AccountSymbolPicker(selection: .constant("star.fill")),
+                      "AccountSymbolPicker with a selection")
     }
 
     @Test func `chip renders`() {
