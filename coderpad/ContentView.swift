@@ -97,7 +97,7 @@ struct ContentView: View {
         .background(WindowChromeConfigurator())
         .environment(\.orgDirectory, directory)
         .task {
-            for await _ in NotificationCenter.default.notifications(named: .openPadByURLRequested) {
+            for await _ in AppRouter.openPadByURLRequests {
                 showOpenPadURL = true
             }
         }
@@ -107,13 +107,12 @@ struct ContentView: View {
         .task { consumeOpenPadID() }
         .onChange(of: nav.openPadID) { _, _ in consumeOpenPadID() }
         .task {
-            for await _ in NotificationCenter.default.notifications(named: .openSettingsRequested) {
+            for await _ in AppRouter.openSettingsRequests {
                 openSettings()
             }
         }
         .task {
-            for await url in NotificationCenter.default.notifications(named: .openPadInBrowserRequested)
-                .compactMap({ $0.object as? URL }) {
+            for await url in AppRouter.openPadInBrowserRequests {
                 openWindow(id: "pad-browser", value: url)
             }
         }

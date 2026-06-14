@@ -76,7 +76,7 @@ struct MenuBarView: View {
 
             Button("Open Pad by URL…") {
                 openMain()
-                NotificationCenter.default.post(name: .openPadByURLRequested, object: nil)
+                AppRouter.requestOpenPadByURL()
             }
 
             Divider()
@@ -144,7 +144,7 @@ struct MenuBarView: View {
                 Divider()
                 Button("Settings…") {
                     openMain()
-                    NotificationCenter.default.post(name: .openSettingsRequested, object: nil)
+                    AppRouter.requestOpenSettings()
                 }
             }
 
@@ -155,7 +155,7 @@ struct MenuBarView: View {
 
             Button("Settings…") {
                 openMain()
-                NotificationCenter.default.post(name: .openSettingsRequested, object: nil)
+                AppRouter.requestOpenSettings()
             }
             .keyboardShortcut(",")
 
@@ -207,7 +207,7 @@ struct MenuBarView: View {
             Divider()
             Button("Add Account…") {
                 openMain()
-                NotificationCenter.default.post(name: .openSettingsRequested, object: nil)
+                AppRouter.requestOpenSettings()
             }
             .keyboardShortcut("n")
 

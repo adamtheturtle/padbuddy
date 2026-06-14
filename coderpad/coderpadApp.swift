@@ -24,28 +24,6 @@ func showAboutPanel() {
     ])
 }
 
-extension Notification.Name {
-    static let reloadRequested = Notification.Name("coderpad.reloadRequested")
-    static let openPadByURLRequested = Notification.Name("coderpad.openPadByURLRequested")
-    static let padUpdated = Notification.Name("coderpad.padUpdated")
-    static let padDeleted = Notification.Name("coderpad.padDeleted")
-    static let questionUpdated = Notification.Name("coderpad.questionUpdated")
-    static let questionDeleted = Notification.Name("coderpad.questionDeleted")
-    static let openSettingsRequested = Notification.Name("coderpad.openSettingsRequested")
-    static let openPadInBrowserRequested = Notification.Name("coderpad.openPadInBrowserRequested")
-    static let bulkEndStartedRequested = Notification.Name("coderpad.bulkEndStartedRequested")
-    static let bulkMakePrivateRequested = Notification.Name("coderpad.bulkMakePrivateRequested")
-}
-
-/// `userInfo` keys for the question mutation notifications.
-enum QuestionNotificationKey {
-    /// The owning account's `UUID`, so combined-view consumers scope a
-    /// `.questionUpdated` / `.questionDeleted` to the right account when two
-    /// accounts share a per-org question id. Absent means "account unknown" and
-    /// consumers fall back to their prior, id-only behavior.
-    static let account = "coderpad.account"
-}
-
 /// A one-shot request for the Pads pane to apply when it next appears. Unlike a
 /// transient notification, it survives until the destination view actually mounts
 /// and consumes it — so "switch to Pads, then filter/search/create" works even
@@ -355,12 +333,12 @@ struct CoderpadApp: App {
             .keyboardShortcut("n", modifiers: [.command, .shift])
             Divider()
             Button("Open Pad by URL…") {
-                NotificationCenter.default.post(name: .openPadByURLRequested, object: nil)
+                AppRouter.requestOpenPadByURL()
             }
             .keyboardShortcut("o", modifiers: [.command])
             Divider()
             Button("Reload") {
-                NotificationCenter.default.post(name: .reloadRequested, object: nil)
+                AppRouter.requestReload()
             }
             .keyboardShortcut("r", modifiers: [.command])
         }

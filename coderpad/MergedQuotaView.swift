@@ -47,7 +47,7 @@ struct MergedQuotaView: View {
             await reload()
         }
         .task {
-            for await _ in NotificationCenter.default.notifications(named: .reloadRequested) {
+            for await _ in AppRouter.reloads {
                 await reload()
             }
         }

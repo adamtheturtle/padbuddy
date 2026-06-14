@@ -91,8 +91,7 @@ struct QuestionDetailView: View {
         .toolbar(id: "question.detail.toolbar") { detailToolbar }
         .sheet(isPresented: $showEdit) {
             EditQuestionSheet(client: client, original: question) { updated in
-                NotificationCenter.default.post(name: .questionUpdated, object: updated,
-                                                userInfo: accountUserInfo)
+                AppRouter.questionUpdated(updated, account: accountID)
                 showEdit = false
             } onCancel: { showEdit = false }
         }
@@ -154,8 +153,7 @@ struct QuestionDetailView: View {
     private func performDelete() async {
         do {
             try await client.deleteQuestion(id: question.id)
-            NotificationCenter.default.post(name: .questionDeleted, object: question.id,
-                                            userInfo: accountUserInfo)
+            AppRouter.questionDeleted(id: question.id, account: accountID)
         } catch {
             deleteError = error.localizedDescription
         }
@@ -234,10 +232,6 @@ struct QuestionDetailView: View {
     /// The `userInfo` attached to edit/delete notifications, carrying the owning
     /// account so combined-view consumers scope the change correctly. Empty when
     /// the account is unknown.
-    private var accountUserInfo: [AnyHashable: Any]? {
-        accountID.map { [QuestionNotificationKey.account: $0] }
-    }
-
     /// Creates a pad from this question and browses it inline in this pane. Used by
     /// the in-pane "New Pad" button, where the user is looking at this detail.
     private func createPadInline() async {

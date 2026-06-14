@@ -234,7 +234,7 @@ extension MergedPadsView {
         guard let client else { return }
         do {
             try await client.deletePad(id: pad.id)
-            NotificationCenter.default.post(name: .padDeleted, object: pad.id)
+            AppRouter.padDeleted(id: pad.id)
         } catch {
             deleteError = error.localizedDescription
         }

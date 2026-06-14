@@ -35,15 +35,14 @@ extension MergedQuestionsView {
             }
             .onChange(of: selectedRowID) { _, newID in selectRow(newID) }
             .task {
-                for await note in NotificationCenter.default.notifications(named: .questionUpdated) {
-                    guard let question = note.object as? Question else { continue }
-                    applyUpdated(question, account: note.userInfo?[QuestionNotificationKey.account] as? UUID)
+                for await update in AppRouter.questionUpdates {
+                    applyUpdated(update.question, account: update.account)
                 }
             }
             .task {
-                for await note in NotificationCenter.default.notifications(named: .questionDeleted) {
-                    guard let id = note.object as? Int else { continue }
-                    let account = note.userInfo?[QuestionNotificationKey.account] as? UUID
+                for await deletion in AppRouter.questionDeletions {
+                    let id = deletion.id
+                    let account = deletion.account
                     // If the open (selected) row is the deleted question — matched by
                     // account too, since per-org ids collide — move to a neighbor
                     // before dropping the row. Computed while `sorted` still holds it.
@@ -57,7 +56,7 @@ extension MergedQuestionsView {
                 }
             }
             .task {
-                for await _ in NotificationCenter.default.notifications(named: .reloadRequested) {
+                for await _ in AppRouter.reloads {
                     await reload()
                 }
             }

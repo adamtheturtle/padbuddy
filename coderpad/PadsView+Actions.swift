@@ -57,13 +57,13 @@ extension PadsView {
         await reload()
     }
 
-    /// Delete a pad reached via swipe action. Posts `.padDeleted` so this list —
-    /// and any other open window — drops the row, matching the detail view's own
-    /// delete path.
+    /// Delete a pad reached via swipe action. Broadcasts via `AppRouter.padDeleted`
+    /// so this list — and any other open window — drops the row, matching the detail
+    /// view's own delete path.
     func deletePad(_ pad: Pad) async {
         do {
             try await client.deletePad(id: pad.id)
-            NotificationCenter.default.post(name: .padDeleted, object: pad.id)
+            AppRouter.padDeleted(id: pad.id)
         } catch {
             deleteError = error.localizedDescription
         }

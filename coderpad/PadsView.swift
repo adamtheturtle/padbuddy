@@ -142,13 +142,12 @@ struct PadsView: View {
                 if selectedID != newValue?.id { selectedID = newValue?.id }
             }
             .task {
-                for await _ in NotificationCenter.default.notifications(named: .reloadRequested) {
+                for await _ in AppRouter.reloads {
                     await reload()
                 }
             }
             .task {
-                for await updated in NotificationCenter.default.notifications(named: .padUpdated)
-                    .compactMap({ $0.object as? Pad }) {
+                for await updated in AppRouter.padUpdates {
                     if let index = pads.firstIndex(where: { $0.id == updated.id }) {
                         pads[index] = updated
                         if selection?.id == updated.id { selection = updated }
@@ -156,8 +155,7 @@ struct PadsView: View {
                 }
             }
             .task {
-                for await id in NotificationCenter.default.notifications(named: .padDeleted)
-                    .compactMap({ $0.object as? String }) {
+                for await id in AppRouter.padDeletions {
                     // Move the selection to a neighbor before dropping the row, so
                     // deleting the open pad keeps the detail pane populated instead
                     // of snapping to the empty placeholder. Computed while `pads`
@@ -173,12 +171,12 @@ struct PadsView: View {
             // these, and this pane runs them through the same confirmation it
             // already shows for the toolbar buttons.
             .task {
-                for await _ in NotificationCenter.default.notifications(named: .bulkEndStartedRequested) {
+                for await _ in AppRouter.bulkEndStartedRequests {
                     bulkAction = .endStarted
                 }
             }
             .task {
-                for await _ in NotificationCenter.default.notifications(named: .bulkMakePrivateRequested) {
+                for await _ in AppRouter.bulkMakePrivateRequests {
                     bulkAction = .makePrivate
                 }
             }

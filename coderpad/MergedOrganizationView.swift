@@ -71,7 +71,7 @@ struct MergedOrganizationView: View {
             scheduleStatsReload()
         }
         .task {
-            for await _ in NotificationCenter.default.notifications(named: .reloadRequested) {
+            for await _ in AppRouter.reloads {
                 await reload()
             }
         }

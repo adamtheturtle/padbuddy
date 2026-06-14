@@ -47,19 +47,17 @@ extension MergedPadsView {
                 if selectedID != newValue?.id { selectedID = newValue?.id }
             }
             .task {
-                for await _ in NotificationCenter.default.notifications(named: .reloadRequested) {
+                for await _ in AppRouter.reloads {
                     await reload()
                 }
             }
             .task {
-                for await updated in NotificationCenter.default.notifications(named: .padUpdated)
-                    .compactMap({ $0.object as? Pad }) {
+                for await updated in AppRouter.padUpdates {
                     applyUpdated(updated)
                 }
             }
             .task {
-                for await id in NotificationCenter.default.notifications(named: .padDeleted)
-                    .compactMap({ $0.object as? String }) {
+                for await id in AppRouter.padDeletions {
                     if selection?.id == id { selection = neighborSelection(forDeleted: id) }
                     removePad(id: id)
                     // Keep the disk cache, Spotlight index, and widget in step.
@@ -70,12 +68,12 @@ extension MergedPadsView {
             // these, and either pads pane (this one or the single-account view)
             // runs them through the same confirmation it already shows.
             .task {
-                for await _ in NotificationCenter.default.notifications(named: .bulkEndStartedRequested) {
+                for await _ in AppRouter.bulkEndStartedRequests {
                     bulkAction = .endStarted
                 }
             }
             .task {
-                for await _ in NotificationCenter.default.notifications(named: .bulkMakePrivateRequested) {
+                for await _ in AppRouter.bulkMakePrivateRequests {
                     bulkAction = .makePrivate
                 }
             }

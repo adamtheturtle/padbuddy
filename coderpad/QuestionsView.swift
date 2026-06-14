@@ -84,11 +84,11 @@ struct QuestionsView: View {
                 )
             }
             .task {
-                for await note in NotificationCenter.default.notifications(named: .questionUpdated) {
-                    guard let question = note.object as? Question else { continue }
+                for await update in AppRouter.questionUpdates {
                     // Per-org ids collide across accounts, so ignore a mutation the
                     // poster scoped to a different account than this view shows.
-                    guard scopedToThisAccount(note) else { continue }
+                    guard scopedToThisAccount(update.account) else { continue }
+                    let question = update.question
                     if let index = questions.firstIndex(where: { $0.id == question.id }) {
                         questions[index] = question
                         if selection?.id == question.id { selection = question }
@@ -96,8 +96,9 @@ struct QuestionsView: View {
                 }
             }
             .task {
-                for await note in NotificationCenter.default.notifications(named: .questionDeleted) {
-                    guard let id = note.object as? Int, scopedToThisAccount(note) else { continue }
+                for await deletion in AppRouter.questionDeletions {
+                    guard scopedToThisAccount(deletion.account) else { continue }
+                    let id = deletion.id
                     // Move to a neighbor before dropping the row so deleting the
                     // open question keeps the detail pane populated. Computed while
                     // `questions` still holds the deleted row.
@@ -134,7 +135,7 @@ struct QuestionsView: View {
             // resolve the deferred selection as soon as the questions land.
             .onChange(of: questions) { _, _ in resolvePendingSelection() }
             .task {
-                for await _ in NotificationCenter.default.notifications(named: .reloadRequested) {
+                for await _ in AppRouter.reloads {
                     await reload()
                 }
             }

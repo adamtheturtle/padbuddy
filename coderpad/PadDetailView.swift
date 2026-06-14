@@ -155,7 +155,7 @@ struct PadDetailView: View {
                 client: client,
                 original: pad,
                 onSaved: { updated in
-                    NotificationCenter.default.post(name: .padUpdated, object: updated)
+                    AppRouter.padUpdated(updated)
                     showEdit = false
                 },
                 onCancel: { showEdit = false }
@@ -251,7 +251,7 @@ struct PadDetailView: View {
             try await client.endPad(id: pad.id)
             // Refresh so the ended state/timestamp propagate to the list and detail.
             if let updated = try? await client.getPad(id: pad.id) {
-                NotificationCenter.default.post(name: .padUpdated, object: updated)
+                AppRouter.padUpdated(updated)
             }
         } catch {
             mutateError = error.localizedDescription
@@ -263,7 +263,7 @@ struct PadDetailView: View {
         defer { isMutating = false }
         do {
             try await client.deletePad(id: pad.id)
-            NotificationCenter.default.post(name: .padDeleted, object: pad.id)
+            AppRouter.padDeleted(id: pad.id)
         } catch {
             mutateError = error.localizedDescription
         }

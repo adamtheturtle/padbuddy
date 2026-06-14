@@ -76,8 +76,8 @@ extension QuestionsView {
     /// true when it carries no account (legacy) or names this view's account. Per-org
     /// ids collide across accounts, so a bare id from another account must not mutate
     /// this list.
-    func scopedToThisAccount(_ note: Notification) -> Bool {
-        guard let account = note.userInfo?[QuestionNotificationKey.account] as? UUID else { return true }
+    func scopedToThisAccount(_ account: UUID?) -> Bool {
+        guard let account else { return true }
         return account == accounts.currentAccountID
     }
 

@@ -82,7 +82,7 @@ struct PadCommands: Commands {
         CommandMenu("Pad") {
             Button("Open Pad in Browser") {
                 guard let pad, let url = pad.webURL else { return }
-                NotificationCenter.default.post(name: .openPadInBrowserRequested, object: url)
+                AppRouter.requestOpenPadInBrowser(url)
             }
             .keyboardShortcut(.return, modifiers: [.command])
             .disabled(pad == nil)
@@ -177,12 +177,12 @@ struct PadCommands: Commands {
             // fire via notification to whichever pads pane is mounted and enable
             // off the availability it publishes rather than off `focusedPad`.
             Button("End Started Pads…") {
-                NotificationCenter.default.post(name: .bulkEndStartedRequested, object: nil)
+                AppRouter.requestBulkEndStarted()
             }
             .disabled(bulkAvailability?.canEndStarted != true)
 
             Button("Make Visible Pads Private…") {
-                NotificationCenter.default.post(name: .bulkMakePrivateRequested, object: nil)
+                AppRouter.requestBulkMakePrivate()
             }
             .disabled(bulkAvailability?.canMakePrivate != true)
         }
