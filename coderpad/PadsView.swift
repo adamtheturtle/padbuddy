@@ -49,7 +49,7 @@ struct PadsView: View {
     /// request that carried one (e.g. the widget button). Cleared when the sheet
     /// closes so a later plain "New Pad" starts blank.
     @State var seedQuestionID: Int?
-    @State var previousUpdatedAt: [String: Date] = [:]
+    @State var previousActivity: [String: PadActivitySnapshot] = [:]
     @State var hasLoadedOnce = false
     /// Independent date filters: one constrains the updated date, one the created
     /// date. Both apply at once, so a pad must satisfy each active window.

@@ -285,11 +285,11 @@ extension PadsView {
     /// caches the full result. Split out of `reload` so the streaming loop stays
     /// the focus there and the diff bookkeeping is testable in isolation.
     func finalize(fetched: [Pad]) {
-        let changes = changedPadIDs(in: fetched)
+        let changes = padChanges(in: fetched)
         PadActivityMonitor.shared.record(changedCount: changes.count)
         // Surface the same change set as a background Notification Center alert (opt-in).
-        PadUpdateNotifier.shared.notify(changedPads: fetched.filter { changes.contains($0.id) })
-        previousUpdatedAt = timestampSnapshot(of: fetched)
+        PadUpdateNotifier.shared.notify(changes: changes)
+        previousActivity = activitySnapshot(of: fetched)
         if let id = accounts.currentAccountID {
             cache.set(id, pads: fetched)
         }
@@ -300,30 +300,63 @@ extension PadsView {
         restoreSelectedPadIfNeeded()
     }
 
-    /// The ids of pads that are new or whose `updatedAt` advanced since the last
-    /// sweep. Empty until the first load completes, so a cold start doesn't flag
-    /// every pad as freshly changed.
-    func changedPadIDs(in fetched: [Pad]) -> Set<String> {
+    /// The pads that are new or whose `updatedAt` advanced since the last sweep,
+    /// each classified into the most meaningful change we can read from the two
+    /// snapshots (see `PadChange`). Empty until the first load completes, so a
+    /// cold start doesn't flag every pad as freshly changed.
+    func padChanges(in fetched: [Pad]) -> [PadChange] {
         guard hasLoadedOnce else { return [] }
-        var changes: Set<String> = []
+        var changes: [PadChange] = []
         for pad in fetched {
-            guard let prev = previousUpdatedAt[pad.id] else {
-                changes.insert(pad.id)
+            guard let prev = previousActivity[pad.id] else {
+                changes.append(PadChange(pad: pad, kind: .new))
                 continue
             }
-            if let updated = pad.updatedAt, updated > prev {
-                changes.insert(pad.id)
+            // A bump counts only when the timestamp moves forward; treat a pad
+            // that gained a timestamp it previously lacked as advanced too.
+            let advanced: Bool
+            if let now = pad.updatedAt {
+                advanced = prev.updatedAt.map { now > $0 } ?? true
+            } else {
+                advanced = false
             }
+            guard advanced else { continue }
+            changes.append(PadChange(pad: pad, kind: Self.changeKind(for: pad, since: prev)))
         }
         return changes
     }
 
-    /// A snapshot of each pad's `updatedAt`, used to diff the next sweep.
-    func timestampSnapshot(of fetched: [Pad]) -> [String: Date] {
-        var state: [String: Date] = [:]
+    /// Attribute a bumped pad to the most notable thing that changed between the
+    /// two snapshots: it ending, or someone joining, falling back to a generic
+    /// update when neither is detectable.
+    static func changeKind(for pad: Pad, since prev: PadActivitySnapshot) -> PadChange.Kind {
+        if pad.isEnded, !prev.isEnded {
+            return .ended
+        }
+        if pad.participants.count > prev.participantCount {
+            return .participantJoined
+        }
+        return .updated
+    }
+
+    /// A snapshot of the per-pad fields we diff on the next sweep.
+    func activitySnapshot(of fetched: [Pad]) -> [String: PadActivitySnapshot] {
+        var state: [String: PadActivitySnapshot] = [:]
         for pad in fetched {
-            if let updated = pad.updatedAt { state[pad.id] = updated }
+            state[pad.id] = PadActivitySnapshot(
+                updatedAt: pad.updatedAt,
+                isEnded: pad.isEnded,
+                participantCount: pad.participants.count
+            )
         }
         return state
     }
+}
+
+/// The slice of a pad's state we remember between refreshes so the next refresh
+/// can describe what changed (see `padChanges`).
+struct PadActivitySnapshot {
+    let updatedAt: Date?
+    let isEnded: Bool
+    let participantCount: Int
 }

@@ -14,6 +14,34 @@
 import AppKit
 import UserNotifications
 
+/// A single pad's change since the last sweep, classified into the most
+/// meaningful thing that happened so the notification can describe it rather
+/// than just saying "updated". Produced by the pad list's diff (`padChanges`).
+struct PadChange {
+    /// The kinds of activity we can tell apart from two consecutive snapshots,
+    /// ordered loosely by how noteworthy they are. `updated` is the catch-all
+    /// for a bump we can't attribute to anything more specific.
+    enum Kind {
+        case new
+        case ended
+        case participantJoined
+        case updated
+
+        /// The phrase shown as the notification body for a single changed pad.
+        var detail: String {
+            switch self {
+            case .new: "New pad"
+            case .ended: "Interview ended"
+            case .participantJoined: "Someone joined"
+            case .updated: "New activity"
+            }
+        }
+    }
+
+    let pad: Pad
+    let kind: Kind
+}
+
 @MainActor
 final class PadUpdateNotifier: NSObject {
     static let shared = PadUpdateNotifier()
@@ -43,14 +71,14 @@ final class PadUpdateNotifier: NSObject {
     /// user opted in, and skipped while the app is active so it only fires for
     /// background activity. Authorization is requested lazily the first time so a user
     /// who flipped the toggle before granting permission is still prompted.
-    func notify(changedPads: [Pad]) {
+    func notify(changes: [PadChange]) {
         guard GeneralSettings.notifyOnPadUpdates,
-              !changedPads.isEmpty,
+              !changes.isEmpty,
               !NSApp.isActive else { return }
-        Task { await post(changedPads: changedPads) }
+        Task { await post(changes: changes) }
     }
 
-    private func post(changedPads: [Pad]) async {
+    private func post(changes: [PadChange]) async {
         let settings = await center.notificationSettings()
         switch settings.authorizationStatus {
         case .notDetermined:
@@ -63,14 +91,16 @@ final class PadUpdateNotifier: NSObject {
 
         let content = UNMutableNotificationContent()
         content.sound = .default
-        if changedPads.count == 1, let pad = changedPads.first {
-            content.title = "Pad updated"
-            content.body = pad.title.isEmpty ? "Untitled pad" : pad.title
+        if changes.count == 1, let change = changes.first {
+            // Lead with the pad's own name so the alert names what changed, and
+            // put the kind of activity in the body.
+            content.title = change.pad.title.isEmpty ? "Untitled pad" : change.pad.title
+            content.body = change.kind.detail
             // Deep-link straight to the one pad that changed.
-            content.userInfo = ["url": "coderpad://pad/\(pad.id)"]
+            content.userInfo = ["url": "coderpad://pad/\(change.pad.id)"]
         } else {
             content.title = "Pads updated"
-            content.body = "\(changedPads.count) pads have new activity"
+            content.body = Self.summary(of: changes)
             // No single pad to single out, so just bring the Pads list forward.
             content.userInfo = ["url": "coderpad://pads"]
         }
@@ -81,6 +111,23 @@ final class PadUpdateNotifier: NSObject {
             trigger: nil
         )
         try? await center.add(request)
+    }
+
+    /// A one-line body for a burst of changes. When they're all the same kind we
+    /// can be specific ("3 new pads"); a mix falls back to a plain count so the
+    /// line stays short and readable.
+    static func summary(of changes: [PadChange]) -> String {
+        let count = changes.count
+        let kinds = Set(changes.map(\.kind))
+        guard kinds.count == 1, let kind = kinds.first else {
+            return "\(count) pads have new activity"
+        }
+        switch kind {
+        case .new: return "\(count) new pads"
+        case .ended: return "\(count) interviews ended"
+        case .participantJoined: return "\(count) pads gained a participant"
+        case .updated: return "\(count) pads have new activity"
+        }
     }
 }
 
