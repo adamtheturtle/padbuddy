@@ -155,13 +155,6 @@ struct OrganizationView: View {
                      systemImage: "rectangle.stack.person.crop", tint: .indigo)
             StatTile(title: "Pads", value: stats.map { "\($0.padsCreated)" } ?? "…",
                      systemImage: "doc.text.fill", tint: .teal)
-            if let quota {
-                if quota.unlimited == true {
-                    StatTile(title: "Quota", value: "Unlimited", systemImage: "infinity", tint: .green)
-                } else if let used = quota.padsUsed {
-                    StatTile(title: "Pads used", value: "\(used)", systemImage: "chart.bar.fill", tint: .orange)
-                }
-            }
         }
     }
 
