@@ -10,6 +10,7 @@ extension PadDetailView {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 header
+                propertiesCard
                 if hasTimestamps {
                     metaCards
                 }
@@ -86,8 +87,13 @@ extension PadDetailView {
         HStack(spacing: 12) {
             AvatarCircle(label: directory.display(pad.ownerEmail), diameter: 48)
             VStack(alignment: .leading, spacing: 4) {
-                Text(pad.title.isEmpty ? "Untitled Pad" : pad.title)
+                // The title is edited in place: it reads as the heading until you
+                // click in, and commits on Return or when focus leaves the field.
+                TextField("Untitled Pad", text: $titleDraft)
                     .font(.title.bold())
+                    .textFieldStyle(.plain)
+                    .focused($titleFocused)
+                    .onSubmit { Task { await commitTitle() } }
                 // The owner's name links to their pads (the app's person
                 // navigation); the email keeps its mailto below. When the name
                 // isn't known the link falls back to showing the email itself.

@@ -13,8 +13,17 @@ struct PadDetailView: View {
     @State var environments: [PadEnvironment] = []
     @State var loadError: Error?
     @State var isLoading = false
-    @State private var showEdit = false
     @State var browserURL: URL?
+    // Inline-editable field drafts, seeded from the pad and committed one field at
+    // a time. Each control binds to its draft for an immediate, optimistic update;
+    // a failed save reverts the draft to the pad's value (see PadDetailView+Edit).
+    @State var titleDraft = ""
+    @State var draftLanguage = "python3"
+    @State var draftOwner = ""
+    @State var draftIsPrivate = false
+    @State var draftExecution = true
+    @State var orgUsers: [OrganizationUser] = []
+    @FocusState var titleFocused: Bool
     @State private var showEndConfirm = false
     @State private var showDeleteConfirm = false
     @State private var isMutating = false
@@ -37,12 +46,6 @@ struct PadDetailView: View {
     private var detailToolbar: some ToolbarContent {
         if #available(macOS 26, *) {
             ToolbarSpacer(.fixed)
-        }
-        ToolbarItem(placement: .primaryAction) {
-            Button { showEdit = true } label: {
-                Label("Edit", systemImage: "pencil")
-            }
-            .help("Edit pad properties")
         }
         if let url = pad.webURL {
             ToolbarItem(placement: .primaryAction) {
@@ -99,6 +102,10 @@ struct PadDetailView: View {
     }
 
     var body: some View {
+        menuRouting(draftSync(core))
+    }
+
+    private var core: some View {
         Group {
             if let url = browserURL {
                 VStack(spacing: 0) {
@@ -138,17 +145,6 @@ struct PadDetailView: View {
                           jobTitle: pad.title.isEmpty ? pad.id : pad.title)
         })
         .task(id: pad.id) { await load() }
-        .sheet(isPresented: $showEdit) {
-            EditPadSheet(
-                client: client,
-                original: pad,
-                onSaved: { updated in
-                    AppRouter.padUpdated(updated)
-                    showEdit = false
-                },
-                onCancel: { showEdit = false }
-            )
-        }
         .confirmationDialog("End this interview?", isPresented: $showEndConfirm, titleVisibility: .visible) {
             Button("End Interview", role: .destructive) { Task { await endInterview() } }
             Button("Cancel", role: .cancel) {}
@@ -168,18 +164,40 @@ struct PadDetailView: View {
         } message: {
             Text(mutateError ?? "")
         }
-        .onAppear {
-            consumePendingEdit()
-            consumePendingEnd()
-            consumePendingDelete()
-            consumePendingWatch()
-            consumePendingSaveCode()
-        }
-        .onChange(of: nav.editPadID) { _, _ in consumePendingEdit() }
-        .onChange(of: nav.endPadID) { _, _ in consumePendingEnd() }
-        .onChange(of: nav.deletePadID) { _, _ in consumePendingDelete() }
-        .onChange(of: nav.watchPlaybackPadID) { _, _ in consumePendingWatch() }
-        .onChange(of: nav.saveCodePadID) { _, _ in consumePendingSaveCode() }
+    }
+
+    /// Wires the Pad menu commands (Edit, End, Delete, Watch, Save Code), which
+    /// arrive via `AppNavigation`, to their in-pane equivalents. Split out of `body`
+    /// so the modifier chain stays within the type-checker's reach.
+    private func menuRouting(_ content: some View) -> some View {
+        content
+            .onAppear {
+                consumePendingEdit()
+                consumePendingEnd()
+                consumePendingDelete()
+                consumePendingWatch()
+                consumePendingSaveCode()
+            }
+            .onChange(of: nav.editPadID) { _, _ in consumePendingEdit() }
+            .onChange(of: nav.endPadID) { _, _ in consumePendingEnd() }
+            .onChange(of: nav.deletePadID) { _, _ in consumePendingDelete() }
+            .onChange(of: nav.watchPlaybackPadID) { _, _ in consumePendingWatch() }
+            .onChange(of: nav.saveCodePadID) { _, _ in consumePendingSaveCode() }
+    }
+
+    /// Seeds the editable drafts on appear and whenever a different pad is shown,
+    /// then keeps each in sync with server-side changes (another field's save, or a
+    /// push update) — except the title while it's being typed. A title edit commits
+    /// when focus leaves the field, mirroring the Return key.
+    private func draftSync(_ content: some View) -> some View {
+        content
+            .onChange(of: pad.id, initial: true) { _, _ in seedDrafts() }
+            .onChange(of: pad.title) { _, newValue in if !titleFocused { titleDraft = newValue } }
+            .onChange(of: pad.language) { _, newValue in draftLanguage = newValue ?? "python3" }
+            .onChange(of: pad.ownerEmail) { _, newValue in draftOwner = newValue }
+            .onChange(of: pad.isPrivate) { _, newValue in draftIsPrivate = newValue ?? false }
+            .onChange(of: pad.executionEnabled) { _, newValue in draftExecution = newValue ?? true }
+            .onChange(of: titleFocused) { _, focused in if !focused { Task { await commitTitle() } } }
     }
 
     /// Honors a "Watch Playback" request from the Pad menu, opening the session
@@ -205,11 +223,12 @@ struct PadDetailView: View {
     }
 
     /// Honors an "Edit Pad" request routed via `AppNavigation` from the Pad menu
-    /// command by presenting the same edit sheet as the in-pane Edit button.
+    /// command by focusing the inline, editable title field — the fields are now
+    /// edited in place rather than through a modal sheet.
     private func consumePendingEdit() {
         guard nav.editPadID == pad.id else { return }
         nav.editPadID = nil
-        showEdit = true
+        titleFocused = true
     }
 
     /// Honors an "End Interview" request from the Pad menu by showing the same
