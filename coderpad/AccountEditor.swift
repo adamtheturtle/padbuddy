@@ -39,6 +39,9 @@ struct AccountEditor: View {
     let initialBaseURL: String?
     @State var validation: ValidationState = .idle
     @State var orgUsers: [OrganizationUser] = []
+    /// True while the background fetch of the org's member list (for a saved account,
+    /// on open) is in flight — see `loadOrgMembersForEditing`.
+    @State var isLoadingMembers = false
     /// A non-blocking note when the key reaches the org but isn't authorized for
     /// one or more feature endpoints (a 403), so the user learns up front that a
     /// section will be empty rather than discovering it later. See `missingScopesWarning`.
@@ -163,25 +166,28 @@ struct AccountEditor: View {
                                   prompt: Text("Auto-filled from your organization"))
                             .textFieldStyle(.roundedBorder)
                     }
-                    fieldRow("Icon") {
-                        HStack(alignment: .top, spacing: 8) {
+                    fieldRow("Icon", alignment: .center) {
+                        HStack(alignment: .center, spacing: 8) {
                             // Live preview of how the avatar will look elsewhere.
                             AvatarCircle(account: draft, diameter: 30)
                             AccountSymbolPicker(selection: $draft.iconSymbol)
                         }
                     }
-                    fieldRow("Color") {
-                        HStack(alignment: .top, spacing: 10) {
-                            AccountTintPicker(selection: $draft.tintHex,
-                                              defaultColor: draft.defaultTint)
-                            if hasCustomAppearance {
-                                Button("Reset") {
-                                    draft.iconSymbol = nil
-                                    draft.tintHex = nil
-                                }
-                                .buttonStyle(.borderless)
-                                .help("Use the default initials and color.")
+                    fieldRow("Color", alignment: .center) {
+                        AccountTintPicker(selection: $draft.tintHex,
+                                          defaultColor: draft.defaultTint)
+                    }
+                    // Reset clears both the icon and the tint, so it sits in its own
+                    // row beneath them — full width, so the pickers above keep the
+                    // whole pane and never wrap — rather than crammed beside either.
+                    if hasCustomAppearance {
+                        fieldRow("") {
+                            Button("Reset") {
+                                draft.iconSymbol = nil
+                                draft.tintHex = nil
                             }
+                            .buttonStyle(.borderless)
+                            .help("Use the default initials and color.")
                         }
                     }
                 }
@@ -205,6 +211,20 @@ struct AccountEditor: View {
                                 Text("Required — pick which member you are to finish.")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
+                            } else if isEditing, !isValidated {
+                                if isLoadingMembers {
+                                    Text("Loading members…")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                } else if orgUsers.isEmpty {
+                                    // The background fetch couldn't reach the org (e.g.
+                                    // offline, or the key was revoked since saving), so
+                                    // only the saved email is available; Validate retries
+                                    // and surfaces the real error.
+                                    Text("Validate to choose a different member.")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
                             }
                         }
                     }
@@ -236,6 +256,10 @@ struct AccountEditor: View {
         .padding()
         .frame(minWidth: embedded ? nil : 460, minHeight: embedded ? nil : 320,
                maxHeight: embedded ? .infinity : nil, alignment: .top)
+        // For a saved account, pull the org's full member list as soon as the editor
+        // opens so the "Your Email" picker offers everyone without a manual Validate.
+        // Keyed on the account so switching accounts in the embedded pane re-fetches.
+        .task(id: draft.id) { await loadOrgMembersForEditing() }
         .onChange(of: draft.apiKey) { _, _ in validation = .idle; scopeWarning = nil }
         .onChange(of: draft.baseURL) { _, _ in validation = .idle }
         // Icon and tint are cosmetic, so persist them the moment they change rather

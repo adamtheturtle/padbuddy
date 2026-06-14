@@ -13,9 +13,13 @@ extension AccountEditor {
     }
 
     /// One Mail-style row: a right-aligned label paired with a left-aligned field.
+    /// Text fields align on the first baseline; rows whose content has no text
+    /// baseline (the icon/color pickers) pass `.center` so the label sits level
+    /// with the swatches rather than drifting to their bottom edge.
     func fieldRow(_ label: String,
+                  alignment: VerticalAlignment = .firstTextBaseline,
                   @ViewBuilder content: () -> some View) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
+        HStack(alignment: alignment, spacing: 10) {
             Text(label)
                 .frame(width: labelColumnWidth, alignment: .trailing)
                 .foregroundStyle(.secondary)
@@ -157,6 +161,23 @@ extension AccountEditor {
         }
     }
 
+    /// For a saved account, fetch the org's member list in the background the moment the
+    /// editor opens, so the "Your Email" picker offers every member without the user
+    /// having to press Validate. Uses the already-saved (known-good) credentials and
+    /// touches only `orgUsers` — not the validation state — so it never flips the editor
+    /// into a validated/error state behind the user's back. Silent on failure: the saved
+    /// email stays selectable and Validate remains the path that surfaces a real problem.
+    func loadOrgMembersForEditing() async {
+        guard isEditing, !isValidated, orgUsers.isEmpty else { return }
+        isLoadingMembers = true
+        defer { isLoadingMembers = false }
+        let client = CoderPadClient(apiKey: draft.apiKey.trimmingCharacters(in: .whitespacesAndNewlines),
+                                    baseURL: draft.resolvedBaseURL)
+        if let org = try? await client.organization() {
+            orgUsers = org.users
+        }
+    }
+
     func validate() async {
         validation = .validating
         scopeWarning = nil
@@ -273,7 +294,8 @@ extension AccountEditor {
 /// current selection as a button; tapping opens a popover with a search field that
 /// filters the (potentially large) member list so you don't scroll a huge menu.
 struct OrgMemberPicker: View {
-    /// Empty means no member is picked yet — the "Unset" row.
+    /// Empty means no member is picked yet — shown as "Unset" on the button, but the
+    /// list offers no way to re-blank a selection since the email is required to save.
     @Binding var selection: String
     let options: [String]
     let label: (String) -> String
@@ -314,7 +336,6 @@ struct OrgMemberPicker: View {
 
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
-                        memberRow(email: "", title: "Unset")
                         ForEach(filtered, id: \.self) { email in
                             memberRow(email: email, title: label(email))
                         }
