@@ -83,7 +83,7 @@ struct RecentPadsWidget: Widget {
                                intent: RecentPadsConfigurationIntent.self,
                                provider: RecentPadsProvider()) { entry in
             RecentPadsWidgetEntryView(entry: entry)
-                .containerBackground(.fill.tertiary, for: .widget)
+                .containerBackground(.background, for: .widget)
         }
         .configurationDisplayName("Recent Pads")
         .description("Your most recently updated CoderPad pads.")
