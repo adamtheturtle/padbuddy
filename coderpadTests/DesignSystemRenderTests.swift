@@ -51,6 +51,13 @@ struct DesignSystemRenderTests {
         expectRenders(Chip(text: "No icon"), "Chip without icon")
     }
 
+    @Test func `appearance picker renders for every selection`() {
+        for option in AppAppearance.allCases {
+            expectRenders(AppearancePicker(selection: .constant(option)),
+                          "AppearancePicker(\(option.rawValue))")
+        }
+    }
+
     @Test func `meta label renders`() {
         expectRenders(MetaLabel(text: "Cursor", systemImage: "person.crop.circle"),
                       "MetaLabel with icon")

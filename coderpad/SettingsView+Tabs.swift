@@ -31,10 +31,8 @@ extension SettingsView {
             }
 
             Section {
-                Picker("Appearance", selection: $appearance) {
-                    ForEach(AppAppearance.allCases) { option in
-                        Text(option.label).tag(option)
-                    }
+                LabeledContent("Appearance") {
+                    AppearancePicker(selection: $appearance)
                 }
             }
 
