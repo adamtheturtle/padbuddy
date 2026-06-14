@@ -233,6 +233,8 @@ extension PadsView {
     func finalize(fetched: [Pad]) {
         let changes = changedPadIDs(in: fetched)
         PadActivityMonitor.shared.record(changedCount: changes.count)
+        // Surface the same change set as a background Notification Center alert (opt-in).
+        PadUpdateNotifier.shared.notify(changedPads: fetched.filter { changes.contains($0.id) })
         previousUpdatedAt = timestampSnapshot(of: fetched)
         if let id = accounts.currentAccountID {
             cache.set(id, pads: fetched)

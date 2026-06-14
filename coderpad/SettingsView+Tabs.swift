@@ -101,6 +101,22 @@ extension SettingsView {
             }
 
             Section {
+                Toggle("Notify me when pads update", isOn: $notifyOnPadUpdates)
+                    .onChange(of: notifyOnPadUpdates) { _, isOn in
+                        // Ask for permission the moment they opt in, so the system
+                        // prompt arrives when it's expected rather than at first alert.
+                        if isOn { PadUpdateNotifier.shared.requestAuthorization() }
+                    }
+            } footer: {
+                Text("""
+                Post a Notification Center alert when pads gain new activity while CoderPad is in \
+                the background. Tapping the alert opens the pad. You'll be asked to allow \
+                notifications the first time. Off by default.
+                """)
+                .foregroundStyle(.secondary)
+            }
+
+            Section {
                 Stepper(value: $refreshSeconds,
                         in: GeneralSettings.minRefreshSeconds ... GeneralSettings.maxRefreshSeconds,
                         step: 15) {

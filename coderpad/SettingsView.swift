@@ -247,6 +247,14 @@ enum GeneralSettings {
         static let refreshSeconds = "general.refreshSeconds"
         static let requireBiometricsToRevealKey = "general.requireBiometricsToRevealKey"
         static let spotlightIndexing = "general.spotlightIndexing"
+        static let notifyOnPadUpdates = "general.notifyOnPadUpdates"
+    }
+
+    /// Whether to post a Notification Center alert when pads gain new activity in the
+    /// background. Off by default — opt-in, since it also requires the user to grant
+    /// notification permission. See `PadUpdateNotifier`.
+    static var notifyOnPadUpdates: Bool {
+        UserDefaults.standard.bool(forKey: Key.notifyOnPadUpdates)
     }
 
     /// Whether revealing a saved API key in Settings must be unlocked with Touch ID
@@ -361,6 +369,7 @@ struct SettingsView: View {
     @AppStorage(GeneralSettings.Key.refreshSeconds) var refreshSeconds = GeneralSettings.defaultRefreshSeconds
     @AppStorage(GeneralSettings.Key.requireBiometricsToRevealKey) var requireBiometricsToRevealKey = false
     @AppStorage(GeneralSettings.Key.spotlightIndexing) var spotlightIndexing = false
+    @AppStorage(GeneralSettings.Key.notifyOnPadUpdates) var notifyOnPadUpdates = false
     @AppStorage(DockBadge.Key.mode) var dockBadgeMode: DockBadge.Mode = .activePads
     @State var accountsStore = AccountsStore.shared
 

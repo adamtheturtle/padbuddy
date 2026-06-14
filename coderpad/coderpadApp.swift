@@ -216,6 +216,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Seed the badge from whatever pads are already cached; it refreshes again as
         // each account's list loads.
         DockBadge.refresh()
+        // Become the notification-center delegate so taps on pad-update alerts route
+        // back into the app. Posting itself is opt-in (see `PadUpdateNotifier`).
+        PadUpdateNotifier.shared.register()
         // Offer the "Open Pad in CoderPad" Service (declared in Info.plist) to other
         // apps. NSUpdateDynamicServices refreshes the registry so the item appears
         // without needing a log-out/in during development.
