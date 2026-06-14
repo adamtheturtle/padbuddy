@@ -131,4 +131,28 @@ struct DesignSystemRenderTests {
             .frame(width: 200),
             "StatTile")
     }
+
+    @Test func `question print document renders`() throws {
+        let json = #"""
+        {"id": 1, "title": "Two Sum", "language": "python3",
+         "description": "Return the indices that sum to the target.",
+         "contents": "def two_sum(nums, target):\n    pass",
+         "solution": "Use a hash map."}
+        """#
+        let question = try CoderPadClient.decoder.decode(Question.self, from: Data(json.utf8))
+        expectRenders(QuestionPrintDocument(question: question).frame(width: 480),
+                      "QuestionPrintDocument")
+    }
+
+    @Test func `pad print document renders`() throws {
+        let json = #"""
+        {"id": "ABC123", "title": "Onsite", "state": "ended", "owner_email": "owner@x.co",
+         "language": "python3", "participants": ["Jane", "Joe"],
+         "url": "https://app.coderpad.io/ABC123", "contents": "print(1)", "type": "live"}
+        """#
+        let pad = try CoderPadClient.decoder.decode(Pad.self, from: Data(json.utf8))
+        let files = [PadPrintFile(id: "0", title: "main.py", code: "print(1)")]
+        expectRenders(PadPrintDocument(pad: pad, files: files).frame(width: 480),
+                      "PadPrintDocument")
+    }
 }

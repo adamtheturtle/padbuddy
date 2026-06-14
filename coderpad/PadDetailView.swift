@@ -148,6 +148,13 @@ struct PadDetailView: View {
             }
         }
         .toolbar(id: "pad.detail.toolbar") { detailToolbar }
+        // Publish a print rendering so File ▸ Print (⌘P) can produce a hard copy
+        // or PDF of the pad's summary and code (whatever has loaded so far).
+        .focusedSceneValue(\.printAction, PrintAction(id: "pad-\(pad.id)") {
+            printDocument(PadPrintDocument(pad: pad, files: printFiles(),
+                                           displayName: directory.display),
+                          jobTitle: pad.title.isEmpty ? pad.id : pad.title)
+        })
         .task(id: pad.id) { await load() }
         .sheet(isPresented: $showEdit) {
             EditPadSheet(
@@ -241,6 +248,24 @@ struct PadDetailView: View {
 
     private var isEnded: Bool {
         pad.isEnded
+    }
+
+    /// The pad's code as printable sections — one per file, titled by its path,
+    /// namespaced by environment so identically-named files across environments
+    /// don't collide. Falls back to the legacy inline `contents` when no
+    /// environment carries files, mirroring Save Code.
+    private func printFiles() -> [PadPrintFile] {
+        var result: [PadPrintFile] = []
+        for (index, env) in environments.enumerated() {
+            for file in displayFiles(for: env) {
+                let title = file.path.flatMap { $0.isEmpty ? nil : $0 } ?? "Code"
+                result.append(PadPrintFile(id: "\(index)-\(file.id)", title: title, code: file.contents))
+            }
+        }
+        if result.isEmpty, let contents = pad.contents, !contents.isEmpty {
+            result.append(PadPrintFile(id: "contents", title: "Code", code: contents))
+        }
+        return result
     }
 
     private func endInterview() async {

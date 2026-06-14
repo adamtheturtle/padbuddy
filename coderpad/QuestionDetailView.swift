@@ -97,6 +97,12 @@ struct QuestionDetailView: View {
         // Publish the question's web URL so the Question menu's Share/Copy URL
         // commands act on the same link, built from this account's server URL.
         .focusedSceneValue(\.focusedQuestionURL, question.webURL(baseURL: client.baseURL))
+        // Publish a print rendering so File ▸ Print (⌘P) can produce a hard copy
+        // or PDF of the prompt, instructions, and solution.
+        .focusedSceneValue(\.printAction, PrintAction(id: "question-\(question.id)") {
+            printDocument(QuestionPrintDocument(question: question),
+                          jobTitle: question.displayTitle)
+        })
         .toolbar(id: "question.detail.toolbar") { detailToolbar }
         .sheet(isPresented: $showEdit) {
             EditQuestionSheet(client: client, original: question) { updated in

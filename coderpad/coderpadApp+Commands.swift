@@ -21,6 +21,22 @@ struct FindCommands: Commands {
     }
 }
 
+/// Wires ⌘P to the print-friendly rendering of whichever detail pane is on
+/// screen. The pane publishes a `printAction`; here it surfaces as the standard
+/// File ▸ Print item, disabled in sections (lists, Quota) that publish nothing
+/// printable. "Save as PDF" comes free from the print panel it opens.
+struct PrintCommands: Commands {
+    @FocusedValue(\.printAction) private var printAction
+
+    var body: some Commands {
+        CommandGroup(replacing: .printItem) {
+            Button("Print…") { printAction?.perform() }
+                .keyboardShortcut("p", modifiers: [.command])
+                .disabled(printAction == nil)
+        }
+    }
+}
+
 /// Adds "Customize Toolbar…" to the View menu, matching Mail, Finder, and other
 /// system apps. SwiftUI makes the section toolbars user-customizable (via
 /// `.toolbar(id:)`) and offers customization through the toolbar's right-click

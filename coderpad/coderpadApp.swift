@@ -281,6 +281,7 @@ struct CoderpadApp: App {
         .commands {
             appCommands
             FindCommands()
+            PrintCommands()
             ViewCommands()
             PadCommands()
             QuestionCommands()

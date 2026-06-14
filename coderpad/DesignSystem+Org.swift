@@ -200,6 +200,28 @@ extension FocusedValues {
     @Entry var findAction: FindAction?
 }
 
+/// Action published by whichever detail pane can be printed, so the File menu's
+/// ⌘P command can render it through the standard print panel. Like `FindAction`,
+/// it's `Equatable` on a stable per-content `id` so re-publishes from the same
+/// content dedupe instead of tripping SwiftUI's multiple-updates-per-frame
+/// warning during `NavigationSplitView`'s repeated layout passes. The command
+/// reads it both to perform the print and to disable itself when nothing focused
+/// is printable.
+struct PrintAction: Equatable {
+    /// Identifies the printable content (e.g. "question-42"), so re-publishes for
+    /// the same content compare equal while a genuine selection change differs.
+    let id: String
+    let perform: () -> Void
+
+    static func == (lhs: PrintAction, rhs: PrintAction) -> Bool {
+        lhs.id == rhs.id
+    }
+}
+
+extension FocusedValues {
+    @Entry var printAction: PrintAction?
+}
+
 extension FocusedValues {
     /// Marks the frontmost window as one whose toolbar can be customized — set by
     /// the main window's `ContentView` (its section panes use `.toolbar(id:)`,
