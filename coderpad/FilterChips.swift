@@ -49,6 +49,9 @@ private struct ChipMenuShell<MenuContent: View>: View {
             .buttonStyle(.plain)
             .menuIndicator(.hidden)
             .fixedSize()
+            // Suppress AppKit's rectangular keyboard focus ring: it doesn't follow
+            // the chip's capsule and reads as a stray blue box around the label.
+            .focusEffectDisabled()
             .disabled(menuDisabled)
 
             if isActive {
