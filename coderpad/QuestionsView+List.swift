@@ -189,6 +189,9 @@ extension QuestionsView {
         // stay enabled whenever this window is frontmost and a question
         // is selected, not only while the list holds keyboard focus.
         .focusedSceneValue(\.focusedQuestion, selection)
+        // Edit ▸ Copy / ⌘C copies the selected question's web URL while the list
+        // holds focus, matching the row's "Copy Question URL" context action.
+        .onCopyCommand(perform: copyLinkCommand(selection.map { $0.webURL(baseURL: client.baseURL).absoluteString }))
     }
 
     /// Right-click actions for a question row. Actions that need the detail pane's

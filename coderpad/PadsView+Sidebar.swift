@@ -154,6 +154,9 @@ extension PadsView {
         // Open in Browser) should stay enabled whenever this window is frontmost and
         // a pad is selected — not only while the list itself holds keyboard focus.
         .focusedSceneValue(\.focusedPad, selection)
+        // Edit ▸ Copy / ⌘C copies the selected pad's web URL while the list holds
+        // focus, matching the row's "Copy Pad URL" context action.
+        .onCopyCommand(perform: copyLinkCommand(selection?.url))
     }
 
     private var padList: some View {

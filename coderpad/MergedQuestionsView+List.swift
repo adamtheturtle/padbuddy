@@ -155,6 +155,14 @@ extension MergedQuestionsView {
         .overlay { questionsOverlay }
         .macPullToRefresh { await reload() }
         .focusedSceneValue(\.focusedQuestion, selection)
+        // Edit ▸ Copy / ⌘C copies the selected question's web URL while the list
+        // holds focus, matching the row's "Copy Question URL" context action. The
+        // link is built from the originating account's server URL, resolved via the
+        // selected row, so a merged-list copy honors each account's custom domain.
+        .onCopyCommand(perform: copyLinkCommand(
+            selectedRowID.flatMap { row(forRowID: $0) }
+                .map { $0.item.webURL(baseURL: $0.account.resolvedBaseURL).absoluteString }
+        ))
     }
 
     @ViewBuilder

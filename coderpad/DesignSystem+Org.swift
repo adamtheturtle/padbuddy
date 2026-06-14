@@ -174,6 +174,20 @@ extension FocusedValues {
     @Entry var focusedQuestionURL: URL?
 }
 
+// MARK: - Copy command for list selections
+
+/// Builds the optional action for `View.onCopyCommand` from the selected row's
+/// link. Returns `nil` when there's no selection, so the standard Edit ▸ Copy
+/// item (and ⌘C) greys out; otherwise a closure that places `urlString` on the
+/// pasteboard as plain text. `onCopyCommand` only fires while the list itself is
+/// the first responder, so this never steals ⌘C from a focused text field. Shared
+/// by every pad and question list so a selected row copies its link, the standard
+/// macOS list-copy behavior users reach for to paste into Slack, mail, or an event.
+func copyLinkCommand(_ urlString: String?) -> (() -> [NSItemProvider])? {
+    guard let urlString, !urlString.isEmpty else { return nil }
+    return { [NSItemProvider(object: urlString as NSString)] }
+}
+
 /// Action published by whichever pane currently owns a search field, so the
 /// global ⌘F command can focus it. Panes set this via `focusedSceneValue` while
 /// visible; the command reads it both to perform the find and to know whether

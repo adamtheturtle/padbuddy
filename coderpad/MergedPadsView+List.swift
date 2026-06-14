@@ -159,6 +159,9 @@ extension MergedPadsView {
             }
             .macPullToRefresh { await reload() }
             .focusedSceneValue(\.focusedPad, selection)
+            // Edit ▸ Copy / ⌘C copies the selected pad's web URL while the list
+            // holds focus, matching the row's "Copy Pad URL" context action.
+            .onCopyCommand(perform: copyLinkCommand(selection?.url))
     }
 
     private var padList: some View {
