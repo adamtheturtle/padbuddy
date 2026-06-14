@@ -12,6 +12,10 @@ struct QuotaView: View {
     @State private var quota: Quota?
     @State private var isLoading = false
     @State private var error: Error?
+    /// The header gauge glyph's point size, scaled with the user's preferred text
+    /// size (tracking Large Title) so it grows with the accessibility setting
+    /// rather than staying fixed.
+    @ScaledMetric(relativeTo: .largeTitle) private var gaugeGlyphSize: CGFloat = 36
 
     var body: some View {
         Group {
@@ -62,7 +66,7 @@ struct QuotaView: View {
     private var header: some View {
         HStack(spacing: 14) {
             Image(systemName: "gauge.with.dots.needle.67percent")
-                .font(.system(size: 36))
+                .font(.system(size: gaugeGlyphSize))
                 .foregroundStyle(.tint)
             VStack(alignment: .leading, spacing: 4) {
                 Text("Plan & Quota").font(.title2.weight(.semibold))

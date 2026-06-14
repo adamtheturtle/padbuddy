@@ -32,6 +32,9 @@ private struct MacPullToRefresh: ViewModifier {
     /// 0…1 as the user drags past the top; drives the indicator's reveal.
     @State private var pull: CGFloat = 0
     @State private var isRefreshing = false
+    /// The indicator chevron's point size, scaled with the user's preferred text
+    /// size (tracking Caption 2) so it honors the accessibility setting.
+    @ScaledMetric(relativeTo: .caption2) private var chevronSize: CGFloat = 8
 
     func body(content: Content) -> some View {
         content
@@ -73,7 +76,7 @@ private struct MacPullToRefresh: ViewModifier {
                                     style: StrokeStyle(lineWidth: 2, lineCap: .round))
                             .rotationEffect(.degrees(-90))
                         Image(systemName: "chevron.down")
-                            .font(.system(size: 8, weight: .bold))
+                            .font(.system(size: chevronSize, weight: .bold))
                             .foregroundStyle(isArmed ? Color.accentColor : Color.secondary)
                             .rotationEffect(.degrees(isArmed ? 180 : 0))
                     }

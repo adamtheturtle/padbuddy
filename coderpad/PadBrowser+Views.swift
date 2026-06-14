@@ -54,6 +54,9 @@ struct PadBrowserView: View {
     let url: URL
     @State private var controller = WebController()
     @Environment(\.dismiss) private var dismiss
+    /// The load-failure icon's point size, scaled with the user's preferred text
+    /// size (tracking Large Title) so it honors the accessibility setting.
+    @ScaledMetric(relativeTo: .largeTitle) private var errorIconSize: CGFloat = 40
 
     var body: some View {
         VStack(spacing: 0) {
@@ -77,7 +80,7 @@ struct PadBrowserView: View {
     private func loadErrorOverlay(_ message: String) -> some View {
         VStack(spacing: 16) {
             Image(systemName: "wifi.exclamationmark")
-                .font(.system(size: 40))
+                .font(.system(size: errorIconSize))
                 .foregroundStyle(.secondary)
             VStack(spacing: 4) {
                 Text("Couldn’t load this pad")

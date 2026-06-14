@@ -313,6 +313,9 @@ struct FileTreeRows: View {
     let selectedID: String
     @Binding var collapsedFolders: Set<String>
     let onSelect: (String) -> Void
+    /// The folder disclosure chevron's point size, scaled with the user's preferred
+    /// text size (tracking Caption 2, matching the adjacent caption-sized labels).
+    @ScaledMetric(relativeTo: .caption2) private var disclosureChevronSize: CGFloat = 9
 
     var body: some View {
         ForEach(nodes) { node in
@@ -344,7 +347,7 @@ struct FileTreeRows: View {
         } label: {
             HStack(spacing: 5) {
                 Image(systemName: collapsed ? "chevron.right" : "chevron.down")
-                    .font(.system(size: 9, weight: .semibold))
+                    .font(.system(size: disclosureChevronSize, weight: .semibold))
                     .foregroundStyle(.secondary)
                     .frame(width: 10)
                 Image(systemName: "folder")
