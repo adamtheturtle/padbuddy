@@ -29,6 +29,15 @@ struct MergedQuestionsView: View {
     /// (`AccountScoped.id`) rather than the bare per-org question id, which two
     /// accounts routinely share. Bridged to the `Question` `selection` below.
     @State var selectedRowID: String?
+    /// List vs. Table presentation, sharing `QuestionsView`'s preference key so the
+    /// choice is consistent across the single-account and combined question lists.
+    /// Defaults to List, so the standard experience is unchanged.
+    @AppStorage(QuestionListPresentation.storageKey) var presentation: QuestionListPresentation = .list
+    /// The Table's active column sort, applied to the rows in `questionsTable`. Starts
+    /// empty so the table opens in the merged list's order; clicking a header drives
+    /// it. Empty rather than a default `KeyPathComparator` because a key-path literal
+    /// isn't `Sendable` in the `@State` macro's stored default under Swift 6.
+    @State var sortOrder: [KeyPathComparator<AccountScoped<Question>>] = []
     @Binding var search: String
 
     @State var languageFilter: String?
