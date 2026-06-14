@@ -178,7 +178,29 @@ extension AccountEditor {
         }
     }
 
+    /// Whether another saved account already uses this key and server, to stop the
+    /// same organization being added twice. Compares the trimmed key and the resolved
+    /// server URL, excluding the draft itself so re-validating a saved account (or
+    /// changing only its description) never flags it as a clash.
+    func duplicateAccountMessage() -> String? {
+        let key = draft.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let server = draft.resolvedBaseURL
+        let clashes = AccountsStore.shared.accounts.contains { existing in
+            existing.id != draft.id
+                && existing.apiKey.trimmingCharacters(in: .whitespacesAndNewlines) == key
+                && existing.resolvedBaseURL == server
+        }
+        guard clashes else { return nil }
+        return "This API key is already added as another account. Each account must use a unique key."
+    }
+
     func validate() async {
+        // Reject a key that's already saved before hitting the network, so the user
+        // gets immediate feedback rather than adding a duplicate organization.
+        if let message = duplicateAccountMessage() {
+            validation = .invalid(message)
+            return
+        }
         validation = .validating
         scopeWarning = nil
         do {
