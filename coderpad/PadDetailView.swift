@@ -28,11 +28,11 @@ struct PadDetailView: View {
     // the content header: there they float on the system Liquid Glass layer
     // automatically, and the header stays free for identity and metadata. A
     // leading spacer separates them from the Pads list's own toolbar items
-    // (Reload, New Pad). The lifecycle/destructive actions (Save Code, End
-    // Interview, Delete Pad) sit in their own trailing group behind a second
-    // spacer; End Interview and Delete Pad each still require a confirmation
-    // dialog, so surfacing them directly can't trigger an irreversible action
-    // from a stray click.
+    // (Reload, New Pad). Delete Pad sits in its own trailing group behind a
+    // second spacer; it requires a confirmation dialog, so surfacing it
+    // directly can't trigger an irreversible action from a stray click. Save
+    // Code and End Interview stay out of the toolbar to keep it uncrowded and
+    // remain available from the Pad menu.
     @ToolbarContentBuilder
     private var detailToolbar: some ToolbarContent {
         if #available(macOS 26, *) {
@@ -86,24 +86,6 @@ struct PadDetailView: View {
         }
         if #available(macOS 26, *) {
             ToolbarSpacer(.fixed)
-        }
-        ToolbarItem(placement: .primaryAction) {
-            Button {
-                saveCodeLocally()
-            } label: {
-                Label("Save Code…", systemImage: "square.and.arrow.down")
-            }
-            .disabled(!hasSavableCode)
-            .help("Save the pad's code to a file or folder on this Mac")
-        }
-        ToolbarItem(placement: .primaryAction) {
-            Button {
-                showEndConfirm = true
-            } label: {
-                Label("End Interview", systemImage: "flag.checkered")
-            }
-            .disabled(isEnded || isMutating)
-            .help("End the interview for all participants")
         }
         ToolbarItem(placement: .primaryAction) {
             Button(role: .destructive) {
@@ -244,10 +226,6 @@ struct PadDetailView: View {
         guard nav.deletePadID == pad.id else { return }
         nav.deletePadID = nil
         showDeleteConfirm = true
-    }
-
-    private var isEnded: Bool {
-        pad.isEnded
     }
 
     /// The pad's code as printable sections — one per file, titled by its path,
