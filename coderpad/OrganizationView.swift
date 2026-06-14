@@ -51,6 +51,8 @@ struct OrganizationView: View {
     @State private var quota: Quota?
     @State private var isLoading = false
     @State private var error: Error?
+    @State private var userSearch = ""
+    @FocusState private var userSearchFocused: Bool
     @AppStorage(StatsPeriod.storageKey) private var period: StatsPeriod = .days7
     @State private var statsTask: Task<Void, Never>?
     @State private var customStart = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
@@ -78,6 +80,7 @@ struct OrganizationView: View {
                             if let supported = organization?.singleSignOnSupported {
                                 singleSignOnSection(supported)
                             }
+                            if let organization { usersSection(organization) }
                         }
                         .padding(.horizontal, Spacing.paneH)
                         .padding(.top, Spacing.paneV)
@@ -109,6 +112,7 @@ struct OrganizationView: View {
             guard period == .custom else { return }
             scheduleStatsReload()
         }
+        .focusedSceneValue(\.findAction, FindAction(id: "organization") { userSearchFocused = true })
         .task {
             for await _ in AppRouter.reloads {
                 await reload()
@@ -129,8 +133,8 @@ struct OrganizationView: View {
     }
 
     /// The custom From/To range, pinned above the ScrollView (only when the
-    /// "Custom range" period is selected) so it stays visible while scrolling.
-    /// It stays out of the toolbar because the date fields' width varies
+    /// "Custom range" period is selected) so it stays visible while scrolling the
+    /// user grid. It stays out of the toolbar because the date fields' width varies
     /// and they only apply to one period.
     private var customRangeHeader: some View {
         VStack(spacing: 0) {
@@ -149,8 +153,6 @@ struct OrganizationView: View {
 
     private var statTiles: some View {
         HStack(spacing: 12) {
-            StatTile(title: "Users", value: organization.map { "\($0.userCount ?? $0.users.count)" } ?? "…",
-                     systemImage: "person.3.fill", tint: .blue)
             StatTile(title: "Teams", value: organization.map { "\($0.teams.count)" } ?? "…",
                      systemImage: "rectangle.stack.person.crop", tint: .indigo)
             StatTile(title: "Pads", value: stats.map { "\($0.padsCreated)" } ?? "…",
@@ -176,6 +178,62 @@ struct OrganizationView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func usersSection(_ org: Organization) -> some View {
+        Card {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    SectionHeader(title: "Users", systemImage: "person.3")
+                    Spacer()
+                    Text("\(filteredUsers(org).count)")
+                        .font(.caption.monospaced()).foregroundStyle(.secondary)
+                }
+                TextField("Search users…", text: $userSearch)
+                    .textFieldStyle(.roundedBorder)
+                    .focused($userSearchFocused)
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 240), spacing: 10)], alignment: .leading, spacing: 10) {
+                    ForEach(filteredUsers(org)) { user in
+                        Button {
+                            AppNavigation.shared.showPads(PadsRequest(ownerEmail: user.email))
+                        } label: {
+                            HStack(spacing: 10) {
+                                AvatarCircle(label: user.name ?? user.email, diameter: 32)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(user.name ?? user.email)
+                                        .font(.callout.weight(.medium))
+                                        .lineLimit(1)
+                                    Text(user.email)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                }
+                                Spacer(minLength: 0)
+                            }
+                            .padding(10)
+                            .background(Color.subtleStroke.opacity(0.5),
+                                        in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                        .help("Show pads owned by \(user.name ?? user.email)")
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func filteredUsers(_ org: Organization) -> [OrganizationUser] {
+        let lowered = userSearch.lowercased()
+        let matched = lowered.isEmpty ? org.users : org.users.filter {
+            ($0.name ?? "").lowercased().contains(lowered) || $0.email.lowercased().contains(lowered)
+        }
+        // Sort by display name so the list reads alphabetically rather than in
+        // the API's arbitrary order.
+        return matched.sorted {
+            ($0.name ?? $0.email).localizedCaseInsensitiveCompare($1.name ?? $1.email) == .orderedAscending
         }
     }
 
