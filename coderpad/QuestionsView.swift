@@ -256,6 +256,8 @@ struct QuestionsView: View {
     private func selectQuestion(id: Int) {
         if let match = questions.first(where: { $0.id == id }) {
             selectedQuestionIDs = [match.id]
+            // Reveal it: a favorite picked from the sidebar may sit far down the list.
+            pendingScrollToID = match.id
             pendingSelectQuestionID = nil
         } else {
             pendingSelectQuestionID = id
@@ -266,6 +268,7 @@ struct QuestionsView: View {
         guard let id = pendingSelectQuestionID,
               let match = questions.first(where: { $0.id == id }) else { return }
         selectedQuestionIDs = [match.id]
+        pendingScrollToID = match.id
         pendingSelectQuestionID = nil
     }
 

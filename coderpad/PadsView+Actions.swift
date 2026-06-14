@@ -43,6 +43,8 @@ extension PadsView {
     func selectPad(id: String) {
         if pads.contains(where: { $0.id == id }) {
             selectedIDs = [id]
+            // Reveal it: a favorite picked from the sidebar may sit far down the list.
+            pendingScrollToID = id
             pendingSelectPadID = nil
         } else {
             pendingSelectPadID = id
@@ -54,6 +56,7 @@ extension PadsView {
     func resolvePendingPadSelection() {
         guard let id = pendingSelectPadID, pads.contains(where: { $0.id == id }) else { return }
         selectedIDs = [id]
+        pendingScrollToID = id
         pendingSelectPadID = nil
     }
 
