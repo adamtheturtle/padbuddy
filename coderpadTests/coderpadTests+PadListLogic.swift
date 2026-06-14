@@ -134,29 +134,6 @@ struct PadActivitySinceOpenTests {
     }
 }
 
-@Suite("Pad bulk action targets")
-struct PadBulkActionTests {
-    @Test
-    func `startedPads keeps only active pads`() throws {
-        let pads = try [
-            makePad(id: "a", state: "started"),
-            makePad(id: "b", state: "ended"),
-            makePad(id: "c", state: "started"),
-            makePad(id: "d", state: "pending")
-        ]
-        #expect(PadListLogic.startedPads(in: pads).map(\.id) == ["a", "c"])
-    }
-
-    @Test
-    func `nonPrivatePads excludes pads already private`() throws {
-        let pads = try [
-            makePad(id: "a", isPrivate: true),
-            makePad(id: "b", isPrivate: false),
-            makePad(id: "c", isPrivate: nil)
-        ]
-        #expect(PadListLogic.nonPrivatePads(in: pads).map(\.id) == ["b", "c"])
-    }
-}
 
 @Suite("Pad refresh cadence")
 struct PadRefreshIntervalTests {

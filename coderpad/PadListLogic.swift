@@ -102,16 +102,6 @@ enum PadListLogic {
         return updated > lastOpened
     }
 
-    /// Started pads in `pads` — the targets of a bulk "End started pads".
-    static func startedPads(in pads: [Pad]) -> [Pad] {
-        pads.filter { $0.status == .active }
-    }
-
-    /// Pads in `pads` not already private — the targets of a bulk "Make private".
-    static func nonPrivatePads(in pads: [Pad]) -> [Pad] {
-        pads.filter { $0.isPrivate != true }
-    }
-
     /// The auto-refresh cadence for the pad list. Backs off as the list grows (large
     /// orgs poll less often) and backs off a further 2× when no pad is started, since
     /// with no live interview in progress the list is unlikely to be changing — so

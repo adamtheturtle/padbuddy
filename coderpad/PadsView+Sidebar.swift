@@ -120,22 +120,6 @@ extension PadsView {
                 .accessibilityLabel("New Pad")
                 .disabled(client.apiKey.isEmpty)
             }
-            ToolbarItem(id: "bulk") {
-                Menu {
-                    Button("End Started Pads…", systemImage: "flag.checkered") {
-                        bulkAction = .endStarted
-                    }
-                    .disabled(PadListLogic.startedPads(in: filtered).isEmpty)
-                    Button("Make Visible Pads Private…", systemImage: "lock") {
-                        bulkAction = .makePrivate
-                    }
-                    .disabled(PadListLogic.nonPrivatePads(in: filtered).isEmpty)
-                } label: {
-                    Label("Bulk Actions", systemImage: "ellipsis.circle")
-                }
-                .help("Apply an action to all pads currently shown in the list")
-                .disabled(client.apiKey.isEmpty || filtered.isEmpty || isBulkRunning)
-            }
         }
     }
 
@@ -168,12 +152,6 @@ extension PadsView {
         // Open in Browser) should stay enabled whenever this window is frontmost and
         // a pad is selected — not only while the list itself holds keyboard focus.
         .focusedSceneValue(\.focusedPad, selection)
-        .focusedSceneValue(\.padBulkAvailability, PadBulkAvailability(
-            canEndStarted: !client.apiKey.isEmpty && !isBulkRunning
-                && !PadListLogic.startedPads(in: filtered).isEmpty,
-            canMakePrivate: !client.apiKey.isEmpty && !isBulkRunning
-                && !PadListLogic.nonPrivatePads(in: filtered).isEmpty
-        ))
     }
 
     private var padList: some View {

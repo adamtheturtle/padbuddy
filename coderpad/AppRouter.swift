@@ -57,14 +57,6 @@ enum AppRouter {
         payloadStream(.openPadInBrowserRequested) { $0.object as? URL }
     }
 
-    /// Ask the Pads list to run the "End all started pads" bulk action.
-    static func requestBulkEndStarted() { center.post(name: .bulkEndStartedRequested, object: nil) }
-    static var bulkEndStartedRequests: AsyncStream<Void> { voidStream(.bulkEndStartedRequested) }
-
-    /// Ask the Pads list to run the "Make all pads private" bulk action.
-    static func requestBulkMakePrivate() { center.post(name: .bulkMakePrivateRequested, object: nil) }
-    static var bulkMakePrivateRequests: AsyncStream<Void> { voidStream(.bulkMakePrivateRequested) }
-
     // MARK: - Pad mutations
 
     /// Broadcast that a pad changed, so every list showing it updates in place.
@@ -145,6 +137,4 @@ private extension Notification.Name {
     static let questionDeleted = Notification.Name("coderpad.questionDeleted")
     static let openSettingsRequested = Notification.Name("coderpad.openSettingsRequested")
     static let openPadInBrowserRequested = Notification.Name("coderpad.openPadInBrowserRequested")
-    static let bulkEndStartedRequested = Notification.Name("coderpad.bulkEndStartedRequested")
-    static let bulkMakePrivateRequested = Notification.Name("coderpad.bulkMakePrivateRequested")
 }

@@ -165,22 +165,6 @@ extension FocusedValues {
     @Entry var focusedQuestionIsFavorite: Bool?
 }
 
-/// Which list-wide bulk actions currently apply to the visible Pads list,
-/// published by the pads pane so the Pad menu can enable its "End Started Pads"
-/// and "Make Visible Pads Private" items exactly when the toolbar's Bulk menu
-/// enables them. Carrying plain `Bool`s (rather than closures) keeps the value
-/// `Equatable`, so SwiftUI dedupes the repeated re-publishes a split view makes
-/// during layout — the same reason `FindAction` is `Equatable`. The actions
-/// themselves fire via notification, so no closure needs to cross the boundary.
-struct PadBulkAvailability: Equatable {
-    var canEndStarted: Bool
-    var canMakePrivate: Bool
-}
-
-extension FocusedValues {
-    @Entry var padBulkAvailability: PadBulkAvailability?
-}
-
 /// Action published by whichever pane currently owns a search field, so the
 /// global ⌘F command can focus it. Panes set this via `focusedSceneValue` while
 /// visible; the command reads it both to perform the find and to know whether

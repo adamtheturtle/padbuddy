@@ -55,9 +55,6 @@ struct MergedPadsView: View {
     /// The account a New Pad is being created for, chosen from the toolbar menu
     /// since creation is inherently single-account.
     @State var creatingForAccount: Account?
-    @State var bulkAction: BulkPadAction?
-    @State var bulkError: String?
-    @State var isBulkRunning = false
 
     /// Per-render memo so the several reads of `filtered` in one `body` share a
     /// single filter pass, matching `PadsView`'s approach for large lists.
@@ -65,13 +62,6 @@ struct MergedPadsView: View {
     /// Per-render memo for the sorted cross-account rows (`scoped`), refreshed
     /// once at the top of `body` so its many readers share a single sort.
     @State var scopedCache = ScopedPadsCache()
-
-    enum BulkPadAction: String, Identifiable {
-        case endStarted, makePrivate
-        var id: String {
-            rawValue
-        }
-    }
 
     var body: some View {
         // Recompute the sorted rows and the filtered rows once per render; every

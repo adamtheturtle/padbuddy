@@ -66,17 +66,6 @@ struct PadsView: View {
     @State var smartFilterFailed = false
     @State var padPendingDelete: Pad?
     @State var deleteError: String?
-    @State var bulkAction: BulkPadAction?
-    @State var bulkError: String?
-    @State var isBulkRunning = false
-
-    /// A bulk operation over the pads currently shown by the list (after filtering).
-    enum BulkPadAction: String, Identifiable {
-        case endStarted, makePrivate
-        var id: String {
-            rawValue
-        }
-    }
 
     /// Big orgs return thousands of pads per sweep, and re-fetching every page on the base
     /// cadence is mostly wasted work for data well below the fold. The auto-refresh cadence
@@ -167,19 +156,6 @@ struct PadsView: View {
                     cache.removePad(id: id)
                 }
             }
-            // Mirror the toolbar's Bulk menu: the Pad menu's bulk commands post
-            // these, and this pane runs them through the same confirmation it
-            // already shows for the toolbar buttons.
-            .task {
-                for await _ in AppRouter.bulkEndStartedRequests {
-                    bulkAction = .endStarted
-                }
-            }
-            .task {
-                for await _ in AppRouter.bulkMakePrivateRequests {
-                    bulkAction = .makePrivate
-                }
-            }
             .sheet(isPresented: $showSaveSearch) {
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Save Search").font(.title3.bold())
@@ -250,29 +226,6 @@ struct PadsView: View {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(deleteError ?? "")
-            }
-            // Bulk actions operate on the pads currently visible in the list (after the
-            // active filters/search), so the user controls the scope by narrowing first.
-            .confirmationDialog(
-                bulkConfirmTitle,
-                isPresented: .init(get: { bulkAction != nil },
-                                   set: { if !$0 { bulkAction = nil } }),
-                titleVisibility: .visible,
-                presenting: bulkAction
-            ) { action in
-                Button(bulkConfirmButton(action), role: .destructive) {
-                    Task { await performBulk(action) }
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: { action in
-                Text(bulkConfirmMessage(action))
-            }
-            .alert("Some pads couldn't be updated",
-                   isPresented: .init(get: { bulkError != nil },
-                                      set: { if !$0 { bulkError = nil } })) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(bulkError ?? "")
             }
     }
 }

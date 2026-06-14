@@ -6,57 +6,6 @@
 import SwiftUI
 
 extension PadsView {
-    var bulkConfirmTitle: String {
-        switch bulkAction {
-        case .endStarted: "End \(PadListLogic.startedPads(in: filtered).count) started pads?"
-        case .makePrivate: "Make \(PadListLogic.nonPrivatePads(in: filtered).count) pads private?"
-        case nil: ""
-        }
-    }
-
-    func bulkConfirmButton(_ action: BulkPadAction) -> String {
-        switch action {
-        case .endStarted: "End Started Pads"
-        case .makePrivate: "Make Private"
-        }
-    }
-
-    func bulkConfirmMessage(_ action: BulkPadAction) -> String {
-        switch action {
-        case .endStarted:
-            "This ends every started pad currently shown in the list. Ending an interview can't be undone."
-        case .makePrivate:
-            "This marks every pad currently shown in the list as private."
-        }
-    }
-
-    /// Runs a bulk action over the currently-visible pads, then refreshes. Failures
-    /// are counted and surfaced without aborting the rest of the batch.
-    func performBulk(_ action: BulkPadAction) async {
-        let targets: [Pad] = switch action {
-        case .endStarted: PadListLogic.startedPads(in: filtered)
-        case .makePrivate: PadListLogic.nonPrivatePads(in: filtered)
-        }
-        guard !targets.isEmpty else { return }
-        isBulkRunning = true
-        defer { isBulkRunning = false }
-        var failures = 0
-        for pad in targets {
-            do {
-                switch action {
-                case .endStarted: try await client.endPad(id: pad.id)
-                case .makePrivate: _ = try await client.updatePad(PadUpdate(id: pad.id, isPrivate: true))
-                }
-            } catch {
-                failures += 1
-            }
-        }
-        if failures > 0 {
-            bulkError = "\(failures) of \(targets.count) pads couldn't be updated."
-        }
-        await reload()
-    }
-
     /// Delete a pad reached via swipe action. Broadcasts via `AppRouter.padDeleted`
     /// so this list — and any other open window — drops the row, matching the detail
     /// view's own delete path.

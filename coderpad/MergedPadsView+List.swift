@@ -64,19 +64,6 @@ extension MergedPadsView {
                     cache.removePad(id: id)
                 }
             }
-            // Mirror the toolbar's Bulk menu: the Pad menu's bulk commands post
-            // these, and either pads pane (this one or the single-account view)
-            // runs them through the same confirmation it already shows.
-            .task {
-                for await _ in AppRouter.bulkEndStartedRequests {
-                    bulkAction = .endStarted
-                }
-            }
-            .task {
-                for await _ in AppRouter.bulkMakePrivateRequests {
-                    bulkAction = .makePrivate
-                }
-            }
             .sheet(item: $creatingForAccount) { account in
                 NewPadSheet(client: account.makeClient()) { created in
                     insert(created, into: account)
@@ -104,27 +91,6 @@ extension MergedPadsView {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text(deleteError ?? "")
-            }
-            .confirmationDialog(
-                bulkConfirmTitle,
-                isPresented: .init(get: { bulkAction != nil },
-                                   set: { if !$0 { bulkAction = nil } }),
-                titleVisibility: .visible,
-                presenting: bulkAction
-            ) { action in
-                Button(bulkConfirmButton(action), role: .destructive) {
-                    Task { await performBulk(action) }
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: { action in
-                Text(bulkConfirmMessage(action))
-            }
-            .alert("Some pads couldn't be updated",
-                   isPresented: .init(get: { bulkError != nil },
-                                      set: { if !$0 { bulkError = nil } })) {
-                Button("OK", role: .cancel) {}
-            } message: {
-                Text(bulkError ?? "")
             }
     }
 
@@ -164,22 +130,6 @@ extension MergedPadsView {
             .help("Create a new pad in one of your accounts")
             .accessibilityLabel("New Pad")
         }
-        ToolbarItem(id: "bulk") {
-            Menu {
-                Button("End Started Pads…", systemImage: "flag.checkered") {
-                    bulkAction = .endStarted
-                }
-                .disabled(PadListLogic.startedPads(in: filtered.map(\.item)).isEmpty)
-                Button("Make Visible Pads Private…", systemImage: "lock") {
-                    bulkAction = .makePrivate
-                }
-                .disabled(PadListLogic.nonPrivatePads(in: filtered.map(\.item)).isEmpty)
-            } label: {
-                Label("Bulk Actions", systemImage: "ellipsis.circle")
-            }
-            .help("Apply an action to all pads currently shown in the list")
-            .disabled(filtered.isEmpty || isBulkRunning)
-        }
     }
 
     private var padCollection: some View {
@@ -204,10 +154,6 @@ extension MergedPadsView {
             }
             .macPullToRefresh { await reload() }
             .focusedSceneValue(\.focusedPad, selection)
-            .focusedSceneValue(\.padBulkAvailability, PadBulkAvailability(
-                canEndStarted: !isBulkRunning && !PadListLogic.startedPads(in: filtered.map(\.item)).isEmpty,
-                canMakePrivate: !isBulkRunning && !PadListLogic.nonPrivatePads(in: filtered.map(\.item)).isEmpty
-            ))
     }
 
     private var padList: some View {

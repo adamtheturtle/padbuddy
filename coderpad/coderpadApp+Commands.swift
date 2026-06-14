@@ -68,7 +68,6 @@ struct ViewCommands: Commands {
 /// unambiguous, while the muscle memory carries across both sections.
 struct PadCommands: Commands {
     @FocusedValue(\.focusedPad) private var pad
-    @FocusedValue(\.padBulkAvailability) private var bulkAvailability
     @Environment(\.openWindow) private var openWindow
 
     /// Mirrors `PadDetailView.isEnded`, so "End Interview" disables once the pad
@@ -169,22 +168,6 @@ struct PadCommands: Commands {
             }
             .keyboardShortcut(.delete, modifiers: [.command])
             .disabled(pad == nil)
-
-            Divider()
-
-            // List-wide bulk actions, mirroring the Pads toolbar's Bulk menu.
-            // They act on the whole visible list (not the selected pad), so they
-            // fire via notification to whichever pads pane is mounted and enable
-            // off the availability it publishes rather than off `focusedPad`.
-            Button("End Started Pads…") {
-                AppRouter.requestBulkEndStarted()
-            }
-            .disabled(bulkAvailability?.canEndStarted != true)
-
-            Button("Make Visible Pads Private…") {
-                AppRouter.requestBulkMakePrivate()
-            }
-            .disabled(bulkAvailability?.canMakePrivate != true)
         }
     }
 }
