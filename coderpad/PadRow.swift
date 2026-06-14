@@ -19,16 +19,7 @@ struct PadRow: View {
         // Notes, etc. as a link that reopens the pad. Only when the URL parses;
         // otherwise the row is simply not draggable. Drop-in is tracked separately.
         if let url = pad.webURL {
-            rowContent
-                .draggable(url)
-                // Double-click opens the live pad in its own window via the existing
-                // pad-browser scene, matching the macOS convention (single click
-                // selects/previews in the detail pane, double click opens). The
-                // enclosing List still drives single-click selection; a simultaneous
-                // gesture runs alongside it rather than consuming the click.
-                .simultaneousGesture(TapGesture(count: 2).onEnded {
-                    AppRouter.requestOpenPadInBrowser(url)
-                })
+            rowContent.draggable(url)
         } else {
             rowContent
         }
