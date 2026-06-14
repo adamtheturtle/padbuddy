@@ -70,6 +70,11 @@ struct PadsView: View {
     /// observer skips marking that pad freshly opened (which would clear its
     /// "new activity" dot before the user has actually looked).
     @State var isRestoringSelection = false
+    /// The id the list should scroll into view once, set when a previously-open
+    /// pad is restored on launch. `List(selection:)` doesn't scroll to a
+    /// programmatic selection, so without this the restored pad stays selected
+    /// off-screen with the list pinned to the top. Cleared after the scroll.
+    @State var pendingScrollToID: String?
     /// Per-render memo for `filtered` (see `refreshFiltered()`). A reference type so
     /// `body` can refresh it without mutating SwiftUI state mid-evaluation.
     @State var filteredCache = FilteredPadsCache()

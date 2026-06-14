@@ -170,31 +170,43 @@ extension PadsView {
     }
 
     private var padList: some View {
-        List(selection: $selectedIDs) {
-            ForEach(filtered) { pad in
-                padRow(pad)
-                    .tag(pad.id)
-                    // Full swipe is allowed because it only opens the confirmation
-                    // dialog below — it never deletes outright, so an accidental
-                    // swipe is recoverable.
-                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        Button(role: .destructive) {
-                            padPendingDelete = pad
-                        } label: {
-                            Label("Delete", systemImage: "trash")
+        // Wrap in a reader so a restored selection can be scrolled into view on
+        // launch (see `pendingScrollToID`); the reader sits outside the `.id` below
+        // so its proxy survives the filter-driven list rebuilds.
+        ScrollViewReader { proxy in
+            List(selection: $selectedIDs) {
+                ForEach(filtered) { pad in
+                    padRow(pad)
+                        .tag(pad.id)
+                        // Full swipe is allowed because it only opens the confirmation
+                        // dialog below — it never deletes outright, so an accidental
+                        // swipe is recoverable.
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                padPendingDelete = pad
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
                         }
-                    }
+                }
+            }
+            .listStyle(.inset)
+            // Re-identify the list whenever the *filter* changes so SwiftUI does a fresh
+            // render (the fast path — same as the initial load) instead of an in-place
+            // diff of a handful of rows against thousands, which is what made clearing a
+            // filter slow on large orgs. Keyed on `filterSignature` only, so background
+            // `pads` refreshes still take the cheap incremental diff and keep scroll
+            // position. `transaction` then suppresses the cross-fade between identities.
+            .id(filterSignature)
+            .transaction { $0.animation = nil }
+            // Scroll the restored pad into view once, then clear the request so the
+            // user's own scrolling afterward is never overridden.
+            .onChange(of: pendingScrollToID) { _, id in
+                guard let id else { return }
+                proxy.scrollTo(id, anchor: .center)
+                pendingScrollToID = nil
             }
         }
-        .listStyle(.inset)
-        // Re-identify the list whenever the *filter* changes so SwiftUI does a fresh
-        // render (the fast path — same as the initial load) instead of an in-place
-        // diff of a handful of rows against thousands, which is what made clearing a
-        // filter slow on large orgs. Keyed on `filterSignature` only, so background
-        // `pads` refreshes still take the cheap incremental diff and keep scroll
-        // position. `transaction` then suppresses the cross-fade between identities.
-        .id(filterSignature)
-        .transaction { $0.animation = nil }
     }
 
     @ViewBuilder

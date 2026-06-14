@@ -65,6 +65,11 @@ struct QuestionsView: View {
     /// Gates the once-per-load restore of the previously-open question, so persistence
     /// doesn't overwrite the saved id before the list has loaded.
     @State var didRestoreSelection = false
+    /// The id the list should scroll into view once, set when a previously-open
+    /// question is restored on launch. `List(selection:)` doesn't scroll to a
+    /// programmatic selection, so without this the restored question stays selected
+    /// off-screen with the list pinned to the top. Cleared after the scroll.
+    @State var pendingScrollToID: Int?
 
     var body: some View {
         sidebar
@@ -312,6 +317,8 @@ struct QuestionsView: View {
             availableIDs: Set(questions.map(\.id))
         ) else { return }
         selectedQuestionIDs = [id]
+        // Bring the restored row into view; the List won't scroll to it on its own.
+        pendingScrollToID = id
     }
 
     func reload() async {

@@ -264,6 +264,8 @@ extension PadsView {
         ) else { return }
         isRestoringSelection = true
         selectedIDs = [id]
+        // Bring the restored row into view; the List won't scroll to it on its own.
+        pendingScrollToID = id
     }
 
     // MARK: - Reload

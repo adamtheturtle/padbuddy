@@ -152,6 +152,22 @@ extension QuestionsView {
     }
 
     private var questionsList: some View {
+        // Wrap in a reader so a restored selection can be scrolled into view on
+        // launch (see `pendingScrollToID`); the reader sits outside the `.id` below
+        // so its proxy survives the filter/sort-driven list rebuilds.
+        ScrollViewReader { proxy in
+            questionsListBody
+                // Scroll the restored question into view once, then clear the request
+                // so the user's own scrolling afterward is never overridden.
+                .onChange(of: pendingScrollToID) { _, id in
+                    guard let id else { return }
+                    proxy.scrollTo(id, anchor: .center)
+                    pendingScrollToID = nil
+                }
+        }
+    }
+
+    private var questionsListBody: some View {
         List(selection: $selectedQuestionIDs) {
             ForEach(sorted) { question in
                 QuestionRow(question: question, isFavorite: favoriteIDSet.contains(question.id),
