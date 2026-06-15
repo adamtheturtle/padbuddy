@@ -77,6 +77,21 @@ struct QuestionsView: View {
     /// off-screen with the list pinned to the top. Cleared after the scroll.
     @State var pendingScrollToID: Int?
 
+    init(client: CoderPadClient, selection: Binding<Question?>, search: Binding<String>) {
+        self.client = client
+        _selection = selection
+        _search = search
+        // Seed from the shared cache at construction, so re-entering the Questions
+        // section — which rebuilds this view fresh — shows the cached rows on the
+        // first frame rather than flashing empty until the `.task` seeds it (#329).
+        // In-memory snapshot only, so init stays a pure read with no store mutation
+        // mid-update; the `.task` still refreshes (and cold-loads from disk/network).
+        if let id = AccountsStore.shared.currentAccountID,
+           let warm = QuestionsCacheStore.shared.questionsByAccount[id] {
+            _questions = State(initialValue: warm)
+        }
+    }
+
     var body: some View {
         sidebar
             .task(id: QuestionsTaskKey(apiKey: client.apiKey, phase: scenePhase)) {

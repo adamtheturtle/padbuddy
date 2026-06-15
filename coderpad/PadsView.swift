@@ -96,6 +96,23 @@ struct PadsView: View {
     @State var padPendingDelete: Pad?
     @State var deleteError: String?
 
+    init(client: CoderPadClient, selection: Binding<Pad?>, search: Binding<String>) {
+        self.client = client
+        _selection = selection
+        _search = search
+        // Seed the list from the shared cache at construction, so re-entering the
+        // Pads section — which tears this view down and rebuilds it fresh — shows
+        // the cached rows on the very first frame instead of flashing empty until
+        // the `.task` seeds it a frame later (#329). Read the in-memory snapshot
+        // only (never the disk fallback), so init stays a pure read with no store
+        // mutation during the view update; the `.task` still refreshes and, on a
+        // cold cache, performs the disk/network load as before.
+        if let id = AccountsStore.shared.currentAccountID,
+           let warm = PadsCacheStore.shared.padsByAccount[id] {
+            _pads = State(initialValue: warm)
+        }
+    }
+
     /// Big orgs return thousands of pads per sweep, and re-fetching every page on the base
     /// cadence is mostly wasted work for data well below the fold. The auto-refresh cadence
     /// backs off as the list grows, so large orgs poll far less often while small orgs keep
