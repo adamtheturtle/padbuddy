@@ -86,20 +86,16 @@ extension PadsView {
     }
 
     var sidebar: some View {
-        Group {
-            if isLoading, pads.isEmpty {
-                ProgressView("Loading pads…").frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let error, pads.isEmpty {
-                APIErrorView(error: error) { Task { await reload() } }
-            } else {
-                VStack(spacing: 0) {
-                    savedSearchesBar
-                    filterBar
-                    Divider()
-                    padCollection
-                }
-            }
-        }
+        FilterableListView(
+            isLoading: isLoading,
+            isEmpty: pads.isEmpty,
+            error: error,
+            loadingMessage: "Loading pads…",
+            onReload: { await reload() },
+            savedSearches: { savedSearchesBar },
+            filters: { filterBar },
+            list: { padCollection }
+        )
         // Bubble the count up to the window toolbar (shown beneath the "Pads" title)
         // rather than as an inline bar above the list.
         .reportsSectionCount(countSubtitle)

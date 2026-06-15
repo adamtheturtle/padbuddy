@@ -103,20 +103,16 @@ extension QuestionsView {
     }
 
     var sidebar: some View {
-        Group {
-            if isLoading, questions.isEmpty {
-                ProgressView("Loading questions…").frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let error, questions.isEmpty {
-                APIErrorView(error: error) { Task { await reload() } }
-            } else {
-                VStack(spacing: 0) {
-                    savedSearchesBar
-                    filterBar
-                    Divider()
-                    questionsList
-                }
-            }
-        }
+        FilterableListView(
+            isLoading: isLoading,
+            isEmpty: questions.isEmpty,
+            error: error,
+            loadingMessage: "Loading questions…",
+            onReload: { await reload() },
+            savedSearches: { savedSearchesBar },
+            filters: { filterBar },
+            list: { questionsList }
+        )
         // Bubble the count up to the window toolbar (shown beneath the "Questions"
         // title) so the list length is legible at a glance.
         .reportsSectionCount(countSubtitle)
