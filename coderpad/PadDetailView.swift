@@ -50,6 +50,14 @@ struct PadDetailView: View {
         _draftOwner = State(initialValue: pad.ownerEmail)
         _draftIsPrivate = State(initialValue: pad.isPrivate ?? false)
         _draftExecution = State(initialValue: pad.executionEnabled ?? true)
+        // Seed events and environments from the session cache when this pad has been
+        // opened before, so re-selecting it shows its detail on the first frame with
+        // no spinner — `load()` then refreshes silently in the background (#323).
+        if let cached = PadDetailCacheStore.shared.get(pad.id) {
+            _events = State(initialValue: cached.events)
+            _environments = State(initialValue: cached.environments)
+            _isLoading = State(initialValue: false)
+        }
     }
 
     // Detail-column actions live in the unified window toolbar rather than in
@@ -326,7 +334,11 @@ struct PadDetailView: View {
     }
 
     func load() async {
-        isLoading = true
+        // Only show the blocking spinner when there's nothing to show yet. When the
+        // pad was seeded from the session cache (or a prior load), refresh silently
+        // over the existing content instead of flashing the spinner on top (#323).
+        let hasContent = !events.isEmpty || !environments.isEmpty
+        if !hasContent { isLoading = true }
         loadError = nil
         defer { isLoading = false }
         do {
@@ -335,14 +347,19 @@ struct PadDetailView: View {
             // Assign environments first — `loadEnvironments` can't throw — so a
             // failing events fetch doesn't leave environments (and the Save Code
             // availability that depends on them) stale. Both still run concurrently.
-            environments = await envs
+            let loadedEnvironments = await envs
+            environments = loadedEnvironments
             // The API returns events newest-first; display them oldest-first so the
             // log reads top-to-bottom in chronological order (and so the grouping
             // logic, which collapses consecutive same-kind events into an
             // earliest–latest range, stays correct).
-            self.events = try await events.sorted {
+            let loadedEvents = try await events.sorted {
                 ($0.createdAt ?? .distantPast) < ($1.createdAt ?? .distantPast)
             }
+            self.events = loadedEvents
+            // Warm the session cache so a later return to this pad is instant.
+            PadDetailCacheStore.shared.set(pad.id, events: loadedEvents,
+                                           environments: loadedEnvironments)
         } catch {
             loadError = error
         }

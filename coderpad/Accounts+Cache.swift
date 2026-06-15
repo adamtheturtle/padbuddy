@@ -217,6 +217,36 @@ final class OrganizationCacheStore {
     }
 }
 
+/// Holds the last-loaded events and environments per pad, so re-selecting a pad
+/// the user already opened this session shows its detail instantly while a
+/// background refresh runs, instead of a blocking spinner on every switch (#323).
+/// Memory-only: this data is session-scoped and refreshed on every open, so —
+/// like `OrganizationCacheStore` — there's no disk backing.
+@Observable
+final class PadDetailCacheStore {
+    static let shared = PadDetailCacheStore()
+
+    struct Entry {
+        var events: [PadEvent]
+        var environments: [PadEnvironment]
+    }
+
+    private(set) var byPad: [String: Entry] = [:]
+    private init() {}
+
+    func get(_ padID: String) -> Entry? {
+        byPad[padID]
+    }
+
+    func set(_ padID: String, events: [PadEvent], environments: [PadEnvironment]) {
+        byPad[padID] = Entry(events: events, environments: environments)
+    }
+
+    func remove(_ padID: String) {
+        byPad[padID] = nil
+    }
+}
+
 /// Holds the last-loaded quota per account, for the same reason as
 /// `OrganizationCacheStore`. Shared by both the Quota and Organization sections,
 /// so visiting either one warms the other.
