@@ -27,7 +27,7 @@ final class ServicesProvider: NSObject {
         }
         guard let deepLink = URL(string: "coderpad://pad/\(id)") else { return }
         NSApp.activate(ignoringOtherApps: true)
-        NSWorkspace.shared.open(deepLink)
+        URLOpener.open(deepLink)
     }
 
     /// Extracts a pad id from the service pasteboard, preferring a real URL item

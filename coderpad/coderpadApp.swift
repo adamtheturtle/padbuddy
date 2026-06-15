@@ -275,7 +275,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Route through LaunchServices to our own scheme: this both delivers the deep
         // link and brings up a main window when none is open, the same path widget
         // taps use.
-        NSWorkspace.shared.open(url)
+        URLOpener.open(url)
     }
 }
 

@@ -153,7 +153,7 @@ extension PadUpdateNotifier: UNUserNotificationCenterDelegate {
         await MainActor.run {
             NSApp.activate(ignoringOtherApps: true)
             if let urlString, let url = URL(string: urlString) {
-                NSWorkspace.shared.open(url)
+                URLOpener.open(url)
             }
         }
     }
