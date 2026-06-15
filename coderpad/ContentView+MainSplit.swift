@@ -17,6 +17,16 @@ struct MainSplit: View {
     @State private var padSelection: Pad?
     @State private var questionSelection: Question?
 
+    // Caches observed so a selection saved last session can be restored once the list
+    // (warmed from disk on first read) has the matching row. See #273.
+    @State private var padsCache = PadsCacheStore.shared
+    @State private var questionsCache = QuestionsCacheStore.shared
+
+    /// Sections whose saved selection we've already restored this session, so a restore
+    /// runs at most once per section and never re-asserts a row the user has since
+    /// cleared. Reset when the account or combined-view mode changes.
+    @State private var restoredSections: Set<AppSection> = []
+
     /// The list search text, lifted out of `PadsView`/`QuestionsView` so the
     /// `.searchable` field can attach to the `NavigationSplitView` itself. That
     /// places it at the trailing edge of the *window* toolbar (over the detail
@@ -170,6 +180,77 @@ struct MainSplit: View {
         }
     }
 
+    // MARK: Selection restore (#273)
+
+    /// UserDefaults key for the selected pad/question id, scoped to the current account.
+    /// Only the single-account view persists a selection: the combined view's selection
+    /// spans accounts and its row identity isn't a stable per-account id, so restoring it
+    /// reliably is left for follow-up.
+    private func selectionKey(_ kind: String) -> String? {
+        guard !store.isMergedView, let id = store.currentAccountID else { return nil }
+        return "selection.\(id.uuidString).\(kind)"
+    }
+
+    /// Changes whenever the active section, or the count of its (lazily disk-loaded)
+    /// cache, changes — so the restore re-runs both when the section is restored at
+    /// launch and when the list's rows first arrive.
+    private var restoreProbe: String {
+        guard !store.isMergedView, let account = store.currentAccountID else { return "none" }
+        let count = section == .questions
+            ? questionsCache.get(account).count
+            : padsCache.get(account).count
+        return "\(account.uuidString):\(section.rawValue):\(count)"
+    }
+
+    /// Re-selects the pad/question the user left selected last session, once its row is
+    /// available. Runs at most once per section per session and only while nothing is
+    /// already selected, so it resumes where the user left off without ever fighting a
+    /// fresh selection. Waits (without consuming its one shot) until the list has rows.
+    private func restoreSelectionIfNeeded() {
+        guard !store.isMergedView, let account = store.currentAccountID,
+              !restoredSections.contains(section) else { return }
+        switch section {
+        case .pads:
+            guard let key = selectionKey("pad"),
+                  let savedID = UserDefaults.standard.string(forKey: key) else {
+                restoredSections.insert(section)
+                return
+            }
+            let pads = padsCache.get(account)
+            guard !pads.isEmpty else { return }
+            if padSelection == nil, let match = pads.first(where: { $0.id == savedID }) {
+                padSelection = match
+            }
+            restoredSections.insert(section)
+        case .questions:
+            guard let key = selectionKey("question"),
+                  let savedID = UserDefaults.standard.object(forKey: key) as? Int else {
+                restoredSections.insert(section)
+                return
+            }
+            let questions = questionsCache.get(account)
+            guard !questions.isEmpty else { return }
+            if questionSelection == nil, let match = questions.first(where: { $0.id == savedID }) {
+                questionSelection = match
+            }
+            restoredSections.insert(section)
+        case .organization, .quota:
+            break
+        }
+    }
+
+    /// Persists a non-nil selection so the next launch can resume it. Clears are not
+    /// persisted: an account switch nils the selection programmatically, and treating
+    /// that as "forget" would wipe the very value we want to restore.
+    private func persistSelection(padID: String?, questionID: Int?) {
+        if let padID, let key = selectionKey("pad") {
+            UserDefaults.standard.set(padID, forKey: key)
+        }
+        if let questionID, let key = selectionKey("question") {
+            UserDefaults.standard.set(questionID, forKey: key)
+        }
+    }
+
     /// Pads and Questions drive a detail pane; Organization and Quota are
     /// single-pane sections, so they drop the third column entirely.
     private var sectionHasDetail: Bool {
@@ -287,13 +368,20 @@ struct MainSplit: View {
         .onChange(of: store.currentAccountID) { _, _ in
             padSelection = nil
             questionSelection = nil
+            restoredSections.removeAll()
         }
         // Switching into or out of the combined view changes what the panes show, so
         // drop any stale selection from the previous mode.
         .onChange(of: store.isMergedView) { _, _ in
             padSelection = nil
             questionSelection = nil
+            restoredSections.removeAll()
         }
+        // Resume the row the user left selected last session, once its list has loaded
+        // (#273). Re-runs when the section is restored at launch and when rows arrive.
+        .onChange(of: restoreProbe, initial: true) { _, _ in restoreSelectionIfNeeded() }
+        .onChange(of: padSelection) { _, sel in persistSelection(padID: sel?.id, questionID: nil) }
+        .onChange(of: questionSelection) { _, sel in persistSelection(padID: nil, questionID: sel?.id) }
     }
 
     /// Fetches whichever lists aren't currently displayed and stores them in the
