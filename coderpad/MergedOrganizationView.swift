@@ -24,7 +24,6 @@ struct MergedOrganizationView: View {
     @State private var quotaCache = QuotaCacheStore.shared
     @State private var orgByAccount: [UUID: Organization] = [:]
     @State private var statsByAccount: [UUID: OrganizationStats] = [:]
-    @State private var quotaByAccount: [UUID: Quota] = [:]
     @State private var accountErrors: [UUID: String] = [:]
     @State private var isLoading = false
     @AppStorage(StatsPeriod.storageKey) private var period: StatsPeriod = .days7
@@ -187,22 +186,10 @@ struct MergedOrganizationView: View {
             if let stats = statsByAccount[account.id] {
                 LabeledRow(label: "Pads", value: "\(stats.padsCreated)")
             }
-            if let quota = quotaByAccount[account.id] {
-                LabeledRow(label: "Quota", value: quotaSummary(quota))
-            }
             if let sso = org.singleSignOnSupported {
                 LabeledRow(label: "Single sign-on", value: sso ? "Enabled" : "Disabled")
             }
         }
-    }
-
-    private func quotaSummary(_ quota: Quota) -> String {
-        if quota.unlimited == true { return "Unlimited" }
-        if let used = quota.padsUsed, let limit = quota.billingCyclePadLimit {
-            return "\(used) / \(limit) pads used"
-        }
-        if let used = quota.padsUsed { return "\(used) pads used" }
-        return "—"
     }
 
     // MARK: - Loading
@@ -218,7 +205,6 @@ struct MergedOrganizationView: View {
     private func seedFromCache() {
         for account in accounts.mergeableAccounts {
             if orgByAccount[account.id] == nil { orgByAccount[account.id] = orgCache.get(account.id) }
-            if quotaByAccount[account.id] == nil { quotaByAccount[account.id] = quotaCache.get(account.id) }
         }
     }
 
@@ -254,10 +240,7 @@ struct MergedOrganizationView: View {
                     accountErrors[id] = errorText
                 }
                 if let stats { statsByAccount[id] = stats }
-                if let quota {
-                    quotaByAccount[id] = quota
-                    quotaCache.set(id, quota: quota)
-                }
+                if let quota { quotaCache.set(id, quota: quota) }
             }
         }
     }
