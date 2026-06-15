@@ -105,12 +105,9 @@ extension QuestionDetailView {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 // The title is edited in place: it reads as the heading until you
-                // click in, and commits on Return or when focus leaves the field.
-                TextField("Untitled Question", text: $titleDraft)
-                    .font(.title.bold())
-                    .textFieldStyle(.plain)
-                    .focused($titleFocused)
-                    .onSubmit { Task { await commitTitle() } }
+                // hover or click in, and commits on Return or when focus leaves.
+                InlineEditableTitle(text: $titleDraft, placeholder: "Untitled Question",
+                                    focus: $titleFocused) { Task { await commitTitle() } }
                 if let author = question.authorName {
                     Text("by \(author)")
                         .font(.caption)

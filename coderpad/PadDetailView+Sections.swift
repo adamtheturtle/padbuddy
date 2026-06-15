@@ -88,12 +88,9 @@ extension PadDetailView {
             AvatarCircle(label: directory.display(pad.ownerEmail), diameter: 48)
             VStack(alignment: .leading, spacing: 4) {
                 // The title is edited in place: it reads as the heading until you
-                // click in, and commits on Return or when focus leaves the field.
-                TextField("Untitled Pad", text: $titleDraft)
-                    .font(.title.bold())
-                    .textFieldStyle(.plain)
-                    .focused($titleFocused)
-                    .onSubmit { Task { await commitTitle() } }
+                // hover or click in, and commits on Return or when focus leaves.
+                InlineEditableTitle(text: $titleDraft, placeholder: "Untitled Pad",
+                                    focus: $titleFocused) { Task { await commitTitle() } }
                 // The owner's name links to their pads (the app's person
                 // navigation); the email keeps its mailto below. When the name
                 // isn't known the link falls back to showing the email itself.
