@@ -23,10 +23,16 @@ extension MergedQuestionsView {
                 })
             }
             .onAppear {
+                // Restore the filters the list was left with last session before
+                // bridging the selection, so the list opens in the same view.
+                restoreFilters()
                 selectedRowIDs = selection
                     .flatMap { sel in scoped.first { $0.item.id == sel.id }?.id }
                     .map { [$0] } ?? []
             }
+            // Re-persist whenever any filter changes; `filterSignature` shifts for
+            // every filter control, so one observer covers them all.
+            .onChange(of: filterSignature) { _, _ in persistFilters() }
             // The List edits `selectedRowIDs`; derive the primary row from it so the
             // detail pane and routing keep working off the single `selectedRowID`.
             // One-way (set → primary), so there's no two-way binding loop.
@@ -165,6 +171,7 @@ extension MergedQuestionsView {
             } label: {
                 Label("New Question", systemImage: "plus")
             }
+            .disabled(isReadOnly)
             .help("Create a new question in one of your accounts")
             .accessibilityLabel("New Question")
         }
@@ -298,6 +305,7 @@ extension MergedQuestionsView {
             } label: {
                 Label("Delete \(rows.count) Questions…", systemImage: "trash")
             }
+            .disabled(isReadOnly)
         } else {
             Button {
                 select(row)
@@ -305,6 +313,7 @@ extension MergedQuestionsView {
             } label: {
                 Label("New Pad from Question", systemImage: "plus.rectangle.on.rectangle")
             }
+            .disabled(isReadOnly)
             Button {
                 toggleFavorite(row)
             } label: {
@@ -317,6 +326,7 @@ extension MergedQuestionsView {
             } label: {
                 Label("Edit Question…", systemImage: "pencil")
             }
+            .disabled(isReadOnly)
             ShareLink(item: row.item.webURL(baseURL: row.account.resolvedBaseURL)) {
                 Label("Share…", systemImage: "square.and.arrow.up")
             }
@@ -337,6 +347,7 @@ extension MergedQuestionsView {
             } label: {
                 Label("Delete Question…", systemImage: "trash")
             }
+            .disabled(isReadOnly)
         }
     }
 }

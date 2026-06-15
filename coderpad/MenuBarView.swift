@@ -28,6 +28,9 @@ struct MenuBarLabel: View {
 struct MenuBarView: View {
     @State private var store = AccountsStore.shared
     @State private var monitor = PadActivityMonitor.shared
+    /// When offline the app is read-only, so the menu's create actions disable and a
+    /// small note explains why (#321).
+    @State private var network = NetworkMonitor.shared
     @State private var favorites = FavoriteQuestionsStore.shared
     @State private var pads: [Pad] = []
     @State private var questions: [Question] = []
@@ -47,6 +50,10 @@ struct MenuBarView: View {
 
     var body: some View {
         if let account = store.currentAccount {
+            if network.isOffline {
+                Text("Offline — read-only")
+                    .font(.caption).foregroundStyle(.orange)
+            }
             if monitor.unseenChangedCount > 0 {
                 Text("\(monitor.unseenChangedCount) updated")
                     .font(.caption).foregroundStyle(.orange)
@@ -57,7 +64,7 @@ struct MenuBarView: View {
                 Task { await createPad(PadCreate(), account: account) }
             }
             .keyboardShortcut("n")
-            .disabled(account.isMock == false && account.apiKey.isEmpty)
+            .disabled((account.isMock == false && account.apiKey.isEmpty) || network.isOffline)
             // Load the menu's data here (a stable, always-present action) keyed on the
             // active account, rather than hanging it off an unrelated leaf button.
             .task(id: store.currentAccountID) { await load(account: account) }
@@ -80,7 +87,7 @@ struct MenuBarView: View {
                         }
                     }
                 }
-                .disabled(account.isMock == false && account.apiKey.isEmpty)
+                .disabled((account.isMock == false && account.apiKey.isEmpty) || network.isOffline)
             }
 
             Divider()

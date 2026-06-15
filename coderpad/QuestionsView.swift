@@ -10,6 +10,8 @@ struct QuestionsView: View {
     let client: CoderPadClient
     @Environment(\.orgDirectory) var directory
     @Environment(\.scenePhase) private var scenePhase
+    /// While offline the app is read-only, so create/edit/delete controls disable (#321).
+    @Environment(\.isReadOnly) var isReadOnly
     @State var accounts = AccountsStore.shared
     @State var nav = AppNavigation.shared
     @State private var cache = QuestionsCacheStore.shared

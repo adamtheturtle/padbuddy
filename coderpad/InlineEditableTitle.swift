@@ -19,10 +19,13 @@ struct InlineEditableTitle: View {
     var onCommit: () -> Void
 
     @State private var hovered = false
+    /// While offline the app is read-only, so the title isn't editable (#321).
+    @Environment(\.isReadOnly) private var isReadOnly
 
     /// The pencil is a hint, not a control, so it appears only while the row is
-    /// hovered or the field is focused — keeping the header clean otherwise.
-    private var showsPencil: Bool { hovered || focus.wrappedValue }
+    /// hovered or the field is focused — keeping the header clean otherwise. Hidden
+    /// while read-only, where the title can't be edited at all.
+    private var showsPencil: Bool { !isReadOnly && (hovered || focus.wrappedValue) }
 
     var body: some View {
         HStack(spacing: 6) {
@@ -33,6 +36,7 @@ struct InlineEditableTitle: View {
                 .textFieldStyle(.plain)
                 .focused(focus)
                 .onSubmit(onCommit)
+                .disabled(isReadOnly)
                 .fixedSize(horizontal: true, vertical: false)
                 .accessibilityHint("Edit title")
             Image(systemName: "pencil")

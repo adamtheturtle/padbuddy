@@ -44,6 +44,9 @@ extension QuestionDetailView {
                 }
             }
         }
+        // Offline → read-only: disable the inline metadata editors so a field change
+        // can't fire a doomed PUT against an unreachable server (#321).
+        .disabled(isReadOnly)
     }
 
     /// A labeled row pairing a property name with its inline control, matching the

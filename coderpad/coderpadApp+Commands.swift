@@ -71,6 +71,9 @@ struct ViewCommands: Commands {
 /// unambiguous, while the muscle memory carries across both sections.
 struct PadCommands: Commands {
     @FocusedValue(\.focusedPad) private var pad
+    /// Mirrors the window's read-only state (offline) so the mutating items disable
+    /// to match the in-window controls (#321). `nil`/`false` means editable.
+    @FocusedValue(\.isReadOnly) private var isReadOnly
     @Environment(\.openWindow) private var openWindow
 
     /// Mirrors `PadDetailView.isEnded`, so "End Interview" disables once the pad
@@ -111,7 +114,7 @@ struct PadCommands: Commands {
                 AppNavigation.shared.editPadID = pad.id
             }
             .keyboardShortcut("e", modifiers: [.command])
-            .disabled(pad == nil)
+            .disabled(pad == nil || isReadOnly == true)
 
             Divider()
 
@@ -167,14 +170,14 @@ struct PadCommands: Commands {
                 guard let pad else { return }
                 AppNavigation.shared.endPadID = pad.id
             }
-            .disabled(pad == nil || isEnded)
+            .disabled(pad == nil || isEnded || isReadOnly == true)
 
             Button("Delete Pad…") {
                 guard let pad else { return }
                 AppNavigation.shared.deletePadID = pad.id
             }
             .keyboardShortcut(.delete, modifiers: [.command])
-            .disabled(pad == nil)
+            .disabled(pad == nil || isReadOnly == true)
         }
     }
 }
@@ -193,6 +196,9 @@ struct QuestionCommands: Commands {
     @FocusedValue(\.focusedQuestion) private var question
     @FocusedValue(\.focusedQuestionIsFavorite) private var isFavorite
     @FocusedValue(\.focusedQuestionURL) private var questionURL
+    /// Mirrors the window's read-only state (offline) so the mutating items disable
+    /// to match the in-window controls (#321). `nil`/`false` means editable.
+    @FocusedValue(\.isReadOnly) private var isReadOnly
     // Shares the Questions list's persisted sort key, so the menu's "Sort By"
     // submenu and the list toolbar's Sort picker stay in lockstep.
     @AppStorage(QuestionSort.storageKey) private var sort: QuestionSort = .lastUsedDesc
@@ -204,7 +210,7 @@ struct QuestionCommands: Commands {
                 AppNavigation.shared.createPadForQuestionID = question.id
             }
             .keyboardShortcut(.return, modifiers: [.command])
-            .disabled(question == nil)
+            .disabled(question == nil || isReadOnly == true)
 
             Divider()
 
@@ -226,7 +232,7 @@ struct QuestionCommands: Commands {
                 AppNavigation.shared.editQuestionID = question.id
             }
             .keyboardShortcut("e", modifiers: [.command])
-            .disabled(question == nil)
+            .disabled(question == nil || isReadOnly == true)
 
             Divider()
 
@@ -267,7 +273,7 @@ struct QuestionCommands: Commands {
                 AppNavigation.shared.deleteQuestionID = question.id
             }
             .keyboardShortcut(.delete, modifiers: [.command])
-            .disabled(question == nil)
+            .disabled(question == nil || isReadOnly == true)
         }
     }
 }

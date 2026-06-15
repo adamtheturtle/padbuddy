@@ -46,6 +46,9 @@ extension PadDetailView {
                 }
             }
         }
+        // Offline → read-only: disable the inline property editors so a field change
+        // can't fire a doomed PUT against an unreachable server (#321).
+        .disabled(isReadOnly)
         .task(id: pad.id) { await loadOrgUsers() }
     }
 

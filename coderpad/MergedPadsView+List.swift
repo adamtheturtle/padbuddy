@@ -25,7 +25,15 @@ extension MergedPadsView {
                     await reload()
                 })
             }
-            .onAppear { selectedIDs = selection.map { [$0.id] } ?? [] }
+            .onAppear {
+                // Restore the filters the list was left with last session before
+                // bridging the selection, so the list opens in the same view.
+                restoreFilters()
+                selectedIDs = selection.map { [$0.id] } ?? []
+            }
+            // Re-persist whenever any filter changes; `filterSignature` shifts for
+            // every filter control, so one observer covers them all.
+            .onChange(of: filterSignature) { _, _ in persistFilters() }
             // The List edits `selectedIDs`; derive the primary row from it so the
             // detail pane, command target, and per-row bridging keep working off the
             // single `selectedID`. One-way (set → primary), so there's no two-way loop.
@@ -176,6 +184,7 @@ extension MergedPadsView {
             } label: {
                 Label("New Pad", systemImage: "plus")
             }
+            .disabled(isReadOnly)
             .help("Create a new pad in one of your accounts")
             .accessibilityLabel("New Pad")
         }
@@ -246,6 +255,7 @@ extension MergedPadsView {
                         } label: {
                             Label("Delete", systemImage: "trash")
                         }
+                        .disabled(isReadOnly)
                     }
             }
         }
@@ -302,6 +312,7 @@ extension MergedPadsView {
             } label: {
                 Label("Delete…", systemImage: "trash")
             }
+            .disabled(isReadOnly)
         }
     }
 
@@ -321,5 +332,6 @@ extension MergedPadsView {
         } label: {
             Label("Delete \(pads.count) Pads…", systemImage: "trash")
         }
+        .disabled(isReadOnly)
     }
 }

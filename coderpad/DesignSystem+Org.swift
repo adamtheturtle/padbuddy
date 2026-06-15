@@ -189,6 +189,12 @@ private enum DirectoryCache {
 
 extension EnvironmentValues {
     @Entry var orgDirectory = OrgDirectory()
+
+    /// True while the app is read-only (currently driven by `NetworkMonitor` going
+    /// offline). Editing controls read this to disable themselves so a browse-only
+    /// state never lets a mutation fire against an unreachable server (#321). Injected
+    /// once at the window root in `ContentView`; defaults to `false` (editable).
+    @Entry var isReadOnly = false
 }
 
 // MARK: - Focused scene value for the selected pad
@@ -261,6 +267,14 @@ struct FindAction: Equatable {
 
 extension FocusedValues {
     @Entry var findAction: FindAction?
+}
+
+extension FocusedValues {
+    /// Whether the frontmost window's content is read-only (the app is offline),
+    /// published by `ContentView` so the Pad/Question menu commands can disable their
+    /// mutating items to match the in-window controls. `nil` when no window publishes
+    /// it (treated as editable). The view-tree counterpart is `EnvironmentValues.isReadOnly`.
+    @Entry var isReadOnly: Bool?
 }
 
 /// Action published by whichever detail pane can be printed, so the File menu's

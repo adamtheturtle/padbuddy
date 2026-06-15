@@ -20,6 +20,8 @@ import SwiftUI
 struct MergedPadsView: View {
     @Environment(\.orgDirectory) var directory
     @Environment(\.scenePhase) var scenePhase
+    /// While offline the app is read-only, so create/delete controls disable (#321).
+    @Environment(\.isReadOnly) var isReadOnly
     @Environment(\.openWindow) var openWindow
     @State var accounts = AccountsStore.shared
     @State var router = MergedRouting.shared
@@ -50,6 +52,9 @@ struct MergedPadsView: View {
     /// won't scroll to a programmatic selection on its own. Consumed and cleared by
     /// the `ScrollViewReader` in the list.
     @State var pendingScrollToID: String?
+    /// Whether the saved filters have been restored this session. Gates persistence
+    /// so the empty startup state never clobbers a saved snapshot, mirroring `PadsView`.
+    @State var didRestoreFilters = false
     /// The pads queued for a multi-row delete, awaiting the confirmation dialog.
     /// Separate from `padPendingDelete` (the single swipe/context delete) so the two
     /// confirmations don't interfere.

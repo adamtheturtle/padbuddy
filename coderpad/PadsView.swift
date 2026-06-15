@@ -12,6 +12,8 @@ struct PadsView: View {
     @Environment(\.orgDirectory) var directory
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.openWindow) var openWindow
+    /// While offline the app is read-only, so create/delete controls disable (#321).
+    @Environment(\.isReadOnly) var isReadOnly
     @State var accounts = AccountsStore.shared
     @State var nav = AppNavigation.shared
     @State var cache = PadsCacheStore.shared

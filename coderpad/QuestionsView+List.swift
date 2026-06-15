@@ -133,7 +133,7 @@ extension QuestionsView {
                 }
                 .help("Create a new question (⇧⌘N)")
                 .accessibilityLabel("New Question")
-                .disabled(client.apiKey.isEmpty)
+                .disabled(client.apiKey.isEmpty || isReadOnly)
             }
             ToolbarItem(id: "sort", placement: .automatic) {
                 Menu {
@@ -185,6 +185,7 @@ extension QuestionsView {
                             Label("New Pad", systemImage: "doc.badge.plus")
                         }
                         .tint(.accentColor)
+                        .disabled(isReadOnly)
                     }
             }
         }
@@ -258,6 +259,7 @@ extension QuestionsView {
             } label: {
                 Label("Delete \(questions.count) Questions…", systemImage: "trash")
             }
+            .disabled(isReadOnly)
         } else {
             Button {
                 // Mirror the detail view's "New Pad" button: select the question so
@@ -268,6 +270,7 @@ extension QuestionsView {
             } label: {
                 Label("New Pad from Question", systemImage: "plus.rectangle.on.rectangle")
             }
+            .disabled(isReadOnly)
             favoriteToggleButton(question)
             Button {
                 selectedQuestionIDs = [question.id]
@@ -275,6 +278,7 @@ extension QuestionsView {
             } label: {
                 Label("Edit Question…", systemImage: "pencil")
             }
+            .disabled(isReadOnly)
             ShareLink(item: question.webURL(baseURL: client.baseURL)) {
                 Label("Share…", systemImage: "square.and.arrow.up")
             }
@@ -309,6 +313,7 @@ extension QuestionsView {
             } label: {
                 Label("Delete Question…", systemImage: "trash")
             }
+            .disabled(isReadOnly)
         }
     }
 

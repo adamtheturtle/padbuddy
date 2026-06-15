@@ -10,6 +10,7 @@ import SwiftUI
 
 struct MainSplit: View {
     @State private var store = AccountsStore.shared
+    @State private var network = NetworkMonitor.shared
     @Binding var section: AppSection
     let directory: OrgDirectory
     let monitor: AccountHealthMonitor
@@ -92,6 +93,16 @@ struct MainSplit: View {
     /// Minimum width of the detail column. A single source shared by the column
     /// definition and the auto-collapse/window-floor math, so they can't drift.
     private static let detailMinWidth: CGFloat = 360
+
+    /// Relaxed column minimum used for the content and detail columns while the user
+    /// is deliberately keeping the sidebar open in a window too narrow to hold every
+    /// column at its normal floor (#307). With the normal floors in force the sidebar
+    /// can't slide fully open — content (380) + detail (360) already claim more than a
+    /// split-screen tile leaves once the sidebar wants its ~220 — so AppKit reveals the
+    /// sidebar only partway ("doesn't come in fully"). Dropping the other columns'
+    /// floors here lets the sidebar open completely; the panes get cramped, which is
+    /// the tradeoff the user opted into by reopening the sidebar in a narrow window.
+    private static let narrowOverrideColumnMin: CGFloat = 200
 
     /// Ceiling for ``contentMinWidth``. The filter bar reports its full natural
     /// width, which can exceed the budget the window's own minimum width leaves
@@ -251,6 +262,20 @@ struct MainSplit: View {
         }
     }
 
+    /// The content column's effective minimum width. Relaxes to
+    /// ``narrowOverrideColumnMin`` while the user is keeping the sidebar open in a
+    /// too-narrow window (#307), so the sidebar has room to slide fully open instead
+    /// of being pinned shut by this column's normal floor.
+    private var effectiveContentMinWidth: CGFloat {
+        keepSidebarWhileNarrow ? min(Self.narrowOverrideColumnMin, contentMinWidth) : contentMinWidth
+    }
+
+    /// The detail column's effective minimum width. Relaxes alongside the content
+    /// column while the sidebar is kept open in a too-narrow window (#307).
+    private var effectiveDetailMinWidth: CGFloat {
+        keepSidebarWhileNarrow ? min(Self.narrowOverrideColumnMin, Self.detailMinWidth) : Self.detailMinWidth
+    }
+
     /// Pads and Questions drive a detail pane; Organization and Quota are
     /// single-pane sections, so they drop the third column entirely.
     private var sectionHasDetail: Bool {
@@ -294,9 +319,14 @@ struct MainSplit: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // In the combined view, per-account fetch failures surface inline in the
-            // merged list, so the single-account unauthorized banner is suppressed.
-            if !store.isMergedView, let id = store.currentAccountID, monitor.isUnauthorized(id) {
+            // Offline takes precedence: when there's no path to CoderPad nothing can
+            // be edited regardless of the key, so show the offline banner and skip the
+            // (now moot) unauthorized one (#321).
+            if network.isOffline {
+                OfflineBanner()
+            } else if !store.isMergedView, let id = store.currentAccountID, monitor.isUnauthorized(id) {
+                // In the combined view, per-account fetch failures surface inline in the
+                // merged list, so the single-account unauthorized banner is suppressed.
                 UnauthorizedBanner(monitor: monitor)
             }
             Group {
@@ -462,7 +492,7 @@ struct MainSplit: View {
             // subtitle beneath the section title, bubbled up via `SectionCountKey`.
             .onPreferenceChange(SectionCountKey.self) { sectionCount = $0 }
             .navigationSplitViewColumnWidth(
-                min: contentMinWidth,
+                min: effectiveContentMinWidth,
                 ideal: max(480, contentMinWidth),
                 max: max(760, contentMinWidth)
             )
@@ -472,7 +502,7 @@ struct MainSplit: View {
                 padSelection: $padSelection,
                 questionSelection: $questionSelection
             )
-            .navigationSplitViewColumnWidth(min: Self.detailMinWidth, ideal: 520)
+            .navigationSplitViewColumnWidth(min: effectiveDetailMinWidth, ideal: 520)
         }
         // Attach search to the whole split rather than a single column. The system
         // then hosts it as one search item pinned at the window's top-right (the

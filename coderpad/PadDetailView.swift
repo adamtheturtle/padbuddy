@@ -34,6 +34,8 @@ struct PadDetailView: View {
     @Environment(\.openWindow) private var openWindow
     @Environment(\.orgDirectory) var directory
     @Environment(\.colorScheme) var colorScheme
+    /// While offline the app is read-only, so the destructive/edit actions disable (#321).
+    @Environment(\.isReadOnly) var isReadOnly
 
     // Seed the editable drafts from the pad up front so the title and properties
     // render with their real values on the very first frame. The view is recreated
@@ -116,7 +118,7 @@ struct PadDetailView: View {
             } label: {
                 Label("Delete Pad", systemImage: "trash")
             }
-            .disabled(isMutating)
+            .disabled(isMutating || isReadOnly)
             .help("Delete this pad")
         }
         // Opt-in only: hidden by default in the customizable toolbar so it
@@ -128,7 +130,7 @@ struct PadDetailView: View {
             } label: {
                 Label("End Interview", systemImage: "stop.circle")
             }
-            .disabled(isMutating || pad.status != .active)
+            .disabled(isMutating || pad.status != .active || isReadOnly)
             .help("End the live interview session")
         }
         .defaultCustomization(.hidden)

@@ -116,7 +116,7 @@ extension PadsView {
                 }
                 .help("Create a new pad (⌘N)")
                 .accessibilityLabel("New Pad")
-                .disabled(client.apiKey.isEmpty)
+                .disabled(client.apiKey.isEmpty || isReadOnly)
             }
         }
     }
@@ -183,6 +183,7 @@ extension PadsView {
                             } label: {
                                 Label("Delete", systemImage: "trash")
                             }
+                            .disabled(isReadOnly)
                         }
                 }
             }
@@ -234,6 +235,7 @@ extension PadsView {
             } label: {
                 Label("Delete \(pads.count) Pads…", systemImage: "trash")
             }
+            .disabled(isReadOnly)
         } else {
             Button {
                 selectedIDs = [pad.id]
@@ -271,6 +273,7 @@ extension PadsView {
             } label: {
                 Label("Delete…", systemImage: "trash")
             }
+            .disabled(isReadOnly)
         }
     }
 

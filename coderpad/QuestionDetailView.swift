@@ -15,6 +15,8 @@ struct QuestionDetailView: View {
     @Environment(\.openWindow) var openWindow
     @Environment(\.orgDirectory) var directory
     @Environment(\.colorScheme) var colorScheme
+    /// While offline the app is read-only, so create/edit/delete actions disable (#321).
+    @Environment(\.isReadOnly) var isReadOnly
     @State private var nav = AppNavigation.shared
     @State private var accounts = AccountsStore.shared
     @State private var favorites = FavoriteQuestionsStore.shared
@@ -64,7 +66,7 @@ struct QuestionDetailView: View {
                     Label("New Pad", systemImage: "doc.badge.plus")
                 }
             }
-            .disabled(isCreatingPad)
+            .disabled(isCreatingPad || isReadOnly)
             .help("Create a new interview pad from this question")
             .accessibilityLabel("New Pad")
         }
@@ -78,12 +80,14 @@ struct QuestionDetailView: View {
             Button { showEdit = true } label: {
                 Label("Edit", systemImage: "pencil")
             }
+            .disabled(isReadOnly)
             .help("Edit the description, instructions, and solution")
         }
         ToolbarItem(id: "delete", placement: .primaryAction) {
             Button(role: .destructive) { showDeleteConfirm = true } label: {
                 Label("Delete", systemImage: "trash")
             }
+            .disabled(isReadOnly)
             .help("Delete question")
             .accessibilityLabel("Delete question")
         }

@@ -233,6 +233,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // and the menu is never clicked — the one state where nothing else fetches.
         // Writing to PadsCacheStore cascades to the widget snapshot and Dock badge.
         PadsBackgroundRefresher.shared.start()
+        // Watch network reachability so the app can drop into a read-only mode while
+        // CoderPad is unreachable, surfacing an offline banner and disabling edits (#321).
+        NetworkMonitor.shared.start()
         // Become the notification-center delegate so taps on pad-update alerts route
         // back into the app. Posting itself is opt-in (see `PadUpdateNotifier`).
         PadUpdateNotifier.shared.register()
@@ -279,6 +282,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 @main
 struct CoderpadApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
+    /// Observed so the File ▸ New commands disable while the app is offline (#321),
+    /// matching the in-window New buttons and the menu-bar extra.
+    @State private var network = NetworkMonitor.shared
 
     /// Drives the app-wide light/dark override; nil follows the system appearance.
     @AppStorage(GeneralSettings.Key.appearance) private var appearance: AppAppearance = .system
@@ -379,10 +386,12 @@ struct CoderpadApp: App {
                 AppNavigation.shared.showPads(PadsRequest(startCreating: true))
             }
             .keyboardShortcut("n", modifiers: [.command])
+            .disabled(network.isOffline)
             Button("New Question…") {
                 AppNavigation.shared.showQuestions(QuestionsRequest(startCreating: true))
             }
             .keyboardShortcut("n", modifiers: [.command, .shift])
+            .disabled(network.isOffline)
             Divider()
             Button("Open Pad by URL…") {
                 AppRouter.requestOpenPadByURL()

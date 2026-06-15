@@ -15,6 +15,7 @@ struct ContentView: View {
     @State private var addingAccount: Account?
     @State private var directory = OrgDirectory()
     @State private var monitor = AccountHealthMonitor.shared
+    @State private var network = NetworkMonitor.shared
     @State private var openPadURLDraft: String = ""
     @State private var showOpenPadURL = false
     @State private var showWhatsNew = false
@@ -43,6 +44,11 @@ struct ContentView: View {
         // look — the title itself stays visible.
         .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
         .environment(\.orgDirectory, directory)
+        // While offline the whole window goes read-only: editing controls read this
+        // to disable themselves, and the menu commands read the focused-scene mirror
+        // below so they match (#321).
+        .environment(\.isReadOnly, network.isOffline)
+        .focusedSceneValue(\.isReadOnly, network.isOffline)
         .task {
             for await _ in AppRouter.openPadByURLRequests {
                 showOpenPadURL = true

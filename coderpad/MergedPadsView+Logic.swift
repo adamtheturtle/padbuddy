@@ -194,6 +194,58 @@ extension MergedPadsView {
         router.setPadRoutes(routes)
     }
 
+    // MARK: - Filter persistence
+
+    /// The single key for the merged list's live filters. Not per-account — the
+    /// merged list spans every account — unlike `PadsView`'s per-account key.
+    static var liveFilterKey: String { "pads.merged.liveFilter" }
+
+    /// Snapshot the structured filters into a `NamedSearch`, reusing the same model
+    /// `PadsView` persists. The cross-account `accountFilter` and the `mineOnly`
+    /// preset are intentionally left out, matching how the single-account list omits
+    /// its own presets; `teamFilter` has no merged equivalent, so it stays nil.
+    func captureCurrentSearch() -> NamedSearch {
+        NamedSearch(
+            name: "", search: search,
+            stateFilter: stateFilter, languageFilter: languageFilter,
+            ownerFilter: ownerFilter, teamFilter: nil,
+            typeFilter: typeFilter,
+            updatedWindow: updatedWindow.isActive ? updatedWindow : nil,
+            createdWindow: createdWindow.isActive ? createdWindow : nil
+        )
+    }
+
+    /// Apply a saved snapshot to the live filters. Mirrors `PadsView.apply`, minus
+    /// the team filter the merged list doesn't expose.
+    func apply(_ saved: NamedSearch) {
+        search = saved.search
+        stateFilter = saved.stateFilter
+        languageFilter = saved.languageFilter
+        ownerFilter = saved.ownerFilter
+        typeFilter = saved.typeFilter
+        updatedWindow = saved.updatedWindow ?? PadDateWindow()
+        createdWindow = saved.createdWindow ?? PadDateWindow()
+    }
+
+    /// Persist the current filters so the merged list reopens with the same view.
+    /// Skipped until the initial restore has run, so the empty startup state never
+    /// clobbers a saved snapshot.
+    func persistFilters() {
+        guard didRestoreFilters else { return }
+        if let data = try? JSONEncoder().encode(captureCurrentSearch()) {
+            UserDefaults.standard.set(data, forKey: Self.liveFilterKey)
+        }
+    }
+
+    /// Restore the persisted filters once, on appear.
+    func restoreFilters() {
+        guard !didRestoreFilters else { return }
+        didRestoreFilters = true
+        guard let data = UserDefaults.standard.data(forKey: Self.liveFilterKey),
+              let snapshot = try? JSONDecoder().decode(NamedSearch.self, from: data) else { return }
+        apply(snapshot)
+    }
+
     // MARK: - Selection persistence
 
     /// The single key for the merged list's open pad. Pad ids are globally unique

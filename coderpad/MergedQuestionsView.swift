@@ -15,6 +15,8 @@ import SwiftUI
 struct MergedQuestionsView: View {
     @Environment(\.orgDirectory) var directory
     @Environment(\.scenePhase) var scenePhase
+    /// While offline the app is read-only, so create/edit/delete controls disable (#321).
+    @Environment(\.isReadOnly) var isReadOnly
     @State var accounts = AccountsStore.shared
     @State var router = MergedRouting.shared
     @State var cache = QuestionsCacheStore.shared
@@ -40,6 +42,9 @@ struct MergedQuestionsView: View {
     /// won't scroll to a programmatic selection on its own. Consumed and cleared by
     /// the `ScrollViewReader` in the list.
     @State var pendingScrollToRowID: String?
+    /// Whether the saved filters have been restored this session. Gates persistence
+    /// so the empty startup state never clobbers a saved snapshot, mirroring `QuestionsView`.
+    @State var didRestoreFilters = false
     /// Rows queued for a multi-row delete (carrying their source account, so each
     /// deletes against the right client), awaiting the confirmation dialog, plus the
     /// error from a failed delete. Single-row delete is delegated to the detail view.
