@@ -107,8 +107,11 @@ struct Sidebar: View {
                 .imageScale(.large)
                 .foregroundStyle(.secondary)
                 .frame(width: 22)
+            // Dimmed to secondary (matching the icon) so the row reads as an
+            // informational indicator rather than a tappable section — there's no
+            // quota page to open on an unlimited plan (#343, #306).
             Text("Quota")
-                .foregroundStyle(.primary)
+                .foregroundStyle(.secondary)
             Spacer(minLength: 0)
             Text("Unlimited")
                 .font(.caption.weight(.medium))
