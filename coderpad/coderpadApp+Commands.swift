@@ -91,7 +91,7 @@ struct PadCommands: Commands {
 
             Button("Open Pad in New Window") {
                 guard let pad, let url = pad.webURL else { return }
-                NSApp.activate(ignoringOtherApps: true)
+                AppActivator.bringToFront()
                 openWindow(id: "pad-browser", value: url)
             }
             .keyboardShortcut(.return, modifiers: [.command, .option])
@@ -281,7 +281,7 @@ struct WindowCommands: Commands {
     var body: some Commands {
         CommandGroup(after: .windowArrangement) {
             Button("Open Main Window") {
-                NSApp.activate(ignoringOtherApps: true)
+                AppActivator.bringToFront()
                 openWindow(id: "main")
             }
             .keyboardShortcut("0", modifiers: [.command])

@@ -320,7 +320,7 @@ struct MenuBarView: View {
     }
 
     private func openMain() {
-        NSApp.activate(ignoringOtherApps: true)
+        AppActivator.bringToFront()
         openWindow(id: "main")
     }
 

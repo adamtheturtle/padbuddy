@@ -151,7 +151,7 @@ extension PadUpdateNotifier: UNUserNotificationCenterDelegate {
     ) async {
         let urlString = response.notification.request.content.userInfo["url"] as? String
         await MainActor.run {
-            NSApp.activate(ignoringOtherApps: true)
+            AppActivator.bringToFront()
             if let urlString, let url = URL(string: urlString) {
                 URLOpener.open(url)
             }

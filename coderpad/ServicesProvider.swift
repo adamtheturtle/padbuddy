@@ -26,7 +26,7 @@ final class ServicesProvider: NSObject {
             return
         }
         guard let deepLink = URL(string: "coderpad://pad/\(id)") else { return }
-        NSApp.activate(ignoringOtherApps: true)
+        AppActivator.bringToFront()
         URLOpener.open(deepLink)
     }
 

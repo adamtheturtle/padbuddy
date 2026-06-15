@@ -15,7 +15,7 @@ let copyrightLine = "Copyright © 2026 Adam Dangoor"
 func showAboutPanel() {
     let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
     let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
-    NSApp.activate(ignoringOtherApps: true)
+    AppActivator.bringToFront()
     NSApp.orderFrontStandardAboutPanel(options: [
         NSApplication.AboutPanelOptionKey.applicationName: "CoderPad",
         NSApplication.AboutPanelOptionKey.applicationVersion: version,
@@ -268,7 +268,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func openDockURL(_ sender: NSMenuItem) {
         guard let urlString = sender.representedObject as? String,
               let url = URL(string: urlString) else { return }
-        NSApp.activate(ignoringOtherApps: true)
+        AppActivator.bringToFront()
         // Route through LaunchServices to our own scheme: this both delivers the deep
         // link and brings up a main window when none is open, the same path widget
         // taps use.
