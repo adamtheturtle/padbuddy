@@ -11,7 +11,9 @@ extension QuestionDetailView {
             VStack(alignment: .leading, spacing: 18) {
                 header
                 propertiesCard
-                metaCards
+                if hasMeta {
+                    metaCards
+                }
                 // The editable long-form fields (description, candidate
                 // instructions, solution) are always shown, even when empty, so
                 // they can be filled in place — there's no separate edit window
@@ -130,24 +132,27 @@ extension QuestionDetailView {
         }
     }
 
+    /// Whether the question carries any of the facts the Details section shows, so an
+    /// empty section (a bare header) is never rendered.
+    var hasMeta: Bool {
+        question.used != nil || question.createdAt != nil || question.updatedAt != nil
+    }
+
+    /// The question's usage count and bookkeeping dates, as a compact native grouped
+    /// section of labeled rows — matching the pad detail's "Details" section rather
+    /// than the tall, free-floating tinted tiles this used to be (#332).
     var metaCards: some View {
-        // An adaptive grid rather than a fixed HStack: three equal tiles fit on
-        // one row in a wide pane, but reflow onto extra rows as it narrows.
-        // A plain HStack instead overflows the pane — clipping the trailing tile
-        // and hyphenating its label (CRE-ATED / UP-DATED) — once the tiles can't
-        // all fit at their minimum width.
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)],
-                  alignment: .leading, spacing: 12) {
-            if let used = question.used {
-                StatTile(title: "Times used", value: "\(used)", systemImage: "chart.bar.fill", tint: .blue)
-            }
-            if let createdAt = question.createdAt {
-                StatTile(title: "Created", value: createdAt.formatted(date: .long, time: .omitted),
-                         systemImage: "calendar.badge.plus", tint: .teal)
-            }
-            if let updatedAt = question.updatedAt {
-                StatTile(title: "Updated", value: updatedAt.formatted(date: .long, time: .omitted),
-                         systemImage: "clock.arrow.circlepath", tint: .orange)
+        DetailSection(title: "Details", systemImage: "info.circle") {
+            VStack(alignment: .leading, spacing: 6) {
+                if let used = question.used {
+                    LabeledRow(label: "Times used", value: "\(used)")
+                }
+                if let createdAt = question.createdAt {
+                    LabeledRow(label: "Created", value: createdAt.formatted(date: .long, time: .omitted))
+                }
+                if let updatedAt = question.updatedAt {
+                    LabeledRow(label: "Updated", value: updatedAt.formatted(date: .long, time: .omitted))
+                }
             }
         }
     }
