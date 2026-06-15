@@ -355,6 +355,11 @@ extension String {
         case "clojure": return "Clojure"
         case "ocaml": return "OCaml"
         case "f#", "fsharp": return "F#"
+        case "julia": return "Julia"
+        case "markdown": return "Markdown"
+        case "solidity": return "Solidity"
+        case "tcl": return "Tcl"
+        case "verilog": return "Verilog"
         case "plaintext", "plain-text", "plain_text": return "Plain text"
         default:
             let lowered = lowercased()
@@ -420,9 +425,16 @@ enum CoderPadLanguages {
         "sql", "mysql", "postgresql",
         "bash", "shell",
         "elixir", "erlang", "haskell", "perl", "lua", "dart", "clojure", "ocaml", "fsharp",
-        "html", "css",
+        "julia", "solidity", "tcl", "verilog",
+        "html", "css", "markdown",
         "plaintext"
     ]
+
+    /// Where to create the project and framework environments (React, Django, Rails,
+    /// and so on) that this list omits. CoderPad's pad-creation API only mints
+    /// single-file language environments, so those can't be made from here; they're
+    /// created in the web app instead.
+    static let projectEnvironmentsURL = URL(string: "https://app.coderpad.io")!
 }
 
 /// Wall-clock scheduling for ``periodicReload``: works out when the next refresh

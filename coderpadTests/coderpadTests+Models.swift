@@ -49,7 +49,12 @@ struct LanguageHelperTests {
         ("csharp", "C#"),
         ("objective-c", "Objective-C"),
         ("postgresql", "PostgreSQL"),
-        ("fsharp", "F#")
+        ("fsharp", "F#"),
+        ("julia", "Julia"),
+        ("markdown", "Markdown"),
+        ("solidity", "Solidity"),
+        ("tcl", "Tcl"),
+        ("verilog", "Verilog")
     ])
     func `languageDisplayName maps known codes to friendly names`(code: String, expected: String) {
         #expect(code.languageDisplayName == expected)
@@ -58,6 +63,7 @@ struct LanguageHelperTests {
     @Test(arguments: [
         ("multifile_java", "Java Project"),
         ("Multifile_java", "Java Project"),
+        ("multifile_python", "Python Project"),
         ("multifile_python3", "Python 3 Project"),
         ("multifile_nodejs", "Node.js Project")
     ])

@@ -54,11 +54,17 @@ struct NewPadSheet: View {
                         .disabled(questions.isEmpty)
                 }
 
-                Picker("Language", selection: languageSelection) {
-                    ForEach(CoderPadLanguages.pickerOptions, id: \.self) { Text($0.languageDisplayName).tag($0) }
-                    if !CoderPadLanguages.pickerOptions.contains(language) {
-                        Text(language.languageDisplayName).tag(language)
+                Section {
+                    Picker("Language", selection: languageSelection) {
+                        ForEach(CoderPadLanguages.pickerOptions, id: \.self) { Text($0.languageDisplayName).tag($0) }
+                        if !CoderPadLanguages.pickerOptions.contains(language) {
+                            Text(language.languageDisplayName).tag(language)
+                        }
                     }
+                } footer: {
+                    Text("Need a project environment like React, Django, or Rails? [Create it on coderpad.io](\(CoderPadLanguages.projectEnvironmentsURL.absoluteString))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
 
                 LabeledContent("Owner") {
