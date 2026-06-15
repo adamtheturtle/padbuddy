@@ -105,6 +105,10 @@ extension PadDetailView {
                 Image(systemName: "chevron.right")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(tint)
+                    // Purely a visual affordance: the row is already a button with a
+                    // "Show pads from …" help/hint, so VoiceOver shouldn't read the
+                    // bare symbol name on top of the participant's name.
+                    .accessibilityHidden(true)
             }
         }
         .padding(.vertical, 4)

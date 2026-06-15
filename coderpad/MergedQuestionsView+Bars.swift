@@ -104,6 +104,9 @@ extension MergedQuestionsView {
             HStack(spacing: 6) {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(.orange)
+                    // Decorative: the adjacent message already states the failure, so
+                    // VoiceOver shouldn't announce the bare symbol name before it.
+                    .accessibilityHidden(true)
                 Text("Couldn't refresh \(failed.map(\.name).joined(separator: ", ")). "
                     + "Showing the last loaded questions.")
                     .foregroundStyle(.secondary)
