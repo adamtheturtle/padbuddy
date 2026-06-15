@@ -33,10 +33,28 @@ final class TableDoubleClickProxy: NSObject {
     /// The table whose `doubleAction` we own, kept to ignore double-clicks that land
     /// below the last row (`clickedRow == -1`) so empty space never opens anything.
     weak var tableView: NSTableView?
+    /// The table's original target (SwiftUI's own coordinator). A table shares one
+    /// `target` between its single-click `action` and its `doubleAction`, so taking
+    /// over `target` to receive double-clicks also redirects the single-click
+    /// `action` (`onAction:`) here. We forward any selector we don't implement back
+    /// to this original target so SwiftUI's click handling keeps working instead of
+    /// crashing on an unrecognized selector.
+    ///
+    /// `nonisolated(unsafe)` because the forwarding override below must match
+    /// `NSObject`'s nonisolated signature; both are only ever touched on the main
+    /// thread, where AppKit dispatches table target/action messages.
+    nonisolated(unsafe) weak var forwardingTarget: NSObject?
 
     @objc func fire() {
         guard let tableView, tableView.clickedRow >= 0 else { return }
         onDoubleClick()
+    }
+
+    nonisolated override func forwardingTarget(for selector: Selector!) -> Any? {
+        if let forwardingTarget, forwardingTarget.responds(to: selector) {
+            return forwardingTarget
+        }
+        return super.forwardingTarget(for: selector)
     }
 }
 
@@ -60,6 +78,11 @@ struct TableDoubleClickInstaller: NSViewRepresentable {
     private func install(from view: NSView) {
         guard let table = view.enclosingTableView else { return }
         proxy.tableView = table
+        // Preserve SwiftUI's existing target so the table's single-click `action`
+        // (`onAction:`) still reaches it after we take over `target` for `doubleAction`.
+        if let existing = table.target as? NSObject, existing !== proxy {
+            proxy.forwardingTarget = existing
+        }
         table.target = proxy
         table.doubleAction = #selector(TableDoubleClickProxy.fire)
     }
