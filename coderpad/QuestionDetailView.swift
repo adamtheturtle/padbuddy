@@ -28,6 +28,14 @@ struct QuestionDetailView: View {
     @State private var createPadError: String?
     @State var showBrowser = false
     @State var createdPadURL: URL?
+    // Inline metadata drafts (title, language, type), seeded from the question and
+    // committed one field at a time, mirroring the pad detail editor. The long-form
+    // content (description, instructions, solution) stays in EditQuestionSheet.
+    @State var titleDraft = ""
+    @State var draftLanguage = "python3"
+    @State var draftPadType = "live"
+    @State var editError: String?
+    @FocusState var titleFocused: Bool
 
     // Detail-column actions live in the unified window toolbar rather than in
     // the content header: there they float on the system Liquid Glass layer
@@ -70,7 +78,7 @@ struct QuestionDetailView: View {
             Button { showEdit = true } label: {
                 Label("Edit", systemImage: "pencil")
             }
-            .help("Edit question")
+            .help("Edit the description, instructions, and solution")
         }
         ToolbarItem(placement: .primaryAction) {
             Button(role: .destructive) { showDeleteConfirm = true } label: {
@@ -82,6 +90,10 @@ struct QuestionDetailView: View {
     }
 
     var body: some View {
+        draftSync(core)
+    }
+
+    private var core: some View {
         Group {
             if showBrowser, let url = createdPadURL {
                 padBrowser(url: url)
@@ -123,6 +135,13 @@ struct QuestionDetailView: View {
             Button("OK", role: .cancel) { createPadError = nil }
         } message: {
             if let createPadError { Text(createPadError) }
+        }
+        .alert("Couldn’t save question",
+               isPresented: Binding(get: { editError != nil },
+                                    set: { if !$0 { editError = nil } })) {
+            Button("OK", role: .cancel) { editError = nil }
+        } message: {
+            if let editError { Text(editError) }
         }
         .onAppear {
             consumePendingPadCreation()

@@ -10,6 +10,7 @@ extension QuestionDetailView {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 header
+                propertiesCard
                 metaCards
                 if let description = question.description, !description.isEmpty {
                     descriptionCard(title: "Description", body: description)
@@ -103,9 +104,13 @@ extension QuestionDetailView {
     var headerIdentity: some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(question.title.isEmpty ? "Untitled Question" : question.title)
+                // The title is edited in place: it reads as the heading until you
+                // click in, and commits on Return or when focus leaves the field.
+                TextField("Untitled Question", text: $titleDraft)
                     .font(.title.bold())
-                    .lineLimit(2)
+                    .textFieldStyle(.plain)
+                    .focused($titleFocused)
+                    .onSubmit { Task { await commitTitle() } }
                 if let author = question.authorName {
                     Text("by \(author)")
                         .font(.caption)

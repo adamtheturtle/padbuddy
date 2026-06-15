@@ -165,12 +165,9 @@ struct EditQuestionSheet: View {
     let onSaved: (Question) -> Void
     let onCancel: () -> Void
 
-    @State private var title: String
-    @State private var language: String
     @State private var description: String
     @State private var instructions: String
     @State private var solution: String
-    @State private var padType: String
     @State private var isSubmitting = false
     @State private var error: String?
 
@@ -182,33 +179,18 @@ struct EditQuestionSheet: View {
         self.original = original
         self.onSaved = onSaved
         self.onCancel = onCancel
-        _title = State(initialValue: original.title)
-        _language = State(initialValue: original.language ?? "python3")
         _description = State(initialValue: original.description ?? "")
         _instructions = State(initialValue: original.candidateInstructions
             .map(\.instructions)
             .joined(separator: "\n\n"))
         _solution = State(initialValue: original.solution ?? "")
-        let initialType = original.padType ?? (original.takeHome == true ? "take-home" : "live")
-        _padType = State(initialValue: initialType)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Edit Question").font(.title3.bold())
-            Text("#\(original.id)").font(.caption.monospaced()).foregroundStyle(.secondary)
+            Text("Edit Content").font(.title3.bold())
+            Text(original.displayTitle).font(.caption).foregroundStyle(.secondary).lineLimit(1)
             Form {
-                TextField("Title", text: $title)
-                Picker("Language", selection: $language) {
-                    ForEach(CoderPadLanguages.pickerOptions, id: \.self) { Text($0.languageDisplayName).tag($0) }
-                    if !CoderPadLanguages.pickerOptions.contains(language) {
-                        Text(language.languageDisplayName).tag(language)
-                    }
-                }
-                Picker("Type", selection: $padType) {
-                    ForEach(padTypeOptions, id: \.self) { Text(padTypeLabel($0)).tag($0) }
-                    if !padTypeOptions.contains(padType) { Text(padType).tag(padType) }
-                }
                 Section("Description") {
                     TextField("", text: $description, prompt: Text("Optional"), axis: .vertical)
                         .lineLimit(3 ... 8)
@@ -248,16 +230,14 @@ struct EditQuestionSheet: View {
         isSubmitting = true
         error = nil
         defer { isSubmitting = false }
-        // Send the edited instructions back as a single block so an edit no longer
-        // wipes them. An empty field clears them; the original's visibility is kept.
+        // Title, language, and type are edited inline in the detail view, so this
+        // sheet sends only the long-form content. Instructions go back as a single
+        // block so an edit no longer wipes them; an empty field clears them, and the
+        // original's visibility is kept.
         let body = QuestionUpdate(
             id: original.id,
-            title: title,
-            language: language,
             description: description.isEmpty ? nil : description,
             solution: solution.isEmpty ? nil : solution,
-            takeHome: padType == "take-home",
-            padType: padType,
             candidateInstructions: instructions.isEmpty
                 ? []
                 : [CandidateInstructionPayload(
