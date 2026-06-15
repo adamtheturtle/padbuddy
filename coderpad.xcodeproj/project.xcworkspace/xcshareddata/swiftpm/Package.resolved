@@ -1,5 +1,5 @@
 {
-  "originHash" : "5c1c78c4806c4178c1b4c8abd84335d689e00f6a5e6f958c734db5ddf843100c",
+  "originHash" : "83b6c13662a46049740be2f0a68135ff1c6fd13587255c1f7be15599dc20194f",
   "pins" : [
     {
       "identity" : "highlightr",
@@ -31,10 +31,10 @@
     {
       "identity" : "textual",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/gonzalezreal/textual",
+      "location" : "https://github.com/adamtheturtle/textual",
       "state" : {
-        "revision" : "5b06b811c0f5313b6b84bbef98c635a630638c38",
-        "version" : "0.3.1"
+        "revision" : "bd1425540075bd5e3d00f37abb0849eaad2c38ec",
+        "version" : "0.3.1-coderpad.2"
       }
     }
   ],
