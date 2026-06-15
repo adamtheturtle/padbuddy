@@ -18,6 +18,22 @@ struct MainSplit: View {
     @State private var padSelection: Pad?
     @State private var questionSelection: Question?
 
+    /// The selection the *detail* pane renders, lagged a touch behind the live
+    /// `padSelection`/`questionSelection`. The detail view is rebuilt from scratch
+    /// per row (`PadDetailView(...).id(pad.id)` kicks off a fresh load), so driving
+    /// it straight from the live selection rebuilds it on every keystroke while
+    /// arrowing through the list — janking even the selection highlight, which
+    /// SwiftUI paints in the same pass. The list's own highlight tracks the live
+    /// selection and stays instant; the detail catches up the moment the user
+    /// settles on a row (see `settleDetail*`). #326.
+    @State private var detailPad: Pad?
+    @State private var detailQuestion: Question?
+
+    /// How long the detail pane waits for the selection to settle before rebuilding.
+    /// Long enough to skip the intermediate rows of an arrow-key sweep, short enough
+    /// to feel immediate on a deliberate single selection.
+    private static let detailSettle = Duration.milliseconds(110)
+
     // Caches observed so a selection saved last session can be restored once the list
     // (warmed from disk on first read) has the matching row. See #273.
     @State private var padsCache = PadsCacheStore.shared
@@ -297,6 +313,31 @@ struct MainSplit: View {
         }
     }
 
+    /// Moves the live pad selection into the detail pane, debouncing only the
+    /// row-to-row moves that an arrow-key sweep produces. Appearing (nothing → a
+    /// row) and clearing (a row → nothing) apply at once so first selection and
+    /// deselection still feel instant; only a move between two rows waits out the
+    /// settle window, and the wait is abandoned if the selection changes again
+    /// first (the task is restarted with the new id).
+    private func settleDetailPad() async {
+        if detailPad == padSelection { return }
+        if detailPad != nil, padSelection != nil {
+            try? await Task.sleep(for: Self.detailSettle)
+            if Task.isCancelled { return }
+        }
+        detailPad = padSelection
+    }
+
+    /// The question counterpart to ``settleDetailPad``.
+    private func settleDetailQuestion() async {
+        if detailQuestion == questionSelection { return }
+        if detailQuestion != nil, questionSelection != nil {
+            try? await Task.sleep(for: Self.detailSettle)
+            if Task.isCancelled { return }
+        }
+        detailQuestion = questionSelection
+    }
+
     /// The content column's effective minimum width. Relaxes to
     /// ``narrowOverrideColumnMin`` while the user is keeping the sidebar open in a
     /// too-narrow window (#307), so the sidebar has room to slide fully open instead
@@ -454,6 +495,12 @@ struct MainSplit: View {
         .onChange(of: restoreProbe, initial: true) { _, _ in restoreSelectionIfNeeded() }
         .onChange(of: padSelection) { _, sel in persistSelection(padID: sel?.id, questionID: nil) }
         .onChange(of: questionSelection) { _, sel in persistSelection(padID: nil, questionID: sel?.id) }
+        // Settle the live selection into the detail pane, debouncing arrow-key
+        // sweeps so the heavy detail view is rebuilt only on the row the user lands
+        // on, not every row passed through (#326). The task restarts on each change,
+        // cancelling any pending settle.
+        .task(id: padSelection) { await settleDetailPad() }
+        .task(id: questionSelection) { await settleDetailQuestion() }
     }
 
     /// Fetches whichever lists aren't currently displayed and stores them in the
@@ -539,10 +586,12 @@ struct MainSplit: View {
                 max: max(760, contentMinWidth)
             )
         } detail: {
+            // Driven by the debounced detail selection, not the live one, so the
+            // detail pane doesn't rebuild on every row of an arrow-key sweep (#326).
             SectionDetail(
                 section: section,
-                padSelection: $padSelection,
-                questionSelection: $questionSelection
+                padSelection: $detailPad,
+                questionSelection: $detailQuestion
             )
             .navigationSplitViewColumnWidth(min: effectiveDetailMinWidth, ideal: 520)
         }
