@@ -174,6 +174,7 @@ extension PadsView {
                 ForEach(filtered) { pad in
                     padRow(pad)
                         .tag(pad.id)
+                        .installsTableDoubleClick(doubleClickProxy)
                         // Full swipe is allowed because it only opens the confirmation
                         // dialog below — it never deletes outright, so an accidental
                         // swipe is recoverable.

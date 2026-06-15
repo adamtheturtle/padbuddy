@@ -170,6 +170,7 @@ extension QuestionsView {
                             account: accounts.currentAccountID,
                             onToggleFavorite: { toggleFavorite(question) })
                     .tag(question.id)
+                    .installsTableDoubleClick(doubleClickProxy)
                     .contextMenu { questionContextMenu(question) }
                     .swipeActions(edge: .leading, allowsFullSwipe: true) {
                         favoriteSwipeButton(question)

@@ -14,6 +14,9 @@ struct PadsView: View {
     @Environment(\.openWindow) var openWindow
     /// While offline the app is read-only, so create/delete controls disable (#321).
     @Environment(\.isReadOnly) var isReadOnly
+    /// Long-lived target for the list's native double-click-to-open (see
+    /// `TableDoubleClickProxy`); opens the selected pad's web URL in a window.
+    @State var doubleClickProxy = TableDoubleClickProxy()
     @State var accounts = AccountsStore.shared
     @State var nav = AppNavigation.shared
     @State var cache = PadsCacheStore.shared
@@ -131,6 +134,9 @@ struct PadsView: View {
                 applyPendingRequest()
                 publishLiveFilter()
                 selectedIDs = selection.map { [$0.id] } ?? []
+                // Double-clicking a row opens the selected pad (the first click
+                // selects it). Reads `selection` live, so it stays correct.
+                doubleClickProxy.onDoubleClick = { if let pad = selection { openPad(pad) } }
             }
             // The List edits `selectedIDs`; derive the primary row from it so the
             // detail pane, restore, and persistence keep working off the single

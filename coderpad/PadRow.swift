@@ -16,7 +16,6 @@ struct PadRow: View {
     /// right account (the originating one in the merged view, not the active one).
     var account: UUID?
     @Environment(\.orgDirectory) private var directory
-    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         // Drag a pad out as its web URL, so it can be dropped into Slack, Mail,
@@ -93,25 +92,11 @@ struct PadRow: View {
         // indicator is a color-only dot, so fold it into the label as well.
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
-        // Single click selects/previews the pad in the detail pane (handled natively
-        // by the list), double click opens it — the macOS convention, matching the
-        // explicit "open" buttons elsewhere (#291). Double-click is caught with a
-        // non-delaying AppKit recognizer rather than a SwiftUI tap gesture, which
-        // would otherwise swallow the list's own click-to-select (#324/#326).
-        .onRowDoubleClick { openInWindow() }
-    }
-
-    /// Open the live pad on double-click, reusing the shared open path so it honors
-    /// the user's "Open links" preference: the in-app `pad-browser` window, or the
-    /// external browser (#291). Rows whose URL doesn't parse simply don't respond.
-    @MainActor
-    private func openInWindow() {
-        guard let url = pad.webURL else { return }
-        if BrowserSettings.openLinksIn == .external {
-            BrowserSettings.openExternally(url)
-        } else {
-            openWindow(id: "pad-browser", value: url)
-        }
+        // Single click selects/previews the pad in the detail pane; double click
+        // opens it. Both are handled natively by the list (selection) and the
+        // table's `doubleAction` (open), installed by the owning list — see
+        // `TableDoubleClickProxy`. A SwiftUI tap gesture here would break the list's
+        // own click-to-select (#324/#326).
     }
 
     /// The "updated since last refresh" dot, shown only when the pad changed since

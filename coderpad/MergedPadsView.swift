@@ -23,6 +23,9 @@ struct MergedPadsView: View {
     /// While offline the app is read-only, so create/delete controls disable (#321).
     @Environment(\.isReadOnly) var isReadOnly
     @Environment(\.openWindow) var openWindow
+    /// Long-lived target for the list's native double-click-to-open (see
+    /// `TableDoubleClickProxy`); opens the selected pad's web URL in a window.
+    @State var doubleClickProxy = TableDoubleClickProxy()
     @State var accounts = AccountsStore.shared
     @State var router = MergedRouting.shared
     @State var nav = AppNavigation.shared

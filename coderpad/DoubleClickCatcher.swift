@@ -6,60 +6,83 @@
 import AppKit
 import SwiftUI
 
-/// Adds double-click handling to a `List` row without disturbing the list's own
-/// single-click selection.
+/// Double-click-to-open for a SwiftUI `List` row, done the native way.
 ///
-/// A SwiftUI `TapGesture` attached to a macOS `List` row swallows the native
-/// click-to-select: by default a click recognizer delays primary mouse-button
-/// events until recognition fails, so a plain click either does nothing (#324)
-/// or — when selection is then driven manually — lags a double-click interval and
-/// shows the unfocused grey highlight instead of the focused blue one (#326).
+/// SwiftUI doesn't expose row double-clicks on macOS, and a SwiftUI `TapGesture`
+/// on a row breaks the list's own single-click selection — it either does nothing
+/// (#324) or makes selection laggy and unfocused/grey (#326). A per-row
+/// `NSViewRepresentable` with a click recognizer never even receives the clicks,
+/// because the list's row hosting doesn't route mouse events to it.
 ///
-/// Instead, install an `NSClickGestureRecognizer` with
-/// `delaysPrimaryMouseButtonEvents = false`. The recognizer still observes every
-/// click (it sees events before any view does), but it no longer delays or
-/// consumes them, so each click flows straight through to the list for its native,
-/// instant, focused selection. Only a genuine double-click also fires `action`.
+/// The underlying `NSTableView` already supports a `doubleAction` that fires
+/// alongside — and never interferes with — its native single-click selection. So
+/// we set that. Because the first click of a double-click selects the row, the
+/// action just opens the *current selection*, with no need to map a click location
+/// back to a row.
 ///
-/// The recognizer is added to a transparent overlay sized to the row. Every
-/// modifier the row relies on — the list's selection, the row's `.contextMenu`,
-/// and `.draggable` — is an ancestor of this overlay, so the events it forwards up
-/// the responder chain still reach them.
-struct DoubleClickCatcher: NSViewRepresentable {
-    let action: () -> Void
+/// `NSTableView.target` is `weak`, so the target can't be a row view (rows are
+/// reused and deallocated as you scroll, which would silently drop the action).
+/// The list owns a ``TableDoubleClickProxy`` in `@State`; an installer attached to
+/// a row finds the enclosing table and points its `doubleAction` at that long-lived
+/// proxy.
+@MainActor
+final class TableDoubleClickProxy: NSObject {
+    /// Opens the row the user double-clicked. Set by the list; reads its live
+    /// selection, so it stays correct as the selection changes.
+    var onDoubleClick: () -> Void = {}
+    /// The table whose `doubleAction` we own, kept to ignore double-clicks that land
+    /// below the last row (`clickedRow == -1`) so empty space never opens anything.
+    weak var tableView: NSTableView?
+
+    @objc func fire() {
+        guard let tableView, tableView.clickedRow >= 0 else { return }
+        onDoubleClick()
+    }
+}
+
+/// Points the enclosing `NSTableView`'s `doubleAction` at `proxy`. Attached to a
+/// row (via `.background`) so the table is reachable by walking up the view tree;
+/// re-asserts on update in case the list rebuilds the table.
+struct TableDoubleClickInstaller: NSViewRepresentable {
+    let proxy: TableDoubleClickProxy
 
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
-        let recognizer = NSClickGestureRecognizer(
-            target: context.coordinator,
-            action: #selector(Coordinator.handleDoubleClick)
-        )
-        recognizer.numberOfClicksRequired = 2
-        // Let the click (and the first click of a double) reach the list, so its
-        // own selection still fires — immediately and focused (blue), not grey.
-        recognizer.delaysPrimaryMouseButtonEvents = false
-        view.addGestureRecognizer(recognizer)
+        // The view isn't in the table's hierarchy yet at make time, so defer.
+        DispatchQueue.main.async { install(from: view) }
         return view
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {
-        // Keep the fired closure current as rows are reused for different items.
-        context.coordinator.action = action
+        DispatchQueue.main.async { install(from: nsView) }
     }
 
-    func makeCoordinator() -> Coordinator { Coordinator(action: action) }
+    private func install(from view: NSView) {
+        guard let table = view.enclosingTableView else { return }
+        proxy.tableView = table
+        table.target = proxy
+        table.doubleAction = #selector(TableDoubleClickProxy.fire)
+    }
+}
 
-    final class Coordinator: NSObject {
-        var action: () -> Void
-        init(action: @escaping () -> Void) { self.action = action }
-        @objc func handleDoubleClick() { action() }
+private extension NSView {
+    /// The nearest `NSTableView` ancestor, or `nil` if this view isn't inside one.
+    var enclosingTableView: NSTableView? {
+        var candidate = superview
+        while let view = candidate {
+            if let table = view as? NSTableView { return table }
+            candidate = view.superview
+        }
+        return nil
     }
 }
 
 extension View {
-    /// Opens on double-click while leaving the list's single-click selection
-    /// untouched. See ``DoubleClickCatcher`` for why this isn't a SwiftUI gesture.
-    func onRowDoubleClick(perform action: @escaping () -> Void) -> some View {
-        overlay(DoubleClickCatcher(action: action))
+    /// Installs the list double-click handler from this row. Pair with a single
+    /// ``TableDoubleClickProxy`` owned by the list, whose `onDoubleClick` opens the
+    /// current selection. See ``TableDoubleClickProxy`` for why the proxy lives on
+    /// the list rather than the row.
+    func installsTableDoubleClick(_ proxy: TableDoubleClickProxy) -> some View {
+        background(TableDoubleClickInstaller(proxy: proxy))
     }
 }

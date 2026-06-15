@@ -17,7 +17,6 @@ struct QuestionRow: View {
     var onToggleFavorite: () -> Void = {}
 
     @State private var hovered = false
-    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         // Drag onto the sidebar Favorites to pin the question (#297). Only when the
@@ -86,15 +85,11 @@ struct QuestionRow: View {
         .padding(.vertical, 4)
         .contentShape(Rectangle())
         .onHover { hovered = $0 }
-        // Single click selects/previews the question in the detail pane (handled
-        // natively by the list), double click opens it in its own window — the macOS
-        // convention, matching the companion pad gesture (#292). Double-click is
-        // caught with a non-delaying AppKit recognizer rather than a SwiftUI tap
-        // gesture, which would otherwise swallow the list's click-to-select
-        // (#324/#326).
-        .onRowDoubleClick {
-            openWindow(id: "question", value: QuestionWindowID(account: account, id: question.id))
-        }
+        // Single click selects/previews the question in the detail pane; double
+        // click opens it in its own window. Both are handled natively by the list
+        // (selection) and the table's `doubleAction` (open), installed by the owning
+        // list — see `TableDoubleClickProxy`. A SwiftUI tap gesture here would break
+        // the list's own click-to-select (#324/#326).
     }
 
     /// The row's title and metadata composed into one VoiceOver phrase, matching

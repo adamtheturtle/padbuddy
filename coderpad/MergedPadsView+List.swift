@@ -30,6 +30,9 @@ extension MergedPadsView {
                 // bridging the selection, so the list opens in the same view.
                 restoreFilters()
                 selectedIDs = selection.map { [$0.id] } ?? []
+                // Double-clicking a row opens the selected pad (the first click
+                // selects it). Reads `selection` live, so it stays correct.
+                doubleClickProxy.onDoubleClick = { openSelectedPadInWindow() }
             }
             // Re-persist whenever any filter changes; `filterSignature` shifts for
             // every filter control, so one observer covers them all.
@@ -249,6 +252,7 @@ extension MergedPadsView {
             ForEach(filtered) { row in
                 padRow(row)
                     .tag(row.item.id)
+                    .installsTableDoubleClick(doubleClickProxy)
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
                             padPendingDelete = row.item
@@ -274,6 +278,18 @@ extension MergedPadsView {
             account: row.account.id
         )
         .contextMenu { padContextMenu(row) }
+    }
+
+    /// Opens the selected pad's live URL in a window on double-click, honoring the
+    /// "Open links" preference — the in-app `pad-browser` window or the external
+    /// browser — exactly as the row's old gesture and the detail "Open" button do.
+    func openSelectedPadInWindow() {
+        guard let url = selection?.webURL else { return }
+        if BrowserSettings.openLinksIn == .external {
+            BrowserSettings.openExternally(url)
+        } else {
+            openWindow(id: "pad-browser", value: url)
+        }
     }
 
     @ViewBuilder

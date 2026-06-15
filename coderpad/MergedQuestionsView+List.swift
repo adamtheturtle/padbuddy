@@ -29,6 +29,14 @@ extension MergedQuestionsView {
                 selectedRowIDs = selection
                     .flatMap { sel in scoped.first { $0.item.id == sel.id }?.id }
                     .map { [$0] } ?? []
+                // Double-clicking a row opens the selected question in its own window
+                // (the first click selects it). Reads the live selection and the
+                // account it routed to.
+                doubleClickProxy.onDoubleClick = {
+                    guard let question = selection else { return }
+                    openWindow(id: "question",
+                               value: QuestionWindowID(account: router.selectedQuestionAccountID, id: question.id))
+                }
             }
             // Re-persist whenever any filter changes; `filterSignature` shifts for
             // every filter control, so one observer covers them all.
@@ -216,6 +224,7 @@ extension MergedQuestionsView {
                     onToggleFavorite: { toggleFavorite(row) }
                 )
                 .tag(row.id)
+                .installsTableDoubleClick(doubleClickProxy)
                 .contextMenu { questionContextMenu(row) }
                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
                     Button {
