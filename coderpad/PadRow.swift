@@ -84,6 +84,10 @@ struct PadRow: View {
             }
         }
         .padding(.vertical, 4)
+        // Make the entire row frame hittable — including the trailing Spacer and
+        // any empty space — so a double-click anywhere on the row opens the pad,
+        // not just on the opaque title/badges (#322). Mirrors QuestionRow.
+        .contentShape(Rectangle())
         // Read the whole row as one VoiceOver element with a coherent label,
         // rather than stopping on each badge/label separately. The "changed"
         // indicator is a color-only dot, so fold it into the label as well.
