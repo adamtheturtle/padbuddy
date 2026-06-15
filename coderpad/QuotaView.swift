@@ -92,6 +92,9 @@ struct QuotaView: View {
                 HStack(spacing: 8) {
                     Image(systemName: pace.status.systemImage)
                         .foregroundStyle(pace.status.tint)
+                        // Decorative: the headline beside it states the pace, and the
+                        // usage bar carries its own accessibility value.
+                        .accessibilityHidden(true)
                     Text(pace.headline).font(.callout.weight(.medium))
                     Spacer(minLength: 0)
                 }
