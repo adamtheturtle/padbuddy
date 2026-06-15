@@ -18,7 +18,7 @@ struct QuestionDetailView: View {
     @State private var nav = AppNavigation.shared
     @State private var accounts = AccountsStore.shared
     @State private var favorites = FavoriteQuestionsStore.shared
-    @State private var showEdit = false
+    @State var showEdit = false
     @State private var showDeleteConfirm = false
     @State private var deleteError: String?
     /// The in-flight delayed deletion, shown as an undoable banner during the grace

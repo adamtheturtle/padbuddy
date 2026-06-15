@@ -155,38 +155,35 @@ extension QuestionDetailView {
     }
 
     var instructionsCard: some View {
-        Card {
-            VStack(alignment: .leading, spacing: 10) {
-                SectionHeader(title: "Candidate Instructions", systemImage: "text.book.closed")
-                let instructions = question.candidateInstructions
-                ForEach(Array(instructions.enumerated()), id: \.offset) { index, item in
-                    VStack(alignment: .leading, spacing: 6) {
-                        // When a question has several instruction parts, label each so
-                        // they read as distinct sections rather than one run-on block.
-                        if instructions.count > 1 {
-                            Text("Part \(index + 1)")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                        }
-                        // Mirror the test-case "Hidden" badge: an instruction the
-                        // candidate doesn't see by default is meaningful review context.
-                        if !item.defaultVisible {
-                            Chip(text: "Hidden by default", systemImage: "eye.slash", tint: .gray)
-                        }
-                        MarkdownText(item.instructions)
-                            .font(.callout)
-                            .textSelection(.enabled)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+        EditableContentCard(title: "Candidate Instructions", systemImage: "text.book.closed",
+                            onEdit: { showEdit = true }) {
+            let instructions = question.candidateInstructions
+            ForEach(Array(instructions.enumerated()), id: \.offset) { index, item in
+                VStack(alignment: .leading, spacing: 6) {
+                    // When a question has several instruction parts, label each so
+                    // they read as distinct sections rather than one run-on block.
+                    if instructions.count > 1 {
+                        Text("Part \(index + 1)")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    // A hairline between parts, like the Test Cases card, so multiple
-                    // instructions are visually separated instead of blurring together.
-                    if index != instructions.count - 1 {
-                        Divider()
+                    // Mirror the test-case "Hidden" badge: an instruction the
+                    // candidate doesn't see by default is meaningful review context.
+                    if !item.defaultVisible {
+                        Chip(text: "Hidden by default", systemImage: "eye.slash", tint: .gray)
                     }
+                    MarkdownText(item.instructions)
+                        .font(.callout)
+                        .textSelection(.enabled)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                // A hairline between parts, like the Test Cases card, so multiple
+                // instructions are visually separated instead of blurring together.
+                if index != instructions.count - 1 {
+                    Divider()
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -319,15 +316,48 @@ extension QuestionDetailView {
     }
 
     func descriptionCard(title: String, body: String) -> some View {
+        EditableContentCard(title: title, systemImage: "doc.text", onEdit: { showEdit = true }) {
+            MarkdownText(body)
+                .font(.callout)
+                .textSelection(.enabled)
+                .foregroundStyle(.primary)
+        }
+    }
+}
+
+/// A read-only content card whose header reveals a pencil on hover that opens the
+/// question's content editor. Mirrors the inline title's hover affordance for the
+/// long-form fields (description, candidate instructions, solution) that are edited
+/// in the focused sheet rather than in place.
+struct EditableContentCard<Content: View>: View {
+    let title: String
+    let systemImage: String
+    let onEdit: () -> Void
+    @ViewBuilder var content: () -> Content
+
+    @State private var hovered = false
+
+    var body: some View {
         Card {
             VStack(alignment: .leading, spacing: 10) {
-                SectionHeader(title: title, systemImage: "doc.text")
-                MarkdownText(body)
-                    .font(.callout)
-                    .textSelection(.enabled)
-                    .foregroundStyle(.primary)
+                HStack(spacing: 8) {
+                    SectionHeader(title: title, systemImage: systemImage)
+                    Spacer(minLength: 0)
+                    Button(action: onEdit) {
+                        Image(systemName: "pencil")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .opacity(hovered ? 1 : 0)
+                    .help("Edit the description, instructions, and solution")
+                    .accessibilityLabel("Edit content")
+                }
+                content()
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .onHover { hovered = $0 }
+        .animation(.easeInOut(duration: 0.12), value: hovered)
     }
 }
