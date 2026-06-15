@@ -25,41 +25,39 @@ struct Sidebar: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Scrolls so the saved-search and favorites lists can grow past the
-            // window height while the account footer stays pinned to the bottom.
-            ScrollView {
-                VStack(spacing: 2) {
-                    sidebarRow(.pads, "Pads", "doc.text")
-                    sidebarRow(.questions, "Questions", "questionmark.bubble")
-                    sidebarRow(.organization, "Organization", "building.2")
+            // A native `List(selection:)` so the section rows get the framework's
+            // selection model and arrow-key navigation for free, instead of the old
+            // hand-rolled VStack of buttons that had to re-add ↑/↓ via `.onMoveCommand`
+            // (#281, #288). The List scrolls, so the saved-search and favorites groups
+            // can still grow past the window height while the account footer stays
+            // pinned below. Selection covers only the top-level sections; the Suggested
+            // / Saved Searches / Favorites groups stay custom rows so their applied-
+            // search highlight, drag-to-reorder, drop-to-pin, and context menus are
+            // unchanged.
+            List(selection: sectionSelection) {
+                Section {
+                    ForEach(sectionOrder, id: \.self) { value in
+                        sectionRow(value)
+                    }
                     // On an unlimited plan the quota page has nothing to count down, so
-                    // the row becomes a non-navigable "Unlimited" indicator instead (#306).
+                    // a non-navigable "Unlimited" indicator stands in for the Quota row
+                    // (#306). Untagged, so it never claims the selection.
                     if quotaIsUnlimited {
-                        unlimitedQuotaRow
-                    } else {
-                        sidebarRow(.quota, "Quota", "gauge.with.dots.needle.67percent")
+                        unlimitedQuotaRow.sidebarGroupRow()
                     }
                 }
-                .padding(.horizontal, 8)
-                .padding(.top, 10)
-                // The hand-rolled rows (a plain VStack of buttons, kept so the
-                // Mail-style highlight can be painted) lost the arrow-key navigation
-                // a `List` gives for free. Make the section group focusable and step
-                // through it on ↑/↓ so the keyboard can move between the four sections
-                // again. `focusEffectDisabled` suppresses the default group focus
-                // ring (an ugly blue box drawn around all four rows); the selected
-                // row's own highlight is the "you are here" cue, so the ring is
-                // redundant as well as unsightly.
-                .focusable()
-                .focusEffectDisabled()
-                .onMoveCommand(perform: moveSection)
-                .accessibilityElement(children: .contain)
-                .accessibilityLabel("Sections")
 
                 defaultsSection
                 savedSearchesSection
                 favoritesSection
             }
+            .listStyle(.sidebar)
+            // Let the NavigationSplitView column's source-list material and the dark
+            // scrim below show through, rather than the List painting its own opaque
+            // background over them.
+            .scrollContentBackground(.hidden)
+            .accessibilityLabel("Sections")
+
             Divider()
             AccountFooter()
                 .padding(10)
@@ -249,26 +247,43 @@ struct Sidebar: View {
             : [.pads, .questions, .organization, .quota]
     }
 
-    /// Step the selected section on ↑/↓ when the section group has keyboard focus.
-    /// Clamps at the ends rather than wrapping, the way a source list does, and routes
-    /// through `selectRoot` so moving onto Pads/Questions shows their plain list (the
-    /// same as clicking the row). Left/right are ignored.
-    private func moveSection(_ direction: MoveCommandDirection) {
-        let order = sectionOrder
-        guard let current = order.firstIndex(of: nav.section) else {
-            // The active section isn't one of the four (a saved search is applied):
-            // ↑/↓ re-enters the list at its current section's plain row.
-            selectRoot(nav.section == .questions ? .questions : .pads)
-            return
+    /// Drives the section `List`'s selection. The getter is *derived* from each pane's
+    /// live state (via `isRootSelected`) rather than stored, so it falls back to `nil`
+    /// — no section highlighted — the instant a saved search is applied or a filter is
+    /// edited in-pane, with no separate invalidation step. The setter routes through
+    /// `selectRoot`, so a click or an arrow-key move onto Pads/Questions shows their
+    /// plain list exactly as tapping the row did. `List` handles ↑/↓ navigation and the
+    /// selection styling itself, replacing the old `.onMoveCommand` handler.
+    private var sectionSelection: Binding<AppSection?> {
+        Binding(
+            get: { sectionOrder.first(where: { isRootSelected($0) }) },
+            set: { newValue in
+                if let newValue { selectRoot(newValue) }
+            }
+        )
+    }
+
+    /// A top-level section row in the `List`. Carries its `AppSection` as the selection
+    /// tag and reports its label width so the column floor still fits the longest label
+    /// (`SidebarRowWidthKey`). The native sidebar list paints the selection highlight, so
+    /// the row is a plain `Label` rather than the old hand-painted button.
+    private func sectionRow(_ value: AppSection) -> some View {
+        let meta = Self.sectionMeta(value)
+        return Label(meta.label, systemImage: meta.icon)
+            .tag(value)
+            .measuresSidebarRowWidth(meta.label)
+            .accessibilityAddTraits(isRootSelected(value) ? .isSelected : [])
+    }
+
+    /// The label and SF Symbol for each navigable top-level section, in one place so the
+    /// rows and any width measurement agree.
+    private static func sectionMeta(_ value: AppSection) -> (label: String, icon: String) {
+        switch value {
+        case .pads: ("Pads", "doc.text")
+        case .questions: ("Questions", "questionmark.bubble")
+        case .organization: ("Organization", "building.2")
+        case .quota: ("Quota", "gauge.with.dots.needle.67percent")
         }
-        let next: Int
-        switch direction {
-        case .up: next = current - 1
-        case .down: next = current + 1
-        default: return
-        }
-        guard order.indices.contains(next) else { return }
-        selectRoot(order[next])
     }
 
     /// Reset to the plain, unfiltered list for a top-level row, so tapping "Pads" or
@@ -296,16 +311,18 @@ struct Sidebar: View {
         } else {
             let items = defaultItems
             if !items.isEmpty {
-                sidebarSectionHeader("Suggested")
-                VStack(spacing: 2) {
-                    ForEach(items) { item in
-                        sidebarSubRow(label: item.search.name, icon: item.icon,
-                                      isSelected: isItemSelected(item)) {
-                            nav.applySavedSearch(item.search, kind: item.kind)
+                Section("Suggested") {
+                    VStack(spacing: 2) {
+                        ForEach(items) { item in
+                            sidebarSubRow(label: item.search.name, icon: item.icon,
+                                          isSelected: isItemSelected(item)) {
+                                nav.applySavedSearch(item.search, kind: item.kind)
+                            }
                         }
                     }
+                    .padding(.horizontal, 8)
+                    .sidebarGroupRow()
                 }
-                .padding(.horizontal, 8)
             }
         }
     }
@@ -316,43 +333,47 @@ struct Sidebar: View {
     /// the live state `MergedPadsView`/`MergedQuestionsView` publish back.
     @ViewBuilder
     private var mergedDefaultsSection: some View {
-        sidebarSectionHeader("Suggested")
-        VStack(spacing: 2) {
-            sidebarSubRow(label: "My Pads", icon: "person.fill",
-                          isSelected: nav.section == .pads && nav.mergedPadsMineOnly) {
-                nav.toggleMergedMine(kind: .pads)
+        Section("Suggested") {
+            VStack(spacing: 2) {
+                sidebarSubRow(label: "My Pads", icon: "person.fill",
+                              isSelected: nav.section == .pads && nav.mergedPadsMineOnly) {
+                    nav.toggleMergedMine(kind: .pads)
+                }
+                sidebarSubRow(label: "My Questions", icon: "person.fill",
+                              isSelected: nav.section == .questions && nav.mergedQuestionsMineOnly) {
+                    nav.toggleMergedMine(kind: .questions)
+                }
             }
-            sidebarSubRow(label: "My Questions", icon: "person.fill",
-                          isSelected: nav.section == .questions && nav.mergedQuestionsMineOnly) {
-                nav.toggleMergedMine(kind: .questions)
-            }
+            .padding(.horizontal, 8)
+            .sidebarGroupRow()
         }
-        .padding(.horizontal, 8)
     }
 
     @ViewBuilder
     private var savedSearchesSection: some View {
         let items = savedItems
         if !items.isEmpty {
-            sidebarSectionHeader("Saved Searches")
-            VStack(spacing: 2) {
-                ForEach(items) { item in
-                    sidebarSubRow(label: item.search.name, icon: item.icon,
-                                  isSelected: isItemSelected(item)) {
-                        nav.applySavedSearch(item.search, kind: item.kind)
-                    }
-                    .contextMenu {
-                        Button(role: .destructive) {
-                            if let account = accountID {
-                                savedSearches.remove(id: item.search.id, account: account, kind: item.kind)
+            Section("Saved Searches") {
+                VStack(spacing: 2) {
+                    ForEach(items) { item in
+                        sidebarSubRow(label: item.search.name, icon: item.icon,
+                                      isSelected: isItemSelected(item)) {
+                            nav.applySavedSearch(item.search, kind: item.kind)
+                        }
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                if let account = accountID {
+                                    savedSearches.remove(id: item.search.id, account: account, kind: item.kind)
+                                }
+                            } label: {
+                                Label("Delete Saved Search", systemImage: "trash")
                             }
-                        } label: {
-                            Label("Delete Saved Search", systemImage: "trash")
                         }
                     }
                 }
+                .padding(.horizontal, 8)
+                .sidebarGroupRow()
             }
-            .padding(.horizontal, 8)
         }
     }
 
@@ -450,7 +471,17 @@ struct Sidebar: View {
     private var favoritesSection: some View {
         let pads = favoritePadItems
         let questions = favoriteItems
-        sidebarSectionHeader("Favorites")
+        Section("Favorites") {
+            favoritesBody(pads: pads, questions: questions)
+                .sidebarGroupRow()
+        }
+    }
+
+    /// The Favorites group's body: the pinned-pad and starred-question rows, their
+    /// empty-state hint, the drag-to-reorder insertion line, and the drop-to-pin
+    /// target. Kept as one view (one `List` row) so this whole interaction — unchanged
+    /// from the pre-`List` sidebar — keeps working as-is.
+    private func favoritesBody(pads: [FavoritePadItem], questions: [FavoriteItem]) -> some View {
         VStack(spacing: 2) {
             ForEach(pads) { item in
                 favoriteRowChrome(rowID: item.id,
@@ -603,23 +634,12 @@ struct Sidebar: View {
 
     // MARK: Row chrome
 
-    private func sidebarSectionHeader(_ title: String) -> some View {
-        HStack {
-            Text(title)
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-            Spacer()
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, 16)
-        .padding(.bottom, 4)
-    }
-
-    /// A lighter row than `sidebarRow`: a search-recall row that doesn't feed
-    /// `SidebarRowWidthKey`, so long names truncate instead of widening the column.
-    /// It carries the same single-selection highlight as the top-level rows when its
-    /// search is the one currently applied (`isSelected`), so the sidebar shows one
-    /// honest "you are here" across every row.
+    /// A search-recall row for the Suggested / Saved Searches / Favorites groups. Unlike
+    /// the top-level section rows (which the `List` selects and styles natively), these
+    /// stay custom buttons so they can paint the applied-search highlight, carry context
+    /// menus, and be dragged — and they don't feed `SidebarRowWidthKey`, so long names
+    /// truncate instead of widening the column. `isSelected` marks the row whose search
+    /// is currently applied, so the sidebar shows one honest "you are here" across groups.
     private func sidebarSubRow(label: String, icon: String, iconTint: Color = .secondary,
                                isSelected: Bool = false,
                                action: @escaping () -> Void) -> some View {
@@ -647,41 +667,16 @@ struct Sidebar: View {
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
+}
 
-    @ViewBuilder
-    private func sidebarRow(_ value: AppSection, _ label: String, _ icon: String) -> some View {
-        let isSelected = isRootSelected(value)
-        Button {
-            selectRoot(value)
-        } label: {
-            HStack(spacing: 8) {
-                // Mail dims unselected icons to secondary and tints both icon and
-                // label with the accent on the selected row; the label stays primary
-                // white when unselected.
-                Image(systemName: icon)
-                    .imageScale(.large)
-                    .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
-                    .frame(width: 22)
-                Text(label)
-                    .lineLimit(1)
-                    .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
-                Spacer(minLength: 0)
-            }
-            // Matches the App Store sidebar's metrics: the system `.body` row font,
-            // larger icons, and a touch more row height than the previous `.callout`.
-            .font(.body)
-            .padding(.vertical, 7)
-            .padding(.horizontal, 8)
-            .background(
-                isSelected
-                    ? Color.primary.opacity(0.10)
-                    : Color.clear,
-                in: RoundedRectangle(cornerRadius: 8, style: .continuous)
-            )
-            .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-        }
-        .buttonStyle(.plain)
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
-        .measuresSidebarRowWidth(label)
+private extension View {
+    /// Renders a custom sidebar group (Suggested / Saved Searches / Favorites) as a
+    /// single, full-width `List` row: clears the framework's row insets, background, and
+    /// separator so the group's own padding and highlights show through unchanged, and so
+    /// these rows never pick up the native selection chrome reserved for the section rows.
+    func sidebarGroupRow() -> some View {
+        listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
     }
 }
