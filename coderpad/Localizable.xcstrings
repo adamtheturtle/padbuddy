@@ -21,7 +21,14 @@
       }
     },
     "“%@” will be permanently deleted. This can't be undone." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "“%@” se eliminará permanentemente. Esto no se puede deshacer."
+          }
+        }
+      }
     },
     "(empty)" : {
 
@@ -74,6 +81,12 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
+            "value" : "%1$@: %2$@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
             "value" : "%1$@: %2$@"
           }
         }
@@ -160,7 +173,14 @@
 
     },
     "Add to Favorites" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Añadir a favoritos"
+          }
+        }
+      }
     },
     "Alerts when pads gain activity while CoderPad is in the background." : {
       "localizations" : {
@@ -191,7 +211,14 @@
 
     },
     "Auto-refresh interval" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Intervalo de actualización automática"
+          }
+        }
+      }
     },
     "Back" : {
 
@@ -215,7 +242,14 @@
 
     },
     "Candidate instructions" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Instrucciones para el candidato"
+          }
+        }
+      }
     },
     "Choose one of your saved accounts in Settings." : {
 
@@ -227,7 +261,14 @@
 
     },
     "Clear Session (Log Out)" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Borrar sesión (cerrar sesión)"
+          }
+        }
+      }
     },
     "Clear session and log out" : {
       "localizations" : {
@@ -246,7 +287,14 @@
 
     },
     "CoderPad API Documentation" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Documentación de la API de CoderPad"
+          }
+        }
+      }
     },
     "CoderPad is unreachable, so editing is paused until you reconnect." : {
 
@@ -265,13 +313,58 @@
 
     },
     "Copy %lld Pad Links" : {
-
+      "localizations" : {
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "Copiar %lld enlace de pad"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "Copiar %lld enlaces de pads"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "Copy %lld Question Links" : {
-
+      "localizations" : {
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "Copiar %lld enlace de pregunta"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "Copiar %lld enlaces de preguntas"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "Copy as Markdown" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Copiar como Markdown"
+          }
+        }
+      }
     },
     "Copy code" : {
 
@@ -280,19 +373,40 @@
 
     },
     "Copy Pad Title" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Copiar título del Pad"
+          }
+        }
+      }
     },
     "Copy Pad URL" : {
 
     },
     "Copy Question ID" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Copiar ID de la pregunta"
+          }
+        }
+      }
     },
     "Copy Question Title" : {
 
     },
     "Copy Question URL" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Copiar URL de la pregunta"
+          }
+        }
+      }
     },
     "Copy Title" : {
 
@@ -348,7 +462,14 @@
 
     },
     "Create a new pad in one of your accounts" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Crea un nuevo pad en una de tus cuentas"
+          }
+        }
+      }
     },
     "Create a new question (⇧⌘N)" : {
 
@@ -401,7 +522,26 @@
 
     },
     "Delete %lld Questions" : {
-
+      "localizations" : {
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "Eliminar %lld pregunta"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "Eliminar %lld preguntas"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "Delete %lld questions?" : {
       "localizations" : {
@@ -429,7 +569,14 @@
 
     },
     "Delete Account" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Eliminar cuenta"
+          }
+        }
+      }
     },
     "Delete Pad" : {
 
@@ -454,7 +601,14 @@
 
     },
     "Delete saved search %@" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Eliminar la búsqueda guardada %@"
+          }
+        }
+      }
     },
     "Delete this account?" : {
 
@@ -472,7 +626,14 @@
 
     },
     "Deleting the pad is permanent and cannot be undone." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Eliminar el pad es permanente y no se puede deshacer."
+          }
+        }
+      }
     },
     "Demo" : {
 
@@ -512,7 +673,14 @@
 
     },
     "e.g. Live pads, my team" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "p. ej. Pads en vivo, mi equipo"
+          }
+        }
+      }
     },
     "e.g. My drafts, Python" : {
       "localizations" : {
@@ -543,7 +711,14 @@
 
     },
     "End this interview?" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "¿Finalizar esta entrevista?"
+          }
+        }
+      }
     },
     "Ending the interview stops the live session for all participants." : {
 
@@ -613,7 +788,14 @@
       }
     },
     "Indexed on this Mac only. Pad titles can include candidate names." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Indexado solo en este Mac. Los títulos de los pads pueden incluir nombres de candidatos."
+          }
+        }
+      }
     },
     "Key not authorized" : {
 
@@ -628,7 +810,14 @@
 
     },
     "Loading members…" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Cargando miembros…"
+          }
+        }
+      }
     },
     "Loading organization…" : {
 
@@ -640,7 +829,14 @@
 
     },
     "Loading quota…" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Cargando cuota…"
+          }
+        }
+      }
     },
     "Loading…" : {
 
@@ -696,7 +892,14 @@
 
     },
     "Next Section" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Sección siguiente"
+          }
+        }
+      }
     },
     "No account configured" : {
       "localizations" : {
@@ -715,7 +918,14 @@
 
     },
     "No accounts" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No hay cuentas"
+          }
+        }
+      }
     },
     "No API key" : {
 
@@ -743,7 +953,14 @@
 
     },
     "No members match “%@”" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Ningún miembro coincide con «%@»"
+          }
+        }
+      }
     },
     "No Pad" : {
 
@@ -825,7 +1042,14 @@
       }
     },
     "Open in Browser" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Abrir en el navegador"
+          }
+        }
+      }
     },
     "Open in separate window" : {
 
@@ -928,7 +1152,14 @@
 
     },
     "Organization" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Organización"
+          }
+        }
+      }
     },
     "Override only for self-hosted or regional CoderPad deployments. Leave blank to use the default." : {
       "localizations" : {
@@ -982,7 +1213,14 @@
       }
     },
     "Period" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Período"
+          }
+        }
+      }
     },
     "Previous Section" : {
 
@@ -1026,10 +1264,24 @@
 
     },
     "Quit" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Salir"
+          }
+        }
+      }
     },
     "Quota" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Cuota"
+          }
+        }
+      }
     },
     "Quota, unlimited plan" : {
 
@@ -1041,7 +1293,14 @@
 
     },
     "Recent Questions" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Preguntas recientes"
+          }
+        }
+      }
     },
     "Recheck" : {
       "localizations" : {
@@ -1057,10 +1316,24 @@
 
     },
     "Reload (hold ⌥ to reload without cache)" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Recargar (mantén ⌥ para recargar sin caché)"
+          }
+        }
+      }
     },
     "Reload page" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Recargar página"
+          }
+        }
+      }
     },
     "Reload Without Cache" : {
 
@@ -1078,7 +1351,14 @@
 
     },
     "Required — pick which member you are to finish." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Obligatorio: elige qué miembro eres para terminar."
+          }
+        }
+      }
     },
     "Reset" : {
 
@@ -1129,7 +1409,14 @@
 
     },
     "Search pads" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Buscar pads"
+          }
+        }
+      }
     },
     "Search Pads" : {
       "localizations" : {
@@ -1142,7 +1429,14 @@
       }
     },
     "Search questions" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Buscar preguntas"
+          }
+        }
+      }
     },
     "Search users…" : {
 
@@ -1203,7 +1497,14 @@
 
     },
     "Share Pad…" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Compartir Pad…"
+          }
+        }
+      }
     },
     "Share Question…" : {
 
@@ -1275,7 +1576,14 @@
 
     },
     "Stats Period" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Período de estadísticas"
+          }
+        }
+      }
     },
     "Suggest a name" : {
       "localizations" : {
@@ -1288,7 +1596,14 @@
       }
     },
     "Suggest a name from the current filters" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Sugerir un nombre a partir de los filtros actuales"
+          }
+        }
+      }
     },
     "Switch account" : {
 
@@ -1334,7 +1649,26 @@
       }
     },
     "These %lld questions will be permanently deleted. This can't be undone." : {
-
+      "localizations" : {
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "Esta %lld pregunta se eliminará permanentemente. Esto no se puede deshacer."
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "Estas %lld preguntas se eliminarán permanentemente. Esto no se puede deshacer."
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "This account's API key is invalid" : {
 
@@ -1372,7 +1706,14 @@
 
     },
     "Type" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Tipo"
+          }
+        }
+      }
     },
     "Undo" : {
 
@@ -1381,7 +1722,14 @@
 
     },
     "Unlimited" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Ilimitado"
+          }
+        }
+      }
     },
     "Updated %@" : {
 
@@ -1438,7 +1786,14 @@
 
     },
     "Your trial expires %@." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Tu prueba caduca el %@."
+          }
+        }
+      }
     }
   },
   "version" : "1.3"
