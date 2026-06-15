@@ -241,9 +241,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // without needing a log-out/in during development.
         NSApp.servicesProvider = servicesProvider
         NSUpdateDynamicServices()
-        // Keep the current account's pads fresh on a timer even with no window open,
-        // so the Recent Pads widget and Dock badge don't go stale (see comment there).
-        PadsBackgroundRefresher.shared.start()
     }
 
     /// The menu shown when right-clicking the Dock icon. Offers the same quick
