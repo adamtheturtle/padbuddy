@@ -296,8 +296,6 @@ struct APIErrorView: View {
         if let api = error as? CoderPadError, api.isUnauthorized {
             ContentUnavailableView {
                 Label("Key not authorized", systemImage: "lock.shield")
-            } description: {
-                Text("Your API key was rejected (HTTP 401/403). Open Settings to switch accounts or paste a new key.")
             } actions: {
                 VStack(spacing: 8) {
                     Button("Open Settings") {
@@ -307,7 +305,6 @@ struct APIErrorView: View {
                         openSettings()
                     }
                     .prominentGlassButtonStyle()
-                    GetAPIKeyLink()
                     if let onRetry {
                         Button("Retry", action: onRetry)
                     }
