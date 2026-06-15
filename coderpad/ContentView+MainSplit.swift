@@ -51,6 +51,15 @@ struct MainSplit: View {
     /// so a deliberate choice is never overridden by a resize.
     @State private var autoCollapsed = false
 
+    /// Set when the user deliberately reopens the sidebar while the window is too
+    /// narrow to hold every column (e.g. macOS split-screen on a small display).
+    /// Without it, the next width observation re-collapses the sidebar the instant the
+    /// user expands it — the toggle appears to "not come in fully" because the
+    /// auto-collapse interrupts the expand animation (#307). While set, the width-driven
+    /// collapse stands down until the window grows wide again or the user closes the
+    /// sidebar themselves.
+    @State private var keepSidebarWhileNarrow = false
+
     /// Latest observed width of the split-view container, kept so a section change
     /// (which moves the collapse threshold) can be re-evaluated without waiting for
     /// the next resize.
@@ -126,15 +135,38 @@ struct MainSplit: View {
     private func updateSidebarCollapse(for width: CGFloat) {
         guard width > 0 else { return }
         if width < sidebarVisibleFloor {
+            // Stand down while the user has chosen to keep the sidebar open in a
+            // too-narrow window, so we don't yank it shut mid-expand (#307).
+            guard !keepSidebarWhileNarrow else { return }
             if columnVisibility == .all {
                 withAnimation(.smooth) {
                     columnVisibility = sectionHasDetail ? .doubleColumn : .detailOnly
                 }
                 autoCollapsed = true
             }
-        } else if autoCollapsed {
-            withAnimation(.smooth) { columnVisibility = .all }
+        } else {
+            // Wide enough for every column again: the narrow-window override no longer
+            // applies, and we restore anything we auto-collapsed.
+            keepSidebarWhileNarrow = false
+            if autoCollapsed {
+                withAnimation(.smooth) { columnVisibility = .all }
+                autoCollapsed = false
+            }
+        }
+    }
+
+    /// Reacts to the sidebar being toggled while the window is too narrow to hold every
+    /// column. A manual reopen there is a deliberate choice — the user wants the sidebar
+    /// even though it overlaps — so we honor it and suppress the width-driven
+    /// auto-collapse until the window grows wide again or the sidebar is closed (#307).
+    /// Above the floor the normal regime governs, so this is a no-op.
+    private func handleVisibilityChange(to visibility: NavigationSplitViewVisibility) {
+        guard containerWidth > 0, containerWidth < sidebarVisibleFloor else { return }
+        if visibility == .all {
+            keepSidebarWhileNarrow = true
             autoCollapsed = false
+        } else {
+            keepSidebarWhileNarrow = false
         }
     }
 
@@ -214,6 +246,9 @@ struct MainSplit: View {
             .background(WindowMinWidth(width: windowMinWidth))
         }
         .onChange(of: containerWidth) { _, width in updateSidebarCollapse(for: width) }
+        // Honor a deliberate reopen in a too-narrow window so the auto-collapse doesn't
+        // fight the toggle (#307).
+        .onChange(of: columnVisibility) { _, visibility in handleVisibilityChange(to: visibility) }
         // A section change moves the threshold (three columns vs. two), so
         // re-evaluate against the width we already know.
         .onChange(of: section) { _, _ in
