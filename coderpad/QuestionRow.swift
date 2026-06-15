@@ -15,6 +15,10 @@ struct QuestionRow: View {
     /// question to the right account (the originating one in the merged view).
     var account: UUID?
     var onToggleFavorite: () -> Void = {}
+    /// Select this row. Driven explicitly because the double-click gesture below
+    /// suppresses the list's own click-to-select once it covers the whole row
+    /// (#324); the owning list updates its selection set here.
+    var onSelect: () -> Void = {}
 
     @State private var hovered = false
     @Environment(\.openWindow) private var openWindow
@@ -86,10 +90,13 @@ struct QuestionRow: View {
         .padding(.vertical, 4)
         .contentShape(Rectangle())
         .onHover { hovered = $0 }
-        // Double-click opens the question in its own window, matching the macOS
-        // convention (single click selects/previews in the detail pane, double click
-        // opens) and the companion pad gesture (#292). A simultaneous gesture so the
-        // list's own single-click selection is preserved rather than swallowed.
+        // Single click selects/previews the question in the detail pane, double
+        // click opens it in its own window — the macOS convention, matching the
+        // companion pad gesture (#292). A tap gesture covering the whole row swallows
+        // the list's own click-to-select on macOS (#324), so selection is driven
+        // explicitly here; both gestures are simultaneous so a double click selects,
+        // then opens.
+        .simultaneousGesture(TapGesture(count: 1).onEnded { onSelect() })
         .simultaneousGesture(TapGesture(count: 2).onEnded {
             openWindow(id: "question", value: QuestionWindowID(account: account, id: question.id))
         })

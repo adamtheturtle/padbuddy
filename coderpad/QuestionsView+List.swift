@@ -168,7 +168,13 @@ extension QuestionsView {
             ForEach(sorted) { question in
                 QuestionRow(question: question, isFavorite: favoriteIDSet.contains(question.id),
                             account: accounts.currentAccountID,
-                            onToggleFavorite: { toggleFavorite(question) })
+                            onToggleFavorite: { toggleFavorite(question) },
+                            onSelect: {
+                                selectedQuestionIDs = MultiSelectLogic.clicked(
+                                    id: question.id, in: selectedQuestionIDs,
+                                    command: NSEvent.modifierFlags.contains(.command)
+                                )
+                            })
                     .tag(question.id)
                     .contextMenu { questionContextMenu(question) }
                     .swipeActions(edge: .leading, allowsFullSwipe: true) {

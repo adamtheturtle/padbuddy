@@ -213,7 +213,13 @@ extension MergedQuestionsView {
                     isFavorite: isFavorite(row),
                     accountName: row.account.name,
                     account: row.account.id,
-                    onToggleFavorite: { toggleFavorite(row) }
+                    onToggleFavorite: { toggleFavorite(row) },
+                    onSelect: {
+                        selectedRowIDs = MultiSelectLogic.clicked(
+                            id: row.id, in: selectedRowIDs,
+                            command: NSEvent.modifierFlags.contains(.command)
+                        )
+                    }
                 )
                 .tag(row.id)
                 .contextMenu { questionContextMenu(row) }
