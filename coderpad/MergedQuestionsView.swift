@@ -32,6 +32,14 @@ struct MergedQuestionsView: View {
     /// The List's selection. A set so several rows can be selected to copy their
     /// links at once; `selectedRowID`/`selection` track the primary within it.
     @State var selectedRowIDs: Set<String> = []
+    /// Whether the saved selection has been restored this session. Gates persistence
+    /// so the empty startup state never clobbers the stored row id, and keeps the
+    /// restore to once, mirroring `QuestionsView`.
+    @State var didRestoreSelection = false
+    /// A one-shot request to scroll the restored row into view on launch; a `List`
+    /// won't scroll to a programmatic selection on its own. Consumed and cleared by
+    /// the `ScrollViewReader` in the list.
+    @State var pendingScrollToRowID: String?
     /// Rows queued for a multi-row delete (carrying their source account, so each
     /// deletes against the right client), awaiting the confirmation dialog, plus the
     /// error from a failed delete. Single-row delete is delegated to the detail view.

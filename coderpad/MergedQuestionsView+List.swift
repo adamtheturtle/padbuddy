@@ -15,6 +15,9 @@ extension MergedQuestionsView {
             .task(id: QuestionsTaskKey(apiKey: accountKey, phase: scenePhase)) {
                 guard scenePhase == .active else { return }
                 seedFromCache()
+                // Reopen the question selected last session, once the seeded cache (or
+                // the reload below) provides a list to resolve it against.
+                restoreSelectedRowIfNeeded()
                 await periodicReload(interval: { GeneralSettings.refreshInterval }, work: {
                     await reload()
                 })
@@ -51,7 +54,11 @@ extension MergedQuestionsView {
                 nav.mergedQuestionsMineRequest = nil
                 if mineOnly != request { mineOnly = request }
             }
-            .onChange(of: selectedRowID) { _, newID in selectRow(newID) }
+            .onChange(of: selectedRowID) { _, newID in
+                selectRow(newID)
+                // Remember the open question so the merged list reopens to it next launch.
+                persistSelectedRow()
+            }
             .task {
                 for await update in AppRouter.questionUpdates {
                     applyUpdated(update.question, account: update.account)
@@ -176,6 +183,22 @@ extension MergedQuestionsView {
     }
 
     private var questionsList: some View {
+        // Wrap in a reader so a restored selection can be scrolled into view on
+        // launch (see `pendingScrollToRowID`); the reader sits outside the `.id`
+        // below so its proxy survives the filter/sort-driven list rebuilds.
+        ScrollViewReader { proxy in
+            questionsListBody
+                // Scroll the restored question into view once, then clear the request
+                // so the user's own scrolling afterward is never overridden.
+                .onChange(of: pendingScrollToRowID) { _, id in
+                    guard let id else { return }
+                    proxy.scrollTo(id, anchor: .center)
+                    pendingScrollToRowID = nil
+                }
+        }
+    }
+
+    private var questionsListBody: some View {
         List(selection: $selectedRowIDs) {
             ForEach(sorted) { row in
                 QuestionRow(

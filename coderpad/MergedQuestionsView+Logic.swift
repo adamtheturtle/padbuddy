@@ -232,6 +232,10 @@ extension MergedQuestionsView {
                 isLoading = false
             }
         }
+        // Cold start with empty caches: the list first appears here, so this is the
+        // earliest the saved selection can be resolved. Idempotent (guarded by
+        // `didRestoreSelection`), so the per-refresh calls after this are no-ops.
+        restoreSelectedRowIfNeeded()
     }
 
     func publishRoutes() {
@@ -242,6 +246,67 @@ extension MergedQuestionsView {
             }
         }
         router.setQuestionRoutes(routes)
+    }
+
+    // MARK: - Selection persistence
+
+    /// The single key for the merged list's open question, stored as the account-
+    /// namespaced row id (`rowID(account:question:)`). Per-org question ids collide
+    /// across accounts, so the bare id couldn't say which account's question to
+    /// reopen — the persisted value must carry its account.
+    static var selectedRowKey: String { "questions.merged.selectedRow" }
+
+    /// Persist the namespaced row id of the question shown in the detail pane so the
+    /// merged list reopens to it next launch. Skipped until the restore has run so
+    /// the empty startup state can't clobber the saved id; clearing the selection
+    /// removes it so a blank detail pane is restored faithfully too.
+    func persistSelectedRow() {
+        guard didRestoreSelection else { return }
+        if let selectedRowID {
+            UserDefaults.standard.set(selectedRowID, forKey: Self.selectedRowKey)
+        } else {
+            UserDefaults.standard.removeObject(forKey: Self.selectedRowKey)
+        }
+    }
+
+    /// The saved row to reselect on launch: the stored namespaced row id, but only
+    /// when nothing is already selected, no navigation is pending, and the row is
+    /// still in the loaded list. Pure so the restore decision is unit-testable in
+    /// isolation, mirroring `QuestionsView.questionToRestore`.
+    static func rowToRestore(
+        savedRowID: String?,
+        hasSelection: Bool,
+        hasPendingNavigation: Bool,
+        availableRowIDs: Set<String>
+    ) -> String? {
+        guard !hasSelection, !hasPendingNavigation,
+              let savedRowID, availableRowIDs.contains(savedRowID) else { return nil }
+        return savedRowID
+    }
+
+    /// Restore the previously-open question once a list exists to resolve it against.
+    /// Marks the restore complete as soon as questions load (so later changes
+    /// persist), then reselects via `rowToRestore`. Builds the available row ids from
+    /// the source dictionary rather than the per-render `scoped` memo, which can still
+    /// be empty right after a cache seed.
+    func restoreSelectedRowIfNeeded() {
+        var availableRowIDs: Set<String> = []
+        for account in accounts.mergeableAccounts {
+            for question in questionsByAccount[account.id] ?? [] {
+                availableRowIDs.insert(Self.rowID(account: account.id, question: question.id))
+            }
+        }
+        guard !didRestoreSelection, !availableRowIDs.isEmpty else { return }
+        didRestoreSelection = true
+        guard let rowID = Self.rowToRestore(
+            savedRowID: UserDefaults.standard.string(forKey: Self.selectedRowKey),
+            hasSelection: selection != nil,
+            hasPendingNavigation: router.pendingFavoriteQuestion != nil,
+            availableRowIDs: availableRowIDs
+        ) else { return }
+        selectedRowIDs = [rowID]
+        // Bring the restored row into view; the List won't scroll to it on its own.
+        pendingScrollToRowID = rowID
     }
 
     // MARK: - Mutations

@@ -18,6 +18,9 @@ extension MergedPadsView {
             .task(id: MergedPadsTaskKey(accountKey: accountKey, phase: scenePhase)) {
                 guard scenePhase == .active else { return }
                 seedFromCache()
+                // Reopen the pad selected last session, once the seeded cache (or the
+                // reload below) provides a list to resolve it against.
+                restoreSelectedPadIfNeeded()
                 await periodicReload(interval: { GeneralSettings.refreshInterval }, work: {
                     await reload()
                 })
@@ -55,6 +58,8 @@ extension MergedPadsView {
                 if selection?.id != newID {
                     selection = newID.flatMap { id in pad(forID: id) }
                 }
+                // Remember the open pad so the merged list reopens to it next launch.
+                persistSelectedPad()
             }
             .onChange(of: selection) { _, newValue in
                 if let newValue, let account = router.account(forPadID: newValue.id)?.id {
@@ -215,6 +220,22 @@ extension MergedPadsView {
     }
 
     private var padList: some View {
+        // Wrap in a reader so a restored selection can be scrolled into view on
+        // launch (see `pendingScrollToID`); the reader sits outside the `.id` below
+        // so its proxy survives the filter-driven list rebuilds.
+        ScrollViewReader { proxy in
+            padListBody
+                // Scroll the restored pad into view once, then clear the request so
+                // the user's own scrolling afterward is never overridden.
+                .onChange(of: pendingScrollToID) { _, id in
+                    guard let id else { return }
+                    proxy.scrollTo(id, anchor: .center)
+                    pendingScrollToID = nil
+                }
+        }
+    }
+
+    private var padListBody: some View {
         List(selection: $selectedIDs) {
             ForEach(filtered) { row in
                 padRow(row)

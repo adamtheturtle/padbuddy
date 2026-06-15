@@ -75,4 +75,48 @@ struct SelectionRestoreTests {
         )
         #expect(target == nil)
     }
+
+    // The combined (all-accounts) list keys its selection by an account-namespaced
+    // row id, since per-org question ids collide across accounts. The restore
+    // decision is otherwise identical to the single-account one.
+
+    @Test func `restores the saved merged row when nothing blocks it`() {
+        let target = MergedQuestionsView.rowToRestore(
+            savedRowID: "acct-b:42", hasSelection: false, hasPendingNavigation: false,
+            availableRowIDs: ["acct-a:42", "acct-b:42", "acct-b:7"]
+        )
+        #expect(target == "acct-b:42")
+    }
+
+    @Test func `does not restore a merged row when one is already selected`() {
+        let target = MergedQuestionsView.rowToRestore(
+            savedRowID: "acct-b:42", hasSelection: true, hasPendingNavigation: false,
+            availableRowIDs: ["acct-b:42"]
+        )
+        #expect(target == nil)
+    }
+
+    @Test func `does not restore a merged row while a favorite navigation is pending`() {
+        let target = MergedQuestionsView.rowToRestore(
+            savedRowID: "acct-b:42", hasSelection: false, hasPendingNavigation: true,
+            availableRowIDs: ["acct-b:42"]
+        )
+        #expect(target == nil)
+    }
+
+    @Test func `does not restore a merged row missing from the loaded list`() {
+        let target = MergedQuestionsView.rowToRestore(
+            savedRowID: "acct-b:42", hasSelection: false, hasPendingNavigation: false,
+            availableRowIDs: ["acct-a:42", "acct-b:7"]
+        )
+        #expect(target == nil)
+    }
+
+    @Test func `does not restore a merged row when nothing was saved`() {
+        let target = MergedQuestionsView.rowToRestore(
+            savedRowID: nil, hasSelection: false, hasPendingNavigation: false,
+            availableRowIDs: ["acct-b:42"]
+        )
+        #expect(target == nil)
+    }
 }

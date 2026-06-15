@@ -176,6 +176,10 @@ extension MergedPadsView {
                 isLoading = false
             }
         }
+        // Cold start with empty caches: the list first appears here, so this is the
+        // earliest the saved selection can be resolved. Idempotent (guarded by
+        // `didRestoreSelection`), so the per-refresh calls after this are no-ops.
+        restoreSelectedPadIfNeeded()
     }
 
     /// Publish the pad -> account map so the detail pane and row actions can route
@@ -188,6 +192,46 @@ extension MergedPadsView {
             }
         }
         router.setPadRoutes(routes)
+    }
+
+    // MARK: - Selection persistence
+
+    /// The single key for the merged list's open pad. Pad ids are globally unique
+    /// across accounts, so the merged selection needs no account namespacing (unlike
+    /// merged questions, whose per-org ids collide and must carry their account).
+    static var selectedPadKey: String { "pads.merged.selectedPad" }
+
+    /// Persist the id of the pad shown in the detail pane so the merged list reopens
+    /// to it next launch. Skipped until the restore has run so the empty startup
+    /// state can't clobber the saved id; clearing the selection removes the stored id
+    /// so a blank detail pane is restored faithfully too.
+    func persistSelectedPad() {
+        guard didRestoreSelection else { return }
+        if let selectedID {
+            UserDefaults.standard.set(selectedID, forKey: Self.selectedPadKey)
+        } else {
+            UserDefaults.standard.removeObject(forKey: Self.selectedPadKey)
+        }
+    }
+
+    /// Restore the previously-open pad once a list exists to resolve it against.
+    /// Marks the restore complete as soon as pads load (so later changes persist),
+    /// then reselects via `PadsView.padToRestore` — the same pure, unit-tested
+    /// decision the single-account list uses. Reads the source dictionary rather than
+    /// the per-render `scoped` memo, which can still be empty right after a cache seed.
+    func restoreSelectedPadIfNeeded() {
+        let availableIDs = Set(padsByAccount.values.flatMap { $0 }.map(\.id))
+        guard !didRestoreSelection, !availableIDs.isEmpty else { return }
+        didRestoreSelection = true
+        guard let id = PadsView.padToRestore(
+            savedID: UserDefaults.standard.string(forKey: Self.selectedPadKey),
+            hasSelection: selection != nil,
+            hasPendingOpen: router.pendingFavoritePadID != nil,
+            availableIDs: availableIDs
+        ) else { return }
+        selectedIDs = [id]
+        // Bring the restored row into view; the List won't scroll to it on its own.
+        pendingScrollToID = id
     }
 
     // MARK: - Mutations

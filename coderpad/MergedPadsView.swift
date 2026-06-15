@@ -42,6 +42,14 @@ struct MergedPadsView: View {
     /// The List's selection. A set so several rows can be selected for a bulk action
     /// (Copy links, Delete); `selectedID`/`selection` track the primary within it.
     @State var selectedIDs: Set<String> = []
+    /// Whether the saved selection has been restored this session. Gates persistence
+    /// so the empty startup state never clobbers the stored id, and keeps the restore
+    /// to once, mirroring `PadsView`.
+    @State var didRestoreSelection = false
+    /// A one-shot request to scroll the restored row into view on launch; a `List`
+    /// won't scroll to a programmatic selection on its own. Consumed and cleared by
+    /// the `ScrollViewReader` in the list.
+    @State var pendingScrollToID: String?
     /// The pads queued for a multi-row delete, awaiting the confirmation dialog.
     /// Separate from `padPendingDelete` (the single swipe/context delete) so the two
     /// confirmations don't interfere.
