@@ -10,7 +10,48 @@
 //  and DesignSystem.
 //
 
+import AppKit
 import SwiftUI
+
+/// Strips the AppKit keyboard focus ring from the control backing a button-styled
+/// `Menu`. SwiftUI's `.focusEffectDisabled()` governs its own focus *effect*, but a
+/// `Menu` rendered with `.menuStyle(.button)` is hosted by an `NSControl` that draws
+/// its own `focusRingType` ring — which the SwiftUI modifier doesn't reach, so a
+/// stray blue box still appears around the chip when it takes keyboard focus (#341).
+/// Attached via `.background`, the helper sits inside the control's view tree and
+/// walks up to set `focusRingType = .none` on the hosting views (mirroring how
+/// ``TableDoubleClickInstaller`` reaches its enclosing table).
+private struct FocusRingSuppressor: NSViewRepresentable {
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        // The view isn't attached to the control's hierarchy yet at make time.
+        DispatchQueue.main.async { suppress(from: view) }
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        // Re-assert in case SwiftUI rebuilt the backing control and reset its ring.
+        DispatchQueue.main.async { suppress(from: nsView) }
+    }
+
+    private func suppress(from view: NSView) {
+        var candidate = view.superview
+        while let current = candidate {
+            current.focusRingType = .none
+            if let control = current as? NSControl {
+                control.cell?.focusRingType = .none
+            }
+            candidate = current.superview
+        }
+    }
+}
+
+private extension View {
+    /// Suppresses the AppKit focus ring drawn by the control hosting this view.
+    func suppressFocusRing() -> some View {
+        background(FocusRingSuppressor())
+    }
+}
 
 /// Shared shell for the menu-backed filter chips. Draws one capsule around a
 /// `Menu` and — when a filter is set — a sibling clear (×) button. The × is a real
@@ -51,7 +92,11 @@ private struct ChipMenuShell<MenuContent: View>: View {
             .fixedSize()
             // Suppress AppKit's rectangular keyboard focus ring: it doesn't follow
             // the chip's capsule and reads as a stray blue box around the label.
+            // `.focusEffectDisabled()` handles SwiftUI's own focus effect; the button
+            // Menu's backing NSControl draws a separate AppKit ring that needs
+            // `focusRingType = .none` to go away (#341).
             .focusEffectDisabled()
+            .suppressFocusRing()
             .disabled(menuDisabled)
 
             if isActive {
