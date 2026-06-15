@@ -115,6 +115,9 @@ struct AvatarCircle: View {
             }
         }
         .frame(width: diameter, height: diameter)
+        // Decorative throughout: every avatar sits beside text that names the same
+        // person or account, so the initials/symbol would only be VoiceOver noise.
+        .accessibilityHidden(true)
     }
 
     private var initials: String {
