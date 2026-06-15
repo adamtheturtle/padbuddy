@@ -17,6 +17,7 @@ struct QuestionRow: View {
     var onToggleFavorite: () -> Void = {}
 
     @State private var hovered = false
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         // Drag onto the sidebar Favorites to pin the question (#297). Only when the
@@ -85,6 +86,13 @@ struct QuestionRow: View {
         .padding(.vertical, 4)
         .contentShape(Rectangle())
         .onHover { hovered = $0 }
+        // Double-click opens the question in its own window, matching the macOS
+        // convention (single click selects/previews in the detail pane, double click
+        // opens) and the companion pad gesture (#292). A simultaneous gesture so the
+        // list's own single-click selection is preserved rather than swallowed.
+        .simultaneousGesture(TapGesture(count: 2).onEnded {
+            openWindow(id: "question", value: QuestionWindowID(account: account, id: question.id))
+        })
     }
 
     /// The row's title and metadata composed into one VoiceOver phrase, matching

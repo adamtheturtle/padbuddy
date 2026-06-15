@@ -349,6 +349,15 @@ struct CoderpadApp: App {
             }
         }
 
+        // Double-clicking a question row opens its detail here, in its own window —
+        // the native-detail counterpart to opening a pad in the `pad-browser` window
+        // (#292). Keyed by a lightweight id so it survives state restoration.
+        WindowGroup("Question", id: "question", for: QuestionWindowID.self) { $value in
+            QuestionWindow(value: value)
+                .frame(minWidth: 600, minHeight: 560)
+                .preferredColorScheme(appearance.colorScheme)
+        }
+
         Settings {
             SettingsView()
                 .preferredColorScheme(appearance.colorScheme)
