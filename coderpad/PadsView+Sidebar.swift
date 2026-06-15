@@ -210,12 +210,7 @@ extension PadsView {
     private func padRow(_ pad: Pad) -> some View {
         PadRow(pad: pad, isChanged: PadListLogic.hasNewActivitySinceOpen(
             pad, lastOpened: openedStore.lastOpened(pad.id, account: accounts.currentAccountID)
-        ), account: accounts.currentAccountID, onSelect: {
-            selectedIDs = MultiSelectLogic.clicked(
-                id: pad.id, in: selectedIDs,
-                command: NSEvent.modifierFlags.contains(.command)
-            )
-        })
+        ), account: accounts.currentAccountID)
         .contextMenu { padContextMenu(pad) }
     }
 

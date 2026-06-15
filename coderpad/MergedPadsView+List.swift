@@ -271,13 +271,7 @@ extension MergedPadsView {
                 row.item, lastOpened: openedStore.lastOpened(row.item.id, account: row.account.id)
             ),
             accountName: row.account.name,
-            account: row.account.id,
-            onSelect: {
-                selectedIDs = MultiSelectLogic.clicked(
-                    id: row.item.id, in: selectedIDs,
-                    command: NSEvent.modifierFlags.contains(.command)
-                )
-            }
+            account: row.account.id
         )
         .contextMenu { padContextMenu(row) }
     }

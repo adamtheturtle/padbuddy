@@ -15,10 +15,6 @@ struct PadRow: View {
     /// The owning account's id, so a drag onto the sidebar can pin the pad to the
     /// right account (the originating one in the merged view, not the active one).
     var account: UUID?
-    /// Select this row. Driven explicitly because the double-click gesture below
-    /// suppresses the list's own click-to-select once it covers the whole row
-    /// (#324); the owning list updates its selection set here.
-    var onSelect: () -> Void = {}
     @Environment(\.orgDirectory) private var directory
     @Environment(\.openWindow) private var openWindow
 
@@ -97,13 +93,12 @@ struct PadRow: View {
         // indicator is a color-only dot, so fold it into the label as well.
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
-        // Single click selects/previews the pad in the detail pane, double click
-        // opens it — the macOS convention, matching the explicit "open" buttons
-        // elsewhere (#291). A tap gesture covering the whole row swallows the list's
-        // own click-to-select on macOS (#324), so selection is driven explicitly
-        // here; both gestures are simultaneous so a double click selects, then opens.
-        .simultaneousGesture(TapGesture(count: 1).onEnded { onSelect() })
-        .simultaneousGesture(TapGesture(count: 2).onEnded { openInWindow() })
+        // Single click selects/previews the pad in the detail pane (handled natively
+        // by the list), double click opens it — the macOS convention, matching the
+        // explicit "open" buttons elsewhere (#291). Double-click is caught with a
+        // non-delaying AppKit recognizer rather than a SwiftUI tap gesture, which
+        // would otherwise swallow the list's own click-to-select (#324/#326).
+        .onRowDoubleClick { openInWindow() }
     }
 
     /// Open the live pad on double-click, reusing the shared open path so it honors
