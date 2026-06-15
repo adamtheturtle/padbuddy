@@ -7,8 +7,17 @@ git log.
 ## Cut a release
 
 1. Make sure `main` is green (the CI workflow builds and tests every push).
-2. Bump `MARKETING_VERSION` (and `CURRENT_PROJECT_VERSION` for each upload) in the
-   project's build settings if you haven't already (see issue #48).
+2. Bump the version with the helper, which sets `MARKETING_VERSION` and
+   `CURRENT_PROJECT_VERSION` across every build configuration at once (so no
+   target ships a mismatched version):
+
+   ```sh
+   scripts/bump-version.sh 1.3.0        # marketing 1.3.0, build auto-incremented
+   scripts/bump-version.sh 1.3.0 47     # pin the build number explicitly
+   ```
+
+   Review the diff and commit it. Every App Store upload needs a unique build
+   number, so bump at least the build for each one.
 3. Tag the release commit with a semver tag and push the tag:
 
    ```sh
