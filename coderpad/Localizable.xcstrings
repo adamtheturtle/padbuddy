@@ -1,0 +1,1079 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "" : {
+
+    },
+    "…%lld more" : {
+
+    },
+    "· %@" : {
+
+    },
+    "“%@” and its stored API key will be removed from this Mac. This can’t be undone." : {
+
+    },
+    "“%@” will be permanently deleted. This can't be undone." : {
+
+    },
+    "(empty)" : {
+
+    },
+    "(no email)" : {
+
+    },
+    "(no owner)" : {
+
+    },
+    "%@ - %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ - %2$@"
+          }
+        }
+      }
+    },
+    "%@ filter" : {
+
+    },
+    "%@, %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@, %2$@"
+          }
+        }
+      }
+    },
+    "%@: %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@: %2$@"
+          }
+        }
+      }
+    },
+    "%lld" : {
+
+    },
+    "%lld of %lld pads used" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld of %2$lld pads used"
+          }
+        }
+      }
+    },
+    "%lld updated" : {
+
+    },
+    "About CoderPad" : {
+
+    },
+    "Accounts" : {
+
+    },
+    "Action failed" : {
+
+    },
+    "Add %@ to Favorites" : {
+
+    },
+    "Add a sandbox account backed by mock data to explore the app without an API key." : {
+
+    },
+    "Add account" : {
+
+    },
+    "Add Account" : {
+
+    },
+    "Add Account…" : {
+
+    },
+    "Add an account in Settings to start using the app." : {
+
+    },
+    "Add an account with a CoderPad API key." : {
+
+    },
+    "Add to Favorites" : {
+
+    },
+    "Alerts when pads gain activity while CoderPad is in the background." : {
+
+    },
+    "All Accounts" : {
+
+    },
+    "Any time" : {
+
+    },
+    "Appearance" : {
+
+    },
+    "Apply" : {
+
+    },
+    "Apply saved search %@" : {
+
+    },
+    "Auto-filled from your organization" : {
+
+    },
+    "Auto-refresh interval" : {
+
+    },
+    "Back" : {
+
+    },
+    "Back to Details" : {
+
+    },
+    "Back to Question" : {
+
+    },
+    "Bad key" : {
+
+    },
+    "Browser" : {
+
+    },
+    "by %@" : {
+
+    },
+    "Cancel" : {
+
+    },
+    "Candidate instructions" : {
+
+    },
+    "Choose one of your saved accounts in Settings." : {
+
+    },
+    "Clear" : {
+
+    },
+    "Clear Filters" : {
+
+    },
+    "Clear Session (Log Out)" : {
+
+    },
+    "Clear session and log out" : {
+
+    },
+    "Clear session: log out of the Pad by clearing cookies and storage" : {
+
+    },
+    "CoderPad" : {
+
+    },
+    "CoderPad API Documentation" : {
+
+    },
+    "CoderPad is unreachable, so editing is paused until you reconnect." : {
+
+    },
+    "CoderPad, %lld unseen pad %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "CoderPad, %1$lld unseen pad %2$@"
+          }
+        }
+      }
+    },
+    "Continue" : {
+
+    },
+    "Copy %lld Pad Links" : {
+
+    },
+    "Copy %lld Question Links" : {
+
+    },
+    "Copy as Markdown" : {
+
+    },
+    "Copy code" : {
+
+    },
+    "Copy Pad ID" : {
+
+    },
+    "Copy Pad Title" : {
+
+    },
+    "Copy Pad URL" : {
+
+    },
+    "Copy Question ID" : {
+
+    },
+    "Copy Question Title" : {
+
+    },
+    "Copy Question URL" : {
+
+    },
+    "Copy Title" : {
+
+    },
+    "Copy URL" : {
+
+    },
+    "Couldn’t create pad" : {
+
+    },
+    "Couldn't delete pad" : {
+
+    },
+    "Couldn't delete question" : {
+
+    },
+    "Couldn’t load this pad" : {
+
+    },
+    "Couldn’t load whiteboard" : {
+
+    },
+    "Couldn’t save question" : {
+
+    },
+    "Couldn't turn that into filters. Try naming a language, owner, state, or date." : {
+
+    },
+    "Counts the started pads you own across all your accounts." : {
+
+    },
+    "Create" : {
+
+    },
+    "Create a new interview pad from this question" : {
+
+    },
+    "Create a new pad (⌘N)" : {
+
+    },
+    "Create a new pad in one of your accounts" : {
+
+    },
+    "Create a new question (⇧⌘N)" : {
+
+    },
+    "Create a new question in one of your accounts" : {
+
+    },
+    "Current" : {
+
+    },
+    "Custom %@ Range" : {
+
+    },
+    "Custom…" : {
+
+    },
+    "Default" : {
+
+    },
+    "Default browser" : {
+
+    },
+    "Delete" : {
+
+    },
+    "Delete %@?" : {
+
+    },
+    "Delete %lld Pads" : {
+
+    },
+    "Delete %lld pads?" : {
+
+    },
+    "Delete %lld Pads…" : {
+
+    },
+    "Delete %lld Questions" : {
+
+    },
+    "Delete %lld questions?" : {
+
+    },
+    "Delete %lld Questions…" : {
+
+    },
+    "Delete Account" : {
+
+    },
+    "Delete Pad" : {
+
+    },
+    "Delete Pad…" : {
+
+    },
+    "Delete question" : {
+
+    },
+    "Delete Question…" : {
+
+    },
+    "Delete Saved Search" : {
+
+    },
+    "Delete saved search %@" : {
+
+    },
+    "Delete this account?" : {
+
+    },
+    "Delete this pad" : {
+
+    },
+    "Delete this pad?" : {
+
+    },
+    "Delete…" : {
+
+    },
+    "Deleting “%@”…" : {
+
+    },
+    "Deleting the pad is permanent and cannot be undone." : {
+
+    },
+    "Demo" : {
+
+    },
+    "Describe a question, e.g. reverse a linked list" : {
+
+    },
+    "Description" : {
+
+    },
+    "Download all files as a folder" : {
+
+    },
+    "Download code" : {
+
+    },
+    "Draft fields" : {
+
+    },
+    "Draft the title, description, instructions, and solution" : {
+
+    },
+    "Draft with AI" : {
+
+    },
+    "Drafting…" : {
+
+    },
+    "Drag pads or questions here." : {
+
+    },
+    "e.g. Live pads, my team" : {
+
+    },
+    "e.g. My drafts, Python" : {
+
+    },
+    "Edit %@" : {
+
+    },
+    "Edit Pad…" : {
+
+    },
+    "Edit title" : {
+
+    },
+    "End Interview" : {
+
+    },
+    "End Interview…" : {
+
+    },
+    "End the live interview session" : {
+
+    },
+    "End this interview?" : {
+
+    },
+    "Ending the interview stops the live session for all participants." : {
+
+    },
+    "Execution enabled" : {
+
+    },
+    "Explain this file" : {
+
+    },
+    "Explanation" : {
+
+    },
+    "Favorite" : {
+
+    },
+    "Favorited" : {
+
+    },
+    "Find" : {
+
+    },
+    "Forward" : {
+
+    },
+    "From" : {
+
+    },
+    "General" : {
+
+    },
+    "Get an API key from CoderPad" : {
+
+    },
+    "Get API Key" : {
+
+    },
+    "Go" : {
+
+    },
+    "Go to" : {
+
+    },
+    "Help" : {
+
+    },
+    "Hide API key" : {
+
+    },
+    "Hide the API key." : {
+
+    },
+    "How often pads and questions reload in the background." : {
+
+    },
+    "https://app.coderpad.io/…" : {
+
+    },
+    "Identifies you for the My Pads and My Questions filters and the menu bar. Required to save." : {
+
+    },
+    "Indexed on this Mac only. Pad titles can include candidate names." : {
+
+    },
+    "Key not authorized" : {
+
+    },
+    "Language" : {
+
+    },
+    "Last used %@" : {
+
+    },
+    "Launch at login" : {
+
+    },
+    "Loading members…" : {
+
+    },
+    "Loading organization…" : {
+
+    },
+    "Loading pads…" : {
+
+    },
+    "Loading questions…" : {
+
+    },
+    "Loading quota…" : {
+
+    },
+    "Loading…" : {
+
+    },
+    "Make pads searchable in Spotlight" : {
+
+    },
+    "Mark All as Seen" : {
+
+    },
+    "Menu Bar" : {
+
+    },
+    "Mock data" : {
+
+    },
+    "My Pads · %@" : {
+
+    },
+    "Name" : {
+
+    },
+    "Need a project environment like React, Django, or Rails? [Create it on coderpad.io](%@)" : {
+
+    },
+    "New Pad" : {
+
+    },
+    "New Pad from Question" : {
+
+    },
+    "New Pad…" : {
+
+    },
+    "New Question" : {
+
+    },
+    "New Question…" : {
+
+    },
+    "Next Section" : {
+
+    },
+    "No account configured" : {
+
+    },
+    "No account selected" : {
+
+    },
+    "No Account Selected" : {
+
+    },
+    "No accounts" : {
+
+    },
+    "No API key" : {
+
+    },
+    "No API key for this account." : {
+
+    },
+    "No events yet." : {
+
+    },
+    "No matches" : {
+
+    },
+    "No Matching Pads" : {
+
+    },
+    "No Matching Questions" : {
+
+    },
+    "No members match “%@”" : {
+
+    },
+    "No Pad" : {
+
+    },
+    "No pads" : {
+
+    },
+    "No Pads" : {
+
+    },
+    "No pads match the current filters." : {
+
+    },
+    "No Questions" : {
+
+    },
+    "No questions match “%@”" : {
+
+    },
+    "No questions match the current filters." : {
+
+    },
+    "Nothing selected" : {
+
+    },
+    "Notify me when pads update" : {
+
+    },
+    "Offline — read-only" : {
+
+    },
+    "OK" : {
+
+    },
+    "Open" : {
+
+    },
+    "Open a pad to view it here." : {
+
+    },
+    "Open a specific CoderPad pad in the in-app browser." : {
+
+    },
+    "Open Account Settings" : {
+
+    },
+    "Open CoderPad and search pads matching a query." : {
+
+    },
+    "Open CoderPad and start creating a new pad." : {
+
+    },
+    "Open in Browser" : {
+
+    },
+    "Open in separate window" : {
+
+    },
+    "Open links" : {
+
+    },
+    "Open links in background" : {
+
+    },
+    "Open Main Window" : {
+
+    },
+    "Open pad" : {
+
+    },
+    "Open Pad" : {
+
+    },
+    "Open Pad by ID" : {
+
+    },
+    "Open Pad by URL" : {
+
+    },
+    "Open Pad by URL…" : {
+
+    },
+    "Open Pad in Browser" : {
+
+    },
+    "Open Pad in New Window" : {
+
+    },
+    "Open Pads" : {
+
+    },
+    "Open Passwords" : {
+
+    },
+    "Open Settings" : {
+
+    },
+    "Open Settings and update or replace the key for this account." : {
+
+    },
+    "Open sign-in portal" : {
+
+    },
+    "Open the current page in your default browser" : {
+
+    },
+    "Open the pad" : {
+
+    },
+    "Open the Pads list in CoderPad." : {
+
+    },
+    "Open the Passwords app to look up and copy a login" : {
+
+    },
+    "Open the whiteboard full size" : {
+
+    },
+    "Optional" : {
+
+    },
+    "Optional, e.g. \"Onsite: Jane Doe\"" : {
+
+    },
+    "Order" : {
+
+    },
+    "Organization" : {
+
+    },
+    "Override only for self-hosted or regional CoderPad deployments. Leave blank to use the default." : {
+
+    },
+    "Owner" : {
+
+    },
+    "Owner %@" : {
+
+    },
+    "Pad" : {
+
+    },
+    "Pad Browser" : {
+
+    },
+    "Pad ID" : {
+
+    },
+    "Pads" : {
+
+    },
+    "Part %lld" : {
+
+    },
+    "Paste a CoderPad pad URL. It opens in the in-app browser window." : {
+
+    },
+    "Paste your API key" : {
+
+    },
+    "Period" : {
+
+    },
+    "Previous Section" : {
+
+    },
+    "Print…" : {
+
+    },
+    "Private" : {
+
+    },
+    "Projected ~%lld by reset" : {
+
+    },
+    "Public take-home link configured" : {
+
+    },
+    "Query" : {
+
+    },
+    "Question" : {
+
+    },
+    "Question Unavailable" : {
+
+    },
+    "Questions" : {
+
+    },
+    "Quit" : {
+
+    },
+    "Quota" : {
+
+    },
+    "Quota, unlimited plan" : {
+
+    },
+    "Recent Activity" : {
+
+    },
+    "Recent pads in menu bar" : {
+
+    },
+    "Recent Questions" : {
+
+    },
+    "Recheck" : {
+
+    },
+    "Reload" : {
+
+    },
+    "Reload (hold ⌥ to reload without cache)" : {
+
+    },
+    "Reload page" : {
+
+    },
+    "Reload Without Cache" : {
+
+    },
+    "Remove %@ from Favorites" : {
+
+    },
+    "Remove from Favorites" : {
+
+    },
+    "Remove this account and its stored API key from this Mac." : {
+
+    },
+    "Require Touch ID to reveal API keys" : {
+
+    },
+    "Required — pick which member you are to finish." : {
+
+    },
+    "Reset" : {
+
+    },
+    "Retry" : {
+
+    },
+    "Save" : {
+
+    },
+    "Save Code…" : {
+
+    },
+    "Save Search" : {
+
+    },
+    "Save…" : {
+
+    },
+    "Search %@" : {
+
+    },
+    "Search members" : {
+
+    },
+    "Search members or enter email" : {
+
+    },
+    "Search pads" : {
+
+    },
+    "Search Pads" : {
+
+    },
+    "Search questions" : {
+
+    },
+    "Search users…" : {
+
+    },
+    "Sections" : {
+
+    },
+    "Select a pad" : {
+
+    },
+    "Select a question" : {
+
+    },
+    "Send Email" : {
+
+    },
+    "Send Feedback…" : {
+
+    },
+    "Settings…" : {
+
+    },
+    "Share" : {
+
+    },
+    "Share a link to this question" : {
+
+    },
+    "Share pad" : {
+
+    },
+    "Share Pad…" : {
+
+    },
+    "Share Question…" : {
+
+    },
+    "Share…" : {
+
+    },
+    "Show %@ Questions" : {
+
+    },
+    "Show API key" : {
+
+    },
+    "Show CoderPad in" : {
+
+    },
+    "Show my active pads on the Dock icon" : {
+
+    },
+    "Show Only %@" : {
+
+    },
+    "Show only started pads" : {
+
+    },
+    "Show pads from %@" : {
+
+    },
+    "Show Pads from %@" : {
+
+    },
+    "Show pads owned by %@" : {
+
+    },
+    "Show Questions from %@" : {
+
+    },
+    "Show the API key." : {
+
+    },
+    "Shows pads from %@" : {
+
+    },
+    "Smart Filter" : {
+
+    },
+    "Smart Filter…" : {
+
+    },
+    "Solution" : {
+
+    },
+    "Some third-party browsers don't support this." : {
+
+    },
+    "Something went wrong" : {
+
+    },
+    "Sort" : {
+
+    },
+    "Sort By" : {
+
+    },
+    "Sort questions" : {
+
+    },
+    "Stats period" : {
+
+    },
+    "Stats Period" : {
+
+    },
+    "Suggest a name" : {
+
+    },
+    "Suggest a name from the current filters" : {
+
+    },
+    "Switch account" : {
+
+    },
+    "Switch Account" : {
+
+    },
+    "Switch the app to this account." : {
+
+    },
+    "Team" : {
+
+    },
+    "Text to search pad titles, owners, and participants for." : {
+
+    },
+    "The 8-character pad identifier." : {
+
+    },
+    "The marker shows where your usage would be if it tracked the billing cycle evenly." : {
+
+    },
+    "These %lld pads will be permanently deleted. This can't be undone." : {
+
+    },
+    "These %lld questions will be permanently deleted. This can't be undone." : {
+
+    },
+    "This account's API key is invalid" : {
+
+    },
+    "This API key was rejected by CoderPad" : {
+
+    },
+    "This question couldn’t be loaded." : {
+
+    },
+    "This section shows everything in the list." : {
+
+    },
+    "Title" : {
+
+    },
+    "To" : {
+
+    },
+    "Turning this off also requires Touch ID, so it can't be bypassed." : {
+
+    },
+    "Type" : {
+
+    },
+    "Undo" : {
+
+    },
+    "Unfavorite" : {
+
+    },
+    "Unlimited" : {
+
+    },
+    "Updated %@" : {
+
+    },
+    "Updated since last refresh" : {
+
+    },
+    "Use system default (%@)" : {
+
+    },
+    "Use the default initials and color." : {
+
+    },
+    "Use This Account" : {
+
+    },
+    "Validate" : {
+
+    },
+    "Validate to choose a different member." : {
+
+    },
+    "Validating API key…" : {
+
+    },
+    "Version %@" : {
+
+    },
+    "Watch" : {
+
+    },
+    "Watch playback" : {
+
+    },
+    "Watch Playback" : {
+
+    },
+    "Watch the session playback" : {
+
+    },
+    "Welcome to CoderPad" : {
+
+    },
+    "What's New in CoderPad" : {
+
+    },
+    "You'll have a few seconds to undo before it's permanently deleted." : {
+
+    },
+    "You’re offline" : {
+
+    },
+    "Your plan has unlimited pads." : {
+
+    },
+    "Your trial expires %@." : {
+
+    }
+  },
+  "version" : "1.3"
+}

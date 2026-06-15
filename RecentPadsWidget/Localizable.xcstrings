@@ -1,0 +1,179 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "" : {
+
+    },
+    "%@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%@"
+          }
+        }
+      }
+    },
+    "3" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "3"
+          }
+        }
+      }
+    },
+    "5" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "5"
+          }
+        }
+      }
+    },
+    "7" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "7"
+          }
+        }
+      }
+    },
+    "Account" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Cuenta"
+          }
+        }
+      }
+    },
+    "Automatic" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Automático"
+          }
+        }
+      }
+    },
+    "Choose which account's pads to show, and how many." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Elige los pads de qué cuenta mostrar, y cuántos."
+          }
+        }
+      }
+    },
+    "Create a new CoderPad pad." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Crea un nuevo pad de CoderPad."
+          }
+        }
+      }
+    },
+    "Create one to get started." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Crea uno para empezar."
+          }
+        }
+      }
+    },
+    "New Pad" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Nuevo Pad"
+          }
+        }
+      }
+    },
+    "New Pad question" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pregunta de New Pad"
+          }
+        }
+      }
+    },
+    "No recent pads" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No hay pads recientes"
+          }
+        }
+      }
+    },
+    "Question" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pregunta"
+          }
+        }
+      }
+    },
+    "Recent pad, %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pad reciente, %@"
+          }
+        }
+      }
+    },
+    "Recent Pads" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pads recientes"
+          }
+        }
+      }
+    },
+    "Rows" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Filas"
+          }
+        }
+      }
+    },
+    "Your most recently updated CoderPad pads." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Tus pads de CoderPad actualizados más recientemente."
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.3"
+}

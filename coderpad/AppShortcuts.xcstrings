@@ -1,0 +1,102 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "New pad in ${applicationName}" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringSet" : {
+            "state" : "new",
+            "values" : [
+              "New pad in ${applicationName}",
+              "Create pad in ${applicationName}"
+            ]
+          }
+        },
+        "es" : {
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "Nuevo pad en ${applicationName}",
+              "Crear pad en ${applicationName}",
+              "Crear un pad en ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Open my pads in ${applicationName}" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringSet" : {
+            "state" : "new",
+            "values" : [
+              "Open my pads in ${applicationName}",
+              "Show pads in ${applicationName}"
+            ]
+          }
+        },
+        "es" : {
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "Abrir mis pads en ${applicationName}",
+              "Mostrar pads en ${applicationName}",
+              "Abrir mis pads de ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Open pad in ${applicationName}" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringSet" : {
+            "state" : "new",
+            "values" : [
+              "Open pad in ${applicationName}",
+              "Show pad in ${applicationName}"
+            ]
+          }
+        },
+        "es" : {
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "Abrir pad en ${applicationName}",
+              "Mostrar pad en ${applicationName}",
+              "Abrir un pad en ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Search ${applicationName}" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringSet" : {
+            "state" : "new",
+            "values" : [
+              "Search ${applicationName}",
+              "Find pads in ${applicationName}"
+            ]
+          }
+        },
+        "es" : {
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "Buscar en ${applicationName}",
+              "Buscar pads en ${applicationName}",
+              "Encontrar pads en ${applicationName}"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.3"
+}
