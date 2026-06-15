@@ -101,13 +101,9 @@ extension EnvironmentCodeCard {
                 Color.clear
                     .frame(width: 10)
                     .contentShape(Rectangle())
-                    .onHover { hovering in
-                        if hovering {
-                            NSCursor.resizeLeftRight.push()
-                        } else {
-                            NSCursor.pop()
-                        }
-                    }
+                    // Declarative, cross-platform cursor for a horizontal divider drag,
+                    // replacing manual NSCursor push/pop on hover (#287).
+                    .pointerStyle(.columnResize)
                     .gesture(
                         DragGesture()
                             .onChanged { value in
