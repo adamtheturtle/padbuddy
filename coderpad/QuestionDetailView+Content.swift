@@ -165,7 +165,7 @@ extension QuestionDetailView {
                 if instructions.isEmpty {
                     // #333: keep the section visible when there are no instructions
                     // yet, so the first part can be added in place.
-                    InlineEditableText(text: "", placeholder: "No candidate instructions yet.",
+                    InlineEditableText(text: "", placeholder: "Empty",
                                        label: "candidate instructions") { await commitInstruction(at: 0, text: $0) }
                 } else {
                     // Each part is edited independently (#334): committing one part
@@ -334,7 +334,7 @@ extension QuestionDetailView {
     /// a missing description can be added without a separate editor (#333, #335).
     var descriptionCard: some View {
         editableLongFormCard(title: "Description", text: question.description ?? "",
-                             placeholder: "No description yet.", label: "description") {
+                             placeholder: "Empty", label: "description") {
             await commitDescription($0)
         }
     }
@@ -342,7 +342,7 @@ extension QuestionDetailView {
     /// The question's solution, edited in place, always shown like the description.
     var solutionCard: some View {
         editableLongFormCard(title: "Solution", text: question.solution ?? "",
-                             placeholder: "No solution yet.", label: "solution") {
+                             placeholder: "Empty", label: "solution") {
             await commitSolution($0)
         }
     }
