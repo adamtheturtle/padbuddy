@@ -158,8 +158,11 @@ final class QuestionsCacheStore {
         questionsByAccount[accountID] = questions
         diskConsulted.insert(accountID)
         SpotlightIndexer.updateQuestions(questions, account: accountID)
-        // Refresh the widget's favourite-question titles for this account now that
-        // fresh questions (and their titles) are in hand.
+        // Keep stored favourite titles current now that fresh questions (and their
+        // titles) are in hand — this upgrades legacy id-only favourites and tracks
+        // renames, so the sidebar never shows a "Question #id" placeholder (#325).
+        FavoriteQuestionsStore.shared.refreshTitles(from: questions, account: accountID)
+        // Refresh the widget's favourite-question titles for this account too.
         WidgetSync.syncFavorites(account: accountID)
         writeQueue.enqueue {
             CacheDisk.save(questions, kind: "questions", account: accountID)

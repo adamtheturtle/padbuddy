@@ -406,8 +406,11 @@ struct Sidebar: View {
 
     /// The starred questions to show: the current account's in a single-account view,
     /// or every mergeable account's (in account order) in the combined "All Accounts"
-    /// view, so favorites stay reachable from the sidebar there too. Titles come from
-    /// each account's questions cache (warmed on launch), falling back to the id.
+    /// view, so favorites stay reachable from the sidebar there too. The title comes
+    /// from the live questions cache when present (so renames show through), else the
+    /// title stored with the favorite — so the name shows even before the list loads
+    /// (#325), and "Question #id" is only ever a last resort for a legacy favorite
+    /// whose question hasn't been seen yet.
     private var favoriteItems: [FavoriteItem] {
         if isMergedView {
             return accounts.mergeableAccounts.flatMap { favoriteItems(forAccount: $0.id, namespaced: true) }
@@ -417,18 +420,20 @@ struct Sidebar: View {
     }
 
     private func favoriteItems(forAccount account: UUID, namespaced: Bool) -> [FavoriteItem] {
-        let ids = favorites.favorites(account: account)
-        guard !ids.isEmpty else { return [] }
-        let titles = Dictionary(
+        let favorites = favorites.titledFavorites(account: account)
+        guard !favorites.isEmpty else { return [] }
+        let cacheTitles = Dictionary(
             questionsCache.get(account).map { ($0.id, $0.displayTitle) },
             uniquingKeysWith: { first, _ in first }
         )
-        return ids.map { id in
-            FavoriteItem(
-                id: namespaced ? "\(account.uuidString)-\(id)" : "\(id)",
-                questionID: id,
+        return favorites.map { favorite in
+            let resolved = cacheTitles[favorite.id]
+                ?? (favorite.title.isEmpty ? "Question #\(favorite.id)" : favorite.title)
+            return FavoriteItem(
+                id: namespaced ? "\(account.uuidString)-\(favorite.id)" : "\(favorite.id)",
+                questionID: favorite.id,
                 account: namespaced ? account : nil,
-                title: titles[id] ?? "Question #\(id)"
+                title: resolved
             )
         }
     }
@@ -509,7 +514,7 @@ struct Sidebar: View {
 
     private func unfavoriteQuestion(_ item: FavoriteItem) {
         guard let account = item.account ?? accountID else { return }
-        favorites.toggle(item.questionID, account: account)
+        favorites.toggle(item.questionID, title: item.title, account: account)
     }
 
     /// Pins each dropped pad or question to the account carried in its payload (the
@@ -522,8 +527,8 @@ struct Sidebar: View {
             case let .pad(account, id, _):
                 favoritePads.add(id, account: account)
                 accepted = true
-            case let .question(account, id, _):
-                favorites.add(id, account: account)
+            case let .question(account, id, title):
+                favorites.add(id, title: title, account: account)
                 accepted = true
             }
         }

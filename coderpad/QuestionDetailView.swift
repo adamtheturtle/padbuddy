@@ -225,7 +225,7 @@ struct QuestionDetailView: View {
 
     private func toggleFavorite() {
         guard let account = accounts.currentAccountID else { return }
-        favorites.toggle(question.id, account: account)
+        favorites.toggle(question.id, title: question.displayTitle, account: account)
     }
 
     /// Honors a "New Pad from Question" request routed via `AppNavigation` (e.g.

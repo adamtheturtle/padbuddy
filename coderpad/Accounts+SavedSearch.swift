@@ -190,6 +190,15 @@ final class SavedSearchStore {
     }
 }
 
+/// One starred question: its per-org id plus the title captured when it was
+/// favorited. Persisting the title lets the sidebar show the question's name
+/// immediately — even before the questions list has loaded — instead of a
+/// "Question #id" placeholder (#325).
+struct FavoriteQuestion: Codable, Hashable {
+    let id: Int
+    var title: String
+}
+
 /// Per-account favorite ("starred") questions, identified by question id. A
 /// favorite is a quick-access marker: starred questions float to the top of the
 /// Questions list and lead the menu bar's "New Pad from Question" submenu, so a
@@ -197,40 +206,59 @@ final class SavedSearchStore {
 /// account — a question id only means something within the org that owns it — and
 /// persisted to UserDefaults as a single JSON blob keyed by account id. The
 /// stored array keeps insertion order so the menu bar can lead with the questions
-/// the user starred first.
+/// the user starred first. Each entry also carries the question's title (see
+/// ``FavoriteQuestion``) so the sidebar never has to fall back to its bare id.
 @Observable
 final class FavoriteQuestionsStore {
     static let shared = FavoriteQuestionsStore()
-    private var byAccount: [UUID: [Int]] = [:]
-    private static let key = "favoriteQuestions.v1"
+    private var byAccount: [UUID: [FavoriteQuestion]] = [:]
+    private static let key = "favoriteQuestions.v2"
+    private static let legacyKey = "favoriteQuestions.v1"
 
     private init() {
         if let data = UserDefaults.standard.data(forKey: Self.key),
-           let decoded = try? JSONDecoder().decode([UUID: [Int]].self, from: data) {
+           let decoded = try? JSONDecoder().decode([UUID: [FavoriteQuestion]].self, from: data) {
             byAccount = decoded
+        } else if let data = UserDefaults.standard.data(forKey: Self.legacyKey),
+                  let legacy = try? JSONDecoder().decode([UUID: [Int]].self, from: data) {
+            // Carry id-only favorites saved before titles were stored into the new
+            // shape with empty titles; they're backfilled from the cache by
+            // `refreshTitles` as soon as the account's questions load.
+            byAccount = legacy.mapValues { ids in ids.map { FavoriteQuestion(id: $0, title: "") } }
+            save()
+            UserDefaults.standard.removeObject(forKey: Self.legacyKey)
         }
     }
 
+    /// The favorite question ids in starred order, for membership tests, sorting,
+    /// and the menu bar — the callers that only care about identity, not titles.
     func favorites(account: UUID?) -> [Int] {
+        guard let account else { return [] }
+        return (byAccount[account] ?? []).map(\.id)
+    }
+
+    /// The favorite questions with their stored titles, in starred order, for the
+    /// sidebar rows that show a name.
+    func titledFavorites(account: UUID?) -> [FavoriteQuestion] {
         guard let account else { return [] }
         return byAccount[account] ?? []
     }
 
     func isFavorite(_ id: Int, account: UUID?) -> Bool {
         guard let account else { return false }
-        return byAccount[account]?.contains(id) ?? false
+        return byAccount[account]?.contains { $0.id == id } ?? false
     }
 
     /// Adds the question to favorites if absent, removes it if present. New
     /// favorites append to the end so the existing order is preserved.
-    func toggle(_ id: Int, account: UUID) {
-        var ids = byAccount[account] ?? []
-        if let index = ids.firstIndex(of: id) {
-            ids.remove(at: index)
+    func toggle(_ id: Int, title: String, account: UUID) {
+        var entries = byAccount[account] ?? []
+        if let index = entries.firstIndex(where: { $0.id == id }) {
+            entries.remove(at: index)
         } else {
-            ids.append(id)
+            entries.append(FavoriteQuestion(id: id, title: title))
         }
-        byAccount[account] = ids
+        byAccount[account] = entries
         save()
         // Keep the New Pad widget button's question picker in step with this account's
         // favourites.
@@ -240,11 +268,11 @@ final class FavoriteQuestionsStore {
     /// Favorites the question if it isn't already, preserving order. Used by the
     /// sidebar drop target, where a drop should only ever add a favorite (never
     /// remove one), so a no-op when it's already starred.
-    func add(_ id: Int, account: UUID) {
-        var ids = byAccount[account] ?? []
-        guard !ids.contains(id) else { return }
-        ids.append(id)
-        byAccount[account] = ids
+    func add(_ id: Int, title: String, account: UUID) {
+        var entries = byAccount[account] ?? []
+        guard !entries.contains(where: { $0.id == id }) else { return }
+        entries.append(FavoriteQuestion(id: id, title: title))
+        byAccount[account] = entries
         save()
         WidgetSync.syncFavorites(account: account)
     }
@@ -252,14 +280,37 @@ final class FavoriteQuestionsStore {
     /// Reorders `id` to sit immediately before `targetID`, persisting the new order
     /// (drag-to-reorder in the sidebar, #299). A no-op if either id isn't present.
     func move(_ id: Int, before targetID: Int, account: UUID) {
-        var ids = byAccount[account] ?? []
-        guard let from = ids.firstIndex(of: id), ids.contains(targetID), id != targetID else { return }
-        ids.remove(at: from)
-        let insertAt = ids.firstIndex(of: targetID) ?? ids.count
-        ids.insert(id, at: insertAt)
-        byAccount[account] = ids
+        var entries = byAccount[account] ?? []
+        guard let from = entries.firstIndex(where: { $0.id == id }),
+              entries.contains(where: { $0.id == targetID }), id != targetID else { return }
+        let moved = entries.remove(at: from)
+        let insertAt = entries.firstIndex(where: { $0.id == targetID }) ?? entries.count
+        entries.insert(moved, at: insertAt)
+        byAccount[account] = entries
         save()
         WidgetSync.syncFavorites(account: account)
+    }
+
+    /// Updates stored titles from a freshly loaded question list, so a favorite's
+    /// name stays current after a rename and legacy id-only favorites gain a title.
+    /// Called when an account's questions cache is refreshed; a no-op when nothing
+    /// actually changed, so it doesn't churn the store on every load.
+    func refreshTitles(from questions: [Question], account: UUID) {
+        guard var entries = byAccount[account], !entries.isEmpty else { return }
+        let titles = Dictionary(
+            questions.map { ($0.id, $0.displayTitle) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        var changed = false
+        for index in entries.indices {
+            guard let title = titles[entries[index].id],
+                  !title.isEmpty, title != entries[index].title else { continue }
+            entries[index].title = title
+            changed = true
+        }
+        guard changed else { return }
+        byAccount[account] = entries
+        save()
     }
 
     private func save() {
