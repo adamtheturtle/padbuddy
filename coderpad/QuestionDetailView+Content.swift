@@ -393,7 +393,7 @@ struct InlineEditableText: View {
     }
 
     private var display: some View {
-        HStack(alignment: .top, spacing: 8) {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
             Group {
                 if text.isEmpty {
                     Text(placeholder)
