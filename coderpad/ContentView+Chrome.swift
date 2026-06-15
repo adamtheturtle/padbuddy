@@ -11,8 +11,12 @@ struct UnauthorizedBanner: View {
 
     var body: some View {
         HStack(spacing: 10) {
+            // Decorative: the banner text already states the key was rejected, so the
+            // symbol is hidden from VoiceOver rather than announced as "exclamationmark
+            // shield fill, image" before the message.
             Image(systemName: "exclamationmark.shield.fill")
                 .foregroundStyle(.orange)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text("This API key was rejected by CoderPad")
                     .font(.callout.weight(.semibold))
@@ -46,8 +50,11 @@ struct UnauthorizedBanner: View {
 struct OfflineBanner: View {
     var body: some View {
         HStack(spacing: 10) {
+            // Decorative: the "You're offline" text carries the meaning, so the symbol
+            // is hidden from VoiceOver rather than read out as a separate element.
             Image(systemName: "wifi.slash")
                 .foregroundStyle(.orange)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text("You’re offline")
                     .font(.callout.weight(.semibold))
