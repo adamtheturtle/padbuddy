@@ -12,7 +12,9 @@ struct PadDetailView: View {
     @State var events: [PadEvent] = []
     @State var environments: [PadEnvironment] = []
     @State var loadError: Error?
-    @State var isLoading = false
+    // Starts true so the Events section shows its spinner on the first frame
+    // rather than flashing "No events yet." before `load()` begins.
+    @State var isLoading = true
     @State var browserURL: URL?
     // Inline-editable field drafts, seeded from the pad and committed one field at
     // a time. Each control binds to its draft for an immediate, optimistic update;
@@ -32,6 +34,21 @@ struct PadDetailView: View {
     @Environment(\.openWindow) private var openWindow
     @Environment(\.orgDirectory) var directory
     @Environment(\.colorScheme) var colorScheme
+
+    // Seed the editable drafts from the pad up front so the title and properties
+    // render with their real values on the very first frame. The view is recreated
+    // per pad (`.id(pad.id)`), so this runs on every pad switch; without it the
+    // fields briefly showed their placeholder defaults before `seedDrafts()` ran in
+    // an `.onChange(initial: true)` a frame later, flashing the title blank-to-filled.
+    init(client: CoderPadClient, pad: Pad) {
+        self.client = client
+        self.pad = pad
+        _titleDraft = State(initialValue: pad.title)
+        _draftLanguage = State(initialValue: pad.language ?? "python3")
+        _draftOwner = State(initialValue: pad.ownerEmail)
+        _draftIsPrivate = State(initialValue: pad.isPrivate ?? false)
+        _draftExecution = State(initialValue: pad.executionEnabled ?? true)
+    }
 
     // Detail-column actions live in the unified window toolbar rather than in
     // the content header: there they float on the system Liquid Glass layer

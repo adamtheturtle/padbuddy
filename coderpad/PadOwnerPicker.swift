@@ -129,14 +129,20 @@ struct SearchableOwnerPicker: View {
     @State private var isPresented = false
     @State private var query = ""
     @FocusState private var searchFocused: Bool
+    @Environment(\.orgDirectory) private var directory
 
     private var trimmedOwner: String {
         ownerEmail.trimmingCharacters(in: .whitespaces)
     }
 
     private func displayName(forEmail email: String) -> String? {
+        // Fall back to the app-wide org directory (seeded from disk, so already
+        // populated) when `users` hasn't loaded yet. Without it the closed button
+        // showed the raw email on first render and flashed to the name a moment
+        // later, once this pad's `orgUsers` fetch returned.
         users.first { $0.email.caseInsensitiveCompare(email) == .orderedSame }?.name?
             .nilIfEmpty
+            ?? directory.name(for: email)
     }
 
     /// The current account's email, when known — used to recognize an explicitly
