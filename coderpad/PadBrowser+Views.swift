@@ -193,9 +193,7 @@ struct PadBrowserView: View {
                 .accessibilityLabel("Open in Browser")
 
                 Button {
-                    let pasteboard = NSPasteboard.general
-                    pasteboard.clearContents()
-                    pasteboard.setString((controller.currentURL ?? url).absoluteString, forType: .string)
+                    Clipboard.copy((controller.currentURL ?? url).absoluteString)
                 } label: {
                     Image(systemName: "doc.on.doc")
                 }

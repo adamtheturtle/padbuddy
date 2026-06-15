@@ -117,32 +117,28 @@ struct PadCommands: Commands {
 
             Button("Copy Pad ID") {
                 guard let pad else { return }
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(pad.id, forType: .string)
+                Clipboard.copy(pad.id)
             }
             .keyboardShortcut("c", modifiers: [.command, .shift])
             .disabled(pad == nil)
 
             Button("Copy Pad URL") {
                 guard let pad else { return }
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(pad.url, forType: .string)
+                Clipboard.copy(pad.url)
             }
             .keyboardShortcut("c", modifiers: [.command, .option])
             .disabled(pad == nil)
 
             Button("Copy Pad Title") {
                 guard let pad else { return }
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(pad.title.isEmpty ? pad.id : pad.title, forType: .string)
+                Clipboard.copy(pad.title.isEmpty ? pad.id : pad.title)
             }
             .disabled(pad == nil)
 
             Button("Copy as Markdown") {
                 guard let pad else { return }
                 let title = pad.title.isEmpty ? pad.id : pad.title
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString("[\(title)](\(pad.url))", forType: .string)
+                Clipboard.copy("[\(title)](\(pad.url))")
             }
             .disabled(pad == nil)
 
@@ -236,24 +232,21 @@ struct QuestionCommands: Commands {
 
             Button("Copy Question ID") {
                 guard let question else { return }
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(String(question.id), forType: .string)
+                Clipboard.copy(String(question.id))
             }
             .keyboardShortcut("c", modifiers: [.command, .shift])
             .disabled(question == nil)
 
             Button("Copy Question URL") {
                 guard let questionURL else { return }
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(questionURL.absoluteString, forType: .string)
+                Clipboard.copy(questionURL.absoluteString)
             }
             .keyboardShortcut("c", modifiers: [.command, .option])
             .disabled(questionURL == nil)
 
             Button("Copy Question Title") {
                 guard let question else { return }
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(question.displayTitle, forType: .string)
+                Clipboard.copy(question.displayTitle)
             }
             .disabled(question == nil)
 
