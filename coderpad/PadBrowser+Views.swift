@@ -223,11 +223,12 @@ struct PadBrowserView: View {
     }
 
     private var urlLabel: some View {
-        HStack(spacing: 6) {
+        let address = controller.currentURL?.absoluteString ?? url.absoluteString
+        return HStack(spacing: 6) {
             Image(systemName: lockIcon)
                 .foregroundStyle(lockTint)
                 .font(.caption)
-            Text(controller.currentURL?.absoluteString ?? url.absoluteString)
+            Text(address)
                 .font(.callout.monospaced())
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
@@ -237,13 +238,24 @@ struct PadBrowserView: View {
         .padding(.vertical, 4)
         .background(Color.subtleStroke.opacity(0.7),
                     in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+        // The lock is icon- and color-only, so VoiceOver would otherwise announce a
+        // bare symbol name and miss the security state entirely. Read the bar as one
+        // element that names whether the connection is secure, then the address (#79).
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(isSecure ? "Secure" : "Not secure"), \(address)")
+    }
+
+    /// Whether the displayed page is loaded over HTTPS, driving both the lock glyph
+    /// and its tint (and the spoken security state above).
+    private var isSecure: Bool {
+        ((controller.currentURL ?? url).scheme ?? "").lowercased() == "https"
     }
 
     private var lockIcon: String {
-        ((controller.currentURL ?? url).scheme ?? "").lowercased() == "https" ? "lock" : "lock.open"
+        isSecure ? "lock" : "lock.open"
     }
 
     private var lockTint: Color {
-        ((controller.currentURL ?? url).scheme ?? "").lowercased() == "https" ? .green : .orange
+        isSecure ? .green : .orange
     }
 }
