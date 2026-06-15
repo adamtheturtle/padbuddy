@@ -185,10 +185,10 @@ extension EnvironmentCodeCard {
                 Text(title)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
-                Text(text)
+                // The model returns Markdown (bold, inline code, lists), so render it
+                // rather than showing the raw `**…**`/backtick markers as text (#342).
+                MarkdownText(text)
                     .font(.callout)
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
     }
