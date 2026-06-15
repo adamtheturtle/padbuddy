@@ -76,6 +76,15 @@ struct MainSplit: View {
     /// the next resize.
     @State private var containerWidth: CGFloat = 0
 
+    /// Gates the once-per-launch restore of the saved sidebar collapse state (#273),
+    /// so reasserting it never fights a manual toggle made later in the session.
+    @State private var didRestoreSidebar = false
+
+    /// UserDefaults key for the user's deliberate sidebar collapse choice, resumed on
+    /// the next launch (#273). A window-layout preference, so it's global rather than
+    /// per-account like the selection/filter state.
+    private static let sidebarCollapsedKey = "sidebar.collapsed"
+
     /// Floor for the content column: the natural width of the active section's
     /// filter bar, so it can never be dragged too thin to hold all filters.
     @State private var contentMinWidth: CGFloat = 380
@@ -189,6 +198,32 @@ struct MainSplit: View {
         } else {
             keepSidebarWhileNarrow = false
         }
+    }
+
+    /// Remembers whether the user left the sidebar collapsed, so the next launch
+    /// resumes that choice (#273). Skips width-driven auto-collapses (`autoCollapsed`)
+    /// — those reflect a too-narrow window, not a deliberate decision — so only a real
+    /// toggle is persisted.
+    private func persistSidebarCollapsed(_ visibility: NavigationSplitViewVisibility) {
+        guard !autoCollapsed else { return }
+        UserDefaults.standard.set(visibility != .all, forKey: Self.sidebarCollapsedKey)
+    }
+
+    /// Restores the saved sidebar collapse state once per launch (#273). Maps the
+    /// stored Bool back to the hidden state that matches the current column count
+    /// (`.doubleColumn` keeps the content list beside the detail in three-column
+    /// sections; `.detailOnly` is the lone hide for two-column ones). The width-driven
+    /// auto-collapse still corrects this afterward if the window is too narrow to hold
+    /// an expanded sidebar, so a restored "expanded" never overflows a small window.
+    private func restoreSidebarCollapsedIfNeeded() {
+        guard !didRestoreSidebar else { return }
+        didRestoreSidebar = true
+        guard UserDefaults.standard.object(forKey: Self.sidebarCollapsedKey) != nil else { return }
+        let collapsed = UserDefaults.standard.bool(forKey: Self.sidebarCollapsedKey)
+        let target: NavigationSplitViewVisibility = collapsed
+            ? (sectionHasDetail ? .doubleColumn : .detailOnly)
+            : .all
+        if columnVisibility != target { columnVisibility = target }
     }
 
     // MARK: Selection restore (#273)
@@ -358,8 +393,11 @@ struct MainSplit: View {
         }
         .onChange(of: containerWidth) { _, width in updateSidebarCollapse(for: width) }
         // Honor a deliberate reopen in a too-narrow window so the auto-collapse doesn't
-        // fight the toggle (#307).
-        .onChange(of: columnVisibility) { _, visibility in handleVisibilityChange(to: visibility) }
+        // fight the toggle (#307), and remember a deliberate collapse for next launch (#273).
+        .onChange(of: columnVisibility) { _, visibility in
+            handleVisibilityChange(to: visibility)
+            persistSidebarCollapsed(visibility)
+        }
         // A section change moves the threshold (three columns vs. two), so
         // re-evaluate against the width we already know.
         .onChange(of: section) { _, _ in
@@ -371,6 +409,8 @@ struct MainSplit: View {
                    let restored = AppSection(rawValue: raw) {
                     section = restored
                 }
+                // Section is settled, so the collapse can map to the right column count.
+                restoreSidebarCollapsedIfNeeded()
                 // The owner column spans every org in the merged view, so load and
                 // union all the real accounts' member directories at once.
                 await directory.loadMerged(for: store.mergeableAccounts)
@@ -381,6 +421,8 @@ struct MainSplit: View {
                    let restored = AppSection(rawValue: raw) {
                     section = restored
                 }
+                // Section is settled, so the collapse can map to the right column count.
+                restoreSidebarCollapsedIfNeeded()
                 // Warm the list(s) not currently on screen right away — concurrently with
                 // the directory and health checks rather than queued behind them — so the
                 // first switch to Pads/Questions has data ready instead of a spinner.
