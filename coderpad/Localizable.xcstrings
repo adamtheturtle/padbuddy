@@ -45,7 +45,14 @@
       }
     },
     "(empty)" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "(vacío)"
+          }
+        }
+      }
     },
     "(no email)" : {
       "localizations" : {
@@ -120,7 +127,14 @@
       }
     },
     "%lld" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%lld"
+          }
+        }
+      }
     },
     "%lld of %lld pads used" : {
       "localizations" : {
@@ -255,7 +269,14 @@
       }
     },
     "All Accounts" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Todas las cuentas"
+          }
+        }
+      }
     },
     "Any time" : {
       "localizations" : {
@@ -271,7 +292,14 @@
 
     },
     "Apply" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Aplicar"
+          }
+        }
+      }
     },
     "Apply saved search %@" : {
 
@@ -327,7 +355,14 @@
       }
     },
     "Bad key" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Clave no válida"
+          }
+        }
+      }
     },
     "Browser" : {
       "localizations" : {
@@ -340,7 +375,14 @@
       }
     },
     "by %@" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "por %@"
+          }
+        }
+      }
     },
     "Cancel" : {
       "localizations" : {
@@ -636,7 +678,14 @@
       }
     },
     "Couldn’t load this pad" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudo cargar este pad"
+          }
+        }
+      }
     },
     "Couldn’t load whiteboard" : {
       "localizations" : {
@@ -711,13 +760,34 @@
 
     },
     "Current" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Actual"
+          }
+        }
+      }
     },
     "Custom %@ Range" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Rango personalizado de %@"
+          }
+        }
+      }
     },
     "Custom…" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Personalizado…"
+          }
+        }
+      }
     },
     "Default" : {
       "localizations" : {
@@ -864,7 +934,14 @@
       }
     },
     "Delete Pad" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Eliminar pad"
+          }
+        }
+      }
     },
     "Delete Pad…" : {
 
@@ -933,7 +1010,14 @@
       }
     },
     "Delete…" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Eliminar…"
+          }
+        }
+      }
     },
     "Deleting “%@”…" : {
       "localizations" : {
@@ -1079,7 +1163,14 @@
       }
     },
     "Edit Pad…" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Editar pad…"
+          }
+        }
+      }
     },
     "Edit title" : {
       "localizations" : {
@@ -1092,7 +1183,14 @@
       }
     },
     "End Interview" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Finalizar entrevista"
+          }
+        }
+      }
     },
     "End Interview…" : {
       "localizations" : {
@@ -1118,7 +1216,14 @@
       }
     },
     "Ending the interview stops the live session for all participants." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Finalizar la entrevista detiene la sesión en vivo para todos los participantes."
+          }
+        }
+      }
     },
     "Execution enabled" : {
       "localizations" : {
@@ -1141,7 +1246,14 @@
       }
     },
     "Explanation" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Explicación"
+          }
+        }
+      }
     },
     "Favorite" : {
       "localizations" : {
@@ -1154,7 +1266,14 @@
       }
     },
     "Favorited" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "En favoritos"
+          }
+        }
+      }
     },
     "Find" : {
       "localizations" : {
@@ -1167,7 +1286,14 @@
       }
     },
     "Forward" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Adelante"
+          }
+        }
+      }
     },
     "From" : {
       "localizations" : {
@@ -1196,7 +1322,14 @@
 
     },
     "Go" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Ir"
+          }
+        }
+      }
     },
     "Go to" : {
 
@@ -1208,10 +1341,24 @@
 
     },
     "Hide the API key." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Oculta la clave de API."
+          }
+        }
+      }
     },
     "How often pads and questions reload in the background." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Con qué frecuencia se recargan los pads y las preguntas en segundo plano."
+          }
+        }
+      }
     },
     "https://app.coderpad.io/…" : {
 
@@ -1276,7 +1423,14 @@
 
     },
     "Loading pads…" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Cargando pads…"
+          }
+        }
+      }
     },
     "Loading questions…" : {
 
@@ -1312,7 +1466,14 @@
       }
     },
     "Mark All as Seen" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Marcar todo como visto"
+          }
+        }
+      }
     },
     "Menu Bar" : {
 
@@ -1328,7 +1489,14 @@
       }
     },
     "My Pads · %@" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mis Pads · %@"
+          }
+        }
+      }
     },
     "Name" : {
       "localizations" : {
@@ -1371,13 +1539,27 @@
       }
     },
     "New Pad…" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Nuevo pad…"
+          }
+        }
+      }
     },
     "New Question" : {
 
     },
     "New Question…" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Nueva pregunta…"
+          }
+        }
+      }
     },
     "Next Section" : {
       "localizations" : {
@@ -1410,7 +1592,14 @@
       }
     },
     "No Account Selected" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No hay ninguna cuenta seleccionada"
+          }
+        }
+      }
     },
     "No accounts" : {
       "localizations" : {
@@ -1496,13 +1685,27 @@
       }
     },
     "No pads" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No hay pads"
+          }
+        }
+      }
     },
     "No Pads" : {
 
     },
     "No pads match the current filters." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Ningún pad coincide con los filtros actuales."
+          }
+        }
+      }
     },
     "No Questions" : {
       "localizations" : {
@@ -1515,7 +1718,14 @@
       }
     },
     "No questions match “%@”" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Ninguna pregunta coincide con «%@»"
+          }
+        }
+      }
     },
     "No questions match the current filters." : {
       "localizations" : {
@@ -1640,7 +1850,14 @@
       }
     },
     "Open Main Window" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Abrir ventana principal"
+          }
+        }
+      }
     },
     "Open pad" : {
 
@@ -1694,10 +1911,24 @@
 
     },
     "Open Settings and update or replace the key for this account." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Abre Ajustes y actualiza o reemplaza la clave de esta cuenta."
+          }
+        }
+      }
     },
     "Open sign-in portal" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Abrir portal de inicio de sesión"
+          }
+        }
+      }
     },
     "Open the current page in your default browser" : {
       "localizations" : {
@@ -1882,7 +2113,14 @@
       }
     },
     "Print…" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Imprimir…"
+          }
+        }
+      }
     },
     "Private" : {
       "localizations" : {
@@ -1895,7 +2133,14 @@
       }
     },
     "Projected ~%lld by reset" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Previsto ~%lld al restablecer"
+          }
+        }
+      }
     },
     "Public take-home link configured" : {
       "localizations" : {
@@ -2011,7 +2256,14 @@
       }
     },
     "Reload" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Recargar"
+          }
+        }
+      }
     },
     "Reload (hold ⌥ to reload without cache)" : {
       "localizations" : {
@@ -2235,7 +2487,14 @@
       }
     },
     "Share" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Compartir"
+          }
+        }
+      }
     },
     "Share a link to this question" : {
 
@@ -2261,13 +2520,27 @@
       }
     },
     "Share Question…" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Compartir pregunta…"
+          }
+        }
+      }
     },
     "Share…" : {
 
     },
     "Show %@ Questions" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mostrar preguntas en %@"
+          }
+        }
+      }
     },
     "Show API key" : {
       "localizations" : {
@@ -2289,10 +2562,24 @@
 
     },
     "Show only started pads" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mostrar solo pads iniciados"
+          }
+        }
+      }
     },
     "Show pads from %@" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mostrar pads de %@"
+          }
+        }
+      }
     },
     "Show Pads from %@" : {
 
@@ -2354,7 +2641,14 @@
       }
     },
     "Some third-party browsers don't support this." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Algunos navegadores de terceros no admiten esto."
+          }
+        }
+      }
     },
     "Something went wrong" : {
       "localizations" : {
@@ -2456,7 +2750,14 @@
       }
     },
     "Text to search pad titles, owners, and participants for." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Texto que buscar en los títulos, propietarios y participantes de los pads."
+          }
+        }
+      }
     },
     "The 8-character pad identifier." : {
       "localizations" : {
@@ -2682,7 +2983,14 @@
       }
     },
     "Validating API key…" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Validando la clave de API…"
+          }
+        }
+      }
     },
     "Version %@" : {
 
@@ -2751,7 +3059,14 @@
       }
     },
     "You’re offline" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Estás sin conexión"
+          }
+        }
+      }
     },
     "Your plan has unlimited pads." : {
       "localizations" : {
