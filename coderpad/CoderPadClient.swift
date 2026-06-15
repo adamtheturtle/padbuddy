@@ -9,11 +9,12 @@
 
 import Foundation
 import os.log
+import PaginatedRESTClient
 
 // MARK: - Pagination
 
 // The generic `PagedResponse` protocol and the paginated transport that consumes it
-// live in `PaginatedRESTClient.swift` (#151). The page envelopes below are
+// live in the `PaginatedRESTClient` package (#151). The page envelopes below are
 // CoderPad-specific, so they stay here and conform to that protocol.
 
 private nonisolated struct PadsPage: PagedResponse {
@@ -131,7 +132,8 @@ struct CoderPadClient {
             session: session,
             decoderFactory: CoderPadClient.makeDecoder,
             encoderFactory: CoderPadClient.makeEncoder,
-            errors: CoderPadErrorMapping()
+            errors: CoderPadErrorMapping(),
+            logger: apiLogger
         )
     }
 

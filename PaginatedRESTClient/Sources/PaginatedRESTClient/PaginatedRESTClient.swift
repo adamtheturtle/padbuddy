@@ -1,22 +1,22 @@
 //
 //  PaginatedRESTClient.swift
-//  coderpad
+//  PaginatedRESTClient
 //
 //  A generic, domain-free transport for paginated, bearer-authenticated REST APIs:
 //  request building, retry with exponential backoff, concurrent multi-page fetching,
-//  and background JSON decoding. Extracted from `CoderPadClient` (#151) so the
-//  transport concern is reusable and unit-testable apart from the CoderPad-specific
-//  models and endpoints, which compose it (see `CoderPadClient`).
+//  and background JSON decoding. Extracted from the coderpad app's `CoderPadClient`
+//  (#151) into its own package so the transport concern is reusable and unit-testable
+//  apart from the CoderPad-specific models and endpoints, which compose it.
 //
-//  The decoder, request-body encoder, and the error mapping are all injected, so
-//  nothing here knows the CoderPad date quirks, model shapes, or error type. The
-//  transport builds its failures through an injected `RESTTransportErrorMapping`
-//  rather than naming a domain error, so it carries no CoderPad coupling and is ready
-//  to be pulled into its own Swift package as-is (#151).
+//  The decoder, request-body encoder, error mapping, and logger are all injected, so
+//  nothing here knows the CoderPad date quirks, model shapes, error type, or logging
+//  subsystem. The transport builds its failures through an injected
+//  `RESTTransportErrorMapping` rather than naming a domain error, so it carries no
+//  CoderPad coupling.
 //
 
 import Foundation
-import os.log
+import os
 
 // MARK: - Pagination
 
@@ -27,7 +27,7 @@ import os.log
 /// `total` (the count across all pages, when the endpoint reports it) lets the client
 /// compute the page count from the first response and fetch the rest concurrently,
 /// rather than walking `next_page` one blocking round-trip at a time.
-protocol PagedResponse: Decodable, Sendable {
+public protocol PagedResponse: Decodable, Sendable {
     associatedtype Item: Decodable & Sendable
     // `nonisolated` so the pagination pipeline can read these off the main actor
     // (see `streamAllPages`); without it the module's default MainActor isolation
@@ -42,7 +42,7 @@ protocol PagedResponse: Decodable, Sendable {
     nonisolated static func identity(of item: Item) -> AnyHashable?
 }
 
-extension PagedResponse {
+public extension PagedResponse {
     nonisolated static func identity(of _: Item) -> AnyHashable? { nil }
 }
 
@@ -52,12 +52,12 @@ extension PagedResponse {
 /// file names no domain-specific error. The client decides how a missing key, an HTTP
 /// status, a decode failure, or a transport-level `URLError` becomes its error, and which
 /// already-mapped errors are transient (retry-worthy). Lifting the concrete error out this
-/// way is what keeps the transport reusable and lets it move into its own package (#151).
+/// way is what keeps the transport reusable across APIs.
 ///
 /// `nonisolated` requirements (like `PagedResponse`) so the mapping can be called from the
 /// off-main pagination pipeline rather than being pinned to the module's default MainActor
 /// isolation.
-protocol RESTTransportErrorMapping: Sendable {
+public protocol RESTTransportErrorMapping: Sendable {
     nonisolated func missingAPIKey() -> Error
     nonisolated func http(status: Int, body: String) -> Error
     nonisolated func decode(_ detail: String) -> Error
@@ -73,7 +73,7 @@ protocol RESTTransportErrorMapping: Sendable {
 /// methods are `nonisolated`: it lets the pagination pipeline run off the main actor
 /// (see `streamAllPages`) rather than being pinned to it by the module's default
 /// MainActor isolation.
-struct PaginatedRESTClient {
+public struct PaginatedRESTClient {
     nonisolated let apiKey: String
     nonisolated let baseURL: URL
     nonisolated let session: URLSession
@@ -89,14 +89,18 @@ struct PaginatedRESTClient {
     /// Builds the transport's failures as the composing client's error type, so this file
     /// names no domain error (see `RESTTransportErrorMapping`).
     nonisolated let errors: any RESTTransportErrorMapping
+    /// Where retry diagnostics go. Injected so the package owns no logging subsystem;
+    /// `Logger` is `Sendable`, so it travels into the nonisolated pagination methods.
+    nonisolated let logger: Logger
 
-    init(
+    public init(
         apiKey: String,
         baseURL: URL,
         session: URLSession,
         decoderFactory: @escaping @Sendable () -> JSONDecoder,
         encoderFactory: @escaping @Sendable () -> JSONEncoder,
-        errors: any RESTTransportErrorMapping
+        errors: any RESTTransportErrorMapping,
+        logger: Logger
     ) {
         self.apiKey = apiKey
         self.baseURL = baseURL
@@ -104,9 +108,10 @@ struct PaginatedRESTClient {
         self.decoderFactory = decoderFactory
         self.encoderFactory = encoderFactory
         self.errors = errors
+        self.logger = logger
     }
 
-    nonisolated func authorizedGET(_ url: URL) -> URLRequest {
+    public nonisolated func authorizedGET(_ url: URL) -> URLRequest {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
@@ -114,14 +119,14 @@ struct PaginatedRESTClient {
         return request
     }
 
-    func fetch<T: Decodable & Sendable>(_ type: T.Type, path: String) async throws -> T {
+    public func fetch<T: Decodable & Sendable>(_ type: T.Type, path: String) async throws -> T {
         guard !apiKey.isEmpty else { throw errors.missingAPIKey() }
         return try await performWithRetry(type, request: authorizedGET(baseURL.appending(path: path)))
     }
 
     /// Accumulates every page of a paginated list endpoint. Convenience over
     /// `streamAllPages` for callers that only want the final, complete list.
-    func fetchAllPages<W: PagedResponse>(
+    public func fetchAllPages<W: PagedResponse>(
         _: W.Type,
         path: String,
         sort: String? = nil
@@ -145,7 +150,7 @@ struct PaginatedRESTClient {
     /// cursor-style pagination) fall back to walking `next_page` sequentially, emitting a
     /// snapshot per page. Without this whole mechanism, callers would silently receive only
     /// the first 50 records.
-    func streamAllPages<W: PagedResponse>(
+    public func streamAllPages<W: PagedResponse>(
         _: W.Type,
         path: String,
         sort: String? = nil
@@ -311,7 +316,7 @@ struct PaginatedRESTClient {
     /// GET requests are idempotent, so transient failures (5xx, 429, network timeouts)
     /// are retried with exponential backoff before the error surfaces to the UI. Mutating
     /// requests go straight through `perform` to avoid duplicating side effects.
-    nonisolated func performWithRetry<T: Decodable & Sendable>(
+    public nonisolated func performWithRetry<T: Decodable & Sendable>(
         _ type: T.Type,
         request: URLRequest,
         maxAttempts: Int = 3
@@ -323,7 +328,7 @@ struct PaginatedRESTClient {
             } catch {
                 attempt += 1
                 guard attempt < maxAttempts, errors.isTransient(error) else { throw error }
-                apiLogger.debug(
+                logger.debug(
                     """
                     Transient failure on \(request.url?.path ?? "", privacy: .public); \
                     retry \(attempt)/\(maxAttempts - 1)
@@ -336,7 +341,7 @@ struct PaginatedRESTClient {
         }
     }
 
-    func send<T: Decodable & Sendable>(
+    public func send<T: Decodable & Sendable>(
         _ type: T.Type,
         method: String,
         path: String,
@@ -352,7 +357,7 @@ struct PaginatedRESTClient {
         return try await perform(type, request: request)
     }
 
-    func perform<T: Decodable & Sendable>(_ type: T.Type, request: URLRequest) async throws -> T {
+    public func perform<T: Decodable & Sendable>(_ type: T.Type, request: URLRequest) async throws -> T {
         let data: Data
         let response: URLResponse
         do {

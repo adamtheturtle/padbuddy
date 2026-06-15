@@ -4,3 +4,6 @@ xcuserdata/
 DerivedData/
 build/
 build_release/
+
+# Swift Package Manager build artifacts (per-machine; contain absolute paths)
+.build/
