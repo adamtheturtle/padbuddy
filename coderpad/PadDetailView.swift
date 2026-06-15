@@ -57,8 +57,11 @@ struct PadDetailView: View {
     // (Reload, New Pad). Delete Pad sits in its own trailing group behind a
     // second spacer; it requires a confirmation dialog, so surfacing it
     // directly can't trigger an irreversible action from a stray click. Save
-    // Code and End Interview stay out of the toolbar to keep it uncrowded and
-    // remain available from the Pad menu.
+    // Code stays out of the toolbar (menu-only) to keep it uncrowded. End
+    // Interview is offered as an opt-in customizable item, hidden by default
+    // (see `.defaultCustomization(.hidden)`), so it never crowds the toolbar
+    // unless the user adds it via Customize Toolbar; it also stays on the Pad
+    // menu.
     @ToolbarContentBuilder
     private var detailToolbar: some CustomizableToolbarContent {
         if #available(macOS 26, *) {
@@ -116,6 +119,19 @@ struct PadDetailView: View {
             .disabled(isMutating)
             .help("Delete this pad")
         }
+        // Opt-in only: hidden by default in the customizable toolbar so it
+        // doesn't crowd the common case, but available to add for users who end
+        // interviews often. Routes through the same confirmation as the Pad menu.
+        ToolbarItem(id: "end-interview", placement: .primaryAction) {
+            Button(role: .destructive) {
+                showEndConfirm = true
+            } label: {
+                Label("End Interview", systemImage: "stop.circle")
+            }
+            .disabled(isMutating || pad.status != .active)
+            .help("End the live interview session")
+        }
+        .defaultCustomization(.hidden)
     }
 
     var body: some View {
