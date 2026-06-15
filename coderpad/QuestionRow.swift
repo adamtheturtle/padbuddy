@@ -75,11 +75,35 @@ struct QuestionRow: View {
                         .accessibilityLabel("Last used \(lastUsed.formatted(.relative(presentation: .named)))")
                 }
             }
+            // Read the title + metadata block as one VoiceOver element with a
+            // coherent label (mirroring PadRow), rather than stopping on each chip
+            // and label separately; the favorite star stays its own action.
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(accessibilityLabel)
             favoriteButton
         }
         .padding(.vertical, 4)
         .contentShape(Rectangle())
         .onHover { hovered = $0 }
+    }
+
+    /// The row's title and metadata composed into one VoiceOver phrase, matching
+    /// PadRow so the two lists read consistently. The favorite toggle keeps its own
+    /// label, so it isn't folded in here.
+    private var accessibilityLabel: String {
+        var parts = [question.displayTitle]
+        if let accountName { parts.append(accountName) }
+        if let lang = question.language, !lang.isEmpty {
+            parts.append(lang.languageDisplayName)
+        }
+        if question.interviewType == .takeHome { parts.append("Take-home") }
+        if let used = question.used, used > 0 { parts.append("used \(used) times") }
+        if question.isDraft == true { parts.append("Draft") }
+        if let author = question.authorName { parts.append(author) }
+        if let lastUsed = question.updatedAt {
+            parts.append("last used \(lastUsed.formatted(.relative(presentation: .named)))")
+        }
+        return parts.joined(separator: ", ")
     }
 
     /// Inline favorite toggle, à la Mail's flag: always shown (filled) once the
