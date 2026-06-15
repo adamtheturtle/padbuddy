@@ -263,7 +263,7 @@ extension MergedQuestionsView {
         if selectedRowIDs.count > 1, selectedRowIDs.contains(row.id) {
             let rows = selectedRowsInOrder
             Button {
-                copyToPasteboard(rows
+                Clipboard.copy(rows
                     .map { $0.item.webURL(baseURL: $0.account.resolvedBaseURL).absoluteString }
                     .joined(separator: "\n"))
             } label: {
@@ -298,10 +298,10 @@ extension MergedQuestionsView {
                 Label("Share…", systemImage: "square.and.arrow.up")
             }
             Divider()
-            Button { copyToPasteboard(row.item.displayTitle) } label: {
+            Button { Clipboard.copy(row.item.displayTitle) } label: {
                 Label("Copy Title", systemImage: "doc.on.doc")
             }
-            Button { copyToPasteboard(row.item.webURL(baseURL: row.account.resolvedBaseURL).absoluteString) } label: {
+            Button { Clipboard.copy(row.item.webURL(baseURL: row.account.resolvedBaseURL).absoluteString) } label: {
                 Label("Copy Question URL", systemImage: "link")
             }
             Button { accountFilter = row.account.id } label: {

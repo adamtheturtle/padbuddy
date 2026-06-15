@@ -262,10 +262,10 @@ extension MergedPadsView {
                 ShareLink(item: url) { Label("Share…", systemImage: "square.and.arrow.up") }
             }
             Divider()
-            Button { copyToPasteboard(row.item.id) } label: {
+            Button { Clipboard.copy(row.item.id) } label: {
                 Label("Copy Pad ID", systemImage: "number")
             }
-            Button { copyToPasteboard(row.item.url) } label: {
+            Button { Clipboard.copy(row.item.url) } label: {
                 Label("Copy Pad URL", systemImage: "link")
             }
             Divider()
@@ -290,7 +290,7 @@ extension MergedPadsView {
     private var bulkContextMenu: some View {
         let pads = selectedPadsInOrder
         Button {
-            copyToPasteboard(pads.map(\.url).joined(separator: "\n"))
+            Clipboard.copy(pads.map(\.url).joined(separator: "\n"))
         } label: {
             Label("Copy \(pads.count) Pad Links", systemImage: "link")
         }

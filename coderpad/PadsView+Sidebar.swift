@@ -224,7 +224,7 @@ extension PadsView {
         if selectedIDs.count > 1, selectedIDs.contains(pad.id) {
             let pads = selectedPadsInOrder
             Button {
-                copyToPasteboard(pads.map(\.url).joined(separator: "\n"))
+                Clipboard.copy(pads.map(\.url).joined(separator: "\n"))
             } label: {
                 Label("Copy \(pads.count) Pad Links", systemImage: "link")
             }
@@ -248,12 +248,12 @@ extension PadsView {
             }
             Divider()
             Button {
-                copyToPasteboard(pad.id)
+                Clipboard.copy(pad.id)
             } label: {
                 Label("Copy Pad ID", systemImage: "number")
             }
             Button {
-                copyToPasteboard(pad.url)
+                Clipboard.copy(pad.url)
             } label: {
                 Label("Copy Pad URL", systemImage: "link")
             }
@@ -285,11 +285,6 @@ extension PadsView {
         } else {
             openWindow(id: "pad-browser", value: url)
         }
-    }
-
-    func copyToPasteboard(_ text: String) {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
     }
 
     /// Built-in chips shown ahead of the user's saved searches, mirrored in the

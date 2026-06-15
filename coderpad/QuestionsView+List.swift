@@ -247,7 +247,7 @@ extension QuestionsView {
         if selectedQuestionIDs.count > 1, selectedQuestionIDs.contains(question.id) {
             let questions = selectedQuestionsInOrder
             Button {
-                copyToPasteboard(questions.map { $0.webURL(baseURL: client.baseURL).absoluteString }
+                Clipboard.copy(questions.map { $0.webURL(baseURL: client.baseURL).absoluteString }
                     .joined(separator: "\n"))
             } label: {
                 Label("Copy \(questions.count) Question Links", systemImage: "link")
@@ -280,12 +280,12 @@ extension QuestionsView {
             }
             Divider()
             Button {
-                copyToPasteboard(question.displayTitle)
+                Clipboard.copy(question.displayTitle)
             } label: {
                 Label("Copy Title", systemImage: "doc.on.doc")
             }
             Button {
-                copyToPasteboard(question.webURL(baseURL: client.baseURL).absoluteString)
+                Clipboard.copy(question.webURL(baseURL: client.baseURL).absoluteString)
             } label: {
                 Label("Copy Question URL", systemImage: "link")
             }
@@ -310,11 +310,6 @@ extension QuestionsView {
                 Label("Delete Question…", systemImage: "trash")
             }
         }
-    }
-
-    func copyToPasteboard(_ text: String) {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
     }
 
     /// Context-menu entry that stars or unstars a question. Favorites can be

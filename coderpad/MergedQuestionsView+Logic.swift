@@ -284,8 +284,4 @@ extension MergedQuestionsView {
         if favoritesOnly, !hasAnyFavorites { favoritesOnly = false }
     }
 
-    func copyToPasteboard(_ text: String) {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
-    }
 }
