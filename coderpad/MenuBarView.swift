@@ -37,9 +37,14 @@ struct MenuBarView: View {
     /// small note explains why (#321).
     @State private var network = NetworkMonitor.shared
     @State private var favorites = FavoriteQuestionsStore.shared
-    @State private var pads: [Pad] = []
-    @State private var questions: [Question] = []
-    @State private var quota: Quota?
+    // Read the pads/questions/quota from the same shared, disk-backed caches the
+    // main window uses, rather than refetching into private state on every open.
+    // That's what kept the menu showing "Loading…" so often: each open cleared its
+    // own copy and waited on the network (#327). Now the menu shows cached data
+    // instantly and `load` refreshes it in the background without clearing.
+    @State private var padsCache = PadsCacheStore.shared
+    @State private var questionsCache = QuestionsCacheStore.shared
+    @State private var quotaCache = QuotaCacheStore.shared
     @State private var isLoading = false
     @State private var errorMessage: String?
     @AppStorage("menuBarTopN") private var topN: Int = 3
@@ -51,6 +56,25 @@ struct MenuBarView: View {
     /// count — so clamp at every read site.
     private var topCount: Int {
         max(0, topN)
+    }
+
+    /// The current account's pads, newest first, from the shared cache. Empty until
+    /// the account has ever loaded (cold cache), which is the only time the menu
+    /// shows "Loading…".
+    private var pads: [Pad] {
+        guard let id = store.currentAccountID else { return [] }
+        return padsCache.get(id).sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
+    }
+
+    /// The current account's questions, newest first, from the shared cache.
+    private var questions: [Question] {
+        guard let id = store.currentAccountID else { return [] }
+        return questionsCache.get(id).sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
+    }
+
+    /// The current account's cached quota, or `nil` before it has ever loaded.
+    private var quota: Quota? {
+        store.currentAccountID.flatMap { quotaCache.get($0) }
     }
 
     var body: some View {
@@ -339,25 +363,24 @@ struct MenuBarView: View {
     private func load(account: Account) async {
         isLoading = true
         errorMessage = nil
-        // Clear the previous account's data so switching accounts doesn't briefly show
-        // the old account's pads/questions/quota until the new fetch lands.
-        pads = []
-        questions = []
-        quota = nil
         defer { isLoading = false }
         let client = account.makeClient()
         do {
             async let padsTask = client.listPads()
             async let qsTask = client.listQuestions()
             async let quotaTask = client.quota()
+            // Write fetched results straight into the shared caches (no clearing
+            // first): the menu — and every other view reading these stores — keeps
+            // showing the previous data until the fresh data lands, so switching
+            // accounts shows the new account's cache rather than a blank "Loading…".
             let fetched = try await padsTask
-            pads = fetched.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
+            PadsCacheStore.shared.set(account.id, pads: fetched)
             if let fetchedQuestions = try? await qsTask {
-                questions = fetchedQuestions.sorted {
-                    ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast)
-                }
+                QuestionsCacheStore.shared.set(account.id, questions: fetchedQuestions)
             }
-            quota = try? await quotaTask
+            if let fetchedQuota = try? await quotaTask {
+                QuotaCacheStore.shared.set(account.id, quota: fetchedQuota)
+            }
         } catch {
             errorMessage = error.localizedDescription
         }
