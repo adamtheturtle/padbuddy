@@ -8,10 +8,11 @@
 //  transport concern is reusable and unit-testable apart from the CoderPad-specific
 //  models and endpoints, which compose it (see `CoderPadClient`).
 //
-//  The decoder and request-body encoder are injected, so nothing here knows the
-//  CoderPad date quirks or model shapes. The one remaining domain coupling is
-//  `CoderPadError`, used for typed transport failures; lifting that into a generic
-//  error is the natural follow-up if this is ever pulled into its own Swift package.
+//  The decoder, request-body encoder, and the error mapping are all injected, so
+//  nothing here knows the CoderPad date quirks, model shapes, or error type. The
+//  transport builds its failures through an injected `RESTTransportErrorMapping`
+//  rather than naming a domain error, so it carries no CoderPad coupling and is ready
+//  to be pulled into its own Swift package as-is (#151).
 //
 
 import Foundation
@@ -45,6 +46,26 @@ extension PagedResponse {
     nonisolated static func identity(of _: Item) -> AnyHashable? { nil }
 }
 
+// MARK: - Error mapping
+
+/// Supplies the transport's failures as the composing client's own error type, so this
+/// file names no domain-specific error. The client decides how a missing key, an HTTP
+/// status, a decode failure, or a transport-level `URLError` becomes its error, and which
+/// already-mapped errors are transient (retry-worthy). Lifting the concrete error out this
+/// way is what keeps the transport reusable and lets it move into its own package (#151).
+///
+/// `nonisolated` requirements (like `PagedResponse`) so the mapping can be called from the
+/// off-main pagination pipeline rather than being pinned to the module's default MainActor
+/// isolation.
+protocol RESTTransportErrorMapping: Sendable {
+    nonisolated func missingAPIKey() -> Error
+    nonisolated func http(status: Int, body: String) -> Error
+    nonisolated func decode(_ detail: String) -> Error
+    nonisolated func network(_ error: URLError) -> Error
+    /// Whether an error already produced by this mapping should be retried.
+    nonisolated func isTransient(_ error: Error) -> Bool
+}
+
 // MARK: - Client
 
 /// The reusable transport. Carries only immutable, Sendable configuration and drives
@@ -65,19 +86,24 @@ struct PaginatedRESTClient {
     /// `self` in child tasks, and `JSONEncoder` isn't `Sendable`. The composing client
     /// owns the body shapes and date strategy, so the encoder is a domain concern.
     nonisolated let encoderFactory: @Sendable () -> JSONEncoder
+    /// Builds the transport's failures as the composing client's error type, so this file
+    /// names no domain error (see `RESTTransportErrorMapping`).
+    nonisolated let errors: any RESTTransportErrorMapping
 
     init(
         apiKey: String,
         baseURL: URL,
         session: URLSession,
         decoderFactory: @escaping @Sendable () -> JSONDecoder,
-        encoderFactory: @escaping @Sendable () -> JSONEncoder
+        encoderFactory: @escaping @Sendable () -> JSONEncoder,
+        errors: any RESTTransportErrorMapping
     ) {
         self.apiKey = apiKey
         self.baseURL = baseURL
         self.session = session
         self.decoderFactory = decoderFactory
         self.encoderFactory = encoderFactory
+        self.errors = errors
     }
 
     nonisolated func authorizedGET(_ url: URL) -> URLRequest {
@@ -89,7 +115,7 @@ struct PaginatedRESTClient {
     }
 
     func fetch<T: Decodable & Sendable>(_ type: T.Type, path: String) async throws -> T {
-        guard !apiKey.isEmpty else { throw CoderPadError.missingAPIKey }
+        guard !apiKey.isEmpty else { throw errors.missingAPIKey() }
         return try await performWithRetry(type, request: authorizedGET(baseURL.appending(path: path)))
     }
 
@@ -153,7 +179,7 @@ struct PaginatedRESTClient {
         sort: String?,
         emit: ([W.Item]) -> Void
     ) async throws {
-        guard !apiKey.isEmpty else { throw CoderPadError.missingAPIKey }
+        guard !apiKey.isEmpty else { throw errors.missingAPIKey() }
         let baseQuery: [URLQueryItem] = sort.map { [URLQueryItem(name: "sort", value: $0)] } ?? []
 
         /// Builds `…/path?sort=…&page=N`. Page numbers are constructed here
@@ -167,7 +193,7 @@ struct PaginatedRESTClient {
             return comps?.url
         }
 
-        guard let firstURL = pageURL(nil) else { throw CoderPadError.http(0, "Invalid URL") }
+        guard let firstURL = pageURL(nil) else { throw errors.http(status: 0, body: "Invalid URL") }
         let firstPage = try await performWithRetry(W.self, request: authorizedGET(firstURL))
         // `seen` de-dupes by each item's stable identity across every page, so an
         // over-requested page that echoes page 1 can't duplicate rows.
@@ -230,7 +256,7 @@ struct PaginatedRESTClient {
         var collected = items
         try await withThrowingTaskGroup(of: (Int, W).self) { group in
             func enqueue(_ page: Int) throws {
-                guard let url = pageURL(page) else { throw CoderPadError.http(0, "Invalid URL") }
+                guard let url = pageURL(page) else { throw errors.http(status: 0, body: "Invalid URL") }
                 group.addTask {
                     try await (page, performWithRetry(W.self, request: authorizedGET(url)))
                 }
@@ -296,7 +322,7 @@ struct PaginatedRESTClient {
                 return try await perform(type, request: request)
             } catch {
                 attempt += 1
-                guard attempt < maxAttempts, Self.isTransient(error) else { throw error }
+                guard attempt < maxAttempts, errors.isTransient(error) else { throw error }
                 apiLogger.debug(
                     """
                     Transient failure on \(request.url?.path ?? "", privacy: .public); \
@@ -310,33 +336,13 @@ struct PaginatedRESTClient {
         }
     }
 
-    private nonisolated static func isTransient(_ error: Error) -> Bool {
-        if let api = error as? CoderPadError {
-            if case let .http(code, _) = api {
-                // 408 Request Timeout is retry-worthy for the same reason as 5xx/429.
-                return (500 ... 599).contains(code) || code == 429 || code == 408 || code == 0
-            }
-            if case let .network(urlError) = api {
-                return [.timedOut, .networkConnectionLost, .cannotConnectToHost].contains(urlError.code)
-            }
-            return false
-        }
-        let nsError = error as NSError
-        if nsError.domain == NSURLErrorDomain {
-            return [NSURLErrorTimedOut,
-                    NSURLErrorNetworkConnectionLost,
-                    NSURLErrorCannotConnectToHost].contains(nsError.code)
-        }
-        return false
-    }
-
     func send<T: Decodable & Sendable>(
         _ type: T.Type,
         method: String,
         path: String,
         body: some Encodable
     ) async throws -> T {
-        guard !apiKey.isEmpty else { throw CoderPadError.missingAPIKey }
+        guard !apiKey.isEmpty else { throw errors.missingAPIKey() }
         var request = URLRequest(url: baseURL.appending(path: path))
         request.httpMethod = method
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
@@ -354,14 +360,14 @@ struct PaginatedRESTClient {
         } catch let urlError as URLError {
             // Surface transport failures (offline, timeout, unreachable) as a typed,
             // friendly error rather than leaking the raw URLError into the UI.
-            throw CoderPadError.network(urlError)
+            throw errors.network(urlError)
         }
         guard let http = response as? HTTPURLResponse else {
-            throw CoderPadError.http(0, "No HTTP response")
+            throw errors.http(status: 0, body: "No HTTP response")
         }
         guard (200 ..< 300).contains(http.statusCode) else {
             let body = String(data: data, encoding: .utf8) ?? ""
-            throw CoderPadError.http(http.statusCode, body)
+            throw errors.http(status: http.statusCode, body: body)
         }
         do {
             // Decode off the main actor: the client is MainActor-isolated, so on a large
@@ -369,15 +375,15 @@ struct PaginatedRESTClient {
             // `Data` and `T` are Sendable, so the work crosses the boundary cleanly.
             return try await decodeInBackground(T.self, from: data)
         } catch let DecodingError.keyNotFound(key, ctx) {
-            throw CoderPadError.decode("missing key '\(key.stringValue)' at \(pathString(ctx.codingPath))")
+            throw errors.decode("missing key '\(key.stringValue)' at \(pathString(ctx.codingPath))")
         } catch let DecodingError.valueNotFound(type, ctx) {
-            throw CoderPadError.decode("missing value of \(type) at \(pathString(ctx.codingPath))")
+            throw errors.decode("missing value of \(type) at \(pathString(ctx.codingPath))")
         } catch let DecodingError.typeMismatch(type, ctx) {
-            throw CoderPadError.decode(
+            throw errors.decode(
                 "type mismatch (\(type)) at \(pathString(ctx.codingPath)): \(ctx.debugDescription)"
             )
         } catch let DecodingError.dataCorrupted(ctx) {
-            throw CoderPadError.decode("corrupted at \(pathString(ctx.codingPath)): \(ctx.debugDescription)")
+            throw errors.decode("corrupted at \(pathString(ctx.codingPath)): \(ctx.debugDescription)")
         }
     }
 

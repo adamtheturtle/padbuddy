@@ -61,6 +61,43 @@ private nonisolated struct StatusOnly: Decodable { let status: String? }
 private nonisolated struct Empty: Decodable {}
 private nonisolated struct Wrapper: Decodable { let users: [OrganizationUser] }
 
+// MARK: - Error mapping
+
+/// Maps the generic transport's failures onto `CoderPadError`, the app's user-facing
+/// error type, and decides which mapped errors are transient. Injecting this keeps
+/// `PaginatedRESTClient` free of any CoderPad-specific error (#151) while the transport
+/// still throws exactly the `CoderPadError` values the rest of the app catches, so
+/// behavior (and `isUnauthorized` detection) is unchanged.
+private struct CoderPadErrorMapping: RESTTransportErrorMapping {
+    nonisolated func missingAPIKey() -> Error { CoderPadError.missingAPIKey }
+    nonisolated func http(status: Int, body: String) -> Error { CoderPadError.http(status, body) }
+    nonisolated func decode(_ detail: String) -> Error { CoderPadError.decode(detail) }
+    nonisolated func network(_ error: URLError) -> Error { CoderPadError.network(error) }
+
+    /// GET requests are idempotent, so transient failures (5xx, 429, timeouts) are retried
+    /// before surfacing. Recognizes both the mapped `CoderPadError` cases and a raw
+    /// `NSURLErrorDomain` error, matching the prior transport behavior.
+    nonisolated func isTransient(_ error: Error) -> Bool {
+        if let api = error as? CoderPadError {
+            if case let .http(code, _) = api {
+                // 408 Request Timeout is retry-worthy for the same reason as 5xx/429.
+                return (500 ... 599).contains(code) || code == 429 || code == 408 || code == 0
+            }
+            if case let .network(urlError) = api {
+                return [.timedOut, .networkConnectionLost, .cannotConnectToHost].contains(urlError.code)
+            }
+            return false
+        }
+        let nsError = error as NSError
+        if nsError.domain == NSURLErrorDomain {
+            return [NSURLErrorTimedOut,
+                    NSURLErrorNetworkConnectionLost,
+                    NSURLErrorCannotConnectToHost].contains(nsError.code)
+        }
+        return false
+    }
+}
+
 // MARK: - Client
 
 struct CoderPadClient {
@@ -93,7 +130,8 @@ struct CoderPadClient {
             baseURL: baseURL,
             session: session,
             decoderFactory: CoderPadClient.makeDecoder,
-            encoderFactory: CoderPadClient.makeEncoder
+            encoderFactory: CoderPadClient.makeEncoder,
+            errors: CoderPadErrorMapping()
         )
     }
 
