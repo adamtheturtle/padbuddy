@@ -12,31 +12,9 @@ import os.log
 
 // MARK: - Pagination
 
-/// A list response that may span multiple pages. The API returns at most 50 items
-/// per page, plus an absolute `next_page` URL when more remain. Callers that ignore
-/// it silently see only the first page.
-///
-/// `total` (the count across all pages, when the endpoint reports it) lets the client
-/// compute the page count from the first response and fetch the rest concurrently,
-/// rather than walking `next_page` one blocking round-trip at a time.
-protocol PagedResponse: Decodable, Sendable {
-    associatedtype Item: Decodable & Sendable
-    // `nonisolated` so the pagination pipeline can read these off the main actor
-    // (see `streamAllPages`); without it the module's default MainActor isolation
-    // would make the protocol requirements main-actor-isolated.
-    nonisolated var pageItems: [Item] { get }
-    nonisolated var nextPage: String? { get }
-    nonisolated var total: Int? { get }
-    /// A stable identity used to de-duplicate items when stitching parallel pages,
-    /// so a server that echoes page 1 for an over-requested `page` can't produce
-    /// duplicate rows. `nil` opts out (e.g. events, which have no stable unique id
-    /// and take the sequential path anyway).
-    nonisolated static func identity(of item: Item) -> AnyHashable?
-}
-
-extension PagedResponse {
-    nonisolated static func identity(of _: Item) -> AnyHashable? { nil }
-}
+// The generic `PagedResponse` protocol and the paginated transport that consumes it
+// live in `PaginatedRESTClient.swift` (#151). The page envelopes below are
+// CoderPad-specific, so they stay here and conform to that protocol.
 
 private nonisolated struct PadsPage: PagedResponse {
     let pads: [Pad]
@@ -94,6 +72,12 @@ struct CoderPadClient {
     nonisolated let baseURL: URL
     nonisolated let session: URLSession
 
+    /// The generic transport that does the request building, retries, pagination, and
+    /// background decoding. CoderPad's endpoint methods below are thin wrappers over it
+    /// (#151); the CoderPad date quirks and request encoder are injected, so the
+    /// transport itself stays domain-free.
+    nonisolated let rest: PaginatedRESTClient
+
     /// The standard hosted CoderPad endpoint, used when an account doesn't
     /// override it (e.g. a self-hosted or regional deployment).
     static let defaultBaseURL = URL(string: "https://app.coderpad.io")!
@@ -104,6 +88,13 @@ struct CoderPadClient {
         self.apiKey = apiKey
         self.baseURL = baseURL
         self.session = session
+        self.rest = PaginatedRESTClient(
+            apiKey: apiKey,
+            baseURL: baseURL,
+            session: session,
+            decoderFactory: CoderPadClient.makeDecoder,
+            encoderFactory: CoderPadClient.makeEncoder
+        )
     }
 
     /// The single construction point for the live network session, so request
@@ -170,18 +161,23 @@ struct CoderPadClient {
     /// The network path decodes off-main via `makeDecoder()` instead.
     static let decoder: JSONDecoder = makeDecoder()
 
-    static let encoder: JSONEncoder = {
+    /// Builds the request-body encoder. `nonisolated` (like `makeDecoder`) so the
+    /// transport's `@Sendable` `encoderFactory` can call it off the main actor.
+    nonisolated static func makeEncoder() -> JSONEncoder {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         return encoder
-    }()
+    }
+
+    /// Shared encoder for callers that encode on the current actor (e.g. tests).
+    static let encoder: JSONEncoder = makeEncoder()
 
     // MARK: Pads
 
     /// `sort` accepts e.g. "updated_at,desc" or "created_at,asc". Defaults to the
     /// API's `created_at,desc`. All pages are followed, not just the first 50.
     func listPads(sort: String? = nil) async throws -> [Pad] {
-        try await fetchAllPages(PadsPage.self, path: "/api/pads/", sort: sort)
+        try await rest.fetchAllPages(PadsPage.self, path: "/api/pads/", sort: sort)
     }
 
     /// Streams pads for progressive display. The first element arrives after a single
@@ -190,28 +186,28 @@ struct CoderPadClient {
     /// complete list. With the default `updated_at,desc` sort, page 1 is already the top
     /// of the final list, so rows only ever append below — no reshuffle mid-load.
     func listPadsIncrementally(sort: String? = "updated_at,desc") -> AsyncThrowingStream<[Pad], Error> {
-        streamAllPages(PadsPage.self, path: "/api/pads/", sort: sort)
+        rest.streamAllPages(PadsPage.self, path: "/api/pads/", sort: sort)
     }
 
     func getPad(id: String) async throws -> Pad {
         // The live API returns the pad's fields flat at the top level (alongside
         // "status"), not nested under a "pad" key.
-        try await fetch(Pad.self, path: "/api/pads/\(id)")
+        try await rest.fetch(Pad.self, path: "/api/pads/\(id)")
     }
 
     func padEvents(padID: String) async throws -> [PadEvent] {
-        try await fetchAllPages(EventsPage.self, path: "/api/pads/\(padID)/events")
+        try await rest.fetchAllPages(EventsPage.self, path: "/api/pads/\(padID)/events")
     }
 
     func padEnvironment(id: Int) async throws -> PadEnvironment {
         // The live API returns the environment's fields flat at the top level.
-        try await fetch(PadEnvironment.self, path: "/api/pad_environments/\(id)")
+        try await rest.fetch(PadEnvironment.self, path: "/api/pad_environments/\(id)")
     }
 
     func createPad(_ body: PadCreate) async throws -> Pad {
         // Single-resource pad endpoints (this POST and GET /api/pads/:id) return the
         // pad's fields flat at the top level, alongside "status".
-        try await send(Pad.self, method: "POST", path: "/api/pads/", body: body)
+        try await rest.send(Pad.self, method: "POST", path: "/api/pads/", body: body)
     }
 
     /// The live API replies `{"status":"OK"}` with no pad body, so we re-fetch the
@@ -219,14 +215,14 @@ struct CoderPadClient {
     /// The pad id travels in the URL path (`PUT /api/pads/:id`) per the API's
     /// "Modify a pad" contract — not just in the body.
     func updatePad(_ body: PadUpdate) async throws -> Pad {
-        _ = try await send(StatusOnly.self, method: "PUT", path: "/api/pads/\(body.id)", body: body)
+        _ = try await rest.send(StatusOnly.self, method: "PUT", path: "/api/pads/\(body.id)", body: body)
         return try await getPad(id: body.id)
     }
 
     /// Ends the interview, by setting `ended` on the pad. The live API replies
     /// `{"status":"OK"}` with no pad body.
     func endPad(id: String) async throws {
-        _ = try await send(StatusOnly.self, method: "PUT", path: "/api/pads/\(id)",
+        _ = try await rest.send(StatusOnly.self, method: "PUT", path: "/api/pads/\(id)",
                            body: PadUpdate(id: id, ended: true))
     }
 
@@ -234,39 +230,39 @@ struct CoderPadClient {
     /// "Modify a pad" endpoint with `deleted` set — `PUT /api/pads/:id` with the id
     /// in the URL path. The live API replies `{"status":"OK"}`.
     func deletePad(id: String) async throws {
-        _ = try await send(StatusOnly.self, method: "PUT", path: "/api/pads/\(id)",
+        _ = try await rest.send(StatusOnly.self, method: "PUT", path: "/api/pads/\(id)",
                            body: PadUpdate(id: id, deleted: true))
     }
 
     // MARK: Questions
 
     func listQuestions(sort: String? = nil) async throws -> [Question] {
-        try await fetchAllPages(QuestionsPage.self, path: "/api/questions/", sort: sort)
+        try await rest.fetchAllPages(QuestionsPage.self, path: "/api/questions/", sort: sort)
     }
 
     /// Streams questions for progressive display, like `listPadsIncrementally`: page 1
     /// arrives after a single round-trip, then larger cumulative snapshots until the full
     /// list is in. With `updated_at,desc` the first page is already the top of the list.
     func listQuestionsIncrementally(sort: String? = "updated_at,desc") -> AsyncThrowingStream<[Question], Error> {
-        streamAllPages(QuestionsPage.self, path: "/api/questions/", sort: sort)
+        rest.streamAllPages(QuestionsPage.self, path: "/api/questions/", sort: sort)
     }
 
     func getQuestion(id: Int) async throws -> Question {
         // The live API returns the question's fields flat at the top level (alongside
         // "status"), not nested under a "question" key.
-        try await fetch(Question.self, path: "/api/questions/\(id)")
+        try await rest.fetch(Question.self, path: "/api/questions/\(id)")
     }
 
     func createQuestion(_ body: QuestionCreate) async throws -> Question {
         // Single-resource question endpoints (this POST and GET /api/questions/:id)
         // return the question's fields flat at the top level, alongside "status".
-        try await send(Question.self, method: "POST", path: "/api/questions/", body: body)
+        try await rest.send(Question.self, method: "POST", path: "/api/questions/", body: body)
     }
 
     /// The live API replies `{"status":"OK"}` with no question body, so we re-fetch the
     /// question to return its fresh server state rather than decoding the (absent) body.
     func updateQuestion(_ body: QuestionUpdate) async throws -> Question {
-        _ = try await send(StatusOnly.self, method: "PUT", path: "/api/questions/\(body.id)", body: body)
+        _ = try await rest.send(StatusOnly.self, method: "PUT", path: "/api/questions/\(body.id)", body: body)
         return try await getQuestion(id: body.id)
     }
 
@@ -276,17 +272,17 @@ struct CoderPadClient {
         request.httpMethod = "DELETE"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        _ = try await perform(Empty.self, request: request)
+        _ = try await rest.perform(Empty.self, request: request)
     }
 
     // MARK: Quota / Organization
 
     func quota() async throws -> Quota {
-        try await fetch(Quota.self, path: "/api/quota")
+        try await rest.fetch(Quota.self, path: "/api/quota")
     }
 
     func organization() async throws -> Organization {
-        try await fetch(Organization.self, path: "/api/organization")
+        try await rest.fetch(Organization.self, path: "/api/organization")
     }
 
     /// Pad usage stats for the organization. With no range the API reports the
@@ -303,18 +299,18 @@ struct CoderPadClient {
             ]
         }
         guard let url = comps?.url else { throw CoderPadError.http(0, "Invalid URL") }
-        return try await performWithRetry(OrganizationStats.self, request: authorizedGET(url))
+        return try await rest.performWithRetry(OrganizationStats.self, request: rest.authorizedGET(url))
     }
 
     /// Every pad in the organization (requires org-owner access or org-wide visibility),
     /// rather than just the API key owner's pads. Paginated like `listPads`.
     func listOrganizationPads(sort: String? = nil) async throws -> [Pad] {
-        try await fetchAllPages(PadsPage.self, path: "/api/organization/pads", sort: sort)
+        try await rest.fetchAllPages(PadsPage.self, path: "/api/organization/pads", sort: sort)
     }
 
     /// Every organization question visible to you. Paginated like `listQuestions`.
     func listOrganizationQuestions(sort: String? = nil) async throws -> [Question] {
-        try await fetchAllPages(QuestionsPage.self, path: "/api/organization/questions", sort: sort)
+        try await rest.fetchAllPages(QuestionsPage.self, path: "/api/organization/questions", sort: sort)
     }
 
     /// The organization's users. Passing `email` returns only the matching user — the
@@ -325,6 +321,6 @@ struct CoderPadClient {
                                   resolvingAgainstBaseURL: false)
         if let email { comps?.queryItems = [URLQueryItem(name: "email", value: email)] }
         guard let url = comps?.url else { throw CoderPadError.http(0, "Invalid URL") }
-        return try await performWithRetry(Wrapper.self, request: authorizedGET(url)).users
+        return try await rest.performWithRetry(Wrapper.self, request: rest.authorizedGET(url)).users
     }
 }

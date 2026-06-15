@@ -1,15 +1,85 @@
 //
-//  CoderPadClient+Plumbing.swift
+//  PaginatedRESTClient.swift
 //  coderpad
+//
+//  A generic, domain-free transport for paginated, bearer-authenticated REST APIs:
+//  request building, retry with exponential backoff, concurrent multi-page fetching,
+//  and background JSON decoding. Extracted from `CoderPadClient` (#151) so the
+//  transport concern is reusable and unit-testable apart from the CoderPad-specific
+//  models and endpoints, which compose it (see `CoderPadClient`).
+//
+//  The decoder and request-body encoder are injected, so nothing here knows the
+//  CoderPad date quirks or model shapes. The one remaining domain coupling is
+//  `CoderPadError`, used for typed transport failures; lifting that into a generic
+//  error is the natural follow-up if this is ever pulled into its own Swift package.
 //
 
 import Foundation
 import os.log
 
-/// Low-level networking for `CoderPadClient`: request construction, pagination,
-/// retry, and decoding. Kept in an extension (and a separate file) so the primary
-/// type's body stays focused on the public endpoint surface.
-extension CoderPadClient {
+// MARK: - Pagination
+
+/// A list response that may span multiple pages. The API returns at most 50 items
+/// per page, plus an absolute `next_page` URL when more remain. Callers that ignore
+/// it silently see only the first page.
+///
+/// `total` (the count across all pages, when the endpoint reports it) lets the client
+/// compute the page count from the first response and fetch the rest concurrently,
+/// rather than walking `next_page` one blocking round-trip at a time.
+protocol PagedResponse: Decodable, Sendable {
+    associatedtype Item: Decodable & Sendable
+    // `nonisolated` so the pagination pipeline can read these off the main actor
+    // (see `streamAllPages`); without it the module's default MainActor isolation
+    // would make the protocol requirements main-actor-isolated.
+    nonisolated var pageItems: [Item] { get }
+    nonisolated var nextPage: String? { get }
+    nonisolated var total: Int? { get }
+    /// A stable identity used to de-duplicate items when stitching parallel pages,
+    /// so a server that echoes page 1 for an over-requested `page` can't produce
+    /// duplicate rows. `nil` opts out (e.g. events, which have no stable unique id
+    /// and take the sequential path anyway).
+    nonisolated static func identity(of item: Item) -> AnyHashable?
+}
+
+extension PagedResponse {
+    nonisolated static func identity(of _: Item) -> AnyHashable? { nil }
+}
+
+// MARK: - Client
+
+/// The reusable transport. Carries only immutable, Sendable configuration and drives
+/// pure networking, so its stored properties and the low-level request/pagination
+/// methods are `nonisolated`: it lets the pagination pipeline run off the main actor
+/// (see `streamAllPages`) rather than being pinned to it by the module's default
+/// MainActor isolation.
+struct PaginatedRESTClient {
+    nonisolated let apiKey: String
+    nonisolated let baseURL: URL
+    nonisolated let session: URLSession
+    /// Builds a configured decoder per call. A factory rather than a shared instance
+    /// because decoding runs off the main actor (see `perform`) and `JSONDecoder`
+    /// isn't safe to share across threads — each background decode gets its own.
+    nonisolated let decoderFactory: @Sendable () -> JSONDecoder
+    /// Supplies the encoder for request bodies. A closure (not a stored `JSONEncoder`)
+    /// so the transport stays `Sendable` — its `nonisolated` pagination methods capture
+    /// `self` in child tasks, and `JSONEncoder` isn't `Sendable`. The composing client
+    /// owns the body shapes and date strategy, so the encoder is a domain concern.
+    nonisolated let encoderFactory: @Sendable () -> JSONEncoder
+
+    init(
+        apiKey: String,
+        baseURL: URL,
+        session: URLSession,
+        decoderFactory: @escaping @Sendable () -> JSONDecoder,
+        encoderFactory: @escaping @Sendable () -> JSONEncoder
+    ) {
+        self.apiKey = apiKey
+        self.baseURL = baseURL
+        self.session = session
+        self.decoderFactory = decoderFactory
+        self.encoderFactory = encoderFactory
+    }
+
     nonisolated func authorizedGET(_ url: URL) -> URLRequest {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
@@ -272,7 +342,7 @@ extension CoderPadClient {
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try Self.encoder.encode(body)
+        request.httpBody = try encoderFactory().encode(body)
         return try await perform(type, request: request)
     }
 
@@ -297,7 +367,7 @@ extension CoderPadClient {
             // Decode off the main actor: the client is MainActor-isolated, so on a large
             // account (~40 pages × 50 nested objects) decoding here would hitch the UI.
             // `Data` and `T` are Sendable, so the work crosses the boundary cleanly.
-            return try await Self.decodeInBackground(T.self, from: data)
+            return try await decodeInBackground(T.self, from: data)
         } catch let DecodingError.keyNotFound(key, ctx) {
             throw CoderPadError.decode("missing key '\(key.stringValue)' at \(pathString(ctx.codingPath))")
         } catch let DecodingError.valueNotFound(type, ctx) {
@@ -323,13 +393,14 @@ extension CoderPadClient {
     /// streaming load is torn down, queued decodes bail at the check below instead of
     /// parsing into a result that's about to be discarded. This function is `nonisolated`,
     /// so the task still runs off the main actor.
-    private nonisolated static func decodeInBackground<T: Decodable & Sendable>(
+    private nonisolated func decodeInBackground<T: Decodable & Sendable>(
         _: T.Type,
         from data: Data
     ) async throws -> T {
-        try await Task(priority: .userInitiated) {
+        let make = decoderFactory
+        return try await Task(priority: .userInitiated) {
             try Task.checkCancellation()
-            return try makeDecoder().decode(T.self, from: data)
+            return try make().decode(T.self, from: data)
         }.value
     }
 }
