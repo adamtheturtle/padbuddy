@@ -22,6 +22,11 @@ struct MenuBarLabel: View {
                         .offset(x: 3, y: -2)
                 }
             }
+            // The unseen-changes dot is shape- and tint-only, so name the count for
+            // VoiceOver rather than leaving the menu bar item announcing a bare glyph (#79).
+            .accessibilityLabel(monitor.unseenChangedCount > 0
+                ? "CoderPad, \(monitor.unseenChangedCount) unseen pad \(monitor.unseenChangedCount == 1 ? "change" : "changes")"
+                : "CoderPad")
     }
 }
 
