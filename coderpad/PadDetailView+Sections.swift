@@ -84,22 +84,19 @@ extension PadDetailView {
     }
 
     private var identity: some View {
-        HStack(spacing: 12) {
-            AvatarCircle(label: directory.display(pad.ownerEmail), diameter: 48)
-            VStack(alignment: .leading, spacing: 4) {
-                // The title is edited in place: it reads as the heading until you
-                // hover or click in, and commits on Return or when focus leaves.
-                InlineEditableTitle(text: $titleDraft, placeholder: "Untitled Pad",
-                                    focus: $titleFocused) { Task { await commitTitle() } }
-                // The owner's name links to their pads (the app's person
-                // navigation); the email keeps its mailto below. When the name
-                // isn't known the link falls back to showing the email itself.
-                if let name = directory.name(for: pad.ownerEmail), !name.isEmpty {
-                    OwnerPadsLink(email: pad.ownerEmail).font(.callout)
-                    EmailLink(email: pad.ownerEmail).font(.caption).foregroundStyle(.secondary)
-                } else {
-                    OwnerPadsLink(email: pad.ownerEmail)
-                }
+        VStack(alignment: .leading, spacing: 4) {
+            // The title is edited in place: it reads as the heading until you
+            // hover or click in, and commits on Return or when focus leaves.
+            InlineEditableTitle(text: $titleDraft, placeholder: "Untitled Pad",
+                                focus: $titleFocused) { Task { await commitTitle() } }
+            // The owner's name links to their pads (the app's person
+            // navigation); the email keeps its mailto below. When the name
+            // isn't known the link falls back to showing the email itself.
+            if let name = directory.name(for: pad.ownerEmail), !name.isEmpty {
+                OwnerPadsLink(email: pad.ownerEmail).font(.callout)
+                EmailLink(email: pad.ownerEmail).font(.caption).foregroundStyle(.secondary)
+            } else {
+                OwnerPadsLink(email: pad.ownerEmail)
             }
         }
     }
