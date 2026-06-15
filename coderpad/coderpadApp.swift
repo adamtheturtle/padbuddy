@@ -318,11 +318,10 @@ struct CoderpadApp: App {
             appCommands
             FindCommands()
             PrintCommands()
-            // The system's Show/Hide Toolbar command. ("Customize Toolbar…" no
-            // longer applies: the section toolbars are plain, non-customizable
-            // `.toolbar` rather than `.toolbar(id:)`, which avoided a SwiftUI
-            // NavigationSplitView crash where the auto-inserted split separator was
-            // duplicated during a toolbar update on selection.)
+            // The system's Show/Hide and Customize Toolbar commands. Every section
+            // and detail toolbar is a customizable `.toolbar(id:)` with stable item
+            // ids, so "Customize Toolbar…" is enabled and the whole window toolbar
+            // can be rearranged.
             ToolbarCommands()
             ViewCommands()
             PadCommands()

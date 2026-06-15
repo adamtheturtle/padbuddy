@@ -53,8 +53,8 @@ struct QuotaView: View {
                 await reload()
             }
         }
-        .toolbar {
-            ToolbarItem(placement: .automatic) {
+        .toolbar(id: "quota") {
+            ToolbarItem(id: "reload", placement: .automatic) {
                 ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
             }
         }

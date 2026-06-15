@@ -48,8 +48,8 @@ struct MergedQuotaView: View {
                 await reload()
             }
         }
-        .toolbar {
-            ToolbarItem(placement: .automatic) {
+        .toolbar(id: "merged-quota") {
+            ToolbarItem(id: "reload", placement: .automatic) {
                 ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
             }
         }

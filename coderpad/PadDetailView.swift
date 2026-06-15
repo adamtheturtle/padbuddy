@@ -60,19 +60,19 @@ struct PadDetailView: View {
     // Code and End Interview stay out of the toolbar to keep it uncrowded and
     // remain available from the Pad menu.
     @ToolbarContentBuilder
-    private var detailToolbar: some ToolbarContent {
+    private var detailToolbar: some CustomizableToolbarContent {
         if #available(macOS 26, *) {
             ToolbarSpacer(.fixed)
         }
         if let url = pad.webURL {
-            ToolbarItem(placement: .primaryAction) {
+            ToolbarItem(id: "share", placement: .primaryAction) {
                 ShareLink(item: url) {
                     Label("Share", systemImage: "square.and.arrow.up")
                 }
                 .help("Share pad")
                 .accessibilityLabel("Share pad")
             }
-            ToolbarItem(placement: .primaryAction) {
+            ToolbarItem(id: "open", placement: .primaryAction) {
                 Button {
                     if BrowserSettings.openLinksIn == .external {
                         BrowserSettings.openExternally(url)
@@ -90,7 +90,7 @@ struct PadDetailView: View {
             }
         }
         if let playbackURL = pad.playbackURL {
-            ToolbarItem(placement: .primaryAction) {
+            ToolbarItem(id: "watch", placement: .primaryAction) {
                 Button {
                     if BrowserSettings.openLinksIn == .external {
                         BrowserSettings.openExternally(playbackURL)
@@ -107,7 +107,7 @@ struct PadDetailView: View {
         if #available(macOS 26, *) {
             ToolbarSpacer(.fixed)
         }
-        ToolbarItem(placement: .primaryAction) {
+        ToolbarItem(id: "delete", placement: .primaryAction) {
             Button(role: .destructive) {
                 showDeleteConfirm = true
             } label: {
@@ -153,7 +153,7 @@ struct PadDetailView: View {
                 detailScroll
             }
         }
-        .toolbar { detailToolbar }
+        .toolbar(id: "pad-detail") { detailToolbar }
         // Publish a print rendering so File ▸ Print (⌘P) can produce a hard copy
         // or PDF of the pad's summary and code (whatever has loaded so far).
         .focusedSceneValue(\.printAction, PrintAction(id: "pad-\(pad.id)") {

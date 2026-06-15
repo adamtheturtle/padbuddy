@@ -44,11 +44,11 @@ struct QuestionDetailView: View {
     // items (Sort, Reload, New Question) so "New Pad" doesn't read as a
     // sibling of "New Question".
     @ToolbarContentBuilder
-    private var detailToolbar: some ToolbarContent {
+    private var detailToolbar: some CustomizableToolbarContent {
         if #available(macOS 26, *) {
             ToolbarSpacer(.fixed)
         }
-        ToolbarItem(placement: .primaryAction) {
+        ToolbarItem(id: "favorite", placement: .primaryAction) {
             Button { toggleFavorite() } label: {
                 Label(isFavorite ? "Favorited" : "Favorite",
                       systemImage: isFavorite ? "star.fill" : "star")
@@ -56,7 +56,7 @@ struct QuestionDetailView: View {
             .help(isFavorite ? "Remove from Favorites" : "Add to Favorites")
             .accessibilityLabel(isFavorite ? "Remove from Favorites" : "Add to Favorites")
         }
-        ToolbarItem(placement: .primaryAction) {
+        ToolbarItem(id: "new-pad", placement: .primaryAction) {
             Button { Task { await createPadInline() } } label: {
                 if isCreatingPad {
                     ProgressView().controlSize(.small)
@@ -68,19 +68,19 @@ struct QuestionDetailView: View {
             .help("Create a new interview pad from this question")
             .accessibilityLabel("New Pad")
         }
-        ToolbarItem(placement: .primaryAction) {
+        ToolbarItem(id: "share", placement: .primaryAction) {
             ShareLink(item: question.webURL(baseURL: client.baseURL)) {
                 Label("Share", systemImage: "square.and.arrow.up")
             }
             .help("Share a link to this question")
         }
-        ToolbarItem(placement: .primaryAction) {
+        ToolbarItem(id: "edit", placement: .primaryAction) {
             Button { showEdit = true } label: {
                 Label("Edit", systemImage: "pencil")
             }
             .help("Edit the description, instructions, and solution")
         }
-        ToolbarItem(placement: .primaryAction) {
+        ToolbarItem(id: "delete", placement: .primaryAction) {
             Button(role: .destructive) { showDeleteConfirm = true } label: {
                 Label("Delete", systemImage: "trash")
             }
@@ -115,7 +115,7 @@ struct QuestionDetailView: View {
             printDocument(QuestionPrintDocument(question: question),
                           jobTitle: question.displayTitle)
         })
-        .toolbar { detailToolbar }
+        .toolbar(id: "question-detail") { detailToolbar }
         .sheet(isPresented: $showEdit) {
             EditQuestionSheet(client: client, original: question) { updated in
                 AppRouter.questionUpdated(updated, account: accountID)

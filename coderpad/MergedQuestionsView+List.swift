@@ -137,19 +137,19 @@ extension MergedQuestionsView {
         // Surface the count beneath the "Questions" title in the window toolbar
         // rather than as an inline bar above the list.
         .reportsSectionCount(countSubtitle)
-        .toolbar { questionsToolbar }
+        .toolbar(id: "merged-questions") { questionsToolbar }
     }
 
     @ToolbarContentBuilder
-    var questionsToolbar: some ToolbarContent {
-        ToolbarItem(placement: .automatic) {
+    var questionsToolbar: some CustomizableToolbarContent {
+        ToolbarItem(id: "reload", placement: .automatic) {
             ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
         }
         // Grouped beside Reload at the list column's leading edge rather than
         // floating at the trailing edge: a `.primaryAction` here shares the window's
         // trailing region with the detail pane's actions, so selecting a question
         // would shove this button leftward. Anchoring it left keeps it put.
-        ToolbarItem(placement: .automatic) {
+        ToolbarItem(id: "new-question", placement: .automatic) {
             Menu {
                 ForEach(accounts.mergeableAccounts) { account in
                     Button(account.name) { creatingForAccount = account }
@@ -161,7 +161,7 @@ extension MergedQuestionsView {
             .help("Create a new question in one of your accounts")
             .accessibilityLabel("New Question")
         }
-        ToolbarItem(placement: .automatic) {
+        ToolbarItem(id: "sort", placement: .automatic) {
             Menu {
                 Picker("Sort", selection: $sort) {
                     ForEach(QuestionSort.allCases) { Text($0.label).tag($0) }

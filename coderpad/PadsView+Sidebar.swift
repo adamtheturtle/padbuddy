@@ -106,15 +106,15 @@ extension PadsView {
         // The search field itself lives on the `NavigationSplitView` in `MainSplit`
         // (trailing window toolbar, Finder-style); this column only owns the section
         // actions below.
-        .toolbar {
-            ToolbarItem(placement: .automatic) {
+        .toolbar(id: "pads") {
+            ToolbarItem(id: "reload", placement: .automatic) {
                 ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
             }
             // Grouped beside Reload at the list column's leading edge rather than
             // floating at the trailing edge: a `.primaryAction` here shares the
             // window's trailing region with the detail pane's actions, so selecting
             // a pad would shove this button leftward. Anchoring it left keeps it put.
-            ToolbarItem(placement: .automatic) {
+            ToolbarItem(id: "new-pad", placement: .automatic) {
                 Button { showCreate = true } label: {
                     Label("New Pad", systemImage: "plus")
                 }
