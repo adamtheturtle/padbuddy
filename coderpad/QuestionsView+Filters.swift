@@ -128,23 +128,6 @@ extension QuestionsView {
         }
     }
 
-    /// A sparkle button that fills the name field with an on-device suggestion
-    /// built from the active filters. Shown only when the model is available; the
-    /// field stays fully editable and the user opts in per save.
-    var suggestNameButton: some View {
-        Button(action: suggestName) {
-            if isSuggestingName {
-                ProgressView().controlSize(.small)
-            } else {
-                Image(systemName: "sparkles")
-            }
-        }
-        .buttonStyle(.borderless)
-        .disabled(isSuggestingName)
-        .help("Suggest a name from the current filters")
-        .accessibilityLabel("Suggest a name")
-    }
-
     func suggestName() {
         let captured = captureCurrentSearch(named: "")
         isSuggestingName = true

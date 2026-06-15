@@ -203,32 +203,15 @@ struct PadsView: View {
                 }
             }
             .sheet(isPresented: $showSaveSearch) {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Save Search").font(.title3.bold())
-                    HStack(spacing: 8) {
-                        TextField("Name", text: $saveSearchName, prompt: Text("e.g. Live pads, my team"))
-                            .textFieldStyle(.roundedBorder)
-                            .onSubmit { commitSavedSearch() }
-                            .onChange(of: saveSearchName) { _, newValue in
-                                if newValue.count > NamedSearch.maxNameLength {
-                                    saveSearchName = String(newValue.prefix(NamedSearch.maxNameLength))
-                                }
-                            }
-                        if SavedSearchNamer.isAvailable {
-                            suggestNameButton
-                        }
-                    }
-                    HStack {
-                        Spacer()
-                        Button("Cancel", role: .cancel) { showSaveSearch = false }
-                        Button("Save") { commitSavedSearch() }
-                            .keyboardShortcut(.defaultAction)
-                            .buttonStyle(.borderedProminent)
-                            .disabled(saveSearchName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                    }
-                }
-                .padding()
-                .frame(minWidth: 360)
+                SaveSearchSheet(
+                    name: $saveSearchName,
+                    prompt: Text("e.g. Live pads, my team"),
+                    showsSuggest: SavedSearchNamer.isAvailable,
+                    isSuggesting: isSuggestingName,
+                    onSuggest: suggestName,
+                    onCommit: commitSavedSearch,
+                    onCancel: { showSaveSearch = false }
+                )
             }
             .sheet(isPresented: $showCreate) {
                 NewPadSheet(client: client, initialQuestionID: seedQuestionID) { created in

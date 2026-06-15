@@ -92,7 +92,15 @@ struct QuestionsView: View {
                 } onCancel: { showCreate = false }
             }
             .sheet(isPresented: $showSaveSearch) {
-                saveSearchSheet
+                SaveSearchSheet(
+                    name: $saveSearchName,
+                    prompt: Text("e.g. My drafts, Python"),
+                    showsSuggest: SavedSearchNamer.isAvailable,
+                    isSuggesting: isSuggestingName,
+                    onSuggest: suggestName,
+                    onCommit: commitSavedSearch,
+                    onCancel: { showSaveSearch = false }
+                )
             }
             .sheet(isPresented: $showSmartFilter) {
                 SmartFilterSheet(
@@ -208,35 +216,6 @@ struct QuestionsView: View {
                     await reload()
                 }
             }
-    }
-
-    private var saveSearchSheet: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Save Search").font(.title3.bold())
-            HStack(spacing: 8) {
-                TextField("Name", text: $saveSearchName, prompt: Text("e.g. My drafts, Python"))
-                    .textFieldStyle(.roundedBorder)
-                    .onSubmit { commitSavedSearch() }
-                    .onChange(of: saveSearchName) { _, newValue in
-                        if newValue.count > NamedSearch.maxNameLength {
-                            saveSearchName = String(newValue.prefix(NamedSearch.maxNameLength))
-                        }
-                    }
-                if SavedSearchNamer.isAvailable {
-                    suggestNameButton
-                }
-            }
-            HStack {
-                Spacer()
-                Button("Cancel", role: .cancel) { showSaveSearch = false }
-                Button("Save") { commitSavedSearch() }
-                    .keyboardShortcut(.defaultAction)
-                    .buttonStyle(.borderedProminent)
-                    .disabled(saveSearchName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            }
-        }
-        .padding()
-        .frame(minWidth: 360)
     }
 
     /// Applies any request queued by `AppNavigation`, then clears it. See the
