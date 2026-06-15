@@ -81,6 +81,12 @@
             "state" : "new",
             "value" : "%1$@ - %2$@"
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%1$@ - %2$@"
+          }
         }
       }
     },
@@ -181,7 +187,26 @@
       }
     },
     "%lld updated" : {
-
+      "localizations" : {
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld actualizado"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld actualizados"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "About CoderPad" : {
       "localizations" : {
@@ -246,7 +271,14 @@
       }
     },
     "Add an account with a CoderPad API key." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Añade una cuenta con una clave de API de CoderPad."
+          }
+        }
+      }
     },
     "Add to Favorites" : {
       "localizations" : {
@@ -289,7 +321,14 @@
       }
     },
     "Appearance" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Apariencia"
+          }
+        }
+      }
     },
     "Apply" : {
       "localizations" : {
@@ -415,7 +454,14 @@
       }
     },
     "Clear" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Borrar"
+          }
+        }
+      }
     },
     "Clear Filters" : {
       "localizations" : {
@@ -645,7 +691,14 @@
       }
     },
     "Copy URL" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Copiar URL"
+          }
+        }
+      }
     },
     "Couldn’t create pad" : {
       "localizations" : {
@@ -698,10 +751,24 @@
       }
     },
     "Couldn’t save question" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudo guardar la pregunta"
+          }
+        }
+      }
     },
     "Couldn't turn that into filters. Try naming a language, owner, state, or date." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudo convertir eso en filtros. Prueba a indicar un lenguaje, propietario, estado o fecha."
+          }
+        }
+      }
     },
     "Counts the started pads you own across all your accounts." : {
       "localizations" : {
@@ -944,7 +1011,14 @@
       }
     },
     "Delete Pad…" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Eliminar pad…"
+          }
+        }
+      }
     },
     "Delete question" : {
       "localizations" : {
@@ -987,7 +1061,14 @@
       }
     },
     "Delete this account?" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "¿Eliminar esta cuenta?"
+          }
+        }
+      }
     },
     "Delete this pad" : {
       "localizations" : {
@@ -1316,10 +1397,24 @@
       }
     },
     "Get an API key from CoderPad" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Obtener una clave de API de CoderPad"
+          }
+        }
+      }
     },
     "Get API Key" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Obtener clave de API"
+          }
+        }
+      }
     },
     "Go" : {
       "localizations" : {
@@ -1335,10 +1430,24 @@
 
     },
     "Help" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Ayuda"
+          }
+        }
+      }
     },
     "Hide API key" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Ocultar clave de API"
+          }
+        }
+      }
     },
     "Hide the API key." : {
       "localizations" : {
@@ -1394,7 +1503,14 @@
       }
     },
     "Language" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Lenguaje"
+          }
+        }
+      }
     },
     "Last used %@" : {
 
@@ -1420,7 +1536,14 @@
       }
     },
     "Loading organization…" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Cargando organización…"
+          }
+        }
+      }
     },
     "Loading pads…" : {
       "localizations" : {
@@ -1433,7 +1556,14 @@
       }
     },
     "Loading questions…" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Cargando preguntas…"
+          }
+        }
+      }
     },
     "Loading quota…" : {
       "localizations" : {
@@ -1476,7 +1606,14 @@
       }
     },
     "Menu Bar" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Barra de menús"
+          }
+        }
+      }
     },
     "Mock data" : {
       "localizations" : {
@@ -1549,7 +1686,14 @@
       }
     },
     "New Question" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Nueva pregunta"
+          }
+        }
+      }
     },
     "New Question…" : {
       "localizations" : {
@@ -1622,7 +1766,14 @@
       }
     },
     "No API key for this account." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No hay clave de API para esta cuenta."
+          }
+        }
+      }
     },
     "No events yet." : {
       "localizations" : {
@@ -1695,7 +1846,14 @@
       }
     },
     "No Pads" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No hay pads"
+          }
+        }
+      }
     },
     "No pads match the current filters." : {
       "localizations" : {
@@ -1761,7 +1919,14 @@
       }
     },
     "OK" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "OK"
+          }
+        }
+      }
     },
     "Open" : {
       "localizations" : {
@@ -1827,7 +1992,14 @@
       }
     },
     "Open in separate window" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Abrir en una ventana aparte"
+          }
+        }
+      }
     },
     "Open links" : {
       "localizations" : {
@@ -1863,7 +2035,14 @@
 
     },
     "Open Pad" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Abrir Pad"
+          }
+        }
+      }
     },
     "Open Pad by ID" : {
       "localizations" : {
@@ -1889,10 +2068,24 @@
       }
     },
     "Open Pad in Browser" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Abrir Pad en el navegador"
+          }
+        }
+      }
     },
     "Open Pad in New Window" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Abrir Pad en una ventana nueva"
+          }
+        }
+      }
     },
     "Open Pads" : {
 
@@ -2044,10 +2237,24 @@
       }
     },
     "Pad" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pad"
+          }
+        }
+      }
     },
     "Pad Browser" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Navegador de Pads"
+          }
+        }
+      }
     },
     "Pad ID" : {
       "localizations" : {
@@ -2060,7 +2267,14 @@
       }
     },
     "Pads" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pads"
+          }
+        }
+      }
     },
     "Part %lld" : {
       "localizations" : {
@@ -2163,7 +2377,14 @@
       }
     },
     "Question" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pregunta"
+          }
+        }
+      }
     },
     "Question Unavailable" : {
       "localizations" : {
@@ -2299,7 +2520,14 @@
 
     },
     "Remove from Favorites" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Quitar de favoritos"
+          }
+        }
+      }
     },
     "Remove this account and its stored API key from this Mac." : {
       "localizations" : {
@@ -2385,7 +2613,14 @@
       }
     },
     "Search %@" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Buscar %@"
+          }
+        }
+      }
     },
     "Search members" : {
       "localizations" : {
@@ -2441,7 +2676,14 @@
       }
     },
     "Sections" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Secciones"
+          }
+        }
+      }
     },
     "Select a pad" : {
       "localizations" : {
@@ -2474,7 +2716,14 @@
       }
     },
     "Send Feedback…" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Enviar comentarios…"
+          }
+        }
+      }
     },
     "Settings…" : {
       "localizations" : {
@@ -2553,13 +2802,34 @@
       }
     },
     "Show CoderPad in" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mostrar CoderPad en"
+          }
+        }
+      }
     },
     "Show my active pads on the Dock icon" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mostrar mis pads activos en el icono del Dock"
+          }
+        }
+      }
     },
     "Show Only %@" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mostrar solo %@"
+          }
+        }
+      }
     },
     "Show only started pads" : {
       "localizations" : {
@@ -2582,10 +2852,24 @@
       }
     },
     "Show Pads from %@" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mostrar pads de %@"
+          }
+        }
+      }
     },
     "Show pads owned by %@" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mostrar pads pertenecientes a %@"
+          }
+        }
+      }
     },
     "Show Questions from %@" : {
       "localizations" : {
@@ -2598,7 +2882,14 @@
       }
     },
     "Show the API key." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Muestra la clave de API."
+          }
+        }
+      }
     },
     "Shows pads from %@" : {
       "localizations" : {
@@ -2661,7 +2952,14 @@
       }
     },
     "Sort" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Ordenar"
+          }
+        }
+      }
     },
     "Sort By" : {
       "localizations" : {
@@ -2674,7 +2972,14 @@
       }
     },
     "Sort questions" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Ordenar preguntas"
+          }
+        }
+      }
     },
     "Stats period" : {
       "localizations" : {
@@ -2727,7 +3032,14 @@
       }
     },
     "Switch Account" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Cambiar de cuenta"
+          }
+        }
+      }
     },
     "Switch the app to this account." : {
       "localizations" : {
@@ -2970,7 +3282,14 @@
       }
     },
     "Validate" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Validar"
+          }
+        }
+      }
     },
     "Validate to choose a different member." : {
       "localizations" : {
