@@ -217,8 +217,13 @@ extension PadDetailView {
         // actor, timestamp), and this sits inside the detail pane's ScrollView.
         LazyVStack(alignment: .leading, spacing: 8) {
             ForEach(groupedEvents) { group in
-                HStack(alignment: .top, spacing: 10) {
+                // Baseline-align the icon to the title line rather than top-aligning
+                // it: with `.top` the glyph floated above the text, and a "×9" count
+                // chip — which makes the first line taller — exaggerated the gap (#331).
+                // Matching the title's `.callout` font keeps the glyph sized to the text.
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
                     Image(systemName: icon(for: group.representative.kind))
+                        .font(.callout)
                         .foregroundStyle(color(for: group.representative.kind))
                         .frame(width: 18)
                     VStack(alignment: .leading, spacing: 2) {
