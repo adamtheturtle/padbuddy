@@ -344,6 +344,9 @@ struct OrgMemberPicker: View {
                 Image(systemName: "chevron.up.chevron.down")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    // Decorative dropdown indicator: the button's text already names
+                    // the selection, so VoiceOver shouldn't read the symbol on top.
+                    .accessibilityHidden(true)
             }
         }
         .buttonStyle(.bordered)
