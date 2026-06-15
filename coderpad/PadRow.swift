@@ -16,6 +16,7 @@ struct PadRow: View {
     /// right account (the originating one in the merged view, not the active one).
     var account: UUID?
     @Environment(\.orgDirectory) private var directory
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         // Drag a pad out as its web URL, so it can be dropped into Slack, Mail,
@@ -88,6 +89,24 @@ struct PadRow: View {
         // indicator is a color-only dot, so fold it into the label as well.
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
+        // Double-click opens the pad, matching the macOS convention (single click
+        // selects/previews in the detail pane, double click opens) and the explicit
+        // "open" buttons elsewhere (#291). A simultaneous gesture so the list's own
+        // single-click selection is preserved rather than swallowed.
+        .simultaneousGesture(TapGesture(count: 2).onEnded { openInWindow() })
+    }
+
+    /// Open the live pad on double-click, reusing the shared open path so it honors
+    /// the user's "Open links" preference: the in-app `pad-browser` window, or the
+    /// external browser (#291). Rows whose URL doesn't parse simply don't respond.
+    @MainActor
+    private func openInWindow() {
+        guard let url = pad.webURL else { return }
+        if BrowserSettings.openLinksIn == .external {
+            BrowserSettings.openExternally(url)
+        } else {
+            openWindow(id: "pad-browser", value: url)
+        }
     }
 
     /// The "updated since last refresh" dot, shown only when the pad changed since
