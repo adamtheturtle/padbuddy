@@ -125,6 +125,13 @@ struct AccountFooter: View {
         let subtitle = isMerged
             ? "\(store.mergeableAccounts.count) accounts combined"
             : (store.accounts.count > 1 ? "Active · \(store.accounts.count) accounts" : "Active account")
+        // The unauthorized state is shown only as a red warning triangle over the
+        // avatar — color- and icon-only — so name it for VoiceOver, the way the menu
+        // rows already append "(bad key)" (#79).
+        let unauthorized = !isMerged && (store.currentAccount.map { monitor.isUnauthorized($0.id) } ?? false)
+        let accessibilityLabel = [title, subtitle, unauthorized ? "API key invalid" : ""]
+            .filter { !$0.isEmpty }
+            .joined(separator: ", ")
         return HStack(spacing: 10) {
             if isMerged {
                 Image(systemName: "person.2.circle.fill")
@@ -155,5 +162,9 @@ struct AccountFooter: View {
                 .foregroundStyle(.secondary)
         }
         .contentShape(.rect)
+        // Read the avatar/title/subtitle/chevron as one phrase so VoiceOver lands on a
+        // single, meaningful element instead of stepping through decorative glyphs.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabel)
     }
 }
