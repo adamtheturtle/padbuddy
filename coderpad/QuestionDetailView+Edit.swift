@@ -3,9 +3,10 @@
 //  coderpad
 //
 //  Inline, save-per-field editing for a question's metadata (title, language,
-//  type). Each control commits its own `PUT /api/questions/:id` carrying only the
-//  field that changed. The long-form content (description, candidate instructions,
-//  solution) stays in EditQuestionSheet, where an explicit Save suits authoring.
+//  type) and long-form content (description, candidate instructions, solution).
+//  Each control commits its own `PUT /api/questions/:id` carrying only the field
+//  that changed. The long-form fields are edited in place via `InlineEditableText`
+//  rather than a separate window (#335).
 //
 
 import SwiftUI
@@ -121,6 +122,55 @@ extension QuestionDetailView {
         // `take_home` and `pad_type` are coupled, so a type change commits both.
         await save(QuestionUpdate(id: question.id, takeHome: padType == "take-home", padType: padType)) {
             draftPadType = currentType
+        }
+    }
+
+    // MARK: - Long-form content commits
+
+    // Description, solution, and each candidate-instruction part are edited inline
+    // (see `InlineEditableText`). Each commit sends only its own field and reports
+    // success back so the editor can close, or stay open on failure.
+
+    func commitDescription(_ text: String) async -> Bool {
+        guard text != (question.description ?? "") else { return true }
+        return await saveContent(QuestionUpdate(id: question.id, description: text))
+    }
+
+    func commitSolution(_ text: String) async -> Bool {
+        guard text != (question.solution ?? "") else { return true }
+        return await saveContent(QuestionUpdate(id: question.id, solution: text))
+    }
+
+    /// Commits one candidate-instruction part. The whole list is resent with only
+    /// `index`'s text changed (each part keeps its `default_visible`), so editing
+    /// part 2 onwards no longer collapses the parts into one (#334). An out-of-range
+    /// index appends a new part, which is how the first part is added to a question
+    /// that had none.
+    func commitInstruction(at index: Int, text: String) async -> Bool {
+        var payloads = question.candidateInstructions.map {
+            CandidateInstructionPayload(instructions: $0.instructions, defaultVisible: $0.defaultVisible)
+        }
+        if payloads.indices.contains(index) {
+            guard payloads[index].instructions != text else { return true }
+            payloads[index].instructions = text
+        } else {
+            guard !text.isEmpty else { return true }
+            payloads.append(CandidateInstructionPayload(instructions: text, defaultVisible: true))
+        }
+        return await saveContent(QuestionUpdate(id: question.id, candidateInstructions: payloads))
+    }
+
+    /// Sends a single-field content update and propagates the refreshed question,
+    /// returning whether it succeeded. On failure it surfaces the error; the inline
+    /// editor keeps the unsaved text so nothing is lost.
+    private func saveContent(_ body: QuestionUpdate) async -> Bool {
+        do {
+            let saved = try await client.updateQuestion(body)
+            AppRouter.questionUpdated(saved, account: accountID)
+            return true
+        } catch {
+            editError = error.localizedDescription
+            return false
         }
     }
 

@@ -329,13 +329,6 @@ extension MergedQuestionsView {
                 Label(isFavorite(row) ? "Remove from Favorites" : "Add to Favorites",
                       systemImage: isFavorite(row) ? "star.slash" : "star")
             }
-            Button {
-                select(row)
-                nav.editQuestionID = row.item.id
-            } label: {
-                Label("Edit Question…", systemImage: "pencil")
-            }
-            .disabled(isReadOnly)
             ShareLink(item: row.item.webURL(baseURL: row.account.resolvedBaseURL)) {
                 Label("Share…", systemImage: "square.and.arrow.up")
             }

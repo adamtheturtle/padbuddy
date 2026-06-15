@@ -12,12 +12,12 @@ extension QuestionDetailView {
                 header
                 propertiesCard
                 metaCards
-                if let description = question.description, !description.isEmpty {
-                    descriptionCard(title: "Description", body: description)
-                }
-                if !question.candidateInstructions.isEmpty {
-                    instructionsCard
-                }
+                // The editable long-form fields (description, candidate
+                // instructions, solution) are always shown, even when empty, so
+                // they can be filled in place — there's no separate edit window
+                // anymore (#333, #335).
+                descriptionCard
+                instructionsCard
                 if !question.testCases.isEmpty {
                     testCasesCard
                 }
@@ -25,9 +25,7 @@ extension QuestionDetailView {
                     filesCard
                 }
                 starterCodeCards
-                if let solution = question.solution, !solution.isEmpty {
-                    descriptionCard(title: "Solution", body: solution)
-                }
+                solutionCard
             }
             .padding(.horizontal, Spacing.paneH)
             .padding(.top, Spacing.paneV)
@@ -155,35 +153,47 @@ extension QuestionDetailView {
     }
 
     var instructionsCard: some View {
-        EditableContentCard(title: "Candidate Instructions", systemImage: "text.book.closed",
-                            onEdit: { showEdit = true }) {
-            let instructions = question.candidateInstructions
-            ForEach(Array(instructions.enumerated()), id: \.offset) { index, item in
-                VStack(alignment: .leading, spacing: 6) {
-                    // When a question has several instruction parts, label each so
-                    // they read as distinct sections rather than one run-on block.
-                    if instructions.count > 1 {
-                        Text("Part \(index + 1)")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(.secondary)
-                    }
-                    // Mirror the test-case "Hidden" badge: an instruction the
-                    // candidate doesn't see by default is meaningful review context.
-                    if !item.defaultVisible {
-                        Chip(text: "Hidden by default", systemImage: "eye.slash", tint: .gray)
-                    }
-                    MarkdownText(item.instructions)
-                        .font(.callout)
-                        .textSelection(.enabled)
+        Card {
+            VStack(alignment: .leading, spacing: 10) {
+                SectionHeader(title: "Candidate Instructions", systemImage: "text.book.closed")
+                let instructions = question.candidateInstructions
+                if instructions.isEmpty {
+                    // #333: keep the section visible when there are no instructions
+                    // yet, so the first part can be added in place.
+                    InlineEditableText(text: "", placeholder: "No candidate instructions yet.",
+                                       label: "candidate instructions") { await commitInstruction(at: 0, text: $0) }
+                } else {
+                    // Each part is edited independently (#334): committing one part
+                    // resends the whole list with only that part's text changed.
+                    ForEach(Array(instructions.enumerated()), id: \.offset) { index, item in
+                        VStack(alignment: .leading, spacing: 6) {
+                            // When a question has several instruction parts, label each so
+                            // they read as distinct sections rather than one run-on block.
+                            if instructions.count > 1 {
+                                Text("Part \(index + 1)")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                            }
+                            // Mirror the test-case "Hidden" badge: an instruction the
+                            // candidate doesn't see by default is meaningful review context.
+                            if !item.defaultVisible {
+                                Chip(text: "Hidden by default", systemImage: "eye.slash", tint: .gray)
+                            }
+                            InlineEditableText(text: item.instructions, placeholder: "Empty",
+                                               label: instructions.count > 1 ? "part \(index + 1)" : "candidate instructions") {
+                                await commitInstruction(at: index, text: $0)
+                            }
+                        }
                         .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                // A hairline between parts, like the Test Cases card, so multiple
-                // instructions are visually separated instead of blurring together.
-                if index != instructions.count - 1 {
-                    Divider()
+                        // A hairline between parts, like the Test Cases card, so multiple
+                        // instructions are visually separated instead of blurring together.
+                        if index != instructions.count - 1 {
+                            Divider()
+                        }
+                    }
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -315,49 +325,145 @@ extension QuestionDetailView {
         }
     }
 
-    func descriptionCard(title: String, body: String) -> some View {
-        EditableContentCard(title: title, systemImage: "doc.text", onEdit: { showEdit = true }) {
-            MarkdownText(body)
-                .font(.callout)
-                .textSelection(.enabled)
-                .foregroundStyle(.primary)
+    /// The question's description, edited in place. Always shown (empty or not) so
+    /// a missing description can be added without a separate editor (#333, #335).
+    var descriptionCard: some View {
+        editableLongFormCard(title: "Description", text: question.description ?? "",
+                             placeholder: "No description yet.", label: "description") {
+            await commitDescription($0)
+        }
+    }
+
+    /// The question's solution, edited in place, always shown like the description.
+    var solutionCard: some View {
+        editableLongFormCard(title: "Solution", text: question.solution ?? "",
+                             placeholder: "No solution yet.", label: "solution") {
+            await commitSolution($0)
+        }
+    }
+
+    /// A card pairing a section header with an inline-editable long-form field.
+    /// `onSave` returns `true` once the edit is committed so the editor can close.
+    func editableLongFormCard(title: String, text: String, placeholder: String, label: String,
+                              onSave: @escaping (String) async -> Bool) -> some View {
+        Card {
+            VStack(alignment: .leading, spacing: 10) {
+                SectionHeader(title: title, systemImage: "doc.text")
+                InlineEditableText(text: text, placeholder: placeholder, label: label, onSave: onSave)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }
 
-/// A read-only content card whose header reveals a pencil on hover that opens the
-/// question's content editor. Mirrors the inline title's hover affordance for the
-/// long-form fields (description, candidate instructions, solution) that are edited
-/// in the focused sheet rather than in place.
-struct EditableContentCard<Content: View>: View {
-    let title: String
-    let systemImage: String
-    let onEdit: () -> Void
-    @ViewBuilder var content: () -> Content
+/// A long-form field that reads as rendered Markdown until you click its hover
+/// pencil, when it becomes a text editor with Save / Cancel. Each commit sends a
+/// single-field `PUT` for the question (see `QuestionDetailView` commits), so the
+/// description, each candidate-instruction part, and the solution are all edited in
+/// place rather than in a separate window (#335). Empty fields still render (showing
+/// `placeholder`) so they can be filled in (#333).
+struct InlineEditableText: View {
+    let text: String
+    var placeholder: String
+    /// Human-readable name of this field, used for the pencil's help/accessibility
+    /// label (e.g. "description", "part 2").
+    var label: String
+    /// Commits the edited text, returning `true` on success so the editor closes.
+    let onSave: (String) async -> Bool
 
+    /// While offline the app is read-only, so long-form fields aren't editable (#321).
+    @Environment(\.isReadOnly) private var isReadOnly
+    @State private var editing = false
+    @State private var draft = ""
+    @State private var saving = false
     @State private var hovered = false
+    @FocusState private var focused: Bool
 
     var body: some View {
-        Card {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 8) {
-                    SectionHeader(title: title, systemImage: systemImage)
-                    Spacer(minLength: 0)
-                    Button(action: onEdit) {
-                        Image(systemName: "pencil")
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .opacity(hovered ? 1 : 0)
-                    .help("Edit the description, instructions, and solution")
-                    .accessibilityLabel("Edit content")
-                }
-                content()
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+        Group {
+            if editing { editor } else { display }
         }
         .onHover { hovered = $0 }
         .animation(.easeInOut(duration: 0.12), value: hovered)
+    }
+
+    private var display: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Group {
+                if text.isEmpty {
+                    Text(placeholder)
+                        .font(.callout)
+                        .foregroundStyle(.tertiary)
+                } else {
+                    MarkdownText(text)
+                        .font(.callout)
+                        .textSelection(.enabled)
+                        .foregroundStyle(.primary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            if !isReadOnly {
+                Button { beginEditing() } label: {
+                    Image(systemName: "pencil")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .opacity(hovered ? 1 : 0)
+                .help("Edit \(label)")
+                .accessibilityLabel("Edit \(label)")
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+    }
+
+    private var editor: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            TextEditor(text: $draft)
+                .font(.callout)
+                .frame(minHeight: 90)
+                .focused($focused)
+                .scrollContentBackground(.hidden)
+                .padding(8)
+                .background(Color(nsColor: .textBackgroundColor),
+                            in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(Color.subtleStroke, lineWidth: 1))
+            HStack(spacing: 8) {
+                Spacer(minLength: 0)
+                Button("Cancel") { cancel() }
+                    .disabled(saving)
+                Button { Task { await commit() } } label: {
+                    if saving { ProgressView().controlSize(.small) } else { Text("Save") }
+                }
+                .keyboardShortcut(.defaultAction)
+                .buttonStyle(.borderedProminent)
+                .disabled(saving)
+            }
+        }
+    }
+
+    private func beginEditing() {
+        draft = text
+        editing = true
+        focused = true
+    }
+
+    private func cancel() {
+        editing = false
+        focused = false
+    }
+
+    private func commit() async {
+        saving = true
+        let saved = await onSave(draft)
+        saving = false
+        // On failure the detail view surfaces the error in its alert; keep the
+        // editor open so the unsaved text isn't lost.
+        if saved {
+            editing = false
+            focused = false
+        }
     }
 }

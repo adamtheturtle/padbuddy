@@ -20,7 +20,6 @@ struct QuestionDetailView: View {
     @State private var nav = AppNavigation.shared
     @State private var accounts = AccountsStore.shared
     @State private var favorites = FavoriteQuestionsStore.shared
-    @State var showEdit = false
     @State private var showDeleteConfirm = false
     @State private var deleteError: String?
     /// The in-flight delayed deletion, shown as an undoable banner during the grace
@@ -32,7 +31,7 @@ struct QuestionDetailView: View {
     @State var createdPadURL: URL?
     // Inline metadata drafts (title, language, type), seeded from the question and
     // committed one field at a time, mirroring the pad detail editor. The long-form
-    // content (description, instructions, solution) stays in EditQuestionSheet.
+    // content (description, instructions, solution) is edited in place too (#335).
     @State var titleDraft = ""
     @State var draftLanguage = "python3"
     @State var draftPadType = "live"
@@ -76,13 +75,6 @@ struct QuestionDetailView: View {
             }
             .help("Share a link to this question")
         }
-        ToolbarItem(id: "edit", placement: .primaryAction) {
-            Button { showEdit = true } label: {
-                Label("Edit", systemImage: "pencil")
-            }
-            .disabled(isReadOnly)
-            .help("Edit the description, instructions, and solution")
-        }
         ToolbarItem(id: "delete", placement: .primaryAction) {
             Button(role: .destructive) { showDeleteConfirm = true } label: {
                 Label("Delete", systemImage: "trash")
@@ -120,12 +112,6 @@ struct QuestionDetailView: View {
                           jobTitle: question.displayTitle)
         })
         .toolbar(id: "question-detail") { detailToolbar }
-        .sheet(isPresented: $showEdit) {
-            EditQuestionSheet(client: client, original: question) { updated in
-                AppRouter.questionUpdated(updated, account: accountID)
-                showEdit = false
-            } onCancel: { showEdit = false }
-        }
         .confirmationDialog("Delete \(question.title.isEmpty ? "this question" : question.title)?",
                             isPresented: $showDeleteConfirm) {
             Button("Delete", role: .destructive) { startDeletion() }
@@ -149,12 +135,10 @@ struct QuestionDetailView: View {
         }
         .onAppear {
             consumePendingPadCreation()
-            consumePendingEdit()
             consumePendingDelete()
             consumePendingFavoriteToggle()
         }
         .onChange(of: nav.createPadForQuestionID) { _, _ in consumePendingPadCreation() }
-        .onChange(of: nav.editQuestionID) { _, _ in consumePendingEdit() }
         .onChange(of: nav.deleteQuestionID) { _, _ in consumePendingDelete() }
         .onChange(of: nav.toggleFavoriteQuestionID) { _, _ in consumePendingFavoriteToggle() }
     }
@@ -248,14 +232,6 @@ struct QuestionDetailView: View {
                 openWindow(id: "pad-browser", value: url)
             }
         }
-    }
-
-    /// Honors an "Edit Question" request routed via `AppNavigation` from the list's
-    /// context menu by presenting the same edit sheet as the in-pane Edit button.
-    private func consumePendingEdit() {
-        guard nav.editQuestionID == question.id else { return }
-        nav.editQuestionID = nil
-        showEdit = true
     }
 
     /// Honors a "Delete Question" request from the list's context menu by showing

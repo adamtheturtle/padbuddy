@@ -273,13 +273,6 @@ extension QuestionsView {
             }
             .disabled(isReadOnly)
             favoriteToggleButton(question)
-            Button {
-                selectedQuestionIDs = [question.id]
-                nav.editQuestionID = question.id
-            } label: {
-                Label("Edit Question…", systemImage: "pencil")
-            }
-            .disabled(isReadOnly)
             ShareLink(item: question.webURL(baseURL: client.baseURL)) {
                 Label("Share…", systemImage: "square.and.arrow.up")
             }

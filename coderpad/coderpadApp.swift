@@ -103,11 +103,6 @@ final class AppNavigation {
     /// consumed/cleared by QuestionDetailView when it appears or this value changes.
     var createPadForQuestionID: Int?
 
-    /// A question id whose detail pane should immediately present its edit sheet.
-    /// Set by the Questions list's context menu (after selecting that question) and
-    /// consumed/cleared by QuestionDetailView, mirroring `createPadForQuestionID`.
-    var editQuestionID: Int?
-
     /// A question id whose detail pane should immediately present its delete
     /// confirmation. Routed (rather than deleting inline) so the context menu and
     /// the detail view share the same confirmation step before the irreversible delete.
