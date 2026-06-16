@@ -24,9 +24,12 @@
 #   NOTARY_TEAM_ID     Apple Developer Team ID (e.g. 6L9H6Q8CUF).
 #
 # Optional environment:
-#   ENTITLEMENTS       Entitlements plist embedded when signing the app
-#                      (default: coderpad/coderpad.entitlements, repo-relative).
-#   VOLUME_NAME        Mounted-volume name for the .dmg (default: app name).
+#   ENTITLEMENTS         Entitlements plist embedded when signing the app
+#                        (default: coderpad/coderpad.entitlements, repo-relative).
+#   WIDGET_ENTITLEMENTS  Entitlements plist embedded when signing the embedded
+#                        widget extension (.appex)
+#                        (default: RecentPadsWidgetExtension.entitlements).
+#   VOLUME_NAME          Mounted-volume name for the .dmg (default: app name).
 #
 # The script signs nested code first (inside-out), then the app, with Hardened
 # Runtime and a secure timestamp; builds a compressed .dmg with an /Applications
@@ -48,6 +51,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ENTITLEMENTS="${ENTITLEMENTS:-$REPO_ROOT/coderpad/coderpad.entitlements}"
 [ -f "$ENTITLEMENTS" ] || die "entitlements not found: $ENTITLEMENTS"
+
+# Embedded app extensions (.appex) carry their own entitlements (the widget's
+# app-group) and must be re-signed with them — a plain re-sign would strip them.
+WIDGET_ENTITLEMENTS="${WIDGET_ENTITLEMENTS:-$REPO_ROOT/RecentPadsWidgetExtension.entitlements}"
 
 APP_NAME="$(basename "$APP" .app)"
 DMG="${2:-${APP%.app}.dmg}"
@@ -72,6 +79,22 @@ done < <(
     \( -name '*.framework' -o -name '*.dylib' -o -name '*.bundle' \) \
     -print0 | sort -rz
 )
+
+# App extensions (.appex) come after the frameworks/dylibs nested inside them
+# (signed above, deepest-first) but before the outer app. Each must be
+# Developer-ID signed with Hardened Runtime + a timestamp AND keep its own
+# entitlements; a plain re-sign would drop the widget's app-group. The outer
+# `codesign "$APP"` below does NOT re-sign nested .appex bundles, and
+# `codesign --verify` passes on an ad-hoc-signed appex — so a missed appex only
+# surfaces when the notary service rejects it.
+while IFS= read -r -d '' appex; do
+  echo "    sign appex: ${appex#"$APP"/}"
+  if [ -f "$WIDGET_ENTITLEMENTS" ]; then
+    sign --entitlements "$WIDGET_ENTITLEMENTS" "$appex"
+  else
+    sign "$appex"
+  fi
+done < <(find "$APP/Contents" -name '*.appex' -print0 | sort -rz)
 
 echo "==> Signing app bundle (entitlements: ${ENTITLEMENTS#"$REPO_ROOT"/})"
 sign --entitlements "$ENTITLEMENTS" "$APP"
