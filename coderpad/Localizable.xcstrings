@@ -1478,6 +1478,9 @@
         }
       }
     },
+    "Favorites" : {
+
+    },
     "Find" : {
       "localizations" : {
         "es" : {
@@ -2818,6 +2821,9 @@
         }
       }
     },
+    "Saved Searches" : {
+
+    },
     "Search %@" : {
       "localizations" : {
         "es" : {
@@ -3247,6 +3253,9 @@
           }
         }
       }
+    },
+    "Suggested" : {
+
     },
     "Switch account" : {
       "localizations" : {
