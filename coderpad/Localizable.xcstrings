@@ -1394,6 +1394,9 @@
         }
       }
     },
+    "Code panel width" : {
+
+    },
     "Code preview of %@ in %@ in pad %@" : {
       "localizations" : {
         "en" : {
@@ -1549,6 +1552,12 @@
           }
         }
       }
+    },
+    "Collapsed" : {
+
+    },
+    "Collapses the folder" : {
+
     },
     "Color" : {
       "localizations" : {
@@ -2612,6 +2621,12 @@
           }
         }
       }
+    },
+    "Expanded" : {
+
+    },
+    "Expands the folder" : {
+
     },
     "Explain this file" : {
       "localizations" : {

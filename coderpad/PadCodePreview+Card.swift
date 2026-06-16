@@ -120,6 +120,20 @@ extension EnvironmentCodeCard {
                                 liveWidth = nil
                             }
                     )
+                    // The divider is drag-only, so VoiceOver and keyboard users can't
+                    // resize the file list. Expose it as one adjustable element whose
+                    // increment/decrement nudges the width within the same 120–420
+                    // bounds the drag clamps to (#351).
+                    .accessibilityElement()
+                    .accessibilityLabel("Code panel width")
+                    .accessibilityValue(Text("\(Int(storedWidth))"))
+                    .accessibilityAdjustableAction { direction in
+                        switch direction {
+                        case .increment: storedWidth = min(storedWidth + 20, 420)
+                        case .decrement: storedWidth = max(storedWidth - 20, 120)
+                        @unknown default: break
+                        }
+                    }
             }
     }
 
