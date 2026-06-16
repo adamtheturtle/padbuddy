@@ -177,6 +177,12 @@ extension PadsView {
                     padRow(pad)
                         .tag(pad.id)
                         .installsTableDoubleClick(doubleClickProxy)
+                        // Swipe from the leading edge to pin/unpin the pad, mirroring the
+                        // questions list's favorite swipe (#348). Full swipe favorites in
+                        // one gesture since it's a harmless, reversible toggle.
+                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                            favoriteSwipeButton(pad)
+                        }
                         // Full swipe is allowed because it only opens the confirmation
                         // dialog below — it never deletes outright, so an accidental
                         // swipe is recoverable.
@@ -215,6 +221,22 @@ extension PadsView {
             pad, lastOpened: openedStore.lastOpened(pad.id, account: accounts.currentAccountID)
         ), account: accounts.currentAccountID)
         .contextMenu { padContextMenu(pad) }
+    }
+
+    /// The leading-swipe button that pins or unpins a pad as a favorite (#348),
+    /// mirroring the questions list's favorite swipe. Yellow to match the star used
+    /// throughout the sidebar's Favorite Pads section.
+    @ViewBuilder
+    func favoriteSwipeButton(_ pad: Pad) -> some View {
+        let isFavorite = favoritePads.isFavorite(pad.id, account: accounts.currentAccountID)
+        Button {
+            guard let account = accounts.currentAccountID else { return }
+            favoritePads.toggle(pad.id, account: account)
+        } label: {
+            Label(isFavorite ? "Unfavorite" : "Favorite",
+                  systemImage: isFavorite ? "star.slash" : "star")
+        }
+        .tint(.yellow)
     }
 
     /// Right-click actions for a pad row. These are the quick, self-contained

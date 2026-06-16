@@ -21,6 +21,7 @@ struct PadsView: View {
     @State var nav = AppNavigation.shared
     @State var cache = PadsCacheStore.shared
     @State var openedStore = PadOpenedStore.shared
+    @State var favoritePads = FavoritePadsStore.shared
     @State var pads: [Pad] = []
     @State var isLoading = false
     @State var error: Error?
