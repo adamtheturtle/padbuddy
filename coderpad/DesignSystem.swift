@@ -197,7 +197,12 @@ struct SectionHeader: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            if let systemImage { Image(systemName: systemImage).font(.callout) }
+            // Decorative: the title beside it carries the meaning, so hide it from
+            // VoiceOver rather than announce the raw SF Symbol name as a separate
+            // element before the heading (#350).
+            if let systemImage {
+                Image(systemName: systemImage).font(.callout).accessibilityHidden(true)
+            }
             // `.textCase(.uppercase)` rather than `String.uppercased()` so the title
             // stays a `LocalizedStringKey` (and thus localizes), with the locale-aware
             // uppercase applied at render time.
@@ -244,8 +249,11 @@ struct StatTile: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     if let systemImage {
+                        // Decorative: the tile's title/value text already conveys the
+                        // stat, so hide the icon from VoiceOver (#350).
                         Image(systemName: systemImage)
                             .foregroundStyle(tint)
+                            .accessibilityHidden(true)
                     }
                     // `.textCase(.uppercase)` keeps `title` a localizable
                     // `LocalizedStringKey` rather than uppercasing a raw String (#111).
