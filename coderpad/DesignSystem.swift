@@ -157,12 +157,12 @@ struct Card<Content: View>: View {
 /// reads like a native grouped list rather than a stack of dashboard cards. ``Card``
 /// is reserved for genuine card affordances (code and whiteboard previews).
 struct DetailSection<Content: View, Trailing: View>: View {
-    let title: String
+    let title: LocalizedStringKey
     var systemImage: String?
     let trailing: Trailing
     let content: Content
 
-    init(title: String, systemImage: String? = nil,
+    init(title: LocalizedStringKey, systemImage: String? = nil,
          @ViewBuilder trailing: () -> Trailing,
          @ViewBuilder content: () -> Content) {
         self.title = title
@@ -186,28 +186,32 @@ struct DetailSection<Content: View, Trailing: View>: View {
 }
 
 extension DetailSection where Trailing == EmptyView {
-    init(title: String, systemImage: String? = nil, @ViewBuilder content: () -> Content) {
+    init(title: LocalizedStringKey, systemImage: String? = nil, @ViewBuilder content: () -> Content) {
         self.init(title: title, systemImage: systemImage, trailing: { EmptyView() }, content: content)
     }
 }
 
 struct SectionHeader: View {
-    let title: String
+    let title: LocalizedStringKey
     var systemImage: String?
 
     var body: some View {
         HStack(spacing: 6) {
             if let systemImage { Image(systemName: systemImage).font(.callout) }
-            Text(title.uppercased())
+            // `.textCase(.uppercase)` rather than `String.uppercased()` so the title
+            // stays a `LocalizedStringKey` (and thus localizes), with the locale-aware
+            // uppercase applied at render time.
+            Text(title)
                 .font(.caption.weight(.semibold))
                 .tracking(0.6)
+                .textCase(.uppercase)
         }
         .foregroundStyle(.secondary)
     }
 }
 
 struct LabeledRow: View {
-    let label: String
+    let label: LocalizedStringKey
     let value: String
     var monospaced: Bool = false
 
@@ -227,7 +231,7 @@ struct LabeledRow: View {
 }
 
 struct StatTile: View {
-    let title: String
+    let title: LocalizedStringKey
     let value: String
     var systemImage: String?
     var tint: Color = .accentColor
@@ -240,10 +244,13 @@ struct StatTile: View {
                         Image(systemName: systemImage)
                             .foregroundStyle(tint)
                     }
-                    Text(title.uppercased())
+                    // `.textCase(.uppercase)` keeps `title` a localizable
+                    // `LocalizedStringKey` rather than uppercasing a raw String (#111).
+                    Text(title)
                         .font(.caption2.weight(.semibold))
                         .tracking(0.6)
                         .foregroundStyle(.secondary)
+                        .textCase(.uppercase)
                 }
                 Text(value)
                     .font(.title2.weight(.semibold))
@@ -253,7 +260,9 @@ struct StatTile: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(title): \(value)")
+        // `title` is a LocalizedStringKey, so compose the combined label from Text
+        // (which resolves the localization) rather than String interpolation.
+        .accessibilityLabel(Text(title) + Text(verbatim: ": \(value)"))
     }
 }
 
@@ -363,12 +372,15 @@ extension String {
         case "solidity": return "Solidity"
         case "tcl": return "Tcl"
         case "verilog": return "Verilog"
-        case "plaintext", "plain-text", "plain_text": return "Plain text"
+        case "plaintext", "plain-text", "plain_text": return String(localized: "Plain text")
         default:
             let lowered = lowercased()
             if lowered.hasPrefix("multifile_") {
                 let base = String(lowered.dropFirst("multifile_".count))
-                return base.isEmpty ? "Project" : base.languageDisplayName + " Project"
+                return base.isEmpty
+                    ? String(localized: "Project")
+                    : String(localized: "\(base.languageDisplayName) Project",
+                             comment: "A multi-file project environment for a language, e.g. \"Python Project\"")
             }
             guard !isEmpty else { return self }
             return prefix(1).uppercased() + dropFirst()

@@ -125,7 +125,7 @@ struct FilterChipMenu<Option: Hashable>: View {
     let formatter: (Option) -> String
     /// The label of the row that clears the filter. "All" reads naturally for the
     /// categorical chips (State, Language, …); callers can override it.
-    var resetLabel: String = "All"
+    var resetLabel: String = String(localized: "All")
 
     /// Match SearchableFilterChip's selected/idle styling so a set filter always
     /// shows the accent capsule. Idle is transparent; a selection paints the same
@@ -155,7 +155,7 @@ struct FilterChipMenu<Option: Hashable>: View {
             strokeColor: strokeColor,
             labelColor: labelColor,
             menuDisabled: options.isEmpty,
-            clearLabel: "Clear \(title) filter",
+            clearLabel: String(localized: "Clear \(title) filter"),
             onClear: { selected = nil },
             menu: {
                 // The reset row carries the checkmark while nothing is selected, so
@@ -220,12 +220,12 @@ struct DateRangeFilterChip: View {
         let style = Date.FormatStyle.dateTime.month(.wide).day()
         let start = window.customStart.map { $0.formatted(style) } ?? "…"
         let end = window.customEnd.map { $0.formatted(style) } ?? "…"
-        return "\(start) to \(end)"
+        return String(localized: "\(start) to \(end)", comment: "A custom date range, e.g. \"March 1 to March 8\"")
     }
 
     private var chipText: String {
         if isCustom { return customRangeLabel }
-        if let range = window.range { return range.capitalized }
+        if let range = window.range { return PadDateRange.displayLabel(for: range) }
         return title
     }
 
@@ -237,7 +237,7 @@ struct DateRangeFilterChip: View {
             fillColor: fillColor,
             strokeColor: strokeColor,
             labelColor: labelColor,
-            clearLabel: "Clear \(title.lowercased()) date filter",
+            clearLabel: String(localized: "Clear \(title.lowercased()) date filter"),
             onClear: { window = PadDateWindow() },
             menu: {
                 Button {
@@ -251,9 +251,9 @@ struct DateRangeFilterChip: View {
                         window = PadDateWindow(range: option)
                     } label: {
                         if !isCustom, option == window.range {
-                            Label(option.capitalized, systemImage: "checkmark")
+                            Label(PadDateRange.displayLabel(for: option), systemImage: "checkmark")
                         } else {
-                            Text(option.capitalized)
+                            Text(PadDateRange.displayLabel(for: option))
                         }
                     }
                 }
@@ -325,10 +325,10 @@ extension DefaultSearch {
         var result: [DefaultSearch] = []
         if let currentUserEmail, !currentUserEmail.isEmpty {
             result.append(DefaultSearch(id: "my-pads", icon: "person.fill",
-                                        search: NamedSearch(name: "My Pads", ownerFilter: currentUserEmail)))
+                                        search: NamedSearch(name: String(localized: "My Pads"), ownerFilter: currentUserEmail)))
         }
         result.append(DefaultSearch(id: "active", icon: "bolt.fill",
-                                    search: NamedSearch(name: "Active", stateFilter: .active)))
+                                    search: NamedSearch(name: String(localized: "Active"), stateFilter: .active)))
         return result
     }
 
@@ -340,10 +340,10 @@ extension DefaultSearch {
         var result: [DefaultSearch] = []
         if let currentUserEmail, !currentUserEmail.isEmpty {
             result.append(DefaultSearch(id: "my-questions", icon: "person.fill",
-                                        search: NamedSearch(name: "My Questions", ownerFilter: currentUserEmail)))
+                                        search: NamedSearch(name: String(localized: "My Questions"), ownerFilter: currentUserEmail)))
         }
         result.append(DefaultSearch(id: "drafts", icon: "doc.badge.ellipsis",
-                                    search: NamedSearch(name: "Drafts", draftFilter: "draft")))
+                                    search: NamedSearch(name: String(localized: "Drafts"), draftFilter: "draft")))
         return result
     }
 }
@@ -439,13 +439,13 @@ struct SearchableFilterChip: View {
 
     private var chipText: String {
         guard let selected else { return title }
-        if let meEmail, selected == meEmail { return "Me" }
+        if let meEmail, selected == meEmail { return String(localized: "Me") }
         return formatter(selected)
     }
 
     private var accessibilityHint: String {
-        if let selected { return "Filter applied: \(formatter(selected)). Activate to change." }
-        return "No \(title.lowercased()) filter. Activate to choose one."
+        if let selected { return String(localized: "Filter applied: \(formatter(selected)). Activate to change.") }
+        return String(localized: "No \(title.lowercased()) filter. Activate to choose one.")
     }
 
     private var filtered: [String] {
@@ -495,7 +495,7 @@ struct SearchableFilterChip: View {
         )
         .contentShape(Capsule())
         .onTapGesture { presented.toggle() }
-        .chipClearOverlay(isActive: isActive, label: "Clear \(title) filter") { selected = nil }
+        .chipClearOverlay(isActive: isActive, label: String(localized: "Clear \(title) filter")) { selected = nil }
         .disabled(options.isEmpty)
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isButton)
@@ -591,7 +591,7 @@ private struct SearchableFilterPopover: View {
                 VStack(alignment: .leading, spacing: 0) {
                     if let meEmail {
                         PopoverRow(
-                            label: "Me",
+                            label: String(localized: "Me"),
                             subtitle: formatter(meEmail) == meEmail ? meEmail : formatter(meEmail),
                             isSelected: selected == meEmail
                         ) {
@@ -600,7 +600,7 @@ private struct SearchableFilterPopover: View {
                         }
                         Divider()
                     }
-                    PopoverRow(label: "All", subtitle: nil, isSelected: selected == nil) {
+                    PopoverRow(label: String(localized: "All"), subtitle: nil, isSelected: selected == nil) {
                         selected = nil
                         presented = false
                     }

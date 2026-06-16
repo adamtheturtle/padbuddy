@@ -12,7 +12,7 @@ import SwiftUI
 
 struct InlineEditableTitle: View {
     @Binding var text: String
-    var placeholder: String
+    var placeholder: LocalizedStringKey
     /// The owning view keeps the focus state so it can drive the field from a menu
     /// command and commit the edit when focus leaves.
     var focus: FocusState<Bool>.Binding

@@ -7,8 +7,8 @@ import SwiftUI
 
 struct WhatsNewHighlight {
     let symbol: String
-    let title: String
-    let body: String
+    let title: LocalizedStringKey
+    let body: LocalizedStringKey
 }
 
 struct WhatsNewRelease {
@@ -38,8 +38,7 @@ enum WhatsNew {
         WhatsNewHighlight(
             symbol: "bolt.horizontal",
             title: "Faster section switching",
-            body: "Pads and Questions are cached per account, so switching sections shows your last data "
-                + "instantly while a background reload runs."
+            body: "Pads and Questions are cached per account, so switching sections shows your last data instantly while a background reload runs."
         ),
         WhatsNewHighlight(
             symbol: "keyboard",

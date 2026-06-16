@@ -16,7 +16,7 @@ extension AccountEditor {
     /// Text fields align on the first baseline; rows whose content has no text
     /// baseline (the icon/color pickers) pass `.center` so the label sits level
     /// with the swatches rather than drifting to their bottom edge.
-    func fieldRow(_ label: String,
+    func fieldRow(_ label: LocalizedStringKey,
                   alignment: VerticalAlignment = .firstTextBaseline,
                   @ViewBuilder content: () -> some View) -> some View {
         HStack(alignment: alignment, spacing: 10) {
@@ -191,7 +191,7 @@ extension AccountEditor {
                 && existing.resolvedBaseURL == server
         }
         guard clashes else { return nil }
-        return "This API key is already added as another account. Each account must use a unique key."
+        return String(localized: "This API key is already added as another account. Each account must use a unique key.")
     }
 
     func validate() async {
@@ -259,12 +259,12 @@ extension AccountEditor {
         async let quotaOK = authorized { _ = try await client.quota() }
 
         var missing: [String] = []
-        if await padsOK == false { missing.append("Pads") }
-        if await questionsOK == false { missing.append("Questions") }
-        if await quotaOK == false { missing.append("Quota") }
+        if await padsOK == false { missing.append(String(localized: "Pads")) }
+        if await questionsOK == false { missing.append(String(localized: "Questions")) }
+        if await quotaOK == false { missing.append(String(localized: "Quota")) }
         guard !missing.isEmpty else { return nil }
         let list = missing.joined(separator: ", ")
-        return "This key works, but isn't authorized for: \(list). Those sections may be empty."
+        return String(localized: "This key works, but isn't authorized for: \(list). Those sections may be empty.")
     }
 
     /// Derives the signed-in user's email from their own pads. `/api/pads/` is scoped
@@ -288,27 +288,27 @@ extension AccountEditor {
     func friendlyValidationMessage(for error: Error) -> String {
         if let api = error as? CoderPadError {
             if api.isUnauthorized {
-                return "CoderPad rejected this key. Double-check that it's the right one and hasn't been revoked."
+                return String(localized: "CoderPad rejected this key. Double-check that it's the right one and hasn't been revoked.")
             }
             switch api {
             case .missingAPIKey:
-                return "Paste your CoderPad API key above."
+                return String(localized: "Paste your CoderPad API key above.")
             case .http:
-                return "CoderPad couldn't verify the key right now. Try again in a moment."
+                return String(localized: "CoderPad couldn't verify the key right now. Try again in a moment.")
             case .decode:
-                return """
+                return String(localized: """
                 CoderPad returned something unexpected. Try again, and if it keeps happening, \
                 regenerate the key.
-                """
+                """)
             case .network:
-                return api.errorDescription ?? "Couldn't reach CoderPad. Check your internet connection and try again."
+                return api.errorDescription ?? String(localized: "Couldn't reach CoderPad. Check your internet connection and try again.")
             }
         }
         let nsError = error as NSError
         if nsError.domain == NSURLErrorDomain {
-            return "Couldn't reach CoderPad. Check your internet connection and try again."
+            return String(localized: "Couldn't reach CoderPad. Check your internet connection and try again.")
         }
-        return "Couldn't validate this key. Try again."
+        return String(localized: "Couldn't validate this key. Try again.")
     }
 }
 
@@ -337,7 +337,7 @@ struct OrgMemberPicker: View {
             isPresented = true
         } label: {
             HStack {
-                Text(selection.isEmpty ? "Unset" : label(selection))
+                Text(selection.isEmpty ? String(localized: "Unset") : label(selection))
                     .foregroundStyle(selection.isEmpty ? .secondary : .primary)
                     .lineLimit(1)
                 Spacer()

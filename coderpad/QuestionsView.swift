@@ -384,12 +384,12 @@ enum QuestionSort: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .lastUsedDesc: "Last used (newest first)"
-        case .lastUsedAsc: "Last used (oldest first)"
-        case .usedDesc: "Most used"
-        case .usedAsc: "Least used"
-        case .titleAsc: "Title (A-Z)"
-        case .titleDesc: "Title (Z-A)"
+        case .lastUsedDesc: String(localized: "Last used (newest first)")
+        case .lastUsedAsc: String(localized: "Last used (oldest first)")
+        case .usedDesc: String(localized: "Most used")
+        case .usedAsc: String(localized: "Least used")
+        case .titleAsc: String(localized: "Title (A-Z)")
+        case .titleDesc: String(localized: "Title (Z-A)")
         }
     }
 
@@ -408,11 +408,14 @@ enum QuestionSort: String, CaseIterable, Identifiable {
     static func directions(for field: QuestionSortField) -> [(sort: QuestionSort, label: String, systemImage: String)] {
         switch field {
         case .lastUsed:
-            [(.lastUsedDesc, "Newest First", "arrow.down"), (.lastUsedAsc, "Oldest First", "arrow.up")]
+            [(.lastUsedDesc, String(localized: "Newest First"), "arrow.down"),
+             (.lastUsedAsc, String(localized: "Oldest First"), "arrow.up")]
         case .used:
-            [(.usedDesc, "Most Used", "arrow.down"), (.usedAsc, "Least Used", "arrow.up")]
+            [(.usedDesc, String(localized: "Most Used"), "arrow.down"),
+             (.usedAsc, String(localized: "Least Used"), "arrow.up")]
         case .title:
-            [(.titleAsc, "A to Z", "arrow.down"), (.titleDesc, "Z to A", "arrow.up")]
+            [(.titleAsc, String(localized: "A to Z"), "arrow.down"),
+             (.titleDesc, String(localized: "Z to A"), "arrow.up")]
         }
     }
 
@@ -437,9 +440,9 @@ enum QuestionSortField: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .lastUsed: "Last Used"
-        case .used: "Times Used"
-        case .title: "Title"
+        case .lastUsed: String(localized: "Last Used")
+        case .used: String(localized: "Times Used")
+        case .title: String(localized: "Title")
         }
     }
 

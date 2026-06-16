@@ -71,10 +71,10 @@ extension PadDetailView {
                     type.chip
                 }
                 if pad.isPrivate == true {
-                    MetaLabel(text: "Private", systemImage: "lock")
+                    MetaLabel(text: String(localized: "Private"), systemImage: "lock")
                 }
                 if let exec = pad.executionEnabled, exec {
-                    MetaLabel(text: "Execution enabled", systemImage: "play.circle")
+                    MetaLabel(text: String(localized: "Execution enabled"), systemImage: "play.circle")
                 }
                 if let team = pad.team {
                     MetaLabel(text: team.name, systemImage: "person.3")
@@ -367,7 +367,7 @@ extension PadDetailView {
         switch event.kind.lowercased() {
         case "ran", "executed": return meta.languageDisplayName
         case "added_question": return "#\(meta)"
-        case "joined" where meta.lowercased() == "spectator": return "as spectator"
+        case "joined" where meta.lowercased() == "spectator": return String(localized: "as spectator")
         default: return nil
         }
     }

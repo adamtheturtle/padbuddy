@@ -63,7 +63,7 @@ struct QuotaView: View {
     private func statTiles(_ quota: Quota) -> some View {
         HStack(spacing: 12) {
             if quota.unlimited == true {
-                StatTile(title: "Plan", value: "Unlimited", systemImage: "infinity", tint: .green)
+                StatTile(title: "Plan", value: String(localized: "Unlimited"), systemImage: "infinity", tint: .green)
             } else if let used = quota.padsUsed {
                 StatTile(title: "Pads used", value: "\(used)", systemImage: "chart.bar.fill", tint: .blue)
             }
@@ -73,7 +73,7 @@ struct QuotaView: View {
                          tint: remaining <= 0 ? .red : .green)
             }
             StatTile(title: "Overages",
-                     value: quota.overagesEnabled == true ? "Enabled" : "Disabled",
+                     value: quota.overagesEnabled == true ? String(localized: "Enabled") : String(localized: "Disabled"),
                      systemImage: "arrow.up.right.circle",
                      tint: quota.overagesEnabled == true ? .green : .orange)
             if let reset = quota.quotaReset {
@@ -212,14 +212,14 @@ nonisolated struct QuotaPace {
 
     var headline: String {
         switch status {
-        case .over: "Over your limit for this cycle"
-        case .trendingOver: "On track to exceed your limit"
-        case .onTrack: "On track to stay within your limit"
+        case .over: String(localized: "Over your limit for this cycle")
+        case .trendingOver: String(localized: "On track to exceed your limit")
+        case .onTrack: String(localized: "On track to stay within your limit")
         }
     }
 
     var accessibilityLabel: String {
-        "\(used) of \(limit) pads used, \(Int((fractionElapsed * 100).rounded()))% through the cycle. \(headline)."
+        String(localized: "\(used) of \(limit) pads used, \(Int((fractionElapsed * 100).rounded()))% through the cycle. \(headline).")
     }
 }
 

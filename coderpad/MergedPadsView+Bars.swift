@@ -31,42 +31,42 @@ extension MergedPadsView {
     var filterBar: some View {
         FlowLayout(spacing: 8, lineSpacing: 8) {
             FilterChipMenu(
-                title: "Account", icon: "person.crop.circle",
+                title: String(localized: "Account"), icon: "person.crop.circle",
                 selected: $accountFilter,
                 options: accounts.mergeableAccounts.map(\.id),
                 formatter: { accountName($0) }
             )
             .measuresFilterBarWidth()
             FilterChipMenu(
-                title: "State", icon: "circle.fill",
+                title: String(localized: "State"), icon: "circle.fill",
                 selected: $stateFilter, options: availableStates,
                 formatter: { $0.label }
             )
             .measuresFilterBarWidth()
             FilterChipMenu(
-                title: "Language", icon: "chevron.left.slash.chevron.right",
+                title: String(localized: "Language"), icon: "chevron.left.slash.chevron.right",
                 selected: $languageFilter, options: availableLanguages,
                 formatter: { $0.languageDisplayName }
             )
             .measuresFilterBarWidth()
             SearchableFilterChip(
-                title: "Owner", icon: "person",
+                title: String(localized: "Owner"), icon: "person",
                 selected: $ownerFilter, options: availableOwners,
                 formatter: { directory.display($0) },
                 meEmail: nil
             )
             .measuresFilterBarWidth()
             FilterChipMenu(
-                title: "Type", icon: "tag",
+                title: String(localized: "Type"), icon: "tag",
                 selected: $typeFilter,
                 options: InterviewType.allCases.map(\.rawValue),
                 formatter: { InterviewType(rawValue: $0)?.label ?? $0.capitalized }
             )
             .measuresFilterBarWidth()
-            DateRangeFilterChip(title: "Updated", window: $updatedWindow,
+            DateRangeFilterChip(title: String(localized: "Updated"), window: $updatedWindow,
                                 options: PadDateRange.options)
                 .measuresFilterBarWidth()
-            DateRangeFilterChip(title: "Created", window: $createdWindow,
+            DateRangeFilterChip(title: String(localized: "Created"), window: $createdWindow,
                                 options: PadDateRange.options)
                 .measuresFilterBarWidth()
             if activeFilterCount > 0 {

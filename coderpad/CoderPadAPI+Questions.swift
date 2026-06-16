@@ -94,11 +94,13 @@ enum InterviewType: String, CaseIterable, Identifiable, Hashable {
         rawValue
     }
 
-    /// Human-facing label for filter menus and badges.
+    /// Human-facing label for filter menus and badges. Localized at the source so
+    /// every `Text(type.label)` / `MetaLabel(text:)` site renders in the user's
+    /// language even though those views take a plain `String` (#111).
     var label: String {
         switch self {
-        case .live: "Live"
-        case .takeHome: "Take-home"
+        case .live: String(localized: "Live")
+        case .takeHome: String(localized: "Take-home")
         }
     }
 
@@ -168,13 +170,16 @@ enum PadState: Hashable, Identifiable, Codable, RawRepresentable {
         self == .ended
     }
 
-    /// Human-facing label for badges and filter menus.
+    /// Human-facing label for badges and filter menus. Localized at the source so
+    /// `StateBadge` / `MetaLabel` (which take a plain `String`) still render in the
+    /// user's language (#111). `.other` carries an unrecognized API value, so it's
+    /// surfaced verbatim rather than translated.
     var label: String {
         switch self {
-        case .active: "Active"
-        case .ended: "Ended"
-        case .pending: "Pending"
-        case .deleted: "Deleted"
+        case .active: String(localized: "Active")
+        case .ended: String(localized: "Ended")
+        case .pending: String(localized: "Pending")
+        case .deleted: String(localized: "Deleted")
         case let .other(raw): raw.replacingOccurrences(of: "_", with: " ").capitalized
         }
     }

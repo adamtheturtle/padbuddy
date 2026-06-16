@@ -37,36 +37,36 @@ extension MergedQuestionsView {
     var filterBar: some View {
         FlowLayout(spacing: 8, lineSpacing: 8) {
             FilterChipMenu(
-                title: "Account", icon: "person.crop.circle",
+                title: String(localized: "Account"), icon: "person.crop.circle",
                 selected: $accountFilter,
                 options: accounts.mergeableAccounts.map(\.id),
                 formatter: { accountName($0) }
             )
             .measuresFilterBarWidth()
             FilterChipMenu(
-                title: "Language", icon: "chevron.left.slash.chevron.right",
+                title: String(localized: "Language"), icon: "chevron.left.slash.chevron.right",
                 selected: $languageFilter, options: availableLanguages,
                 formatter: { $0.languageDisplayName }
             )
             .measuresFilterBarWidth()
             SearchableFilterChip(
-                title: "Owner", icon: "person",
+                title: String(localized: "Owner"), icon: "person",
                 selected: $ownerFilter, options: availableOwners,
                 formatter: { directory.display($0) },
                 meEmail: nil
             )
             .measuresFilterBarWidth()
             FilterChipMenu(
-                title: "Type", icon: "tag",
+                title: String(localized: "Type"), icon: "tag",
                 selected: $typeFilter,
                 options: InterviewType.allCases.map(\.rawValue),
                 formatter: { InterviewType(rawValue: $0)?.label ?? $0.capitalized }
             )
             .measuresFilterBarWidth()
             FilterChipMenu(
-                title: "Status", icon: "doc.badge.ellipsis",
+                title: String(localized: "Status"), icon: "doc.badge.ellipsis",
                 selected: $draftFilter, options: ["draft", "published"],
-                formatter: { $0.capitalized }
+                formatter: { $0 == "draft" ? String(localized: "Draft") : String(localized: "Published") }
             )
             .measuresFilterBarWidth()
             if activeFilterCount > 0 {

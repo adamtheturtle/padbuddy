@@ -15,7 +15,7 @@ struct SmartFilterSheet: View {
     /// True after an attempt that the model couldn't map to any filter, so the
     /// sheet can explain why nothing changed instead of silently closing.
     let failed: Bool
-    let placeholder: String
+    let placeholder: LocalizedStringKey
     let onSubmit: () -> Void
     let onCancel: () -> Void
 

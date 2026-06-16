@@ -78,13 +78,13 @@ extension QuestionDetailView {
                 }
                 question.interviewType.chip
                 if question.shared == true {
-                    MetaLabel(text: "Shared", systemImage: "person.2")
+                    MetaLabel(text: String(localized: "Shared"), systemImage: "person.2")
                 }
                 if question.testCasesEnabled == true {
-                    MetaLabel(text: "Test cases", systemImage: "checkmark.seal")
+                    MetaLabel(text: String(localized: "Test cases"), systemImage: "checkmark.seal")
                 }
                 if question.isDraft == true {
-                    Chip(text: "Draft", systemImage: "doc.badge.ellipsis", tint: .orange)
+                    Chip(text: String(localized: "Draft"), systemImage: "doc.badge.ellipsis", tint: .orange)
                 }
                 if question.publicTakeHomeSettingID != nil {
                     // The API exposes only the setting's ID, not the candidate-facing
@@ -92,7 +92,7 @@ extension QuestionDetailView {
                     // CoderPad's web app and isn't derivable from this ID). So we
                     // surface the fact that a public link is configured, rather than
                     // fabricating a URL that might not resolve.
-                    MetaLabel(text: "Public link", systemImage: "globe")
+                    MetaLabel(text: String(localized: "Public link"), systemImage: "globe")
                         .help("This question has a public take-home link configured in CoderPad. "
                             + "Copy the link from CoderPad's web app to share it.")
                         .accessibilityLabel("Public take-home link configured")
@@ -182,7 +182,7 @@ extension QuestionDetailView {
                             // Mirror the test-case "Hidden" badge: an instruction the
                             // candidate doesn't see by default is meaningful review context.
                             if !item.defaultVisible {
-                                Chip(text: "Hidden by default", systemImage: "eye.slash", tint: .gray)
+                                Chip(text: String(localized: "Hidden by default"), systemImage: "eye.slash", tint: .gray)
                             }
                             InlineEditableText(text: item.instructions, placeholder: "Empty",
                                                label: instructions.count > 1 ? "part \(index + 1)" : "candidate instructions") {
@@ -228,7 +228,7 @@ extension QuestionDetailView {
             }
             Spacer(minLength: 8)
             if testCase.visible == false {
-                Chip(text: "Hidden", systemImage: "eye.slash", tint: .gray)
+                Chip(text: String(localized: "Hidden"), systemImage: "eye.slash", tint: .gray)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -302,7 +302,7 @@ extension QuestionDetailView {
     func fileName(_ file: QuestionCustomFile) -> String {
         if let filename = file.filename, !filename.isEmpty { return filename }
         if let title = file.title, !title.isEmpty { return title }
-        return "Untitled file"
+        return String(localized: "Untitled file")
     }
 
     /// The starter code a candidate begins from when this question is used (the
@@ -320,7 +320,7 @@ extension QuestionDetailView {
         }
     }
 
-    func starterCodeCard(title: String, code: String) -> some View {
+    func starterCodeCard(title: LocalizedStringKey, code: String) -> some View {
         Card {
             VStack(alignment: .leading, spacing: 10) {
                 SectionHeader(title: title, systemImage: "chevron.left.slash.chevron.right")
@@ -349,7 +349,7 @@ extension QuestionDetailView {
 
     /// A card pairing a section header with an inline-editable long-form field.
     /// `onSave` returns `true` once the edit is committed so the editor can close.
-    func editableLongFormCard(title: String, text: String, placeholder: String, label: String,
+    func editableLongFormCard(title: LocalizedStringKey, text: String, placeholder: LocalizedStringKey, label: String,
                               onSave: @escaping (String) async -> Bool) -> some View {
         Card {
             VStack(alignment: .leading, spacing: 10) {
@@ -369,7 +369,7 @@ extension QuestionDetailView {
 /// `placeholder`) so they can be filled in (#333).
 struct InlineEditableText: View {
     let text: String
-    var placeholder: String
+    var placeholder: LocalizedStringKey
     /// Human-readable name of this field, used for the pencil's help/accessibility
     /// label (e.g. "description", "part 2").
     var label: String

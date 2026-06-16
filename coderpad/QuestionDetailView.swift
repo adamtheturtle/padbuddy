@@ -51,11 +51,11 @@ struct QuestionDetailView: View {
         }
         ToolbarItem(id: "favorite", placement: .primaryAction) {
             Button { toggleFavorite() } label: {
-                Label(isFavorite ? "Favorited" : "Favorite",
+                Label(isFavorite ? String(localized: "Favorited") : String(localized: "Favorite"),
                       systemImage: isFavorite ? "star.fill" : "star")
             }
-            .help(isFavorite ? "Remove from Favorites" : "Add to Favorites")
-            .accessibilityLabel(isFavorite ? "Remove from Favorites" : "Add to Favorites")
+            .help(isFavorite ? String(localized: "Remove from Favorites") : String(localized: "Add to Favorites"))
+            .accessibilityLabel(isFavorite ? String(localized: "Remove from Favorites") : String(localized: "Add to Favorites"))
         }
         ToolbarItem(id: "new-pad", placement: .primaryAction) {
             Button { Task { await createPadInline() } } label: {

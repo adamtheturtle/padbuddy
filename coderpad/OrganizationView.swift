@@ -164,7 +164,7 @@ struct OrganizationView: View {
         Card {
             VStack(alignment: .leading, spacing: 10) {
                 SectionHeader(title: "Single sign-on", systemImage: "key.horizontal")
-                LabeledRow(label: "Single sign-on", value: supported ? "Enabled" : "Disabled")
+                LabeledRow(label: "Single sign-on", value: supported ? String(localized: "Enabled") : String(localized: "Disabled"))
                 if supported, let urlString = organization?.singleSignInURL,
                    let url = URL(string: urlString) {
                     // Always the system browser, never the in-app web view: SSO

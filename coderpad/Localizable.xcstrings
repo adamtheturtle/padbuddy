@@ -90,12 +90,61 @@
         }
       }
     },
+    "%@ (bad key)" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%@ (clave no válida)"
+          }
+        }
+      }
+    },
+    "%@ (Me)" : {
+      "comment" : "Owner-picker label for the signed-in user, e.g. \"Ada Lovelace (Me)\"",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%@ (Yo)"
+          }
+        }
+      }
+    },
     "%@ filter" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Filtro %@"
+          }
+        }
+      }
+    },
+    "%@ Project" : {
+      "comment" : "A multi-file project environment for a language, e.g. \"Python Project\"",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Proyecto de %@"
+          }
+        }
+      }
+    },
+    "%@ to %@" : {
+      "comment" : "A custom date range, e.g. \"March 1 to March 8\"",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ to %2$@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Del %1$@ al %2$@"
           }
         }
       }
@@ -117,6 +166,7 @@
       }
     },
     "%@: %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -138,6 +188,116 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "%lld"
+          }
+        }
+      }
+    },
+    "%lld accounts combined" : {
+      "localizations" : {
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld cuenta combinada"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld cuentas combinadas"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld interviews ended" : {
+      "localizations" : {
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld entrevista finalizada"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld entrevistas finalizadas"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld new pads" : {
+      "localizations" : {
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld pad nuevo"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld pads nuevos"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld of %lld pads remaining" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld of %2$lld pads remaining"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Quedan %1$lld de %#@pads@"
+          },
+          "substitutions" : {
+            "pads" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "machine_translated",
+                      "value" : "%arg pad"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "machine_translated",
+                      "value" : "%arg pads"
+                    }
+                  },
+                  "zero" : {
+                    "stringUnit" : {
+                      "state" : "machine_translated",
+                      "value" : "%arg pads"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -186,6 +346,138 @@
         }
       }
     },
+    "%lld of %lld pads used, %lld%% through the cycle. %@." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld of %2$lld pads used, %3$lld%% through the cycle. %4$@."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%1$lld de %#@pads@, %3$lld%% del ciclo transcurrido. %4$@."
+          },
+          "substitutions" : {
+            "pads" : {
+              "argNum" : 2,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "machine_translated",
+                      "value" : "%arg pad usado"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "machine_translated",
+                      "value" : "%arg pads usados"
+                    }
+                  },
+                  "zero" : {
+                    "stringUnit" : {
+                      "state" : "machine_translated",
+                      "value" : "%arg pads usados"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld pads gained a participant" : {
+      "localizations" : {
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld pad ganó un participante"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld pads ganaron un participante"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld pads have new activity" : {
+      "localizations" : {
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld pad tiene actividad nueva"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld pads tienen actividad nueva"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld pads remaining" : {
+      "localizations" : {
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "Queda %lld pad"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "Quedan %lld pads"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%lld pads used" : {
+      "localizations" : {
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld pad usado"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld pads usados"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld updated" : {
       "localizations" : {
         "es" : {
@@ -208,12 +500,88 @@
         }
       }
     },
+    "%lldm" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%lldm"
+          }
+        }
+      }
+    },
+    "%lldm %llds" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lldm %2$llds"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%1$lldm %2$llds"
+          }
+        }
+      }
+    },
+    "%llds" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%llds"
+          }
+        }
+      }
+    },
+    "⌘⇧N New Question, ⌘⌥C Copy Pad URL, ⌘↩ Open Pad in Browser." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "⌘⇧N Nueva pregunta, ⌘⌥C Copiar URL del Pad, ⌘↩ Abrir Pad en el navegador."
+          }
+        }
+      }
+    },
+    "A network error occurred. Check your connection and try again." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Se produjo un error de red. Comprueba tu conexión e inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "A to Z" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "De la A a la Z"
+          }
+        }
+      }
+    },
     "About CoderPad" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Acerca de CoderPad"
+          }
+        }
+      }
+    },
+    "Account" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Cuenta"
           }
         }
       }
@@ -228,12 +596,64 @@
         }
       }
     },
+    "Accounts like Mail" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Cuentas como en Mail"
+          }
+        }
+      }
+    },
     "Action failed" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "La acción falló"
+          }
+        }
+      }
+    },
+    "Active" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Activo"
+          }
+        }
+      }
+    },
+    "Active · %lld accounts" : {
+      "localizations" : {
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "Activa · %lld cuenta"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "Activa · %lld cuentas"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Active account" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Cuenta activa"
           }
         }
       }
@@ -328,6 +748,16 @@
         }
       }
     },
+    "All" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Todos"
+          }
+        }
+      }
+    },
     "All Accounts" : {
       "localizations" : {
         "es" : {
@@ -344,6 +774,26 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "En cualquier momento"
+          }
+        }
+      }
+    },
+    "API Key" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Clave de API"
+          }
+        }
+      }
+    },
+    "API key invalid" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Clave de API no válida"
           }
         }
       }
@@ -374,6 +824,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Aplicar la búsqueda guardada %@"
+          }
+        }
+      }
+    },
+    "as spectator" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "como espectador"
           }
         }
       }
@@ -478,6 +938,16 @@
         }
       }
     },
+    "Candidate Instructions" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Instrucciones para el candidato"
+          }
+        }
+      }
+    },
     "Choose one of your saved accounts in Settings." : {
       "localizations" : {
         "es" : {
@@ -494,6 +964,26 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Borrar"
+          }
+        }
+      }
+    },
+    "Clear %@ date filter" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Borrar el filtro de fecha %@"
+          }
+        }
+      }
+    },
+    "Clear %@ filter" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Borrar el filtro %@"
           }
         }
       }
@@ -538,6 +1028,58 @@
         }
       }
     },
+    "Code" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Código"
+          }
+        }
+      }
+    },
+    "Code preview of %@ in %@ in pad %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Code preview of %1$@ in %2$@ in pad %3$@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Vista previa del código de %1$@ en %2$@ en el pad %3$@"
+          }
+        }
+      }
+    },
+    "Code preview of %@ in pad %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Code preview of %1$@ in pad %2$@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Vista previa del código de %1$@ en el pad %2$@"
+          }
+        }
+      }
+    },
+    "Code preview of pad %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Vista previa del código del pad %@"
+          }
+        }
+      }
+    },
     "CoderPad" : {
       "localizations" : {
         "es" : {
@@ -558,12 +1100,62 @@
         }
       }
     },
+    "CoderPad couldn't verify the key right now. Try again in a moment." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "CoderPad no pudo verificar la clave en este momento. Inténtalo de nuevo en unos momentos."
+          }
+        }
+      }
+    },
+    "CoderPad had a server error. Please try again shortly." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "CoderPad tuvo un error del servidor. Inténtalo de nuevo en unos momentos."
+          }
+        }
+      }
+    },
+    "CoderPad is rate-limiting requests right now. Try again in a moment." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "CoderPad está limitando la frecuencia de solicitudes en este momento. Inténtalo de nuevo en unos momentos."
+          }
+        }
+      }
+    },
     "CoderPad is unreachable, so editing is paused until you reconnect." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "No se puede conectar con CoderPad, así que la edición está en pausa hasta que vuelvas a conectarte."
+          }
+        }
+      }
+    },
+    "CoderPad rejected this key. Double-check that it's the right one and hasn't been revoked." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "CoderPad rechazó esta clave. Comprueba que sea la correcta y que no se haya revocado."
+          }
+        }
+      }
+    },
+    "CoderPad returned something unexpected. Try again, and if it keeps happening, regenerate the key." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "CoderPad devolvió algo inesperado. Inténtalo de nuevo y, si sigue ocurriendo, vuelve a generar la clave."
           }
         }
       }
@@ -598,6 +1190,16 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "Color" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Color"
           }
         }
       }
@@ -806,6 +1408,36 @@
         }
       }
     },
+    "Couldn't reach CoderPad. Check your connection and try again." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudo conectar con CoderPad. Comprueba tu conexión e inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "Couldn't reach CoderPad. Check your internet connection and try again." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudo conectar con CoderPad. Comprueba tu conexión a internet e inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "Couldn't read response: %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudo leer la respuesta: %@"
+          }
+        }
+      }
+    },
     "Couldn’t save question" : {
       "localizations" : {
         "es" : {
@@ -822,6 +1454,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "No se pudo convertir eso en filtros. Prueba a indicar un lenguaje, propietario, estado o fecha."
+          }
+        }
+      }
+    },
+    "Couldn't validate this key. Try again." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudo validar esta clave. Inténtalo de nuevo."
           }
         }
       }
@@ -896,6 +1538,16 @@
         }
       }
     },
+    "Created" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Creado"
+          }
+        }
+      }
+    },
     "Current" : {
       "localizations" : {
         "es" : {
@@ -922,6 +1574,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Personalizado…"
+          }
+        }
+      }
+    },
+    "Dark" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Oscuro"
           }
         }
       }
@@ -1208,6 +1870,16 @@
         }
       }
     },
+    "Deleted" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Eliminado"
+          }
+        }
+      }
+    },
     "Deleting “%@”…" : {
       "localizations" : {
         "es" : {
@@ -1258,6 +1930,46 @@
         }
       }
     },
+    "Details" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Detalles"
+          }
+        }
+      }
+    },
+    "Disabled" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Desactivado"
+          }
+        }
+      }
+    },
+    "Dock and menu bar" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Dock y barra de menús"
+          }
+        }
+      }
+    },
+    "Dock only" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Solo en el Dock"
+          }
+        }
+      }
+    },
     "Download all files as a folder" : {
       "localizations" : {
         "es" : {
@@ -1274,6 +1986,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Descargar código"
+          }
+        }
+      }
+    },
+    "Draft" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Borrador"
           }
         }
       }
@@ -1318,6 +2040,16 @@
         }
       }
     },
+    "Drafts" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Borradores"
+          }
+        }
+      }
+    },
     "Drag pads or questions here." : {
       "localizations" : {
         "es" : {
@@ -1328,12 +2060,32 @@
         }
       }
     },
+    "e.g. active Python pads from my team" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "p. ej. pads de Python activos de mi equipo"
+          }
+        }
+      }
+    },
     "e.g. Live pads, my team" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "p. ej. Pads en vivo, mi equipo"
+          }
+        }
+      }
+    },
+    "e.g. my draft SQL questions" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "p. ej. mis preguntas de SQL en borrador"
           }
         }
       }
@@ -1378,6 +2130,26 @@
         }
       }
     },
+    "Empty" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Vacío"
+          }
+        }
+      }
+    },
+    "Enabled" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Habilitado"
+          }
+        }
+      }
+    },
     "End Interview" : {
       "localizations" : {
         "es" : {
@@ -1418,12 +2190,32 @@
         }
       }
     },
+    "Ended" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Finalizado"
+          }
+        }
+      }
+    },
     "Ending the interview stops the live session for all participants." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Finalizar la entrevista detiene la sesión en vivo para todos los participantes."
+          }
+        }
+      }
+    },
+    "Events" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Eventos"
           }
         }
       }
@@ -1458,6 +2250,16 @@
         }
       }
     },
+    "Faster section switching" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Cambio de sección más rápido"
+          }
+        }
+      }
+    },
     "Favorite" : {
       "localizations" : {
         "es" : {
@@ -1479,7 +2281,34 @@
       }
     },
     "Favorites" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Favoritos"
+          }
+        }
+      }
+    },
+    "Files" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Archivos"
+          }
+        }
+      }
+    },
+    "Filter applied: %@. Activate to change." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Filtro aplicado: %@. Activa para cambiarlo."
+          }
+        }
+      }
     },
     "Find" : {
       "localizations" : {
@@ -1507,6 +2336,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Desde"
+          }
+        }
+      }
+    },
+    "From example: %@" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Del ejemplo: %@"
           }
         }
       }
@@ -1571,6 +2410,26 @@
         }
       }
     },
+    "Hidden" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Oculto"
+          }
+        }
+      }
+    },
+    "Hidden by default" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Oculto de forma predeterminada"
+          }
+        }
+      }
+    },
     "Hide API key" : {
       "localizations" : {
         "es" : {
@@ -1611,6 +2470,16 @@
         }
       }
     },
+    "Icon" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Icono"
+          }
+        }
+      }
+    },
     "Identifies you for the My Pads and My Questions filters and the menu bar. Required to save." : {
       "localizations" : {
         "es" : {
@@ -1621,12 +2490,32 @@
         }
       }
     },
+    "In-app browser" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Navegador integrado"
+          }
+        }
+      }
+    },
     "Indexed on this Mac only. Pad titles can include candidate names." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Indexado solo en este Mac. Los títulos de los pads pueden incluir nombres de candidatos."
+          }
+        }
+      }
+    },
+    "Interview ended" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Entrevista finalizada"
           }
         }
       }
@@ -1651,6 +2540,76 @@
         }
       }
     },
+    "Last 7 days" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Últimos 7 días"
+          }
+        }
+      }
+    },
+    "Last 24 hours" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Últimas 24 horas"
+          }
+        }
+      }
+    },
+    "Last 30 days" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Últimos 30 días"
+          }
+        }
+      }
+    },
+    "Last 90 days" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Últimos 90 días"
+          }
+        }
+      }
+    },
+    "Last Used" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Usado por última vez"
+          }
+        }
+      }
+    },
+    "Last used (newest first)" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Usado por última vez (más reciente primero)"
+          }
+        }
+      }
+    },
+    "Last used (oldest first)" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Usado por última vez (más antiguo primero)"
+          }
+        }
+      }
+    },
     "Last used %@" : {
       "localizations" : {
         "es" : {
@@ -1667,6 +2626,46 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Abrir al iniciar sesión"
+          }
+        }
+      }
+    },
+    "Least used" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Menos usados"
+          }
+        }
+      }
+    },
+    "Least Used" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Menos usados"
+          }
+        }
+      }
+    },
+    "Light" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Claro"
+          }
+        }
+      }
+    },
+    "Live" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "En vivo"
           }
         }
       }
@@ -1751,12 +2750,42 @@
         }
       }
     },
+    "Me" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Yo"
+          }
+        }
+      }
+    },
     "Menu Bar" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Barra de menús"
+          }
+        }
+      }
+    },
+    "Menu bar only" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Solo en la barra de menús"
+          }
+        }
+      }
+    },
+    "Missing API key. Open Settings to add an account." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Falta la clave de API. Abre Ajustes para añadir una cuenta."
           }
         }
       }
@@ -1771,12 +2800,62 @@
         }
       }
     },
+    "More shortcuts" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Más atajos"
+          }
+        }
+      }
+    },
+    "Most used" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Más usados"
+          }
+        }
+      }
+    },
+    "Most Used" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Más usados"
+          }
+        }
+      }
+    },
+    "My Pads" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mis Pads"
+          }
+        }
+      }
+    },
     "My Pads · %@" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Mis Pads · %@"
+          }
+        }
+      }
+    },
+    "My Questions" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mis Preguntas"
           }
         }
       }
@@ -1797,6 +2876,26 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "¿Necesitas un entorno de proyecto como React, Django o Rails? [Créalo en coderpad.io](%@)"
+          }
+        }
+      }
+    },
+    "New activity" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Nueva actividad"
+          }
+        }
+      }
+    },
+    "New pad" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Nuevo pad"
           }
         }
       }
@@ -1851,12 +2950,32 @@
         }
       }
     },
+    "Newest First" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Más reciente primero"
+          }
+        }
+      }
+    },
     "Next Section" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Sección siguiente"
+          }
+        }
+      }
+    },
+    "No %@ filter. Activate to choose one." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No hay filtro de %@. Activa para elegir uno."
           }
         }
       }
@@ -2041,6 +3160,16 @@
         }
       }
     },
+    "None" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Ninguna"
+          }
+        }
+      }
+    },
     "Nothing selected" : {
       "localizations" : {
         "es" : {
@@ -2077,6 +3206,36 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "OK"
+          }
+        }
+      }
+    },
+    "Oldest First" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Más antiguo primero"
+          }
+        }
+      }
+    },
+    "On track to exceed your limit" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Vas camino de superar tu límite"
+          }
+        }
+      }
+    },
+    "On track to stay within your limit" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Vas por buen camino para no superar tu límite"
           }
         }
       }
@@ -2401,12 +3560,52 @@
         }
       }
     },
+    "Organizations" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Organizaciones"
+          }
+        }
+      }
+    },
+    "Over your limit for this cycle" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Has superado tu límite de este ciclo"
+          }
+        }
+      }
+    },
+    "Overages" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Excedentes"
+          }
+        }
+      }
+    },
     "Override only for self-hosted or regional CoderPad deployments. Leave blank to use the default." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Anula este valor solo para implementaciones de CoderPad autoalojadas o regionales. Déjalo en blanco para usar el valor predeterminado."
+          }
+        }
+      }
+    },
+    "Owned by your account (the API key owner)" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Propiedad de tu cuenta (el propietario de la clave de API)"
           }
         }
       }
@@ -2427,6 +3626,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Propietario %@"
+          }
+        }
+      }
+    },
+    "Pace" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Ritmo"
           }
         }
       }
@@ -2471,12 +3680,42 @@
         }
       }
     },
+    "Pads and Questions are cached per account, so switching sections shows your last data instantly while a background reload runs." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Los pads y las preguntas se almacenan en caché por cuenta, así que al cambiar de sección se muestran al instante tus últimos datos mientras se ejecuta una recarga en segundo plano."
+          }
+        }
+      }
+    },
+    "Pads used" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pads usados"
+          }
+        }
+      }
+    },
     "Part %lld" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Parte %lld"
+          }
+        }
+      }
+    },
+    "Participants" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Participantes"
           }
         }
       }
@@ -2501,12 +3740,52 @@
         }
       }
     },
+    "Paste your CoderPad API key above." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pega tu clave de API de CoderPad más arriba."
+          }
+        }
+      }
+    },
+    "Pending" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pendiente"
+          }
+        }
+      }
+    },
     "Period" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Período"
+          }
+        }
+      }
+    },
+    "Plain text" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Texto sin formato"
+          }
+        }
+      }
+    },
+    "Plan" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Plan"
           }
         }
       }
@@ -2541,6 +3820,16 @@
         }
       }
     },
+    "Project" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Proyecto"
+          }
+        }
+      }
+    },
     "Projected ~%lld by reset" : {
       "localizations" : {
         "es" : {
@@ -2551,12 +3840,52 @@
         }
       }
     },
+    "Properties" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Propiedades"
+          }
+        }
+      }
+    },
+    "Public link" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Enlace público"
+          }
+        }
+      }
+    },
     "Public take-home link configured" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Enlace público de take-home configurado"
+          }
+        }
+      }
+    },
+    "Published" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Publicada"
+          }
+        }
+      }
+    },
+    "Quality & readability" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Calidad y legibilidad"
           }
         }
       }
@@ -2711,6 +4040,16 @@
         }
       }
     },
+    "Remaining" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Restantes"
+          }
+        }
+      }
+    },
     "Remove %@ from Favorites" : {
       "localizations" : {
         "es" : {
@@ -2771,6 +4110,16 @@
         }
       }
     },
+    "Resets" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Se restablece"
+          }
+        }
+      }
+    },
     "Retry" : {
       "localizations" : {
         "es" : {
@@ -2822,7 +4171,14 @@
       }
     },
     "Saved Searches" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Búsquedas guardadas"
+          }
+        }
+      }
     },
     "Search %@" : {
       "localizations" : {
@@ -2830,6 +4186,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Buscar %@"
+          }
+        }
+      }
+    },
+    "Search across the sidebar" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Busca en toda la barra lateral"
           }
         }
       }
@@ -2944,6 +4310,16 @@
         }
       }
     },
+    "Server URL" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "URL del servidor"
+          }
+        }
+      }
+    },
     "Settings…" : {
       "localizations" : {
         "es" : {
@@ -3014,6 +4390,16 @@
         }
       }
     },
+    "Shared" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Compartida"
+          }
+        }
+      }
+    },
     "Show %@ Questions" : {
       "localizations" : {
         "es" : {
@@ -3075,7 +4461,14 @@
       }
     },
     "Show or hide the sidebar" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mostrar u ocultar la barra lateral"
+          }
+        }
+      }
     },
     "Show pads from %@" : {
       "localizations" : {
@@ -3137,6 +4530,16 @@
         }
       }
     },
+    "Single sign-on" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Inicio de sesión único"
+          }
+        }
+      }
+    },
     "Smart Filter" : {
       "localizations" : {
         "es" : {
@@ -3173,6 +4576,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Algunos navegadores de terceros no admiten esto."
+          }
+        }
+      }
+    },
+    "Someone joined" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Alguien se unió"
           }
         }
       }
@@ -3217,6 +4630,36 @@
         }
       }
     },
+    "Starter Code" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Código inicial"
+          }
+        }
+      }
+    },
+    "Starter Code (Test Cases)" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Código inicial (casos de prueba)"
+          }
+        }
+      }
+    },
+    "State" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Estado"
+          }
+        }
+      }
+    },
     "Stats period" : {
       "localizations" : {
         "es" : {
@@ -3233,6 +4676,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Período de estadísticas"
+          }
+        }
+      }
+    },
+    "Status" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Estado"
           }
         }
       }
@@ -3258,7 +4711,14 @@
       }
     },
     "Suggested" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Sugeridos"
+          }
+        }
+      }
     },
     "Switch account" : {
       "localizations" : {
@@ -3290,12 +4750,62 @@
         }
       }
     },
+    "System" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Sistema"
+          }
+        }
+      }
+    },
+    "Take-home" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Take-home"
+          }
+        }
+      }
+    },
     "Team" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Equipo"
+          }
+        }
+      }
+    },
+    "Teams" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Equipos"
+          }
+        }
+      }
+    },
+    "Test cases" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Casos de prueba"
+          }
+        }
+      }
+    },
+    "Test Cases" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Casos de prueba"
           }
         }
       }
@@ -3320,12 +4830,52 @@
         }
       }
     },
+    "The Add Account flow auto-fills the name from your org and uses the +/− button set." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "El flujo de Añadir cuenta rellena automáticamente el nombre desde tu organización y usa el conjunto de botones +/−."
+          }
+        }
+      }
+    },
     "The marker shows where your usage would be if it tracked the billing cycle evenly." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "El marcador muestra dónde estaría tu uso si siguiera el ciclo de facturación de forma uniforme."
+          }
+        }
+      }
+    },
+    "The request failed (HTTP %lld)." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "La solicitud falló (HTTP %lld)."
+          }
+        }
+      }
+    },
+    "The request timed out. Check your connection and try again." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Se agotó el tiempo de espera de la solicitud. Comprueba tu conexión e inténtalo de nuevo."
+          }
+        }
+      }
+    },
+    "The server couldn't find that. It may have already been deleted." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "El servidor no pudo encontrar eso. Es posible que ya se haya eliminado."
           }
         }
       }
@@ -3384,12 +4934,32 @@
         }
       }
     },
+    "This API key is already added as another account. Each account must use a unique key." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Esta clave de API ya está añadida como otra cuenta. Cada cuenta debe usar una clave única."
+          }
+        }
+      }
+    },
     "This API key was rejected by CoderPad" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "CoderPad rechazó esta clave de API"
+          }
+        }
+      }
+    },
+    "This key works, but isn't authorized for: %@. Those sections may be empty." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Esta clave funciona, pero no tiene autorización para: %@. Esas secciones pueden estar vacías."
           }
         }
       }
@@ -3414,12 +4984,62 @@
         }
       }
     },
+    "Time & space complexity" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Complejidad temporal & espacial"
+          }
+        }
+      }
+    },
+    "Times used" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Veces usada"
+          }
+        }
+      }
+    },
+    "Times Used" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Veces usada"
+          }
+        }
+      }
+    },
     "Title" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Título"
+          }
+        }
+      }
+    },
+    "Title (A-Z)" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Título (A-Z)"
+          }
+        }
+      }
+    },
+    "Title (Z-A)" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Título (Z-A)"
           }
         }
       }
@@ -3434,8 +5054,35 @@
         }
       }
     },
+    "Today" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Hoy"
+          }
+        }
+      }
+    },
     "Toggle Sidebar" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mostrar u ocultar la barra lateral"
+          }
+        }
+      }
+    },
+    "Trial" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Prueba"
+          }
+        }
+      }
     },
     "Turning this off also requires Touch ID, so it can't be bypassed." : {
       "localizations" : {
@@ -3453,6 +5100,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Tipo"
+          }
+        }
+      }
+    },
+    "Type in the new sidebar search to jump straight into Pads or Questions." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Escribe en la nueva búsqueda de la barra lateral para ir directamente a Pads o Preguntas."
           }
         }
       }
@@ -3487,6 +5144,76 @@
         }
       }
     },
+    "Unlimited pads" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pads ilimitados"
+          }
+        }
+      }
+    },
+    "Unset" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Sin definir"
+          }
+        }
+      }
+    },
+    "Untitled account" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Cuenta sin nombre"
+          }
+        }
+      }
+    },
+    "Untitled file" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Archivo sin título"
+          }
+        }
+      }
+    },
+    "Untitled Pad" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pad sin título"
+          }
+        }
+      }
+    },
+    "Untitled Question" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pregunta sin título"
+          }
+        }
+      }
+    },
+    "Updated" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Actualizado"
+          }
+        }
+      }
+    },
     "Updated %@" : {
       "localizations" : {
         "es" : {
@@ -3503,6 +5230,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Actualizado desde la última actualización"
+          }
+        }
+      }
+    },
+    "Use “%@”" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Usar “%@”"
           }
         }
       }
@@ -3533,6 +5270,38 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Usar esta cuenta"
+          }
+        }
+      }
+    },
+    "Used %lld×" : {
+      "localizations" : {
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "Usada %lld×"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "Usada %lld×"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "Users" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Usuarios"
           }
         }
       }
@@ -3627,12 +5396,42 @@
         }
       }
     },
+    "What it does" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Qué hace"
+          }
+        }
+      }
+    },
     "What's New in CoderPad" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Novedades de CoderPad"
+          }
+        }
+      }
+    },
+    "Whiteboard" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pizarra"
+          }
+        }
+      }
+    },
+    "You appear to be offline. Check your internet connection and try again." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Parece que estás sin conexión. Comprueba tu conexión a internet e inténtalo de nuevo."
           }
         }
       }
@@ -3647,12 +5446,32 @@
         }
       }
     },
+    "You're not authorized. Check this account's API key in Settings." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No tienes autorización. Comprueba la clave de API de esta cuenta en Ajustes."
+          }
+        }
+      }
+    },
     "You’re offline" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Estás sin conexión"
+          }
+        }
+      }
+    },
+    "Your Email" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Tu correo"
           }
         }
       }
@@ -3673,6 +5492,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Tu prueba caduca el %@."
+          }
+        }
+      }
+    },
+    "Z to A" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "De la Z a la A"
           }
         }
       }

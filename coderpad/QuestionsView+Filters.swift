@@ -11,23 +11,23 @@ extension QuestionsView {
         // reflow onto extra lines as the pane narrows instead of clipping the
         // trailing chips off the edge. Mirrors the pad filter bar.
         FlowLayout(spacing: 8, lineSpacing: 8) {
-            FilterChipMenu(title: "Language", icon: "chevron.left.slash.chevron.right",
+            FilterChipMenu(title: String(localized: "Language"), icon: "chevron.left.slash.chevron.right",
                            selected: $languageFilter, options: availableLanguages,
                            formatter: { $0.languageDisplayName })
                 .measuresFilterBarWidth()
-            SearchableFilterChip(title: "Owner", icon: "person",
+            SearchableFilterChip(title: String(localized: "Owner"), icon: "person",
                                  selected: $ownerFilter, options: availableOwners,
                                  formatter: { directory.display($0) },
                                  meEmail: accounts.currentAccount?.userEmail)
                 .measuresFilterBarWidth()
-            FilterChipMenu(title: "Type", icon: "tag",
+            FilterChipMenu(title: String(localized: "Type"), icon: "tag",
                            selected: $typeFilter,
                            options: InterviewType.allCases.map(\.rawValue),
                            formatter: { InterviewType(rawValue: $0)?.label ?? $0.capitalized })
                 .measuresFilterBarWidth()
-            FilterChipMenu(title: "Status", icon: "doc.badge.ellipsis",
+            FilterChipMenu(title: String(localized: "Status"), icon: "doc.badge.ellipsis",
                            selected: $draftFilter, options: ["draft", "published"],
-                           formatter: { $0.capitalized })
+                           formatter: { $0 == "draft" ? String(localized: "Draft") : String(localized: "Published") })
                 .measuresFilterBarWidth()
             // On-device natural-language filtering: describe what you want and the
             // model maps it onto these chips. A verb-style link like Save, shown

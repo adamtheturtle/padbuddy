@@ -273,14 +273,14 @@ struct MenuBarView: View {
     /// when quota hasn't loaded yet (or the API doesn't report it).
     private var quotaSummary: String? {
         guard let quota else { return nil }
-        if quota.unlimited == true { return "Unlimited pads" }
+        if quota.unlimited == true { return String(localized: "Unlimited pads") }
         if let remaining = quota.padsRemaining {
             if let limit = quota.billingCyclePadLimit {
-                return "\(remaining) of \(limit) pads remaining"
+                return String(localized: "\(remaining) of \(limit) pads remaining")
             }
-            return "\(remaining) pads remaining"
+            return String(localized: "\(remaining) pads remaining")
         }
-        if let used = quota.padsUsed { return "\(used) pads used" }
+        if let used = quota.padsUsed { return String(localized: "\(used) pads used") }
         return nil
     }
 

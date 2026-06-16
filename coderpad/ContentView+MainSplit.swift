@@ -65,7 +65,9 @@ struct MainSplit: View {
     }
 
     private var searchPrompt: Text {
-        Text(section == .questions ? "Search questions" : "Search pads")
+        // Each branch must be its own `Text` literal so SwiftUI localizes it; a
+        // `Text(ternary-of-Strings)` would use the verbatim initializer (#111).
+        section == .questions ? Text("Search questions") : Text("Search pads")
     }
 
     /// Drives the sidebar collapse/expand. Bound to the `NavigationSplitView` so

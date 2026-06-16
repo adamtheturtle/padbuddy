@@ -187,7 +187,7 @@ struct MergedOrganizationView: View {
                 LabeledRow(label: "Pads", value: "\(stats.padsCreated)")
             }
             if let sso = org.singleSignOnSupported {
-                LabeledRow(label: "Single sign-on", value: sso ? "Enabled" : "Disabled")
+                LabeledRow(label: "Single sign-on", value: sso ? String(localized: "Enabled") : String(localized: "Disabled"))
             }
         }
     }

@@ -216,7 +216,7 @@ struct EnvironmentCodeCard: View {
             VStack(alignment: .leading, spacing: 10) {
                 header
                 if let exampleAttribution {
-                    MetaLabel(text: "From example: \(exampleAttribution)", systemImage: "shippingbox")
+                    MetaLabel(text: String(localized: "From example: \(exampleAttribution)"), systemImage: "shippingbox")
                 }
                 content
             }

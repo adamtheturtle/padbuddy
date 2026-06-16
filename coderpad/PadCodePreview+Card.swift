@@ -15,7 +15,7 @@ extension EnvironmentCodeCard {
             // to pop, so it keeps the green capsule (matching an active pad's
             // StateBadge). The language label below names each.
             if showActiveBadge, isActive {
-                Chip(text: "Active", systemImage: "checkmark.seal", tint: .green)
+                Chip(text: String(localized: "Active"), systemImage: "checkmark.seal", tint: .green)
             }
             // The language is informational, so it sits with the title and badge
             // on the left rather than among the action buttons — otherwise the
@@ -63,8 +63,8 @@ extension EnvironmentCodeCard {
         }
         .buttonStyle(.borderless)
         .controlSize(.small)
-        .help(isMultiFile ? "Download all files as a folder" : "Download code")
-        .accessibilityLabel(isMultiFile ? "Download all files as a folder" : "Download code")
+        .help(isMultiFile ? String(localized: "Download all files as a folder") : String(localized: "Download code"))
+        .accessibilityLabel(isMultiFile ? String(localized: "Download all files as a folder") : String(localized: "Download code"))
     }
 
     /// A vertical list of the environment's files, pinned beside the code. It
@@ -179,7 +179,7 @@ extension EnvironmentCodeCard {
     /// One titled paragraph of the explanation popover. Hidden when empty so a
     /// section the model left blank doesn't show a bare heading.
     @ViewBuilder
-    private func explanationSection(title: String, text: String) -> some View {
+    private func explanationSection(title: LocalizedStringKey, text: String) -> some View {
         if !text.isEmpty {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
@@ -214,10 +214,15 @@ extension EnvironmentCodeCard {
         // Name the environment by its language, the same identity shown visually.
         let environmentName = language.flatMap { $0.isEmpty ? nil : $0.languageDisplayName }
         if isMultiFile {
-            return "Code preview of \(selected.name)\(environmentName.map { " in \($0)" } ?? "") in pad \(padID)"
+            if let environmentName {
+                return String(localized: "Code preview of \(selected.name) in \(environmentName) in pad \(padID)")
+            }
+            return String(localized: "Code preview of \(selected.name) in pad \(padID)")
         }
-        return environmentName.map { "Code preview of \($0) in pad \(padID)" }
-            ?? "Code preview of pad \(padID)"
+        if let environmentName {
+            return String(localized: "Code preview of \(environmentName) in pad \(padID)")
+        }
+        return String(localized: "Code preview of pad \(padID)")
     }
 
     private func copy(_ text: String) {

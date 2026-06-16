@@ -19,8 +19,8 @@ enum LinkDestination: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .inApp: "In-app browser"
-        case .external: "Default browser"
+        case .inApp: String(localized: "In-app browser")
+        case .external: String(localized: "Default browser")
         }
     }
 }
@@ -125,9 +125,9 @@ enum AppAppearance: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .system: "System"
-        case .light: "Light"
-        case .dark: "Dark"
+        case .system: String(localized: "System")
+        case .light: String(localized: "Light")
+        case .dark: String(localized: "Dark")
         }
     }
 
@@ -249,9 +249,9 @@ enum AppPresence: String, CaseIterable, Identifiable {
 
     var label: String {
         switch self {
-        case .dockAndMenuBar: "Dock and menu bar"
-        case .menuBarOnly: "Menu bar only"
-        case .dockOnly: "Dock only"
+        case .dockAndMenuBar: String(localized: "Dock and menu bar")
+        case .menuBarOnly: String(localized: "Menu bar only")
+        case .dockOnly: String(localized: "Dock only")
         }
     }
 

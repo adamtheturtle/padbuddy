@@ -94,11 +94,11 @@ enum CoderPadError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .missingAPIKey:
-            "Missing API key. Open Settings to add an account."
+            String(localized: "Missing API key. Open Settings to add an account.")
         case let .http(code, body):
             Self.message(forStatus: code, body: body)
         case let .decode(detail):
-            "Couldn't read response: \(detail)"
+            String(localized: "Couldn't read response: \(detail)")
         case let .network(urlError):
             Self.message(forURLError: urlError)
         }
@@ -109,13 +109,13 @@ enum CoderPadError: LocalizedError {
     private static func message(forURLError error: URLError) -> String {
         switch error.code {
         case .notConnectedToInternet, .networkConnectionLost:
-            "You appear to be offline. Check your internet connection and try again."
+            String(localized: "You appear to be offline. Check your internet connection and try again.")
         case .timedOut:
-            "The request timed out. Check your connection and try again."
+            String(localized: "The request timed out. Check your connection and try again.")
         case .cannotConnectToHost, .cannotFindHost, .dnsLookupFailed:
-            "Couldn't reach CoderPad. Check your connection and try again."
+            String(localized: "Couldn't reach CoderPad. Check your connection and try again.")
         default:
-            "A network error occurred. Check your connection and try again."
+            String(localized: "A network error occurred. Check your connection and try again.")
         }
     }
 
@@ -127,16 +127,16 @@ enum CoderPadError: LocalizedError {
     private static func message(forStatus code: Int, body: String) -> String {
         switch code {
         case 401, 403:
-            return "You're not authorized. Check this account's API key in Settings."
+            return String(localized: "You're not authorized. Check this account's API key in Settings.")
         case 404:
-            return "The server couldn't find that. It may have already been deleted."
+            return String(localized: "The server couldn't find that. It may have already been deleted.")
         case 429:
-            return "CoderPad is rate-limiting requests right now. Try again in a moment."
+            return String(localized: "CoderPad is rate-limiting requests right now. Try again in a moment.")
         case 500 ... 599:
-            return "CoderPad had a server error. Please try again shortly."
+            return String(localized: "CoderPad had a server error. Please try again shortly.")
         default:
             if let apiMessage = apiMessage(from: body) { return apiMessage }
-            return "The request failed (HTTP \(code))."
+            return String(localized: "The request failed (HTTP \(code)).")
         }
     }
 

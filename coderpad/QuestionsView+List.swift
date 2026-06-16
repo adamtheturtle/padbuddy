@@ -322,7 +322,7 @@ extension QuestionsView {
         Button {
             toggleFavorite(question)
         } label: {
-            Label(isFavorite ? "Remove from Favorites" : "Add to Favorites",
+            Label(isFavorite ? String(localized: "Remove from Favorites") : String(localized: "Add to Favorites"),
                   systemImage: isFavorite ? "star.slash" : "star")
         }
     }

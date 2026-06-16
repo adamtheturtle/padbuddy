@@ -90,7 +90,7 @@ struct QuestionPrintDocument: View {
             parts.append(language.languageDisplayName)
         }
         if let author = question.authorName, !author.isEmpty {
-            parts.append("by \(author)")
+            parts.append(String(localized: "by \(author)"))
         }
         return parts.joined(separator: " · ")
     }
@@ -98,7 +98,7 @@ struct QuestionPrintDocument: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(question.title.isEmpty ? "Untitled Question" : question.title)
+                Text(question.title.isEmpty ? String(localized: "Untitled Question") : question.title)
                     .font(.title.bold())
                 Text(metaLine)
                     .font(.subheadline)

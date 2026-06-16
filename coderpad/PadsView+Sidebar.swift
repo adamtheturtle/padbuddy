@@ -336,7 +336,7 @@ extension PadsView {
         // widest single chip, letting the pane be dragged much thinner.
         FlowLayout(spacing: 8, lineSpacing: 8) {
             FilterChipMenu(
-                title: "State",
+                title: String(localized: "State"),
                 icon: "circle.fill",
                 selected: $stateFilter,
                 options: availableStates,
@@ -344,7 +344,7 @@ extension PadsView {
             )
             .measuresFilterBarWidth()
             FilterChipMenu(
-                title: "Language",
+                title: String(localized: "Language"),
                 icon: "chevron.left.slash.chevron.right",
                 selected: $languageFilter,
                 options: availableLanguages,
@@ -352,7 +352,7 @@ extension PadsView {
             )
             .measuresFilterBarWidth()
             SearchableFilterChip(
-                title: "Owner",
+                title: String(localized: "Owner"),
                 icon: "person",
                 selected: $ownerFilter,
                 options: availableOwners,
@@ -361,7 +361,7 @@ extension PadsView {
             )
             .measuresFilterBarWidth()
             FilterChipMenu(
-                title: "Team",
+                title: String(localized: "Team"),
                 icon: "person.3",
                 selected: $teamFilter,
                 options: availableTeams,
@@ -369,7 +369,7 @@ extension PadsView {
             )
             .measuresFilterBarWidth()
             FilterChipMenu(
-                title: "Type",
+                title: String(localized: "Type"),
                 icon: "tag",
                 selected: $typeFilter,
                 options: InterviewType.allCases.map(\.rawValue),
@@ -377,13 +377,13 @@ extension PadsView {
             )
             .measuresFilterBarWidth()
             DateRangeFilterChip(
-                title: "Updated",
+                title: String(localized: "Updated"),
                 window: $updatedWindow,
                 options: Self.dateRangeOptions
             )
             .measuresFilterBarWidth()
             DateRangeFilterChip(
-                title: "Created",
+                title: String(localized: "Created"),
                 window: $createdWindow,
                 options: Self.dateRangeOptions
             )

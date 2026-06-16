@@ -55,7 +55,7 @@ extension PadDetailView {
     /// A labeled row pairing a property name with its inline control, matching the
     /// alignment of the read-only `LabeledRow`s in the Details section.
     @ViewBuilder
-    private func propertyRow<Control: View>(_ label: String,
+    private func propertyRow<Control: View>(_ label: LocalizedStringKey,
                                             @ViewBuilder control: () -> Control) -> some View {
         HStack(alignment: .firstTextBaseline) {
             Text(label)

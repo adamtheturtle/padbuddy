@@ -21,7 +21,7 @@ struct SearchableQuestionPicker: View {
     }
 
     private var selectedTitle: String {
-        guard let id = selection, let question = questions.first(where: { $0.id == id }) else { return "None" }
+        guard let id = selection, let question = questions.first(where: { $0.id == id }) else { return String(localized: "None") }
         return title(for: question)
     }
 
@@ -60,7 +60,7 @@ struct SearchableQuestionPicker: View {
 
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
-                        questionRow(id: nil, title: "None")
+                        questionRow(id: nil, title: String(localized: "None"))
                         ForEach(filtered) { question in
                             questionRow(id: question.id, title: title(for: question))
                         }
@@ -162,14 +162,15 @@ struct SearchableOwnerPicker: View {
 
     /// Label for the "Me" choice: the account name when we know it, else just "Me".
     private var meLabel: String {
-        guard let email = selfEmail else { return "Me" }
-        return (displayName(forEmail: email) ?? email) + " (Me)"
+        guard let email = selfEmail else { return String(localized: "Me") }
+        return String(localized: "\(displayName(forEmail: email) ?? email) (Me)",
+                      comment: "Owner-picker label for the signed-in user, e.g. \"Ada Lovelace (Me)\"")
     }
 
     /// Subtitle for the "Me" row: the resolved key owner when known, otherwise a
     /// short explanation that an empty owner means the account holder.
     private var meSubtitle: String {
-        guard let email = selfEmail else { return "Owned by your account (the API key owner)" }
+        guard let email = selfEmail else { return String(localized: "Owned by your account (the API key owner)") }
         if let name = displayName(forEmail: email) { return "\(name) · \(email)" }
         return email
     }
@@ -250,7 +251,7 @@ struct SearchableOwnerPicker: View {
 
                         if let custom = customEmailCandidate {
                             ownerRow(email: custom,
-                                     primary: "Use “\(custom)”",
+                                     primary: String(localized: "Use “\(custom)”"),
                                      secondary: nil,
                                      isMuted: false)
                         }

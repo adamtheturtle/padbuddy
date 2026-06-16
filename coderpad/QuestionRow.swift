@@ -54,10 +54,10 @@ struct QuestionRow: View {
                             InterviewType.takeHome.chip
                         }
                         if let used = question.used, used > 0 {
-                            MetaLabel(text: "Used \(used)×", systemImage: "chart.bar")
+                            MetaLabel(text: String(localized: "Used \(used)×"), systemImage: "chart.bar")
                         }
                         if question.isDraft == true {
-                            Chip(text: "Draft", systemImage: "doc.badge.ellipsis", tint: .orange)
+                            Chip(text: String(localized: "Draft"), systemImage: "doc.badge.ellipsis", tint: .orange)
                         }
                     }
                     if let author = question.authorName {

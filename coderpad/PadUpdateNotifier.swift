@@ -30,10 +30,10 @@ struct PadChange {
         /// The phrase shown as the notification body for a single changed pad.
         var detail: String {
             switch self {
-            case .new: "New pad"
-            case .ended: "Interview ended"
-            case .participantJoined: "Someone joined"
-            case .updated: "New activity"
+            case .new: String(localized: "New pad")
+            case .ended: String(localized: "Interview ended")
+            case .participantJoined: String(localized: "Someone joined")
+            case .updated: String(localized: "New activity")
             }
         }
     }
@@ -120,13 +120,13 @@ final class PadUpdateNotifier: NSObject {
         let count = changes.count
         let kinds = Set(changes.map(\.kind))
         guard kinds.count == 1, let kind = kinds.first else {
-            return "\(count) pads have new activity"
+            return String(localized: "\(count) pads have new activity")
         }
         switch kind {
-        case .new: return "\(count) new pads"
-        case .ended: return "\(count) interviews ended"
-        case .participantJoined: return "\(count) pads gained a participant"
-        case .updated: return "\(count) pads have new activity"
+        case .new: return String(localized: "\(count) new pads")
+        case .ended: return String(localized: "\(count) interviews ended")
+        case .participantJoined: return String(localized: "\(count) pads gained a participant")
+        case .updated: return String(localized: "\(count) pads have new activity")
         }
     }
 }

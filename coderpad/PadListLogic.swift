@@ -51,6 +51,20 @@ enum PadDateRange {
     /// The labels used both for the filter chips and as the keys understood here.
     static let options = ["today", "last 24 hours", "last 7 days", "last 30 days", "last 90 days"]
 
+    /// A localized, display-ready label for a range key. The raw `options` values
+    /// double as match keys, so they're kept verbatim and translated only for
+    /// display here (#111). Unknown keys fall back to a capitalized form.
+    static func displayLabel(for option: String) -> String {
+        switch option {
+        case "today": String(localized: "Today")
+        case "last 24 hours": String(localized: "Last 24 hours")
+        case "last 7 days": String(localized: "Last 7 days")
+        case "last 30 days": String(localized: "Last 30 days")
+        case "last 90 days": String(localized: "Last 90 days")
+        default: option.capitalized
+        }
+    }
+
     /// The earliest date a pad may have to satisfy `option`, or `nil` for an
     /// unrecognized option (treated as "no lower bound").
     ///

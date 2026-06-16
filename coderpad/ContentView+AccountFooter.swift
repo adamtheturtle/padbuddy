@@ -105,7 +105,7 @@ struct AccountFooter: View {
     private func accountMenuLabel(for account: Account) -> some View {
         let isSelected = !store.isMergedView && account.id == store.currentAccount?.id
         let isUnauthorized = monitor.isUnauthorized(account.id)
-        let title = isUnauthorized ? "\(account.name) (bad key)" : account.name
+        let title = isUnauthorized ? String(localized: "\(account.name) (bad key)") : account.name
         if isSelected {
             Label(title, systemImage: "checkmark")
         } else if isUnauthorized {
@@ -121,15 +121,17 @@ struct AccountFooter: View {
     /// the combined view is on.
     private var triggerLabel: some View {
         let isMerged = store.isMergedView
-        let title = isMerged ? "All Accounts" : (store.currentAccount?.name ?? "")
+        let title = isMerged ? String(localized: "All Accounts") : (store.currentAccount?.name ?? "")
         let subtitle = isMerged
-            ? "\(store.mergeableAccounts.count) accounts combined"
-            : (store.accounts.count > 1 ? "Active · \(store.accounts.count) accounts" : "Active account")
+            ? String(localized: "\(store.mergeableAccounts.count) accounts combined")
+            : (store.accounts.count > 1
+                ? String(localized: "Active · \(store.accounts.count) accounts")
+                : String(localized: "Active account"))
         // The unauthorized state is shown only as a red warning triangle over the
         // avatar — color- and icon-only — so name it for VoiceOver, the way the menu
         // rows already append "(bad key)" (#79).
         let unauthorized = !isMerged && (store.currentAccount.map { monitor.isUnauthorized($0.id) } ?? false)
-        let accessibilityLabel = [title, subtitle, unauthorized ? "API key invalid" : ""]
+        let accessibilityLabel = [title, subtitle, unauthorized ? String(localized: "API key invalid") : ""]
             .filter { !$0.isEmpty }
             .joined(separator: ", ")
         return HStack(spacing: 10) {

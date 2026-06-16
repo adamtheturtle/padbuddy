@@ -120,10 +120,12 @@ extension SettingsView {
     /// Human-readable form of the auto-refresh interval, e.g. "90s" or "2m 30s".
     var refreshIntervalLabel: String {
         let seconds = refreshSeconds
-        if seconds < 60 { return "\(seconds)s" }
+        if seconds < 60 { return String(localized: "\(seconds)s") }
         let minutes = seconds / 60
         let remainder = seconds % 60
-        return remainder == 0 ? "\(minutes)m" : "\(minutes)m \(remainder)s"
+        return remainder == 0
+            ? String(localized: "\(minutes)m")
+            : String(localized: "\(minutes)m \(remainder)s")
     }
 
     /// Mail-style master-detail layout: a sidebar listing the accounts with `+`/`−`
@@ -386,7 +388,7 @@ struct AccountRow: View {
             AvatarCircle(account: account, diameter: 30)
 
             HStack(spacing: 6) {
-                Text(account.name.isEmpty ? "Untitled account" : account.name)
+                Text(account.name.isEmpty ? String(localized: "Untitled account") : account.name)
                     .font(.callout.weight(.medium))
                 if account.isMock {
                     Text("Demo")
