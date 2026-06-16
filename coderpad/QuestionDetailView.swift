@@ -55,7 +55,9 @@ struct QuestionDetailView: View {
                       systemImage: isFavorite ? "star.fill" : "star")
             }
             .help(isFavorite ? String(localized: "Remove from Favorites") : String(localized: "Add to Favorites"))
-            .accessibilityLabel(isFavorite ? String(localized: "Remove from Favorites") : String(localized: "Add to Favorites"))
+            .accessibilityLabel(isFavorite
+                ? String(localized: "Remove from Favorites")
+                : String(localized: "Add to Favorites"))
         }
         ToolbarItem(id: "new-pad", placement: .primaryAction) {
             Button { Task { await createPadInline() } } label: {

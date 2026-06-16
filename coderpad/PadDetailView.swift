@@ -242,7 +242,9 @@ struct PadDetailView: View {
             .onChange(of: pad.executionEnabled) { _, newValue in draftExecution = newValue ?? true }
             .onChange(of: titleFocused) { _, focused in if !focused { Task { await commitTitle() } } }
     }
+}
 
+extension PadDetailView {
     /// Honors a "Watch Playback" request from the Pad menu, opening the session
     /// playback exactly as the toolbar's Watch button does — in-app or external
     /// per the browser preference.

@@ -300,21 +300,7 @@ extension MergedQuestionsView {
         // Right-clicking a row that's part of a multi-row selection copies every
         // selected link at once, Finder-style; a single row keeps its full menu.
         if selectedRowIDs.count > 1, selectedRowIDs.contains(row.id) {
-            let rows = selectedRowsInOrder
-            Button {
-                Clipboard.copy(rows
-                    .map { $0.item.webURL(baseURL: $0.account.resolvedBaseURL).absoluteString }
-                    .joined(separator: "\n"))
-            } label: {
-                Label("Copy \(rows.count) Question Links", systemImage: "link")
-            }
-            Divider()
-            Button(role: .destructive) {
-                rowsPendingBulkDelete = rows
-            } label: {
-                Label("Delete \(rows.count) Questions…", systemImage: "trash")
-            }
-            .disabled(isReadOnly)
+            bulkSelectionContextMenu()
         } else {
             Button {
                 select(row)
@@ -351,5 +337,24 @@ extension MergedQuestionsView {
             }
             .disabled(isReadOnly)
         }
+    }
+
+    @ViewBuilder
+    private func bulkSelectionContextMenu() -> some View {
+        let rows = selectedRowsInOrder
+        Button {
+            Clipboard.copy(rows
+                .map { $0.item.webURL(baseURL: $0.account.resolvedBaseURL).absoluteString }
+                .joined(separator: "\n"))
+        } label: {
+            Label("Copy \(rows.count) Question Links", systemImage: "link")
+        }
+        Divider()
+        Button(role: .destructive) {
+            rowsPendingBulkDelete = rows
+        } label: {
+            Label("Delete \(rows.count) Questions…", systemImage: "trash")
+        }
+        .disabled(isReadOnly)
     }
 }

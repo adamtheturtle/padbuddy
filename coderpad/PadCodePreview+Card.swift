@@ -64,7 +64,9 @@ extension EnvironmentCodeCard {
         .buttonStyle(.borderless)
         .controlSize(.small)
         .help(isMultiFile ? String(localized: "Download all files as a folder") : String(localized: "Download code"))
-        .accessibilityLabel(isMultiFile ? String(localized: "Download all files as a folder") : String(localized: "Download code"))
+        .accessibilityLabel(isMultiFile
+            ? String(localized: "Download all files as a folder")
+            : String(localized: "Download code"))
     }
 
     /// A vertical list of the environment's files, pinned beside the code. It

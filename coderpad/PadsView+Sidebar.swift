@@ -247,58 +247,72 @@ extension PadsView {
         // Right-clicking a row that's part of a multi-row selection acts on the whole
         // selection, the way Finder does; otherwise it's the usual single-row menu.
         if selectedIDs.count > 1, selectedIDs.contains(pad.id) {
-            let pads = selectedPadsInOrder
-            Button {
-                Clipboard.copy(pads.map(\.url).joined(separator: "\n"))
-            } label: {
-                Label("Copy \(pads.count) Pad Links", systemImage: "link")
-            }
-            Divider()
-            Button(role: .destructive) {
-                padsPendingBulkDelete = pads
-            } label: {
-                Label("Delete \(pads.count) Pads…", systemImage: "trash")
-            }
-            .disabled(isReadOnly)
+            bulkContextMenu
         } else {
-            Button {
-                selectedIDs = [pad.id]
-                openPad(pad)
-            } label: {
-                Label("Open Pad", systemImage: "doc.text.image")
-            }
-            if let url = pad.webURL {
-                ShareLink(item: url) {
-                    Label("Share…", systemImage: "square.and.arrow.up")
-                }
-            }
-            Divider()
-            Button {
-                Clipboard.copy(pad.id)
-            } label: {
-                Label("Copy Pad ID", systemImage: "number")
-            }
-            Button {
-                Clipboard.copy(pad.url)
-            } label: {
-                Label("Copy Pad URL", systemImage: "link")
-            }
-            Divider()
-            Button {
-                ownerFilter = pad.ownerEmail
-            } label: {
-                Label("Show Pads from \(directory.display(pad.ownerEmail))", systemImage: "person")
-            }
-            Divider()
-            // Opens the same confirmation dialog as the row's swipe action — a
-            // right-click route to Delete alongside the swipe.
-            Button(role: .destructive) {
-                padPendingDelete = pad
-            } label: {
-                Label("Delete…", systemImage: "trash")
-            }
-            .disabled(isReadOnly)
+            singlePadContextMenu(pad)
         }
+    }
+
+    /// The right-click menu for a multi-row selection: copy every selected pad's
+    /// link, or delete them all behind a confirmation.
+    @ViewBuilder
+    private var bulkContextMenu: some View {
+        let pads = selectedPadsInOrder
+        Button {
+            Clipboard.copy(pads.map(\.url).joined(separator: "\n"))
+        } label: {
+            Label("Copy \(pads.count) Pad Links", systemImage: "link")
+        }
+        Divider()
+        Button(role: .destructive) {
+            padsPendingBulkDelete = pads
+        } label: {
+            Label("Delete \(pads.count) Pads…", systemImage: "trash")
+        }
+        .disabled(isReadOnly)
+    }
+
+    /// The usual single-row right-click menu: open, share, copy id/url, narrow the
+    /// list to the owner, or delete behind a confirmation.
+    @ViewBuilder
+    private func singlePadContextMenu(_ pad: Pad) -> some View {
+        Button {
+            selectedIDs = [pad.id]
+            openPad(pad)
+        } label: {
+            Label("Open Pad", systemImage: "doc.text.image")
+        }
+        if let url = pad.webURL {
+            ShareLink(item: url) {
+                Label("Share…", systemImage: "square.and.arrow.up")
+            }
+        }
+        Divider()
+        Button {
+            Clipboard.copy(pad.id)
+        } label: {
+            Label("Copy Pad ID", systemImage: "number")
+        }
+        Button {
+            Clipboard.copy(pad.url)
+        } label: {
+            Label("Copy Pad URL", systemImage: "link")
+        }
+        Divider()
+        Button {
+            ownerFilter = pad.ownerEmail
+        } label: {
+            Label("Show Pads from \(directory.display(pad.ownerEmail))", systemImage: "person")
+        }
+        Divider()
+        // Opens the same confirmation dialog as the row's swipe action — a
+        // right-click route to Delete alongside the swipe.
+        Button(role: .destructive) {
+            padPendingDelete = pad
+        } label: {
+            Label("Delete…", systemImage: "trash")
+        }
+        .disabled(isReadOnly)
     }
 
     /// Open a pad honoring the user's browser preference: externally when chosen,
@@ -312,145 +326,6 @@ extension PadsView {
         } else {
             openWindow(id: "pad-browser", value: url)
         }
-    }
-
-    /// Built-in chips shown ahead of the user's saved searches, mirrored in the
-    /// sidebar's Defaults section.
-    var defaultSearches: [DefaultSearch] {
-        DefaultSearch.padDefaults(me: accounts.currentAccount?.userEmail)
-    }
-
-    @ViewBuilder
-    var savedSearchesBar: some View {
-        let saved = savedSearches.searches(account: accounts.currentAccountID, kind: .pads)
-        let defaults = defaultSearches
-        if !defaults.isEmpty || !saved.isEmpty {
-            // A wrapping flow layout rather than a horizontal scroll, so the chips
-            // reflow onto extra lines as the pane narrows instead of clipping a
-            // long saved-search name off the trailing edge.
-            FlowLayout(spacing: 6, lineSpacing: 6) {
-                ForEach(defaults) { item in
-                    SavedSearchChip(name: item.search.name, systemImage: item.icon,
-                                    isActive: isActiveSearch(item.search)) {
-                        apply(item.search)
-                    }
-                }
-                ForEach(saved) { item in
-                    SavedSearchChip(name: item.name, isActive: isActiveSearch(item)) {
-                        apply(item)
-                    } onDelete: {
-                        if let account = accounts.currentAccountID {
-                            savedSearches.remove(id: item.id, account: account, kind: .pads)
-                        }
-                    }
-                }
-            }
-            .padding(.horizontal, 12).padding(.top, 6)
-        }
-    }
-
-    var filterBar: some View {
-        // A wrapping flow layout rather than a horizontal scroll, so the chips
-        // reflow onto extra lines as the pane narrows instead of forcing a wide
-        // minimum column width. Each chip reports its own width; because
-        // `FilterBarWidthKey` reduces by `max`, the column floor becomes the
-        // widest single chip, letting the pane be dragged much thinner.
-        FlowLayout(spacing: 8, lineSpacing: 8) {
-            FilterChipMenu(
-                title: String(localized: "State"),
-                icon: "circle.fill",
-                selected: $stateFilter,
-                options: availableStates,
-                formatter: { $0.label }
-            )
-            .measuresFilterBarWidth()
-            FilterChipMenu(
-                title: String(localized: "Language"),
-                icon: "chevron.left.slash.chevron.right",
-                selected: $languageFilter,
-                options: availableLanguages,
-                formatter: { $0.languageDisplayName }
-            )
-            .measuresFilterBarWidth()
-            SearchableFilterChip(
-                title: String(localized: "Owner"),
-                icon: "person",
-                selected: $ownerFilter,
-                options: availableOwners,
-                formatter: { directory.display($0) },
-                meEmail: accounts.currentAccount?.userEmail
-            )
-            .measuresFilterBarWidth()
-            FilterChipMenu(
-                title: String(localized: "Team"),
-                icon: "person.3",
-                selected: $teamFilter,
-                options: availableTeams,
-                formatter: { $0 }
-            )
-            .measuresFilterBarWidth()
-            FilterChipMenu(
-                title: String(localized: "Type"),
-                icon: "tag",
-                selected: $typeFilter,
-                options: InterviewType.allCases.map(\.rawValue),
-                formatter: { InterviewType(rawValue: $0)?.label ?? $0.capitalized }
-            )
-            .measuresFilterBarWidth()
-            DateRangeFilterChip(
-                title: String(localized: "Updated"),
-                window: $updatedWindow,
-                options: Self.dateRangeOptions
-            )
-            .measuresFilterBarWidth()
-            DateRangeFilterChip(
-                title: String(localized: "Created"),
-                window: $createdWindow,
-                options: Self.dateRangeOptions
-            )
-            .measuresFilterBarWidth()
-            // On-device natural-language filtering: describe what you want and the
-            // model maps it onto these chips. A verb-style link like Save, shown
-            // only when the model is available.
-            if SearchInterpreter.isAvailable {
-                Button {
-                    smartFilterText = ""
-                    smartFilterFailed = false
-                    showSmartFilter = true
-                } label: {
-                    Label("Smart Filter…", systemImage: "sparkles")
-                        .labelStyle(.titleAndIcon)
-                }
-                .buttonStyle(.link)
-                .controlSize(.small)
-            }
-            if activeFilterCount > 0 || !search.isEmpty {
-                Button {
-                    saveSearchName = ""
-                    showSaveSearch = true
-                } label: {
-                    Label("Save…", systemImage: "bookmark")
-                        .labelStyle(.titleAndIcon)
-                }
-                // A link-styled action so it reads as a verb, not another
-                // neutral capsule filter chip sitting in the same bar.
-                .buttonStyle(.link)
-                .controlSize(.small)
-            }
-            if activeFilterCount > 0 {
-                Button(role: .destructive) {
-                    clearAllFilters()
-                } label: {
-                    Label("Clear", systemImage: "xmark.circle.fill")
-                        .labelStyle(.titleAndIcon)
-                }
-                .buttonStyle(.borderless)
-                .controlSize(.small)
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     /// How many pads the current filters resolve to, shown as the window's toolbar

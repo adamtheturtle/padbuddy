@@ -161,7 +161,9 @@ struct QuotaDetail: View {
                          tint: remaining <= 0 ? .red : .green)
             }
             StatTile(title: "Overages",
-                     value: quota.overagesEnabled == true ? String(localized: "Enabled") : String(localized: "Disabled"),
+                     value: quota.overagesEnabled == true
+                         ? String(localized: "Enabled")
+                         : String(localized: "Disabled"),
                      systemImage: "arrow.up.right.circle",
                      tint: quota.overagesEnabled == true ? .green : .orange)
             if let reset = quota.quotaReset {

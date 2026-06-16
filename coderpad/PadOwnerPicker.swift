@@ -21,7 +21,8 @@ struct SearchableQuestionPicker: View {
     }
 
     private var selectedTitle: String {
-        guard let id = selection, let question = questions.first(where: { $0.id == id }) else { return String(localized: "None") }
+        guard let id = selection,
+              let question = questions.first(where: { $0.id == id }) else { return String(localized: "None") }
         return title(for: question)
     }
 

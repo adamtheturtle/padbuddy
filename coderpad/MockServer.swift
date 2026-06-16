@@ -75,7 +75,11 @@ final nonisolated class MockURLProtocol: URLProtocol {
         // client sets on every request), so each client — the app's demo account,
         // and each test — sees an isolated store.
         let state = MockStateRegistry.state(forKey: Self.apiKey(from: request))
-        let (status, body) = MockResponses.respond(state: state, method: method, path: path, query: query, body: bodyData)
+        let (status, body) = MockResponses.respond(state: state,
+                                                   method: method,
+                                                   path: path,
+                                                   query: query,
+                                                   body: bodyData)
 
         let headers = ["Content-Type": "application/json"]
         let response = HTTPURLResponse(url: url, statusCode: status, httpVersion: "HTTP/1.1", headerFields: headers)!

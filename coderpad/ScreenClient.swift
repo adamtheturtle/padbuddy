@@ -79,7 +79,7 @@ struct ScreenClient {
                                product: String? = nil,
                                candidateEmail: String? = nil,
                                from: Int? = nil,
-                               to: Int? = nil,
+                               until: Int? = nil,
                                start: Int? = nil,
                                limit: Int? = nil) async throws -> ScreenTestsPage {
         var query: [URLQueryItem] = []
@@ -87,7 +87,7 @@ struct ScreenClient {
         if let product { query.append(URLQueryItem(name: "product", value: product)) }
         if let candidateEmail { query.append(URLQueryItem(name: "candidateEmail", value: candidateEmail)) }
         if let from { query.append(URLQueryItem(name: "from", value: String(from))) }
-        if let to { query.append(URLQueryItem(name: "to", value: String(to))) }
+        if let until { query.append(URLQueryItem(name: "to", value: String(until))) }
         if let start { query.append(URLQueryItem(name: "start", value: String(start))) }
         if let limit { query.append(URLQueryItem(name: "limit", value: String(limit))) }
         return try await get(ScreenTestsPage.self, path: "/tests", query: query)
@@ -99,15 +99,15 @@ struct ScreenClient {
                                   product: String? = nil,
                                   candidateEmail: String? = nil,
                                   from: Int? = nil,
-                                  to: Int? = nil) async throws -> [ScreenTestSession] {
+                                  until: Int? = nil) async throws -> [ScreenTestSession] {
         var all: [ScreenTestSession] = []
-        var start: Int? = nil
+        var start: Int?
         while true {
             let page = try await listTests(campaignID: campaignID,
                                            product: product,
                                            candidateEmail: candidateEmail,
                                            from: from,
-                                           to: to,
+                                           until: until,
                                            start: start)
             all.append(contentsOf: page.tests)
             guard let pagination = page.pagination,

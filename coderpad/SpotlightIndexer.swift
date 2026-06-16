@@ -74,7 +74,13 @@ enum SpotlightIndexer {
         guard !candidates.isEmpty else { return }
         let bounded = Array(candidates.prefix(maxKeywordEnrichments))
         if candidates.count > bounded.count {
-            logger.info("Spotlight keyword enrichment limited to \(maxKeywordEnrichments, privacy: .public) of \(candidates.count, privacy: .public) questions this pass")
+            logger.info(
+                """
+                Spotlight keyword enrichment limited to \
+                \(maxKeywordEnrichments, privacy: .public) of \
+                \(candidates.count, privacy: .public) questions this pass
+                """
+            )
         }
         Task {
             for question in bounded {

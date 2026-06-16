@@ -16,9 +16,9 @@ import Foundation
 /// applied to the updated date, one to the created date — so they can be filtered
 /// independently and at the same time.
 struct PadDateWindow: Equatable, Hashable, Codable {
-    var range: String? = nil
-    var customStart: Date? = nil
-    var customEnd: Date? = nil
+    var range: String?
+    var customStart: Date?
+    var customEnd: Date?
 
     var isActive: Bool {
         range != nil || customStart != nil || customEnd != nil
@@ -211,7 +211,10 @@ enum PadEventGrouping {
                 // Two distinct events can share an `event.id` (same timestamp, kind,
                 // user, and message, e.g. duplicate `enabled_ai_assist` entries), so
                 // prefix the group position to keep ForEach identities unique.
-                groups.append(PadEventGroup(id: "\(groups.count)-\(event.id)", representative: event, count: 1, lastEvent: event))
+                groups.append(PadEventGroup(id: "\(groups.count)-\(event.id)",
+                                            representative: event,
+                                            count: 1,
+                                            lastEvent: event))
             }
         }
         return groups

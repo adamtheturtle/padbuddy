@@ -264,53 +264,60 @@ extension QuestionsView {
             }
             .disabled(isReadOnly)
         } else {
-            Button {
-                // Mirror the detail view's "New Pad" button: select the question so
-                // its detail pane shows, then let that pane create the pad and open
-                // it inline.
-                selectedQuestionIDs = [question.id]
-                nav.createPadForQuestionID = question.id
-            } label: {
-                Label("New Pad from Question", systemImage: "plus.rectangle.on.rectangle")
-            }
-            .disabled(isReadOnly)
-            favoriteToggleButton(question)
-            ShareLink(item: question.webURL(baseURL: client.baseURL)) {
-                Label("Share…", systemImage: "square.and.arrow.up")
-            }
-            Divider()
-            Button {
-                Clipboard.copy(question.displayTitle)
-            } label: {
-                Label("Copy Title", systemImage: "doc.on.doc")
-            }
-            Button {
-                Clipboard.copy(question.webURL(baseURL: client.baseURL).absoluteString)
-            } label: {
-                Label("Copy Question URL", systemImage: "link")
-            }
-            Button {
-                ownerFilter = question.ownerEmail
-            } label: {
-                Label("Show Questions from \(directory.display(question.ownerEmail))", systemImage: "person")
-            }
-            if let lang = question.language, !lang.isEmpty {
-                Button {
-                    languageFilter = lang.lowercased()
-                } label: {
-                    Label("Show \(lang.languageDisplayName) Questions",
-                          systemImage: "chevron.left.slash.chevron.right")
-                }
-            }
-            Divider()
-            Button(role: .destructive) {
-                selectedQuestionIDs = [question.id]
-                nav.deleteQuestionID = question.id
-            } label: {
-                Label("Delete Question…", systemImage: "trash")
-            }
-            .disabled(isReadOnly)
+            singleQuestionContextMenu(question)
         }
+    }
+
+    /// The full right-click menu for a single question row (the non-multi-selection
+    /// case of `questionContextMenu`).
+    @ViewBuilder
+    private func singleQuestionContextMenu(_ question: Question) -> some View {
+        Button {
+            // Mirror the detail view's "New Pad" button: select the question so
+            // its detail pane shows, then let that pane create the pad and open
+            // it inline.
+            selectedQuestionIDs = [question.id]
+            nav.createPadForQuestionID = question.id
+        } label: {
+            Label("New Pad from Question", systemImage: "plus.rectangle.on.rectangle")
+        }
+        .disabled(isReadOnly)
+        favoriteToggleButton(question)
+        ShareLink(item: question.webURL(baseURL: client.baseURL)) {
+            Label("Share…", systemImage: "square.and.arrow.up")
+        }
+        Divider()
+        Button {
+            Clipboard.copy(question.displayTitle)
+        } label: {
+            Label("Copy Title", systemImage: "doc.on.doc")
+        }
+        Button {
+            Clipboard.copy(question.webURL(baseURL: client.baseURL).absoluteString)
+        } label: {
+            Label("Copy Question URL", systemImage: "link")
+        }
+        Button {
+            ownerFilter = question.ownerEmail
+        } label: {
+            Label("Show Questions from \(directory.display(question.ownerEmail))", systemImage: "person")
+        }
+        if let lang = question.language, !lang.isEmpty {
+            Button {
+                languageFilter = lang.lowercased()
+            } label: {
+                Label("Show \(lang.languageDisplayName) Questions",
+                      systemImage: "chevron.left.slash.chevron.right")
+            }
+        }
+        Divider()
+        Button(role: .destructive) {
+            selectedQuestionIDs = [question.id]
+            nav.deleteQuestionID = question.id
+        } label: {
+            Label("Delete Question…", systemImage: "trash")
+        }
+        .disabled(isReadOnly)
     }
 
     /// Context-menu entry that stars or unstars a question. Favorites can be

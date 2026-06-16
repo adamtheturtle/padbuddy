@@ -73,7 +73,9 @@ struct QuotaView: View {
                          tint: remaining <= 0 ? .red : .green)
             }
             StatTile(title: "Overages",
-                     value: quota.overagesEnabled == true ? String(localized: "Enabled") : String(localized: "Disabled"),
+                     value: quota.overagesEnabled == true
+                         ? String(localized: "Enabled")
+                         : String(localized: "Disabled"),
                      systemImage: "arrow.up.right.circle",
                      tint: quota.overagesEnabled == true ? .green : .orange)
             if let reset = quota.quotaReset {
@@ -219,7 +221,8 @@ nonisolated struct QuotaPace {
     }
 
     var accessibilityLabel: String {
-        String(localized: "\(used) of \(limit) pads used, \(Int((fractionElapsed * 100).rounded()))% through the cycle. \(headline).")
+        let percent = Int((fractionElapsed * 100).rounded())
+        return String(localized: "\(used) of \(limit) pads used, \(percent)% through the cycle. \(headline).")
     }
 }
 

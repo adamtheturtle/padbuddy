@@ -187,7 +187,8 @@ struct MergedOrganizationView: View {
                 LabeledRow(label: "Pads", value: "\(stats.padsCreated)")
             }
             if let sso = org.singleSignOnSupported {
-                LabeledRow(label: "Single sign-on", value: sso ? String(localized: "Enabled") : String(localized: "Disabled"))
+                LabeledRow(label: "Single sign-on",
+                           value: sso ? String(localized: "Enabled") : String(localized: "Disabled"))
             }
         }
     }
@@ -203,8 +204,8 @@ struct MergedOrganizationView: View {
     }
 
     private func seedFromCache() {
-        for account in accounts.mergeableAccounts {
-            if orgByAccount[account.id] == nil { orgByAccount[account.id] = orgCache.get(account.id) }
+        for account in accounts.mergeableAccounts where orgByAccount[account.id] == nil {
+            orgByAccount[account.id] = orgCache.get(account.id)
         }
     }
 

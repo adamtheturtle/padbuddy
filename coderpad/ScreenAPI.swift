@@ -241,7 +241,8 @@ nonisolated struct ScreenReport: Decodable, Hashable {
         warnings = container.loggedDecodeIfPresent([String].self, forKey: .warnings) ?? []
         points = container.loggedDecodeIfPresent(Int.self, forKey: .points)
         score = container.loggedDecodeIfPresent(Double.self, forKey: .score)
-        technologies = container.loggedDecodeIfPresent([String: ScreenTechnologyResult].self, forKey: .technologies) ?? [:]
+        technologies = container.loggedDecodeIfPresent([String: ScreenTechnologyResult].self,
+                                                       forKey: .technologies) ?? [:]
         totalDuration = container.loggedDecodeIfPresent(Int.self, forKey: .totalDuration)
         totalPoints = container.loggedDecodeIfPresent(Int.self, forKey: .totalPoints)
         comparativeScore = container.loggedDecodeIfPresent(Double.self, forKey: .comparativeScore)

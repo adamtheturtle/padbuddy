@@ -63,7 +63,7 @@ struct QuestionsView: View {
     @State var smartFilterFailed = false
     /// A favorite picked from the sidebar before the list had loaded it. Held so
     /// the selection can be made once the matching question arrives.
-    @State private var pendingSelectQuestionID: Int?
+    @State var pendingSelectQuestionID: Int?
     /// Gates the once-per-account restore of persisted live filters so the `onChange`
     /// that saves them doesn't clobber the saved snapshot before restore runs. The
     /// question counterpart to `PadsView.didRestoreFilters`.
@@ -279,58 +279,6 @@ struct QuestionsView: View {
         pendingSelectQuestionID = nil
     }
 
-    static func selectedQuestionKey(_ account: UUID) -> String {
-        "questions.selectedQuestion.\(account.uuidString)"
-    }
-
-    /// Persist the id of the question shown in the detail pane, per account, so the
-    /// list reopens to it next launch. Skipped until the restore has run so the empty
-    /// startup state can't clobber the saved id; clearing the selection removes the
-    /// stored id so a blank detail pane is restored faithfully too.
-    func persistSelectedQuestion() {
-        guard didRestoreSelection, let account = accounts.currentAccountID else { return }
-        let key = Self.selectedQuestionKey(account)
-        if let selectedQuestionID {
-            UserDefaults.standard.set(selectedQuestionID, forKey: key)
-        } else {
-            UserDefaults.standard.removeObject(forKey: key)
-        }
-    }
-
-    /// The saved question to reselect on launch: the stored id, but only when nothing
-    /// is already selected, no navigation is pending, and the id is still in the loaded
-    /// list. Pure so the restore decision is unit-testable in isolation.
-    static func questionToRestore(
-        savedID: Int?,
-        hasSelection: Bool,
-        hasPendingNavigation: Bool,
-        availableIDs: Set<Int>
-    ) -> Int? {
-        guard !hasSelection, !hasPendingNavigation,
-              let savedID, availableIDs.contains(savedID) else { return nil }
-        return savedID
-    }
-
-    /// Restore the previously-open question once its list is loaded. Marks the restore
-    /// complete as soon as questions exist (so later changes persist), then reselects
-    /// via `questionToRestore` — which yields to a pending favorite or queued request
-    /// so an explicit navigation always wins.
-    func restoreSelectedQuestionIfNeeded() {
-        guard !didRestoreSelection, !questions.isEmpty else { return }
-        didRestoreSelection = true
-        guard let account = accounts.currentAccountID else { return }
-        let stored = UserDefaults.standard.object(forKey: Self.selectedQuestionKey(account)) as? Int
-        guard let id = Self.questionToRestore(
-            savedID: stored,
-            hasSelection: selection != nil,
-            hasPendingNavigation: pendingSelectQuestionID != nil || nav.questionsRequest != nil,
-            availableIDs: Set(questions.map(\.id))
-        ) else { return }
-        selectedQuestionIDs = [id]
-        // Bring the restored row into view; the List won't scroll to it on its own.
-        pendingScrollToID = id
-    }
-
     func reload() async {
         guard !client.apiKey.isEmpty else { return }
         isLoading = true
@@ -362,127 +310,4 @@ struct QuestionsView: View {
 struct QuestionsTaskKey: Hashable {
     let apiKey: String
     let phase: ScenePhase
-}
-
-/// Sort orders offered for the Questions list. "Last used" is backed by the
-/// question's `updatedAt` timestamp — the API exposes no distinct last-used date.
-enum QuestionSort: String, CaseIterable, Identifiable {
-    case lastUsedDesc
-    case lastUsedAsc
-    case usedDesc
-    case usedAsc
-    case titleAsc
-    case titleDesc
-
-    /// `@AppStorage` key shared by both Questions lists and the Question menu's
-    /// "Sort By" command, so changing the sort anywhere keeps them all in sync.
-    static let storageKey = "questions.sort"
-
-    var id: String {
-        rawValue
-    }
-
-    var label: String {
-        switch self {
-        case .lastUsedDesc: String(localized: "Last used (newest first)")
-        case .lastUsedAsc: String(localized: "Last used (oldest first)")
-        case .usedDesc: String(localized: "Most used")
-        case .usedAsc: String(localized: "Least used")
-        case .titleAsc: String(localized: "Title (A-Z)")
-        case .titleDesc: String(localized: "Title (Z-A)")
-        }
-    }
-
-    /// The field this sort orders by, independent of direction.
-    var field: QuestionSortField {
-        switch self {
-        case .lastUsedDesc, .lastUsedAsc: .lastUsed
-        case .usedDesc, .usedAsc: .used
-        case .titleAsc, .titleDesc: .title
-        }
-    }
-
-    /// The two directions available for `field`, in menu order, each with a
-    /// field-appropriate label and arrow (e.g. "Newest First" / "Oldest First" for
-    /// a date field, "A to Z" / "Z to A" for the title). The first is the default.
-    static func directions(for field: QuestionSortField) -> [(sort: QuestionSort, label: String, systemImage: String)] {
-        switch field {
-        case .lastUsed:
-            [(.lastUsedDesc, String(localized: "Newest First"), "arrow.down"),
-             (.lastUsedAsc, String(localized: "Oldest First"), "arrow.up")]
-        case .used:
-            [(.usedDesc, String(localized: "Most Used"), "arrow.down"),
-             (.usedAsc, String(localized: "Least Used"), "arrow.up")]
-        case .title:
-            [(.titleAsc, String(localized: "A to Z"), "arrow.down"),
-             (.titleDesc, String(localized: "Z to A"), "arrow.up")]
-        }
-    }
-
-    /// Switching to `field` while keeping the current direction slot (so toggling
-    /// the field doesn't reset newest↔oldest).
-    func withField(_ newField: QuestionSortField) -> QuestionSort {
-        let slot = Self.directions(for: field).firstIndex { $0.sort == self } ?? 0
-        let options = Self.directions(for: newField)
-        return options[min(slot, options.count - 1)].sort
-    }
-}
-
-/// The field a ``QuestionSort`` orders by. Pairs with a direction to form the full
-/// sort, so the Sort menu can offer field and direction as two sections (à la the
-/// Passwords app) rather than one list of combined options.
-enum QuestionSortField: String, CaseIterable, Identifiable {
-    case lastUsed
-    case used
-    case title
-
-    var id: String {
-        rawValue
-    }
-
-    var label: String {
-        switch self {
-        case .lastUsed: String(localized: "Last Used")
-        case .used: String(localized: "Times Used")
-        case .title: String(localized: "Title")
-        }
-    }
-
-    var systemImage: String {
-        switch self {
-        case .lastUsed: "clock"
-        case .used: "chart.bar"
-        case .title: "textformat"
-        }
-    }
-}
-
-/// The Sort menu's contents, shared by the Questions toolbar button and the
-/// Question menu's "Sort By" command so they stay in lockstep. Two inline radio
-/// sections — sort field, then direction — mirroring the Passwords app.
-struct QuestionSortMenuContent: View {
-    @Binding var sort: QuestionSort
-
-    var body: some View {
-        Picker("Sort By", selection: Binding(get: { sort.field }, set: { sort = sort.withField($0) })) {
-            ForEach(QuestionSortField.allCases) { field in
-                Label(field.label, systemImage: field.systemImage).tag(field)
-            }
-        }
-        .pickerStyle(.inline)
-
-        Picker("Order", selection: $sort) {
-            ForEach(QuestionSort.directions(for: sort.field), id: \.sort) { option in
-                Label(option.label, systemImage: option.systemImage).tag(option.sort)
-            }
-        }
-        .pickerStyle(.inline)
-    }
-}
-
-extension Question {
-    /// Title to display, falling back to `#id` when a question has no title.
-    var displayTitle: String {
-        title.isEmpty ? "#\(id)" : title
-    }
 }

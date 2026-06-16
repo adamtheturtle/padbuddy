@@ -25,7 +25,8 @@ struct MenuBarLabel: View {
             // The unseen-changes dot is shape- and tint-only, so name the count for
             // VoiceOver rather than leaving the menu bar item announcing a bare glyph (#79).
             .accessibilityLabel(monitor.unseenChangedCount > 0
-                ? "CoderPad, \(monitor.unseenChangedCount) unseen pad \(monitor.unseenChangedCount == 1 ? "change" : "changes")"
+                ? "CoderPad, \(monitor.unseenChangedCount) unseen pad "
+                + "\(monitor.unseenChangedCount == 1 ? "change" : "changes")"
                 : "CoderPad")
     }
 }
@@ -268,7 +269,9 @@ struct MenuBarView: View {
                 .keyboardShortcut("q")
         }
     }
+}
 
+extension MenuBarView {
     /// A one-line summary of the account's pad quota for the header, or `nil`
     /// when quota hasn't loaded yet (or the API doesn't report it).
     private var quotaSummary: String? {
