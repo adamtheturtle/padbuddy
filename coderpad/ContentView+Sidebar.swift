@@ -17,9 +17,10 @@ struct Sidebar: View {
     @State private var padsCache = PadsCacheStore.shared
     @State private var quotaCache = QuotaCacheStore.shared
     @State private var nav = AppNavigation.shared
-    /// Highlights the Favorites section while a pad or question is dragged over it,
-    /// the Finder-style cue that dropping there will pin the item.
-    @State private var droppingFavorite = false
+    /// Highlights the Favorite Pads / Favorite Questions section while an item is
+    /// dragged over it, the Finder-style cue that dropping there will pin the item.
+    @State private var droppingFavoritePads = false
+    @State private var droppingFavoriteQuestions = false
     /// The favorite row id a reorder drag is currently hovering, so an insertion line
     /// can be drawn above it (#299). Nil when no reorder drag is in flight.
     @State private var reorderTargetID: String?
@@ -459,31 +460,31 @@ struct Sidebar: View {
         }
     }
 
-    /// The Favorites section is always shown, even when empty, so a pad or question
-    /// row can be dragged onto it to create the first favorite (#297). Pinned pads
-    /// lead, then starred questions; an empty section shows a drop hint. Dropping
-    /// pins the dragged item to the account it came from (carried in the payload),
-    /// which is what makes a drop in the combined view land on the right account.
+    /// Favourite pads and questions get their own headed sections (#346). Each is
+    /// always shown, even when empty, so a row can be dragged onto it to create the
+    /// first favourite (an empty section shows a drop hint). Dropping pins the dragged
+    /// item to the account it came from (carried in the payload), which is what makes a
+    /// drop in the combined view land on the right account.
     @ViewBuilder
     private var favoritesSection: some View {
-        let pads = favoritePadItems
-        let questions = favoriteItems
-        Section("Favorites") {
-            favoritesBody(pads: pads, questions: questions)
-                .sidebarGroupRow()
+        Section("Favorite Pads") {
+            favoritePadsBody(favoritePadItems).sidebarGroupRow()
+        }
+        Section("Favorite Questions") {
+            favoriteQuestionsBody(favoriteItems).sidebarGroupRow()
         }
     }
 
-    /// The Favorites group's body: the pinned-pad and starred-question rows, their
-    /// empty-state hint, the drag-to-reorder insertion line, and the drop-to-pin
-    /// target. Kept as one view (one `List` row) so this whole interaction — unchanged
-    /// from the pre-`List` sidebar — keeps working as-is.
-    private func favoritesBody(pads: [FavoritePadItem], questions: [FavoriteItem]) -> some View {
-        VStack(spacing: 2) {
+    /// The pinned-pad rows, their empty-state hint, the drag-to-reorder insertion line,
+    /// and the drop-to-pin target. Kept as one `List` row so the whole interaction works
+    /// inside the rebuilt list sidebar (#281/#288, #346).
+    private func favoritePadsBody(_ pads: [FavoritePadItem]) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
             ForEach(pads) { item in
                 favoriteRowChrome(rowID: item.id,
                                   payload: padReorderPayload(item),
-                                  onReorder: { reorderPad($0, before: item) }) {
+                                  onReorder: { reorderPad($0, before: item) },
+                                  onAdd: { addDroppedFavorite($0, beforePad: item) }) {
                     sidebarSubRow(label: item.title, icon: "star.fill", iconTint: .yellow) {
                         if item.account != nil {
                             section = .pads
@@ -495,10 +496,25 @@ struct Sidebar: View {
                     .contextMenu { removeFavoriteButton { unfavoritePad(item) } }
                 }
             }
+            if pads.isEmpty { favoriteDropHint("Drag pads here.") }
+        }
+        .modifier(FavoriteDropChrome(isHighlighted: droppingFavoritePads))
+        .onDrop(of: [.coderpadFavorite], isTargeted: $droppingFavoritePads) { providers in
+            for provider in providers {
+                loadFavoriteDrop(from: provider) { _ = handleFavoriteDrop([$0]) }
+            }
+            return true
+        }
+    }
+
+    /// The starred-question rows, mirroring ``favoritePadsBody`` for the question store.
+    private func favoriteQuestionsBody(_ questions: [FavoriteItem]) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
             ForEach(questions) { item in
                 favoriteRowChrome(rowID: item.id,
                                   payload: questionReorderPayload(item),
-                                  onReorder: { reorderQuestion($0, before: item) }) {
+                                  onReorder: { reorderQuestion($0, before: item) },
+                                  onAdd: { addDroppedFavorite($0, beforeQuestion: item) }) {
                     sidebarSubRow(label: item.title, icon: "star.fill", iconTint: .yellow) {
                         if let account = item.account {
                             // Merged view: switch to the combined questions list and let
@@ -513,45 +529,56 @@ struct Sidebar: View {
                     .contextMenu { removeFavoriteButton { unfavoriteQuestion(item) } }
                 }
             }
-            if pads.isEmpty, questions.isEmpty {
-                Text("Drag pads or questions here.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.vertical, 6)
-                    .padding(.horizontal, 8)
-            }
+            if questions.isEmpty { favoriteDropHint("Drag questions here.") }
         }
-        // Fill the section's full width and make the whole rectangle — including the
-        // gaps between rows and the empty space below them — one hit-testable drop
-        // target, so a drop lands anywhere over Favorites rather than only on the
-        // exact bounds of a row or the hint text.
-        .frame(maxWidth: .infinity)
-        .contentShape(Rectangle())
-        .background(
-            droppingFavorite ? Color.accentColor.opacity(0.12) : Color.clear,
-            in: RoundedRectangle(cornerRadius: 8, style: .continuous)
-        )
-        // `.onDrop` (NSItemProvider-based) rather than `.dropDestination(for:)`: inside
-        // a `List` row the latter highlights on hover but never fires its action on
-        // release (#346), so the drop silently fails. `.onDrop` delivers the providers
-        // reliably here. This container target catches drops over the gaps between rows
-        // and the empty space below them; each favorite row carries its own target too
-        // (see `favoriteRowChrome`), since a row's drop region would otherwise occlude
-        // this one and leave the rows themselves as dead spots.
-        .onDrop(of: [.coderpadFavorite], isTargeted: $droppingFavorite) { providers in
-            for provider in providers { loadFavoriteAdd(from: provider) }
+        .modifier(FavoriteDropChrome(isHighlighted: droppingFavoriteQuestions))
+        .onDrop(of: [.coderpadFavorite], isTargeted: $droppingFavoriteQuestions) { providers in
+            for provider in providers {
+                loadFavoriteDrop(from: provider) { _ = handleFavoriteDrop([$0]) }
+            }
             return true
         }
     }
 
-    /// Decodes a dragged-in `FavoriteDrop` from a provider and pins it. Shared by the
-    /// section container and each favorite row's drop target so the whole Favorites
-    /// area accepts an add-a-favorite drop.
-    private func loadFavoriteAdd(from provider: NSItemProvider) {
+    /// The empty-state hint shown in a favourites section, inviting a drag-to-pin.
+    private func favoriteDropHint(_ text: LocalizedStringKey) -> some View {
+        Text(text)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 6)
+            .padding(.horizontal, 8)
+    }
+
+    /// Decodes a dragged-in `FavoriteDrop` from a provider and hands it to `perform`
+    /// on the main actor. Shared by the section container (which appends) and each
+    /// favorite row's drop target (which inserts at the dropped position).
+    private func loadFavoriteDrop(from provider: NSItemProvider, perform: @escaping @MainActor (FavoriteDrop) -> Void) {
         provider.loadDataRepresentation(forTypeIdentifier: UTType.coderpadFavorite.identifier) { data, _ in
             guard let data, let drop = try? JSONDecoder().decode(FavoriteDrop.self, from: data) else { return }
-            Task { @MainActor in _ = handleFavoriteDrop([drop]) }
+            Task { @MainActor in perform(drop) }
+        }
+    }
+
+    /// Pins a dropped pad immediately before `item` in the favourites' pad group, so a
+    /// drop lands where it was released rather than at the end. A question dropped onto
+    /// a pad row can't interleave among pads (the kinds are separate, ordered groups),
+    /// so it appends to its own group instead.
+    private func addDroppedFavorite(_ drop: FavoriteDrop, beforePad item: FavoritePadItem) {
+        guard case let .pad(account, id, _) = drop else { _ = handleFavoriteDrop([drop]); return }
+        favoritePads.add(id, account: account)
+        if let target = item.account ?? accountID, target == account {
+            favoritePads.move(id, before: item.padID, account: account)
+        }
+    }
+
+    /// Pins a dropped question immediately before `item` in the favourites' question
+    /// group. A pad dropped onto a question row appends to the pad group instead.
+    private func addDroppedFavorite(_ drop: FavoriteDrop, beforeQuestion item: FavoriteItem) {
+        guard case let .question(account, id, title) = drop else { _ = handleFavoriteDrop([drop]); return }
+        favorites.add(id, title: title, account: account)
+        if let target = item.account ?? accountID, target == account {
+            favorites.move(id, before: item.questionID, account: account)
         }
     }
 
@@ -608,6 +635,7 @@ struct Sidebar: View {
         rowID: String,
         payload: FavoriteReorder?,
         onReorder: @escaping @MainActor (FavoriteReorder) -> Void,
+        onAdd: @escaping @MainActor (FavoriteDrop) -> Void,
         @ViewBuilder row: () -> some View
     ) -> some View {
         let decorated = row()
@@ -634,7 +662,7 @@ struct Sidebar: View {
                             onReorder(reorder)
                         }
                     } else {
-                        loadFavoriteAdd(from: provider)
+                        loadFavoriteDrop(from: provider, perform: onAdd)
                     }
                 }
                 return true
@@ -723,5 +751,23 @@ private extension View {
         listRowInsets(EdgeInsets())
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
+    }
+}
+
+/// Shared chrome for a favourites drop target: fills the section's full width and makes
+/// the whole rectangle — including the gaps between rows and the empty space below them —
+/// one hit-testable region, and paints the Finder-style highlight while a drag hovers, so
+/// a drop lands anywhere over the section rather than only on a row's exact bounds (#346).
+private struct FavoriteDropChrome: ViewModifier {
+    let isHighlighted: Bool
+
+    func body(content: Content) -> some View {
+        content
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+            .background(
+                isHighlighted ? Color.accentColor.opacity(0.12) : Color.clear,
+                in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+            )
     }
 }
