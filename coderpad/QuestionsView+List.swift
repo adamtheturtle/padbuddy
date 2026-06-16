@@ -120,14 +120,22 @@ extension QuestionsView {
         // (trailing window toolbar, Finder-style); this column only owns the section
         // actions below.
         .toolbar(id: "questions") {
-            ToolbarItem(id: "reload", placement: .automatic) {
+            // `.navigation` pins these to the toolbar's leading edge (ahead of the
+            // inline title). With `.automatic` the cluster sat in the content
+            // column's toolbar section, which — when the sidebar is collapsed —
+            // left AppKit's sidebar-column inset as dead space before Reload, so
+            // the group read as floating too far right (#337). Leading placement
+            // reclaims that gap, and keeps Reload/New/Sort contiguous. Tradeoff:
+            // when the sidebar is expanded the cluster anchors at the window's
+            // leading edge rather than above the list.
+            ToolbarItem(id: "reload", placement: .navigation) {
                 ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
             }
-            // Grouped beside Reload at the list column's leading edge rather
+            // Grouped beside Reload at the toolbar's leading edge rather
             // than floating at the trailing edge: a `.primaryAction` here shares the
             // window's trailing region with the detail pane's actions, so selecting
             // a question would shove this button leftward. Anchoring it left keeps it put.
-            ToolbarItem(id: "new-question", placement: .automatic) {
+            ToolbarItem(id: "new-question", placement: .navigation) {
                 Button { showCreate = true } label: {
                     Label("New Question", systemImage: "plus")
                 }
@@ -135,7 +143,7 @@ extension QuestionsView {
                 .accessibilityLabel("New Question")
                 .disabled(client.apiKey.isEmpty || isReadOnly)
             }
-            ToolbarItem(id: "sort", placement: .automatic) {
+            ToolbarItem(id: "sort", placement: .navigation) {
                 Menu {
                     QuestionSortMenuContent(sort: $sort)
                 } label: {

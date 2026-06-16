@@ -103,14 +103,21 @@ extension PadsView {
         // (trailing window toolbar, Finder-style); this column only owns the section
         // actions below.
         .toolbar(id: "pads") {
-            ToolbarItem(id: "reload", placement: .automatic) {
+            // `.navigation` pins these to the toolbar's leading edge (ahead of the
+            // inline title). With `.automatic` the cluster sat in the content
+            // column's toolbar section, which — when the sidebar is collapsed —
+            // left AppKit's sidebar-column inset as dead space before Reload, so
+            // the group read as floating too far right (#337). Leading placement
+            // reclaims that gap. Tradeoff: when the sidebar is expanded the cluster
+            // anchors at the window's leading edge rather than above the list.
+            ToolbarItem(id: "reload", placement: .navigation) {
                 ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
             }
-            // Grouped beside Reload at the list column's leading edge rather than
+            // Grouped beside Reload at the toolbar's leading edge rather than
             // floating at the trailing edge: a `.primaryAction` here shares the
             // window's trailing region with the detail pane's actions, so selecting
             // a pad would shove this button leftward. Anchoring it left keeps it put.
-            ToolbarItem(id: "new-pad", placement: .automatic) {
+            ToolbarItem(id: "new-pad", placement: .navigation) {
                 Button { showCreate = true } label: {
                     Label("New Pad", systemImage: "plus")
                 }
