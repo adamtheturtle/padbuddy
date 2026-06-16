@@ -120,7 +120,6 @@ struct Sidebar: View {
         }
         .font(.body)
         .padding(.vertical, 7)
-        .padding(.horizontal, 8)
         .help("Your plan has unlimited pads.")
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Quota, unlimited plan")
@@ -320,7 +319,6 @@ struct Sidebar: View {
                             }
                         }
                     }
-                    .padding(.horizontal, 8)
                     .sidebarGroupRow()
                 }
             }
@@ -344,7 +342,6 @@ struct Sidebar: View {
                     nav.toggleMergedMine(kind: .questions)
                 }
             }
-            .padding(.horizontal, 8)
             .sidebarGroupRow()
         }
     }
@@ -371,7 +368,6 @@ struct Sidebar: View {
                         }
                     }
                 }
-                .padding(.horizontal, 8)
                 .sidebarGroupRow()
             }
         }
@@ -525,7 +521,6 @@ struct Sidebar: View {
                     .padding(.horizontal, 8)
             }
         }
-        .padding(.horizontal, 8)
         .background(
             droppingFavorite ? Color.accentColor.opacity(0.12) : Color.clear,
             in: RoundedRectangle(cornerRadius: 8, style: .continuous)
@@ -656,8 +651,12 @@ struct Sidebar: View {
                     .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
                 Spacer(minLength: 0)
             }
+            // No leading inset of its own: the row sits at the List's standard sidebar
+            // margin (which `sidebarGroupRow` falls back to), so a suggested/saved/favorite
+            // icon lines up with the top-level "Pads"/"Questions" row icons above instead
+            // of reading as an indented child of them (#345). The full-width `Spacer` still
+            // lets the selection highlight span the row, inset by that same margin.
             .padding(.vertical, 5)
-            .padding(.horizontal, 8)
             .background(
                 isSelected ? Color.primary.opacity(0.10) : Color.clear,
                 in: RoundedRectangle(cornerRadius: 8, style: .continuous)
