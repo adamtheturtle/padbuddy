@@ -59,6 +59,7 @@ ENTITLEMENTS="${ENTITLEMENTS:-$REPO_ROOT/coderpad/coderpad.entitlements}"
 # com.apple.security.app-sandbox (which Xcode otherwise synthesizes from
 # ENABLE_APP_SANDBOX at build time and which Gatekeeper expects on plug-ins).
 WIDGET_ENTITLEMENTS="${WIDGET_ENTITLEMENTS:-$REPO_ROOT/RecentPadsWidgetExtension.entitlements}"
+[ -f "$WIDGET_ENTITLEMENTS" ] || die "widget entitlements not found: $WIDGET_ENTITLEMENTS"
 
 APP_NAME="$(basename "$APP" .app)"
 DMG="${2:-${APP%.app}.dmg}"
@@ -91,13 +92,13 @@ done < <(
 # The outer `codesign "$APP"` below does NOT re-sign nested .appex bundles, and
 # `codesign --verify` passes on an ad-hoc-signed appex — so a missed appex only
 # surfaces when the notary service rejects it.
+# Always re-sign WITH the widget entitlements — a plain `sign "$appex"` would
+# strip App Sandbox + the app-group, the very failure this guards against. The
+# entitlements file's existence is checked up front (above), so there is no
+# silent strip-on-fallback path here.
 while IFS= read -r -d '' appex; do
   echo "    sign appex: ${appex#"$APP"/}"
-  if [ -f "$WIDGET_ENTITLEMENTS" ]; then
-    sign --entitlements "$WIDGET_ENTITLEMENTS" "$appex"
-  else
-    sign "$appex"
-  fi
+  sign --entitlements "$WIDGET_ENTITLEMENTS" "$appex"
 done < <(find "$APP/Contents" -name '*.appex' -print0 | sort -rz)
 
 echo "==> Signing app bundle (entitlements: ${ENTITLEMENTS#"$REPO_ROOT"/})"
