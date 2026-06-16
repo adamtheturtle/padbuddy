@@ -74,7 +74,7 @@ extension View {
     /// `SidebarRowWidthKey`. Measures a hidden, `fixedSize` copy of the text so the
     /// reported width is the *untruncated* width even though the visible row is
     /// line-limited — attach to each row and the key's `max` yields the widest.
-    func measuresSidebarRowWidth(_ label: String) -> some View {
+    func measuresSidebarRowWidth(_ label: LocalizedStringKey) -> some View {
         background(
             Text(label)
                 .font(.body)

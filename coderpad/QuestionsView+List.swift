@@ -99,7 +99,7 @@ extension QuestionsView {
     var countSubtitle: String {
         guard !questions.isEmpty else { return "" }
         let count = sorted.count
-        return "\(count) \(count == 1 ? "question" : "questions")"
+        return count == 1 ? String(localized: "\(count) question") : String(localized: "\(count) questions")
     }
 
     var sidebar: some View {

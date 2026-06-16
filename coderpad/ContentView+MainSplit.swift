@@ -368,10 +368,10 @@ struct MainSplit: View {
     /// back to the "CoderPad" scene name when nothing is selected.
     private var sectionTitle: String {
         switch section {
-        case .pads: "Pads"
-        case .questions: "Questions"
-        case .organization: "Organization"
-        case .quota: "Quota"
+        case .pads: String(localized: "Pads")
+        case .questions: String(localized: "Questions")
+        case .organization: String(localized: "Organization")
+        case .quota: String(localized: "Quota")
         }
     }
 
@@ -380,7 +380,7 @@ struct MainSplit: View {
     /// "Across all accounts" title used to carry); empty otherwise so single-account
     /// sections show just the section name.
     private var sectionSubtitle: String {
-        store.isMergedView ? "All accounts" : ""
+        store.isMergedView ? String(localized: "All accounts") : ""
     }
 
     /// The active section's result-count summary, bubbled up from the list views via

@@ -278,7 +278,7 @@ struct Sidebar: View {
 
     /// The label and SF Symbol for each navigable top-level section, in one place so the
     /// rows and any width measurement agree.
-    private static func sectionMeta(_ value: AppSection) -> (label: String, icon: String) {
+    private static func sectionMeta(_ value: AppSection) -> (label: LocalizedStringKey, icon: String) {
         switch value {
         case .pads: ("Pads", "doc.text")
         case .questions: ("Questions", "questionmark.bubble")

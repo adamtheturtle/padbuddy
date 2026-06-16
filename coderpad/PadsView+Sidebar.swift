@@ -440,6 +440,6 @@ extension PadsView {
     var countSubtitle: String {
         guard !pads.isEmpty else { return "" }
         let count = filtered.count
-        return "\(count) \(count == 1 ? "pad" : "pads")"
+        return count == 1 ? String(localized: "\(count) pad") : String(localized: "\(count) pads")
     }
 }

@@ -93,8 +93,10 @@ extension MergedQuestionsView {
         let shown = sorted.count
         let accountCount = accounts.mergeableAccounts.count
         return (activeFilterCount > 0 || favoritesOnly || !search.isEmpty)
-            ? "\(shown) of \(scoped.count) questions across \(accountCount) accounts"
-            : "\(shown) \(shown == 1 ? "question" : "questions") across \(accountCount) accounts"
+            ? String(localized: "\(shown) of \(scoped.count) questions across \(accountCount) accounts")
+            : (shown == 1
+                ? String(localized: "\(shown) question across \(accountCount) accounts")
+                : String(localized: "\(shown) questions across \(accountCount) accounts"))
     }
 
     @ViewBuilder
