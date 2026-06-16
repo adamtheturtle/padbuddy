@@ -393,6 +393,40 @@ struct MainSplit: View {
         sectionCount.isEmpty ? sectionSubtitle : sectionCount
     }
 
+    /// Flips the sidebar between fully open and collapsed, mapping to the hidden state
+    /// that matches the current column count (`.doubleColumn` keeps the list beside the
+    /// detail in three-column sections; `.detailOnly` is the lone hide for two-column
+    /// ones). The existing `onChange(of: columnVisibility)` handlers pick this up, so a
+    /// toggle here persists (#273) and stands down the width auto-collapse (#307) just
+    /// like the system toggle did.
+    private func toggleSidebar() {
+        withAnimation(.smooth) {
+            if columnVisibility == .all {
+                columnVisibility = sectionHasDetail ? .doubleColumn : .detailOnly
+            } else {
+                columnVisibility = .all
+            }
+        }
+    }
+
+    /// A hand-rolled replacement for the `NavigationSplitView` default sidebar toggle,
+    /// which we remove via `.toolbar(removing: .sidebarToggle)`. Mail does the same: a
+    /// `.navigation`-placement toggle pinned to the toolbar's leading edge, so the
+    /// content column's action cluster (Reload/New) packs right up against it instead
+    /// of floating past AppKit's phantom collapsed-sidebar inset (#337). Driven by our
+    /// own `columnVisibility` rather than the AppKit `toggleSidebar` selector, since we
+    /// already own that state. Keeps the system ⌃⌘S shortcut for parity.
+    @ToolbarContentBuilder
+    private var sidebarToggle: some ToolbarContent {
+        ToolbarItem(placement: .navigation) {
+            Button(action: toggleSidebar) {
+                Label("Toggle Sidebar", systemImage: "sidebar.leading")
+            }
+            .help("Show or hide the sidebar")
+            .keyboardShortcut("s", modifiers: [.control, .command])
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Offline takes precedence: when there's no path to CoderPad nothing can
@@ -541,6 +575,10 @@ struct MainSplit: View {
     private var threeColumnSplit: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
             Sidebar(section: $section)
+                // Drop the framework's default toggle; `sidebarToggle` below supplies a
+                // leading-edge replacement so the content actions don't float past the
+                // collapsed-sidebar inset (#337).
+                .toolbar(removing: .sidebarToggle)
                 // Grow the sidebar's minimum to fit the widest row label. Rounded
                 // and only reassigned on a real change, so feeding the measured
                 // width back into the same column's min doesn't thrash layout.
@@ -608,6 +646,7 @@ struct MainSplit: View {
                 searchFieldFocused = true
             }
         )
+        .toolbar { sidebarToggle }
         .navigationTitle(sectionTitle)
         .navigationSubtitle(displaySubtitle)
     }
@@ -615,6 +654,10 @@ struct MainSplit: View {
     private var twoColumnSplit: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
             Sidebar(section: $section)
+                // Drop the framework's default toggle; `sidebarToggle` below supplies a
+                // leading-edge replacement so the content actions don't float past the
+                // collapsed-sidebar inset (#337).
+                .toolbar(removing: .sidebarToggle)
                 // Grow the sidebar's minimum to fit the widest row label. Rounded
                 // and only reassigned on a real change, so feeding the measured
                 // width back into the same column's min doesn't thrash layout.
@@ -641,6 +684,7 @@ struct MainSplit: View {
             // back to the static section subtitle when switching in from a list.
             .onPreferenceChange(SectionCountKey.self) { sectionCount = $0 }
         }
+        .toolbar { sidebarToggle }
         .navigationTitle(sectionTitle)
         .navigationSubtitle(displaySubtitle)
     }

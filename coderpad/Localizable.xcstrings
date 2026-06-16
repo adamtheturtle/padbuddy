@@ -3074,6 +3074,9 @@
         }
       }
     },
+    "Show or hide the sidebar" : {
+
+    },
     "Show pads from %@" : {
       "localizations" : {
         "es" : {
@@ -3430,6 +3433,9 @@
           }
         }
       }
+    },
+    "Toggle Sidebar" : {
+
     },
     "Turning this off also requires Touch ID, so it can't be bypassed." : {
       "localizations" : {
