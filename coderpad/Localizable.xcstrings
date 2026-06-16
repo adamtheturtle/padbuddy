@@ -1520,6 +1520,7 @@
       }
     },
     "CoderPad, %lld unseen pad %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
