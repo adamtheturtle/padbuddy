@@ -660,6 +660,12 @@
     },
     "Add %@ to Favorites" : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Add %@ to Favourites"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
@@ -730,6 +736,12 @@
     },
     "Add to Favorites" : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Add to Favourites"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
@@ -840,6 +852,12 @@
     },
     "Auto-filled from your organization" : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Auto-filled from your organisation"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
@@ -1196,6 +1214,12 @@
     },
     "Color" : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Colour"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
@@ -2050,7 +2074,11 @@
         }
       }
     },
+    "Drag pads here." : {
+
+    },
     "Drag pads or questions here." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2059,6 +2087,9 @@
           }
         }
       }
+    },
+    "Drag questions here." : {
+
     },
     "e.g. active Python pads from my team" : {
       "localizations" : {
@@ -2262,6 +2293,12 @@
     },
     "Favorite" : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Favourite"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
@@ -2270,8 +2307,34 @@
         }
       }
     },
+    "Favorite Pads" : {
+      "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Favourite Pads"
+          }
+        }
+      }
+    },
+    "Favorite Questions" : {
+      "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Favourite Questions"
+          }
+        }
+      }
+    },
     "Favorited" : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Favourited"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
@@ -2281,7 +2344,14 @@
       }
     },
     "Favorites" : {
+      "extractionState" : "stale",
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Favourites"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
@@ -2522,6 +2592,12 @@
     },
     "Key not authorized" : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Key not authorised"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
@@ -2682,6 +2758,12 @@
     },
     "Loading organization…" : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Loading organisation…"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
@@ -3552,6 +3634,12 @@
     },
     "Organization" : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Organisation"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
@@ -3562,6 +3650,12 @@
     },
     "Organizations" : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Organisations"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
@@ -4052,6 +4146,12 @@
     },
     "Remove %@ from Favorites" : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Remove %@ from Favourites"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
@@ -4062,6 +4162,12 @@
     },
     "Remove from Favorites" : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Remove from Favourites"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
@@ -4956,6 +5062,12 @@
     },
     "This key works, but isn't authorized for: %@. Those sections may be empty." : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "This key works, but isn't authorised for: %@. Those sections may be empty."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
@@ -5126,6 +5238,12 @@
     },
     "Unfavorite" : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Unfavourite"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
@@ -5256,6 +5374,12 @@
     },
     "Use the default initials and color." : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Use the default initials and colour."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
@@ -5448,6 +5572,12 @@
     },
     "You're not authorized. Check this account's API key in Settings." : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "You're not authorised. Check this account's API key in Settings."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",

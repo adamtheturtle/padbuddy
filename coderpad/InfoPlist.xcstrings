@@ -39,6 +39,12 @@
     },
     "CoderPad Favorite" : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "CoderPad Favourite"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
@@ -49,6 +55,12 @@
     },
     "CoderPad Favorite Reorder" : {
       "localizations" : {
+        "en-GB" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "CoderPad Favourite Reorder"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
