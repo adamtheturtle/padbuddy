@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct Sidebar: View {
     @Binding var section: AppSection
@@ -333,11 +334,11 @@ struct Sidebar: View {
     private var mergedDefaultsSection: some View {
         Section("Suggested") {
             VStack(spacing: 2) {
-                sidebarSubRow(label: "My Pads", icon: "person.fill",
+                sidebarSubRow(label: String(localized: "My Pads"), icon: "person.fill",
                               isSelected: nav.section == .pads && nav.mergedPadsMineOnly) {
                     nav.toggleMergedMine(kind: .pads)
                 }
-                sidebarSubRow(label: "My Questions", icon: "person.fill",
+                sidebarSubRow(label: String(localized: "My Questions"), icon: "person.fill",
                               isSelected: nav.section == .questions && nav.mergedQuestionsMineOnly) {
                     nav.toggleMergedMine(kind: .questions)
                 }
@@ -521,13 +522,45 @@ struct Sidebar: View {
                     .padding(.horizontal, 8)
             }
         }
+        // Fill the section's full width and make the whole rectangle — including the
+        // gaps between rows and the empty space below them — one hit-testable drop
+        // target, so a drop lands anywhere over Favorites rather than only on the
+        // exact bounds of a row or the hint text.
+        .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
         .background(
             droppingFavorite ? Color.accentColor.opacity(0.12) : Color.clear,
             in: RoundedRectangle(cornerRadius: 8, style: .continuous)
         )
-        .dropDestination(for: FavoriteDrop.self) { drops, _ in
-            handleFavoriteDrop(drops)
-        } isTargeted: { droppingFavorite = $0 }
+        // `.onDrop` (NSItemProvider-based) rather than `.dropDestination(for:)`: inside
+        // a `List` row the latter highlights on hover but never fires its action on
+        // release (#346), so the drop silently fails. `.onDrop` delivers the providers
+        // reliably here. This container target catches drops over the gaps between rows
+        // and the empty space below them; each favorite row carries its own target too
+        // (see `favoriteRowChrome`), since a row's drop region would otherwise occlude
+        // this one and leave the rows themselves as dead spots.
+        .onDrop(of: [.coderpadFavorite], isTargeted: $droppingFavorite) { providers in
+            for provider in providers { loadFavoriteAdd(from: provider) }
+            return true
+        }
+    }
+
+    /// Decodes a dragged-in `FavoriteDrop` from a provider and pins it. Shared by the
+    /// section container and each favorite row's drop target so the whole Favorites
+    /// area accepts an add-a-favorite drop.
+    private func loadFavoriteAdd(from provider: NSItemProvider) {
+        provider.loadDataRepresentation(forTypeIdentifier: UTType.coderpadFavorite.identifier) { data, _ in
+            guard let data, let drop = try? JSONDecoder().decode(FavoriteDrop.self, from: data) else { return }
+            Task { @MainActor in _ = handleFavoriteDrop([drop]) }
+        }
+    }
+
+    /// Decodes a within-sidebar `FavoriteReorder` from a provider and applies the move.
+    private func loadFavoriteReorder(from provider: NSItemProvider, onReorder: @escaping @MainActor (FavoriteReorder) -> Void) {
+        provider.loadDataRepresentation(forTypeIdentifier: UTType.coderpadFavoriteReorder.identifier) { data, _ in
+            guard let data, let reorder = try? JSONDecoder().decode(FavoriteReorder.self, from: data) else { return }
+            Task { @MainActor in onReorder(reorder) }
+        }
     }
 
     private func removeFavoriteButton(_ action: @escaping () -> Void) -> some View {
@@ -566,14 +599,15 @@ struct Sidebar: View {
 
     /// Wraps a favorite row so it can be dragged to reorder (#299): it carries a
     /// `FavoriteReorder` payload, draws a Finder-style insertion line above itself
-    /// while a reorder drag hovers, and reorders on drop. The reorder type is
-    /// distinct from the add-a-favorite `FavoriteDrop`, so a row's own drop target
-    /// only ever reacts to a reorder, never to a row dragged in from a list.
+    /// while a drag hovers, and reorders on drop. The row's own drop target accepts
+    /// both a within-sidebar reorder *and* an add-a-favorite drag from a list — without
+    /// the latter, the row would occlude the section's add target and leave each row a
+    /// dead spot where a question or pad couldn't be dropped (#346).
     @ViewBuilder
     private func favoriteRowChrome(
         rowID: String,
         payload: FavoriteReorder?,
-        onReorder: @escaping (FavoriteReorder) -> Void,
+        onReorder: @escaping @MainActor (FavoriteReorder) -> Void,
         @ViewBuilder row: () -> some View
     ) -> some View {
         let decorated = row()
@@ -585,13 +619,25 @@ struct Sidebar: View {
                         .padding(.horizontal, 8)
                 }
             }
-            .dropDestination(for: FavoriteReorder.self) { items, _ in
-                reorderTargetID = nil
-                guard let first = items.first else { return false }
-                onReorder(first)
+            // `.onDrop` rather than `.dropDestination(for:)` for the same reason as the
+            // section target: the latter never fires its action inside a `List` row.
+            .onDrop(of: [.coderpadFavoriteReorder, .coderpadFavorite], isTargeted: Binding(
+                get: { reorderTargetID == rowID },
+                set: { targeted in
+                    reorderTargetID = targeted ? rowID : (reorderTargetID == rowID ? nil : reorderTargetID)
+                }
+            )) { providers in
+                for provider in providers {
+                    if provider.hasItemConformingToTypeIdentifier(UTType.coderpadFavoriteReorder.identifier) {
+                        loadFavoriteReorder(from: provider) { reorder in
+                            reorderTargetID = nil
+                            onReorder(reorder)
+                        }
+                    } else {
+                        loadFavoriteAdd(from: provider)
+                    }
+                }
                 return true
-            } isTargeted: { targeted in
-                reorderTargetID = targeted ? rowID : (reorderTargetID == rowID ? nil : reorderTargetID)
             }
         // Only rows whose owning account is known can be dragged to reorder.
         if let payload {
