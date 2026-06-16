@@ -1264,6 +1264,16 @@
         }
       }
     },
+    "Candidate" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Candidato"
+          }
+        }
+      }
+    },
     "Candidate instructions" : {
       "localizations" : {
         "es" : {
@@ -1280,6 +1290,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Instrucciones para el candidato"
+          }
+        }
+      }
+    },
+    "Candidates" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Candidatos"
           }
         }
       }
@@ -2930,6 +2950,26 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Entrevista finalizada"
+          }
+        }
+      }
+    },
+    "Interviewer" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Entrevistador"
+          }
+        }
+      }
+    },
+    "Interviewers" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Entrevistadores"
           }
         }
       }

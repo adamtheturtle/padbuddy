@@ -52,7 +52,7 @@ extension PadDetailView {
     }
 
     private func participantGroup(
-        title: String,
+        title: LocalizedStringKey,
         systemImage: String,
         names: [String],
         tint: Color,
