@@ -45,6 +45,7 @@ struct NewQuestionSheet: View {
                                   prompt: Text("Describe a question, e.g. reverse a linked list"),
                                   axis: .vertical)
                             .lineLimit(2 ... 4)
+                            .accessibilityLabel("Question prompt")
                         Button(action: draftQuestion) {
                             if isDrafting {
                                 HStack(spacing: 6) {
@@ -72,14 +73,17 @@ struct NewQuestionSheet: View {
                 Section("Description") {
                     TextField("", text: $description, prompt: Text("Optional"), axis: .vertical)
                         .lineLimit(3 ... 8)
+                        .accessibilityLabel("Description")
                 }
                 Section("Candidate instructions") {
                     TextField("", text: $instructions, prompt: Text("Optional"), axis: .vertical)
                         .lineLimit(4 ... 12)
+                        .accessibilityLabel("Candidate instructions")
                 }
                 Section("Solution") {
                     TextField("", text: $solution, prompt: Text("Optional"), axis: .vertical)
                         .lineLimit(3 ... 12)
+                        .accessibilityLabel("Solution")
                 }
             }
             .formStyle(.grouped)

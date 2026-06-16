@@ -137,6 +137,10 @@ struct AccountEditor: View {
                         }
                         .textFieldStyle(.roundedBorder)
                         .textContentType(.password)
+                        // The visible "API Key" label lives in the separate `fieldRow`
+                        // column and isn't programmatically tied to the field, so name
+                        // it explicitly or VoiceOver announces an unlabeled text field.
+                        .accessibilityLabel("API Key")
                         Button {
                             toggleReveal()
                         } label: {
@@ -152,6 +156,7 @@ struct AccountEditor: View {
                               prompt: Text(CoderPadClient.defaultBaseURL.absoluteString))
                         .textFieldStyle(.roundedBorder)
                         .autocorrectionDisabled()
+                        .accessibilityLabel("Server URL")
                         .help("""
                         Override only for self-hosted or regional CoderPad deployments. \
                         Leave blank to use the default.
@@ -165,6 +170,7 @@ struct AccountEditor: View {
                         TextField("", text: $draft.name,
                                   prompt: Text("Auto-filled from your organization"))
                             .textFieldStyle(.roundedBorder)
+                            .accessibilityLabel("Description")
                     }
                     fieldRow("Icon", alignment: .center) {
                         HStack(alignment: .center, spacing: 8) {
