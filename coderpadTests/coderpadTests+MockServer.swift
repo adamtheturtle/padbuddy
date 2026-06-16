@@ -7,10 +7,10 @@
 import Foundation
 import Testing
 
-// Each test gets its own mock client keyed by a unique API key, so its created /
-// updated / deleted pads land in an isolated `MockState` rather than process-wide
-// storage. With no shared mutable state to race on, the suite runs in parallel
-// (no `.serialized`).
+/// Each test gets its own mock client keyed by a unique API key, so its created /
+/// updated / deleted pads land in an isolated `MockState` rather than process-wide
+/// storage. With no shared mutable state to race on, the suite runs in parallel
+/// (no `.serialized`).
 @Suite("Mock server end-to-end")
 struct MockServerTests {
     private let client = CoderPadClient.mock(key: "test-\(UUID().uuidString)")

@@ -143,7 +143,7 @@ struct AccountRoundTripTests {
         // The store decodes elements leniently, so one invalid account must not take
         // the rest down with it.
         let valid = Account(name: "Good", apiKey: "k", userEmail: "me@acme.com")
-        let validJSON = String(data: try JSONEncoder().encode(valid), encoding: .utf8)!
+        let validJSON = try #require(String(data: JSONEncoder().encode(valid), encoding: .utf8))
         let array = """
         [\(validJSON),{"id":"\(UUID().uuidString)","name":"Bad","apiKey":"k","userEmail":""}]
         """
@@ -505,7 +505,7 @@ struct GeneralSettingsTests {
 @Suite("Pad request execution_enabled encoding")
 struct PadExecutionEncodingTests {
     private func json(_ value: some Encodable) throws -> String {
-        String(decoding: try CoderPadClient.encoder.encode(value), as: UTF8.self)
+        try String(decoding: CoderPadClient.encoder.encode(value), as: UTF8.self)
     }
 
     @Test
@@ -529,8 +529,8 @@ struct PadExecutionEncodingTests {
 
     @Test
     func `a nil execution flag is omitted entirely`() throws {
-        #expect(!(try json(PadUpdate(id: "ABC", executionEnabled: nil))).contains("execution_enabled"))
-        #expect(!(try json(PadCreate(language: "python3"))).contains("execution_enabled"))
+        #expect(try !json(PadUpdate(id: "ABC", executionEnabled: nil)).contains("execution_enabled"))
+        #expect(try !json(PadCreate(language: "python3")).contains("execution_enabled"))
     }
 
     @Test

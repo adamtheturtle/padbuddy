@@ -205,7 +205,7 @@ struct ScreenClient {
                                                path: String,
                                                query: [URLQueryItem] = []) async throws -> T {
         let request = try authorizedRequest(path: path, method: "GET", query: query)
-        return try decode(type, from: try await data(for: request).0)
+        return try await decode(type, from: data(for: request).0)
     }
 
     private nonisolated func send<T: Decodable>(_ type: T.Type,
@@ -215,14 +215,14 @@ struct ScreenClient {
         var request = try authorizedRequest(path: path, method: method)
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try encode(body)
-        return try decode(type, from: try await data(for: request).0)
+        return try await decode(type, from: data(for: request).0)
     }
 
     /// For the 204-No-Content actions (cancel/resend/delete/webhook). An optional
     /// JSON body covers `POST /webhook`, whose body is a bare URL string.
     private nonisolated func sendNoContent(method: String,
                                            path: String,
-                                           body: (some Encodable)? = Optional<String>.none) async throws {
+                                           body: (some Encodable)? = String?.none) async throws {
         var request = try authorizedRequest(path: path, method: method)
         if let body {
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")

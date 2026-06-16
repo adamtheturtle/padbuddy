@@ -329,10 +329,10 @@ struct ModelConveniencesTests {
     @Test
     func `question webURL is built from the account's base URL`() throws {
         let decoded = try question(#"{"id": 42, "title": "Two Sum"}"#)
-        #expect(decoded.webURL(baseURL: URL(string: "https://app.coderpad.io")!)
+        #expect(try decoded.webURL(baseURL: #require(URL(string: "https://app.coderpad.io")))
             == URL(string: "https://app.coderpad.io/questions/42"))
         // Honors a custom CoderPad domain.
-        #expect(decoded.webURL(baseURL: URL(string: "https://acme.coderpad.io")!)
+        #expect(try decoded.webURL(baseURL: #require(URL(string: "https://acme.coderpad.io")))
             == URL(string: "https://acme.coderpad.io/questions/42"))
     }
 

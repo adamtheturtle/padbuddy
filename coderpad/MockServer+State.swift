@@ -12,7 +12,7 @@
 import Foundation
 import Synchronization
 
-nonisolated final class MockState: @unchecked Sendable {
+final nonisolated class MockState: @unchecked Sendable {
     /// Serializes access to the mutable collections below. Per-state rather than
     /// global, so requests to different keys never contend, while concurrent
     /// requests to the *same* state (the client fans pages out concurrently) stay

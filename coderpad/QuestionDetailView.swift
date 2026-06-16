@@ -38,12 +38,12 @@ struct QuestionDetailView: View {
     @State var editError: String?
     @FocusState var titleFocused: Bool
 
-    // Detail-column actions live in the unified window toolbar rather than in
-    // the content header: there they float on the system Liquid Glass layer
-    // automatically, and the header stays free for identity and metadata. A
-    // leading spacer separates them from the Questions list's own toolbar
-    // items (Sort, Reload, New Question) so "New Pad" doesn't read as a
-    // sibling of "New Question".
+    /// Detail-column actions live in the unified window toolbar rather than in
+    /// the content header: there they float on the system Liquid Glass layer
+    /// automatically, and the header stays free for identity and metadata. A
+    /// leading spacer separates them from the Questions list's own toolbar
+    /// items (Sort, Reload, New Question) so "New Pad" doesn't read as a
+    /// sibling of "New Question".
     @ToolbarContentBuilder
     private var detailToolbar: some CustomizableToolbarContent {
         if #available(macOS 26, *) {

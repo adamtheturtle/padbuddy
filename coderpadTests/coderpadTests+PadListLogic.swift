@@ -134,7 +134,6 @@ struct PadActivitySinceOpenTests {
     }
 }
 
-
 @Suite("Pad refresh cadence")
 struct PadRefreshIntervalTests {
     let base = Duration.seconds(90)
@@ -328,20 +327,20 @@ struct OrgDirectoryTests {
 
 @Suite("Multi-select primary")
 struct MultiSelectLogicTests {
-    @Test("Prefers the newly added row as the primary")
-    func prefersNewlyAdded() {
+    @Test
+    func `Prefers the newly added row as the primary`() {
         #expect(MultiSelectLogic.primaryID(previous: ["a"], current: ["a", "b"]) == "b")
     }
 
-    @Test("Falls back to a remaining row when none was added")
-    func fallsBackToRemaining() {
+    @Test
+    func `Falls back to a remaining row when none was added`() {
         // Deselecting "b" from {a,b} leaves {a}: nothing was added, so the sole
         // remaining row becomes the primary.
         #expect(MultiSelectLogic.primaryID(previous: ["a", "b"], current: ["a"]) == "a")
     }
 
-    @Test("Is nil when the selection is cleared")
-    func nilWhenEmpty() {
+    @Test
+    func `Is nil when the selection is cleared`() {
         #expect(MultiSelectLogic.primaryID(previous: ["a"], current: Set<String>()) == nil)
     }
 }

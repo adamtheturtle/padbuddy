@@ -37,11 +37,11 @@ struct PadDetailView: View {
     /// While offline the app is read-only, so the destructive/edit actions disable (#321).
     @Environment(\.isReadOnly) var isReadOnly
 
-    // Seed the editable drafts from the pad up front so the title and properties
-    // render with their real values on the very first frame. The view is recreated
-    // per pad (`.id(pad.id)`), so this runs on every pad switch; without it the
-    // fields briefly showed their placeholder defaults before `seedDrafts()` ran in
-    // an `.onChange(initial: true)` a frame later, flashing the title blank-to-filled.
+    /// Seed the editable drafts from the pad up front so the title and properties
+    /// render with their real values on the very first frame. The view is recreated
+    /// per pad (`.id(pad.id)`), so this runs on every pad switch; without it the
+    /// fields briefly showed their placeholder defaults before `seedDrafts()` ran in
+    /// an `.onChange(initial: true)` a frame later, flashing the title blank-to-filled.
     init(client: CoderPadClient, pad: Pad) {
         self.client = client
         self.pad = pad
@@ -60,18 +60,18 @@ struct PadDetailView: View {
         }
     }
 
-    // Detail-column actions live in the unified window toolbar rather than in
-    // the content header: there they float on the system Liquid Glass layer
-    // automatically, and the header stays free for identity and metadata. A
-    // leading spacer separates them from the Pads list's own toolbar items
-    // (Reload, New Pad). Delete Pad sits in its own trailing group behind a
-    // second spacer; it requires a confirmation dialog, so surfacing it
-    // directly can't trigger an irreversible action from a stray click. Save
-    // Code stays out of the toolbar (menu-only) to keep it uncrowded. End
-    // Interview is offered as an opt-in customizable item, hidden by default
-    // (see `.defaultCustomization(.hidden)`), so it never crowds the toolbar
-    // unless the user adds it via Customize Toolbar; it also stays on the Pad
-    // menu.
+    /// Detail-column actions live in the unified window toolbar rather than in
+    /// the content header: there they float on the system Liquid Glass layer
+    /// automatically, and the header stays free for identity and metadata. A
+    /// leading spacer separates them from the Pads list's own toolbar items
+    /// (Reload, New Pad). Delete Pad sits in its own trailing group behind a
+    /// second spacer; it requires a confirmation dialog, so surfacing it
+    /// directly can't trigger an irreversible action from a stray click. Save
+    /// Code stays out of the toolbar (menu-only) to keep it uncrowded. End
+    /// Interview is offered as an opt-in customizable item, hidden by default
+    /// (see `.defaultCustomization(.hidden)`), so it never crowds the toolbar
+    /// unless the user adds it via Customize Toolbar; it also stays on the Pad
+    /// menu.
     @ToolbarContentBuilder
     private var detailToolbar: some CustomizableToolbarContent {
         if #available(macOS 26, *) {

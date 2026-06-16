@@ -20,7 +20,9 @@ private final nonisolated class MockScreenURLProtocol: URLProtocol {
         request.url?.host == "www.codingame.com"
     }
 
-    override static func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override static func canonicalRequest(for request: URLRequest) -> URLRequest {
+        request
+    }
 
     override func startLoading() {
         guard let url = request.url,
@@ -45,24 +47,24 @@ private final nonisolated class MockScreenURLProtocol: URLProtocol {
     private static func respond(method: String, path: String, query: [String: String]) -> (Int, String) {
         switch (method, path) {
         case ("GET", "/campaigns"):
-            return (200, campaignsJSON)
+            (200, campaignsJSON)
         case ("POST", "/campaigns/42/actions/send"):
-            return (200, #"{"id": 999, "test_url": "https://screen-ide.coderpad.io/?id=999abc"}"#)
+            (200, #"{"id": 999, "test_url": "https://screen-ide.coderpad.io/?id=999abc"}"#)
         case ("GET", "/tests"):
             // Paginate by `start`: page 1 has two of three tests, page 2 the last.
-            return (200, query["start"] == "2" ? testsPage2JSON : testsPage1JSON)
+            (200, query["start"] == "2" ? testsPage2JSON : testsPage1JSON)
         case ("GET", "/tests/13188658"):
-            return (200, completedTestJSON)
+            (200, completedTestJSON)
         case ("POST", "/tests/13188658/actions/cancel"),
              ("POST", "/tests/13188658/actions/resend"),
              ("DELETE", "/tests/13188658"):
-            return (204, "")
+            (204, "")
         case ("GET", "/webhook"):
-            return (200, #"{"url": "https://example.com/hook"}"#)
+            (200, #"{"url": "https://example.com/hook"}"#)
         case ("POST", "/webhook"), ("DELETE", "/webhook"):
-            return (204, "")
+            (204, "")
         default:
-            return (404, #"{"code": "NotFound", "message": "No such resource"}"#)
+            (404, #"{"code": "NotFound", "message": "No such resource"}"#)
         }
     }
 
@@ -96,7 +98,7 @@ private final nonisolated class MockScreenURLProtocol: URLProtocol {
     }
     """#
 
-    // A realistic completed-test payload, mirroring the documented example.
+    /// A realistic completed-test payload, mirroring the documented example.
     private static let completedTestJSON = #"""
     {
         "status": "completed",
@@ -150,7 +152,9 @@ private final nonisolated class MockScreenUnauthorizedURLProtocol: URLProtocol {
         request.url?.host == "www.codingame.com"
     }
 
-    override static func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override static func canonicalRequest(for request: URLRequest) -> URLRequest {
+        request
+    }
 
     override func startLoading() {
         guard let url = request.url else {
@@ -223,7 +227,7 @@ struct ScreenClientTests {
 
     @Test
     func `getTest decodes a completed report with nested technologies and skills`() async throws {
-        let test = try await screenClient().getTest(id: 13188658)
+        let test = try await screenClient().getTest(id: 13_188_658)
         #expect(test.status == "completed")
         #expect(test.candidateName == "Luke Duncan")
         #expect(test.approvalStatus == "TO_REVIEW")
@@ -240,21 +244,21 @@ struct ScreenClientTests {
 
     @Test
     func `epoch-millisecond timestamps convert to Dates`() async throws {
-        let test = try await screenClient().getTest(id: 13188658)
+        let test = try await screenClient().getTest(id: 13_188_658)
         let sendDate = try #require(test.sendDate)
         // 1769042802384 ms == 2026-01-22 in UTC; just assert the round-trip math.
-        #expect(Int(sendDate.timeIntervalSince1970 * 1000) == 1769042802384)
+        #expect(Int(sendDate.timeIntervalSince1970 * 1000) == 1_769_042_802_384)
         #expect(test.startDate != nil)
         #expect(test.endDate != nil)
-        #expect(test.questions.first?.lastActivityTime == 1769043248900)
+        #expect(test.questions.first?.lastActivityTime == 1_769_043_248_900)
     }
 
     @Test
     func `cancel, resend, and delete succeed on a 204 response`() async throws {
         let client = screenClient()
-        try await client.cancelTest(id: 13188658)
-        try await client.resendTest(id: 13188658)
-        try await client.deleteTest(id: 13188658)
+        try await client.cancelTest(id: 13_188_658)
+        try await client.resendTest(id: 13_188_658)
+        try await client.deleteTest(id: 13_188_658)
     }
 
     @Test

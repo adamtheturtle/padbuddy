@@ -95,7 +95,10 @@ struct RecentPadsWidget: Widget {
 
 /// The widget's user configuration: which account's pads to show and how many rows.
 struct RecentPadsConfigurationIntent: WidgetConfigurationIntent {
-    static var title: LocalizedStringResource { "Recent Pads" }
+    static var title: LocalizedStringResource {
+        "Recent Pads"
+    }
+
     static var description: IntentDescription {
         IntentDescription("Choose which account's pads to show, and how many.")
     }
@@ -120,8 +123,14 @@ struct WidgetAccountEntity: AppEntity {
     let id: String
     let name: String
 
-    static var typeDisplayRepresentation: TypeDisplayRepresentation { "Account" }
-    var displayRepresentation: DisplayRepresentation { DisplayRepresentation(title: "\(name)") }
+    static var typeDisplayRepresentation: TypeDisplayRepresentation {
+        "Account"
+    }
+
+    var displayRepresentation: DisplayRepresentation {
+        DisplayRepresentation(title: "\(name)")
+    }
+
     static let defaultQuery = WidgetAccountQuery()
 }
 
@@ -147,8 +156,14 @@ struct WidgetQuestionEntity: AppEntity {
     let questionID: Int
     let title: String
 
-    static var typeDisplayRepresentation: TypeDisplayRepresentation { "Question" }
-    var displayRepresentation: DisplayRepresentation { DisplayRepresentation(title: "\(title)") }
+    static var typeDisplayRepresentation: TypeDisplayRepresentation {
+        "Question"
+    }
+
+    var displayRepresentation: DisplayRepresentation {
+        DisplayRepresentation(title: "\(title)")
+    }
+
     static let defaultQuery = WidgetQuestionQuery()
 }
 
@@ -186,7 +201,10 @@ enum WidgetRowCount: String, AppEnum {
     case five
     case seven
 
-    static var typeDisplayRepresentation: TypeDisplayRepresentation { "Rows" }
+    static var typeDisplayRepresentation: TypeDisplayRepresentation {
+        "Rows"
+    }
+
     static var caseDisplayRepresentations: [WidgetRowCount: DisplayRepresentation] {
         [.automatic: "Automatic", .three: "3", .five: "5", .seven: "7"]
     }
@@ -396,21 +414,21 @@ private struct LanguageBadge: View {
 /// aliases share a hue so, e.g., every Python variant reads the same.
 private func languageTint(for language: String?) -> Color {
     switch language?.lowercased() {
-    case "python", "python2", "python3": return .blue
-    case "javascript", "node", "node.js", "nodejs": return .orange
-    case "typescript": return .blue
-    case "swift": return .orange
-    case "go", "golang": return .teal
-    case "rust": return .red
-    case "java": return .red
-    case "kotlin": return .purple
-    case "ruby": return .pink
-    case "c", "cpp", "c++": return .indigo
-    case "csharp", "c#": return .green
-    case "php": return .indigo
-    case "html", "css": return .pink
-    case "sql", "mysql", "postgresql", "postgres": return .teal
-    default: return .accentColor
+    case "python", "python2", "python3": .blue
+    case "javascript", "node", "node.js", "nodejs": .orange
+    case "typescript": .blue
+    case "swift": .orange
+    case "go", "golang": .teal
+    case "rust": .red
+    case "java": .red
+    case "kotlin": .purple
+    case "ruby": .pink
+    case "c", "cpp", "c++": .indigo
+    case "csharp", "c#": .green
+    case "php": .indigo
+    case "html", "css": .pink
+    case "sql", "mysql", "postgresql", "postgres": .teal
+    default: .accentColor
     }
 }
 

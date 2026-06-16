@@ -22,14 +22,14 @@ import SwiftUI
 /// walks up to set `focusRingType = .none` on the hosting views (mirroring how
 /// ``TableDoubleClickInstaller`` reaches its enclosing table).
 private struct FocusRingSuppressor: NSViewRepresentable {
-    func makeNSView(context: Context) -> NSView {
+    func makeNSView(context _: Context) -> NSView {
         let view = NSView()
         // The view isn't attached to the control's hierarchy yet at make time.
         DispatchQueue.main.async { suppress(from: view) }
         return view
     }
 
-    func updateNSView(_ nsView: NSView, context: Context) {
+    func updateNSView(_ nsView: NSView, context _: Context) {
         // Re-assert in case SwiftUI rebuilt the backing control and reset its ring.
         DispatchQueue.main.async { suppress(from: nsView) }
     }
@@ -125,7 +125,7 @@ struct FilterChipMenu<Option: Hashable>: View {
     let formatter: (Option) -> String
     /// The label of the row that clears the filter. "All" reads naturally for the
     /// categorical chips (State, Language, …); callers can override it.
-    var resetLabel: String = String(localized: "All")
+    var resetLabel: String = .init(localized: "All")
 
     /// Match SearchableFilterChip's selected/idle styling so a set filter always
     /// shows the accent capsule. Idle wears the neutral chip pill so it reads as a

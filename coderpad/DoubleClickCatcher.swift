@@ -50,7 +50,7 @@ final class TableDoubleClickProxy: NSObject {
         onDoubleClick()
     }
 
-    nonisolated override func forwardingTarget(for selector: Selector!) -> Any? {
+    override nonisolated func forwardingTarget(for selector: Selector!) -> Any? {
         if let forwardingTarget, forwardingTarget.responds(to: selector) {
             return forwardingTarget
         }
@@ -64,14 +64,14 @@ final class TableDoubleClickProxy: NSObject {
 struct TableDoubleClickInstaller: NSViewRepresentable {
     let proxy: TableDoubleClickProxy
 
-    func makeNSView(context: Context) -> NSView {
+    func makeNSView(context _: Context) -> NSView {
         let view = NSView()
         // The view isn't in the table's hierarchy yet at make time, so defer.
         DispatchQueue.main.async { install(from: view) }
         return view
     }
 
-    func updateNSView(_ nsView: NSView, context: Context) {
+    func updateNSView(_ nsView: NSView, context _: Context) {
         DispatchQueue.main.async { install(from: nsView) }
     }
 

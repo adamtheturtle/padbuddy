@@ -53,7 +53,9 @@ final class PadUpdateNotifier: NSObject {
     /// pile of banners — the same "never noisy" intent as the self-clearing badge.
     private static let notificationID = "coderpad.padUpdates"
 
-    private override init() { super.init() }
+    override private init() {
+        super.init()
+    }
 
     /// Wire this object up as the notification-center delegate so taps route into the
     /// app. Call once at launch (from `AppDelegate`).
@@ -82,7 +84,7 @@ final class PadUpdateNotifier: NSObject {
         let settings = await center.notificationSettings()
         switch settings.authorizationStatus {
         case .notDetermined:
-            guard (try? await center.requestAuthorization(options: [.alert, .sound])) == true else { return }
+            guard await (try? center.requestAuthorization(options: [.alert, .sound])) == true else { return }
         case .denied:
             return
         default:
@@ -136,8 +138,8 @@ extension PadUpdateNotifier: UNUserNotificationCenterDelegate {
     /// `notify` already gates on `isActive`, so this only matters for an alert that
     /// lands just as the app regains focus.
     nonisolated func userNotificationCenter(
-        _ center: UNUserNotificationCenter,
-        willPresent notification: UNNotification
+        _: UNUserNotificationCenter,
+        willPresent _: UNNotification
     ) async -> UNNotificationPresentationOptions {
         [.banner, .sound]
     }
@@ -146,7 +148,7 @@ extension PadUpdateNotifier: UNUserNotificationCenterDelegate {
     /// open the target and surface a main window when none is up — the same path the
     /// widget and Dock menu use.
     nonisolated func userNotificationCenter(
-        _ center: UNUserNotificationCenter,
+        _: UNUserNotificationCenter,
         didReceive response: UNNotificationResponse
     ) async {
         let urlString = response.notification.request.content.userInfo["url"] as? String

@@ -252,7 +252,9 @@ extension MergedQuestionsView {
 
     /// The single key for the merged list's live filters. Not per-account — the
     /// merged list spans every account — unlike `QuestionsView`'s per-account key.
-    static var liveFilterKey: String { "questions.merged.liveFilter" }
+    static var liveFilterKey: String {
+        "questions.merged.liveFilter"
+    }
 
     /// Snapshot the structured filters into a `NamedSearch`, reusing the model
     /// `QuestionsView` persists. The cross-account `accountFilter`, the `mineOnly`
@@ -303,7 +305,9 @@ extension MergedQuestionsView {
     /// namespaced row id (`rowID(account:question:)`). Per-org question ids collide
     /// across accounts, so the bare id couldn't say which account's question to
     /// reopen — the persisted value must carry its account.
-    static var selectedRowKey: String { "questions.merged.selectedRow" }
+    static var selectedRowKey: String {
+        "questions.merged.selectedRow"
+    }
 
     /// Persist the namespaced row id of the question shown in the detail pane so the
     /// merged list reopens to it next launch. Skipped until the restore has run so
@@ -397,5 +401,4 @@ extension MergedQuestionsView {
         favorites.toggle(row.item.id, title: row.item.displayTitle, account: row.account.id)
         if favoritesOnly, !hasAnyFavorites { favoritesOnly = false }
     }
-
 }

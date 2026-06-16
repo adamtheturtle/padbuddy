@@ -288,8 +288,8 @@ struct AccountEditor: View {
 struct AccountSymbolPicker: View {
     @Binding var selection: String?
 
-    // An adaptive grid wraps to the available width rather than forcing one long
-    // row that would push the whole settings pane wider than the window.
+    /// An adaptive grid wraps to the available width rather than forcing one long
+    /// row that would push the whole settings pane wider than the window.
     private let columns = [GridItem(.adaptive(minimum: 28), spacing: 6, alignment: .leading)]
 
     var body: some View {
@@ -329,7 +329,7 @@ struct AccountTintPicker: View {
     @Binding var selection: String?
     let defaultColor: Color
 
-    // Wraps to the available width so the swatches never overflow the pane.
+    /// Wraps to the available width so the swatches never overflow the pane.
     private let columns = [GridItem(.adaptive(minimum: 24), spacing: 6, alignment: .leading)]
 
     var body: some View {

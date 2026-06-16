@@ -203,11 +203,11 @@ nonisolated struct QuotaPace {
         self.used = used
         self.limit = limit
         self.fractionElapsed = fractionElapsed
-        self.fractionUsed = Double(used) / Double(limit)
+        fractionUsed = Double(used) / Double(limit)
         // Divide by elapsed time to project the full cycle; guard against the
         // very start of the cycle where a tiny denominator blows up.
         let projected = fractionElapsed > 0.02 ? Double(used) / fractionElapsed : Double(used)
-        self.projectedUsage = min(9999, max(used, Int(projected.rounded())))
+        projectedUsage = min(9999, max(used, Int(projected.rounded())))
     }
 
     var headline: String {

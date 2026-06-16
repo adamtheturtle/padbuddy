@@ -42,8 +42,8 @@ struct PrintCommands: Commands {
 /// "Customize Toolbar…" themselves come from SwiftUI's `ToolbarCommands()`
 /// (wired up in the scene), so no AppKit bridge is needed for them.
 struct ViewCommands: Commands {
-    // Shares the Organization view's persisted period key, mirroring its toolbar
-    // Period picker as a menu command.
+    /// Shares the Organization view's persisted period key, mirroring its toolbar
+    /// Period picker as a menu command.
     @AppStorage(StatsPeriod.storageKey) private var statsPeriod: StatsPeriod = .days7
 
     var body: some Commands {
@@ -200,8 +200,8 @@ struct QuestionCommands: Commands {
     /// Mirrors the window's read-only state (offline) so the mutating items disable
     /// to match the in-window controls (#321). `nil`/`false` means editable.
     @FocusedValue(\.isReadOnly) private var isReadOnly
-    // Shares the Questions list's persisted sort key, so the menu's "Sort By"
-    // submenu and the list toolbar's Sort picker stay in lockstep.
+    /// Shares the Questions list's persisted sort key, so the menu's "Sort By"
+    /// submenu and the list toolbar's Sort picker stay in lockstep.
     @AppStorage(QuestionSort.storageKey) private var sort: QuestionSort = .lastUsedDesc
 
     var body: some Commands {

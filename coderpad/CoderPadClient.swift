@@ -25,7 +25,9 @@ private nonisolated struct PadsPage: PagedResponse {
         pads
     }
 
-    static func identity(of item: Pad) -> AnyHashable? { item.id }
+    static func identity(of item: Pad) -> AnyHashable? {
+        item.id
+    }
 
     enum CodingKeys: String, CodingKey { case pads; case nextPage = "next_page"; case total }
 }
@@ -38,7 +40,9 @@ private nonisolated struct QuestionsPage: PagedResponse {
         questions
     }
 
-    static func identity(of item: Question) -> AnyHashable? { item.id }
+    static func identity(of item: Question) -> AnyHashable? {
+        item.id
+    }
 
     enum CodingKeys: String, CodingKey { case questions; case nextPage = "next_page"; case total }
 }
@@ -70,10 +74,21 @@ private nonisolated struct Wrapper: Decodable { let users: [OrganizationUser] }
 /// still throws exactly the `CoderPadError` values the rest of the app catches, so
 /// behavior (and `isUnauthorized` detection) is unchanged.
 private struct CoderPadErrorMapping: RESTTransportErrorMapping {
-    nonisolated func missingAPIKey() -> Error { CoderPadError.missingAPIKey }
-    nonisolated func http(status: Int, body: String) -> Error { CoderPadError.http(status, body) }
-    nonisolated func decode(_ detail: String) -> Error { CoderPadError.decode(detail) }
-    nonisolated func network(_ error: URLError) -> Error { CoderPadError.network(error) }
+    nonisolated func missingAPIKey() -> Error {
+        CoderPadError.missingAPIKey
+    }
+
+    nonisolated func http(status: Int, body: String) -> Error {
+        CoderPadError.http(status, body)
+    }
+
+    nonisolated func decode(_ detail: String) -> Error {
+        CoderPadError.decode(detail)
+    }
+
+    nonisolated func network(_ error: URLError) -> Error {
+        CoderPadError.network(error)
+    }
 
     /// GET requests are idempotent, so transient failures (5xx, 429, timeouts) are retried
     /// before surfacing. Recognizes both the mapped `CoderPadError` cases and a raw
@@ -126,7 +141,7 @@ struct CoderPadClient {
         self.apiKey = apiKey
         self.baseURL = baseURL
         self.session = session
-        self.rest = PaginatedRESTClient(
+        rest = PaginatedRESTClient(
             apiKey: apiKey,
             baseURL: baseURL,
             session: session,
@@ -263,7 +278,7 @@ struct CoderPadClient {
     /// `{"status":"OK"}` with no pad body.
     func endPad(id: String) async throws {
         _ = try await rest.send(StatusOnly.self, method: "PUT", path: "/api/pads/\(id)",
-                           body: PadUpdate(id: id, ended: true))
+                                body: PadUpdate(id: id, ended: true))
     }
 
     /// Deletes the pad. CoderPad has no `DELETE` for pads; deletion is the same
@@ -271,7 +286,7 @@ struct CoderPadClient {
     /// in the URL path. The live API replies `{"status":"OK"}`.
     func deletePad(id: String) async throws {
         _ = try await rest.send(StatusOnly.self, method: "PUT", path: "/api/pads/\(id)",
-                           body: PadUpdate(id: id, deleted: true))
+                                body: PadUpdate(id: id, deleted: true))
     }
 
     // MARK: Questions

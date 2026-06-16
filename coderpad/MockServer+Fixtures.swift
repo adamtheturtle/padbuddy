@@ -126,8 +126,8 @@ nonisolated enum MockFixtures {
         }
     }
 
-    // The active onsite: a question added, the candidate joining, then editing
-    // and running twice — the grouped "×2" run path.
+    /// The active onsite: a question added, the candidate joining, then editing
+    /// and running twice — the grouped "×2" run path.
     private static func onsiteEvents() -> [[String: Any]] {
         [
             event("Pad started", "started", "Alex Park", "alex@demo.co", "2026-06-08T15:00:00Z"),
@@ -140,7 +140,7 @@ nonisolated enum MockFixtures {
         ]
     }
 
-    // The ended phone screen: a complete arc that finishes with `ended`.
+    /// The ended phone screen: a complete arc that finishes with `ended`.
     private static func phoneScreenEvents() -> [[String: Any]] {
         [
             event("Pad started", "started", "Morgan Lin", "morgan@demo.co", "2026-06-05T17:30:00Z"),
@@ -151,8 +151,8 @@ nonisolated enum MockFixtures {
         ]
     }
 
-    // The active backend pad has execution disabled, so no runs — instead it
-    // shows a spectator joining (via `metadata`) alongside the candidate.
+    /// The active backend pad has execution disabled, so no runs — instead it
+    /// shows a spectator joining (via `metadata`) alongside the candidate.
     private static func backendEvents() -> [[String: Any]] {
         [
             event("Pad started", "started", "Alex Park", "alex@demo.co", "2026-06-09T18:00:00Z"),
@@ -165,13 +165,13 @@ nonisolated enum MockFixtures {
         ]
     }
 
-    // The untouched pending take-home draft: a single creation event, so the
-    // timeline shows a believably thin history rather than a full session.
+    /// The untouched pending take-home draft: a single creation event, so the
+    /// timeline shows a believably thin history rather than a full session.
     private static func draftEvents() -> [[String: Any]] {
         [event("Pad started", "started", "Morgan Lin", "morgan@demo.co", "2026-05-12T10:00:00Z")]
     }
 
-    // The single-participant sample pad.
+    /// The single-participant sample pad.
     private static func sampleEvents() -> [[String: Any]] {
         [
             event("Pad started", "started", "Demo User", "demo@example.com", "2026-06-09T09:00:00Z"),

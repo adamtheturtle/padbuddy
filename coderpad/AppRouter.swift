@@ -8,14 +8,14 @@ import Foundation
 /// A pad mutation broadcast: the updated question and the account that owns it.
 /// The account travels with the payload because per-org question ids collide
 /// across accounts, so combined-view consumers need it to scope the update.
-struct QuestionMutation: Sendable {
+struct QuestionMutation {
     let question: Question
     let account: UUID?
 }
 
 /// A question deletion broadcast: the deleted question's id and its owning account
 /// (see ``QuestionMutation`` for why the account is carried).
-struct QuestionDeletion: Sendable {
+struct QuestionDeletion {
     let id: Int
     let account: UUID?
 }
@@ -38,21 +38,37 @@ enum AppRouter {
     // MARK: - Commands
 
     /// Ask every visible section to reload its data (the toolbar/⌘R Reload).
-    static func requestReload() { center.post(name: .reloadRequested, object: nil) }
-    static var reloads: AsyncStream<Void> { voidStream(.reloadRequested) }
+    static func requestReload() {
+        center.post(name: .reloadRequested, object: nil)
+    }
+
+    static var reloads: AsyncStream<Void> {
+        voidStream(.reloadRequested)
+    }
 
     /// Ask the main window to present the "Open Pad by URL" sheet.
-    static func requestOpenPadByURL() { center.post(name: .openPadByURLRequested, object: nil) }
-    static var openPadByURLRequests: AsyncStream<Void> { voidStream(.openPadByURLRequested) }
+    static func requestOpenPadByURL() {
+        center.post(name: .openPadByURLRequested, object: nil)
+    }
+
+    static var openPadByURLRequests: AsyncStream<Void> {
+        voidStream(.openPadByURLRequested)
+    }
 
     /// Ask the main window to open Settings.
-    static func requestOpenSettings() { center.post(name: .openSettingsRequested, object: nil) }
-    static var openSettingsRequests: AsyncStream<Void> { voidStream(.openSettingsRequested) }
+    static func requestOpenSettings() {
+        center.post(name: .openSettingsRequested, object: nil)
+    }
+
+    static var openSettingsRequests: AsyncStream<Void> {
+        voidStream(.openSettingsRequested)
+    }
 
     /// Ask the app to open `url` in a Pad Browser window.
     static func requestOpenPadInBrowser(_ url: URL) {
         center.post(name: .openPadInBrowserRequested, object: url)
     }
+
     static var openPadInBrowserRequests: AsyncStream<URL> {
         payloadStream(.openPadInBrowserRequested) { $0.object as? URL }
     }
@@ -60,12 +76,22 @@ enum AppRouter {
     // MARK: - Pad mutations
 
     /// Broadcast that a pad changed, so every list showing it updates in place.
-    static func padUpdated(_ pad: Pad) { center.post(name: .padUpdated, object: pad) }
-    static var padUpdates: AsyncStream<Pad> { payloadStream(.padUpdated) { $0.object as? Pad } }
+    static func padUpdated(_ pad: Pad) {
+        center.post(name: .padUpdated, object: pad)
+    }
+
+    static var padUpdates: AsyncStream<Pad> {
+        payloadStream(.padUpdated) { $0.object as? Pad }
+    }
 
     /// Broadcast that the pad with `id` was deleted, so lists drop the row.
-    static func padDeleted(id: String) { center.post(name: .padDeleted, object: id) }
-    static var padDeletions: AsyncStream<String> { payloadStream(.padDeleted) { $0.object as? String } }
+    static func padDeleted(id: String) {
+        center.post(name: .padDeleted, object: id)
+    }
+
+    static var padDeletions: AsyncStream<String> {
+        payloadStream(.padDeleted) { $0.object as? String }
+    }
 
     // MARK: - Question mutations
 
@@ -74,6 +100,7 @@ enum AppRouter {
     static func questionUpdated(_ question: Question, account: UUID?) {
         center.post(name: .questionUpdated, object: question, userInfo: userInfo(account))
     }
+
     static var questionUpdates: AsyncStream<QuestionMutation> {
         payloadStream(.questionUpdated) { note in
             (note.object as? Question).map { QuestionMutation(question: $0, account: account(from: note)) }
@@ -84,6 +111,7 @@ enum AppRouter {
     static func questionDeleted(id: Int, account: UUID?) {
         center.post(name: .questionDeleted, object: id, userInfo: userInfo(account))
     }
+
     static var questionDeletions: AsyncStream<QuestionDeletion> {
         payloadStream(.questionDeleted) { note in
             (note.object as? Int).map { QuestionDeletion(id: $0, account: account(from: note)) }

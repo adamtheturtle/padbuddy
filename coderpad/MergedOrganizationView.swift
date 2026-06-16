@@ -225,7 +225,7 @@ struct MergedOrganizationView: View {
                         async let statsFetch = target.client.organizationStats(start: window.start, end: window.end)
                         async let quotaFetch = target.client.quota()
                         let org = try await orgFetch
-                        return (target.id, org, try? await statsFetch, try? await quotaFetch, nil)
+                        return await (target.id, org, try? statsFetch, try? quotaFetch, nil)
                     } catch {
                         return (target.id, nil, nil, nil, error.localizedDescription)
                     }
@@ -260,7 +260,7 @@ struct MergedOrganizationView: View {
         await withTaskGroup(of: (UUID, OrganizationStats?).self) { group in
             for target in targets {
                 group.addTask {
-                    (target.id, try? await target.client.organizationStats(start: window.start, end: window.end))
+                    await (target.id, try? target.client.organizationStats(start: window.start, end: window.end))
                 }
             }
             for await (id, stats) in group {

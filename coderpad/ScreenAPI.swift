@@ -173,13 +173,24 @@ nonisolated struct ScreenTestSession: Decodable, Identifiable, Hashable {
 
 extension ScreenTestSession {
     /// When the invitation was sent.
-    var sendDate: Date? { Self.date(fromMilliseconds: sendTime) }
+    var sendDate: Date? {
+        Self.date(fromMilliseconds: sendTime)
+    }
+
     /// When the candidate started the test.
-    var startDate: Date? { Self.date(fromMilliseconds: startTime) }
+    var startDate: Date? {
+        Self.date(fromMilliseconds: startTime)
+    }
+
     /// When the candidate finished (or the test was aborted).
-    var endDate: Date? { Self.date(fromMilliseconds: endTime) }
+    var endDate: Date? {
+        Self.date(fromMilliseconds: endTime)
+    }
+
     /// The candidate's most recent activity.
-    var lastActivityDate: Date? { Self.date(fromMilliseconds: lastActivityTime) }
+    var lastActivityDate: Date? {
+        Self.date(fromMilliseconds: lastActivityTime)
+    }
 
     private static func date(fromMilliseconds millis: Int?) -> Date? {
         guard let millis else { return nil }

@@ -191,9 +191,9 @@ nonisolated extension MockFixtures {
         ]
     }
 
-    // The starter code a candidate begins from. The plain `contents` prints its
-    // output, while the test-cases variant returns a value so the harness can
-    // assert on it — exercising both "Starter Code" cards in the question detail.
+    /// The starter code a candidate begins from. The plain `contents` prints its
+    /// output, while the test-cases variant returns a value so the harness can
+    /// assert on it — exercising both "Starter Code" cards in the question detail.
     private static func fizzBuzzContents() -> String {
         """
         def fizzbuzz(n):

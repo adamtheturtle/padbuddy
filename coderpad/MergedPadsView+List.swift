@@ -134,7 +134,9 @@ extension MergedPadsView {
                 presenting: padsPendingBulkDelete
             ) { pads in
                 Button("Delete \(pads.count) Pads", role: .destructive) {
-                    Task { for pad in pads { await deletePad(pad) } }
+                    Task { for pad in pads {
+                        await deletePad(pad)
+                    } }
                 }
                 Button("Cancel", role: .cancel) {}
             } message: { pads in

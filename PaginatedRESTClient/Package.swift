@@ -1,10 +1,10 @@
 // swift-tools-version: 6.2
 import PackageDescription
 
-// A generic, domain-free transport for paginated, bearer-authenticated REST APIs,
-// extracted from the coderpad app (#151). The settings mirror the app target so the
-// source compiles identically here: Swift 6 language mode and MainActor default actor
-// isolation, against which the file's `nonisolated` annotations are written.
+/// A generic, domain-free transport for paginated, bearer-authenticated REST APIs,
+/// extracted from the coderpad app (#151). The settings mirror the app target so the
+/// source compiles identically here: Swift 6 language mode and MainActor default actor
+/// isolation, against which the file's `nonisolated` annotations are written.
 let package = Package(
     name: "PaginatedRESTClient",
     platforms: [.macOS(.v15)],

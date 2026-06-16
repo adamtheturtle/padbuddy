@@ -14,7 +14,7 @@ enum SearchInterpreter {
     /// and the display name the user is likely to type. The model is shown names
     /// (people say "Rob Di Marco", not an address), and the interpreter matches its
     /// output against either field before returning the email the chip needs.
-    struct OwnerOption: Hashable, Sendable {
+    struct OwnerOption: Hashable {
         let email: String
         let name: String
     }
@@ -123,9 +123,9 @@ enum SearchInterpreter {
     /// Accepts only "draft" or "published" for the question draft filter.
     static func resolveDraft(_ raw: String) -> String? {
         switch raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
-        case "draft": return "draft"
-        case "published": return "published"
-        default: return nil
+        case "draft": "draft"
+        case "published": "published"
+        default: nil
         }
     }
 
@@ -137,12 +137,12 @@ enum SearchInterpreter {
 
     // MARK: - Grounding (reject model values the query doesn't support)
 
-    /// The small on-device model tends to fill fields the request never mentions —
-    /// grabbing the first option from a list, or echoing the whole query into the
-    /// free-text search — which over-constrains the list to nothing. These pure
-    /// checks keep a model-proposed value only when the user's query actually
-    /// supports it, turning the model into a candidate generator that testable code
-    /// vets. Shared with the generated path and exercised directly in tests.
+    // The small on-device model tends to fill fields the request never mentions —
+    // grabbing the first option from a list, or echoing the whole query into the
+    // free-text search — which over-constrains the list to nothing. These pure
+    // checks keep a model-proposed value only when the user's query actually
+    // supports it, turning the model into a candidate generator that testable code
+    // vets. Shared with the generated path and exercised directly in tests.
 
     /// Lowercased alphanumeric word tokens of `text`, for whole-word comparison
     /// against the query (so "lin" doesn't match inside "linked").
@@ -247,7 +247,7 @@ enum SearchInterpreter {
     /// Keeps a resolved date window only when the query mentions a time frame.
     static func groundDateRange(_ range: String?, query: String) -> String? {
         guard let range else { return nil }
-        let dateWords: Set<String> = [
+        let dateWords: Set = [
             "today", "yesterday", "week", "weeks", "month", "months", "day", "days",
             "hour", "hours", "recent", "recently", "last", "past", "this",
             "24", "7", "30", "90", "year", "years"
@@ -282,12 +282,12 @@ enum SearchInterpreter {
 #if canImport(FoundationModels)
     @available(macOS 26, *)
     private extension SearchInterpreter {
-        // Every field is optional so the model can — and is told to — omit anything
-        // the request doesn't name. The small on-device model fills non-optional
-        // String fields with a guessed value rather than an empty string, which
-        // over-constrained the list (the raw query landed in `text` and unrelated
-        // language/owner/team/type/date filters were invented); a nullable property
-        // it will readily leave nil.
+        /// Every field is optional so the model can — and is told to — omit anything
+        /// the request doesn't name. The small on-device model fills non-optional
+        /// String fields with a guessed value rather than an empty string, which
+        /// over-constrained the list (the raw query landed in `text` and unrelated
+        /// language/owner/team/type/date filters were invented); a nullable property
+        /// it will readily leave nil.
         @Generable
         struct PadQuery {
             @Guide(description: "Only real title keywords to search for, and only when the request "

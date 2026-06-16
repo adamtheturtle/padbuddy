@@ -16,7 +16,7 @@
 import Foundation
 
 /// A minimal, dependency-free projection of a `Pad` for display in the widget.
-nonisolated struct WidgetPadSnapshot: Codable, Identifiable, Hashable, Sendable {
+nonisolated struct WidgetPadSnapshot: Codable, Identifiable, Hashable {
     let id: String
     let title: String
     let subtitle: String
@@ -27,7 +27,7 @@ nonisolated struct WidgetPadSnapshot: Codable, Identifiable, Hashable, Sendable 
 /// A configurable account choice the widget can pin. Mirrored from the app's
 /// account list so the widget's configuration picker can populate its options from
 /// inside the widget process. Kept in lock-step with the widget's copy.
-nonisolated struct WidgetAccount: Codable, Identifiable, Hashable, Sendable {
+nonisolated struct WidgetAccount: Codable, Identifiable, Hashable {
     /// The account's UUID, as a string so it round-trips the JSON contract and keys
     /// the per-account snapshot file.
     let id: String
@@ -38,7 +38,7 @@ nonisolated struct WidgetAccount: Codable, Identifiable, Hashable, Sendable {
 /// pad from. Mirrored per account so the configuration picker can list a pinned
 /// account's favourites from inside the widget process. Kept in lock-step with the
 /// widget's copy.
-nonisolated struct WidgetQuestion: Codable, Identifiable, Hashable, Sendable {
+nonisolated struct WidgetQuestion: Codable, Identifiable, Hashable {
     /// CoderPad's per-org question id. Not unique across accounts, so the new-pad
     /// deep link always carries the owning account alongside it.
     let id: Int

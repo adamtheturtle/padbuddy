@@ -746,7 +746,9 @@ private struct WindowMinWidth: NSViewRepresentable {
     /// floored SwiftUI frame). Called on attach and on every window resize.
     let onContentWidth: (CGFloat) -> Void
 
-    func makeCoordinator() -> Coordinator { Coordinator() }
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
 
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
@@ -758,7 +760,7 @@ private struct WindowMinWidth: NSViewRepresentable {
         apply(from: nsView, coordinator: context.coordinator)
     }
 
-    static func dismantleNSView(_ nsView: NSView, coordinator: Coordinator) {
+    static func dismantleNSView(_: NSView, coordinator: Coordinator) {
         coordinator.stopObserving()
     }
 
@@ -855,7 +857,9 @@ private struct SidebarSeparatorHider: NSViewRepresentable {
     /// Whether the sidebar is currently collapsed (anything other than `.all`).
     let collapsed: Bool
 
-    func makeCoordinator() -> Coordinator { Coordinator() }
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
 
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
@@ -867,7 +871,7 @@ private struct SidebarSeparatorHider: NSViewRepresentable {
         apply(from: nsView, coordinator: context.coordinator)
     }
 
-    static func dismantleNSView(_ nsView: NSView, coordinator: Coordinator) {
+    static func dismantleNSView(_: NSView, coordinator: Coordinator) {
         coordinator.stopObserving()
     }
 

@@ -436,7 +436,9 @@ enum QuestionSortField: String, CaseIterable, Identifiable {
     case used
     case title
 
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
 
     var label: String {
         switch self {

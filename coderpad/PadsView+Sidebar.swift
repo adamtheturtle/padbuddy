@@ -127,38 +127,38 @@ extension PadsView {
     /// pull-to-refresh, focused-pad command target).
     private var padCollection: some View {
         padList
-        // When filters exclude everything, explain why rather than leaving a blank
-        // list that reads like a load failure.
-        .overlay {
-            if filtered.isEmpty, !pads.isEmpty {
-                ContentUnavailableView {
-                    Label("No Matching Pads", systemImage: "line.3.horizontal.decrease.circle")
-                } description: {
-                    Text("No pads match the current filters.")
-                } actions: {
-                    Button("Clear Filters") { clearAllFilters() }
+            // When filters exclude everything, explain why rather than leaving a blank
+            // list that reads like a load failure.
+            .overlay {
+                if filtered.isEmpty, !pads.isEmpty {
+                    ContentUnavailableView {
+                        Label("No Matching Pads", systemImage: "line.3.horizontal.decrease.circle")
+                    } description: {
+                        Text("No pads match the current filters.")
+                    } actions: {
+                        Button("Clear Filters") { clearAllFilters() }
+                    }
                 }
             }
-        }
-        // ↑/↓ move the selection natively; Return opens the selected pad in the
-        // in-app browser (honoring the user's browser preference).
-        .onKeyPress(.return) {
-            guard let selection else { return .ignored }
-            openPad(selection)
-            return .handled
-        }
-        .macPullToRefresh { await reload() }
-        // Scene-scoped, not view-scoped: the Pad menu commands (Copy Pad ID/URL,
-        // Open in Browser) should stay enabled whenever this window is frontmost and
-        // a pad is selected — not only while the list itself holds keyboard focus.
-        .focusedSceneValue(\.focusedPad, selection)
-        // Edit ▸ Copy / ⌘C copies the selected pads' web URLs (one per line) while
-        // the list holds focus, matching the row's "Copy Pad URL" action and
-        // extending it to a multi-row selection.
-        .onCopyCommand(perform: copyLinkCommand(
-            selectedPadsInOrder.isEmpty ? nil
-                : selectedPadsInOrder.map(\.url).joined(separator: "\n")
-        ))
+            // ↑/↓ move the selection natively; Return opens the selected pad in the
+            // in-app browser (honoring the user's browser preference).
+            .onKeyPress(.return) {
+                guard let selection else { return .ignored }
+                openPad(selection)
+                return .handled
+            }
+            .macPullToRefresh { await reload() }
+            // Scene-scoped, not view-scoped: the Pad menu commands (Copy Pad ID/URL,
+            // Open in Browser) should stay enabled whenever this window is frontmost and
+            // a pad is selected — not only while the list itself holds keyboard focus.
+            .focusedSceneValue(\.focusedPad, selection)
+            // Edit ▸ Copy / ⌘C copies the selected pads' web URLs (one per line) while
+            // the list holds focus, matching the row's "Copy Pad URL" action and
+            // extending it to a multi-row selection.
+            .onCopyCommand(perform: copyLinkCommand(
+                selectedPadsInOrder.isEmpty ? nil
+                    : selectedPadsInOrder.map(\.url).joined(separator: "\n")
+            ))
     }
 
     /// The selected pads in the order they appear in the list (not the selection
@@ -215,12 +215,11 @@ extension PadsView {
         }
     }
 
-    @ViewBuilder
     private func padRow(_ pad: Pad) -> some View {
         PadRow(pad: pad, isChanged: PadListLogic.hasNewActivitySinceOpen(
             pad, lastOpened: openedStore.lastOpened(pad.id, account: accounts.currentAccountID)
         ), account: accounts.currentAccountID)
-        .contextMenu { padContextMenu(pad) }
+            .contextMenu { padContextMenu(pad) }
     }
 
     /// The leading-swipe button that pins or unpins a pad as a favorite (#348),

@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import PaginatedRESTClient
+import Testing
 
 // MARK: - Test doubles
 
@@ -14,10 +14,22 @@ private struct TestErrors: RESTTransportErrorMapping {
         case network
     }
 
-    nonisolated func missingAPIKey() -> Error { Failure.missingAPIKey }
-    nonisolated func http(status: Int, body _: String) -> Error { Failure.http(status) }
-    nonisolated func decode(_: String) -> Error { Failure.decode }
-    nonisolated func network(_: URLError) -> Error { Failure.network }
+    nonisolated func missingAPIKey() -> Error {
+        Failure.missingAPIKey
+    }
+
+    nonisolated func http(status: Int, body _: String) -> Error {
+        Failure.http(status)
+    }
+
+    nonisolated func decode(_: String) -> Error {
+        Failure.decode
+    }
+
+    nonisolated func network(_: URLError) -> Error {
+        Failure.network
+    }
+
     nonisolated func isTransient(_ error: Error) -> Bool {
         if case let .http(code) = error as? Failure {
             return (500 ... 599).contains(code) || code == 429 || code == 0
@@ -26,7 +38,7 @@ private struct TestErrors: RESTTransportErrorMapping {
     }
 }
 
-private nonisolated struct Thing: Decodable, Sendable, Equatable {
+private nonisolated struct Thing: Decodable, Equatable {
     let id: Int
 }
 
@@ -38,8 +50,13 @@ private nonisolated struct ThingsPage: PagedResponse {
     let things: [Thing]
     let nextPage: String?
     let total: Int?
-    var pageItems: [Thing] { things }
-    nonisolated static func identity(of item: Thing) -> AnyHashable? { item.id }
+    var pageItems: [Thing] {
+        things
+    }
+
+    nonisolated static func identity(of item: Thing) -> AnyHashable? {
+        item.id
+    }
 
     enum CodingKeys: String, CodingKey { case things; case nextPage = "next_page"; case total }
 }
@@ -48,20 +65,24 @@ private nonisolated struct ThingsPage: PagedResponse {
 /// exercised with no real networking. `nonisolated` because the URL loading system calls
 /// `startLoading()` off the main actor (matching the module's MainActor default isolation).
 private final nonisolated class StubURLProtocol: URLProtocol {
-    override static func canInit(with _: URLRequest) -> Bool { true }
-    override static func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override static func canInit(with _: URLRequest) -> Bool {
+        true
+    }
+
+    override static func canonicalRequest(for request: URLRequest) -> URLRequest {
+        request
+    }
 
     override func startLoading() {
         let page = URLComponents(url: request.url!, resolvingAgainstBaseURL: false)?
             .queryItems?.first { $0.name == "page" }?.value
-        let json: String
-        switch page {
+        let json = switch page {
         case nil, "1":
-            json = #"{"things":[{"id":1},{"id":2}],"next_page":"https://example.test/things/?page=2","total":3}"#
+            #"{"things":[{"id":1},{"id":2}],"next_page":"https://example.test/things/?page=2","total":3}"#
         case "2":
-            json = #"{"things":[{"id":3}],"next_page":null,"total":3}"#
+            #"{"things":[{"id":3}],"next_page":null,"total":3}"#
         default:
-            json = #"{"things":[],"next_page":null,"total":3}"#
+            #"{"things":[],"next_page":null,"total":3}"#
         }
         let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
@@ -111,9 +132,9 @@ struct PaginatedRESTClientTests {
     func `an empty API key fails before any request`() async throws {
         let config = URLSessionConfiguration.ephemeral
         config.protocolClasses = [StubURLProtocol.self]
-        let client = PaginatedRESTClient(
+        let client = try PaginatedRESTClient(
             apiKey: "",
-            baseURL: URL(string: "https://example.test")!,
+            baseURL: #require(URL(string: "https://example.test")),
             session: URLSession(configuration: config),
             decoderFactory: { JSONDecoder() },
             encoderFactory: { JSONEncoder() },

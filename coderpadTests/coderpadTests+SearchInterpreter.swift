@@ -9,9 +9,9 @@ import Testing
 
 // MARK: - SearchInterpreter value resolution
 
-/// These cover the pure mapping from the model's free-form output onto the real
-/// filter values — the part that must never apply a value the list can't honor.
-/// The model call itself isn't exercised (it's on-device and gated to macOS 26+).
+// These cover the pure mapping from the model's free-form output onto the real
+// filter values — the part that must never apply a value the list can't honor.
+// The model call itself isn't exercised (it's on-device and gated to macOS 26+).
 
 private let languages = ["python3", "javascript", "sql"]
 private let owners = [
@@ -19,20 +19,20 @@ private let owners = [
     SearchInterpreter.OwnerOption(email: "rdimarco@acme.com", name: "Rob Di Marco")
 ]
 
-@Test func resolvesLanguageByExactCode() {
+@Test func `resolves language by exact code`() {
     #expect(SearchInterpreter.resolveLanguage("python3", in: languages) == "python3")
 }
 
-@Test func resolvesLanguageByDisplayNameCaseInsensitively() {
+@Test func `resolves language by display name case insensitively`() {
     #expect(SearchInterpreter.resolveLanguage("JavaScript", in: languages) == "javascript")
 }
 
-@Test func unknownLanguageResolvesToNil() {
+@Test func `unknown language resolves to nil`() {
     #expect(SearchInterpreter.resolveLanguage("brainfuck", in: languages) == nil)
     #expect(SearchInterpreter.resolveLanguage("", in: languages) == nil)
 }
 
-@Test func resolvesOwnerByNameEmailAndSubstringReturningEmail() {
+@Test func `resolves owner by name email and substring returning email`() {
     // A full display name (what the model usually echoes) resolves to the email.
     #expect(SearchInterpreter.resolveOwner("Rob Di Marco", in: owners) == "rdimarco@acme.com")
     // A first name still resolves via substring.
@@ -42,7 +42,7 @@ private let owners = [
     #expect(SearchInterpreter.resolveOwner("carol", in: owners) == nil)
 }
 
-@Test func resolvesTeamByExactAndSubstringButNotVagueTerms() {
+@Test func `resolves team by exact and substring but not vague terms`() {
     let teams = ["Platform", "Mobile"]
     #expect(SearchInterpreter.resolveTeam("Platform", in: teams) == "Platform")
     #expect(SearchInterpreter.resolveTeam("mob", in: teams) == "Mobile")
@@ -52,7 +52,7 @@ private let owners = [
     #expect(SearchInterpreter.resolveTeam("", in: teams) == nil)
 }
 
-@Test func resolvesStateSynonymsButRejectsUnknown() {
+@Test func `resolves state synonyms but rejects unknown`() {
     #expect(SearchInterpreter.resolveState("started") == .active)
     #expect(SearchInterpreter.resolveState("finished") == .ended)
     #expect(SearchInterpreter.resolveState("pending") == .pending)
@@ -61,24 +61,24 @@ private let owners = [
     #expect(SearchInterpreter.resolveState("") == nil)
 }
 
-@Test func resolvesTypeToCanonicalRawValue() {
+@Test func `resolves type to canonical raw value`() {
     #expect(SearchInterpreter.resolveType("take_home") == "take-home")
     #expect(SearchInterpreter.resolveType("live") == "live")
     #expect(SearchInterpreter.resolveType("whatever") == nil)
 }
 
-@Test func resolvesDateRangeOnlyForKnownWindows() {
+@Test func `resolves date range only for known windows`() {
     #expect(SearchInterpreter.resolveDateRange("Last 7 Days") == "last 7 days")
     #expect(SearchInterpreter.resolveDateRange("yesterday") == nil)
 }
 
-@Test func resolvesDraftStatus() {
+@Test func `resolves draft status`() {
     #expect(SearchInterpreter.resolveDraft("Draft") == "draft")
     #expect(SearchInterpreter.resolveDraft("published") == "published")
     #expect(SearchInterpreter.resolveDraft("retired") == nil)
 }
 
-@Test func optionListCapsLength() {
+@Test func `option list caps length`() {
     let many = (1 ... 100).map { "lang\($0)" }
     let list = SearchInterpreter.optionList(many, limit: 3)
     #expect(list == "lang1, lang2, lang3")
@@ -86,11 +86,11 @@ private let owners = [
 
 // MARK: - Grounding (reject model values the query doesn't support)
 
-/// The on-device model over-fills fields the request never mentions (grabbing the
-/// first option, echoing the whole query into the free-text search). These cover
-/// the pure guards that keep a value only when the query actually supports it.
+// The on-device model over-fills fields the request never mentions (grabbing the
+// first option, echoing the whole query into the free-text search). These cover
+// the pure guards that keep a value only when the query actually supports it.
 
-@Test func groundsLanguageOnlyWhenQueryNamesIt() {
+@Test func `grounds language only when query names it`() {
     // Named by display name resolves and survives.
     #expect(SearchInterpreter.groundLanguage("javascript", query: "javascript pads") == "javascript")
     // The model's habit of grabbing the first option is rejected when unmentioned.
@@ -100,7 +100,7 @@ private let owners = [
     #expect(SearchInterpreter.groundLanguage(nil, query: "anything") == nil)
 }
 
-@Test func groundsOwnerByWholeNameTokenNotSubstring() {
+@Test func `grounds owner by whole name token not substring`() {
     let owners = [
         SearchInterpreter.OwnerOption(email: "rdimarco@acme.com", name: "Rob Di Marco"),
         SearchInterpreter.OwnerOption(email: "mlin@acme.com", name: "Morgan Lin")
@@ -121,12 +121,12 @@ private let owners = [
     #expect(SearchInterpreter.groundOwner("jli@acme.com", query: "join pads", owners: shortNames) == nil)
 }
 
-@Test func groundsTeamOnlyWhenNamed() {
+@Test func `grounds team only when named`() {
     #expect(SearchInterpreter.groundTeam("Platform", query: "pads for the platform team") == "Platform")
     #expect(SearchInterpreter.groundTeam("Platform", query: "javascript pads") == nil)
 }
 
-@Test func groundsStateTypeDraftAndDateOnlyWhenMentioned() {
+@Test func `grounds state type draft and date only when mentioned`() {
     #expect(SearchInterpreter.groundState(.ended, query: "ended pads") == .ended)
     #expect(SearchInterpreter.groundState(.active, query: "recursion questions") == nil)
     #expect(SearchInterpreter.groundType("take-home", query: "take-home questions by alex") == "take-home")
@@ -137,7 +137,7 @@ private let owners = [
     #expect(SearchInterpreter.groundDateRange("today", query: "python pads") == nil)
 }
 
-@Test func groundsTextToGenuineKeywordsOnly() {
+@Test func `grounds text to genuine keywords only`() {
     let languages = ["python3", "javascript"]
     // A query the model echoes wholesale collapses to empty (the owner does the work).
     #expect(SearchInterpreter.groundText("pads by rob di marco", languages: languages,

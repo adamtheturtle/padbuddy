@@ -198,7 +198,9 @@ extension MergedPadsView {
 
     /// The single key for the merged list's live filters. Not per-account — the
     /// merged list spans every account — unlike `PadsView`'s per-account key.
-    static var liveFilterKey: String { "pads.merged.liveFilter" }
+    static var liveFilterKey: String {
+        "pads.merged.liveFilter"
+    }
 
     /// Snapshot the structured filters into a `NamedSearch`, reusing the same model
     /// `PadsView` persists. The cross-account `accountFilter` and the `mineOnly`
@@ -251,7 +253,9 @@ extension MergedPadsView {
     /// The single key for the merged list's open pad. Pad ids are globally unique
     /// across accounts, so the merged selection needs no account namespacing (unlike
     /// merged questions, whose per-org ids collide and must carry their account).
-    static var selectedPadKey: String { "pads.merged.selectedPad" }
+    static var selectedPadKey: String {
+        "pads.merged.selectedPad"
+    }
 
     /// Persist the id of the pad shown in the detail pane so the merged list reopens
     /// to it next launch. Skipped until the restore has run so the empty startup
@@ -272,7 +276,7 @@ extension MergedPadsView {
     /// decision the single-account list uses. Reads the source dictionary rather than
     /// the per-render `scoped` memo, which can still be empty right after a cache seed.
     func restoreSelectedPadIfNeeded() {
-        let availableIDs = Set(padsByAccount.values.flatMap { $0 }.map(\.id))
+        let availableIDs = Set(padsByAccount.values.flatMap(\.self).map(\.id))
         guard !didRestoreSelection, !availableIDs.isEmpty else { return }
         didRestoreSelection = true
         guard let id = PadsView.padToRestore(
@@ -333,5 +337,4 @@ extension MergedPadsView {
             deleteError = error.localizedDescription
         }
     }
-
 }

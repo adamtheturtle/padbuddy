@@ -25,7 +25,9 @@ struct InlineEditableTitle: View {
     /// The pencil is a hint, not a control, so it appears only while the row is
     /// hovered or the field is focused — keeping the header clean otherwise. Hidden
     /// while read-only, where the title can't be edited at all.
-    private var showsPencil: Bool { !isReadOnly && (hovered || focus.wrappedValue) }
+    private var showsPencil: Bool {
+        !isReadOnly && (hovered || focus.wrappedValue)
+    }
 
     var body: some View {
         HStack(spacing: 6) {

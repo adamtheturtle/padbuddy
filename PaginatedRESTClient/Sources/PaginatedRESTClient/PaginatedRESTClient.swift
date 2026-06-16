@@ -43,7 +43,9 @@ public protocol PagedResponse: Decodable, Sendable {
 }
 
 public extension PagedResponse {
-    nonisolated static func identity(of _: Item) -> AnyHashable? { nil }
+    nonisolated static func identity(of _: Item) -> AnyHashable? {
+        nil
+    }
 }
 
 // MARK: - Error mapping
@@ -165,7 +167,7 @@ public struct PaginatedRESTClient {
             // would do from a MainActor-isolated context, regardless of Sendability.)
             let work = Task {
                 do {
-                    try await self.drivePagination(W.self, path: path, sort: sort) { continuation.yield($0) }
+                    try await drivePagination(W.self, path: path, sort: sort) { continuation.yield($0) }
                     continuation.finish()
                 } catch {
                     continuation.finish(throwing: error)

@@ -326,11 +326,10 @@ extension PadsView {
             }
             // A bump counts only when the timestamp moves forward; treat a pad
             // that gained a timestamp it previously lacked as advanced too.
-            let advanced: Bool
-            if let now = pad.updatedAt {
-                advanced = prev.updatedAt.map { now > $0 } ?? true
+            let advanced: Bool = if let now = pad.updatedAt {
+                prev.updatedAt.map { now > $0 } ?? true
             } else {
-                advanced = false
+                false
             }
             guard advanced else { continue }
             changes.append(PadChange(pad: pad, kind: Self.changeKind(for: pad, since: prev)))

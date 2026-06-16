@@ -339,7 +339,6 @@ struct Sidebar: View {
     /// merged list's per-account "Mine" preset (the in-list chip's sidebar twin).
     /// Tapping one switches to that list and flips the preset; the highlight tracks
     /// the live state `MergedPadsView`/`MergedQuestionsView` publish back.
-    @ViewBuilder
     private var mergedDefaultsSection: some View {
         Section("Suggested") {
             VStack(spacing: 2) {
