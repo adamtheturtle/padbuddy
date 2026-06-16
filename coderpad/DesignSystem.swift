@@ -9,6 +9,10 @@ import SwiftUI
 extension Color {
     static let cardBackground = Color(nsColor: .controlBackgroundColor)
     static let subtleStroke = Color.primary.opacity(0.08)
+    /// The neutral capsule fill an *idle* filter chip wears so every chip in the bar
+    /// reads as a control rather than bare text + chevron (#352). Matches the
+    /// saved-search chips' resting pill; a set filter swaps this for the accent fill.
+    static let chipIdleFill = Color.primary.opacity(0.06)
 
     /// Parses an "#RRGGBB" (or "RRGGBB") hex string into an sRGB color, or `nil` if
     /// it isn't a well-formed six-digit hex value.

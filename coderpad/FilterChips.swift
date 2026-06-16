@@ -128,18 +128,19 @@ struct FilterChipMenu<Option: Hashable>: View {
     var resetLabel: String = String(localized: "All")
 
     /// Match SearchableFilterChip's selected/idle styling so a set filter always
-    /// shows the accent capsule. Idle is transparent; a selection paints the same
-    /// accent fill, stroke, and text colour the Owner chip uses.
+    /// shows the accent capsule. Idle wears the neutral chip pill so it reads as a
+    /// control (#352); a selection paints the same accent fill, stroke, and text
+    /// colour the Owner chip uses.
     private var isActive: Bool {
         selected != nil
     }
 
     private var fillColor: Color {
-        isActive ? Color.accentColor.opacity(0.18) : Color.clear
+        isActive ? Color.accentColor.opacity(0.18) : Color.chipIdleFill
     }
 
     private var strokeColor: Color {
-        isActive ? Color.accentColor.opacity(0.4) : Color.clear
+        isActive ? Color.accentColor.opacity(0.4) : Color.subtleStroke
     }
 
     private var labelColor: Color {
@@ -204,11 +205,11 @@ struct DateRangeFilterChip: View {
     }
 
     private var fillColor: Color {
-        isActive ? Color.accentColor.opacity(0.18) : Color.clear
+        isActive ? Color.accentColor.opacity(0.18) : Color.chipIdleFill
     }
 
     private var strokeColor: Color {
-        isActive ? Color.accentColor.opacity(0.4) : Color.clear
+        isActive ? Color.accentColor.opacity(0.4) : Color.subtleStroke
     }
 
     private var labelColor: Color {
@@ -462,14 +463,15 @@ struct SearchableFilterChip: View {
         selected != nil
     }
 
-    /// Idle state is transparent so this chip matches the borderless `Menu`-based
-    /// FilterChipMenu chips, which don't paint a capsule fill until a filter is set.
+    /// Idle wears the neutral chip pill so it reads as a control rather than bare
+    /// text + chevron, matching the `Menu`-based FilterChipMenu chips (#352); a set
+    /// filter swaps it for the accent capsule.
     private var fillColor: Color {
-        isActive ? Color.accentColor.opacity(ChipContrast.fill(0.18, contrast)) : Color.clear
+        isActive ? Color.accentColor.opacity(ChipContrast.fill(0.18, contrast)) : Color.chipIdleFill
     }
 
     private var strokeColor: Color {
-        isActive ? Color.accentColor.opacity(ChipContrast.stroke(0.4, contrast)) : Color.clear
+        isActive ? Color.accentColor.opacity(ChipContrast.stroke(0.4, contrast)) : Color.subtleStroke
     }
 
     private var labelColor: Color {
