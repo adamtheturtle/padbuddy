@@ -20,6 +20,7 @@ struct UnauthorizedBanner: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("This API key was rejected by CoderPad")
                     .font(.callout.weight(.semibold))
+                    .accessibilityAddTraits(.isHeader)
                 Text("Open Settings and update or replace the key for this account.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -58,6 +59,7 @@ struct OfflineBanner: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text("You’re offline")
                     .font(.callout.weight(.semibold))
+                    .accessibilityAddTraits(.isHeader)
                 Text("CoderPad is unreachable, so editing is paused until you reconnect.")
                     .font(.caption)
                     .foregroundStyle(.secondary)

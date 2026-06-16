@@ -205,6 +205,9 @@ struct SectionHeader: View {
                 .font(.caption.weight(.semibold))
                 .tracking(0.6)
                 .textCase(.uppercase)
+                // Expose the section title to VoiceOver's heading rotor so users can
+                // jump between detail sections; SwiftUI doesn't infer this (#349).
+                .accessibilityAddTraits(.isHeader)
         }
         .foregroundStyle(.secondary)
     }

@@ -78,6 +78,7 @@ struct WhatsNewSheet: View {
         VStack(alignment: .leading, spacing: 18) {
             VStack(alignment: .leading, spacing: 4) {
                 Text("What's New in CoderPad").font(.title2.bold())
+                    .accessibilityAddTraits(.isHeader)
                 Text("Version \(release.version)")
                     .font(.callout).foregroundStyle(.secondary)
             }
@@ -126,6 +127,7 @@ struct OpenPadURLSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Open Pad by URL").font(.title3.bold())
+                .accessibilityAddTraits(.isHeader)
             Text("Paste a CoderPad pad URL. It opens in the in-app browser window.")
                 .foregroundStyle(.secondary)
                 .font(.callout)
