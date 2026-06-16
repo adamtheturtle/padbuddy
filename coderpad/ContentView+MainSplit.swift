@@ -465,6 +465,10 @@ struct MainSplit: View {
             // NavigationSplitView. Keyed off the section (constant during a drag),
             // so it never crushes the panes and never forces a single column.
             .background(WindowMinWidth(width: windowMinWidth))
+            // Suppress AppKit's sidebar/content tracking-separator line while the
+            // sidebar is collapsed — with no sidebar divider to track it draws a stray
+            // vertical line right after the leading actions (#337).
+            .background(SidebarSeparatorHider(collapsed: columnVisibility != .all))
         }
         .onChange(of: containerWidth) { _, width in updateSidebarCollapse(for: width) }
         // Honor a deliberate reopen in a too-narrow window so the auto-collapse doesn't
@@ -732,6 +736,107 @@ private struct WindowMinWidth: NSViewRepresentable {
             // dragging narrower.
             if let content = window.contentView, content.frame.width < target {
                 window.setContentSize(NSSize(width: target, height: content.frame.height))
+            }
+        }
+    }
+}
+
+/// Suppresses AppKit's tracking separator while the sidebar is collapsed.
+/// `NavigationSplitView` adds an `NSTrackingSeparatorToolbarItem` to align a toolbar
+/// divider with a split divider. With the sidebar collapsed the content column shifts to
+/// the leading edge and narrows, dragging that separator to just after the leading list
+/// actions, where it reads as a stray vertical line (#337). There's no SwiftUI API to
+/// remove it, and the item's own `view` is `nil` (AppKit draws it internally), so this
+/// uses only public `NSToolbar` calls: remove the item while collapsed, re-insert it (the
+/// SwiftUI toolbar delegate re-vends it by identifier) when the sidebar reopens.
+///
+/// The catch is that SwiftUI re-adds the separator whenever it rebuilds the toolbar — e.g.
+/// when a selection change swaps in the detail-pane items — so a one-shot removal doesn't
+/// hold (confirmed: it reappeared after the launch selection settled). The coordinator
+/// therefore also observes `NSToolbar.willAddItemNotification` and re-removes the separator
+/// each time it comes back while collapsed. Both directions guard on the item's current
+/// presence, so we never create a second copy — a duplicate `splitViewSeparator`
+/// identifier is what triggers the `NSToolbar` crash.
+private struct SidebarSeparatorHider: NSViewRepresentable {
+    /// Whether the sidebar is currently collapsed (anything other than `.all`).
+    let collapsed: Bool
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        apply(from: view, coordinator: context.coordinator)
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        apply(from: nsView, coordinator: context.coordinator)
+    }
+
+    static func dismantleNSView(_ nsView: NSView, coordinator: Coordinator) {
+        coordinator.stopObserving()
+    }
+
+    /// Deferred a runloop turn: at make/update time the view may not be in a window yet,
+    /// and the toolbar items settle a beat after a visibility change.
+    private func apply(from view: NSView, coordinator: Coordinator) {
+        let collapsed = collapsed
+        DispatchQueue.main.async {
+            guard let toolbar = view.window?.toolbar else { return }
+            coordinator.collapsed = collapsed
+            coordinator.observe(toolbar)
+            coordinator.enforce()
+        }
+    }
+
+    final class Coordinator {
+        /// Mirrors the view's `collapsed`, read by `enforce()` (which also runs from the
+        /// toolbar notification, outside a SwiftUI update).
+        var collapsed = false
+        /// The identifier and slot of the separator we removed, so it can be re-inserted
+        /// in the same place when the sidebar reopens.
+        private var removedIdentifier: NSToolbarItem.Identifier?
+        private var removedIndex: Int?
+        private weak var toolbar: NSToolbar?
+        private var observer: NSObjectProtocol?
+
+        /// Subscribe to the toolbar's item-add notifications so a separator SwiftUI
+        /// re-adds while collapsed gets pulled straight back out. Idempotent per toolbar.
+        func observe(_ toolbar: NSToolbar) {
+            guard self.toolbar !== toolbar else { return }
+            stopObserving()
+            self.toolbar = toolbar
+            observer = NotificationCenter.default.addObserver(
+                forName: NSToolbar.willAddItemNotification,
+                object: toolbar,
+                queue: .main
+            ) { [weak self] _ in
+                // The item isn't in `items` yet during the notification, so re-check after.
+                DispatchQueue.main.async { self?.enforce() }
+            }
+        }
+
+        func stopObserving() {
+            if let observer { NotificationCenter.default.removeObserver(observer) }
+            observer = nil
+            toolbar = nil
+        }
+
+        /// Removes the tracking separator while collapsed, or restores it once expanded.
+        func enforce() {
+            guard let toolbar else { return }
+            let separatorIndex = toolbar.items.firstIndex { $0 is NSTrackingSeparatorToolbarItem }
+            if collapsed {
+                if let index = separatorIndex {
+                    removedIdentifier = toolbar.items[index].itemIdentifier
+                    removedIndex = index
+                    toolbar.removeItem(at: index)
+                }
+            } else if separatorIndex == nil, let identifier = removedIdentifier {
+                let index = min(removedIndex ?? toolbar.items.count, toolbar.items.count)
+                toolbar.insertItem(withItemIdentifier: identifier, at: index)
+                removedIdentifier = nil
+                removedIndex = nil
             }
         }
     }
