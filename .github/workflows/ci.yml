@@ -1,8 +1,13 @@
 name: CI
 
 on:
-  # Run once a night rather than on every push/PR — macOS runners bill at 10x
-  # minutes, so a scheduled build plus on-demand runs keeps CI cost predictable.
+  # The cheap lint jobs run on every push/PR (see their `if:` guards below) so
+  # style regressions are caught before they reach main. The expensive macOS
+  # build+test stays nightly only — macOS runners bill at 10x minutes, so we
+  # don't pay for a full compile on every push.
+  push:
+    branches: [main]
+  pull_request:
   schedule:
     - cron: '0 3 * * *' # 03:00 UTC nightly
   # Allow manually kicking off a run from the Actions tab when needed.
@@ -50,34 +55,31 @@ jobs:
       - name: Run shellcheck
         run: shellcheck scripts/*.sh ci_scripts/*.sh
 
-  test:
-    name: Build & Test
-    # macos-26 is the newest hosted image; it ships Xcode 26.x, which honors
-    # SWIFT_DEFAULT_ACTOR_ISOLATION (Swift 6.2). macos-latest still maps to an
-    # older image whose Xcode silently ignores that setting and so fails the
-    # Swift 6 build. (Local dev is on Xcode 27 beta, which hosted runners lack.)
+  # Swift style gate. Runs on every push/PR (and nightly) so a SwiftLint or
+  # SwiftFormat regression is caught before it lands on main, rather than only
+  # surfacing in the nightly build. This is the lone macOS job that runs per
+  # push — but it just downloads two pinned binaries and lints (~1 min), so it
+  # sidesteps the expensive full compile in `test` below. Both tools run as
+  # prebuilt binaries at a pinned version so CI matches the local toolchain
+  # exactly; bump these in lockstep with any local upgrade.
+  swift-lint:
+    name: SwiftLint & SwiftFormat
+    # macos-26 ships Xcode 26.x; SwiftLint loads SourceKit from the selected
+    # Xcode, so it must run on macOS rather than a cheaper Linux runner.
     runs-on: macos-26
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
       # Pin an explicit Xcode rather than the image default, which drifts as
       # Apple ships updates. 26.5 is the newest stable on the macos-26 image.
+      # SwiftLint loads SourceKit from here, so it runs after this step.
       - name: Select Xcode
         run: |
           sudo xcode-select -s /Applications/Xcode_26.5.app
           xcodebuild -version
 
-      - name: Show available SDKs
-        run: xcodebuild -showsdks
-
-      # Swift linting gates the strict-clean baseline (.swiftlint.yml /
-      # .swiftformat). Both tools run as prebuilt binaries downloaded at a pinned
-      # version so CI matches the local toolchain exactly; bump these in lockstep
-      # with any local upgrade. They run after the Xcode select above so
-      # SwiftLint can load SourceKit from Xcode 26.5, and before the build so a
-      # style regression fails fast without paying for the full compile.
       - name: SwiftLint (strict)
         env:
           SWIFTLINT_VERSION: 0.63.3
@@ -99,6 +101,34 @@ jobs:
           chmod +x swiftformat
           ./swiftformat --version
           ./swiftformat . --lint --reporter github-actions-log
+
+  test:
+    name: Build & Test
+    # The full macOS build+test is expensive (10x-billed minutes), so it stays
+    # nightly/manual only — push and pull_request events skip it and rely on the
+    # swift-lint gate above. `needs` makes it wait for the style gate so a
+    # nightly run fails fast on style before paying for the compile.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    needs: swift-lint
+    # macos-26 is the newest hosted image; it ships Xcode 26.x, which honors
+    # SWIFT_DEFAULT_ACTOR_ISOLATION (Swift 6.2). macos-latest still maps to an
+    # older image whose Xcode silently ignores that setting and so fails the
+    # Swift 6 build. (Local dev is on Xcode 27 beta, which hosted runners lack.)
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # Pin an explicit Xcode rather than the image default, which drifts as
+      # Apple ships updates. 26.5 is the newest stable on the macos-26 image.
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.5.app
+          xcodebuild -version
+
+      - name: Show available SDKs
+        run: xcodebuild -showsdks
 
       # Cache DerivedData (build intermediates, module cache) to speed up
       # incremental builds. Keyed on the project + sources so it invalidates
