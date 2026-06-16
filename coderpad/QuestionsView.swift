@@ -23,7 +23,7 @@ struct QuestionsView: View {
     @State var questions: [Question] = []
 
     @State var isLoading = false
-    @State var error: Error?
+    @State var error: (any Error)?
     @Binding var selection: Question?
     /// The list selects by question *id*, not the whole `Question`. `.tag(question)`
     /// makes SwiftUI hash/compare every tag to maintain its selection model, and

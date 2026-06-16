@@ -53,7 +53,7 @@ nonisolated struct Question: Codable, Identifiable, Hashable {
         case candidateInstructions = "candidate_instructions"
     }
 
-    init(from decoder: Decoder) throws {
+    init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(Int.self, forKey: .id)
         title = container.loggedDecodeIfPresent(String.self, forKey: .title) ?? ""
@@ -196,11 +196,11 @@ enum PadState: Hashable, Identifiable, Codable, RawRepresentable {
         }
     }
 
-    init(from decoder: Decoder) throws {
+    init(from decoder: any Decoder) throws {
         try self.init(apiState: decoder.singleValueContainer().decode(String.self))
     }
 
-    func encode(to encoder: Encoder) throws {
+    func encode(to encoder: any Encoder) throws {
         var container = encoder.singleValueContainer()
         try container.encode(rawValue)
     }
@@ -282,7 +282,7 @@ nonisolated struct CandidateInstruction: Codable, Hashable {
         case defaultVisible = "default_visible"
     }
 
-    init(from decoder: Decoder) throws {
+    init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         instructions = (try? container.decodeIfPresent(String.self, forKey: .instructions)) ?? ""
         defaultVisible = (try? container.decodeIfPresent(Bool.self, forKey: .defaultVisible)) ?? true

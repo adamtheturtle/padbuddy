@@ -11,7 +11,7 @@ struct QuotaView: View {
     @State private var cache = QuotaCacheStore.shared
     @State private var quota: Quota?
     @State private var isLoading = false
-    @State private var error: Error?
+    @State private var error: (any Error)?
 
     var body: some View {
         Group {

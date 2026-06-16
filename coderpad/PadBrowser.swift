@@ -253,18 +253,18 @@ extension WebController: WKNavigationDelegate {
     /// requested URL once before surfacing the error.
     func webView(_: WKWebView,
                  didFailProvisionalNavigation _: WKNavigation!,
-                 withError error: Error) {
+                 withError error: any Error) {
         retryOrReport(error)
     }
 
     /// A committed navigation failed partway through. Same one-shot retry.
     func webView(_: WKWebView,
                  didFail _: WKNavigation!,
-                 withError error: Error) {
+                 withError error: any Error) {
         retryOrReport(error)
     }
 
-    private func retryOrReport(_ error: Error) {
+    private func retryOrReport(_ error: any Error) {
         // A user- or script-cancelled navigation (e.g. a redirect superseding the
         // request) isn't a failure to recover from — reloading would fight the page.
         let nsError = error as NSError

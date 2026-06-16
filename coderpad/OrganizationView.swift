@@ -50,7 +50,7 @@ struct OrganizationView: View {
     @State private var stats: OrganizationStats?
     @State private var quota: Quota?
     @State private var isLoading = false
-    @State private var error: Error?
+    @State private var error: (any Error)?
     @State private var userSearch = ""
     @FocusState private var userSearchFocused: Bool
     @AppStorage(StatsPeriod.storageKey) private var period: StatsPeriod = .days7

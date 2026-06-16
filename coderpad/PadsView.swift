@@ -24,7 +24,7 @@ struct PadsView: View {
     @State var favoritePads = FavoritePadsStore.shared
     @State var pads: [Pad] = []
     @State var isLoading = false
-    @State var error: Error?
+    @State var error: (any Error)?
     @Binding var selection: Pad?
     /// The list selects by pad *id*, not by the whole `Pad`. `List(selection:)` with
     /// a `.tag(pad)` forces SwiftUI to hash and compare every tag to maintain its

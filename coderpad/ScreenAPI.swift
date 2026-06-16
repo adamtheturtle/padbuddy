@@ -29,7 +29,7 @@ nonisolated struct ScreenCampaign: Decodable, Identifiable, Hashable {
     let pinned: Bool
     let archived: Bool
 
-    init(from decoder: Decoder) throws {
+    init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(Int.self, forKey: .id)
         name = container.loggedDecodeIfPresent(String.self, forKey: .name) ?? ""
@@ -88,7 +88,7 @@ nonisolated struct ScreenInvitationResult: Decodable, Hashable {
     let id: Int
     let testURL: String?
 
-    init(from decoder: Decoder) throws {
+    init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(Int.self, forKey: .id)
         testURL = container.loggedDecodeIfPresent(String.self, forKey: .testURL)
@@ -132,7 +132,7 @@ nonisolated struct ScreenTestSession: Decodable, Identifiable, Hashable {
     /// e.g. "TO_REVIEW", once a human review workflow applies.
     let approvalStatus: String?
 
-    init(from decoder: Decoder) throws {
+    init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         status = container.loggedDecodeIfPresent(String.self, forKey: .status) ?? "unknown"
         url = container.loggedDecodeIfPresent(String.self, forKey: .url)
@@ -203,7 +203,7 @@ nonisolated struct ScreenTestQuestion: Decodable, Identifiable, Hashable {
     let id: Int
     let lastActivityTime: Int?
 
-    init(from decoder: Decoder) throws {
+    init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(Int.self, forKey: .id)
         lastActivityTime = container.loggedDecodeIfPresent(Int.self, forKey: .lastActivityTime)
@@ -235,7 +235,7 @@ nonisolated struct ScreenReport: Decodable, Hashable {
     /// with `withCommunityStats`.
     let communityStats: [Int]?
 
-    init(from decoder: Decoder) throws {
+    init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         duration = container.loggedDecodeIfPresent(Int.self, forKey: .duration)
         warnings = container.loggedDecodeIfPresent([String].self, forKey: .warnings) ?? []
@@ -267,7 +267,7 @@ nonisolated struct ScreenTechnologyResult: Decodable, Hashable {
     let totalPoints: Int?
     let comparativeScore: Double?
 
-    init(from decoder: Decoder) throws {
+    init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         points = container.loggedDecodeIfPresent(Int.self, forKey: .points)
         score = container.loggedDecodeIfPresent(Double.self, forKey: .score)
@@ -289,7 +289,7 @@ nonisolated struct ScreenSkillResult: Decodable, Hashable {
     let score: Double?
     let totalPoints: Int?
 
-    init(from decoder: Decoder) throws {
+    init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         points = container.loggedDecodeIfPresent(Int.self, forKey: .points)
         score = container.loggedDecodeIfPresent(Double.self, forKey: .score)
@@ -311,7 +311,7 @@ nonisolated struct ScreenTestsPage: Decodable, Hashable {
     let tests: [ScreenTestSession]
     let pagination: ScreenPagination?
 
-    init(from decoder: Decoder) throws {
+    init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         tests = container.loggedDecodeIfPresent([ScreenTestSession].self, forKey: .tests) ?? []
         pagination = container.loggedDecodeIfPresent(ScreenPagination.self, forKey: .pagination)
@@ -329,7 +329,7 @@ nonisolated struct ScreenPagination: Decodable, Hashable {
     let hasMoreItems: Bool
     let nextStart: Int?
 
-    init(from decoder: Decoder) throws {
+    init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         start = container.loggedDecodeIfPresent(Int.self, forKey: .start)
         limit = container.loggedDecodeIfPresent(Int.self, forKey: .limit)

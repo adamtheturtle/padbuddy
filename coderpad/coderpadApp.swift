@@ -145,6 +145,21 @@ struct CoderpadApp: App {
             WindowCommands()
         }
 
+        padBrowserScene
+        questionScene
+
+        Settings {
+            SettingsView()
+                .preferredColorScheme(appearance.colorScheme)
+        }
+
+        menuBarScene
+    }
+
+    /// A pad opened in its own window (`coderpad://pad/<id>` or the Open action).
+    /// Split out of `body` so each scene type-checks independently and the main
+    /// scene builder stays under the long-body diagnostic budget.
+    private var padBrowserScene: some Scene {
         WindowGroup("Pad Browser", id: "pad-browser", for: URL.self) { $url in
             if let url {
                 PadBrowserView(url: url)
@@ -160,26 +175,26 @@ struct CoderpadApp: App {
                     .preferredColorScheme(appearance.colorScheme)
             }
         }
+    }
 
-        // Double-clicking a question row opens its detail here, in its own window —
-        // the native-detail counterpart to opening a pad in the `pad-browser` window
-        // (#292). Keyed by a lightweight id so it survives state restoration.
+    /// Double-clicking a question row opens its detail here, in its own window —
+    /// the native-detail counterpart to opening a pad in the `pad-browser` window
+    /// (#292). Keyed by a lightweight id so it survives state restoration.
+    private var questionScene: some Scene {
         WindowGroup("Question", id: "question", for: QuestionWindowID.self) { $value in
             QuestionWindow(value: value)
                 .frame(minWidth: 600, minHeight: 560)
                 .preferredColorScheme(appearance.colorScheme)
         }
+    }
 
-        Settings {
-            SettingsView()
-                .preferredColorScheme(appearance.colorScheme)
-        }
-
-        // The system can flip `isInserted` to false if the user drags the icon out of
-        // the menu bar; mirror that back into the preference so the change sticks and
-        // the Settings picker stays honest. Removing the icon switches to "Dock only"
-        // (revealing the Dock icon if it was hidden, so the app never ends up with no
-        // visible affordance); re-inserting it restores a menu-bar mode.
+    /// The menu-bar extra. The system can flip `isInserted` to false if the user
+    /// drags the icon out of the menu bar; mirror that back into the preference so
+    /// the change sticks and the Settings picker stays honest. Removing the icon
+    /// switches to "Dock only" (revealing the Dock icon if it was hidden, so the app
+    /// never ends up with no visible affordance); re-inserting it restores a
+    /// menu-bar mode.
+    private var menuBarScene: some Scene {
         MenuBarExtra(isInserted: Binding(
             get: { presence.showsMenuBarIcon },
             set: { inserted in

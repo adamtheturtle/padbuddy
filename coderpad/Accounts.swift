@@ -257,7 +257,7 @@ final class AccountsStore {
 struct LenientElement<Wrapped: Decodable>: Decodable {
     let value: Wrapped?
 
-    init(from decoder: Decoder) throws {
+    init(from decoder: any Decoder) throws {
         value = try? decoder.singleValueContainer().decode(Wrapped.self)
     }
 }

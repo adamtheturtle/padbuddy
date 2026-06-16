@@ -24,7 +24,7 @@ struct FilterableListView<SavedSearches: View, Filters: View, List: View>: View 
     /// view: with content already on screen, a transient error or refresh stays quiet.
     let isEmpty: Bool
     /// The last load error, surfaced (via `APIErrorView`) only when nothing is loaded.
-    let error: Error?
+    let error: (any Error)?
     /// The spinner's label, e.g. "Loading pads…".
     let loadingMessage: LocalizedStringKey
     /// Retry handler for the error view's button.

@@ -81,7 +81,7 @@ struct WindowMinWidth: NSViewRepresentable {
     final class Coordinator {
         private weak var window: NSWindow?
         private var forward: ((CGFloat) -> Void)?
-        private var observer: NSObjectProtocol?
+        private var observer: (any NSObjectProtocol)?
         private var appliedTarget: CGFloat?
 
         /// Returns true (and records the value) only when `target` differs from the
@@ -177,7 +177,7 @@ struct SidebarSeparatorHider: NSViewRepresentable {
         private var removedIdentifier: NSToolbarItem.Identifier?
         private var removedIndex: Int?
         private weak var toolbar: NSToolbar?
-        private var observer: NSObjectProtocol?
+        private var observer: (any NSObjectProtocol)?
 
         /// Subscribe to the toolbar's item-add notifications so a separator SwiftUI
         /// re-adds while collapsed gets pulled straight back out. Idempotent per toolbar.

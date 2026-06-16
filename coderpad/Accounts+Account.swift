@@ -72,7 +72,7 @@ struct Account: Identifiable, Codable, Hashable {
     /// Throwing here drops that single account on load (the store decodes elements
     /// leniently — see `loadAccounts`) rather than corrupting an otherwise-good account.
     /// Encoding stays synthesized.
-    init(from decoder: Decoder) throws {
+    init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
         name = try container.decode(String.self, forKey: .name)

@@ -62,7 +62,7 @@ struct QuestionCreate: Encodable {
         case title, language
     }
 
-    func encode(to encoder: Encoder) throws {
+    func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encodeIfPresent(description, forKey: .description)
         try container.encodeIfPresent(solution, forKey: .solution)
@@ -102,7 +102,7 @@ struct QuestionUpdate: Encodable {
         case title, language
     }
 
-    func encode(to encoder: Encoder) throws {
+    func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encodeIfPresent(description, forKey: .description)
@@ -198,7 +198,7 @@ private nonisolated func decodeExecutionEnabled<K: CodingKey>(
 }
 
 extension PadCreate {
-    nonisolated init(from decoder: Decoder) throws {
+    nonisolated init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         title = try container.decodeIfPresent(String.self, forKey: .title)
         language = try container.decodeIfPresent(String.self, forKey: .language)
@@ -211,7 +211,7 @@ extension PadCreate {
         teamID = try container.decodeIfPresent(String.self, forKey: .teamID)
     }
 
-    nonisolated func encode(to encoder: Encoder) throws {
+    nonisolated func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encodeIfPresent(title, forKey: .title)
         try container.encodeIfPresent(language, forKey: .language)
@@ -226,7 +226,7 @@ extension PadCreate {
 }
 
 extension PadUpdate {
-    nonisolated init(from decoder: Decoder) throws {
+    nonisolated init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(String.self, forKey: .id)
         title = try container.decodeIfPresent(String.self, forKey: .title)
@@ -241,7 +241,7 @@ extension PadUpdate {
         deleted = try container.decodeIfPresent(Bool.self, forKey: .deleted)
     }
 
-    nonisolated func encode(to encoder: Encoder) throws {
+    nonisolated func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encodeIfPresent(title, forKey: .title)

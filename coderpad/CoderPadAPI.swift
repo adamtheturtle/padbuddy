@@ -79,7 +79,7 @@ nonisolated struct Pad: Codable, Identifiable, Hashable {
         case questionIDs = "question_ids"
     }
 
-    init(from decoder: Decoder) throws {
+    init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(String.self, forKey: .id)
         title = container.loggedDecodeIfPresent(String.self, forKey: .title) ?? ""
@@ -180,7 +180,7 @@ nonisolated struct PadEnvironment: Decodable, Identifiable, Hashable {
         case updatedAt = "updated_at"
     }
 
-    init(from decoder: Decoder) throws {
+    init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(Int.self, forKey: .id)
         padID = container.loggedDecodeIfPresent(Int.self, forKey: .padID)

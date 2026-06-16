@@ -11,7 +11,7 @@ struct PadDetailView: View {
     let pad: Pad
     @State var events: [PadEvent] = []
     @State var environments: [PadEnvironment] = []
-    @State var loadError: Error?
+    @State var loadError: (any Error)?
     // Starts true so the Events section shows its spinner on the first frame
     // rather than flashing "No events yet." before `load()` begins.
     @State var isLoading = true

@@ -80,194 +80,235 @@ struct MenuBarView: View {
 
     var body: some View {
         if let account = store.currentAccount {
-            if network.isOffline {
-                Text("Offline — read-only")
-                    .font(.caption).foregroundStyle(.orange)
-            }
-            if monitor.unseenChangedCount > 0 {
-                Text("\(monitor.unseenChangedCount) updated")
-                    .font(.caption).foregroundStyle(.orange)
-                Button("Mark All as Seen") { monitor.markSeen() }
-            }
+            accountMenu(account: account)
+        } else {
+            noAccountMenu
+        }
+    }
 
-            Button("New Pad…") {
-                Task { await createPad(PadCreate(), account: account) }
-            }
-            .keyboardShortcut("n")
-            .disabled((account.isMock == false && account.apiKey.isEmpty) || network.isOffline)
-            // Load the menu's data here (a stable, always-present action) keyed on the
-            // active account, rather than hanging it off an unrelated leaf button.
-            .task(id: store.currentAccountID) { await load(account: account) }
+    /// The full menu shown when an account is active. Split into the helpers below
+    /// so each view builder type-checks within the long-body diagnostic budget.
+    @ViewBuilder
+    private func accountMenu(account: Account) -> some View {
+        statusItems
 
-            if !questions.isEmpty {
-                Menu("New Pad from Question") {
-                    let favoriteIDs = Set(favorites.favorites(account: store.currentAccountID))
-                    ForEach(questionsForMenu(favoriteIDs: favoriteIDs).prefix(topCount)) { question in
-                        Button {
-                            Task { await createPad(.fromQuestion(question), account: account) }
-                        } label: {
-                            // Starred questions lead the list and carry the star so
-                            // a frequently used question is the first one-click pad.
-                            if favoriteIDs.contains(question.id) {
-                                Label(question.title.isEmpty ? "#\(question.id)" : question.title,
-                                      systemImage: "star.fill")
-                            } else {
-                                Text(question.title.isEmpty ? "#\(question.id)" : question.title)
-                            }
+        newPadItems(account: account)
+
+        Divider()
+
+        myPadsItems(account: account)
+
+        Divider()
+
+        recentMenus
+
+        Divider()
+
+        navigationItems(account: account)
+
+        Divider()
+
+        helpAndQuitItems
+    }
+
+    /// Offline and unseen-change banners shown at the top of the menu.
+    @ViewBuilder
+    private var statusItems: some View {
+        if network.isOffline {
+            Text("Offline — read-only")
+                .font(.caption).foregroundStyle(.orange)
+        }
+        if monitor.unseenChangedCount > 0 {
+            Text("\(monitor.unseenChangedCount) updated")
+                .font(.caption).foregroundStyle(.orange)
+            Button("Mark All as Seen") { monitor.markSeen() }
+        }
+    }
+
+    /// New Pad and New Pad from Question. The New Pad button also hosts the menu's
+    /// data load, keyed on the active account, as a stable always-present action.
+    @ViewBuilder
+    private func newPadItems(account: Account) -> some View {
+        Button("New Pad…") {
+            Task { await createPad(PadCreate(), account: account) }
+        }
+        .keyboardShortcut("n")
+        .disabled((account.isMock == false && account.apiKey.isEmpty) || network.isOffline)
+        // Load the menu's data here (a stable, always-present action) keyed on the
+        // active account, rather than hanging it off an unrelated leaf button.
+        .task(id: store.currentAccountID) { await load(account: account) }
+
+        if !questions.isEmpty {
+            Menu("New Pad from Question") {
+                let favoriteIDs = Set(favorites.favorites(account: store.currentAccountID))
+                ForEach(questionsForMenu(favoriteIDs: favoriteIDs).prefix(topCount)) { question in
+                    Button {
+                        Task { await createPad(.fromQuestion(question), account: account) }
+                    } label: {
+                        // Starred questions lead the list and carry the star so
+                        // a frequently used question is the first one-click pad.
+                        if favoriteIDs.contains(question.id) {
+                            Label(question.title.isEmpty ? "#\(question.id)" : question.title,
+                                  systemImage: "star.fill")
+                        } else {
+                            Text(question.title.isEmpty ? "#\(question.id)" : question.title)
                         }
                     }
                 }
-                .disabled((account.isMock == false && account.apiKey.isEmpty) || network.isOffline)
             }
+            .disabled((account.isMock == false && account.apiKey.isEmpty) || network.isOffline)
+        }
+    }
 
-            Divider()
-
-            Text("My Pads · \(account.name)")
+    /// "My Pads" header, quota summary, and the user's recent pads (or a status line).
+    @ViewBuilder
+    private func myPadsItems(account: Account) -> some View {
+        Text("My Pads · \(account.name)")
+            .font(.caption).foregroundStyle(.secondary)
+        if let quotaSummary {
+            Text(quotaSummary)
                 .font(.caption).foregroundStyle(.secondary)
-            if let quotaSummary {
-                Text(quotaSummary)
-                    .font(.caption).foregroundStyle(.secondary)
-            }
+        }
 
-            if isLoading, pads.isEmpty {
-                Text("Loading…").foregroundStyle(.secondary)
-            } else if let errorMessage {
-                Text(errorMessage).foregroundStyle(.red).lineLimit(2)
-            } else if myPads.isEmpty {
-                Text("No pads").foregroundStyle(.secondary)
-            } else {
-                ForEach(myPads.prefix(topCount)) { pad in
-                    Button {
+        if isLoading, pads.isEmpty {
+            Text("Loading…").foregroundStyle(.secondary)
+        } else if let errorMessage {
+            Text(errorMessage).foregroundStyle(.red).lineLimit(2)
+        } else if myPads.isEmpty {
+            Text("No pads").foregroundStyle(.secondary)
+        } else {
+            ForEach(myPads.prefix(topCount)) { pad in
+                Button {
+                    if let url = pad.webURL {
+                        BrowserSettings.openExternally(url)
+                    }
+                } label: {
+                    Text(padLabel(pad))
+                }
+            }
+            if myPads.count > topCount {
+                Text("…\(myPads.count - topCount) more").foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    /// Section sub-menus mirroring the app's lists: the most recently updated
+    /// questions and pads, so the menu bar offers a quick jump into recent work
+    /// without opening the window first.
+    @ViewBuilder
+    private var recentMenus: some View {
+        if !questions.isEmpty {
+            Menu("Recent Questions") {
+                ForEach(questions.prefix(topCount)) { question in
+                    Button(question.displayTitle) { openQuestion(question) }
+                }
+            }
+        }
+
+        if !pads.isEmpty {
+            Menu("Recent Activity") {
+                ForEach(pads.prefix(topCount)) { pad in
+                    Button(activityLabel(pad)) {
                         if let url = pad.webURL {
                             BrowserSettings.openExternally(url)
                         }
-                    } label: {
-                        Text(padLabel(pad))
                     }
                 }
-                if myPads.count > topCount {
-                    Text("…\(myPads.count - topCount) more").foregroundStyle(.secondary)
-                }
             }
+        }
+    }
 
+    /// Navigation into the main window's sections, plus reload, settings, and
+    /// account switching.
+    @ViewBuilder
+    private func navigationItems(account: Account) -> some View {
+        Menu("Go to") {
+            Button("Pads") { go(.pads) }
+            Button("Questions") { go(.questions) }
+            Button("Organization") { go(.organization) }
+            Button("Quota") { go(.quota) }
             Divider()
-
-            // Section sub-menus mirroring the app's lists: the most recently
-            // updated questions and pads, so the menu bar offers a quick jump into
-            // recent work without opening the window first.
-            if !questions.isEmpty {
-                Menu("Recent Questions") {
-                    ForEach(questions.prefix(topCount)) { question in
-                        Button(question.displayTitle) { openQuestion(question) }
-                    }
-                }
-            }
-
-            if !pads.isEmpty {
-                Menu("Recent Activity") {
-                    ForEach(pads.prefix(topCount)) { pad in
-                        Button(activityLabel(pad)) {
-                            if let url = pad.webURL {
-                                BrowserSettings.openExternally(url)
-                            }
-                        }
-                    }
-                }
-            }
-
-            Divider()
-
-            Menu("Go to") {
-                Button("Pads") { go(.pads) }
-                Button("Questions") { go(.questions) }
-                Button("Organization") { go(.organization) }
-                Button("Quota") { go(.quota) }
-                Divider()
-                Button("Settings…") {
-                    openMain()
-                    AppRouter.requestOpenSettings()
-                }
-            }
-
-            Button("Reload") {
-                Task { await load(account: account) }
-            }
-            .keyboardShortcut("r")
-
             Button("Settings…") {
                 openMain()
                 AppRouter.requestOpenSettings()
             }
-            .keyboardShortcut(",")
+        }
 
-            if store.accounts.count > 1 {
-                Menu("Switch Account") {
-                    if store.mergeableAccounts.count >= 2 {
-                        Button {
-                            store.showAllAccounts = true
-                        } label: {
-                            if store.isMergedView {
-                                Label("All Accounts", systemImage: "checkmark")
-                            } else {
-                                Text("All Accounts")
-                            }
+        Button("Reload") {
+            Task { await load(account: account) }
+        }
+        .keyboardShortcut("r")
+
+        Button("Settings…") {
+            openMain()
+            AppRouter.requestOpenSettings()
+        }
+        .keyboardShortcut(",")
+
+        if store.accounts.count > 1 {
+            Menu("Switch Account") {
+                if store.mergeableAccounts.count >= 2 {
+                    Button {
+                        store.showAllAccounts = true
+                    } label: {
+                        if store.isMergedView {
+                            Label("All Accounts", systemImage: "checkmark")
+                        } else {
+                            Text("All Accounts")
                         }
-                        Divider()
                     }
-                    ForEach(store.accounts) { acct in
-                        Button {
-                            store.showAllAccounts = false
-                            store.currentAccountID = acct.id
-                        } label: {
-                            if !store.isMergedView, acct.id == store.currentAccountID {
-                                Label(acct.name, systemImage: "checkmark")
-                            } else if let symbol = acct.iconSymbol {
-                                Label(acct.name, systemImage: symbol)
-                            } else {
-                                Text(acct.name)
-                            }
+                    Divider()
+                }
+                ForEach(store.accounts) { acct in
+                    Button {
+                        store.showAllAccounts = false
+                        store.currentAccountID = acct.id
+                    } label: {
+                        if !store.isMergedView, acct.id == store.currentAccountID {
+                            Label(acct.name, systemImage: "checkmark")
+                        } else if let symbol = acct.iconSymbol {
+                            Label(acct.name, systemImage: symbol)
+                        } else {
+                            Text(acct.name)
                         }
                     }
                 }
             }
-
-            Divider()
-
-            Menu("Help") {
-                Link("CoderPad API Documentation", destination: CoderPadLinks.apiDocs)
-                Link("Get API Key", destination: CoderPadLinks.apiSettings)
-                Divider()
-                Link("Send Feedback…", destination: CoderPadLinks.feedbackMailto)
-            }
-
-            Button("About CoderPad") { showAboutPanel() }
-
-            Button("Quit") { NSApp.terminate(nil) }
-                .keyboardShortcut("q")
-        } else {
-            Text("No account configured")
-                .font(.caption).foregroundStyle(.secondary)
-            Divider()
-            Button("Add Account…") {
-                openMain()
-                AppRouter.requestOpenSettings()
-            }
-            .keyboardShortcut("n")
-
-            Divider()
-
-            Menu("Help") {
-                Link("CoderPad API Documentation", destination: CoderPadLinks.apiDocs)
-                Link("Get API Key", destination: CoderPadLinks.apiSettings)
-                Divider()
-                Link("Send Feedback…", destination: CoderPadLinks.feedbackMailto)
-            }
-
-            Button("About CoderPad") { showAboutPanel() }
-
-            Button("Quit") { NSApp.terminate(nil) }
-                .keyboardShortcut("q")
         }
+    }
+
+    /// Help links, About, and Quit — shared by the configured and no-account menus.
+    @ViewBuilder
+    private var helpAndQuitItems: some View {
+        Menu("Help") {
+            Link("CoderPad API Documentation", destination: CoderPadLinks.apiDocs)
+            Link("Get API Key", destination: CoderPadLinks.apiSettings)
+            Divider()
+            Link("Send Feedback…", destination: CoderPadLinks.feedbackMailto)
+        }
+
+        Button("About CoderPad") { showAboutPanel() }
+
+        Button("Quit") { NSApp.terminate(nil) }
+            .keyboardShortcut("q")
+    }
+
+    /// The menu shown when no account is configured: a prompt to add one, plus the
+    /// shared help and quit items.
+    @ViewBuilder
+    private var noAccountMenu: some View {
+        Text("No account configured")
+            .font(.caption).foregroundStyle(.secondary)
+        Divider()
+        Button("Add Account…") {
+            openMain()
+            AppRouter.requestOpenSettings()
+        }
+        .keyboardShortcut("n")
+
+        Divider()
+
+        helpAndQuitItems
     }
 }
 

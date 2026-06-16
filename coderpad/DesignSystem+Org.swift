@@ -302,7 +302,7 @@ extension FocusedValues {
 // MARK: - APIErrorView
 
 struct APIErrorView: View {
-    let error: Error
+    let error: any Error
     var onRetry: (() -> Void)?
     @Environment(\.openSettings) private var openSettings
 

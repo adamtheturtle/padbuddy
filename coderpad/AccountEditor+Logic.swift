@@ -251,7 +251,7 @@ extension AccountEditor {
             }
         }
         /// One page proves read access without pulling the whole list.
-        func firstPage(_ stream: AsyncThrowingStream<[some Any], Error>) async throws {
+        func firstPage(_ stream: AsyncThrowingStream<[some Any], any Error>) async throws {
             for try await _ in stream {
                 return
             }
@@ -287,7 +287,7 @@ extension AccountEditor {
         return nil
     }
 
-    func friendlyValidationMessage(for error: Error) -> String {
+    func friendlyValidationMessage(for error: any Error) -> String {
         if let api = error as? CoderPadError {
             if api.isUnauthorized {
                 return String(localized: """

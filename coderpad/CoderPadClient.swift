@@ -74,26 +74,26 @@ private nonisolated struct Wrapper: Decodable { let users: [OrganizationUser] }
 /// still throws exactly the `CoderPadError` values the rest of the app catches, so
 /// behavior (and `isUnauthorized` detection) is unchanged.
 private struct CoderPadErrorMapping: RESTTransportErrorMapping {
-    nonisolated func missingAPIKey() -> Error {
+    nonisolated func missingAPIKey() -> any Error {
         CoderPadError.missingAPIKey
     }
 
-    nonisolated func http(status: Int, body: String) -> Error {
+    nonisolated func http(status: Int, body: String) -> any Error {
         CoderPadError.http(status, body)
     }
 
-    nonisolated func decode(_ detail: String) -> Error {
+    nonisolated func decode(_ detail: String) -> any Error {
         CoderPadError.decode(detail)
     }
 
-    nonisolated func network(_ error: URLError) -> Error {
+    nonisolated func network(_ error: URLError) -> any Error {
         CoderPadError.network(error)
     }
 
     /// GET requests are idempotent, so transient failures (5xx, 429, timeouts) are retried
     /// before surfacing. Recognizes both the mapped `CoderPadError` cases and a raw
     /// `NSURLErrorDomain` error, matching the prior transport behavior.
-    nonisolated func isTransient(_ error: Error) -> Bool {
+    nonisolated func isTransient(_ error: any Error) -> Bool {
         if let api = error as? CoderPadError {
             if case let .http(code, _) = api {
                 // 408 Request Timeout is retry-worthy for the same reason as 5xx/429.
@@ -240,7 +240,7 @@ struct CoderPadClient {
     /// a larger cumulative snapshot as more pages land, and the last element is the
     /// complete list. With the default `updated_at,desc` sort, page 1 is already the top
     /// of the final list, so rows only ever append below — no reshuffle mid-load.
-    func listPadsIncrementally(sort: String? = "updated_at,desc") -> AsyncThrowingStream<[Pad], Error> {
+    func listPadsIncrementally(sort: String? = "updated_at,desc") -> AsyncThrowingStream<[Pad], any Error> {
         rest.streamAllPages(PadsPage.self, path: "/api/pads/", sort: sort)
     }
 
@@ -298,7 +298,7 @@ struct CoderPadClient {
     /// Streams questions for progressive display, like `listPadsIncrementally`: page 1
     /// arrives after a single round-trip, then larger cumulative snapshots until the full
     /// list is in. With `updated_at,desc` the first page is already the top of the list.
-    func listQuestionsIncrementally(sort: String? = "updated_at,desc") -> AsyncThrowingStream<[Question], Error> {
+    func listQuestionsIncrementally(sort: String? = "updated_at,desc") -> AsyncThrowingStream<[Question], any Error> {
         rest.streamAllPages(QuestionsPage.self, path: "/api/questions/", sort: sort)
     }
 
