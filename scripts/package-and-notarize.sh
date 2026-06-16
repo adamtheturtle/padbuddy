@@ -52,8 +52,12 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 ENTITLEMENTS="${ENTITLEMENTS:-$REPO_ROOT/coderpad/coderpad.entitlements}"
 [ -f "$ENTITLEMENTS" ] || die "entitlements not found: $ENTITLEMENTS"
 
-# Embedded app extensions (.appex) carry their own entitlements (the widget's
-# app-group) and must be re-signed with them — a plain re-sign would strip them.
+# Embedded app extensions (.appex) carry their own entitlements (App Sandbox +
+# the widget's app-group) and must be re-signed with them — a plain re-sign, or
+# one with an entitlements file that omits a key, would strip it. The file must
+# therefore list every entitlement the widget needs, including
+# com.apple.security.app-sandbox (which Xcode otherwise synthesizes from
+# ENABLE_APP_SANDBOX at build time and which Gatekeeper expects on plug-ins).
 WIDGET_ENTITLEMENTS="${WIDGET_ENTITLEMENTS:-$REPO_ROOT/RecentPadsWidgetExtension.entitlements}"
 
 APP_NAME="$(basename "$APP" .app)"
@@ -83,8 +87,8 @@ done < <(
 # App extensions (.appex) come after the frameworks/dylibs nested inside them
 # (signed above, deepest-first) but before the outer app. Each must be
 # Developer-ID signed with Hardened Runtime + a timestamp AND keep its own
-# entitlements; a plain re-sign would drop the widget's app-group. The outer
-# `codesign "$APP"` below does NOT re-sign nested .appex bundles, and
+# entitlements; a plain re-sign would drop the widget's App Sandbox + app-group.
+# The outer `codesign "$APP"` below does NOT re-sign nested .appex bundles, and
 # `codesign --verify` passes on an ad-hoc-signed appex — so a missed appex only
 # surfaces when the notary service rejects it.
 while IFS= read -r -d '' appex; do
