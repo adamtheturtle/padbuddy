@@ -61,7 +61,10 @@ jobs:
       - name: Locate built app
         id: app
         run: |
-          APP="$(find DerivedData/Build/Products/Release -maxdepth 1 -name 'coderpad.app' -print -quit)"
+          # Match by extension, not a hard-coded name: the product is CoderPad.app
+          # (PRODUCT_NAME=CoderPad), and `find -name` is case-sensitive even on a
+          # case-insensitive filesystem, so 'coderpad.app' would never match.
+          APP="$(find DerivedData/Build/Products/Release -maxdepth 1 -name '*.app' -print -quit)"
           test -n "$APP" || { echo "Built app not found"; exit 1; }
           echo "path=$APP" >> "$GITHUB_OUTPUT"
 

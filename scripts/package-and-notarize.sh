@@ -74,9 +74,28 @@ sign() {
     --sign "$SIGNING_IDENTITY" "$@"
 }
 
+# True if the path contains at least one Mach-O file — i.e. actual code that
+# must be Developer-ID signed. Resource-only bundles (e.g. an SPM
+# `<pkg>_<target>.bundle` carrying fonts/plists) contain none: they get sealed
+# into their containing bundle's signature when that is signed, and codesign
+# refuses to sign ones that lack an Info.plist ("bundle format unrecognized").
+contains_macho() {
+  find "$1" -type f -exec file {} + 2>/dev/null | grep -q 'Mach-O'
+}
+
 echo "==> Signing nested code in $APP"
 # Frameworks, dylibs, and any embedded helper executables, deepest path first.
+# Frameworks and dylibs are always code; a .bundle only needs its own signature
+# when it actually contains a Mach-O (a loadable bundle).
 while IFS= read -r -d '' nested; do
+  case "$nested" in
+  *.bundle)
+    if ! contains_macho "$nested"; then
+      echo "    skip (resources only): ${nested#"$APP"/}"
+      continue
+    fi
+    ;;
+  esac
   echo "    sign: ${nested#"$APP"/}"
   sign "$nested"
 done < <(
