@@ -340,18 +340,35 @@ struct MainSplit: View {
         detailQuestion = questionSelection
     }
 
+    /// True when the OS has forced the window narrower than its honest drag floor
+    /// (``windowMinWidth``) — only reachable via Split View, tiling, Stage Manager, or a
+    /// small/scaled display, since the `NSWindow`'s `contentMinSize` stops a free drag at
+    /// the floor. When it is, the column minimums relax (below) so the split compresses to
+    /// the available width instead of overflowing and clipping its leading edge — the list
+    /// and filter bar that otherwise vanish past the window's left edge.
+    private var isBelowWindowFloor: Bool {
+        containerWidth > 0 && containerWidth < windowMinWidth
+    }
+
     /// The content column's effective minimum width. Relaxes to
     /// ``narrowOverrideColumnMin`` while the user is keeping the sidebar open in a
-    /// too-narrow window (#307), so the sidebar has room to slide fully open instead
-    /// of being pinned shut by this column's normal floor.
+    /// too-narrow window (#307), or whenever the OS has squeezed the window below the
+    /// drag floor (``isBelowWindowFloor``), so the columns shrink to fit rather than
+    /// clip — in the first case to free room for the sidebar, in the second to fit the
+    /// whole split into a width smaller than the columns' normal minimums would allow.
     private var effectiveContentMinWidth: CGFloat {
-        keepSidebarWhileNarrow ? min(Self.narrowOverrideColumnMin, contentMinWidth) : contentMinWidth
+        (keepSidebarWhileNarrow || isBelowWindowFloor)
+            ? min(Self.narrowOverrideColumnMin, contentMinWidth)
+            : contentMinWidth
     }
 
     /// The detail column's effective minimum width. Relaxes alongside the content
-    /// column while the sidebar is kept open in a too-narrow window (#307).
+    /// column while the sidebar is kept open in a too-narrow window (#307) or the OS has
+    /// squeezed the window below the drag floor (``isBelowWindowFloor``).
     private var effectiveDetailMinWidth: CGFloat {
-        keepSidebarWhileNarrow ? min(Self.narrowOverrideColumnMin, Self.detailMinWidth) : Self.detailMinWidth
+        (keepSidebarWhileNarrow || isBelowWindowFloor)
+            ? min(Self.narrowOverrideColumnMin, Self.detailMinWidth)
+            : Self.detailMinWidth
     }
 
     /// Pads and Questions drive a detail pane; Organization and Quota are
@@ -448,25 +465,30 @@ struct MainSplit: View {
                     twoColumnSplit
                 }
             }
-            // Floor the layout at the active section's needs; the width-driven
-            // auto-collapse hides the sidebar between here and `sidebarVisibleFloor`.
-            .frame(minWidth: windowMinWidth)
-            // Observe the container width without disturbing layout (a background
-            // reader, not a wrapping GeometryReader, so the frame min still
-            // propagates to the window). Drives the sidebar's auto-collapse.
-            .background(
-                GeometryReader { proxy in
-                    Color.clear
-                        .onChange(of: proxy.size.width, initial: true) { _, width in
-                            containerWidth = width
-                        }
-                }
-            )
-            // Pin the floor on the host window itself, since `.frame(minWidth:)`
-            // doesn't reliably reach the window's `contentMinSize` from inside a
-            // NavigationSplitView. Keyed off the section (constant during a drag),
-            // so it never crushes the panes and never forces a single column.
-            .background(WindowMinWidth(width: windowMinWidth))
+            // Floor the layout at the active section's needs so a free drag can't
+            // crush the columns — but only while the window is at or above that floor.
+            // The moment the *OS* forces the window below it (Split View, tiling, Stage
+            // Manager, a small/scaled display — none of which honor `contentMinSize`),
+            // drop the floor (`minWidth: nil`) so the content takes the window's true
+            // width instead of staying oversized and *centering*, which bled the list
+            // and filter bar off the leading edge and the detail off the trailing. The
+            // relaxed column minimums (`effective*MinWidth`) then let the split compress
+            // toward the window. `NavigationSplitView` still keeps a sizable intrinsic
+            // minimum it won't shrink past, so when the OS tile is narrower than even that,
+            // `maxWidth: .infinity` + `.leading` pins the split's leading edge to the
+            // window so the residual overflow falls off the *trailing* (detail) edge —
+            // keeping the list and filter bar readable instead of bleeding off the left.
+            .frame(minWidth: isBelowWindowFloor ? nil : windowMinWidth,
+                   maxWidth: .infinity, alignment: .leading)
+            // Pin the drag floor on the host window itself, since `.frame(minWidth:)`
+            // alone doesn't reliably reach the window's `contentMinSize` from inside a
+            // NavigationSplitView. This view also reports the window's *true* content
+            // width back into `containerWidth` (driving the sidebar auto-collapse and the
+            // below-floor detection): a SwiftUI reader here would only ever see the
+            // floored frame width and never notice the OS squeezing the window narrower.
+            .background(WindowMinWidth(width: windowMinWidth) { width in
+                if containerWidth != width { containerWidth = width }
+            })
             // Suppress AppKit's sidebar/content tracking-separator line while the
             // sidebar is collapsed — with no sidebar divider to track it draws a stray
             // vertical line right after the leading actions (#337).
@@ -626,7 +648,11 @@ struct MainSplit: View {
             .onPreferenceChange(SectionCountKey.self) { sectionCount = $0 }
             .navigationSplitViewColumnWidth(
                 min: effectiveContentMinWidth,
-                ideal: max(480, contentMinWidth),
+                // `NavigationSplitView` sizes its own minimum off the columns' *ideal*
+                // widths, not their `min`s, so below the floor the ideal has to collapse
+                // too — otherwise the split stays ~1000pt wide and overflows (clipping)
+                // a window the OS has squeezed narrower, no matter how low the `min` is.
+                ideal: isBelowWindowFloor ? effectiveContentMinWidth : max(480, contentMinWidth),
                 max: max(760, contentMinWidth)
             )
         } detail: {
@@ -637,7 +663,10 @@ struct MainSplit: View {
                 padSelection: $detailPad,
                 questionSelection: $detailQuestion
             )
-            .navigationSplitViewColumnWidth(min: effectiveDetailMinWidth, ideal: 520)
+            .navigationSplitViewColumnWidth(
+                min: effectiveDetailMinWidth,
+                ideal: isBelowWindowFloor ? effectiveDetailMinWidth : 520
+            )
         }
         // Attach search to the whole split rather than a single column. The system
         // then hosts it as one search item pinned at the window's top-right (the
@@ -703,42 +732,105 @@ struct SessionKey: Hashable {
     let merged: Bool
 }
 
-/// Pins the host window's minimum content width. SwiftUI's `.frame(minWidth:)`
-/// doesn't reliably propagate from inside a `NavigationSplitView` to the window's
-/// `contentMinSize`, so without this the split can be dragged narrow enough to
-/// crush or overlap its columns. A single floor (set by the caller per section);
-/// the sidebar's width-driven auto-collapse handles narrowing above it.
+/// Pins the host window's minimum content width and reports the window's *true*
+/// content width back to SwiftUI. SwiftUI's `.frame(minWidth:)` doesn't reliably
+/// propagate from inside a `NavigationSplitView` to the window's `contentMinSize`,
+/// so without the floor here the split can be dragged narrow enough to crush or
+/// overlap its columns. The width report exists because the OS (Split View, tiling,
+/// Stage Manager) can shrink a window *below* `contentMinSize`, and SwiftUI's own
+/// width readers sit inside the floored frame — so only a value read straight off
+/// the `NSWindow` reveals how narrow the window has actually become.
 private struct WindowMinWidth: NSViewRepresentable {
     let width: CGFloat
+    /// Reports the window's current content width (the live `NSWindow` value, not the
+    /// floored SwiftUI frame). Called on attach and on every window resize.
+    let onContentWidth: (CGFloat) -> Void
+
+    func makeCoordinator() -> Coordinator { Coordinator() }
 
     func makeNSView(context: Context) -> NSView {
         let view = NSView()
-        apply(from: view)
+        apply(from: view, coordinator: context.coordinator)
         return view
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {
-        apply(from: nsView)
+        apply(from: nsView, coordinator: context.coordinator)
+    }
+
+    static func dismantleNSView(_ nsView: NSView, coordinator: Coordinator) {
+        coordinator.stopObserving()
     }
 
     /// Deferred to the next runloop turn: at make/update time the view isn't in a
-    /// window yet and the content size is still settling. The width is constant for
-    /// a given section, so this only runs on section change — never mid-drag — which
-    /// keeps the floor from ever lagging behind a live resize.
-    private func apply(from view: NSView) {
+    /// window yet and the content size is still settling. Always (re)attaches the resize
+    /// observer, reports the current width, and pins `contentMinSize` (cheap, and during
+    /// an OS tile it just sets a constraint the OS ignores rather than resizing — so it
+    /// keeps the drag floor honest for when the tile ends). Only the *grow* is gated to
+    /// an actual floor change (a section switch): the closure prop makes `updateNSView`
+    /// fire on every render, and growing on a resize-driven update would yank a
+    /// just-narrowed (OS-tiled) window straight back to the floor, fighting the tile.
+    private func apply(from view: NSView, coordinator: Coordinator) {
         let target = width
+        let report = onContentWidth
         DispatchQueue.main.async {
             guard let window = view.window else { return }
+            coordinator.observe(window, report: report)
+            coordinator.report()
             if window.contentMinSize.width != target {
                 window.contentMinSize.width = target
             }
             // Raising the floor (e.g. switching to a section with a wider minimum)
             // doesn't resize an already-narrower window, so grow the content back out
-            // to honor it. Only ever grows, never shrinks, so it can't fight a user
-            // dragging narrower.
+            // to honor it — but only on the floor change itself, never on a resize-driven
+            // re-render. Only ever grows, never shrinks, so it can't fight a user drag.
+            guard coordinator.applyFloorIfNeeded(target) else { return }
             if let content = window.contentView, content.frame.width < target {
                 window.setContentSize(NSSize(width: target, height: content.frame.height))
             }
+        }
+    }
+
+    /// Observes the host window's resizes and forwards its content width. The window
+    /// emits `didResizeNotification` for OS-driven squeezes (tiling/Split View) the
+    /// same as for user drags, so this catches the narrowing that `contentMinSize`
+    /// can't prevent.
+    final class Coordinator {
+        private weak var window: NSWindow?
+        private var forward: ((CGFloat) -> Void)?
+        private var observer: NSObjectProtocol?
+        private var appliedTarget: CGFloat?
+
+        /// Returns true (and records the value) only when `target` differs from the
+        /// last-applied floor, so the caller pins `contentMinSize`/grows the window on a
+        /// section switch but not on the frequent closure-driven re-renders.
+        func applyFloorIfNeeded(_ target: CGFloat) -> Bool {
+            guard appliedTarget != target else { return false }
+            appliedTarget = target
+            return true
+        }
+
+        func observe(_ window: NSWindow, report: @escaping (CGFloat) -> Void) {
+            forward = report
+            guard self.window !== window else { return }
+            stopObserving()
+            self.window = window
+            observer = NotificationCenter.default.addObserver(
+                forName: NSWindow.didResizeNotification,
+                object: window,
+                queue: .main
+            ) { [weak self] _ in self?.report() }
+        }
+
+        func report() {
+            guard let width = window?.contentView?.frame.width else { return }
+            forward?(width)
+        }
+
+        func stopObserving() {
+            if let observer { NotificationCenter.default.removeObserver(observer) }
+            observer = nil
+            window = nil
         }
     }
 }
