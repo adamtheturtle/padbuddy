@@ -9,6 +9,9 @@ import UniformTypeIdentifiers
 struct Sidebar: View {
     @Binding var section: AppSection
     @Environment(\.colorScheme) private var colorScheme
+    // Native sidebar rows desaturate when their window stops being the active one;
+    // the custom unlimited-quota row has to read this state to dim in step (#347).
+    @Environment(\.controlActiveState) private var controlActiveState
     @State private var accounts = AccountsStore.shared
     @State private var savedSearches = SavedSearchStore.shared
     @State private var favorites = FavoriteQuestionsStore.shared
@@ -122,6 +125,11 @@ struct Sidebar: View {
         }
         .font(.body)
         .padding(.vertical, 7)
+        // The framework dims native list rows when the window isn't the active one;
+        // this hand-built row paints its own `.secondary` colors that wouldn't follow,
+        // so it would stay fully prominent while every neighbour greyed out (#347).
+        // Matching the native inactive treatment keeps the sidebar reading as one piece.
+        .opacity(controlActiveState == .inactive ? 0.5 : 1)
         .help("Your plan has unlimited pads.")
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Quota, unlimited plan")
