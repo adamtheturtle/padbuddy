@@ -42,18 +42,24 @@ struct SectionContent: View {
     /// Questions into one list; Organization into an aggregate-plus-breakdown
     /// overview; and Quota into a per-account stack (quota numbers are per-org, so
     /// they're shown side by side rather than summed).
-    @ViewBuilder
     private var mergedContent: some View {
-        switch section {
-        case .pads:
-            MergedPadsView(selection: $padSelection, search: $padSearch).id("merged-pads")
-        case .questions:
-            MergedQuestionsView(selection: $questionSelection, search: $questionSearch).id("merged-questions")
-        case .organization:
-            MergedOrganizationView().id("merged-organization")
-        case .quota:
-            MergedQuotaView().id("merged-quota")
+        // One `.id()` on the whole switch rather than per case: each section still gets a
+        // distinct, stable identity ("merged-<section>"), so switching sections recreates
+        // the view as before — but the four branches no longer each carry a modifier,
+        // which keeps this getter's type-check comfortably under the limit.
+        Group {
+            switch section {
+            case .pads:
+                MergedPadsView(selection: $padSelection, search: $padSearch)
+            case .questions:
+                MergedQuestionsView(selection: $questionSelection, search: $questionSearch)
+            case .organization:
+                MergedOrganizationView()
+            case .quota:
+                MergedQuotaView()
+            }
         }
+        .id("merged-\(section.rawValue)")
     }
 }
 

@@ -102,10 +102,25 @@ struct MergedPadsView: View {
     }
 }
 
-/// Memo holding the merged list's filtered rows for one render, mirroring
-/// `FilteredPadsCache` in `PadsView`.
+/// Memo holding the merged list's filtered rows, mirroring `FilteredPadsCache` in
+/// `PadsView`. Keyed so a selection-only body pass — a row click re-runs `body`
+/// several times via the `selectedIDs → selectedID → selection` cascade — reuses the
+/// cached rows instead of re-running the O(n) cross-account filter each time, which is
+/// what made clicking a row slow on a large merged list (the merged counterpart of
+/// the single-account fix in #395).
 final class FilteredScopedPadsCache {
     var rows: [AccountScoped<Pad>] = []
+    var key: Key?
+
+    struct Key: Equatable {
+        /// The signature of the memoized `scoped` rows this filter ran over, so a real
+        /// data change (handled by `refreshScoped()`) invalidates the filter too.
+        let scopedSignature: Int
+        let filterSignature: String
+        /// Owner display names feed the search predicate, so a directory that finishes
+        /// loading after the list must re-filter. Its entry count is a cheap proxy.
+        let directoryCount: Int
+    }
 }
 
 /// Memo holding the merged list's sorted cross-account rows and chip-option lists,
