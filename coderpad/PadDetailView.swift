@@ -374,12 +374,21 @@ extension PadDetailView {
     }
 
     private func loadEnvironments() async -> [PadEnvironment] {
-        var result: [PadEnvironment] = []
-        for id in pad.padEnvironmentIDs {
-            if let env = try? await client.padEnvironment(id: id) {
-                result.append(env)
+        // Fan the per-id fetches out concurrently rather than awaiting each in turn,
+        // so an N-environment pad pays ~1×RTT instead of N×RTT before its code
+        // preview appears (#371). Order is restored by id afterward, since task
+        // groups yield results as they finish.
+        let environments = await withTaskGroup(of: PadEnvironment?.self) { group in
+            for id in pad.padEnvironmentIDs {
+                group.addTask { try? await client.padEnvironment(id: id) }
             }
+            var collected: [PadEnvironment] = []
+            for await env in group {
+                if let env { collected.append(env) }
+            }
+            return collected
         }
-        return result
+        let order = Dictionary(uniqueKeysWithValues: pad.padEnvironmentIDs.enumerated().map { ($1, $0) })
+        return environments.sorted { (order[$0.id] ?? 0) < (order[$1.id] ?? 0) }
     }
 }
