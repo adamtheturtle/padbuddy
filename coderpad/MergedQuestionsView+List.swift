@@ -49,6 +49,12 @@ extension MergedQuestionsView {
             .onChange(of: selectedRowIDs) { previous, current in
                 let primary = MultiSelectLogic.primaryID(previous: previous, current: current)
                 if selectedRowID != primary { selectedRowID = primary }
+                // Bridge to the detail-pane selection and persist in the same pass rather
+                // than via a separate `onChange(selectedRowID)`: each extra state write
+                // re-runs `body` and rebuilds the list's prepared rows, so collapsing the
+                // cascade removes a full rebuild per click on a large list (PadsView fix).
+                selectRow(primary)
+                Task { @MainActor in persistSelectedRow() }
             }
             // A favourite tapped in the merged sidebar arrives here with its account,
             // so it selects the right row even when two orgs share a per-org id. Cleared
@@ -71,11 +77,6 @@ extension MergedQuestionsView {
 
                 nav.mergedQuestionsMineRequest = nil
                 if mineOnly != request { mineOnly = request }
-            }
-            .onChange(of: selectedRowID) { _, newID in
-                selectRow(newID)
-                // Remember the open question so the merged list reopens to it next launch.
-                persistSelectedRow()
             }
             .task {
                 for await update in AppRouter.questionUpdates {

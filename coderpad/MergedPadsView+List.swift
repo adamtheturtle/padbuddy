@@ -44,6 +44,14 @@ extension MergedPadsView {
             .onChange(of: selectedIDs) { previous, current in
                 let primary = MultiSelectLogic.primaryID(previous: previous, current: current)
                 if selectedID != primary { selectedID = primary }
+                // Resolve the detail-pane `Pad` and persist in the same pass rather than via
+                // a separate `onChange(selectedID)`: each extra state write re-runs `body`
+                // and rebuilds the list's prepared rows, so collapsing the cascade removes a
+                // full rebuild per click on a large merged list (mirrors the PadsView fix).
+                if selection?.id != primary {
+                    selection = primary.flatMap { id in pad(forID: id) }
+                }
+                Task { @MainActor in persistSelectedPad() }
             }
             // Keep the sidebar's "My Pads" row in sync with this list's "Mine"
             // preset: publish the live state (so the highlight is honest however
@@ -68,16 +76,12 @@ extension MergedPadsView {
                 router.pendingFavoritePadID = nil
                 selectedIDs = [id]
             }
-            .onChange(of: selectedID) { _, newID in
-                if selection?.id != newID {
-                    selection = newID.flatMap { id in pad(forID: id) }
-                }
-                // Remember the open pad so the merged list reopens to it next launch.
-                persistSelectedPad()
-            }
             .onChange(of: selection) { _, newValue in
+                // Deferred off the click's synchronous path: `markOpened` mutates the shared
+                // Observable open-history store every row reads, so doing it inline rebuilds
+                // the whole list during the selection.
                 if let newValue, let account = router.account(forPadID: newValue.id)?.id {
-                    openedStore.markOpened(newValue.id, account: account)
+                    Task { @MainActor in openedStore.markOpened(newValue.id, account: account) }
                 }
                 if selectedID != newValue?.id { selectedID = newValue?.id }
             }

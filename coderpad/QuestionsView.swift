@@ -225,16 +225,21 @@ struct QuestionsView: View {
             .onChange(of: selectedQuestionIDs) { previous, current in
                 let primary = MultiSelectLogic.primaryID(previous: previous, current: current)
                 if selectedQuestionID != primary { selectedQuestionID = primary }
-            }
-            // Bridge the lightweight list selection (`selectedQuestionID`) to the
-            // `Question` binding the detail pane reads. Each side writes only when the
-            // id truly differs, so the two `onChange`s can't ping-pong.
-            .onChange(of: selectedQuestionID) { _, newID in
-                if selection?.id != newID {
-                    selection = newID.flatMap { id in questions.first { $0.id == id } }
+                // Resolve the detail-pane `Question` in the same pass rather than via a
+                // second `onChange(selectedQuestionID)`. A click re-runs `body` once per
+                // state write, and each pass rebuilds the list's prepared rows — so
+                // collapsing selectedQuestionIDs → selectedQuestionID → selection into one
+                // update removes a full list rebuild per click on a large list (mirrors the
+                // PadsView fix). `selectedQuestionID` is only ever derived here or from an
+                // external `selection` change (below), so no separate writer needs a bridge.
+                if selection?.id != primary {
+                    selection = primary.flatMap { id in questions.first { $0.id == id } }
                 }
-                // Remember the open question per account so it reopens next launch.
-                persistSelectedQuestion()
+                // Remember the open question per account so it reopens next launch. Deferred
+                // off the click's synchronous path: it writes UserDefaults, and a UserDefaults
+                // change re-reads the @AppStorage-backed sort mid-update, which re-invalidated
+                // the whole list (an extra full rebuild) on every click.
+                Task { @MainActor in persistSelectedQuestion() }
             }
             .onChange(of: selection) { _, newValue in
                 if selectedQuestionID != newValue?.id { selectedQuestionID = newValue?.id }
