@@ -54,19 +54,24 @@ extension View {
     /// chips have always used. The filter bar sits in the control layer above the
     /// list content, so glass here matches Apple's guidance even though dense
     /// *content*-layer surfaces (cards, list rows, badges) still keep flat material.
+    ///
+    /// `shape` defaults to a `Capsule` (the filter chips' pill); the saved-search
+    /// chips pass a rounded rectangle so the two chip families read as visibly
+    /// different controls — recall "tokens" versus filter "pills" (#405).
     @ViewBuilder
     func chipCapsule(
         glassTint: Color?,
         fallbackFill: some ShapeStyle,
         fallbackStroke: Color,
-        fallbackStrokeWidth: CGFloat
+        fallbackStrokeWidth: CGFloat,
+        in shape: some Shape = Capsule()
     ) -> some View {
         if #available(macOS 26, *) {
             let glass: Glass = (glassTint.map { Glass.regular.tint($0) } ?? .regular).interactive()
-            glassEffect(glass, in: Capsule())
+            glassEffect(glass, in: shape)
         } else {
-            background(fallbackFill, in: Capsule())
-                .overlay(Capsule().stroke(fallbackStroke, lineWidth: fallbackStrokeWidth))
+            background(fallbackFill, in: shape)
+                .overlay(shape.stroke(fallbackStroke, lineWidth: fallbackStrokeWidth))
         }
     }
 

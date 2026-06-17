@@ -66,6 +66,11 @@ struct SavedSearchChip: View {
 
     @State private var hovered = false
 
+    /// The token shape for saved-search chips: a rounded rectangle, deliberately
+    /// distinct from the filter chips' `Capsule`, so the recall tokens and the
+    /// filter pills are told apart at a glance regardless of accent state (#405).
+    static let tokenShape = RoundedRectangle(cornerRadius: 6, style: .continuous)
+
     /// Saved searches are *recall* buttons, not state: tapping one launches a set
     /// of filters rather than toggling a value. They stay neutral until applied, at
     /// which point the accent capsule marks "you are here" — the same accent the
@@ -131,14 +136,17 @@ struct SavedSearchChip: View {
         .padding(.horizontal, 8).padding(.vertical, 4)
         // Glass on macOS 26 (accent-tinted while applied; the interactive variant
         // supplies the hover/press response the manual fill gives on 15), opaque
-        // capsule on 15 (#352).
+        // shape on 15 (#352). A rounded *rectangle* rather than the filter chips'
+        // capsule, so saved-search recall tokens read as a distinct family from the
+        // filter pills even when both glow accent while applied (#405).
         .chipCapsule(
             glassTint: isActive ? .accentColor : nil,
             fallbackFill: fillStyle,
             fallbackStroke: strokeColor,
-            fallbackStrokeWidth: 0.5
+            fallbackStrokeWidth: 0.5,
+            in: Self.tokenShape
         )
-        .contentShape(Capsule())
+        .contentShape(Self.tokenShape)
         .onTapGesture { onApply() }
         .onHover { hovered = $0 }
         .accessibilityElement(children: .combine)
