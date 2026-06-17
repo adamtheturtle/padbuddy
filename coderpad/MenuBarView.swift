@@ -48,6 +48,10 @@ struct MenuBarView: View {
     @State private var quotaCache = QuotaCacheStore.shared
     @State var isLoading = false
     @State var errorMessage: String?
+    /// Per-render memo of the sorted pads/questions, refreshed once at the top of
+    /// `accountMenu` so the menu's several readers share one sort instead of
+    /// re-sorting the full cached lists on every access (#370).
+    @State private var listCache = MenuBarListCache()
     @AppStorage("menuBarTopN") private var topN: Int = 3
     @AppStorage("menuBarStartedOnly") var startedOnly = false
     @Environment(\.openWindow) var openWindow
@@ -59,20 +63,32 @@ struct MenuBarView: View {
         max(0, topN)
     }
 
-    /// The current account's pads, newest first, from the shared cache. Empty until
-    /// the account has ever loaded (cold cache), which is the only time the menu
-    /// shows "Loading…".
+    /// The current account's pads, newest first. Read from the per-render memo
+    /// (`refreshLists()`), so the menu's several readers don't each re-sort the
+    /// full cached list. Empty until the account has ever loaded (cold cache),
+    /// which is the only time the menu shows "Loading…".
     var pads: [Pad] {
-        guard let id = store.currentAccountID else { return [] }
-
-        return padsCache.get(id).sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
+        listCache.pads
     }
 
-    /// The current account's questions, newest first, from the shared cache.
+    /// The current account's questions, newest first, from the per-render memo.
     var questions: [Question] {
-        guard let id = store.currentAccountID else { return [] }
+        listCache.questions
+    }
 
-        return questionsCache.get(id).sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
+    /// Sort the current account's cached pads/questions once per render into
+    /// `listCache`. Mirrors the list views' memo pattern; called at the top of
+    /// `accountMenu` before any reader touches `pads`/`questions` (#370).
+    private func refreshLists() {
+        guard let id = store.currentAccountID else {
+            listCache.pads = []
+            listCache.questions = []
+            return
+        }
+
+        listCache.pads = padsCache.get(id).sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
+        listCache.questions = questionsCache.get(id)
+            .sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
     }
 
     /// The current account's cached quota, or `nil` before it has ever loaded.
@@ -90,27 +106,31 @@ struct MenuBarView: View {
 
     /// The full menu shown when an account is active. Split into the helpers below
     /// so each view builder type-checks within the long-body diagnostic budget.
-    @ViewBuilder
     private func accountMenu(account: Account) -> some View {
-        statusItems
+        // Refresh the per-render sort memo once, before any helper reads
+        // `pads`/`questions` (#370).
+        refreshLists()
+        return Group {
+            statusItems
 
-        newPadItems(account: account)
+            newPadItems(account: account)
 
-        Divider()
+            Divider()
 
-        myPadsItems(account: account)
+            myPadsItems(account: account)
 
-        Divider()
+            Divider()
 
-        recentMenus
+            recentMenus
 
-        Divider()
+            Divider()
 
-        navigationItems(account: account)
+            navigationItems(account: account)
 
-        Divider()
+            Divider()
 
-        helpAndQuitItems
+            helpAndQuitItems
+        }
     }
 
     /// Offline and unseen-change banners shown at the top of the menu.
@@ -312,4 +332,12 @@ struct MenuBarView: View {
 
         helpAndQuitItems
     }
+}
+
+/// Per-render memo of the menu bar's sorted pads/questions. A plain reference type
+/// (not `@Observable`) so `accountMenu` can refresh it without mutating SwiftUI
+/// state mid-evaluation, mirroring the list views' filtered/sorted caches (#370).
+final class MenuBarListCache {
+    var pads: [Pad] = []
+    var questions: [Question] = []
 }

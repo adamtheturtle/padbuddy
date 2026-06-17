@@ -107,8 +107,12 @@ extension MenuBarView {
         defer { isLoading = false }
         let client = account.makeClient()
         do {
-            async let padsTask = client.listPads()
-            async let qsTask = client.listQuestions()
+            // Use the same "updated_at,desc" sort as every other loader writing into
+            // these shared caches (background refresher, list views): a different sort
+            // would re-order the shared cache and make a subsequent list view re-sort
+            // or refetch (#370).
+            async let padsTask = client.listPads(sort: "updated_at,desc")
+            async let qsTask = client.listQuestions(sort: "updated_at,desc")
             async let quotaTask = client.quota()
             // Write fetched results straight into the shared caches (no clearing
             // first): the menu — and every other view reading these stores — keeps
