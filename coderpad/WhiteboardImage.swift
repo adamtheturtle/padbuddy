@@ -103,7 +103,18 @@ struct WhiteboardImage: View {
 final class WhiteboardImageCache {
     static let shared = WhiteboardImageCache()
 
-    private var memory: [String: NSImage] = [:]
+    // Decoded, downsampled thumbnails. Each is a few MB of uncompressed bitmap, so an
+    // uncapped map grew without bound across a long session of viewing whiteboards
+    // (#422, a cause of #418). NSCache bounds it by count and also evicts automatically
+    // under memory pressure — the idiomatic fit for a decoded-image cache.
+    // swiftlint:disable:next legacy_objc_type
+    private let memory: NSCache<NSString, NSImage> = {
+        // swiftlint:disable:next legacy_objc_type
+        let cache = NSCache<NSString, NSImage>()
+        cache.countLimit = 32
+        return cache
+    }()
+
     let session: URLSession
 
     private init() {
@@ -119,11 +130,13 @@ final class WhiteboardImageCache {
     }
 
     func image(forKey key: String) -> NSImage? {
-        memory[key]
+        // swiftlint:disable:next legacy_objc_type
+        memory.object(forKey: key as NSString)
     }
 
     func store(_ image: NSImage, forKey key: String) {
-        memory[key] = image
+        // swiftlint:disable:next legacy_objc_type
+        memory.setObject(image, forKey: key as NSString)
     }
 
     /// A box so the immutable, freshly decoded image can cross the actor boundary
