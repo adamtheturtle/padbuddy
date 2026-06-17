@@ -162,6 +162,10 @@ extension MergedQuestionsView {
         router.selectedQuestionAccountID = scopedRow.account.id
         selection = scopedRow.item
         selectedRowID = scopedRow.id
+        // Also move the List's own selection (the highlight) to this row, so a
+        // context-menu action on an unselected row doesn't leave the visible
+        // highlight pointing at a different row than the action targets.
+        selectedRowIDs = [scopedRow.id]
     }
 
     // MARK: - Options
