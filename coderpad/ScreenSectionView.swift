@@ -22,6 +22,7 @@ struct ScreenCampaignsView: View {
     @State private var isLoading = false
     @State private var loadError: String?
     @State private var showArchived = false
+    @State private var showWebhook = false
     /// The campaigns → tests drill-down path. Campaigns and tests share this middle
     /// column via push navigation; the detail (third) column shows the selected test's
     /// report (#434). One level deep — a campaign pushes its tests list.
@@ -49,6 +50,12 @@ struct ScreenCampaignsView: View {
                     .help("Include archived campaigns in the list.")
                 }
                 ToolbarItem {
+                    Button { showWebhook = true } label: {
+                        Label("Webhook", systemImage: "bolt.horizontal")
+                    }
+                    .help("View or configure the Screen event webhook.")
+                }
+                ToolbarItem {
                     Button { Task { await load() } } label: {
                         Label("Reload", systemImage: "arrow.clockwise")
                     }
@@ -56,6 +63,9 @@ struct ScreenCampaignsView: View {
                     .disabled(isLoading)
                 }
             }
+        }
+        .sheet(isPresented: $showWebhook) {
+            ScreenWebhookSheet(client: client)
         }
         .task(id: client.apiKey) { await load() }
         // Reload on ⌘R like the other lists (AppRouter.requestReload()).
