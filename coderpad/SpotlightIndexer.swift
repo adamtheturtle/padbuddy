@@ -31,6 +31,16 @@ enum SpotlightIndexer {
         account.uuidString
     }
 
+    /// A question's Spotlight identifier. Question ids are numbered *per org* and
+    /// collide across accounts, while `uniqueIdentifier` is a global key — so it's
+    /// namespaced with the account UUID (`question:<uuid>:<id>`). Without this,
+    /// indexing one account's question overwrites another's same-id entry, and a
+    /// single-account delete removes the other account's item too (#378). (Pads use
+    /// global slug ids, so they need no such namespacing.)
+    private static func questionIdentifier(id: Int, account: UUID) -> String {
+        "\(questionPrefix)\(account.uuidString):\(id)"
+    }
+
     /// Indexes (or re-indexes) the account's pads. No-op unless the user enabled it.
     static func updatePads(_ pads: [Pad], account: UUID) {
         guard GeneralSettings.spotlightIndexing else { return }
@@ -56,7 +66,7 @@ enum SpotlightIndexer {
             attrs.title = question.title.isEmpty ? "#\(question.id)" : question.title
             attrs.contentDescription = [question.language, question.authorName]
                 .compactMap(\.self).filter { !$0.isEmpty }.joined(separator: " · ")
-            return CSSearchableItem(uniqueIdentifier: questionPrefix + String(question.id),
+            return CSSearchableItem(uniqueIdentifier: questionIdentifier(id: question.id, account: account),
                                     domainIdentifier: domain(account),
                                     attributeSet: attrs)
         }
@@ -100,7 +110,7 @@ enum SpotlightIndexer {
                 attrs.contentDescription = [question.language, question.authorName]
                     .compactMap(\.self).filter { !$0.isEmpty }.joined(separator: " · ")
                 attrs.keywords = keywords
-                let item = CSSearchableItem(uniqueIdentifier: questionPrefix + String(question.id),
+                let item = CSSearchableItem(uniqueIdentifier: questionIdentifier(id: question.id, account: account),
                                             domainIdentifier: domain(account),
                                             attributeSet: attrs)
                 index([item])
@@ -120,9 +130,12 @@ enum SpotlightIndexer {
         CSSearchableIndex.default().deleteSearchableItems(withIdentifiers: [padPrefix + id])
     }
 
-    /// Removes a single question from the index (e.g. when it's deleted).
-    static func removeQuestion(id: Int) {
-        CSSearchableIndex.default().deleteSearchableItems(withIdentifiers: [questionPrefix + String(id)])
+    /// Removes a single question from the index (e.g. when it's deleted). Scoped to
+    /// the owning account so a delete in one account can't drop another account's
+    /// same-id question from system search (#378).
+    static func removeQuestion(id: Int, account: UUID) {
+        CSSearchableIndex.default()
+            .deleteSearchableItems(withIdentifiers: [questionIdentifier(id: id, account: account)])
     }
 
     /// Clears everything this app indexed — used when the user turns the feature off.
@@ -150,11 +163,18 @@ enum SpotlightIndexer {
         id.hasPrefix(questionPrefix)
     }
 
-    /// The question id encoded in a Spotlight result identifier, or `nil` if it
-    /// isn't a question.
-    static func questionID(fromItemIdentifier id: String) -> Int? {
+    /// The account and question id encoded in a Spotlight result identifier, or
+    /// `nil` if it isn't a (namespaced) question. Carrying the account lets the tap
+    /// handler open the question in the right org rather than a colliding id in
+    /// whichever account happens to be current (#378).
+    static func questionRef(fromItemIdentifier id: String) -> (account: UUID, id: Int)? {
         guard id.hasPrefix(questionPrefix) else { return nil }
 
-        return Int(id.dropFirst(questionPrefix.count))
+        let body = id.dropFirst(questionPrefix.count)
+        guard let separator = body.firstIndex(of: ":"),
+              let account = UUID(uuidString: String(body[..<separator])),
+              let questionID = Int(body[body.index(after: separator)...]) else { return nil }
+
+        return (account, questionID)
     }
 }

@@ -121,8 +121,14 @@ struct CoderpadApp: App {
 
                     if let padID = SpotlightIndexer.padID(fromItemIdentifier: id) {
                         AppNavigation.shared.openPad(id: padID)
-                    } else if let questionID = SpotlightIndexer.questionID(fromItemIdentifier: id) {
-                        AppNavigation.shared.showFavoriteQuestion(id: questionID)
+                    } else if let ref = SpotlightIndexer.questionRef(fromItemIdentifier: id) {
+                        // Switch to the owning account first so the right org's
+                        // question is selected — per-org ids collide across accounts (#378).
+                        // Only if it still exists; a removed account's items are cleared too.
+                        if AccountsStore.shared.accounts.contains(where: { $0.id == ref.account }) {
+                            AccountsStore.shared.currentAccountID = ref.account
+                        }
+                        AppNavigation.shared.showFavoriteQuestion(id: ref.id)
                     }
                 }
                 // Open a pad tapped in the Recent Pads widget (coderpad://pad/<id>).

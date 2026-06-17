@@ -188,12 +188,14 @@ final class QuestionsCacheStore {
     /// owning `account` is known only that account is touched; otherwise every
     /// account holding the id is updated (the prior, id-only behavior).
     func removeQuestion(id questionID: Int, account: UUID? = nil) {
-        SpotlightIndexer.removeQuestion(id: questionID)
         let targets = account.map { [$0] } ?? Array(questionsByAccount.keys)
         for accountID in targets {
             guard let questions = questionsByAccount[accountID],
                   questions.contains(where: { $0.id == questionID }) else { continue }
 
+            // Spotlight identifiers are namespaced per account (#378), so remove
+            // from the index inside the loop — once per account that holds the id.
+            SpotlightIndexer.removeQuestion(id: questionID, account: accountID)
             let reduced = questions.filter { $0.id != questionID }
             questionsByAccount[accountID] = reduced
             writeQueue.enqueue {

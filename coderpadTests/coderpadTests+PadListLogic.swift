@@ -211,6 +211,18 @@ struct SpotlightIndexerTests {
         #expect(SpotlightIndexer.isQuestion(itemIdentifier: "question:42"))
         #expect(!SpotlightIndexer.isQuestion(itemIdentifier: "pad:ABC123"))
     }
+
+    @Test
+    func `a question identifier round-trips its account and id`() {
+        let account = UUID()
+        let identifier = "question:\(account.uuidString):42"
+        let ref = SpotlightIndexer.questionRef(fromItemIdentifier: identifier)
+        #expect(ref?.account == account)
+        #expect(ref?.id == 42)
+        // A pad identifier, or a legacy un-namespaced question id, isn't a valid ref.
+        #expect(SpotlightIndexer.questionRef(fromItemIdentifier: "pad:ABC123") == nil)
+        #expect(SpotlightIndexer.questionRef(fromItemIdentifier: "question:42") == nil)
+    }
 }
 
 @Suite("Pad event grouping")
