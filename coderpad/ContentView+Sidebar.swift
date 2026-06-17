@@ -144,15 +144,14 @@ struct Sidebar: View {
     /// menus, and be dragged — and they don't feed `SidebarRowWidthKey`, so long names
     /// truncate instead of widening the column. `isSelected` marks the row whose search
     /// is currently applied, so the sidebar shows one honest "you are here" across groups.
-    func sidebarSubRow(label: String, icon: String, iconTint: Color = .secondary,
+    func sidebarSubRow(label: String, icon: String, iconTint: Color = .accentColor,
                        isSelected: Bool = false,
                        action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .imageScale(.medium)
-                    .foregroundStyle(isSelected ? Color.accentColor : iconTint)
-                    .accessibilityHidden(true)
+                // A rounded, tinted icon tile (the modern macOS look) so the row
+                // reads as having a background rather than a flat glyph (#352).
+                SidebarIconTile(systemName: icon, tint: iconTint)
                     .frame(width: 22)
                 Text(label)
                     .font(.callout)
@@ -175,6 +174,26 @@ struct Sidebar: View {
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+    }
+}
+
+/// A sidebar row's leading icon rendered as a rounded, tinted tile — the modern
+/// macOS "icon with a background" look (as in System Settings and Shortcuts) so
+/// the sidebar's icons and rows read as having a background rather than flat
+/// monochrome glyphs (#352). The symbol is white on the tint; on macOS 26 the
+/// gradient fill gives it a little Liquid Glass-adjacent depth, and the native
+/// row selection highlight still frames the whole row around it.
+struct SidebarIconTile: View {
+    let systemName: String
+    let tint: Color
+
+    var body: some View {
+        Image(systemName: systemName)
+            .font(.system(size: 11, weight: .semibold))
+            .foregroundStyle(.white)
+            .frame(width: 20, height: 20)
+            .background(tint.gradient, in: RoundedRectangle(cornerRadius: 5, style: .continuous))
+            .accessibilityHidden(true)
     }
 }
 
