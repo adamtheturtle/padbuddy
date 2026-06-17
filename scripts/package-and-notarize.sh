@@ -16,9 +16,15 @@
 #                      matching certificate + private key must be in a keychain
 #                      that is unlocked and on the search list.
 #
-# Notarization credentials — supply EITHER a stored profile:
+# Notarization credentials — supply ONE of, in this precedence order:
+# (1) a stored profile:
 #   NOTARY_KEYCHAIN_PROFILE   A `notarytool store-credentials` profile name.
-# OR an Apple ID + app-specific password:
+# (2) an App Store Connect API key (preferred for CI — scope-fixed, rotatable,
+#     and not bound to a person's Apple ID):
+#   ASC_KEY            The .p8 private key, base64-encoded (so it fits one secret).
+#   ASC_KEY_ID         The key's ID (the 10-char string in the .p8 filename).
+#   ASC_ISSUER_ID      The issuer UUID from App Store Connect → Users and Access → Keys.
+# (3) an Apple ID + app-specific password (legacy fallback):
 #   NOTARY_APPLE_ID    Apple ID email used for notarytool.
 #   NOTARY_PASSWORD    App-specific password for that Apple ID.
 #   NOTARY_TEAM_ID     Apple Developer Team ID (e.g. 6L9H6Q8CUF).
@@ -148,10 +154,26 @@ codesign --force --timestamp --sign "$SIGNING_IDENTITY" "$DMG"
 notarytool_creds=()
 if [ -n "${NOTARY_KEYCHAIN_PROFILE:-}" ]; then
   notarytool_creds=(--keychain-profile "$NOTARY_KEYCHAIN_PROFILE")
+elif [ -n "${ASC_KEY:-}" ]; then
+  : "${ASC_KEY_ID:?set ASC_KEY_ID alongside ASC_KEY}"
+  : "${ASC_ISSUER_ID:?set ASC_ISSUER_ID alongside ASC_KEY}"
+  # The .p8 is supplied base64-encoded so it fits in a single CI secret. Decode
+  # it to a private temp file (umask 077) that notarytool can read, in its own
+  # dir so the EXIT trap can shred it — extending, not replacing, the staging
+  # cleanup above.
+  ASC_KEY_DIR="$(mktemp -d)"
+  ASC_KEY_PATH="$ASC_KEY_DIR/asc-api-key.p8"
+  ( umask 077; printf '%s' "$ASC_KEY" | base64 --decode > "$ASC_KEY_PATH" )
+  trap 'rm -rf "$STAGING" "$ASC_KEY_DIR"' EXIT
+  notarytool_creds=(
+    --key "$ASC_KEY_PATH"
+    --key-id "$ASC_KEY_ID"
+    --issuer "$ASC_ISSUER_ID"
+  )
 else
-  : "${NOTARY_APPLE_ID:?set NOTARY_APPLE_ID or NOTARY_KEYCHAIN_PROFILE}"
-  : "${NOTARY_PASSWORD:?set NOTARY_PASSWORD or NOTARY_KEYCHAIN_PROFILE}"
-  : "${NOTARY_TEAM_ID:?set NOTARY_TEAM_ID or NOTARY_KEYCHAIN_PROFILE}"
+  : "${NOTARY_APPLE_ID:?set NOTARY_APPLE_ID, ASC_KEY, or NOTARY_KEYCHAIN_PROFILE}"
+  : "${NOTARY_PASSWORD:?set NOTARY_PASSWORD, ASC_KEY, or NOTARY_KEYCHAIN_PROFILE}"
+  : "${NOTARY_TEAM_ID:?set NOTARY_TEAM_ID, ASC_KEY, or NOTARY_KEYCHAIN_PROFILE}"
   notarytool_creds=(
     --apple-id "$NOTARY_APPLE_ID"
     --password "$NOTARY_PASSWORD"
