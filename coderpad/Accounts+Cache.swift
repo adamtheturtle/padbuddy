@@ -287,7 +287,18 @@ final class PadDetailCacheStore {
         var environments: [PadEnvironment]
     }
 
+    /// How many pads' detail payloads stay resident at once. Each entry holds a pad's
+    /// full event log and all of its environments (which carry code-file contents), so
+    /// an uncapped map grew without bound for the whole session — hundreds of KB per
+    /// long pad (#421, a cause of #418). Keeping the most-recently-opened handful
+    /// preserves the instant re-open behaviour (#323) while bounding memory, mirroring
+    /// the count caps the other in-process caches already use.
+    private static let limit = 12
+
     private(set) var byPad: [String: Entry] = [:]
+    /// Pad ids in least- to most-recently-opened order, so an overflow evicts the
+    /// least-recently-used entry. Bookkeeping only, so it stays out of observation.
+    @ObservationIgnored private var lru: [String] = []
     private init() {}
 
     func get(_ padID: String) -> Entry? {
@@ -296,10 +307,18 @@ final class PadDetailCacheStore {
 
     func set(_ padID: String, events: [PadEvent], environments: [PadEnvironment]) {
         byPad[padID] = Entry(events: events, environments: environments)
+        // Mark this pad most-recently-used, then evict the oldest while over the cap.
+        // `set` runs on every open (load() refreshes), so set-order tracks open-order.
+        lru.removeAll { $0 == padID }
+        lru.append(padID)
+        while lru.count > Self.limit {
+            byPad[lru.removeFirst()] = nil
+        }
     }
 
     func remove(_ padID: String) {
         byPad[padID] = nil
+        lru.removeAll { $0 == padID }
     }
 }
 
