@@ -151,6 +151,12 @@ private struct PullToRefreshScrollBridge: NSViewRepresentable {
 
         private weak var scrollView: NSScrollView?
         private var overscroll: CGFloat = 0
+        /// True only between `willStartLiveScroll` and `didEndLiveScroll`, i.e. while
+        /// the user is actively scrolling. Bounds changes also fire during launch and
+        /// programmatic layout, when the flipped clip view's origin can briefly dip
+        /// negative as the list settles — gating the pull on a live scroll keeps the
+        /// indicator from appearing on its own at launch (#360).
+        private var isLiveScrolling = false
 
         func connect(from view: NSView) {
             guard scrollView == nil, let scrollView = Self.scrollView(near: view) else { return }
@@ -163,12 +169,21 @@ private struct PullToRefreshScrollBridge: NSViewRepresentable {
             let center = NotificationCenter.default
             center.addObserver(self, selector: #selector(boundsChanged),
                                name: NSView.boundsDidChangeNotification, object: clip)
+            center.addObserver(self, selector: #selector(liveScrollStarted),
+                               name: NSScrollView.willStartLiveScrollNotification, object: scrollView)
             center.addObserver(self, selector: #selector(liveScrollEnded),
                                name: NSScrollView.didEndLiveScrollNotification, object: scrollView)
         }
 
+        @objc private func liveScrollStarted() {
+            isLiveScrolling = true
+            overscroll = 0
+        }
+
         @objc private func boundsChanged() {
-            guard let scrollView else { return }
+            // Ignore bounds changes that aren't part of a user scroll (launch, list
+            // reloads, programmatic layout) so the indicator only reveals on a pull.
+            guard isLiveScrolling, let scrollView else { return }
 
             // A `List` uses a flipped clip view, so the visible origin dips below
             // zero as the content rubber-bands past the top edge.
@@ -184,6 +199,7 @@ private struct PullToRefreshScrollBridge: NSViewRepresentable {
         }
 
         @objc private func liveScrollEnded() {
+            isLiveScrolling = false
             let shouldTrigger = overscroll >= threshold
             overscroll = 0
             DispatchQueue.main.async { [weak self] in
