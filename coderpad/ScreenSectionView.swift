@@ -22,16 +22,41 @@ struct ScreenCampaignsView: View {
     @State private var isLoading = false
     @State private var loadError: String?
     @State private var showArchived = false
-    @State private var selectedID: Int?
+    /// The campaigns → tests drill-down path. Campaigns and tests share this middle
+    /// column via push navigation; the detail (third) column shows the selected test's
+    /// report (#434). One level deep — a campaign pushes its tests list.
+    @State private var path: [ScreenCampaign] = []
 
     var body: some View {
-        List(selection: $selectedID) {
-            ForEach(filtered) { campaign in
-                ScreenCampaignRow(campaign: campaign).tag(campaign.id)
+        NavigationStack(path: $path) {
+            List {
+                ForEach(filtered) { campaign in
+                    NavigationLink(value: campaign) {
+                        ScreenCampaignRow(campaign: campaign)
+                    }
+                }
+            }
+            .overlay { statusOverlay }
+            .reportsSectionCount(countSubtitle)
+            .navigationDestination(for: ScreenCampaign.self) { campaign in
+                ScreenTestsView(client: client, campaign: campaign, search: $search)
+            }
+            .toolbar {
+                ToolbarItem {
+                    Toggle(isOn: $showArchived) {
+                        Label("Show Archived", systemImage: "archivebox")
+                    }
+                    .help("Include archived campaigns in the list.")
+                }
+                ToolbarItem {
+                    Button { Task { await load() } } label: {
+                        Label("Reload", systemImage: "arrow.clockwise")
+                    }
+                    .help("Reload campaigns.")
+                    .disabled(isLoading)
+                }
             }
         }
-        .overlay { statusOverlay }
-        .reportsSectionCount(countSubtitle)
         .task(id: client.apiKey) { await load() }
         // Reload on ⌘R like the other lists (AppRouter.requestReload()).
         .task {
@@ -39,25 +64,11 @@ struct ScreenCampaignsView: View {
                 await load()
             }
         }
-        .onAppear { selectedID = nav.screenCampaignSelection?.id }
-        // Mirror the list selection out to the shared nav selection the detail reads.
-        .onChange(of: selectedID) { _, id in
-            nav.screenCampaignSelection = id.flatMap { cid in campaigns.first { $0.id == cid } }
-        }
-        .toolbar {
-            ToolbarItem {
-                Toggle(isOn: $showArchived) {
-                    Label("Show Archived", systemImage: "archivebox")
-                }
-                .help("Include archived campaigns in the list.")
-            }
-            ToolbarItem {
-                Button { Task { await load() } } label: {
-                    Label("Reload", systemImage: "arrow.clockwise")
-                }
-                .help("Reload campaigns.")
-                .disabled(isLoading)
-            }
+        // The drilled-into campaign drives the detail column's context; clear the test
+        // selection when popping back to the campaigns list so it shows no stale report.
+        .onChange(of: path) { _, newPath in
+            nav.screenCampaignSelection = newPath.last
+            if newPath.isEmpty { nav.screenTestSelection = nil }
         }
     }
 
@@ -111,9 +122,9 @@ struct ScreenCampaignsView: View {
         do {
             campaigns = try await client.listCampaigns()
             loadError = nil
-            // Keep the published selection consistent if the selected campaign vanished.
-            if let id = selectedID, !campaigns.contains(where: { $0.id == id }) {
-                selectedID = nil
+            // If the drilled-into campaign vanished, pop back to the list.
+            if let top = path.last, !campaigns.contains(where: { $0.id == top.id }) {
+                path.removeAll()
             }
         } catch {
             loadError = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
@@ -160,21 +171,31 @@ struct ScreenCampaignRow: View {
     }
 }
 
-/// The Screen section's detail column. The selected campaign's test sessions land in
-/// #434; for now it confirms which campaign is selected (or prompts for one).
+/// The Screen section's detail (third) column. Reflects the drill-down state: a
+/// selected test session (its full report lands in #435), else the campaign being
+/// browsed, else a prompt to pick a campaign.
 struct ScreenDetailPlaceholder: View {
     var campaign: ScreenCampaign?
+    var test: ScreenTestSession?
 
     var body: some View {
-        if let campaign {
+        if let test {
             ContentUnavailableView {
-                Label(campaign.name, systemImage: "person.crop.rectangle.stack")
+                Label(testTitle(test), systemImage: "person.crop.rectangle.stack")
             } description: {
-                Text("Test sessions for this campaign will appear here.")
+                Text("This test session's full report will appear here.")
             }
+        } else if campaign != nil {
+            ContentUnavailableView("Select a test session", systemImage: "person.crop.rectangle.stack")
         } else {
             ContentUnavailableView("Select a campaign", systemImage: "person.crop.rectangle.stack")
         }
+    }
+
+    private func testTitle(_ test: ScreenTestSession) -> String {
+        if let name = test.candidateName, !name.isEmpty { return name }
+        if let email = test.candidateEmail, !email.isEmpty { return email }
+        return String(localized: "Test session")
     }
 }
 

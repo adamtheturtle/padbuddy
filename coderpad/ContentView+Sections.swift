@@ -107,9 +107,10 @@ struct SectionDetail: View {
                                    description: Text("This section shows everything in the list."))
 
         case .screen:
-            // The selected campaign's test sessions land in #434; for now the detail
-            // reflects which campaign is selected.
-            ScreenDetailPlaceholder(campaign: nav.screenCampaignSelection)
+            // Reflects the Screen drill-down: a selected test session (its full report
+            // lands in #435), else the campaign being browsed.
+            ScreenDetailPlaceholder(campaign: nav.screenCampaignSelection,
+                                    test: nav.screenTestSelection)
         }
     }
 

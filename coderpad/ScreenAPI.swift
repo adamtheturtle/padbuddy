@@ -141,6 +141,31 @@ nonisolated struct ScreenTestSession: Decodable, Identifiable, Hashable {
     /// e.g. "TO_REVIEW", once a human review workflow applies.
     let approvalStatus: String?
 
+    /// Memberwise init for tests and previews; the live decode path uses `init(from:)`.
+    init(id: Int, status: String = "waiting", report: ScreenReport? = nil,
+         candidateName: String? = nil, candidateEmail: String? = nil, tags: [String] = [],
+         sendTime: Int? = nil, startTime: Int? = nil, endTime: Int? = nil,
+         lastActivityTime: Int? = nil, campaignID: Int? = nil) {
+        self.id = id
+        self.status = status
+        url = nil
+        self.report = report
+        idTest = nil
+        organizationID = nil
+        self.campaignID = campaignID
+        self.candidateName = candidateName
+        self.candidateEmail = candidateEmail
+        self.tags = tags
+        self.sendTime = sendTime
+        self.startTime = startTime
+        self.endTime = endTime
+        self.lastActivityTime = lastActivityTime
+        testURL = nil
+        candidateLanguage = nil
+        questions = []
+        approvalStatus = nil
+    }
+
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         status = container.loggedDecodeIfPresent(String.self, forKey: .status) ?? "unknown"
@@ -244,6 +269,22 @@ nonisolated struct ScreenReport: Decodable, Hashable {
     /// Score distribution buckets across the candidate community, when requested
     /// with `withCommunityStats`.
     let communityStats: [Int]?
+
+    /// Memberwise init for tests and previews; the live decode path uses `init(from:)`.
+    init(score: Double? = nil, points: Int? = nil, duration: Int? = nil,
+         warnings: [String] = [], technologies: [String: ScreenTechnologyResult] = [:],
+         totalDuration: Int? = nil, totalPoints: Int? = nil,
+         comparativeScore: Double? = nil, communityStats: [Int]? = nil) {
+        self.duration = duration
+        self.warnings = warnings
+        self.points = points
+        self.score = score
+        self.technologies = technologies
+        self.totalDuration = totalDuration
+        self.totalPoints = totalPoints
+        self.comparativeScore = comparativeScore
+        self.communityStats = communityStats
+    }
 
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
