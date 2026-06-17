@@ -234,6 +234,12 @@ struct EnvironmentCodeCard: View {
         // contents update keeps the same ids, so the selection survives it.
         .onChange(of: files.map(\.id)) { _, _ in
             selectedFileID = nil
+            // Also drop any open code explanation: it was generated for a file id
+            // that may no longer exist, and `selected` now falls back to the first
+            // file — leaving it up would show file A's analysis over a different file.
+            showExplanation = false
+            explanation = nil
+            explanationFileID = nil
         }
     }
 
