@@ -76,6 +76,9 @@ struct QuestionsView: View {
     /// programmatic selection, so without this the restored question stays selected
     /// off-screen with the list pinned to the top. Cleared after the scroll.
     @State var pendingScrollToID: Int?
+    /// Per-render memo of the filtered/sorted rows, favorite ids, and chip options,
+    /// refreshed once at the top of `body` so the list's readers share one pass (#365).
+    @State var listCache = QuestionsListCache()
 
     init(client: CoderPadClient, selection: Binding<Question?>, search: Binding<String>) {
         self.client = client
@@ -93,7 +96,10 @@ struct QuestionsView: View {
     }
 
     var body: some View {
-        sidebar
+        // Refresh the per-render memo once, before `sidebar` (and its count subtitle,
+        // filter bar, and row list) read `sorted`/`favoriteIDSet`/`available*` (#365).
+        refreshSorted()
+        return sidebar
             .task(id: QuestionsTaskKey(apiKey: client.apiKey, phase: scenePhase)) {
                 guard scenePhase == .active else { return }
 
