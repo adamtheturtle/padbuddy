@@ -290,9 +290,19 @@ struct HighlightedCode: View, Equatable {
     let language: String?
     let dark: Bool
 
+    /// The highlighted result, filled in by an off-main pass; plain `contents`
+    /// renders until it lands so the main thread isn't blocked tokenizing (#372).
+    @State private var highlighted: AttributedString?
+
+    /// Compare only the inputs (not the @State result) so SwiftUI keeps skipping
+    /// re-renders for unrelated reasons, e.g. the file sidebar's resize drag.
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.contents == rhs.contents && lhs.language == rhs.language && lhs.dark == rhs.dark
+    }
+
     var body: some View {
         ScrollView([.vertical, .horizontal]) {
-            Text(SyntaxHighlighter.highlight(contents, language: language, dark: dark))
+            Text(highlighted ?? AttributedString(contents))
                 .font(.system(.callout, design: .monospaced))
                 .textSelection(.enabled)
                 .padding(.horizontal, 10)
@@ -300,7 +310,20 @@ struct HighlightedCode: View, Equatable {
         }
         .defaultScrollAnchor(.topLeading)
         .frame(maxWidth: .infinity, maxHeight: 360, alignment: .topLeading)
+        // Re-run only when the inputs change; a same-id task isn't restarted, so
+        // an unrelated re-render won't re-highlight.
+        .task(id: HighlightInput(contents: contents, language: language, dark: dark)) {
+            highlighted = await SyntaxHighlighter.highlight(contents, language: language, dark: dark)
+        }
     }
+}
+
+/// The inputs that determine a highlight pass, so `HighlightedCode`'s `.task`
+/// restarts exactly when one of them changes.
+private struct HighlightInput: Equatable {
+    let contents: String
+    let language: String?
+    let dark: Bool
 }
 
 /// A node in the file tree built from the files' paths. A leaf carries a

@@ -244,8 +244,14 @@ extension EnvironmentCodeCard {
     private func copy(_ text: String) {
         // A syntax-highlighted RTF representation rides along, so pasting into Pages,
         // Mail, or a doc keeps the colours; plain `.string` stays the fallback for
-        // editors and the terminal.
-        Clipboard.copy(text, rtf: SyntaxHighlighter.rtf(text, language: selected.language, dark: dark))
+        // editors and the terminal. The RTF is produced off the main actor (#372),
+        // so write to the pasteboard once it's ready.
+        let language = selected.language
+        let dark = dark
+        Task {
+            let rtf = await SyntaxHighlighter.rtf(text, language: language, dark: dark)
+            Clipboard.copy(text, rtf: rtf)
+        }
     }
 
     /// Writes the file's contents to a user-chosen location. The save panel

@@ -34,12 +34,17 @@ enum SyntaxHighlighter {
     /// Callers keep applying their own monospaced font; only foreground
     /// colours are set here. `dark` selects a theme suited to the current
     /// appearance.
-    static func highlight(_ source: String, language: String?, dark: Bool) -> AttributedString {
+    /// Highlighting runs off the main actor (through ``HighlightrEngine``, an
+    /// actor) so tokenizing source through JavaScriptCore no longer blocks the UI
+    /// during view evaluation; callers render plain text until the result lands
+    /// and the engine memoizes repeats (#372). The rare lexer fallback, for
+    /// languages Highlightr doesn't cover, stays inline since it's cheap.
+    static func highlight(_ source: String, language: String?, dark: Bool) async -> AttributedString {
         guard source.count <= maxLength else { return AttributedString(source) }
 
         // Plain text shouldn't be coloured at all.
         if HighlightrEngine.isPlainText(language) { return AttributedString(source) }
-        if let highlighted = HighlightrEngine.shared.highlight(source, language: language, dark: dark) {
+        if let highlighted = await HighlightrEngine.shared.highlight(source, language: language, dark: dark) {
             return highlighted
         }
         return lexerHighlight(source, language: language)
@@ -49,10 +54,10 @@ enum SyntaxHighlighter {
     /// pasteboard so it pastes into Pages/Mail/docs with its colours intact. `nil`
     /// for plain text, unmapped languages, or oversized input, so the caller falls
     /// back to copying plain text only.
-    static func rtf(_ source: String, language: String?, dark: Bool) -> Data? {
+    static func rtf(_ source: String, language: String?, dark: Bool) async -> Data? {
         guard source.count <= maxLength, !HighlightrEngine.isPlainText(language) else { return nil }
 
-        return HighlightrEngine.shared.rtf(source, language: language, dark: dark)
+        return await HighlightrEngine.shared.rtf(source, language: language, dark: dark)
     }
 
     /// Single-pass fallback lexer (comments, strings, numbers, keywords) tuned
@@ -235,32 +240,47 @@ enum SyntaxHighlighter {
     }
 }
 
-/// Wraps a cached ``Highlightr`` instance. The engine loads a JavaScript
-/// runtime on init, so we keep one around and only swap the theme when the
-/// appearance changes. Confined to the main actor since SwiftUI evaluates the
-/// preview's `body` there.
-@MainActor
-private final class HighlightrEngine {
+/// Wraps a cached ``Highlightr`` instance. The engine loads a JavaScript runtime
+/// on init, so we keep one around and only swap the theme when the appearance
+/// changes. It's an `actor` so highlight.js tokenizing runs on a background
+/// executor instead of blocking the main actor during view evaluation (#372),
+/// while serializing access to the thread-confined JS context; results are
+/// memoized by content + language + appearance so repeats are free.
+actor HighlightrEngine {
     static let shared = HighlightrEngine()
 
     private let highlightr = Highlightr()
     private var currentTheme: String?
+    private var cache: [CacheKey: AttributedString] = [:]
+    /// Cap the memo so a long session browsing many files can't grow it without
+    /// bound. Clearing wholesale on overflow keeps the logic trivial; the
+    /// recompute cost is a one-off and rare.
+    private static let cacheLimit = 64
+
+    private struct CacheKey: Hashable {
+        let contents: String
+        let language: String?
+        let dark: Bool
+    }
 
     /// Highlights `source`, returning a foreground-coloured attributed string,
     /// or `nil` when the language is unmapped or Highlightr can't parse it (so
     /// the caller can fall back to the built-in lexer).
     func highlight(_ source: String, language: String?, dark: Bool) -> AttributedString? {
-        guard let highlightr, let hljsName = Self.highlightJSName(for: language) else { return nil }
+        guard let hljsName = Self.highlightJSName(for: language) else { return nil }
 
-        let themeName = dark ? "atom-one-dark" : "xcode"
-        if currentTheme != themeName {
-            _ = highlightr.setTheme(to: themeName)
-            currentTheme = themeName
-        }
+        let key = CacheKey(contents: source, language: language, dark: dark)
+        if let hit = cache[key] { return hit }
 
+        guard let highlightr else { return nil }
+
+        applyTheme(dark: dark)
         guard let rendered = highlightr.highlight(source, as: hljsName, fastRender: true) else { return nil }
 
-        return Self.foregroundOnly(rendered)
+        let result = Self.foregroundOnly(rendered)
+        if cache.count >= Self.cacheLimit { cache.removeAll(keepingCapacity: true) }
+        cache[key] = result
+        return result
     }
 
     /// The Highlightr-coloured `source` serialized to RTF, with a monospaced font
@@ -269,11 +289,7 @@ private final class HighlightrEngine {
     func rtf(_ source: String, language: String?, dark: Bool) -> Data? {
         guard let highlightr, let hljsName = Self.highlightJSName(for: language) else { return nil }
 
-        let themeName = dark ? "atom-one-dark" : "xcode"
-        if currentTheme != themeName {
-            _ = highlightr.setTheme(to: themeName)
-            currentTheme = themeName
-        }
+        applyTheme(dark: dark)
         guard let rendered = highlightr.highlight(source, as: hljsName, fastRender: true) else { return nil }
 
         let mutable = NSMutableAttributedString(attributedString: rendered)
@@ -283,10 +299,20 @@ private final class HighlightrEngine {
                                  documentAttributes: [.documentType: NSAttributedString.DocumentType.rtf])
     }
 
+    /// Switch Highlightr's theme to match the current appearance, only when it
+    /// actually changed (the swap reparses the theme CSS).
+    private func applyTheme(dark: Bool) {
+        let themeName = dark ? "atom-one-dark" : "xcode"
+        if currentTheme != themeName {
+            _ = highlightr?.setTheme(to: themeName)
+            currentTheme = themeName
+        }
+    }
+
     /// Converts a Highlightr `NSAttributedString` into a SwiftUI
     /// `AttributedString` that carries only foreground colours, so the caller's
     /// monospaced font (and Dynamic Type) keeps applying.
-    private static func foregroundOnly(_ attributed: NSAttributedString) -> AttributedString {
+    private nonisolated static func foregroundOnly(_ attributed: NSAttributedString) -> AttributedString {
         var out = AttributedString()
         let fullRange = NSRange(location: 0, length: attributed.length)
         attributed.enumerateAttribute(.foregroundColor, in: fullRange) { value, range, _ in
@@ -300,7 +326,7 @@ private final class HighlightrEngine {
     }
 
     /// True for languages that should render as plain, uncoloured text.
-    static func isPlainText(_ language: String?) -> Bool {
+    nonisolated static func isPlainText(_ language: String?) -> Bool {
         switch (language ?? "").lowercased() {
         case "plaintext", "plain-text", "plain_text", "text", "": true
         default: false
@@ -309,13 +335,13 @@ private final class HighlightrEngine {
 
     /// Maps CoderPad's language codes to highlight.js identifiers. Returns
     /// `nil` for languages Highlightr doesn't cover, deferring to the lexer.
-    private static func highlightJSName(for language: String?) -> String? {
+    private nonisolated static func highlightJSName(for language: String?) -> String? {
         highlightJSNames[(language ?? "").lowercased()]
     }
 
     /// CoderPad language code to highlight.js identifier. Codes absent here are
     /// unmapped, so the caller falls back to the built-in lexer.
-    private static let highlightJSNames: [String: String] = [
+    private nonisolated static let highlightJSNames: [String: String] = [
         "python": "python", "python2": "python", "python3": "python",
         "javascript": "javascript", "nodejs": "javascript",
         "node": "javascript", "node.js": "javascript",
