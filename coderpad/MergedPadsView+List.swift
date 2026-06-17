@@ -77,11 +77,17 @@ extension MergedPadsView {
                 selectedIDs = [id]
             }
             .onChange(of: selection) { _, newValue in
-                // Deferred off the click's synchronous path: `markOpened` mutates the shared
-                // Observable open-history store every row reads, so doing it inline rebuilds
-                // the whole list during the selection.
+                // Debounced off the click's synchronous path: `markOpened` mutates the shared
+                // Observable open-history store every row reads, so it rebuilds the whole
+                // list. Only the pad you settle on (not every row arrowed past) is marked.
                 if let newValue, let account = router.account(forPadID: newValue.id)?.id {
-                    Task { @MainActor in openedStore.markOpened(newValue.id, account: account) }
+                    markOpenedTask?.cancel()
+                    markOpenedTask = Task { @MainActor in
+                        try? await Task.sleep(for: .milliseconds(500))
+                        guard !Task.isCancelled else { return }
+
+                        openedStore.markOpened(newValue.id, account: account)
+                    }
                 }
                 if selectedID != newValue?.id { selectedID = newValue?.id }
             }

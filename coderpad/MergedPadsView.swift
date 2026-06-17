@@ -79,6 +79,10 @@ struct MergedPadsView: View {
 
     @State var padPendingDelete: Pad?
     @State var deleteError: String?
+    /// Debounces marking a pad "opened" until the selection settles, so arrowing
+    /// through the merged list doesn't rebuild it on every transient row (see the
+    /// single-account `PadsView` for the rationale).
+    @State var markOpenedTask: Task<Void, Never>?
     /// The account a New Pad is being created for, chosen from the toolbar menu
     /// since creation is inherently single-account.
     @State var creatingForAccount: Account?

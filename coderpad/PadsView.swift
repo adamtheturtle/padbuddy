@@ -107,6 +107,10 @@ struct PadsView: View {
     @State var smartFilterFailed = false
     @State var padPendingDelete: Pad?
     @State var deleteError: String?
+    /// Debounces marking a pad "opened" (which clears its activity dot) until the
+    /// selection settles, so arrowing through a large list doesn't mutate the shared
+    /// open-history store — and rebuild the whole list — on every transient row.
+    @State private var markOpenedTask: Task<Void, Never>?
     /// The active sort, shared with the merged Pads list and the Pad menu's "Sort
     /// By" command via `@AppStorage` (#361). Defaults to newest-updated first, the
     /// order the API already returns.
@@ -217,11 +221,18 @@ struct PadsView: View {
                 if isRestoringSelection {
                     isRestoringSelection = false
                 } else if let newValue, let account = accounts.currentAccountID {
-                    // Deferred off the click's synchronous path: `markOpened` mutates the
+                    // Debounced off the click's synchronous path: `markOpened` mutates the
                     // shared (Observable) open-history store that every row reads for its
-                    // "new activity" dot, so doing it inline rebuilds the whole list during
-                    // the selection. A turn later the dot clears without stalling the click.
-                    Task { @MainActor in openedStore.markOpened(newValue.id, account: account) }
+                    // "new activity" dot, so it rebuilds the whole list. Only the pad you
+                    // actually settle on (not every row arrowed past) should be marked, so
+                    // this waits out a brief dwell and is cancelled if the selection moves on.
+                    markOpenedTask?.cancel()
+                    markOpenedTask = Task { @MainActor in
+                        try? await Task.sleep(for: .milliseconds(500))
+                        guard !Task.isCancelled else { return }
+
+                        openedStore.markOpened(newValue.id, account: account)
+                    }
                 }
                 if selectedID != newValue?.id { selectedID = newValue?.id }
             }
