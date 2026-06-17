@@ -135,7 +135,7 @@ extension Sidebar {
                     }
                 )
             }
-            if pads.isEmpty { favoriteDropHint("Drag pads here.") }
+            if pads.isEmpty { favoriteDropSpacer }
         }
         .modifier(FavoriteDropChrome(isHighlighted: droppingFavoritePads))
         .onDrop(of: [.coderpadFavorite], isTargeted: $droppingFavoritePads) { providers in
@@ -171,7 +171,7 @@ extension Sidebar {
                     }
                 )
             }
-            if questions.isEmpty { favoriteDropHint("Drag questions here.") }
+            if questions.isEmpty { favoriteDropSpacer }
         }
         .modifier(FavoriteDropChrome(isHighlighted: droppingFavoriteQuestions))
         .onDrop(of: [.coderpadFavorite], isTargeted: $droppingFavoriteQuestions) { providers in
@@ -182,14 +182,15 @@ extension Sidebar {
         }
     }
 
-    /// The empty-state hint shown in a favourites section, inviting a drag-to-pin.
-    private func favoriteDropHint(_ text: LocalizedStringKey) -> some View {
-        Text(text)
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.vertical, 6)
-            .padding(.horizontal, 8)
+    /// An empty favourites section keeps a silent, fixed-height drop zone (no "Drag …
+    /// here" caption, #440) so a pad/question can still be dragged onto it to create the
+    /// first favourite — the section's `.onDrop` needs a non-zero target area, and the
+    /// `FavoriteDropChrome` highlight already signals droppability while dragging.
+    private var favoriteDropSpacer: some View {
+        Color.clear
+            .frame(maxWidth: .infinity)
+            .frame(height: 28)
+            .contentShape(Rectangle())
     }
 
     /// Decodes a dragged-in `FavoriteDrop` from a provider and hands it to `perform`
