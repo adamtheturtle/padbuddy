@@ -333,6 +333,13 @@ extension PadsView {
         }
     }
 
+    /// Opens a pad's native detail in its own window (#354), the pad counterpart to
+    /// double-clicking a question row. Distinct from ``openPad(_:)``, which opens
+    /// the pad's live URL in the browser.
+    func openPadDetailWindow(_ pad: Pad) {
+        openWindow(id: "pad", value: PadWindowID(account: accounts.currentAccountID, id: pad.id))
+    }
+
     /// How many pads the current filters resolve to, shown as the window's toolbar
     /// subtitle beneath the "Pads" title so the list length is legible at a glance
     /// and a short list reads as "filtered to a few" rather than "failed to load".

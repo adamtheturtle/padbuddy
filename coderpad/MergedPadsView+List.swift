@@ -33,7 +33,7 @@ extension MergedPadsView {
                 selectedIDs = selection.map { [$0.id] } ?? []
                 // Double-clicking a row opens the selected pad (the first click
                 // selects it). Reads `selection` live, so it stays correct.
-                doubleClickProxy.onDoubleClick = { openSelectedPadInWindow() }
+                doubleClickProxy.onDoubleClick = { openSelectedPadDetailWindow() }
             }
             // Re-persist whenever any filter changes; `filterSignature` shifts for
             // every filter control, so one observer covers them all.
@@ -287,17 +287,14 @@ extension MergedPadsView {
         .contextMenu { padContextMenu(row) }
     }
 
-    /// Opens the selected pad's live URL in a window on double-click, honoring the
-    /// "Open links" preference — the in-app `pad-browser` window or the external
-    /// browser — exactly as the row's old gesture and the detail "Open" button do.
-    func openSelectedPadInWindow() {
-        guard let url = selection?.webURL else { return }
+    /// Opens the selected pad's native detail in its own window on double-click,
+    /// the pad counterpart to double-clicking a question row (#354). The owning
+    /// account travels with the id so the window uses the right client/server URL.
+    func openSelectedPadDetailWindow() {
+        guard let pad = selection else { return }
 
-        if BrowserSettings.openLinksIn == .external {
-            BrowserSettings.openExternally(url)
-        } else {
-            openWindow(id: "pad-browser", value: url)
-        }
+        let account = router.account(forPadID: pad.id)?.id
+        openWindow(id: "pad", value: PadWindowID(account: account, id: pad.id))
     }
 
     @ViewBuilder

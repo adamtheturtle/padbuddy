@@ -153,9 +153,10 @@ struct PadsView: View {
                 applyPendingRequest()
                 publishLiveFilter()
                 selectedIDs = selection.map { [$0.id] } ?? []
-                // Double-clicking a row opens the selected pad (the first click
-                // selects it). Reads `selection` live, so it stays correct.
-                doubleClickProxy.onDoubleClick = { if let pad = selection { openPad(pad) } }
+                // Double-clicking a row opens the selected pad's native detail in
+                // its own window (#354), the pad counterpart to a question row's
+                // double-click. Reads `selection` live, so it stays correct.
+                doubleClickProxy.onDoubleClick = { if let pad = selection { openPadDetailWindow(pad) } }
             }
             // The List edits `selectedIDs`; derive the primary row from it so the
             // detail pane, restore, and persistence keep working off the single

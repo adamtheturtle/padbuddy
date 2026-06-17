@@ -155,6 +155,7 @@ struct CoderpadApp: App {
 
         padBrowserScene
         questionScene
+        padScene
 
         Settings {
             SettingsView()
@@ -193,6 +194,18 @@ struct CoderpadApp: App {
         // swiftformat:disable:next unusedArguments
         WindowGroup("Question", id: "question", for: QuestionWindowID.self) { $value in
             QuestionWindow(value: value)
+                .frame(minWidth: 600, minHeight: 560)
+                .preferredColorScheme(appearance.colorScheme)
+        }
+    }
+
+    /// Double-clicking a pad row opens its native detail here, in its own window —
+    /// the pad counterpart to ``questionScene`` (#354). Keyed by a lightweight id
+    /// so it survives state restoration.
+    private var padScene: some Scene {
+        // swiftformat:disable:next unusedArguments
+        WindowGroup("Pad", id: "pad", for: PadWindowID.self) { $value in
+            PadWindow(value: value)
                 .frame(minWidth: 600, minHeight: 560)
                 .preferredColorScheme(appearance.colorScheme)
         }
