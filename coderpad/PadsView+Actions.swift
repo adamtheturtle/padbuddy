@@ -311,8 +311,14 @@ extension PadsView {
     func finalize(fetched: [Pad]) {
         let changes = padChanges(in: fetched)
         PadActivityMonitor.shared.record(changedCount: changes.count)
-        // Surface the same change set as a background Notification Center alert (opt-in).
-        PadUpdateNotifier.shared.notify(changes: changes)
+        // Notify only about pads the current user owns: a background alert about every
+        // colleague's pad activity across the org is noise, not signal (#424). The Dock
+        // badge keeps counting per its own configurable scope (#399/#400); this only
+        // narrows the opt-in Notification Center alerts.
+        let myChanges = accounts.currentAccount.map { account in
+            changes.filter { account.owns($0.pad.ownerEmail) }
+        } ?? []
+        PadUpdateNotifier.shared.notify(changes: myChanges)
         previousActivity = activitySnapshot(of: fetched)
         if let id = accounts.currentAccountID {
             cache.set(id, pads: fetched)
