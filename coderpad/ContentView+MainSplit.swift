@@ -29,10 +29,18 @@ struct MainSplit: View {
     @State var detailPad: Pad?
     @State var detailQuestion: Question?
 
-    /// How long the detail pane waits for the selection to settle before rebuilding.
-    /// Long enough to skip the intermediate rows of an arrow-key sweep, short enough
-    /// to feel immediate on a deliberate single selection.
+    /// How long the detail pane waits for the selection to settle before rebuilding,
+    /// when the change is part of a rapid arrow-key sweep. Long enough to skip the
+    /// intermediate rows, short enough to feel immediate when the sweep stops.
     static let detailSettle = Duration.milliseconds(110)
+
+    /// The same window in seconds, used to tell a rapid sweep from a deliberate click
+    /// by the gap between consecutive selection changes (#395).
+    static let detailSettleSeconds: TimeInterval = 0.110
+
+    /// When the previous selection change landed, so the next change can be classified
+    /// as part of a sweep (debounce) or a deliberate move (apply at once). See #395.
+    @State var lastDetailChange: Date?
 
     // Caches observed so a selection saved last session can be restored once the list
     // (warmed from disk on first read) has the matching row. See #273.

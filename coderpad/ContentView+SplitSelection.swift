@@ -86,15 +86,17 @@ extension MainSplit {
         }
     }
 
-    /// Moves the live pad selection into the detail pane, debouncing only the
-    /// row-to-row moves that an arrow-key sweep produces. Appearing (nothing → a
-    /// row) and clearing (a row → nothing) apply at once so first selection and
-    /// deselection still feel instant; only a move between two rows waits out the
-    /// settle window, and the wait is abandoned if the selection changes again
-    /// first (the task is restarted with the new id).
+    /// Moves the live pad selection into the detail pane, debouncing only the row-to-row
+    /// moves of a *rapid* arrow-key sweep. Appearing (nothing → a row) and clearing (a
+    /// row → nothing) apply at once, and so does a deliberate move — a click, or slow
+    /// arrowing — because it arrives well after the previous change. Only changes that
+    /// follow the last one within the settle window are treated as a sweep and wait it
+    /// out (abandoned if the selection changes again first). This keeps single clicks
+    /// instant (#395) while still collapsing a fast sweep to its final row (#326).
     func settleDetailPad() async {
+        let rapid = registerSelectionChange()
         if detailPad == padSelection { return }
-        if detailPad != nil, padSelection != nil {
+        if detailPad != nil, padSelection != nil, rapid {
             try? await Task.sleep(for: Self.detailSettle)
             if Task.isCancelled { return }
         }
@@ -103,12 +105,23 @@ extension MainSplit {
 
     /// The question counterpart to ``settleDetailPad``.
     func settleDetailQuestion() async {
+        let rapid = registerSelectionChange()
         if detailQuestion == questionSelection { return }
-        if detailQuestion != nil, questionSelection != nil {
+        if detailQuestion != nil, questionSelection != nil, rapid {
             try? await Task.sleep(for: Self.detailSettle)
             if Task.isCancelled { return }
         }
         detailQuestion = questionSelection
+    }
+
+    /// Records this selection change and reports whether it arrived quickly enough after
+    /// the previous one to be part of an arrow-key sweep (rather than a deliberate click
+    /// or slow navigation, which land after the settle window). See #395.
+    func registerSelectionChange() -> Bool {
+        let now = Date()
+        let rapid = lastDetailChange.map { now.timeIntervalSince($0) < Self.detailSettleSeconds } ?? false
+        lastDetailChange = now
+        return rapid
     }
 
     /// Fetches whichever lists aren't currently displayed and stores them in the
