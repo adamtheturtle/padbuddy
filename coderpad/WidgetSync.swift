@@ -64,22 +64,38 @@ enum WidgetSync {
 
     /// Mirrors an account's favourite questions (id + title) into the shared
     /// container so the New Pad button's configuration picker can list them. Titles
-    /// are resolved from whatever questions are cached for the account; ids without a
-    /// cached title fall back to "#id". Safe to call from the favourites/questions
-    /// stores, which are never mutated during `AccountsStore`'s init.
+    /// come from the favourites store's *stored* titles (#325), which are persisted
+    /// and available even before the account's questions have loaded — so the picker
+    /// populates on a cold launch; a fresher cache title is preferred when present,
+    /// and an as-yet-untitled legacy favourite falls back to "#id". Safe to call from
+    /// the favourites/questions stores, which are never mutated during `AccountsStore`'s
+    /// init.
     static func syncFavorites(account accountID: UUID) {
-        let favoriteIDs = FavoriteQuestionsStore.shared.favorites(account: accountID)
-        guard !favoriteIDs.isEmpty else {
+        let favorites = FavoriteQuestionsStore.shared.titledFavorites(account: accountID)
+        guard !favorites.isEmpty else {
             WidgetSharedStore.saveFavorites([], account: accountID.uuidString)
             return
         }
 
-        let titles = Dictionary(
+        let cacheTitles = Dictionary(
             QuestionsCacheStore.shared.get(accountID).map { ($0.id, $0.displayTitle) },
             uniquingKeysWith: { first, _ in first }
         )
-        let favorites = favoriteIDs.map { WidgetQuestion(id: $0, title: titles[$0] ?? "#\($0)") }
-        WidgetSharedStore.saveFavorites(favorites, account: accountID.uuidString)
+        let widgetFavorites = favorites.map { favorite in
+            let title = cacheTitles[favorite.id] ?? (favorite.title.isEmpty ? "#\(favorite.id)" : favorite.title)
+            return WidgetQuestion(id: favorite.id, title: title)
+        }
+        WidgetSharedStore.saveFavorites(widgetFavorites, account: accountID.uuidString)
+    }
+
+    /// Mirrors every account's favourite questions at once, so the widget's New Pad
+    /// question picker is populated on a fresh launch — before any account's Questions
+    /// section has been opened, which is what otherwise triggers the per-account sync.
+    /// Called once at launch.
+    static func syncAllFavorites(_ accounts: [Account]) {
+        for account in accounts {
+            syncFavorites(account: account.id)
+        }
     }
 
     /// Drops a removed account's per-account snapshot and reloads. The account index

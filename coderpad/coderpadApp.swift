@@ -47,6 +47,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // so re-requesting every launch is harmless.
         if DockBadge.scope != .off { PadUpdateNotifier.shared.requestBadgeAuthorization() }
         DockBadge.refresh()
+        // Mirror every account's favourite questions into the App Group up front so the
+        // Recent Pads widget's "New Pad question" picker is populated even before any
+        // Questions section has been opened this session (#411). The per-account sync
+        // otherwise only fires when an account's questions load or a favourite toggles.
+        WidgetSync.syncAllFavorites(AccountsStore.shared.accounts)
         // Keep the current account's pads fresh on a timer even when no window is open
         // and the menu is never clicked — the one state where nothing else fetches.
         // Writing to PadsCacheStore cascades to the widget snapshot and Dock badge.
