@@ -5,7 +5,28 @@
 
 import SwiftUI
 
-struct QuestionRow: View {
+struct QuestionRow: View, Equatable {
+    /// Skip re-evaluating a row's body when its inputs are unchanged. A `List` builds a
+    /// view per row and a selection re-runs the list body, so without this SwiftUI
+    /// re-rendered every row (each doing Date formatting) on every click — the same
+    /// large-list stall fixed for PadRow. Compare only the rendered fields, not the
+    /// whole `Question`; the favorite-toggle closure is excluded (closures aren't
+    /// comparable and it's stable per row).
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        let lhsq = lhs.question, rhsq = rhs.question
+        return lhsq.id == rhsq.id
+            && lhsq.title == rhsq.title
+            && lhsq.language == rhsq.language
+            && lhsq.interviewType == rhsq.interviewType
+            && lhsq.used == rhsq.used
+            && lhsq.isDraft == rhsq.isDraft
+            && lhsq.authorName == rhsq.authorName
+            && lhsq.updatedAt == rhsq.updatedAt
+            && lhs.isFavorite == rhs.isFavorite
+            && lhs.accountName == rhs.accountName
+            && lhs.account == rhs.account
+    }
+
     let question: Question
     var isFavorite: Bool = false
     /// The owning account's name, shown as a badge only in the combined "All
