@@ -309,6 +309,28 @@ extension FocusedValues {
     @Entry var printAction: PrintAction?
 }
 
+/// Action published by the main split so the View ▸ Show/Hide Sidebar command can
+/// flip the sidebar through the same `columnVisibility` state the toolbar toggle
+/// drives — keeping the menu item, its ⌃⌘S shortcut, and the toolbar button all in
+/// lockstep. Routing through this rather than AppKit's `toggleSidebar:` selector
+/// means our collapse-persistence (#273) and width auto-collapse (#307) handlers
+/// still run. `Equatable` on `collapsed` dedupes the repeated re-publishes
+/// `NavigationSplitView`'s layout passes trigger, like `FindAction`. (#396)
+struct SidebarToggleAction: Equatable {
+    /// Whether the sidebar is currently collapsed, so the menu item can read
+    /// "Show Sidebar" vs "Hide Sidebar".
+    let collapsed: Bool
+    let perform: () -> Void
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.collapsed == rhs.collapsed
+    }
+}
+
+extension FocusedValues {
+    @Entry var sidebarToggleAction: SidebarToggleAction?
+}
+
 // MARK: - APIErrorView
 
 struct APIErrorView: View {

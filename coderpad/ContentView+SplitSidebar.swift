@@ -165,7 +165,8 @@ extension MainSplit {
     /// content column's action cluster (Reload/New) packs right up against it instead
     /// of floating past AppKit's phantom collapsed-sidebar inset (#337). Driven by our
     /// own `columnVisibility` rather than the AppKit `toggleSidebar` selector, since we
-    /// already own that state. Keeps the system ⌃⌘S shortcut for parity.
+    /// already own that state. The ⌃⌘S shortcut lives on the View ▸ Show/Hide Sidebar
+    /// menu item (#396) — its conventional home — so it isn't duplicated here.
     @ToolbarContentBuilder
     var sidebarToggle: some ToolbarContent {
         ToolbarItem(placement: .navigation) {
@@ -173,7 +174,6 @@ extension MainSplit {
                 Label("Toggle Sidebar", systemImage: "sidebar.leading")
             }
             .help("Show or hide the sidebar")
-            .keyboardShortcut("s", modifiers: [.control, .command])
         }
     }
 }

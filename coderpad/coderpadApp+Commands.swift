@@ -49,9 +49,19 @@ struct ViewCommands: Commands {
     /// layout stay in lockstep. Toggling it lets Pads/Questions drop the third column so
     /// the window can be made very thin — just the sidebar and the list.
     @AppStorage(MainSplit.detailPaneHiddenKey) private var detailPaneHidden = false
+    /// Published by the main split (#396); flips the sidebar through the same
+    /// `columnVisibility` state the toolbar toggle drives. Nil when the main window
+    /// isn't frontmost, which disables the item.
+    @FocusedValue(\.sidebarToggleAction) private var sidebarToggle
 
     var body: some Commands {
         CommandGroup(after: .toolbar) {
+            Button(sidebarToggle?.collapsed == true ? "Show Sidebar" : "Hide Sidebar") {
+                sidebarToggle?.perform()
+            }
+            .keyboardShortcut("s", modifiers: [.command, .control])
+            .disabled(sidebarToggle == nil)
+
             Button(detailPaneHidden ? "Show Detail Pane" : "Hide Detail Pane") {
                 detailPaneHidden.toggle()
             }

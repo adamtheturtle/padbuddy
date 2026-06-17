@@ -328,6 +328,13 @@ struct MainSplit: View {
         // cancelling any pending settle.
         .task(id: padSelection) { await settleDetailPad() }
         .task(id: questionSelection) { await settleDetailQuestion() }
+        // Publish the sidebar toggle so View ▸ Show/Hide Sidebar (⌃⌘S) flips the same
+        // `columnVisibility` state as the toolbar button (#396). Scene-scoped, so the
+        // command is enabled only while the main window is frontmost.
+        .focusedSceneValue(
+            \.sidebarToggleAction,
+            SidebarToggleAction(collapsed: columnVisibility != .all, perform: toggleSidebar)
+        )
     }
 }
 
