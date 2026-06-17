@@ -42,8 +42,8 @@ struct WidgetQuestion: Codable, Identifiable, Hashable {
 enum WidgetSharedStore {
     /// Must match the app's `WidgetSharedStore.appGroupID`. If `containerURL` ever
     /// returns nil at runtime, this likely needs the team-id prefixed form
-    /// (`6L9H6Q8CUF.group.ptn.coderpad`) on macOS.
-    static let appGroupID = "group.ptn.coderpad"
+    /// (`6L9H6Q8CUF.group.com.adamdangoor.coderpad`) on macOS.
+    static let appGroupID = "group.com.adamdangoor.coderpad"
 
     /// The widget's kind, shared with the app's reload logic.
     static let widgetKind = "RecentPadsWidget"

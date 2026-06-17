@@ -21,7 +21,7 @@ final class NetworkMonitor {
     private(set) var isOffline = false
 
     @ObservationIgnored private let monitor = NWPathMonitor()
-    @ObservationIgnored private let queue = DispatchQueue(label: "ptn.coderpad.network-monitor")
+    @ObservationIgnored private let queue = DispatchQueue(label: "com.adamdangoor.coderpad.network-monitor")
     @ObservationIgnored private var started = false
 
     private init() {}

@@ -56,8 +56,8 @@ nonisolated struct WidgetQuestion: Codable, Identifiable, Hashable {
 nonisolated enum WidgetSharedStore {
     /// Shared container identifier. Declared in both targets' entitlements. If
     /// `containerURL` ever returns nil at runtime, this likely needs the team-id
-    /// prefixed form (`6L9H6Q8CUF.group.ptn.coderpad`) on macOS.
-    static let appGroupID = "group.ptn.coderpad"
+    /// prefixed form (`6L9H6Q8CUF.group.com.adamdangoor.coderpad`) on macOS.
+    static let appGroupID = "group.com.adamdangoor.coderpad"
 
     /// The widget's kind, shared so the app and widget agree on the identifier.
     static let widgetKind = "RecentPadsWidget"

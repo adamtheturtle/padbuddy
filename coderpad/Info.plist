@@ -18,7 +18,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>ptn.coderpad</string>
+			<string>com.adamdangoor.coderpad</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>coderpad</string>

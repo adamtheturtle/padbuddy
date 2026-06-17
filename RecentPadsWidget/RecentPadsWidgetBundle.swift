@@ -27,7 +27,7 @@ struct RecentPadsWidgetBundle: WidgetBundle {
 /// intent has to be compiled into this dependency-free widget extension.
 @available(macOS 26.0, *)
 struct NewPadControl: ControlWidget {
-    static let kind = "ptn.coderpad.NewPadControl"
+    static let kind = "com.adamdangoor.coderpad.NewPadControl"
 
     /// The deep link the app handles by switching to Pads and opening the create
     /// sheet. Force-unwrapped: a malformed literal would fail every build.
