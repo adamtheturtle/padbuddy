@@ -53,12 +53,22 @@ jobs:
       - name: Build Release app
         run: |
           set -o pipefail
+          # Stamp the build from the tag: MARKETING_VERSION is the tag minus its
+          # leading "v" (v1.2.3 -> 1.2.3); CURRENT_PROJECT_VERSION is the commit
+          # count, which increases with every commit so the build number rises
+          # monotonically across uploads (#48). fetch-depth: 0 above gives full
+          # history for the count.
+          MARKETING_VERSION="${GITHUB_REF_NAME#v}"
+          BUILD_NUMBER="$(git rev-list --count HEAD)"
+          echo "Building version $MARKETING_VERSION (build $BUILD_NUMBER)"
           xcodebuild build \
             -project coderpad.xcodeproj \
             -scheme coderpad \
             -configuration Release \
             -destination 'generic/platform=macOS' \
             -derivedDataPath DerivedData \
+            MARKETING_VERSION="$MARKETING_VERSION" \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
