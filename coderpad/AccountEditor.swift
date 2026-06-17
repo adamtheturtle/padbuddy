@@ -51,6 +51,15 @@ struct AccountEditor: View {
     /// `SecureField` by default so macOS offers password AutoFill suggestions;
     /// revealing it via a toggle (rather than on focus) keeps that intact.
     @State var revealKey = false
+    /// Reveals the optional Screen API key as plain text, mirroring `revealKey`.
+    @State var revealScreenKey = false
+    /// Validation state of the optional Screen key, kept separate from the Interview
+    /// key's `validation`: Screen is additive and never gates Save.
+    @State var screenValidation: ValidationState = .idle
+    /// Whether the optional Screen credentials section is expanded. Starts open when
+    /// the account already has a Screen key (so it's visible), collapsed otherwise so
+    /// it doesn't clutter accounts that don't use Screen.
+    @State var screenExpanded: Bool
     /// When set in General settings, revealing a saved key first requires a
     /// successful Touch ID (or password) check — see `toggleReveal`.
     @AppStorage(GeneralSettings.Key.requireBiometricsToRevealKey) var requireBiometricsToRevealKey = false
@@ -64,6 +73,9 @@ struct AccountEditor: View {
          onDelete: (() -> Void)? = nil,
          onAppearanceChange: ((String?, String?) -> Void)? = nil) {
         _draft = State(initialValue: initial)
+        _screenExpanded = State(
+            initialValue: !((initial.screenApiKey ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        )
         initialName = initial.name
         initialAPIKey = initial.apiKey
         initialBaseURL = initial.baseURL
@@ -76,27 +88,38 @@ struct AccountEditor: View {
         self.onAppearanceChange = onAppearanceChange
     }
 
-    /// Reveals or hides the key. Hiding is immediate; revealing is gated behind a
-    /// Touch ID / password check when the user enabled that in General settings.
-    /// If the device can't evaluate the policy (no biometrics and no passcode set),
-    /// reveal anyway rather than lock the user out of their own key.
+    /// Reveals or hides the Interview API key. Hiding is immediate; revealing is gated
+    /// behind a Touch ID / password check when the user enabled that in General settings.
     func toggleReveal() {
-        if revealKey { revealKey = false; return }
-        guard requireBiometricsToRevealKey else { revealKey = true; return }
+        toggleReveal(of: $revealKey, reason: "Reveal your saved CoderPad API key")
+    }
+
+    /// Reveals or hides the optional Screen API key, with the same biometric gating.
+    func toggleScreenReveal() {
+        toggleReveal(of: $revealScreenKey, reason: "Reveal your saved CoderPad Screen API key")
+    }
+
+    /// Shared reveal/hide logic for a secure key field. Hiding is immediate; revealing
+    /// is gated behind a Touch ID / password check when the user enabled that in General
+    /// settings. If the device can't evaluate the policy (no biometrics and no passcode
+    /// set), reveal anyway rather than lock the user out of their own key.
+    private func toggleReveal(of revealed: Binding<Bool>, reason: String) {
+        if revealed.wrappedValue { revealed.wrappedValue = false; return }
+        guard requireBiometricsToRevealKey else { revealed.wrappedValue = true; return }
 
         let context = LAContext()
         var policyError: NSError?
         guard context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &policyError) else {
-            revealKey = true
+            revealed.wrappedValue = true
             return
         }
 
         Task {
             let success = await (try? context.evaluatePolicy(
                 .deviceOwnerAuthentication,
-                localizedReason: "Reveal your saved CoderPad API key"
+                localizedReason: reason
             )) ?? false
-            if success { revealKey = true }
+            if success { revealed.wrappedValue = true }
         }
     }
 
@@ -241,6 +264,11 @@ struct AccountEditor: View {
                     GetAPIKeyLink()
                         .font(.callout)
                 }
+                // The optional CoderPad Screen credentials (a separate product), shown
+                // once the account exists. Additive — they never gate Save.
+                if isEditing || isValidated {
+                    screenSection
+                }
             }
 
             validationBanner
@@ -270,6 +298,9 @@ struct AccountEditor: View {
         .task(id: draft.id) { await loadOrgMembersForEditing() }
         .onChange(of: draft.apiKey) { _, _ in validation = .idle; scopeWarning = nil }
         .onChange(of: draft.baseURL) { _, _ in validation = .idle }
+        // A changed Screen key or region invalidates any prior Screen validation result.
+        .onChange(of: draft.screenApiKey) { _, _ in screenValidation = .idle }
+        .onChange(of: draft.screenRegion) { _, _ in screenValidation = .idle }
         // Icon and tint are cosmetic, so persist them the moment they change rather
         // than waiting for Save (which gates on validation/email for the credentials).
         .onChange(of: draft.iconSymbol) { _, _ in onAppearanceChange?(draft.iconSymbol, draft.tintHex) }
