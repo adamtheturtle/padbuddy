@@ -219,14 +219,15 @@ struct MergedOrganizationView: View {
 
         isLoading = true
         defer { isLoading = false }
-        let window = window
+        let requestedWindow = window
         let targets = mergeable.map { (id: $0.id, client: $0.makeClient()) }
         await withTaskGroup(of: (UUID, Organization?, OrganizationStats?, Quota?, String?).self) { group in
             for target in targets {
                 group.addTask {
                     do {
                         async let orgFetch = target.client.organization()
-                        async let statsFetch = target.client.organizationStats(start: window.start, end: window.end)
+                        async let statsFetch = target.client.organizationStats(start: requestedWindow.start,
+                                                                               end: requestedWindow.end)
                         async let quotaFetch = target.client.quota()
                         let org = try await orgFetch
                         return await (target.id, org, try? statsFetch, try? quotaFetch, nil)
@@ -243,7 +244,11 @@ struct MergedOrganizationView: View {
                 } else if let errorText {
                     accountErrors[id] = errorText
                 }
-                if let stats { statsByAccount[id] = stats }
+                // Org and quota are window-independent, but stats were fetched for
+                // `requestedWindow`. If the period picker has since changed (a newer
+                // reloadStats is the authority now), drop these to avoid overwriting
+                // fresh stats with counts for the old period. #384
+                if let stats, requestedWindow == window { statsByAccount[id] = stats }
                 if let quota { quotaCache.set(id, quota: quota) }
             }
         }
