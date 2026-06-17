@@ -200,7 +200,7 @@ enum PadEventGrouping {
         for event in events {
             if let last = groups.last,
                collapsibleKinds.contains(event.kind.lowercased()),
-               last.representative.kind == event.kind,
+               last.representative.kind.lowercased() == event.kind.lowercased(),
                last.representative.userName == event.userName {
                 groups[groups.count - 1] = PadEventGroup(
                     id: last.id,
