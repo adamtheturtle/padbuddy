@@ -151,34 +151,23 @@ extension Sidebar {
     /// the row is a plain `Label` rather than the old hand-painted button.
     func sectionRow(_ value: AppSection) -> some View {
         let meta = Self.sectionMeta(value)
-        // A `Label` with a custom icon view keeps the native sidebar layout and
-        // selection highlight while swapping the flat glyph for a tinted tile (#352).
-        return Label {
-            Text(meta.label)
-        } icon: {
-            SidebarIconTile(systemName: meta.icon, tint: meta.tint)
-        }
-        .tag(value)
-        .measuresSidebarRowWidth(meta.label)
-        .accessibilityAddTraits(isRootSelected(value) ? .isSelected : [])
+        // Plain native sidebar `Label` — a subtle monochrome glyph, the standard
+        // source-list look — rather than the tinted icon tile that read as too
+        // jazzy (#398, reverting #352's tile experiment).
+        return Label(meta.label, systemImage: meta.icon)
+            .tag(value)
+            .measuresSidebarRowWidth(meta.label)
+            .accessibilityAddTraits(isRootSelected(value) ? .isSelected : [])
     }
 
-    /// The label, SF Symbol and tile tint for a navigable top-level section.
-    struct SectionMeta {
-        let label: LocalizedStringKey
-        let icon: String
-        let tint: Color
-    }
-
-    /// The display metadata for each navigable top-level section, in one place so the
-    /// rows and any width measurement agree. The tints give each section a distinct,
-    /// recognisable icon tile (#352) the way System Settings does.
-    private static func sectionMeta(_ value: AppSection) -> SectionMeta {
+    /// The label and SF Symbol for each navigable top-level section, in one place so the
+    /// rows and any width measurement agree.
+    private static func sectionMeta(_ value: AppSection) -> (label: LocalizedStringKey, icon: String) {
         switch value {
-        case .pads: SectionMeta(label: "Pads", icon: "doc.text", tint: .blue)
-        case .questions: SectionMeta(label: "Questions", icon: "questionmark.bubble", tint: .purple)
-        case .organization: SectionMeta(label: "Organization", icon: "building.2", tint: .teal)
-        case .quota: SectionMeta(label: "Quota", icon: "gauge.with.dots.needle.67percent", tint: .orange)
+        case .pads: ("Pads", "doc.text")
+        case .questions: ("Questions", "questionmark.bubble")
+        case .organization: ("Organization", "building.2")
+        case .quota: ("Quota", "gauge.with.dots.needle.67percent")
         }
     }
 
