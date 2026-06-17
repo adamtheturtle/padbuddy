@@ -132,6 +132,59 @@ struct AccountRoundTripTests {
     }
 
     @Test
+    func `screen key and region survive the round-trip`() throws {
+        let original = Account(
+            name: "Acme", apiKey: "k", userEmail: "me@acme.com",
+            screenApiKey: "screen-secret", screenRegion: .europe
+        )
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(Account.self, from: data)
+        #expect(decoded.screenApiKey == "screen-secret")
+        #expect(decoded.screenRegion == .europe)
+    }
+
+    @Test
+    func `account saved before screen support still decodes with defaults`() throws {
+        // JSON from a build with no screenApiKey/screenRegion keys must not fail to
+        // load, and must default to no Screen access in the US region.
+        let legacy = """
+        {"id":"\(UUID().uuidString)","name":"Old","apiKey":"k","isMock":false,"userEmail":"me@acme.com"}
+        """
+        let decoded = try JSONDecoder().decode(Account.self, from: Data(legacy.utf8))
+        #expect(decoded.screenApiKey == nil)
+        #expect(decoded.screenRegion == .unitedStates)
+    }
+
+    @Test
+    func `makeScreenClient returns nil without a key`() {
+        let noKey = Account(name: "A", apiKey: "k", userEmail: "me@acme.com")
+        #expect(noKey.makeScreenClient() == nil)
+        // A whitespace-only key counts as absent.
+        let blank = Account(name: "B", apiKey: "k", userEmail: "me@acme.com", screenApiKey: "   ")
+        #expect(blank.makeScreenClient() == nil)
+        // Demo accounts have no Screen key, so no Screen client.
+        #expect(Account.demo().makeScreenClient() == nil)
+    }
+
+    @Test
+    func `makeScreenClient points at the region's server`() throws {
+        let usAccount = Account(
+            name: "US", apiKey: "k", userEmail: "me@acme.com",
+            screenApiKey: "s", screenRegion: .unitedStates
+        )
+        let usClient = try #require(usAccount.makeScreenClient())
+        #expect(usClient.apiKey == "s")
+        #expect(usClient.baseURL == ScreenClient.defaultBaseURL)
+
+        let euAccount = Account(
+            name: "EU", apiKey: "k", userEmail: "me@acme.com",
+            screenApiKey: "s", screenRegion: .europe
+        )
+        let euClient = try #require(euAccount.makeScreenClient())
+        #expect(euClient.baseURL == ScreenClient.euBaseURL)
+    }
+
+    @Test
     func `an account persisted without a user email fails to decode`() {
         let json = """
         {"id":"\(UUID().uuidString)","name":"Old","apiKey":"k","isMock":false,"userEmail":""}

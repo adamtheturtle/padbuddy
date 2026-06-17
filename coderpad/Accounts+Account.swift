@@ -26,6 +26,23 @@ extension String {
     }
 }
 
+/// The CoderPad **Screen** region an account's Screen credentials belong to. Screen
+/// is hosted per region (US / EU) on distinct hosts, so the API key alone isn't
+/// enough — `Account.makeScreenClient()` points the client at the matching server.
+/// Defaults to `.unitedStates`.
+enum ScreenRegion: String, Codable, CaseIterable, Hashable {
+    case unitedStates = "us"
+    case europe = "eu"
+
+    /// The Screen server base URL for this region.
+    var baseURL: URL {
+        switch self {
+        case .unitedStates: ScreenClient.defaultBaseURL
+        case .europe: ScreenClient.euBaseURL
+        }
+    }
+}
+
 struct Account: Identifiable, Codable, Hashable {
     let id: UUID
     var name: String
@@ -51,10 +68,21 @@ struct Account: Identifiable, Codable, Hashable {
     /// default (the app accent, or purple for demo accounts). A string rather than
     /// a `Color` so it encodes cleanly into the Keychain JSON.
     var tintHex: String?
+    /// An optional CoderPad **Screen** API key. Screen is a separate product from the
+    /// Interview API that `apiKey` talks to; storing it here lets one org identity span
+    /// both. `nil`/empty means this account has no Screen access (the common case), so
+    /// `makeScreenClient()` returns `nil`. Optional so accounts saved before Screen
+    /// support still decode.
+    var screenApiKey: String?
+    /// Which Screen region (`us`/`eu`) `screenApiKey` belongs to: Screen is hosted on
+    /// distinct per-region servers, so the key needs its region to reach the right one.
+    /// Defaults to `.unitedStates`; ignored when no Screen key is set.
+    var screenRegion: ScreenRegion
 
     init(name: String, apiKey: String, id: UUID = UUID(), isMock: Bool = false,
          userEmail: String = "", baseURL: String? = nil,
-         iconSymbol: String? = nil, tintHex: String? = nil) {
+         iconSymbol: String? = nil, tintHex: String? = nil,
+         screenApiKey: String? = nil, screenRegion: ScreenRegion = .unitedStates) {
         self.id = id
         self.name = name
         self.apiKey = apiKey
@@ -63,10 +91,13 @@ struct Account: Identifiable, Codable, Hashable {
         self.baseURL = baseURL
         self.iconSymbol = iconSymbol
         self.tintHex = tintHex
+        self.screenApiKey = screenApiKey
+        self.screenRegion = screenRegion
     }
 
     enum CodingKeys: String, CodingKey {
         case id, name, apiKey, isMock, userEmail, baseURL, iconSymbol, tintHex
+        case screenApiKey, screenRegion
     }
 
     /// Custom decoding to enforce that a persisted account carries a user email: it's
@@ -92,6 +123,8 @@ struct Account: Identifiable, Codable, Hashable {
         baseURL = try container.decodeIfPresent(String.self, forKey: .baseURL)
         iconSymbol = try container.decodeIfPresent(String.self, forKey: .iconSymbol)
         tintHex = try container.decodeIfPresent(String.self, forKey: .tintHex)
+        screenApiKey = try container.decodeIfPresent(String.self, forKey: .screenApiKey)
+        screenRegion = try container.decodeIfPresent(ScreenRegion.self, forKey: .screenRegion) ?? .unitedStates
     }
 
     /// The curated SF Symbols offered for an account's avatar. Deliberately small
@@ -182,6 +215,17 @@ struct Account: Identifiable, Codable, Hashable {
         }
 
         return .mock(unauthorized: isBadKeyDemo)
+    }
+
+    /// The CoderPad **Screen** client this account talks to, or `nil` when the account
+    /// has no Screen key — so demo/mock and Interview-only accounts simply have no
+    /// Screen. Screen is additive to the Interview `apiKey`; the client is pointed at
+    /// the US or EU server per `screenRegion`.
+    func makeScreenClient() -> ScreenClient? {
+        let trimmed = screenApiKey?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !trimmed.isEmpty else { return nil }
+
+        return .live(apiKey: trimmed, baseURL: screenRegion.baseURL)
     }
 
     /// A draft account pre-filled from the `CODERPAD_API_KEY` (and optional
