@@ -22,6 +22,7 @@ final class AccountHealthMonitor {
     /// Idempotent: repeated calls keep the single existing timer.
     func start(every interval: Duration = .seconds(1800)) {
         guard checkTask == nil else { return }
+
         checkTask = Task { [weak self] in
             // Validate immediately so a key already revoked before launch surfaces the
             // banner now, rather than after a full interval, then re-check on the timer.
@@ -44,6 +45,7 @@ final class AccountHealthMonitor {
         // banner; the mock-data demo is skipped since it's always authorized.
         guard let account = AccountsStore.shared.currentAccount,
               account.isBadKeyDemo || (!account.isMock && !account.apiKey.isEmpty) else { return }
+
         let client = account.makeClient()
         do {
             _ = try await client.organization()
@@ -90,6 +92,7 @@ final class PadsBackgroundRefresher {
     /// loads, which only fire while the UI is on screen.
     func start(every interval: Duration = .seconds(300)) {
         guard refreshTask == nil else { return }
+
         refreshTask = Task { [weak self] in
             while !Task.isCancelled {
                 // No immediate fetch: launch already presents a window that loads the
@@ -111,8 +114,10 @@ final class PadsBackgroundRefresher {
         // the widget timeline) and any account without a key to fetch with.
         guard let account = AccountsStore.shared.currentAccount,
               !account.isMock, !account.apiKey.isEmpty else { return }
+
         let client = account.makeClient()
         guard let fetched = try? await client.listPads(sort: "updated_at,desc") else { return }
+
         // `set` cascades to the widget snapshot and the active-pads Dock badge.
         PadsCacheStore.shared.set(account.id, pads: fetched)
     }

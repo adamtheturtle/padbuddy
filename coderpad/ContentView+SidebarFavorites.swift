@@ -38,12 +38,14 @@ extension Sidebar {
             return accounts.mergeableAccounts.flatMap { favoritePadItems(forAccount: $0.id, namespaced: true) }
         }
         guard let account = accountID else { return [] }
+
         return favoritePadItems(forAccount: account, namespaced: false)
     }
 
     private func favoritePadItems(forAccount account: UUID, namespaced: Bool) -> [FavoritePadItem] {
         let ids = favoritePads.favorites(account: account)
         guard !ids.isEmpty else { return [] }
+
         let titles = Dictionary(
             padsCache.get(account).map { ($0.id, $0.title.isEmpty ? $0.id : $0.title) },
             uniquingKeysWith: { first, _ in first }
@@ -70,12 +72,14 @@ extension Sidebar {
             return accounts.mergeableAccounts.flatMap { favoriteItems(forAccount: $0.id, namespaced: true) }
         }
         guard let account = accountID else { return [] }
+
         return favoriteItems(forAccount: account, namespaced: false)
     }
 
     private func favoriteItems(forAccount account: UUID, namespaced: Bool) -> [FavoriteItem] {
         let favorites = favorites.titledFavorites(account: account)
         guard !favorites.isEmpty else { return [] }
+
         let cacheTitles = Dictionary(
             questionsCache.get(account).map { ($0.id, $0.displayTitle) },
             uniquingKeysWith: { first, _ in first }
@@ -194,6 +198,7 @@ extension Sidebar {
     private func loadFavoriteDrop(from provider: NSItemProvider, perform: @escaping @MainActor (FavoriteDrop) -> Void) {
         provider.loadDataRepresentation(forTypeIdentifier: UTType.coderpadFavorite.identifier) { data, _ in
             guard let data, let drop = try? JSONDecoder().decode(FavoriteDrop.self, from: data) else { return }
+
             Task { @MainActor in perform(drop) }
         }
     }
@@ -204,6 +209,7 @@ extension Sidebar {
     /// so it appends to its own group instead.
     private func addDroppedFavorite(_ drop: FavoriteDrop, beforePad item: FavoritePadItem) {
         guard case let .pad(account, id, _) = drop else { _ = handleFavoriteDrop([drop]); return }
+
         favoritePads.add(id, account: account)
         if let target = item.account ?? accountID, target == account {
             favoritePads.move(id, before: item.padID, account: account)
@@ -214,6 +220,7 @@ extension Sidebar {
     /// group. A pad dropped onto a question row appends to the pad group instead.
     private func addDroppedFavorite(_ drop: FavoriteDrop, beforeQuestion item: FavoriteItem) {
         guard case let .question(account, id, title) = drop else { _ = handleFavoriteDrop([drop]); return }
+
         favorites.add(id, title: title, account: account)
         if let target = item.account ?? accountID, target == account {
             favorites.move(id, before: item.questionID, account: account)
@@ -227,6 +234,7 @@ extension Sidebar {
     ) {
         provider.loadDataRepresentation(forTypeIdentifier: UTType.coderpadFavoriteReorder.identifier) { data, _ in
             guard let data, let reorder = try? JSONDecoder().decode(FavoriteReorder.self, from: data) else { return }
+
             Task { @MainActor in onReorder(reorder) }
         }
     }
@@ -239,11 +247,13 @@ extension Sidebar {
 
     private func unfavoritePad(_ item: FavoritePadItem) {
         guard let account = item.account ?? accountID else { return }
+
         favoritePads.remove(item.padID, account: account)
     }
 
     private func unfavoriteQuestion(_ item: FavoriteItem) {
         guard let account = item.account ?? accountID else { return }
+
         favorites.toggle(item.questionID, title: item.title, account: account)
     }
 
@@ -257,6 +267,7 @@ extension Sidebar {
             case let .pad(account, id, _):
                 favoritePads.add(id, account: account)
                 accepted = true
+
             case let .question(account, id, title):
                 favorites.add(id, title: title, account: account)
                 accepted = true
@@ -318,11 +329,13 @@ extension Sidebar {
 
     private func padReorderPayload(_ item: FavoritePadItem) -> FavoriteReorder? {
         guard let account = item.account ?? accountID else { return nil }
+
         return .pad(account: account, id: item.padID)
     }
 
     private func questionReorderPayload(_ item: FavoriteItem) -> FavoriteReorder? {
         guard let account = item.account ?? accountID else { return nil }
+
         return .question(account: account, id: item.questionID)
     }
 
@@ -332,6 +345,7 @@ extension Sidebar {
         guard case let .pad(account, id) = dropped,
               let targetAccount = item.account ?? accountID,
               account == targetAccount else { return }
+
         favoritePads.move(id, before: item.padID, account: account)
     }
 
@@ -339,6 +353,7 @@ extension Sidebar {
         guard case let .question(account, id) = dropped,
               let targetAccount = item.account ?? accountID,
               account == targetAccount else { return }
+
         favorites.move(id, before: item.questionID, account: account)
     }
 }

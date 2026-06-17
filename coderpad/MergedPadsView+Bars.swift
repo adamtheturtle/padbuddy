@@ -90,6 +90,7 @@ extension MergedPadsView {
     /// list is empty so the subtitle falls back to the static "All accounts" cue.
     var countSubtitle: String {
         guard !scoped.isEmpty else { return "" }
+
         let shown = filtered.count
         let accountCount = accounts.mergeableAccounts.count
         return (activeFilterCount > 0 || !search.isEmpty)

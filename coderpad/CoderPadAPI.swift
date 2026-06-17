@@ -120,6 +120,7 @@ extension Pad {
     var informativeUpdatedAt: Date? {
         guard let updatedAt else { return nil }
         guard let endedAt else { return updatedAt }
+
         return updatedAt.timeIntervalSince(endedAt) > 60 ? updatedAt : nil
     }
 }
@@ -197,6 +198,7 @@ nonisolated struct PadEnvironment: Decodable, Identifiable, Hashable {
     var contents: String? {
         let files = fileContents.compactMap { file -> String? in
             guard let body = file.contents, !body.isEmpty else { return nil }
+
             if fileContents.count > 1, let path = file.path, !path.isEmpty {
                 return "// \(path)\n\(body)"
             }

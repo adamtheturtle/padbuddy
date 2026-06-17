@@ -104,6 +104,7 @@ extension AccountEditor {
     /// can be saved again.
     var canSave: Bool {
         guard hasEmail else { return false }
+
         return isValidated || (isEditing && draft.apiKey == initialAPIKey && draft.baseURL == initialBaseURL)
     }
 
@@ -139,12 +140,14 @@ extension AccountEditor {
         switch validation {
         case .idle, .valid:
             EmptyView()
+
         case .validating:
             HStack(spacing: 6) {
                 ProgressView().controlSize(.small)
                 Text("Validating API key…").foregroundStyle(.secondary)
             }
             .font(.callout)
+
         case let .invalid(message):
             Label(message, systemImage: "xmark.octagon.fill")
                 .foregroundStyle(.red).font(.callout)
@@ -169,6 +172,7 @@ extension AccountEditor {
     /// email stays selectable and Validate remains the path that surfaces a real problem.
     func loadOrgMembersForEditing() async {
         guard isEditing, !isValidated, orgUsers.isEmpty else { return }
+
         isLoadingMembers = true
         defer { isLoadingMembers = false }
         let client = CoderPadClient(apiKey: draft.apiKey.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -191,6 +195,7 @@ extension AccountEditor {
                 && existing.resolvedBaseURL == server
         }
         guard clashes else { return nil }
+
         return String(localized: """
         This API key is already added as another account. Each account must use a unique key.
         """)
@@ -240,7 +245,7 @@ extension AccountEditor {
     /// a silent empty section later. Non-blocking: the account still validates and
     /// saves. Network/other errors are not treated as missing scopes.
     func missingScopesWarning(client: CoderPadClient) async -> String? {
-        func authorized(_ probe: @escaping () async throws -> Void) async -> Bool {
+        func authorized(_ probe: () async throws -> Void) async -> Bool {
             do {
                 try await probe()
                 return true
@@ -265,6 +270,7 @@ extension AccountEditor {
         if await questionsOK == false { missing.append(String(localized: "Questions")) }
         if await quotaOK == false { missing.append(String(localized: "Quota")) }
         guard !missing.isEmpty else { return nil }
+
         let list = missing.joined(separator: ", ")
         return String(localized: "This key works, but isn't authorized for: \(list). Those sections may be empty.")
     }
@@ -278,6 +284,7 @@ extension AccountEditor {
             for try await page in client.listPadsIncrementally() {
                 let emails = page.map(\.ownerEmail).filter { !$0.isEmpty }
                 guard !emails.isEmpty else { return nil }
+
                 let counts = Dictionary(emails.map { ($0, 1) }, uniquingKeysWith: +)
                 return counts.max { $0.value < $1.value }?.key
             }
@@ -297,13 +304,16 @@ extension AccountEditor {
             switch api {
             case .missingAPIKey:
                 return String(localized: "Paste your CoderPad API key above.")
+
             case .http:
                 return String(localized: "CoderPad couldn't verify the key right now. Try again in a moment.")
+
             case .decode:
                 return String(localized: """
                 CoderPad returned something unexpected. Try again, and if it keeps happening, \
                 regenerate the key.
                 """)
+
             case .network:
                 return api.errorDescription ?? String(localized: """
                 Couldn't reach CoderPad. Check your internet connection and try again.

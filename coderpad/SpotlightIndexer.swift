@@ -34,6 +34,7 @@ enum SpotlightIndexer {
     /// Indexes (or re-indexes) the account's pads. No-op unless the user enabled it.
     static func updatePads(_ pads: [Pad], account: UUID) {
         guard GeneralSettings.spotlightIndexing else { return }
+
         let items = pads.map { pad -> CSSearchableItem in
             let attrs = CSSearchableItemAttributeSet(contentType: .text)
             attrs.title = pad.title.isEmpty ? pad.id : pad.title
@@ -49,6 +50,7 @@ enum SpotlightIndexer {
     /// Indexes (or re-indexes) the account's questions. No-op unless enabled.
     static func updateQuestions(_ questions: [Question], account: UUID) {
         guard GeneralSettings.spotlightIndexing else { return }
+
         let items = questions.map { question -> CSSearchableItem in
             let attrs = CSSearchableItemAttributeSet(contentType: .text)
             attrs.title = question.title.isEmpty ? "#\(question.id)" : question.title
@@ -70,8 +72,10 @@ enum SpotlightIndexer {
     /// stops adding more.
     private static func enrichQuestionKeywords(_ questions: [Question], account: UUID) {
         guard SpotlightSummarizer.isAvailable else { return }
+
         let candidates = questions.filter { ($0.description?.isEmpty == false) }
         guard !candidates.isEmpty else { return }
+
         let bounded = Array(candidates.prefix(maxKeywordEnrichments))
         if candidates.count > bounded.count {
             logger.info(
@@ -90,6 +94,7 @@ enum SpotlightIndexer {
                     language: question.language,
                     description: question.description ?? ""
                 ) else { continue }
+
                 let attrs = CSSearchableItemAttributeSet(contentType: .text)
                 attrs.title = question.title.isEmpty ? "#\(question.id)" : question.title
                 attrs.contentDescription = [question.language, question.authorName]
@@ -127,6 +132,7 @@ enum SpotlightIndexer {
 
     private static func index(_ items: [CSSearchableItem]) {
         guard !items.isEmpty else { return }
+
         CSSearchableIndex.default().indexSearchableItems(items) { error in
             if let error {
                 logger.error("Spotlight index failed: \(error.localizedDescription, privacy: .public)")
@@ -148,6 +154,7 @@ enum SpotlightIndexer {
     /// isn't a question.
     static func questionID(fromItemIdentifier id: String) -> Int? {
         guard id.hasPrefix(questionPrefix) else { return nil }
+
         return Int(id.dropFirst(questionPrefix.count))
     }
 }

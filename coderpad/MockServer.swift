@@ -39,9 +39,16 @@ final nonisolated class MockUnauthorizedURLProtocol: URLProtocol {
             client?.urlProtocol(self, didFailWithError: URLError(.badURL))
             return
         }
+
         let body = Data(#"{"status":"error","message":"Invalid API key"}"#.utf8)
         let headers = ["Content-Type": "application/json"]
-        let response = HTTPURLResponse(url: url, statusCode: 401, httpVersion: "HTTP/1.1", headerFields: headers)!
+        guard let response = HTTPURLResponse(
+            url: url, statusCode: 401, httpVersion: "HTTP/1.1", headerFields: headers
+        ) else {
+            client?.urlProtocol(self, didFailWithError: URLError(.badServerResponse))
+            return
+        }
+
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: body)
         client?.urlProtocolDidFinishLoading(self)
@@ -64,6 +71,7 @@ final nonisolated class MockURLProtocol: URLProtocol {
             client?.urlProtocol(self, didFailWithError: URLError(.badURL))
             return
         }
+
         let path = url.path
         let method = request.httpMethod ?? "GET"
         let bodyData = request.httpBody ?? Self.drain(stream: request.httpBodyStream)
@@ -82,7 +90,13 @@ final nonisolated class MockURLProtocol: URLProtocol {
                                                    body: bodyData)
 
         let headers = ["Content-Type": "application/json"]
-        let response = HTTPURLResponse(url: url, statusCode: status, httpVersion: "HTTP/1.1", headerFields: headers)!
+        guard let response = HTTPURLResponse(
+            url: url, statusCode: status, httpVersion: "HTTP/1.1", headerFields: headers
+        ) else {
+            client?.urlProtocol(self, didFailWithError: URLError(.badServerResponse))
+            return
+        }
+
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: body)
         client?.urlProtocolDidFinishLoading(self)
@@ -101,6 +115,7 @@ final nonisolated class MockURLProtocol: URLProtocol {
 
     private static func drain(stream: InputStream?) -> Data? {
         guard let stream else { return nil }
+
         stream.open()
         defer { stream.close() }
         var data = Data()

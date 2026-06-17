@@ -106,11 +106,13 @@ extension QuestionDetailView {
     func commitTitle() async {
         let newTitle = titleDraft
         guard newTitle != question.title else { return }
+
         await save(QuestionUpdate(id: question.id, title: newTitle)) { titleDraft = question.title }
     }
 
     func commitLanguage(_ language: String) async {
         guard language != question.language else { return }
+
         await save(QuestionUpdate(id: question.id, language: language)) {
             draftLanguage = question.language ?? "python3"
         }
@@ -118,6 +120,7 @@ extension QuestionDetailView {
 
     func commitType(_ padType: String) async {
         guard padType != currentType else { return }
+
         // `take_home` and `pad_type` are coupled, so a type change commits both.
         await save(QuestionUpdate(id: question.id, takeHome: padType == "take-home", padType: padType)) {
             draftPadType = currentType
@@ -132,11 +135,13 @@ extension QuestionDetailView {
 
     func commitDescription(_ text: String) async -> Bool {
         guard text != (question.description ?? "") else { return true }
+
         return await saveContent(QuestionUpdate(id: question.id, description: text))
     }
 
     func commitSolution(_ text: String) async -> Bool {
         guard text != (question.solution ?? "") else { return true }
+
         return await saveContent(QuestionUpdate(id: question.id, solution: text))
     }
 
@@ -151,9 +156,11 @@ extension QuestionDetailView {
         }
         if payloads.indices.contains(index) {
             guard payloads[index].instructions != text else { return true }
+
             payloads[index].instructions = text
         } else {
             guard !text.isEmpty else { return true }
+
             payloads.append(CandidateInstructionPayload(instructions: text, defaultVisible: true))
         }
         return await saveContent(QuestionUpdate(id: question.id, candidateInstructions: payloads))

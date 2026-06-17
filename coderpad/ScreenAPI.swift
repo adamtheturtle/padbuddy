@@ -194,6 +194,7 @@ extension ScreenTestSession {
 
     private static func date(fromMilliseconds millis: Int?) -> Date? {
         guard let millis else { return nil }
+
         return Date(timeIntervalSince1970: Double(millis) / 1000)
     }
 }

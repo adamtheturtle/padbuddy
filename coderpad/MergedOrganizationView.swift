@@ -63,10 +63,12 @@ struct MergedOrganizationView: View {
         .onChange(of: period) { _, _ in scheduleStatsReload() }
         .onChange(of: customStart) { _, _ in
             guard period == .custom else { return }
+
             scheduleStatsReload()
         }
         .onChange(of: customEnd) { _, _ in
             guard period == .custom else { return }
+
             scheduleStatsReload()
         }
         .task {
@@ -214,6 +216,7 @@ struct MergedOrganizationView: View {
     private func reload() async {
         let mergeable = accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }
         guard !mergeable.isEmpty else { return }
+
         isLoading = true
         defer { isLoading = false }
         let window = window
@@ -256,6 +259,7 @@ struct MergedOrganizationView: View {
     private func reloadStats() async {
         let mergeable = accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }
         guard !mergeable.isEmpty else { return }
+
         let window = window
         let targets = mergeable.map { (id: $0.id, client: $0.makeClient()) }
         await withTaskGroup(of: (UUID, OrganizationStats?).self) { group in
@@ -266,6 +270,7 @@ struct MergedOrganizationView: View {
             }
             for await (id, stats) in group {
                 guard !Task.isCancelled else { return }
+
                 if let stats { statsByAccount[id] = stats }
             }
         }

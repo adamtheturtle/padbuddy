@@ -136,6 +136,7 @@ struct PadsView: View {
         return sidebar
             .task(id: TaskKey(apiKey: client.apiKey, phase: scenePhase)) {
                 guard scenePhase == .active else { return }
+
                 if pads.isEmpty, let id = accounts.currentAccountID {
                     pads = cache.get(id)
                 }

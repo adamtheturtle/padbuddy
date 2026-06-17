@@ -251,6 +251,7 @@ extension SettingsView {
                     // saved account so unsaved edits to other fields aren't flushed too.
                     onAppearanceChange: { symbol, tint in
                         guard var account = store.accounts.first(where: { $0.id == id }) else { return }
+
                         account.iconSymbol = symbol
                         account.tintHex = tint
                         store.update(account)

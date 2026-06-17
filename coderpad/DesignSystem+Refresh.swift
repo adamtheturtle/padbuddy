@@ -19,6 +19,7 @@ enum RefreshSchedule {
         // A non-positive interval would never advance the grid; fall back to a fixed
         // one-second cadence so the loop still makes forward progress.
         guard interval > .zero else { return now.advanced(by: .seconds(1)) }
+
         var fire = last.advanced(by: interval)
         // Skip boundaries already in the past. Capped so a pathological `last`/`now`
         // gap can never spin here — past the cap we simply schedule one interval out.

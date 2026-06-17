@@ -26,7 +26,7 @@ struct LanguageSyntax {
     var escapesWithBackslash: Bool = true
     var caseInsensitiveKeywords: Bool = false
 
-    static func forLanguage(_ language: String?) -> LanguageSyntax {
+    static func forLanguage(_ language: String?) -> Self {
         let lang = (language ?? "").lowercased()
         // C-family rules apply to anything not explicitly listed.
         var syntax = byLanguage[lang] ?? cFamily
@@ -41,76 +41,76 @@ struct LanguageSyntax {
     }
 
     /// Rules for the C-family and any unrecognised language.
-    private static let cFamily = LanguageSyntax(
+    private static let cFamily = Self(
         keywords: Keywords.cLike, types: Types.common,
         lineComments: [Array("//")], blockComments: [.init("/*", "*/")],
         stringDelimiters: delimiters("\"", "'", "`")
     )
 
     /// Explicit rules per language code; codes absent here use ``cFamily``.
-    private static let byLanguage: [String: LanguageSyntax] = {
-        let python = LanguageSyntax(
+    private static let byLanguage: [String: Self] = {
+        let python = Self(
             keywords: Keywords.python, types: Types.common,
             lineComments: [Array("#")], blockComments: [],
             stringDelimiters: delimiters("\"\"\"", "'''", "\"", "'")
         )
-        let ruby = LanguageSyntax(
+        let ruby = Self(
             keywords: Keywords.ruby, types: Types.common,
             lineComments: [Array("#")], blockComments: [],
             stringDelimiters: delimiters("\"", "'")
         )
-        let shell = LanguageSyntax(
+        let shell = Self(
             keywords: Keywords.shell, types: [],
             lineComments: [Array("#")], blockComments: [],
             stringDelimiters: delimiters("\"", "'")
         )
-        let sql = LanguageSyntax(
+        let sql = Self(
             keywords: Keywords.sql, types: [],
             lineComments: [Array("--")], blockComments: [.init("/*", "*/")],
             stringDelimiters: delimiters("'", "\""),
             escapesWithBackslash: false, caseInsensitiveKeywords: true
         )
-        let lua = LanguageSyntax(
+        let lua = Self(
             keywords: Keywords.lua, types: [],
             lineComments: [Array("--")], blockComments: [.init("--[[", "]]")],
             stringDelimiters: delimiters("\"", "'")
         )
-        let haskell = LanguageSyntax(
+        let haskell = Self(
             keywords: Keywords.haskell, types: Types.common,
             lineComments: [Array("--")], blockComments: [.init("{-", "-}")],
             stringDelimiters: delimiters("\"")
         )
-        let clojure = LanguageSyntax(
+        let clojure = Self(
             keywords: Keywords.lisp, types: [],
             lineComments: [Array(";")], blockComments: [],
             stringDelimiters: delimiters("\"")
         )
-        let erlang = LanguageSyntax(
+        let erlang = Self(
             keywords: Keywords.cLike, types: [],
             lineComments: [Array("%")], blockComments: [],
             stringDelimiters: delimiters("\"")
         )
-        let ocaml = LanguageSyntax(
+        let ocaml = Self(
             keywords: Keywords.cLike, types: Types.common,
             lineComments: [], blockComments: [.init("(*", "*)")],
             stringDelimiters: delimiters("\"")
         )
-        let fsharp = LanguageSyntax(
+        let fsharp = Self(
             keywords: Keywords.cLike, types: Types.common,
             lineComments: [Array("//")], blockComments: [.init("(*", "*)")],
             stringDelimiters: delimiters("\"")
         )
-        let html = LanguageSyntax(
+        let html = Self(
             keywords: [], types: [],
             lineComments: [], blockComments: [.init("<!--", "-->")],
             stringDelimiters: delimiters("\"", "'")
         )
-        let css = LanguageSyntax(
+        let css = Self(
             keywords: [], types: [],
             lineComments: [], blockComments: [.init("/*", "*/")],
             stringDelimiters: delimiters("\"", "'")
         )
-        let swift = LanguageSyntax(
+        let swift = Self(
             keywords: Keywords.cLike, types: Types.common,
             lineComments: [Array("//")], blockComments: [.init("/*", "*/")],
             stringDelimiters: delimiters("\"\"\"", "\"", "'")

@@ -78,22 +78,27 @@ extension MergedQuestionsView {
             sortedCache.rows = filtered.sorted {
                 $0.item.displayTitle.localizedCaseInsensitiveCompare($1.item.displayTitle) == .orderedAscending
             }
+
         case .titleDesc:
             sortedCache.rows = filtered.sorted {
                 $0.item.displayTitle.localizedCaseInsensitiveCompare($1.item.displayTitle) == .orderedDescending
             }
+
         case .lastUsedDesc:
             sortedCache.rows = filtered.sorted {
                 ($0.item.updatedAt ?? .distantPast) > ($1.item.updatedAt ?? .distantPast)
             }
+
         case .lastUsedAsc:
             sortedCache.rows = filtered.sorted {
                 ($0.item.updatedAt ?? .distantPast) < ($1.item.updatedAt ?? .distantPast)
             }
+
         case .usedDesc:
             sortedCache.rows = filtered.sorted {
                 ($0.item.used ?? 0) > ($1.item.used ?? 0)
             }
+
         case .usedAsc:
             sortedCache.rows = filtered.sorted {
                 ($0.item.used ?? 0) < ($1.item.used ?? 0)
@@ -128,6 +133,7 @@ extension MergedQuestionsView {
     func neighborRowID(forDeletedRowID rowID: String) -> String? {
         let visible = sorted
         guard let index = visible.firstIndex(where: { $0.id == rowID }) else { return visible.first?.id }
+
         if visible.indices.contains(index + 1) { return visible[index + 1].id }
         if visible.indices.contains(index - 1) { return visible[index - 1].id }
         return nil
@@ -144,6 +150,7 @@ extension MergedQuestionsView {
             return
         }
         guard let scopedRow = row(forRowID: rowID) else { return }
+
         selection = scopedRow.item
         router.selectedQuestionAccountID = scopedRow.account.id
     }
@@ -204,6 +211,7 @@ extension MergedQuestionsView {
     func reload() async {
         let mergeable = accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }
         guard !mergeable.isEmpty else { return }
+
         isLoading = true
         defer { isLoading = false }
         // Build the clients on the main actor; each is Sendable, so the concurrent
@@ -257,6 +265,7 @@ extension MergedQuestionsView {
         guard let accountID = account ?? router.questionAccountID[question.id],
               var questions = questionsByAccount[accountID],
               let index = questions.firstIndex(where: { $0.id == question.id }) else { return }
+
         questions[index] = question
         questionsByAccount[accountID] = questions
         if selection?.id == question.id { selection = question }

@@ -154,6 +154,7 @@ struct QuotaView: View {
 
     private func reload() async {
         guard !client.apiKey.isEmpty else { return }
+
         isLoading = true
         error = nil
         defer { isLoading = false }

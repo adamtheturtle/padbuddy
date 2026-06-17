@@ -141,10 +141,10 @@ private let owners = [
     let languages = ["python3", "javascript"]
     // A query the model echoes wholesale collapses to empty (the owner does the work).
     #expect(SearchInterpreter.groundText("pads by rob di marco", languages: languages,
-                                         ownerName: "Rob Di Marco", team: "") == "")
+                                         ownerName: "Rob Di Marco", team: "").isEmpty)
     // A language word the request named is stripped (the language filter does the work).
     #expect(SearchInterpreter.groundText("javascript pads", languages: languages,
-                                         ownerName: "", team: "") == "")
+                                         ownerName: "", team: "").isEmpty)
     // A real topic survives.
     #expect(SearchInterpreter.groundText("binary search pads", languages: languages,
                                          ownerName: "", team: "") == "binary search")

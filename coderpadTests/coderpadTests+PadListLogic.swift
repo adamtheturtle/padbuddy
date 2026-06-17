@@ -12,10 +12,10 @@ import Testing
 /// A fixed clock so the date-range tests don't depend on the wall clock, and a
 /// UTC calendar so `startOfDay` lands on a known instant regardless of the
 /// machine's time zone.
-private let fixedNow = ISO8601DateFormatter().date(from: "2026-06-12T12:00:00Z")!
+private let fixedNow = ISO8601DateFormatter().date(from: "2026-06-12T12:00:00Z") ?? .distantPast
 private var utcCalendar: Calendar {
     var cal = Calendar(identifier: .gregorian)
-    cal.timeZone = TimeZone(identifier: "UTC")!
+    cal.timeZone = TimeZone(identifier: "UTC") ?? .gmt
     return cal
 }
 
@@ -100,7 +100,7 @@ struct PadDateRangeTests {
 @Suite("Pad activity since open")
 struct PadActivitySinceOpenTests {
     private func date(_ string: String) -> Date {
-        ISO8601DateFormatter().date(from: string)!
+        ISO8601DateFormatter().date(from: string) ?? .distantPast
     }
 
     @Test

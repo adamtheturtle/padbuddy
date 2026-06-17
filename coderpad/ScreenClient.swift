@@ -35,8 +35,8 @@ struct ScreenClient {
     private nonisolated static let apiPrefix = "/assessment/api/v1.1"
 
     init(apiKey: String,
-         baseURL: URL = ScreenClient.defaultBaseURL,
-         session: URLSession = ScreenClient.liveSession) {
+         baseURL: URL = Self.defaultBaseURL,
+         session: URLSession = Self.liveSession) {
         self.apiKey = apiKey
         self.baseURL = baseURL
         self.session = session
@@ -49,8 +49,8 @@ struct ScreenClient {
         return URLSession(configuration: config)
     }()
 
-    static func live(apiKey: String, baseURL: URL = ScreenClient.defaultBaseURL) -> ScreenClient {
-        ScreenClient(apiKey: apiKey, baseURL: baseURL, session: liveSession)
+    static func live(apiKey: String, baseURL: URL = Self.defaultBaseURL) -> Self {
+        Self(apiKey: apiKey, baseURL: baseURL, session: liveSession)
     }
 
     // MARK: Campaigns
@@ -114,6 +114,7 @@ struct ScreenClient {
                   pagination.hasMoreItems,
                   let next = pagination.nextStart,
                   next != start else { break }
+
             start = next
         }
         return all
@@ -190,10 +191,12 @@ struct ScreenClient {
                                                query: [URLQueryItem] = [],
                                                accept: String = "application/json") throws -> URLRequest {
         guard !apiKey.isEmpty else { throw CoderPadError.missingAPIKey }
+
         var components = URLComponents(url: baseURL.appending(path: Self.apiPrefix + path),
                                        resolvingAgainstBaseURL: false)
         if !query.isEmpty { components?.queryItems = query }
         guard let url = components?.url else { throw CoderPadError.http(0, "Invalid URL") }
+
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.setValue(apiKey, forHTTPHeaderField: "API-Key")
@@ -249,6 +252,7 @@ struct ScreenClient {
         guard (200 ..< 300).contains(http.statusCode) else {
             throw CoderPadError.http(http.statusCode, String(data: data, encoding: .utf8) ?? "")
         }
+
         return (data, http)
     }
 

@@ -80,6 +80,7 @@ nonisolated extension MockFixtures {
             fractional.date(from: value) ?? basic.date(from: value)
         }
         guard let startDate = parse(start), let endDate = parse(end) else { return 7 }
+
         return min(365, max(1, Int(endDate.timeIntervalSince(startDate) / 86400)))
     }
 

@@ -75,10 +75,12 @@ extension MainSplit {
     /// collapse was ours to begin with, never a manual one.
     func updateSidebarCollapse(for width: CGFloat) {
         guard width > 0 else { return }
+
         if width < sidebarVisibleFloor {
             // Stand down while the user has chosen to keep the sidebar open in a
             // too-narrow window, so we don't yank it shut mid-expand (#307).
             guard !keepSidebarWhileNarrow else { return }
+
             if columnVisibility == .all {
                 withAnimation(.smooth) {
                     columnVisibility = sectionHasDetail ? .doubleColumn : .detailOnly
@@ -103,6 +105,7 @@ extension MainSplit {
     /// Above the floor the normal regime governs, so this is a no-op.
     func handleVisibilityChange(to visibility: NavigationSplitViewVisibility) {
         guard containerWidth > 0, containerWidth < sidebarVisibleFloor else { return }
+
         if visibility == .all {
             keepSidebarWhileNarrow = true
             autoCollapsed = false
@@ -117,6 +120,7 @@ extension MainSplit {
     /// toggle is persisted.
     func persistSidebarCollapsed(_ visibility: NavigationSplitViewVisibility) {
         guard !autoCollapsed else { return }
+
         UserDefaults.standard.set(visibility != .all, forKey: Self.sidebarCollapsedKey)
     }
 
@@ -128,8 +132,10 @@ extension MainSplit {
     /// an expanded sidebar, so a restored "expanded" never overflows a small window.
     func restoreSidebarCollapsedIfNeeded() {
         guard !didRestoreSidebar else { return }
+
         didRestoreSidebar = true
         guard UserDefaults.standard.object(forKey: Self.sidebarCollapsedKey) != nil else { return }
+
         let collapsed = UserDefaults.standard.bool(forKey: Self.sidebarCollapsedKey)
         let target: NavigationSplitViewVisibility = collapsed
             ? (sectionHasDetail ? .doubleColumn : .detailOnly)

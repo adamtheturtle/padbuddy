@@ -26,10 +26,13 @@ struct SectionContent: View {
             switch section {
             case .pads:
                 PadsView(client: client, selection: $padSelection, search: $padSearch).id(account.id)
+
             case .questions:
                 QuestionsView(client: client, selection: $questionSelection, search: $questionSearch)
                     .id(account.id)
+
             case .organization: OrganizationView(client: client).id(account.id)
+
             case .quota: QuotaView(client: client).id(account.id)
             }
         }
@@ -69,6 +72,7 @@ struct SectionDetail: View {
             } else {
                 ContentUnavailableView("Select a pad", systemImage: "doc.text")
             }
+
         case .questions:
             if let question = questionSelection, let account = questionAccount(for: question) {
                 QuestionDetailView(client: account.makeClient(), question: question, accountID: account.id)
@@ -76,6 +80,7 @@ struct SectionDetail: View {
             } else {
                 ContentUnavailableView("Select a question", systemImage: "questionmark.bubble")
             }
+
         case .organization, .quota:
             ContentUnavailableView("Nothing selected", systemImage: "sidebar.squares.leading",
                                    description: Text("This section shows everything in the list."))

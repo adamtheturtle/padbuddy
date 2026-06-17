@@ -43,7 +43,7 @@ struct OpenPadByIDIntent: AppIntent {
     @Parameter(title: "Pad ID", description: "The 8-character pad identifier.")
     var padID: String
 
-    func perform() async throws -> some IntentResult {
+    func perform() async -> some IntentResult {
         let trimmed = padID.trimmingCharacters(in: .whitespacesAndNewlines)
         // Mirror the other intents: warm up briefly on cold launch, then route through
         // durable AppNavigation state (consumed on appear) so the request isn't lost if
@@ -64,7 +64,7 @@ struct SearchPadsIntent: AppIntent {
     @Parameter(title: "Query", description: "Text to search pad titles, owners, and participants for.")
     var query: String
 
-    func perform() async throws -> some IntentResult {
+    func perform() async -> some IntentResult {
         try? await Task.sleep(for: .milliseconds(300))
         let searchText = query
         await MainActor.run {
@@ -79,7 +79,7 @@ struct NewPadIntent: AppIntent {
     static let description = IntentDescription("Open CoderPad and start creating a new pad.")
     static let openAppWhenRun: Bool = true
 
-    func perform() async throws -> some IntentResult {
+    func perform() async -> some IntentResult {
         try? await Task.sleep(for: .milliseconds(400))
         await MainActor.run {
             AppNavigation.shared.showPads(PadsRequest(startCreating: true))
@@ -93,7 +93,7 @@ struct OpenPadsIntent: AppIntent {
     static let description = IntentDescription("Open the Pads list in CoderPad.")
     static let openAppWhenRun: Bool = true
 
-    func perform() async throws -> some IntentResult {
+    func perform() async -> some IntentResult {
         try? await Task.sleep(for: .milliseconds(200))
         await MainActor.run {
             AppNavigation.shared.show(.pads)

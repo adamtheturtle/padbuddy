@@ -14,6 +14,7 @@ extension PadDetailView {
     private var participantRoles: (interviewers: [String], candidates: [String])? {
         let memberNames = Set(directory.nameByEmail.values.map { $0.lowercased() })
         guard !memberNames.isEmpty else { return nil }
+
         var interviewers: [String] = []
         var candidates: [String] = []
         for name in pad.participants {

@@ -157,7 +157,7 @@ struct PadPrintDocument: View {
     let pad: Pad
     let files: [PadPrintFile]
     /// Resolves an owner/participant email to a display name when known.
-    var displayName: (String) -> String = { $0 }
+    var displayName: (String) -> String = \.self
 
     private var summaryRows: [(String, String)] {
         var rows: [(String, String)] = [

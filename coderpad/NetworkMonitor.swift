@@ -32,11 +32,13 @@ final class NetworkMonitor {
     /// actor where the UI reads it.
     func start() {
         guard !started else { return }
+
         started = true
         monitor.pathUpdateHandler = { [weak self] path in
             let offline = path.status != .satisfied
             Task { @MainActor in
                 guard let self, self.isOffline != offline else { return }
+
                 self.isOffline = offline
             }
         }

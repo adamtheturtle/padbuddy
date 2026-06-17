@@ -36,6 +36,7 @@ struct QuestionWindow: View {
     /// the value omits it (single-account context).
     private var account: Account? {
         guard let value else { return nil }
+
         if let id = value.account { return accounts.accounts.first { $0.id == id } }
         return accounts.currentAccount
     }
@@ -43,6 +44,7 @@ struct QuestionWindow: View {
     /// The question from the warm cache, if the owning account has it loaded.
     private var cachedQuestion: Question? {
         guard let value, let account else { return nil }
+
         return cache.get(account.id).first { $0.id == value.id }
     }
 
@@ -70,6 +72,7 @@ struct QuestionWindow: View {
     /// cold cache fills in. Cache hits skip the network entirely.
     private func loadIfNeeded() async {
         guard cachedQuestion == nil, fetched == nil, let value, let account else { return }
+
         do {
             fetched = try await account.makeClient().getQuestion(id: value.id)
         } catch {

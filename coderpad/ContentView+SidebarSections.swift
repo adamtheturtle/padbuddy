@@ -108,11 +108,13 @@ extension Sidebar {
         switch value {
         case .pads, .questions:
             guard nav.section == value else { return false }
+
             let kind: SavedSearchKind = value == .pads ? .pads : .questions
             // In merged mode the only suggested row is "Mine"; the root owns the
             // selection whenever that preset is off.
             if isMergedView { return !mergedMineOnly(for: kind) }
             return !items(for: kind).contains { liveFilter(for: kind).hasSameFilters(as: $0.search) }
+
         case .organization, .quota:
             return nav.section == value
         }
@@ -176,13 +178,16 @@ extension Sidebar {
             } else {
                 nav.showPads(PadsRequest(applySearch: NamedSearch(name: "")))
             }
+
         case .questions:
             if isMergedView {
                 nav.showMergedRoot(kind: .questions)
             } else {
                 nav.showQuestions(QuestionsRequest(applySearch: NamedSearch(name: "")))
             }
+
         case .organization: section = value
+
         case .quota:
             // The quota page is unreachable on an unlimited plan (#306); the row is a
             // plain indicator there and never calls this, but guard anyway.

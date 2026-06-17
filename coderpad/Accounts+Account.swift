@@ -18,8 +18,10 @@ extension String {
     var canonicalOwnerEmail: String {
         let trimmed = trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard let atIndex = trimmed.firstIndex(of: "@") else { return trimmed }
+
         let local = trimmed[..<atIndex]
         guard let plus = local.firstIndex(of: "+") else { return trimmed }
+
         return String(local[..<plus]) + trimmed[atIndex...]
     }
 }
@@ -50,7 +52,7 @@ struct Account: Identifiable, Codable, Hashable {
     /// a `Color` so it encodes cleanly into the Keychain JSON.
     var tintHex: String?
 
-    init(id: UUID = UUID(), name: String, apiKey: String, isMock: Bool = false,
+    init(name: String, apiKey: String, id: UUID = UUID(), isMock: Bool = false,
          userEmail: String = "", baseURL: String? = nil,
          iconSymbol: String? = nil, tintHex: String? = nil) {
         self.id = id
@@ -85,6 +87,7 @@ struct Account: Identifiable, Codable, Hashable {
                 debugDescription: "Account has no user email; treated as invalid and skipped."
             )
         }
+
         userEmail = email
         baseURL = try container.decodeIfPresent(String.self, forKey: .baseURL)
         iconSymbol = try container.decodeIfPresent(String.self, forKey: .iconSymbol)
@@ -103,6 +106,7 @@ struct Account: Identifiable, Codable, Hashable {
     /// unparseable — leaving the default tint to apply.
     var tintColor: Color? {
         guard let tintHex, let color = Color(hex: tintHex) else { return nil }
+
         return color
     }
 
@@ -152,8 +156,8 @@ struct Account: Identifiable, Codable, Hashable {
     /// real results, and the account satisfies the required-email rule.
     static let demoUserEmail = "demo@example.com"
 
-    static func demo() -> Account {
-        Account(name: "Demo (mock data)", apiKey: "demo", isMock: true, userEmail: demoUserEmail)
+    static func demo() -> Self {
+        Self(name: "Demo (mock data)", apiKey: "demo", isMock: true, userEmail: demoUserEmail)
     }
 
     /// Sentinel key marking the "bad key" demo: a mock account whose in-process
@@ -161,8 +165,8 @@ struct Account: Identifiable, Codable, Hashable {
     /// states can be demoed without a real revoked key.
     static let badKeyMockKey = "demo-bad-key"
 
-    static func demoBadKey() -> Account {
-        Account(name: "Demo (bad key)", apiKey: badKeyMockKey, isMock: true, userEmail: demoUserEmail)
+    static func demoBadKey() -> Self {
+        Self(name: "Demo (bad key)", apiKey: badKeyMockKey, isMock: true, userEmail: demoUserEmail)
     }
 
     /// Whether this is the bad-key demo, as opposed to the mock-data demo.
@@ -176,6 +180,7 @@ struct Account: Identifiable, Codable, Hashable {
         guard isMock else {
             return .live(apiKey: apiKey, baseURL: resolvedBaseURL)
         }
+
         return .mock(unauthorized: isBadKeyDemo)
     }
 
@@ -186,14 +191,15 @@ struct Account: Identifiable, Codable, Hashable {
     /// option-click the button to fill from this. Env vars are readable under the
     /// App Sandbox, unlike a home-directory dotfile — keep that scheme non-shared
     /// (xcuserdata) so the key never lands in git.
-    static func fromDevEnvironment() -> Account? {
+    static func fromDevEnvironment() -> Self? {
         #if DEBUG
             let env = ProcessInfo.processInfo.environment
             guard let rawKey = env["CODERPAD_API_KEY"]?.trimmingCharacters(in: .whitespacesAndNewlines),
                   !rawKey.isEmpty else { return nil }
+
             let email = env["CODERPAD_USER_EMAIL"]?
                 .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            return Account(name: "Dev (env key)", apiKey: rawKey, userEmail: email)
+            return Self(name: "Dev (env key)", apiKey: rawKey, userEmail: email)
         #else
             return nil
         #endif

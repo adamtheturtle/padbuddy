@@ -55,6 +55,7 @@ enum WidgetSharedStore {
     /// `account` is nil.
     private static func padsFileName(account: String?) -> String {
         guard let account, !account.isEmpty else { return defaultPadsFile }
+
         return "recent-pads-\(account).json"
     }
 
@@ -74,12 +75,14 @@ enum WidgetSharedStore {
     static func load(account: String? = nil) -> [WidgetPadSnapshot] {
         guard let url = fileURL(padsFileName(account: account)),
               let data = try? Data(contentsOf: url) else { return [] }
+
         return (try? JSONDecoder().decode([WidgetPadSnapshot].self, from: data)) ?? []
     }
 
     /// The mirrored account list backing the configuration picker.
     static func loadAccounts() -> [WidgetAccount] {
         guard let url = fileURL(accountsFile), let data = try? Data(contentsOf: url) else { return [] }
+
         return (try? JSONDecoder().decode([WidgetAccount].self, from: data)) ?? []
     }
 
@@ -87,6 +90,7 @@ enum WidgetSharedStore {
     static func loadFavorites(account: String) -> [WidgetQuestion] {
         guard let url = fileURL(favoritesFileName(account: account)),
               let data = try? Data(contentsOf: url) else { return [] }
+
         return (try? JSONDecoder().decode([WidgetQuestion].self, from: data)) ?? []
     }
 }
@@ -98,6 +102,7 @@ extension WidgetPadSnapshot {
     /// no language. Mirrors the app's `languageDisplayName`.
     var languageLabel: String? {
         guard let language, !language.isEmpty else { return nil }
+
         return language.languageDisplayName
     }
 
@@ -106,6 +111,7 @@ extension WidgetPadSnapshot {
     /// periodically (see the timeline provider) to keep it from going stale.
     var relativeUpdated: String? {
         guard let updatedAt else { return nil }
+
         return updatedAt.formatted(.relative(presentation: .numeric, unitsStyle: .abbreviated))
     }
 
@@ -166,6 +172,7 @@ extension String {
                 return base.isEmpty ? "Project" : base.languageDisplayName + " Project"
             }
             guard !isEmpty else { return self }
+
             return prefix(1).uppercased() + dropFirst()
         }
     }

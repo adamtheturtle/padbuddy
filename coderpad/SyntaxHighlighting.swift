@@ -36,6 +36,7 @@ enum SyntaxHighlighter {
     /// appearance.
     static func highlight(_ source: String, language: String?, dark: Bool) -> AttributedString {
         guard source.count <= maxLength else { return AttributedString(source) }
+
         // Plain text shouldn't be coloured at all.
         if HighlightrEngine.isPlainText(language) { return AttributedString(source) }
         if let highlighted = HighlightrEngine.shared.highlight(source, language: language, dark: dark) {
@@ -50,6 +51,7 @@ enum SyntaxHighlighter {
     /// back to copying plain text only.
     static func rtf(_ source: String, language: String?, dark: Bool) -> Data? {
         guard source.count <= maxLength, !HighlightrEngine.isPlainText(language) else { return nil }
+
         return HighlightrEngine.shared.rtf(source, language: language, dark: dark)
     }
 
@@ -99,6 +101,7 @@ enum SyntaxHighlighter {
 
         func matches(_ token: [Character], at pos: Int) -> Bool {
             guard pos + token.count <= count else { return false }
+
             for offset in 0 ..< token.count where chars[pos + offset] != token[offset] {
                 return false
             }
@@ -116,7 +119,7 @@ enum SyntaxHighlighter {
         let start = builder.index
         for block in syntax.blockComments where builder.matches(block.open, at: start) {
             var end = start + block.open.count
-            while end < builder.count && !builder.matches(block.close, at: end) {
+            while end < builder.count, !builder.matches(block.close, at: end) {
                 end += 1
             }
             end = end < builder.count ? end + block.close.count : builder.count
@@ -217,7 +220,7 @@ enum SyntaxHighlighter {
         guard character.isLetter || character == "_" else { return false }
 
         var end = start
-        while end < count && (chars[end].isLetter || chars[end].isNumber || chars[end] == "_") {
+        while end < count, chars[end].isLetter || chars[end].isNumber || chars[end] == "_" {
             end += 1
         }
         let word = String(chars[start ..< end])
@@ -256,6 +259,7 @@ private final class HighlightrEngine {
         }
 
         guard let rendered = highlightr.highlight(source, as: hljsName, fastRender: true) else { return nil }
+
         return Self.foregroundOnly(rendered)
     }
 
@@ -264,12 +268,14 @@ private final class HighlightrEngine {
     /// is unmapped or Highlightr can't parse it.
     func rtf(_ source: String, language: String?, dark: Bool) -> Data? {
         guard let highlightr, let hljsName = Self.highlightJSName(for: language) else { return nil }
+
         let themeName = dark ? "atom-one-dark" : "xcode"
         if currentTheme != themeName {
             _ = highlightr.setTheme(to: themeName)
             currentTheme = themeName
         }
         guard let rendered = highlightr.highlight(source, as: hljsName, fastRender: true) else { return nil }
+
         let mutable = NSMutableAttributedString(attributedString: rendered)
         let full = NSRange(location: 0, length: mutable.length)
         mutable.addAttribute(.font, value: NSFont.monospacedSystemFont(ofSize: 12, weight: .regular), range: full)

@@ -31,6 +31,7 @@ final nonisolated class MockState: @unchecked Sendable {
     func allQuestions() -> [[String: Any]] {
         let merged = MockFixtures.questions().map { question -> [String: Any] in
             guard let id = question["id"] as? Int, let updates = updatedQuestions[id] else { return question }
+
             var combined = question
             for (key, value) in updates where key != "id" {
                 combined[key] = value
@@ -39,6 +40,7 @@ final nonisolated class MockState: @unchecked Sendable {
         }
         return (merged + createdQuestions).filter { question in
             guard let id = question["id"] as? Int else { return true }
+
             return !deletedQuestionIDs.contains(id)
         }
     }
@@ -48,6 +50,7 @@ final nonisolated class MockState: @unchecked Sendable {
     func allPads() -> [[String: Any]] {
         func applyUpdates(_ pad: [String: Any]) -> [String: Any] {
             guard let id = pad["id"] as? String, let updates = updatedPads[id] else { return pad }
+
             var merged = pad
             for (key, value) in updates where key != "id" {
                 merged[key] = value
@@ -61,6 +64,7 @@ final nonisolated class MockState: @unchecked Sendable {
         let created = createdPads.map(applyUpdates)
         return (base + created).filter { pad in
             guard let id = pad["id"] as? String else { return true }
+
             return !deletedPadIDs.contains(id)
         }
     }

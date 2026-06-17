@@ -20,6 +20,7 @@ extension MainSplit {
                 // width back into the same column's min doesn't thrash layout.
                 .onPreferenceChange(SidebarRowWidthKey.self) { width in
                     guard width > 0 else { return }
+
                     let needed = (width + Self.sidebarRowChrome).rounded()
                     if abs(sidebarMinWidth - needed) > 0.5 { sidebarMinWidth = needed }
                 }
@@ -106,6 +107,7 @@ extension MainSplit {
                 // width back into the same column's min doesn't thrash layout.
                 .onPreferenceChange(SidebarRowWidthKey.self) { width in
                     guard width > 0 else { return }
+
                     let needed = (width + Self.sidebarRowChrome).rounded()
                     if abs(sidebarMinWidth - needed) > 0.5 { sidebarMinWidth = needed }
                 }

@@ -83,6 +83,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func openDockURL(_ sender: NSMenuItem) {
         guard let urlString = sender.representedObject as? String,
               let url = URL(string: urlString) else { return }
+
         AppActivator.bringToFront()
         // Route through LaunchServices to our own scheme: this both delivers the deep
         // link and brings up a main window when none is open, the same path widget
@@ -117,6 +118,7 @@ struct CoderpadApp: App {
                 // Open the pad/question behind a tapped Spotlight result.
                 .onContinueUserActivity(CSSearchableItemActionType) { activity in
                     guard let id = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String else { return }
+
                     if let padID = SpotlightIndexer.padID(fromItemIdentifier: id) {
                         AppNavigation.shared.openPad(id: padID)
                     } else if let questionID = SpotlightIndexer.questionID(fromItemIdentifier: id) {
@@ -160,6 +162,7 @@ struct CoderpadApp: App {
     /// Split out of `body` so each scene type-checks independently and the main
     /// scene builder stays under the long-body diagnostic budget.
     private var padBrowserScene: some Scene {
+        // swiftformat:disable:next unusedArguments
         WindowGroup("Pad Browser", id: "pad-browser", for: URL.self) { $url in
             if let url {
                 PadBrowserView(url: url)
@@ -181,6 +184,7 @@ struct CoderpadApp: App {
     /// the native-detail counterpart to opening a pad in the `pad-browser` window
     /// (#292). Keyed by a lightweight id so it survives state restoration.
     private var questionScene: some Scene {
+        // swiftformat:disable:next unusedArguments
         WindowGroup("Question", id: "question", for: QuestionWindowID.self) { $value in
             QuestionWindow(value: value)
                 .frame(minWidth: 600, minHeight: 560)
@@ -199,6 +203,7 @@ struct CoderpadApp: App {
             get: { presence.showsMenuBarIcon },
             set: { inserted in
                 guard inserted != presence.showsMenuBarIcon else { return }
+
                 presence = inserted
                     ? (presence.showsDockIcon ? .dockAndMenuBar : .menuBarOnly)
                     : .dockOnly
@@ -266,14 +271,18 @@ struct CoderpadApp: App {
     /// forward. Reuses the same durable navigation as the Spotlight and intent paths.
     private func handleDeepLink(_ url: URL) {
         guard url.scheme == "coderpad" else { return }
+
         switch url.host {
         case "pad":
             let id = url.path().trimmingCharacters(in: CharacterSet(charactersIn: "/"))
             if !id.isEmpty { AppNavigation.shared.openPad(id: id) }
+
         case "pads":
             AppNavigation.shared.show(.pads)
+
         case "questions":
             AppNavigation.shared.show(.questions)
+
         case "new-pad":
             // Backs the "New Pad" control (Control Center / menu bar), the Dock menu,
             // and the widget button: switch to Pads and open the create sheet, the
@@ -291,8 +300,10 @@ struct CoderpadApp: App {
             let seedQuestionID = components?.queryItems?
                 .first(where: { $0.name == "question" })?.value.flatMap(Int.init)
             AppNavigation.shared.showPads(PadsRequest(startCreating: true, seedQuestionID: seedQuestionID))
+
         case "new-question":
             AppNavigation.shared.showQuestions(QuestionsRequest(startCreating: true))
+
         default:
             break
         }

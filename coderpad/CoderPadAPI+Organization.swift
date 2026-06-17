@@ -149,6 +149,7 @@ enum CoderPadError: LocalizedError {
         else {
             return nil
         }
+
         for key in ["message", "error_description", "error"] {
             if let value = object[key] as? String,
                !value.isEmpty,

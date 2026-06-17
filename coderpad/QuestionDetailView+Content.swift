@@ -254,6 +254,7 @@ extension QuestionDetailView {
     /// quoted string or a JSON literal), so join them into a call-style list.
     func argumentsDisplay(_ arguments: [String]?) -> String {
         guard let arguments, !arguments.isEmpty else { return "—" }
+
         return arguments.joined(separator: ", ")
     }
 

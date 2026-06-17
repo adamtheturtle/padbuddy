@@ -39,15 +39,18 @@ nonisolated extension MockFixtures {
                 file("coderpad/main.py",
                      "def greet(name):\n    return f\"Hello, {name}!\"\n\nprint(greet(\"CoderPad\"))\n")
             ])
+
         case 3:
             let swift = "import Foundation\n\nfunc greet(_ name: String) -> String {\n"
                 + "    \"Hello, \\(name)!\"\n}\n\nprint(greet(\"CoderPad\"))\n"
             return ("swift", [file("main.swift", swift)])
+
         case 4:
             // A small mixed-language web project: each file is highlighted in its
             // own language (HTML, CSS, JavaScript) from its extension, even though
             // the environment reports a single language.
             return ("javascript", webProjectFiles())
+
         default: // 2 and any other id
             return ("javascript", [
                 file("src/index.js",

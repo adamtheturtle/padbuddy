@@ -62,6 +62,7 @@ enum SearchInterpreter {
     static func resolveLanguage(_ raw: String, in languages: [String]) -> String? {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !trimmed.isEmpty else { return nil }
+
         if let exact = languages.first(where: { $0.lowercased() == trimmed }) { return exact }
         return languages.first { $0.languageDisplayName.lowercased() == trimmed }
     }
@@ -74,6 +75,7 @@ enum SearchInterpreter {
     static func resolveOwner(_ raw: String, in owners: [OwnerOption]) -> String? {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !trimmed.isEmpty else { return nil }
+
         if let exact = owners.first(where: {
             $0.name.lowercased() == trimmed || $0.email.lowercased() == trimmed
         }) {
@@ -91,6 +93,7 @@ enum SearchInterpreter {
     static func resolveTeam(_ raw: String, in teams: [String]) -> String? {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !trimmed.isEmpty else { return nil }
+
         if let exact = teams.first(where: { $0.lowercased() == trimmed }) { return exact }
         return teams.first { $0.lowercased().contains(trimmed) }
     }
@@ -100,6 +103,7 @@ enum SearchInterpreter {
     static func resolveState(_ raw: String) -> PadState? {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
+
         let state = PadState(apiState: trimmed)
         switch state {
         case .active, .ended, .pending: return state
@@ -117,6 +121,7 @@ enum SearchInterpreter {
     static func resolveDateRange(_ raw: String) -> String? {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !trimmed.isEmpty else { return nil }
+
         return PadDateRange.options.first { $0 == trimmed }
     }
 
@@ -174,6 +179,7 @@ enum SearchInterpreter {
     /// number in the query ("top 3 pads") can't match a versioned code.
     static func groundLanguage(_ code: String?, query: String) -> String? {
         guard let code else { return nil }
+
         let accepted = tokens(code).union(tokens(code.languageDisplayName))
             .filter { !$0.allSatisfy(\.isNumber) }
         return tokens(query).isDisjoint(with: accepted) ? nil : code
@@ -186,6 +192,7 @@ enum SearchInterpreter {
     /// short name can't match inside a longer query word.
     static func groundOwner(_ email: String?, query: String, owners: [OwnerOption]) -> String? {
         guard let email else { return nil }
+
         let queryTokens = tokens(query)
         let name = owners.first { $0.email == email }?.name ?? ""
         let nameTokens = tokens(name).filter { $0.count >= 2 }
@@ -198,6 +205,7 @@ enum SearchInterpreter {
     /// so single-letter tokens don't false-match but short team names still do).
     static func groundTeam(_ team: String?, query: String) -> String? {
         guard let team else { return nil }
+
         let teamTokens = tokens(team).filter { $0.count >= 2 }
         return tokens(query).isDisjoint(with: teamTokens) ? nil : team
     }
@@ -206,6 +214,7 @@ enum SearchInterpreter {
     /// model can't attach a status the request never mentioned.
     static func groundState(_ state: PadState?, query: String) -> PadState? {
         guard let state else { return nil }
+
         let triggers: Set<String>
         switch state {
         case .active: triggers = ["active", "running", "started", "ongoing", "open", "current"]
@@ -220,14 +229,17 @@ enum SearchInterpreter {
     /// matched as a phrase too, since it doesn't tokenize to a single word.
     static func groundType(_ type: String?, query: String) -> String? {
         guard let type else { return nil }
+
         let queryTokens = tokens(query)
         switch type {
         case "live": return queryTokens.contains("live") ? type : nil
+
         case "take-home":
             let lower = query.lowercased()
             let named = queryTokens.contains("takehome") || queryTokens.contains("homework")
                 || lower.contains("take-home") || lower.contains("take home")
             return named ? type : nil
+
         default: return nil
         }
     }
@@ -235,11 +247,14 @@ enum SearchInterpreter {
     /// Keeps a resolved draft status only when the query names it.
     static func groundDraft(_ draft: String?, query: String) -> String? {
         guard let draft else { return nil }
+
         let queryTokens = tokens(query)
         switch draft {
         case "draft": return queryTokens.contains("draft") || queryTokens.contains("drafts")
             || queryTokens.contains("unpublished") ? draft : nil
+
         case "published": return queryTokens.contains("published") || queryTokens.contains("public") ? draft : nil
+
         default: return nil
         }
     }
@@ -247,6 +262,7 @@ enum SearchInterpreter {
     /// Keeps a resolved date window only when the query mentions a time frame.
     static func groundDateRange(_ range: String?, query: String) -> String? {
         guard let range else { return nil }
+
         let dateWords: Set = [
             "today", "yesterday", "week", "weeks", "month", "months", "day", "days",
             "hour", "hours", "recent", "recently", "last", "past", "this",

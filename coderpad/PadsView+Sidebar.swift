@@ -47,6 +47,7 @@ extension PadsView {
         // was selected), fall back to the first visible pad rather than blanking the
         // detail pane when there are still pads to show.
         guard let index = visible.firstIndex(where: { $0.id == id }) else { return visible.first }
+
         if visible.indices.contains(index + 1) { return visible[index + 1] }
         if visible.indices.contains(index - 1) { return visible[index - 1] }
         return nil
@@ -144,6 +145,7 @@ extension PadsView {
             // in-app browser (honoring the user's browser preference).
             .onKeyPress(.return) {
                 guard let selection else { return .ignored }
+
                 openPad(selection)
                 return .handled
             }
@@ -209,6 +211,7 @@ extension PadsView {
             // user's own scrolling afterward is never overridden.
             .onChange(of: pendingScrollToID) { _, id in
                 guard let id else { return }
+
                 proxy.scrollTo(id, anchor: .center)
                 pendingScrollToID = nil
             }
@@ -230,6 +233,7 @@ extension PadsView {
         let isFavorite = favoritePads.isFavorite(pad.id, account: accounts.currentAccountID)
         Button {
             guard let account = accounts.currentAccountID else { return }
+
             favoritePads.toggle(pad.id, account: account)
         } label: {
             Label(isFavorite ? "Unfavorite" : "Favorite",
@@ -321,6 +325,7 @@ extension PadsView {
     /// matching the "Open Pad in Browser" menu command.
     func openPad(_ pad: Pad) {
         guard let url = pad.webURL else { return }
+
         if BrowserSettings.openLinksIn == .external {
             BrowserSettings.openExternally(url)
         } else {
@@ -335,6 +340,7 @@ extension PadsView {
     /// restate the empty list.
     var countSubtitle: String {
         guard !pads.isEmpty else { return "" }
+
         let count = filtered.count
         return count == 1 ? String(localized: "\(count) pad") : String(localized: "\(count) pads")
     }

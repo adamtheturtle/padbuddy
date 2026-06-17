@@ -113,6 +113,7 @@ enum PadListLogic {
     /// started pads qualify, since activity on ended/pending pads isn't actionable.
     static func hasNewActivitySinceOpen(_ pad: Pad, lastOpened: Date?) -> Bool {
         guard pad.status == .active, let lastOpened, let updated = pad.updatedAt else { return false }
+
         return updated > lastOpened
     }
 
@@ -137,7 +138,7 @@ enum PadListLogic {
     static func filter(_ pads: [Pad],
                        using criteria: PadFilterCriteria,
                        now: Date = Date(),
-                       display: (String) -> String = { $0 }) -> [Pad] {
+                       display: (String) -> String = \.self) -> [Pad] {
         pads.filter { matches($0, criteria: criteria, now: now, display: display) }
     }
 
@@ -148,7 +149,7 @@ enum PadListLogic {
     static func matches(_ pad: Pad,
                         criteria: PadFilterCriteria,
                         now: Date = Date(),
-                        display: (String) -> String = { $0 }) -> Bool {
+                        display: (String) -> String = \.self) -> Bool {
         let search = criteria.search
         let language = criteria.language?.lowercased()
         // The dates each window compares against. `.distantPast` so a pad with no

@@ -33,6 +33,7 @@ nonisolated enum Keychain {
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
         guard status == errSecSuccess, let data = item as? Data else { return nil }
+
         return data
     }
 

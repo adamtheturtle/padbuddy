@@ -136,8 +136,8 @@ struct CoderPadClient {
     static let defaultBaseURL = URL(string: "https://app.coderpad.io")!
 
     init(apiKey: String,
-         baseURL: URL = CoderPadClient.defaultBaseURL,
-         session: URLSession = CoderPadClient.liveSession) {
+         baseURL: URL = Self.defaultBaseURL,
+         session: URLSession = Self.liveSession) {
         self.apiKey = apiKey
         self.baseURL = baseURL
         self.session = session
@@ -145,8 +145,8 @@ struct CoderPadClient {
             apiKey: apiKey,
             baseURL: baseURL,
             session: session,
-            decoderFactory: CoderPadClient.makeDecoder,
-            encoderFactory: CoderPadClient.makeEncoder,
+            decoderFactory: Self.makeDecoder,
+            encoderFactory: Self.makeEncoder,
             errors: CoderPadErrorMapping(),
             logger: apiLogger
         )
@@ -167,8 +167,8 @@ struct CoderPadClient {
         return URLSession(configuration: config)
     }
 
-    static func live(apiKey: String, baseURL: URL = CoderPadClient.defaultBaseURL) -> CoderPadClient {
-        CoderPadClient(apiKey: apiKey, baseURL: baseURL, session: liveSession)
+    static func live(apiKey: String, baseURL: URL = Self.defaultBaseURL) -> Self {
+        Self(apiKey: apiKey, baseURL: baseURL, session: liveSession)
     }
 
     /// `unauthorized: true` returns a client whose mock server answers 401 for every
@@ -176,8 +176,8 @@ struct CoderPadClient {
     /// per-client state store (see `MockState`): it defaults to "demo" so the app's
     /// demo account shares one session store, while tests pass a unique key each so
     /// their mutations stay isolated and the suite can run in parallel.
-    static func mock(unauthorized: Bool = false, key: String = "demo") -> CoderPadClient {
-        CoderPadClient(apiKey: key, session: MockServer.session(unauthorized: unauthorized))
+    static func mock(unauthorized: Bool = false, key: String = "demo") -> Self {
+        Self(apiKey: key, session: MockServer.session(unauthorized: unauthorized))
     }
 
     /// The API mixes fractional- and whole-second ISO-8601 timestamps, so we try both.
@@ -323,6 +323,7 @@ struct CoderPadClient {
 
     func deleteQuestion(id: Int) async throws {
         guard !apiKey.isEmpty else { throw CoderPadError.missingAPIKey }
+
         var request = URLRequest(url: baseURL.appending(path: "/api/questions/\(id)"))
         request.httpMethod = "DELETE"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
@@ -345,6 +346,7 @@ struct CoderPadClient {
     /// together, per the API contract).
     func organizationStats(start: Date? = nil, end: Date? = nil) async throws -> OrganizationStats {
         guard !apiKey.isEmpty else { throw CoderPadError.missingAPIKey }
+
         var comps = URLComponents(url: baseURL.appending(path: "/api/organization/stats"),
                                   resolvingAgainstBaseURL: false)
         if let start, let end {
@@ -354,6 +356,7 @@ struct CoderPadClient {
             ]
         }
         guard let url = comps?.url else { throw CoderPadError.http(0, "Invalid URL") }
+
         return try await rest.performWithRetry(OrganizationStats.self, request: rest.authorizedGET(url))
     }
 
@@ -372,10 +375,12 @@ struct CoderPadClient {
     /// reliable way to resolve which user an API key belongs to.
     func organizationUsers(email: String? = nil) async throws -> [OrganizationUser] {
         guard !apiKey.isEmpty else { throw CoderPadError.missingAPIKey }
+
         var comps = URLComponents(url: baseURL.appending(path: "/api/organization/users"),
                                   resolvingAgainstBaseURL: false)
         if let email { comps?.queryItems = [URLQueryItem(name: "email", value: email)] }
         guard let url = comps?.url else { throw CoderPadError.http(0, "Invalid URL") }
+
         return try await rest.performWithRetry(Wrapper.self, request: rest.authorizedGET(url)).users
     }
 }

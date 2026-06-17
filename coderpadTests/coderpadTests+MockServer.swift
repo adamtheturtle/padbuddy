@@ -320,6 +320,7 @@ struct NetworkErrorWrappingTests {
             Issue.record("Expected a .network error, got \(String(describing: error))")
             return
         }
+
         // The user-facing copy, not the raw URLError.
         #expect(error?.errorDescription?.contains("offline") == true)
         #expect(error?.errorDescription?.contains("Error Domain") != true)
@@ -341,6 +342,7 @@ struct NetworkErrorWrappingTests {
             Issue.record("Expected a .network error, got \(String(describing: error))")
             return
         }
+
         #expect(error?.errorDescription?.contains("offline") == true)
     }
 }

@@ -27,6 +27,7 @@ struct SearchableFilterChip: View {
 
     private var chipText: String {
         guard let selected else { return title }
+
         if let meEmail, selected == meEmail { return String(localized: "Me") }
         return formatter(selected)
     }
@@ -39,6 +40,7 @@ struct SearchableFilterChip: View {
     private var filtered: [String] {
         let query = search.lowercased()
         guard !query.isEmpty else { return options }
+
         return options.filter {
             formatter($0).lowercased().contains(query) || $0.lowercased().contains(query)
         }
@@ -124,10 +126,11 @@ struct ChipLabel: View {
 
     var body: some View {
         HStack(spacing: 4) {
-            Image(systemName: icon).font(.caption)
+            Image(systemName: icon).font(.caption).accessibilityHidden(true)
             Text(text)
                 .font(.callout).lineLimit(1)
             Image(systemName: showsClear ? "xmark.circle.fill" : "chevron.down").font(.caption2)
+                .accessibilityHidden(true)
         }
         .padding(.horizontal, 10).padding(.vertical, 5)
         .background(fillColor, in: Capsule())
@@ -230,6 +233,7 @@ private struct PopoverRow: View {
                 Image(systemName: isSelected ? "checkmark" : "circle")
                     .font(.caption)
                     .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+                    .accessibilityHidden(true)
                     .frame(width: 16)
                 Text(label).lineLimit(1)
                 Spacer(minLength: 4)

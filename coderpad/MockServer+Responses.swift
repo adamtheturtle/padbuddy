@@ -15,7 +15,7 @@ nonisolated enum MockResponses {
         method: String,
         path: String,
         query: [String: String] = [:],
-        body: Data?
+        body: Data? = nil
     ) -> (Int, Data) {
         // Hold this state's lock so its mutable collections are never read or
         // written by two requests at once. `startLoading()` on the backing
@@ -35,7 +35,7 @@ nonisolated enum MockResponses {
         method: String,
         path: String,
         query: [String: String] = [:],
-        body: Data?
+        body: Data? = nil
     ) -> (Int, Data) {
         if let result = padRoute(state: state, method: method, path: path, body: body) {
             return result
@@ -68,6 +68,7 @@ nonisolated enum MockResponses {
             guard state.allPads().contains(where: { ($0["id"] as? String) == id }) else {
                 return (404, jsonString(["status": "error", "message": "pad not found"]))
             }
+
             return ok([
                 "status": "OK",
                 "events": MockFixtures.events(forPad: id)
@@ -212,6 +213,7 @@ nonisolated enum MockResponses {
         else {
             return (400, jsonString(["status": "error"]))
         }
+
         state.updatedQuestions[idInt] = flattenQuestionParams(dict)
         // Mirror the live API: PUT returns only a status, not the question body.
         if state.allQuestions().contains(where: { ($0["id"] as? Int) == idInt }) {
@@ -277,6 +279,7 @@ nonisolated enum MockResponses {
     /// which store flat keys, can read them — with a flat fallback for older callers.
     private static func flattenQuestionParams(_ dict: [String: Any]) -> [String: Any] {
         guard let nested = dict["question"] as? [String: Any] else { return dict }
+
         var flattened = dict
         flattened.removeValue(forKey: "question")
         for (key, value) in nested {
@@ -287,10 +290,12 @@ nonisolated enum MockResponses {
 
     private static func match(_ path: String, pattern: String) -> String? {
         guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
+
         let range = NSRange(path.startIndex..., in: path)
         guard let match = regex.firstMatch(in: path, range: range),
               match.numberOfRanges >= 2,
               let captured = Range(match.range(at: 1), in: path) else { return nil }
+
         return String(path[captured])
     }
 }

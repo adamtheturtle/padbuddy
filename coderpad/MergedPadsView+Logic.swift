@@ -77,6 +77,7 @@ extension MergedPadsView {
     func neighborSelection(forDeleted id: String) -> Pad? {
         let visible = filtered.map(\.item)
         guard let index = visible.firstIndex(where: { $0.id == id }) else { return visible.first }
+
         if visible.indices.contains(index + 1) { return visible[index + 1] }
         if visible.indices.contains(index - 1) { return visible[index - 1] }
         return nil
@@ -148,6 +149,7 @@ extension MergedPadsView {
     func reload() async {
         let mergeable = accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }
         guard !mergeable.isEmpty else { return }
+
         isLoading = true
         defer { isLoading = false }
         // Build the clients on the main actor; each is Sendable, so the concurrent
@@ -234,6 +236,7 @@ extension MergedPadsView {
     /// clobbers a saved snapshot.
     func persistFilters() {
         guard didRestoreFilters else { return }
+
         if let data = try? JSONEncoder().encode(captureCurrentSearch()) {
             UserDefaults.standard.set(data, forKey: Self.liveFilterKey)
         }
@@ -242,9 +245,11 @@ extension MergedPadsView {
     /// Restore the persisted filters once, on appear.
     func restoreFilters() {
         guard !didRestoreFilters else { return }
+
         didRestoreFilters = true
         guard let data = UserDefaults.standard.data(forKey: Self.liveFilterKey),
               let snapshot = try? JSONDecoder().decode(NamedSearch.self, from: data) else { return }
+
         apply(snapshot)
     }
 
@@ -263,6 +268,7 @@ extension MergedPadsView {
     /// so a blank detail pane is restored faithfully too.
     func persistSelectedPad() {
         guard didRestoreSelection else { return }
+
         if let selectedID {
             UserDefaults.standard.set(selectedID, forKey: Self.selectedPadKey)
         } else {
@@ -278,6 +284,7 @@ extension MergedPadsView {
     func restoreSelectedPadIfNeeded() {
         let availableIDs = Set(padsByAccount.values.flatMap(\.self).map(\.id))
         guard !didRestoreSelection, !availableIDs.isEmpty else { return }
+
         didRestoreSelection = true
         guard let id = PadsView.padToRestore(
             savedID: UserDefaults.standard.string(forKey: Self.selectedPadKey),
@@ -285,6 +292,7 @@ extension MergedPadsView {
             hasPendingOpen: router.pendingFavoritePadID != nil,
             availableIDs: availableIDs
         ) else { return }
+
         selectedIDs = [id]
         // Bring the restored row into view; the List won't scroll to it on its own.
         pendingScrollToID = id
@@ -296,6 +304,7 @@ extension MergedPadsView {
         guard let accountID = router.padAccountID[pad.id],
               var pads = padsByAccount[accountID],
               let index = pads.firstIndex(where: { $0.id == pad.id }) else { return }
+
         pads[index] = pad
         padsByAccount[accountID] = pads
         if selection?.id == pad.id { selection = pad }
@@ -320,6 +329,7 @@ extension MergedPadsView {
 
     func openPad(_ pad: Pad) {
         guard let url = pad.webURL else { return }
+
         if BrowserSettings.openLinksIn == .external {
             BrowserSettings.openExternally(url)
         } else {
@@ -330,6 +340,7 @@ extension MergedPadsView {
     func deletePad(_ pad: Pad) async {
         let client = (router.account(forPadID: pad.id) ?? accounts.currentAccount)?.makeClient()
         guard let client else { return }
+
         do {
             try await client.deletePad(id: pad.id)
             AppRouter.padDeleted(id: pad.id)

@@ -53,11 +53,13 @@ enum QuestionSort: String, CaseIterable, Identifiable {
                                    label: String(localized: "Newest First"), systemImage: "arrow.down"),
              QuestionSortDirection(sort: .lastUsedAsc,
                                    label: String(localized: "Oldest First"), systemImage: "arrow.up")]
+
         case .used:
             [QuestionSortDirection(sort: .usedDesc,
                                    label: String(localized: "Most Used"), systemImage: "arrow.down"),
              QuestionSortDirection(sort: .usedAsc,
                                    label: String(localized: "Least Used"), systemImage: "arrow.up")]
+
         case .title:
             [QuestionSortDirection(sort: .titleAsc,
                                    label: String(localized: "A to Z"), systemImage: "arrow.down"),
@@ -68,7 +70,7 @@ enum QuestionSort: String, CaseIterable, Identifiable {
 
     /// Switching to `field` while keeping the current direction slot (so toggling
     /// the field doesn't reset newest↔oldest).
-    func withField(_ newField: QuestionSortField) -> QuestionSort {
+    func withField(_ newField: QuestionSortField) -> Self {
         let slot = Self.directions(for: field).firstIndex { $0.sort == self } ?? 0
         let options = Self.directions(for: newField)
         return options[min(slot, options.count - 1)].sort

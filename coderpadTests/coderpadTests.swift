@@ -58,9 +58,9 @@ struct PadDecoderTests {
     func `decodes a minimal pad with only an id`() throws {
         let pad = try decode(#"{"id": "X1"}"#)
         #expect(pad.id == "X1")
-        #expect(pad.title == "")
+        #expect(pad.title.isEmpty)
         #expect(pad.state == "unknown")
-        #expect(pad.ownerEmail == "")
+        #expect(pad.ownerEmail.isEmpty)
         #expect(pad.participants.isEmpty)
         #expect(pad.padEnvironmentIDs.isEmpty)
         #expect(pad.questionIDs.isEmpty)
@@ -93,7 +93,7 @@ struct PadDecoderTests {
         """
         let pad = try decode(json)
         #expect(pad.id == "X2")
-        #expect(pad.title == "")
+        #expect(pad.title.isEmpty)
         #expect(pad.state == "unknown")
         #expect(pad.participants.isEmpty)
         #expect(pad.padEnvironmentIDs.isEmpty)

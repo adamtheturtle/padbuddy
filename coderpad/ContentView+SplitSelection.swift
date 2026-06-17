@@ -14,6 +14,7 @@ extension MainSplit {
     /// reliably is left for follow-up.
     func selectionKey(_ kind: String) -> String? {
         guard !store.isMergedView, let id = store.currentAccountID else { return nil }
+
         return "selection.\(id.uuidString).\(kind)"
     }
 
@@ -22,6 +23,7 @@ extension MainSplit {
     /// launch and when the list's rows first arrive.
     var restoreProbe: String {
         guard !store.isMergedView, let account = store.currentAccountID else { return "none" }
+
         let count = section == .questions
             ? questionsCache.get(account).count
             : padsCache.get(account).count
@@ -35,6 +37,7 @@ extension MainSplit {
     func restoreSelectionIfNeeded() {
         guard !store.isMergedView, let account = store.currentAccountID,
               !restoredSections.contains(section) else { return }
+
         switch section {
         case .pads:
             guard let key = selectionKey("pad"),
@@ -42,24 +45,30 @@ extension MainSplit {
                 restoredSections.insert(section)
                 return
             }
+
             let pads = padsCache.get(account)
             guard !pads.isEmpty else { return }
+
             if padSelection == nil, let match = pads.first(where: { $0.id == savedID }) {
                 padSelection = match
             }
             restoredSections.insert(section)
+
         case .questions:
             guard let key = selectionKey("question"),
                   let savedID = UserDefaults.standard.object(forKey: key) as? Int else {
                 restoredSections.insert(section)
                 return
             }
+
             let questions = questionsCache.get(account)
             guard !questions.isEmpty else { return }
+
             if questionSelection == nil, let match = questions.first(where: { $0.id == savedID }) {
                 questionSelection = match
             }
             restoredSections.insert(section)
+
         case .organization, .quota:
             break
         }
@@ -107,6 +116,7 @@ extension MainSplit {
     /// so we skip it here to avoid a duplicate request.
     func prefetchInactiveSections(account: Account, active: AppSection) async {
         guard account.isMock || !account.apiKey.isEmpty else { return }
+
         let client = account.makeClient()
         let id = account.id
         // Stream pages so the cache is warm from page 1 — the first switch shows the

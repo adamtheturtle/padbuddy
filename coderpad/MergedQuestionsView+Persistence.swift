@@ -47,6 +47,7 @@ extension MergedQuestionsView {
     /// clobbers a saved snapshot.
     func persistFilters() {
         guard didRestoreFilters else { return }
+
         if let data = try? JSONEncoder().encode(captureCurrentSearch()) {
             UserDefaults.standard.set(data, forKey: Self.liveFilterKey)
         }
@@ -55,9 +56,11 @@ extension MergedQuestionsView {
     /// Restore the persisted filters once, on appear.
     func restoreFilters() {
         guard !didRestoreFilters else { return }
+
         didRestoreFilters = true
         guard let data = UserDefaults.standard.data(forKey: Self.liveFilterKey),
               let snapshot = try? JSONDecoder().decode(NamedSearch.self, from: data) else { return }
+
         apply(snapshot)
     }
 
@@ -77,6 +80,7 @@ extension MergedQuestionsView {
     /// removes it so a blank detail pane is restored faithfully too.
     func persistSelectedRow() {
         guard didRestoreSelection else { return }
+
         if let selectedRowID {
             UserDefaults.standard.set(selectedRowID, forKey: Self.selectedRowKey)
         } else {
@@ -96,6 +100,7 @@ extension MergedQuestionsView {
     ) -> String? {
         guard !hasSelection, !hasPendingNavigation,
               let savedRowID, availableRowIDs.contains(savedRowID) else { return nil }
+
         return savedRowID
     }
 
@@ -112,6 +117,7 @@ extension MergedQuestionsView {
             }
         }
         guard !didRestoreSelection, !availableRowIDs.isEmpty else { return }
+
         didRestoreSelection = true
         guard let rowID = Self.rowToRestore(
             savedRowID: UserDefaults.standard.string(forKey: Self.selectedRowKey),
@@ -119,6 +125,7 @@ extension MergedQuestionsView {
             hasPendingNavigation: router.pendingFavoriteQuestion != nil,
             availableRowIDs: availableRowIDs
         ) else { return }
+
         selectedRowIDs = [rowID]
         // Bring the restored row into view; the List won't scroll to it on its own.
         pendingScrollToRowID = rowID

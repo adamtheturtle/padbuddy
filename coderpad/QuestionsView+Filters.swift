@@ -144,6 +144,7 @@ extension QuestionsView {
     func applySmartFilter() async {
         let query = smartFilterText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return }
+
         isInterpreting = true
         smartFilterFailed = false
         defer { isInterpreting = false }
@@ -166,9 +167,11 @@ extension QuestionsView {
         // also fire; guarding on the still-open sheet keeps a single keypress from
         // saving the search twice.
         guard showSaveSearch else { return }
+
         let trimmed = String(saveSearchName.trimmingCharacters(in: .whitespacesAndNewlines)
             .prefix(NamedSearch.maxNameLength))
         guard !trimmed.isEmpty, let account = accounts.currentAccountID else { return }
+
         savedSearches.add(captureCurrentSearch(named: trimmed), account: account, kind: .questions)
         showSaveSearch = false
     }
@@ -231,6 +234,7 @@ extension QuestionsView {
     /// empty startup state never clobbers a saved snapshot. Mirrors `PadsView`.
     func persistFilters() {
         guard didRestoreFilters, let account = accounts.currentAccountID else { return }
+
         if let data = try? JSONEncoder().encode(captureCurrentSearch(named: "")) {
             UserDefaults.standard.set(data, forKey: Self.liveFilterKey(account))
         }
@@ -242,9 +246,11 @@ extension QuestionsView {
     /// `NamedSearch`, matching how `PadsView` leaves its "Mine" preset unpersisted.
     func restoreFilters() {
         guard let account = accounts.currentAccountID else { return }
+
         didRestoreFilters = true
         guard let data = UserDefaults.standard.data(forKey: Self.liveFilterKey(account)),
               let snapshot = try? JSONDecoder().decode(NamedSearch.self, from: data) else { return }
+
         apply(snapshot)
     }
 

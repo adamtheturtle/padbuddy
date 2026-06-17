@@ -250,8 +250,10 @@ extension PadDetailView {
     /// per the browser preference.
     private func consumePendingWatch() {
         guard nav.watchPlaybackPadID == pad.id else { return }
+
         nav.watchPlaybackPadID = nil
         guard let playbackURL = pad.playbackURL else { return }
+
         if BrowserSettings.openLinksIn == .external {
             BrowserSettings.openExternally(playbackURL)
         } else {
@@ -263,6 +265,7 @@ extension PadDetailView {
     /// panel as the in-pane button (which knows which environments have loaded).
     private func consumePendingSaveCode() {
         guard nav.saveCodePadID == pad.id else { return }
+
         nav.saveCodePadID = nil
         saveCodeLocally()
     }
@@ -272,6 +275,7 @@ extension PadDetailView {
     /// edited in place rather than through a modal sheet.
     private func consumePendingEdit() {
         guard nav.editPadID == pad.id else { return }
+
         nav.editPadID = nil
         titleFocused = true
     }
@@ -280,6 +284,7 @@ extension PadDetailView {
     /// confirmation as the in-pane action — never ending the session without it.
     private func consumePendingEnd() {
         guard nav.endPadID == pad.id else { return }
+
         nav.endPadID = nil
         showEndConfirm = true
     }
@@ -288,6 +293,7 @@ extension PadDetailView {
     /// confirmation as the in-pane Delete action.
     private func consumePendingDelete() {
         guard nav.deletePadID == pad.id else { return }
+
         nav.deletePadID = nil
         showDeleteConfirm = true
     }

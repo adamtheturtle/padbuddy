@@ -63,6 +63,7 @@ enum SavedSearchNamer {
                 )
                 let name = response.content.name.trimmingCharacters(in: .whitespacesAndNewlines)
                 guard !name.isEmpty else { return nil }
+
                 return String(name.prefix(NamedSearch.maxNameLength))
             } catch {
                 return nil

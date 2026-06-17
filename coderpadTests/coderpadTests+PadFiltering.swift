@@ -8,7 +8,7 @@ import Foundation
 import Testing
 
 /// A fixed clock so the date-range filters don't depend on the wall clock.
-private let fixedNow = ISO8601DateFormatter().date(from: "2026-06-12T12:00:00Z")!
+private let fixedNow = ISO8601DateFormatter().date(from: "2026-06-12T12:00:00Z") ?? .distantPast
 
 /// Builds a `Pad` through the real lenient decoder so the tests exercise the
 /// same construction path the app uses, rather than a hand-rolled initializer.
@@ -100,7 +100,8 @@ struct PadFilterTests {
         #expect(PadListLogic.filter(pads, using: PadFilterCriteria(search: "abc1")).map(\.id) == ["ABC1"])
         #expect(PadListLogic.filter(pads, using: PadFilterCriteria(search: "sam@")).map(\.id) == ["XYZ2"])
         #expect(PadListLogic.filter(pads, using: PadFilterCriteria(search: "jane")).map(\.id) == ["ABC1"])
-        #expect(PadListLogic.filter(pads, using: PadFilterCriteria(search: "nothinghere")).isEmpty)
+        let noMatches = PadListLogic.filter(pads, using: PadFilterCriteria(search: "nothinghere"))
+        #expect(noMatches.isEmpty)
     }
 
     @Test
@@ -190,7 +191,8 @@ struct PadFilterTests {
             updated: PadDateWindow(range: "last 7 days"),
             created: PadDateWindow(range: "today")
         )
-        #expect(PadListLogic.filter(pads, using: mismatch, now: fixedNow).isEmpty)
+        let mismatched = PadListLogic.filter(pads, using: mismatch, now: fixedNow)
+        #expect(mismatched.isEmpty)
     }
 
     /// `filter` is defined as `pads.filter(matches:)`, and the combined "All

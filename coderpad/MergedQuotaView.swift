@@ -99,6 +99,7 @@ struct MergedQuotaView: View {
     private func reload() async {
         let mergeable = accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }
         guard !mergeable.isEmpty else { return }
+
         isLoading = true
         defer { isLoading = false }
         let targets = mergeable.map { (id: $0.id, client: $0.makeClient()) }

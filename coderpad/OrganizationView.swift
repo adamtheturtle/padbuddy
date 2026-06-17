@@ -36,6 +36,7 @@ enum StatsPeriod: String, CaseIterable, Identifiable {
     /// `.custom` where the dates come from the view's own pickers.
     func range(now: Date = Date()) -> (start: Date, end: Date)? {
         guard let days else { return nil }
+
         let start = Calendar.current.date(byAdding: .day, value: -days, to: now) ?? now
         return (start, now)
     }
@@ -106,10 +107,12 @@ struct OrganizationView: View {
         }
         .onChange(of: customStart) { _, _ in
             guard period == .custom else { return }
+
             scheduleStatsReload()
         }
         .onChange(of: customEnd) { _, _ in
             guard period == .custom else { return }
+
             scheduleStatsReload()
         }
         .focusedSceneValue(\.findAction, FindAction(id: "organization") { userSearchFocused = true })
@@ -240,6 +243,7 @@ struct OrganizationView: View {
 
     private func reload() async {
         guard !client.apiKey.isEmpty else { return }
+
         isLoading = true
         error = nil
         defer { isLoading = false }
@@ -276,10 +280,12 @@ struct OrganizationView: View {
     /// loaded organization data in place.
     private func reloadStats() async {
         guard !client.apiKey.isEmpty else { return }
+
         let window = window
         let result = try? await client.organizationStats(start: window.start, end: window.end)
         // A newer request may have superseded this one while it was in flight.
         guard !Task.isCancelled else { return }
+
         stats = result
     }
 }

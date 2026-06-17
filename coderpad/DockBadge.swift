@@ -36,6 +36,7 @@ enum DockBadge {
             NSApp.dockTile.badgeLabel = nil
             return
         }
+
         // Only the user's own started pads, scoped per account: ownership is compared
         // against each account's configured email (matching `MergedPadsView.isMine`),
         // so other interviewers' live pads don't count. Emails are canonicalized once
@@ -50,6 +51,7 @@ enum DockBadge {
         let count = PadsCacheStore.shared.padsByAccount.reduce(0) { running, entry in
             let (accountID, pads) = entry
             guard let email = canonicalEmails[accountID] else { return running }
+
             return running + pads.count(where: {
                 $0.status == .active && $0.ownerEmail.canonicalOwnerEmail == email
             })
