@@ -48,13 +48,14 @@ extension MergedQuestionsView {
     /// pass in here (rather than a separately-recomputed `filtered`) so the list,
     /// overlay, and count bar share a single pass.
     func refreshSorted() {
-        // Precompute each account's favorites once when filtering by favorites, so
-        // membership is O(1) per row instead of rebuilding the array per row.
-        let favoritesByAccount: [UUID: Set<Int>] = favoritesOnly
-            ? Dictionary(uniqueKeysWithValues: accounts.mergeableAccounts.map {
-                ($0.id, Set(favorites.favorites(account: $0.id)))
-            })
-            : [:]
+        // Precompute each account's favorites once per render, so both the favorites
+        // *filter* and every row's `isFavorite` check are O(1) and don't rebuild the
+        // array per row (#367). Stored on the cache so the row body and swipe actions
+        // share this pass.
+        let favoritesByAccount = Dictionary(uniqueKeysWithValues: accounts.mergeableAccounts.map {
+            ($0.id, Set(favorites.favorites(account: $0.id)))
+        })
+        sortedCache.favoritesByAccount = favoritesByAccount
         let filtered = scoped.filter { row in
             let item = row.item
             return (accountFilter == nil || row.account.id == accountFilter)
@@ -111,7 +112,9 @@ extension MergedQuestionsView {
     }
 
     func isFavorite(_ row: AccountScoped<Question>) -> Bool {
-        favorites.favorites(account: row.account.id).contains(row.item.id)
+        // Consult the per-render memo built by `refreshSorted()` — O(1), no per-call
+        // array allocation (#367).
+        sortedCache.favoritesByAccount[row.account.id]?.contains(row.item.id) ?? false
     }
 
     /// Whether any account has at least one starred question, gating the Favorites

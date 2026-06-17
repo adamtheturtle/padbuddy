@@ -89,7 +89,10 @@ final class ScopedQuestionsCache {
     var rows: [AccountScoped<Question>] = []
 }
 
-/// Memo holding the merged questions list's filtered + sorted rows for one render.
+/// Memo holding the merged questions list's filtered + sorted rows for one render,
+/// plus each account's favorite question ids so per-row `isFavorite` checks are
+/// O(1) and allocation-free (#367).
 final class SortedQuestionsCache {
     var rows: [AccountScoped<Question>] = []
+    var favoritesByAccount: [UUID: Set<Int>] = [:]
 }
