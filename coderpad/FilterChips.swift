@@ -313,3 +313,33 @@ struct DateRangeFilterChip: View {
         showCustom = false
     }
 }
+
+#Preview("Filter chips — idle vs active") {
+    VStack(alignment: .leading, spacing: 20) {
+        Text("Filter chips (capsule pills)").font(.headline)
+        HStack(spacing: 8) {
+            // Idle filter chip: neutral pill that reads as a control (#352).
+            FilterChipMenu(title: "State", icon: "circle",
+                           selected: .constant(String?.none),
+                           options: ["Active", "Ended"], formatter: { $0 })
+            // Active filter chip: accent glass; label must stay readable, not
+            // accent-on-accent (#397).
+            FilterChipMenu(title: "Language", icon: "chevron.left.slash.chevron.right",
+                           selected: .constant(Optional("Python")),
+                           options: ["Python", "Swift"], formatter: { $0 })
+        }
+
+        Text("Saved-search tokens (rounded rectangles)").font(.headline)
+        HStack(spacing: 8) {
+            // Idle and active saved-search tokens — a distinct rounded-rect shape
+            // from the filter pills above (#405), accent glass + readable text when
+            // applied (#397).
+            SavedSearchChip(name: "My Pads", systemImage: "person.fill", isActive: false, onApply: {})
+            SavedSearchChip(name: "Active", systemImage: "bolt.fill", isActive: true, onApply: {})
+            SavedSearchChip(name: "Frontend", isActive: false, onApply: {}, onDelete: {})
+        }
+    }
+    .padding(40)
+    .frame(width: 520, alignment: .leading)
+    .background(.background)
+}
