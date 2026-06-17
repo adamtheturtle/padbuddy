@@ -96,6 +96,10 @@ struct PadsView: View {
     @State var smartFilterFailed = false
     @State var padPendingDelete: Pad?
     @State var deleteError: String?
+    /// The active sort, shared with the merged Pads list and the Pad menu's "Sort
+    /// By" command via `@AppStorage` (#361). Defaults to newest-updated first, the
+    /// order the API already returns.
+    @AppStorage(PadSort.storageKey) var sort: PadSort = .updatedDesc
 
     init(client: CoderPadClient, selection: Binding<Pad?>, search: Binding<String>) {
         self.client = client

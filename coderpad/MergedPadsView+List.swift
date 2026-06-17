@@ -196,6 +196,15 @@ extension MergedPadsView {
             .help("Create a new pad in one of your accounts")
             .accessibilityLabel("New Pad")
         }
+        ToolbarItem(id: "sort", placement: .automatic) {
+            Menu {
+                PadSortMenuContent(sort: $sort)
+            } label: {
+                Label("Sort", systemImage: "arrow.up.arrow.down")
+            }
+            .help("Sort pads")
+            .accessibilityLabel("Sort pads")
+        }
     }
 
     private var padCollection: some View {
@@ -271,7 +280,9 @@ extension MergedPadsView {
             }
         }
         .listStyle(.inset)
-        .id(filterSignature)
+        // The sort joins the identity key: changing it reorders every row, so a
+        // fresh render beats animating a wholesale reorder (#361).
+        .id("\(filterSignature)|\(sort.rawValue)")
         .transaction { $0.animation = nil }
     }
 

@@ -20,7 +20,7 @@ extension PadsView {
     }
 
     func refreshFiltered() {
-        filteredCache.pads = PadListLogic.filter(
+        let matched = PadListLogic.filter(
             pads,
             using: PadFilterCriteria(
                 search: search,
@@ -34,6 +34,7 @@ extension PadsView {
             ),
             display: directory.display
         )
+        filteredCache.pads = sort.sorted(matched)
     }
 
     /// The pad to select after the pad with `id` is deleted. Picks the row that
@@ -121,6 +122,15 @@ extension PadsView {
                 .accessibilityLabel("New Pad")
                 .disabled(client.apiKey.isEmpty || isReadOnly)
             }
+            ToolbarItem(id: "sort", placement: .automatic) {
+                Menu {
+                    PadSortMenuContent(sort: $sort)
+                } label: {
+                    Label("Sort", systemImage: "arrow.up.arrow.down")
+                }
+                .help("Sort pads")
+                .accessibilityLabel("Sort pads")
+            }
         }
     }
 
@@ -205,7 +215,9 @@ extension PadsView {
             // filter slow on large orgs. Keyed on `filterSignature` only, so background
             // `pads` refreshes still take the cheap incremental diff and keep scroll
             // position. `transaction` then suppresses the cross-fade between identities.
-            .id(filterSignature)
+            // The sort joins the key too: changing it reorders every row, so a fresh
+            // render beats animating a wholesale reorder (#361).
+            .id("\(filterSignature)|\(sort.rawValue)")
             .transaction { $0.animation = nil }
             // Scroll the restored pad into view once, then clear the request so the
             // user's own scrolling afterward is never overridden.

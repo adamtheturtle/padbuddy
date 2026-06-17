@@ -35,10 +35,7 @@ extension MergedPadsView {
                 rows.append(AccountScoped(account: account, item: pad, id: pad.id))
             }
         }
-        scopedCache.rows = rows.sorted {
-            ($0.item.updatedAt ?? $0.item.createdAt ?? .distantPast)
-                > ($1.item.updatedAt ?? $1.item.createdAt ?? .distantPast)
-        }
+        scopedCache.rows = sort.sorted(rows, by: \.item)
     }
 
     var filtered: [AccountScoped<Pad>] {

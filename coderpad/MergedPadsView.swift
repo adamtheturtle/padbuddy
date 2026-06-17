@@ -81,6 +81,9 @@ struct MergedPadsView: View {
     /// The account a New Pad is being created for, chosen from the toolbar menu
     /// since creation is inherently single-account.
     @State var creatingForAccount: Account?
+    /// The active sort, shared with the single-account Pads list via `@AppStorage`
+    /// so the order is consistent across both (#361).
+    @AppStorage(PadSort.storageKey) var sort: PadSort = .updatedDesc
 
     /// Per-render memo so the several reads of `filtered` in one `body` share a
     /// single filter pass, matching `PadsView`'s approach for large lists.
