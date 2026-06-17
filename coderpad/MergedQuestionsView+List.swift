@@ -241,6 +241,17 @@ extension MergedQuestionsView {
                     }
                     .tint(.yellow)
                 }
+                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    // Same path as the context-menu "Delete Question…": select the
+                    // row, then let its detail pane run the undoable delete.
+                    Button(role: .destructive) {
+                        select(row)
+                        nav.deleteQuestionID = row.item.id
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                    .disabled(isReadOnly)
+                }
             }
         }
         .listStyle(.inset)

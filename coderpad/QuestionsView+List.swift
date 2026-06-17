@@ -187,6 +187,15 @@ extension QuestionsView {
                         favoriteSwipeButton(question)
                     }
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        // Same path as the context-menu "Delete Question…": select
+                        // the row, then let its detail pane run the undoable delete.
+                        Button(role: .destructive) {
+                            selectedQuestionIDs = [question.id]
+                            nav.deleteQuestionID = question.id
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                        .disabled(isReadOnly)
                         Button {
                             // Same path as the context menu and detail
                             // "New Pad" button: select the question, then
