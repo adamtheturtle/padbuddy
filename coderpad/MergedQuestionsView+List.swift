@@ -235,7 +235,6 @@ extension MergedQuestionsView {
                     account: row.account.id,
                     onToggleFavorite: { toggleFavorite(row) }
                 )
-                .equatable()
                 .tag(row.id)
                 .installsTableDoubleClick(doubleClickProxy)
                 .contextMenu { questionContextMenu(row) }

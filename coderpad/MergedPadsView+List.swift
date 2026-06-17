@@ -307,7 +307,6 @@ extension MergedPadsView {
             isFavorite: favoritePads.isFavorite(row.item.id, account: row.account.id),
             onToggleFavorite: { favoritePads.toggle(row.item.id, account: row.account.id) }
         )
-        .equatable()
         .contextMenu { padContextMenu(row) }
     }
 

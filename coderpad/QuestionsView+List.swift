@@ -118,7 +118,6 @@ extension QuestionsView {
                 QuestionRow(question: question, isFavorite: favoriteIDSet.contains(question.id),
                             account: accounts.currentAccountID,
                             onToggleFavorite: { toggleFavorite(question) })
-                    .equatable()
                     .tag(question.id)
                     .installsTableDoubleClick(doubleClickProxy)
                     .contextMenu { questionContextMenu(question) }
