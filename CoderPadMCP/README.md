@@ -23,6 +23,17 @@ API's JSON verbatim.
 | `get_quota` | — | The account's pad-quota usage |
 | `get_organization` | — | The org directory (teams + members) |
 
+### CoderPad Screen (assessments)
+
+These are offered **only when a Screen key is configured** (see below), since
+Screen is a separate product with its own API key and host (#314):
+
+| Tool | Arguments | Returns |
+| --- | --- | --- |
+| `screen_list_campaigns` | — | The org's assessment campaigns |
+| `screen_list_tests` | `campaignId` (int), `candidateEmail` (string), `start` (int), `limit` (int) — all optional | A page of test sessions (offset pagination via `pagination.nextStart`) |
+| `screen_get_test` | `id` (int, required) | One test session's status and report |
+
 ## Configuration
 
 Set via the environment:
@@ -31,6 +42,8 @@ Set via the environment:
 | --- | --- | --- | --- |
 | `CODERPAD_API_KEY` | yes | — | A CoderPad API key (Settings → API on coderpad.io) |
 | `CODERPAD_BASE_URL` | no | `https://app.coderpad.io` | Override for self-hosted / regional deployments |
+| `CODERPAD_SCREEN_API_KEY` | no | — | A CoderPad Screen API key. When set, the `screen_*` tools are enabled |
+| `CODERPAD_SCREEN_REGION` | no | US | Set to `eu` for EU-hosted Screen organizations |
 
 ## Build & run
 

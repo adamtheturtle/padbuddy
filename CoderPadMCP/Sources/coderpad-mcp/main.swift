@@ -48,6 +48,23 @@ private let baseURL: URL = {
     return URL(string: "https://app.coderpad.io")!
 }()
 
+// CoderPad Screen (the assessment product) is a separate API with its own key and
+// host. Its tools are only offered when a Screen key is configured (#314).
+//   CODERPAD_SCREEN_API_KEY  (optional)  enables the screen_* tools
+//   CODERPAD_SCREEN_REGION   (optional)  "eu" for EU-hosted orgs, else US (default)
+private let screenAPIKey: String? = {
+    let raw = environment["CODERPAD_SCREEN_API_KEY"]?.trimmingCharacters(in: .whitespacesAndNewlines)
+    return (raw?.isEmpty == false) ? raw : nil
+}()
+
+private let screenBaseURL: URL = {
+    let region = environment["CODERPAD_SCREEN_REGION"]?
+        .trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    return region == "eu" ? URL(string: "https://www.codingame.eu")! : URL(string: "https://www.codingame.com")!
+}()
+
+private let screenAPIPrefix = "/assessment/api/v1.1"
+
 // MARK: - CoderPad REST
 
 private struct APIResponse {
@@ -87,6 +104,39 @@ private func apiGet(_ path: String, query: [URLQueryItem] = []) async -> APIResp
 private func toolResult(_ response: APIResponse) -> CallTool.Result {
     let text = response.ok ? response.body : "HTTP \(response.status)\n\(response.body)"
     return CallTool.Result(content: [.text(text: text, annotations: nil, _meta: nil)], isError: response.ok ? nil : true)
+}
+
+/// An authenticated GET against the CoderPad Screen API, which uses an `API-Key`
+/// header (not Bearer) and its own host + version prefix. Returns the JSON body
+/// verbatim, mirroring `apiGet`.
+private func screenGet(_ path: String, query: [URLQueryItem] = []) async -> APIResponse {
+    guard let key = screenAPIKey else {
+        return APIResponse(
+            status: 0,
+            body: "Screen is not configured. Set CODERPAD_SCREEN_API_KEY to enable the screen_* tools."
+        )
+    }
+    guard var comps = URLComponents(
+        url: screenBaseURL.appending(path: screenAPIPrefix + path), resolvingAgainstBaseURL: false
+    ) else {
+        return APIResponse(status: 0, body: "Could not build a URL for \(path).")
+    }
+    let items = query.filter { ($0.value ?? "").isEmpty == false }
+    if !items.isEmpty { comps.queryItems = items }
+    guard let url = comps.url else {
+        return APIResponse(status: 0, body: "Could not build a URL for \(path).")
+    }
+
+    var request = URLRequest(url: url)
+    request.setValue(key, forHTTPHeaderField: "API-Key")
+    request.setValue("application/json", forHTTPHeaderField: "Accept")
+    do {
+        let (data, response) = try await URLSession.shared.data(for: request)
+        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        return APIResponse(status: status, body: String(decoding: data, as: UTF8.self))
+    } catch {
+        return APIResponse(status: 0, body: "Request to \(path) failed: \(error.localizedDescription)")
+    }
 }
 
 // MARK: - Argument helpers
@@ -162,6 +212,36 @@ private let tools: [Tool] = [
     )
 ]
 
+/// CoderPad Screen (assessments) tools, offered only when a Screen key is set.
+private let screenTools: [Tool] = [
+    Tool(
+        name: "screen_list_campaigns",
+        description: "List the organization's CoderPad Screen assessment campaigns.",
+        inputSchema: objectSchema()
+    ),
+    Tool(
+        name: "screen_list_tests",
+        description: "List CoderPad Screen test sessions (offset-paginated). The response's pagination.nextStart / hasMoreItems drive paging.",
+        inputSchema: objectSchema([
+            "campaignId": property("integer", "Only tests in this campaign."),
+            "candidateEmail": property("string", "Only tests for this candidate email."),
+            "start": property("integer", "Offset to start from (use pagination.nextStart from a prior call)."),
+            "limit": property("integer", "Maximum number of tests to return.")
+        ])
+    ),
+    Tool(
+        name: "screen_get_test",
+        description: "Fetch one CoderPad Screen test session (status and, once finished, its report) by numeric id.",
+        inputSchema: objectSchema(["id": property("integer", "The numeric test-session id.")], required: ["id"])
+    )
+]
+
+/// The tools to advertise: the Screen ones appear only when Screen is configured,
+/// so a client without a Screen key isn't offered tools it can't use.
+private func availableTools() -> [Tool] {
+    screenAPIKey == nil ? tools : tools + screenTools
+}
+
 // MARK: - Server
 
 let server = Server(
@@ -171,7 +251,7 @@ let server = Server(
 )
 
 await server.withMethodHandler(ListTools.self) { _ in
-    ListTools.Result(tools: tools)
+    ListTools.Result(tools: availableTools())
 }
 
 await server.withMethodHandler(CallTool.self) { params in
@@ -199,6 +279,31 @@ await server.withMethodHandler(CallTool.self) { params in
 
     case "get_organization":
         return toolResult(await apiGet("/api/organization"))
+
+    case "screen_list_campaigns":
+        return toolResult(await screenGet("/campaigns"))
+
+    case "screen_list_tests":
+        var query: [URLQueryItem] = []
+        if let campaign = intArgument(params.arguments, "campaignId") {
+            query.append(URLQueryItem(name: "campaignId", value: String(campaign)))
+        }
+        if let email = stringArgument(params.arguments, "candidateEmail") {
+            query.append(URLQueryItem(name: "candidateEmail", value: email))
+        }
+        if let start = intArgument(params.arguments, "start") {
+            query.append(URLQueryItem(name: "start", value: String(start)))
+        }
+        if let limit = intArgument(params.arguments, "limit") {
+            query.append(URLQueryItem(name: "limit", value: String(limit)))
+        }
+        return toolResult(await screenGet("/tests", query: query))
+
+    case "screen_get_test":
+        guard let id = intArgument(params.arguments, "id") else {
+            return missingArgument("id (integer)")
+        }
+        return toolResult(await screenGet("/tests/\(id)"))
 
     default:
         return CallTool.Result(
