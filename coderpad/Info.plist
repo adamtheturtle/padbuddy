@@ -11,7 +11,7 @@
 	<key>SUFeedURL</key>
 	<string>https://github.com/adamtheturtle/coderpad-macos/releases/latest/download/appcast.xml</string>
 	<key>SUPublicEDKey</key>
-	<string>REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY</string>
+	<string>GM4rpkCx9FMbd+Sk64pU6v6659APlNWYLMKzGU3OIyU=</string>
 	<!-- Required for a sandboxed app: routes installs through Sparkle's Installer
 	     XPC service (paired with the -spks/-spki mach-lookup entitlements). -->
 	<key>SUEnableInstallerLauncherService</key>
