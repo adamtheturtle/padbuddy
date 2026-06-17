@@ -72,37 +72,23 @@ jobs:
 
       - name: Import signing certificate
         if: env.SIGNING_AVAILABLE == 'true'
-        env:
-          CERT_P12_BASE64: ${{ secrets.DEVELOPER_ID_APP_CERT_P12_BASE64 }}
-          CERT_PASSWORD: ${{ secrets.DEVELOPER_ID_APP_CERT_PASSWORD }}
+        # Pinned to the v6.1.0 commit SHA for supply-chain safety. The action
+        # creates a temporary `signing_temp` keychain, imports the cert with a
+        # non-interactive partition list, and adds it to the user search list —
+        # replacing the hand-rolled `security` bash this step used to carry (#363).
+        uses: apple-actions/import-codesign-certs@fe74d46e82474f87e1ba79832ad28a4013d0e33a
+        with:
+          p12-file-base64: ${{ secrets.DEVELOPER_ID_APP_CERT_P12_BASE64 }}
+          p12-password: ${{ secrets.DEVELOPER_ID_APP_CERT_PASSWORD }}
+
+      - name: Resolve signing identity
+        if: env.SIGNING_AVAILABLE == 'true'
+        # The action doesn't return the identity string, but it left the imported
+        # cert's keychain on the search list, so find it there and export it for
+        # scripts/package-and-notarize.sh (which reads $SIGNING_IDENTITY).
         run: |
           set -euo pipefail
-          KEYCHAIN="$RUNNER_TEMP/signing.keychain-db"
-          KEYCHAIN_PASSWORD="$(uuidgen)"
-          CERT_PATH="$RUNNER_TEMP/developer-id.p12"
-
-          echo "$CERT_P12_BASE64" | base64 --decode > "$CERT_PATH"
-
-          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
-          security set-keychain-settings -lut 21600 "$KEYCHAIN"
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
-          security import "$CERT_PATH" -P "$CERT_PASSWORD" \
-            -A -t cert -f pkcs12 -k "$KEYCHAIN"
-          # Allow codesign to use the key non-interactively.
-          security set-key-partition-list \
-            -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
-          # Put the new keychain on the search list (keeping the existing ones).
-          # Read the current list into an array so each path stays one argument.
-          EXISTING=()
-          while IFS= read -r kc; do
-            kc="${kc//\"/}"          # strip the quotes security wraps paths in
-            kc="${kc#"${kc%%[![:space:]]*}"}"  # trim leading whitespace
-            [ -n "$kc" ] && EXISTING+=("$kc")
-          done < <(security list-keychains -d user)
-          security list-keychains -d user -s "$KEYCHAIN" "${EXISTING[@]}"
-          rm -f "$CERT_PATH"
-
-          IDENTITY="$(security find-identity -v -p codesigning "$KEYCHAIN" \
+          IDENTITY="$(security find-identity -v -p codesigning \
             | grep 'Developer ID Application' | head -1 \
             | sed -E 's/.*"(.*)".*/\1/')"
           test -n "$IDENTITY" || { echo "No Developer ID Application identity found"; exit 1; }
