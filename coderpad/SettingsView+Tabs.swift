@@ -327,7 +327,7 @@ extension SettingsView {
             }
 
             Section {
-                Toggle("Show only started pads", isOn: $menuBarStartedOnly)
+                Toggle("Show only active pads", isOn: $menuBarStartedOnly)
             }
         }
         .formStyle(.grouped)

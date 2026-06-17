@@ -44,9 +44,13 @@ struct InlineEditableText: View {
                         .font(.callout)
                         .foregroundStyle(.tertiary)
                 } else {
+                    // `MarkdownText` already enables Textual's cross-block text
+                    // selection internally; layering a second native
+                    // `.textSelection(.enabled)` here wraps those many blocks in a
+                    // duplicate selection scope whose internal layout-collection
+                    // observer fires multiple times per frame (a SwiftUICore fault).
                     MarkdownText(text)
                         .font(.callout)
-                        .textSelection(.enabled)
                         .foregroundStyle(.primary)
                 }
             }
