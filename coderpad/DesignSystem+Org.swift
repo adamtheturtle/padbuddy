@@ -109,7 +109,7 @@ final class OrgDirectory {
         inFlight = account.id
         defer { inFlight = nil }
         let client = account.makeClient()
-        if let org = try? await client.organization() {
+        if let org = try? await OrganizationCacheStore.shared.organization(via: client) {
             var map: [String: String] = [:]
             for user in org.users {
                 if let name = user.name, !name.isEmpty {
@@ -139,7 +139,9 @@ final class OrgDirectory {
                 let client = account.makeClient()
                 let id = account.id
                 group.addTask {
-                    guard let org = try? await client.organization() else { return (id, [:]) }
+                    guard let org = try? await OrganizationCacheStore.shared.organization(via: client) else {
+                        return (id, [:])
+                    }
 
                     var map: [String: String] = [:]
                     for user in org.users where !(user.name ?? "").isEmpty {

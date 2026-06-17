@@ -213,6 +213,15 @@ final class QuestionsCacheStore {
 final class OrganizationCacheStore {
     static let shared = OrganizationCacheStore()
     private(set) var byAccount: [UUID: Organization] = [:]
+
+    /// Session cache + in-flight coalescing keyed by client identity (server + key),
+    /// so the owner pickers, the new-pad sheet, and the org-name directory share one
+    /// `/api/organization` fetch instead of each re-downloading the full teams + users
+    /// payload (#374). Keyed by client rather than account because those callers hold
+    /// only a `CoderPadClient`, not an account id. Memory-only, like `byAccount`.
+    private var byClient: [String: Organization] = [:]
+    private var inFlight: [String: Task<Organization, any Error>] = [:]
+
     private init() {}
 
     func get(_ accountID: UUID) -> Organization? {
@@ -225,6 +234,42 @@ final class OrganizationCacheStore {
 
     func remove(_ accountID: UUID) {
         byAccount[accountID] = nil
+    }
+
+    /// Fetch the organization for `client`, coalescing concurrent callers onto one
+    /// request and serving a cached copy when one exists — stale-while-revalidate: a
+    /// cached hit returns immediately and kicks off a background refresh. Only throws
+    /// when there's no cached copy and the fetch fails (#374).
+    func organization(via client: CoderPadClient) async throws -> Organization {
+        let key = Self.clientKey(client)
+        if let cached = byClient[key] {
+            refreshInBackground(client, key: key)
+            return cached
+        }
+        return try await fetch(client, key: key)
+    }
+
+    private func fetch(_ client: CoderPadClient, key: String) async throws -> Organization {
+        // Coalesce: a concurrent caller for the same client awaits the same task rather
+        // than starting a second identical request.
+        if let existing = inFlight[key] { return try await existing.value }
+
+        let task = Task { try await client.organization() }
+        inFlight[key] = task
+        defer { inFlight[key] = nil }
+        let org = try await task.value
+        byClient[key] = org
+        return org
+    }
+
+    private func refreshInBackground(_ client: CoderPadClient, key: String) {
+        guard inFlight[key] == nil else { return }
+
+        Task { _ = try? await fetch(client, key: key) }
+    }
+
+    private static func clientKey(_ client: CoderPadClient) -> String {
+        "\(client.baseURL.absoluteString)|\(client.apiKey)"
     }
 }
 

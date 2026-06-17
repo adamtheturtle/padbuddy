@@ -48,7 +48,10 @@ final class AccountHealthMonitor {
 
         let client = account.makeClient()
         do {
-            _ = try await client.organization()
+            // A liveness probe only needs to learn whether the key still authenticates,
+            // so hit the tiny `/api/quota` endpoint rather than downloading the whole
+            // org (teams + every user) every interval just to read its status code (#374).
+            _ = try await client.quota()
             unauthorizedAccountIDs.remove(account.id)
         } catch let error as CoderPadError where error.isUnauthorized {
             unauthorizedAccountIDs.insert(account.id)

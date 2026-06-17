@@ -171,7 +171,7 @@ struct NewPadSheet: View {
     private func loadOrganization() async {
         guard !client.apiKey.isEmpty else { return }
 
-        if let org = try? await client.organization() {
+        if let org = try? await OrganizationCacheStore.shared.organization(via: client) {
             teams = org.teams
             users = org.users.sorted {
                 ($0.name ?? $0.email).localizedCaseInsensitiveCompare($1.name ?? $1.email) == .orderedAscending

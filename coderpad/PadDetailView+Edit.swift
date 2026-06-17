@@ -109,7 +109,7 @@ extension PadDetailView {
     private func loadOrgUsers() async {
         guard orgUsers.isEmpty, !client.apiKey.isEmpty else { return }
 
-        if let org = try? await client.organization() {
+        if let org = try? await OrganizationCacheStore.shared.organization(via: client) {
             orgUsers = org.users.sorted {
                 ($0.name ?? $0.email).localizedCaseInsensitiveCompare($1.name ?? $1.email) == .orderedAscending
             }
