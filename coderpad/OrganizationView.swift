@@ -186,19 +186,22 @@ struct OrganizationView: View {
     }
 
     private func usersSection(_ org: Organization) -> some View {
-        Card {
+        // Filter + sort the whole org once per render and reuse it for both the
+        // count and the grid, rather than running it twice on every keystroke (#369).
+        let users = filteredUsers(org)
+        return Card {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
                     SectionHeader(title: "Users", systemImage: "person.3")
                     Spacer()
-                    Text("\(filteredUsers(org).count)")
+                    Text("\(users.count)")
                         .font(.caption.monospaced()).foregroundStyle(.secondary)
                 }
                 TextField("Search users…", text: $userSearch)
                     .textFieldStyle(.roundedBorder)
                     .focused($userSearchFocused)
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 240), spacing: 10)], alignment: .leading, spacing: 10) {
-                    ForEach(filteredUsers(org)) { user in
+                    ForEach(users) { user in
                         Button {
                             AppNavigation.shared.showPads(PadsRequest(ownerEmail: user.email))
                         } label: {
