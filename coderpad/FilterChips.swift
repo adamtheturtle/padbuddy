@@ -294,7 +294,9 @@ struct DateRangeFilterChip: View {
         draftStart = window.customStart
             ?? calendar.date(byAdding: .day, value: -6, to: calendar.startOfDay(for: today))
             ?? today
-        draftEnd = window.customEnd ?? today
+        // Never seed an inverted range: the "To" picker's lower bound is `draftStart`,
+        // so an end before the start would silently clamp and misrepresent the window.
+        draftEnd = max(draftStart, window.customEnd ?? today)
     }
 
     /// Commit the picker as an inclusive whole-day range: from the start of the
