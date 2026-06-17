@@ -37,6 +37,7 @@ private func requireAPIKey() -> String {
         ))
         exit(1)
     }
+
     return key
 }
 
@@ -48,10 +49,10 @@ private let baseURL: URL = {
     return URL(string: "https://app.coderpad.io")!
 }()
 
-// CoderPad Screen (the assessment product) is a separate API with its own key and
-// host. Its tools are only offered when a Screen key is configured (#314).
-//   CODERPAD_SCREEN_API_KEY  (optional)  enables the screen_* tools
-//   CODERPAD_SCREEN_REGION   (optional)  "eu" for EU-hosted orgs, else US (default)
+/// CoderPad Screen (the assessment product) is a separate API with its own key and
+/// host. Its tools are only offered when a Screen key is configured (#314).
+///   CODERPAD_SCREEN_API_KEY  (optional)  enables the screen_* tools
+///   CODERPAD_SCREEN_REGION   (optional)  "eu" for EU-hosted orgs, else US (default)
 private let screenAPIKey: String? = {
     let raw = environment["CODERPAD_SCREEN_API_KEY"]?.trimmingCharacters(in: .whitespacesAndNewlines)
     return (raw?.isEmpty == false) ? raw : nil
@@ -70,7 +71,9 @@ private let screenAPIPrefix = "/assessment/api/v1.1"
 private struct APIResponse {
     let status: Int
     let body: String
-    var ok: Bool { (200..<300).contains(status) }
+    var ok: Bool {
+        (200 ..< 300).contains(status)
+    }
 }
 
 /// Performs an authenticated GET and returns the status and raw JSON body. The
@@ -83,6 +86,7 @@ private func apiGet(_ path: String, query: [URLQueryItem] = []) async -> APIResp
     ) else {
         return APIResponse(status: 0, body: "Could not build a URL for \(path).")
     }
+
     let items = query.filter { ($0.value ?? "").isEmpty == false }
     if !items.isEmpty { comps.queryItems = items }
     guard let url = comps.url else {
@@ -121,6 +125,7 @@ private func screenGet(_ path: String, query: [URLQueryItem] = []) async -> APIR
     ) else {
         return APIResponse(status: 0, body: "Could not build a URL for \(path).")
     }
+
     let items = query.filter { ($0.value ?? "").isEmpty == false }
     if !items.isEmpty { comps.queryItems = items }
     guard let url = comps.url else {
@@ -257,31 +262,33 @@ await server.withMethodHandler(ListTools.self) { _ in
 await server.withMethodHandler(CallTool.self) { params in
     switch params.name {
     case "list_pads":
-        return toolResult(await apiGet("/api/pads/", query: pagingQuery(params.arguments)))
+        return await toolResult(apiGet("/api/pads/", query: pagingQuery(params.arguments)))
 
     case "get_pad":
         guard let id = stringArgument(params.arguments, "id"), !id.isEmpty else {
             return missingArgument("id")
         }
-        return toolResult(await apiGet("/api/pads/\(id)"))
+
+        return await toolResult(apiGet("/api/pads/\(id)"))
 
     case "list_questions":
-        return toolResult(await apiGet("/api/questions/", query: pagingQuery(params.arguments)))
+        return await toolResult(apiGet("/api/questions/", query: pagingQuery(params.arguments)))
 
     case "get_question":
         guard let id = intArgument(params.arguments, "id") else {
             return missingArgument("id (integer)")
         }
-        return toolResult(await apiGet("/api/questions/\(id)"))
+
+        return await toolResult(apiGet("/api/questions/\(id)"))
 
     case "get_quota":
-        return toolResult(await apiGet("/api/quota"))
+        return await toolResult(apiGet("/api/quota"))
 
     case "get_organization":
-        return toolResult(await apiGet("/api/organization"))
+        return await toolResult(apiGet("/api/organization"))
 
     case "screen_list_campaigns":
-        return toolResult(await screenGet("/campaigns"))
+        return await toolResult(screenGet("/campaigns"))
 
     case "screen_list_tests":
         var query: [URLQueryItem] = []
@@ -297,13 +304,14 @@ await server.withMethodHandler(CallTool.self) { params in
         if let limit = intArgument(params.arguments, "limit") {
             query.append(URLQueryItem(name: "limit", value: String(limit)))
         }
-        return toolResult(await screenGet("/tests", query: query))
+        return await toolResult(screenGet("/tests", query: query))
 
     case "screen_get_test":
         guard let id = intArgument(params.arguments, "id") else {
             return missingArgument("id (integer)")
         }
-        return toolResult(await screenGet("/tests/\(id)"))
+
+        return await toolResult(screenGet("/tests/\(id)"))
 
     default:
         return CallTool.Result(
