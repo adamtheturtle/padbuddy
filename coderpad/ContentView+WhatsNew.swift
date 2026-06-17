@@ -92,6 +92,7 @@ struct WhatsNewSheet: View {
                         Image(systemName: item.symbol)
                             .font(.title2)
                             .foregroundStyle(.tint)
+                            .accessibilityHidden(true)
                             .frame(width: 32)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(item.title).font(.callout.weight(.semibold))

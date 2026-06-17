@@ -21,6 +21,7 @@ struct CodeFile: Identifiable, Hashable {
     /// The file's name without its directory, for compact tab labels.
     var name: String {
         guard let path, !path.isEmpty else { return "untitled" }
+
         return path.split(separator: "/").last.map(String.init) ?? path
     }
 
@@ -28,6 +29,7 @@ struct CodeFile: Identifiable, Hashable {
     /// stand in for a file that has no recognised extension.
     private static func baseLanguage(_ language: String?) -> String? {
         guard let language else { return nil }
+
         let lowered = language.lowercased()
         if lowered.hasPrefix("multifile_") {
             return String(lowered.dropFirst("multifile_".count))
@@ -63,6 +65,7 @@ struct CodeFile: Identifiable, Hashable {
         guard let path, let dot = path.lastIndex(of: "."), dot < path.index(before: path.endIndex) else {
             return baseLanguage(fallback)
         }
+
         let ext = path[path.index(after: dot)...].lowercased()
         return languageByExtension[ext] ?? baseLanguage(fallback)
     }
@@ -98,9 +101,9 @@ struct EnvironmentCodeCard: View {
         isActive: Bool,
         showActiveBadge: Bool,
         language: String?,
-        exampleQuestionID: String? = nil,
         padID: String,
-        dark: Bool
+        dark: Bool,
+        exampleQuestionID: String? = nil
     ) {
         self.files = files
         self.isActive = isActive
@@ -119,6 +122,7 @@ struct EnvironmentCodeCard: View {
     var exampleAttribution: String? {
         guard let raw = exampleQuestionID?.trimmingCharacters(in: .whitespacesAndNewlines),
               !raw.isEmpty else { return nil }
+
         var slug = raw
         if let slash = slug.lastIndex(of: "/") { slug = String(slug[slug.index(after: slash)...]) }
         // Drop a leading ordinal like "035-".
@@ -130,6 +134,7 @@ struct EnvironmentCodeCard: View {
             .replacingOccurrences(of: "_", with: " ")
             .trimmingCharacters(in: .whitespaces)
         guard !words.isEmpty else { return nil }
+
         return words.prefix(1).uppercased() + words.dropFirst()
     }
 
@@ -298,7 +303,7 @@ struct FileTreeNode: Identifiable {
     let id: String
     let name: String
     let file: CodeFile?
-    let children: [FileTreeNode]
+    let children: [Self]
 
     var isFolder: Bool {
         file == nil

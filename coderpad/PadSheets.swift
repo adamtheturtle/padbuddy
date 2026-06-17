@@ -132,6 +132,7 @@ struct NewPadSheet: View {
     /// chosen one. Driven by `OrgDirectory`, which is loaded app-wide.
     private func applyOrgDefaultLanguage() {
         guard !languageEdited, let def = directory.defaultLanguage, !def.isEmpty else { return }
+
         language = def
     }
 
@@ -141,6 +142,7 @@ struct NewPadSheet: View {
             fillFromSelectedQuestion()
         }
         guard !client.apiKey.isEmpty else { return }
+
         if let fresh = try? await client.listQuestions() {
             questions = fresh.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
             fillFromSelectedQuestion()
@@ -154,6 +156,7 @@ struct NewPadSheet: View {
     private func fillFromSelectedQuestion() {
         guard let id = selectedQuestionID,
               let question = questions.first(where: { $0.id == id }) else { return }
+
         if title.isEmpty { title = question.title }
         if !languageEdited, let lang = question.language, !lang.isEmpty { language = lang }
     }
@@ -162,6 +165,7 @@ struct NewPadSheet: View {
     /// Owner picker, so adding owner selection costs no extra network round-trip.
     private func loadOrganization() async {
         guard !client.apiKey.isEmpty else { return }
+
         if let org = try? await client.organization() {
             teams = org.teams
             users = org.users.sorted {

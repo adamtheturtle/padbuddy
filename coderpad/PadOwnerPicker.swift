@@ -23,12 +23,14 @@ struct SearchableQuestionPicker: View {
     private var selectedTitle: String {
         guard let id = selection,
               let question = questions.first(where: { $0.id == id }) else { return String(localized: "None") }
+
         return title(for: question)
     }
 
     private var filtered: [Question] {
         let trimmed = query.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return questions }
+
         return questions.filter { title(for: $0).localizedCaseInsensitiveContains(trimmed) }
     }
 
@@ -95,6 +97,7 @@ struct SearchableQuestionPicker: View {
                 if isSelected {
                     Image(systemName: "checkmark")
                         .foregroundStyle(.tint)
+                        .accessibilityLabel("Selected")
                 }
             }
             .contentShape(Rectangle())
@@ -158,12 +161,14 @@ struct SearchableOwnerPicker: View {
     /// True when the picker already holds the current account's own email.
     private var isSelfSelected: Bool {
         guard let selfEmail else { return false }
+
         return selfEmail.caseInsensitiveCompare(trimmedOwner) == .orderedSame
     }
 
     /// Label for the "Me" choice: the account name when we know it, else just "Me".
     private var meLabel: String {
         guard let email = selfEmail else { return String(localized: "Me") }
+
         return String(localized: "\(displayName(forEmail: email) ?? email) (Me)",
                       comment: "Owner-picker label for the signed-in user, e.g. \"Ada Lovelace (Me)\"")
     }
@@ -172,6 +177,7 @@ struct SearchableOwnerPicker: View {
     /// short explanation that an empty owner means the account holder.
     private var meSubtitle: String {
         guard let email = selfEmail else { return String(localized: "Owned by your account (the API key owner)") }
+
         if let name = displayName(forEmail: email) { return "\(name) · \(email)" }
         return email
     }
@@ -190,6 +196,7 @@ struct SearchableOwnerPicker: View {
         }
         let trimmed = query.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return members }
+
         return members.filter {
             $0.email.localizedCaseInsensitiveContains(trimmed)
                 || ($0.name?.localizedCaseInsensitiveContains(trimmed) ?? false)
@@ -202,6 +209,7 @@ struct SearchableOwnerPicker: View {
         let trimmed = query.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty, trimmed.contains("@") else { return nil }
         guard !users.contains(where: { $0.email.caseInsensitiveCompare(trimmed) == .orderedSame }) else { return nil }
+
         return trimmed
     }
 
@@ -297,6 +305,7 @@ struct SearchableOwnerPicker: View {
                 if isSelected {
                     Image(systemName: "checkmark")
                         .foregroundStyle(.tint)
+                        .accessibilityLabel("Selected")
                 }
             }
             .contentShape(Rectangle())

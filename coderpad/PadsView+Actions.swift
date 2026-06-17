@@ -24,6 +24,7 @@ extension PadsView {
     /// was made — and on change, for when the pane is already on screen.
     func applyPendingRequest() {
         guard let request = nav.padsRequest else { return }
+
         nav.padsRequest = nil
         // Apply a saved search first so any explicit owner/search below can still
         // override a single field of it when a request carries both.
@@ -55,6 +56,7 @@ extension PadsView {
     /// when nothing is pending, so it's safe to call after every load.
     func resolvePendingPadSelection() {
         guard let id = pendingSelectPadID, pads.contains(where: { $0.id == id }) else { return }
+
         selectedIDs = [id]
         pendingScrollToID = id
         pendingSelectPadID = nil
@@ -76,6 +78,7 @@ extension PadsView {
     func applySmartFilter() async {
         let query = smartFilterText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !query.isEmpty else { return }
+
         isInterpreting = true
         smartFilterFailed = false
         defer { isInterpreting = false }
@@ -98,9 +101,11 @@ extension PadsView {
         // also fire; guarding on the still-open sheet keeps a single keypress from
         // saving the search twice.
         guard showSaveSearch else { return }
+
         let trimmed = String(saveSearchName.trimmingCharacters(in: .whitespacesAndNewlines)
             .prefix(NamedSearch.maxNameLength))
         guard !trimmed.isEmpty, let account = accounts.currentAccountID else { return }
+
         savedSearches.add(captureCurrentSearch(named: trimmed), account: account, kind: .pads)
         showSaveSearch = false
     }
@@ -166,6 +171,7 @@ extension PadsView {
     /// has run, so the empty startup state never clobbers a saved snapshot.
     func persistFilters() {
         guard didRestoreFilters, let account = accounts.currentAccountID else { return }
+
         if let data = try? JSONEncoder().encode(captureCurrentSearch(named: "")) {
             UserDefaults.standard.set(data, forKey: Self.liveFilterKey(account))
         }
@@ -183,9 +189,11 @@ extension PadsView {
     /// wins over a restored snapshot.
     func restoreFilters() {
         guard let account = accounts.currentAccountID else { return }
+
         didRestoreFilters = true
         guard let data = UserDefaults.standard.data(forKey: Self.liveFilterKey(account)),
               let snapshot = try? JSONDecoder().decode(NamedSearch.self, from: data) else { return }
+
         apply(snapshot)
     }
 
@@ -212,6 +220,7 @@ extension PadsView {
     /// the stored id so a blank detail pane is also restored faithfully.
     func persistSelectedPad() {
         guard didRestoreSelection, let account = accounts.currentAccountID else { return }
+
         let key = Self.selectedPadKey(account)
         if let selectedID {
             UserDefaults.standard.set(selectedID, forKey: key)
@@ -231,6 +240,7 @@ extension PadsView {
     ) -> String? {
         guard !hasSelection, !hasPendingOpen,
               let savedID, availableIDs.contains(savedID) else { return nil }
+
         return savedID
     }
 
@@ -240,6 +250,7 @@ extension PadsView {
     /// doesn't count as freshly opening the pad (which would clear its activity dot).
     func restoreSelectedPadIfNeeded() {
         guard !didRestoreSelection, !pads.isEmpty else { return }
+
         didRestoreSelection = true
         guard let account = accounts.currentAccountID else { return }
         guard let id = Self.padToRestore(
@@ -248,6 +259,7 @@ extension PadsView {
             hasPendingOpen: nav.openPadID != nil,
             availableIDs: Set(pads.map(\.id))
         ) else { return }
+
         isRestoringSelection = true
         selectedIDs = [id]
         // Bring the restored row into view; the List won't scroll to it on its own.
@@ -258,6 +270,7 @@ extension PadsView {
 
     func reload() async {
         guard !client.apiKey.isEmpty else { return }
+
         isLoading = true
         error = nil
         defer { isLoading = false }
@@ -318,12 +331,14 @@ extension PadsView {
     /// cold start doesn't flag every pad as freshly changed.
     func padChanges(in fetched: [Pad]) -> [PadChange] {
         guard hasLoadedOnce else { return [] }
+
         var changes: [PadChange] = []
         for pad in fetched {
             guard let prev = previousActivity[pad.id] else {
                 changes.append(PadChange(pad: pad, kind: .new))
                 continue
             }
+
             // A bump counts only when the timestamp moves forward; treat a pad
             // that gained a timestamp it previously lacked as advanced too.
             let advanced: Bool = if let now = pad.updatedAt {
@@ -332,6 +347,7 @@ extension PadsView {
                 false
             }
             guard advanced else { continue }
+
             changes.append(PadChange(pad: pad, kind: Self.changeKind(for: pad, since: prev)))
         }
         return changes

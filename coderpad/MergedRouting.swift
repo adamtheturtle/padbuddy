@@ -74,11 +74,13 @@ final class MergedRouting {
     /// list so a removed account never routes anywhere.
     func account(forPadID id: String) -> Account? {
         guard let accountID = padAccountID[id] else { return nil }
+
         return AccountsStore.shared.accounts.first { $0.id == accountID }
     }
 
     func account(forQuestionID id: Int) -> Account? {
         guard let accountID = questionAccountID[id] else { return nil }
+
         return AccountsStore.shared.accounts.first { $0.id == accountID }
     }
 }

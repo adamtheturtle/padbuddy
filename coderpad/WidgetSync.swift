@@ -62,6 +62,7 @@ enum WidgetSync {
             WidgetSharedStore.saveFavorites([], account: accountID.uuidString)
             return
         }
+
         let titles = Dictionary(
             QuestionsCacheStore.shared.get(accountID).map { ($0.id, $0.displayTitle) },
             uniquingKeysWith: { first, _ in first }

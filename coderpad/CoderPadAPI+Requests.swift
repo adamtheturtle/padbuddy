@@ -155,8 +155,8 @@ nonisolated struct PadCreate: Codable {
     }
 
     /// A pad seeded from a question: same title and language, with the question attached.
-    static func fromQuestion(_ question: Question) -> PadCreate {
-        PadCreate(
+    static func fromQuestion(_ question: Question) -> Self {
+        Self(
             title: question.title,
             language: question.language,
             ownerEmail: nil,

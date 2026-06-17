@@ -96,7 +96,8 @@ final class OrgDirectory {
                 merged.merge(DirectoryCache.load(account: account.id)) { first, _ in first }
             }
             return merged
-        } else if let id = store.currentAccount?.id {
+        }
+        if let id = store.currentAccount?.id {
             return DirectoryCache.load(account: id)
         }
         return [:]
@@ -104,6 +105,7 @@ final class OrgDirectory {
 
     func load(for account: Account) async {
         guard loadedAccountID != account.id, inFlight != account.id else { return }
+
         inFlight = account.id
         defer { inFlight = nil }
         let client = account.makeClient()
@@ -131,12 +133,14 @@ final class OrgDirectory {
     func loadMerged(for accounts: [Account]) async {
         let realAccounts = accounts.filter { !$0.apiKey.isEmpty }
         guard !realAccounts.isEmpty else { return }
+
         let maps = await withTaskGroup(of: (UUID, [String: String]).self) { group -> [(UUID, [String: String])] in
             for account in realAccounts {
                 let client = account.makeClient()
                 let id = account.id
                 group.addTask {
                     guard let org = try? await client.organization() else { return (id, [:]) }
+
                     var map: [String: String] = [:]
                     for user in org.users where !(user.name ?? "").isEmpty {
                         map[user.email] = user.name
@@ -165,6 +169,7 @@ final class OrgDirectory {
     func name(for email: String) -> String? {
         let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return nil }
+
         return nameByEmail[trimmed]
     }
 
@@ -240,6 +245,9 @@ extension FocusedValues {
 /// macOS list-copy behavior users reach for to paste into Slack, mail, or an event.
 func copyLinkCommand(_ urlString: String?) -> (() -> [NSItemProvider])? {
     guard let urlString, !urlString.isEmpty else { return nil }
+
+    // NSItemProvider needs an NSItemProviderWriting; String isn't one, but NSString is.
+    // swiftlint:disable:next legacy_objc_type
     return { [NSItemProvider(object: urlString as NSString)] }
 }
 
@@ -260,7 +268,7 @@ struct FindAction: Equatable {
     let id: String
     let perform: () -> Void
 
-    static func == (lhs: FindAction, rhs: FindAction) -> Bool {
+    static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.id == rhs.id
     }
 }
@@ -290,7 +298,7 @@ struct PrintAction: Equatable {
     let id: String
     let perform: () -> Void
 
-    static func == (lhs: PrintAction, rhs: PrintAction) -> Bool {
+    static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.id == rhs.id
     }
 }

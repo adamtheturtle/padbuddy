@@ -80,6 +80,7 @@ struct PadCommands: Commands {
     /// is already ended instead of routing a no-op confirmation.
     private var isEnded: Bool {
         guard let pad else { return false }
+
         return pad.isEnded
     }
 
@@ -87,6 +88,7 @@ struct PadCommands: Commands {
         CommandMenu("Pad") {
             Button("Open Pad in Browser") {
                 guard let pad, let url = pad.webURL else { return }
+
                 AppRouter.requestOpenPadInBrowser(url)
             }
             .keyboardShortcut(.return, modifiers: [.command])
@@ -94,6 +96,7 @@ struct PadCommands: Commands {
 
             Button("Open Pad in New Window") {
                 guard let pad, let url = pad.webURL else { return }
+
                 AppActivator.bringToFront()
                 openWindow(id: "pad-browser", value: url)
             }
@@ -102,6 +105,7 @@ struct PadCommands: Commands {
 
             Button("Watch Playback") {
                 guard let pad else { return }
+
                 AppNavigation.shared.watchPlaybackPadID = pad.id
             }
             .keyboardShortcut("y", modifiers: [.command])
@@ -111,6 +115,7 @@ struct PadCommands: Commands {
 
             Button("Edit Pad…") {
                 guard let pad else { return }
+
                 AppNavigation.shared.editPadID = pad.id
             }
             .keyboardShortcut("e", modifiers: [.command])
@@ -120,6 +125,7 @@ struct PadCommands: Commands {
 
             Button("Copy Pad ID") {
                 guard let pad else { return }
+
                 Clipboard.copy(pad.id)
             }
             .keyboardShortcut("c", modifiers: [.command, .shift])
@@ -127,6 +133,7 @@ struct PadCommands: Commands {
 
             Button("Copy Pad URL") {
                 guard let pad else { return }
+
                 Clipboard.copy(pad.url)
             }
             .keyboardShortcut("c", modifiers: [.command, .option])
@@ -134,12 +141,14 @@ struct PadCommands: Commands {
 
             Button("Copy Pad Title") {
                 guard let pad else { return }
+
                 Clipboard.copy(pad.title.isEmpty ? pad.id : pad.title)
             }
             .disabled(pad == nil)
 
             Button("Copy as Markdown") {
                 guard let pad else { return }
+
                 let title = pad.title.isEmpty ? pad.id : pad.title
                 Clipboard.copy("[\(title)](\(pad.url))")
             }
@@ -159,6 +168,7 @@ struct PadCommands: Commands {
 
             Button("Save Code…") {
                 guard let pad else { return }
+
                 AppNavigation.shared.saveCodePadID = pad.id
             }
             .keyboardShortcut("s", modifiers: [.command])
@@ -168,12 +178,14 @@ struct PadCommands: Commands {
 
             Button("End Interview…") {
                 guard let pad else { return }
+
                 AppNavigation.shared.endPadID = pad.id
             }
             .disabled(pad == nil || isEnded || isReadOnly == true)
 
             Button("Delete Pad…") {
                 guard let pad else { return }
+
                 AppNavigation.shared.deletePadID = pad.id
             }
             .keyboardShortcut(.delete, modifiers: [.command])
@@ -208,6 +220,7 @@ struct QuestionCommands: Commands {
         CommandMenu("Question") {
             Button("New Pad from Question") {
                 guard let question else { return }
+
                 AppNavigation.shared.createPadForQuestionID = question.id
             }
             .keyboardShortcut(.return, modifiers: [.command])
@@ -217,6 +230,7 @@ struct QuestionCommands: Commands {
 
             Button(isFavorite == true ? "Remove from Favorites" : "Add to Favorites") {
                 guard let question else { return }
+
                 AppNavigation.shared.toggleFavoriteQuestionID = question.id
             }
             .keyboardShortcut("d", modifiers: [.command])
@@ -230,6 +244,7 @@ struct QuestionCommands: Commands {
 
             Button("Copy Question ID") {
                 guard let question else { return }
+
                 Clipboard.copy(String(question.id))
             }
             .keyboardShortcut("c", modifiers: [.command, .shift])
@@ -237,6 +252,7 @@ struct QuestionCommands: Commands {
 
             Button("Copy Question URL") {
                 guard let questionURL else { return }
+
                 Clipboard.copy(questionURL.absoluteString)
             }
             .keyboardShortcut("c", modifiers: [.command, .option])
@@ -244,6 +260,7 @@ struct QuestionCommands: Commands {
 
             Button("Copy Question Title") {
                 guard let question else { return }
+
                 Clipboard.copy(question.displayTitle)
             }
             .disabled(question == nil)
@@ -262,6 +279,7 @@ struct QuestionCommands: Commands {
 
             Button("Delete Question…") {
                 guard let question else { return }
+
                 AppNavigation.shared.deleteQuestionID = question.id
             }
             .keyboardShortcut(.delete, modifiers: [.command])

@@ -58,6 +58,7 @@ struct WindowMinWidth: NSViewRepresentable {
         let report = onContentWidth
         DispatchQueue.main.async {
             guard let window = view.window else { return }
+
             coordinator.observe(window, report: report)
             coordinator.report()
             if window.contentMinSize.width != target {
@@ -68,6 +69,7 @@ struct WindowMinWidth: NSViewRepresentable {
             // to honor it — but only on the floor change itself, never on a resize-driven
             // re-render. Only ever grows, never shrinks, so it can't fight a user drag.
             guard coordinator.applyFloorIfNeeded(target) else { return }
+
             if let content = window.contentView, content.frame.width < target {
                 window.setContentSize(NSSize(width: target, height: content.frame.height))
             }
@@ -89,6 +91,7 @@ struct WindowMinWidth: NSViewRepresentable {
         /// section switch but not on the frequent closure-driven re-renders.
         func applyFloorIfNeeded(_ target: CGFloat) -> Bool {
             guard appliedTarget != target else { return false }
+
             appliedTarget = target
             return true
         }
@@ -96,6 +99,7 @@ struct WindowMinWidth: NSViewRepresentable {
         func observe(_ window: NSWindow, report: @escaping (CGFloat) -> Void) {
             forward = report
             guard self.window !== window else { return }
+
             stopObserving()
             self.window = window
             observer = NotificationCenter.default.addObserver(
@@ -107,6 +111,7 @@ struct WindowMinWidth: NSViewRepresentable {
 
         func report() {
             guard let width = window?.contentView?.frame.width else { return }
+
             forward?(width)
         }
 
@@ -162,6 +167,7 @@ struct SidebarSeparatorHider: NSViewRepresentable {
         let collapsed = collapsed
         DispatchQueue.main.async {
             guard let toolbar = view.window?.toolbar else { return }
+
             coordinator.collapsed = collapsed
             coordinator.observe(toolbar)
             coordinator.enforce()
@@ -183,6 +189,7 @@ struct SidebarSeparatorHider: NSViewRepresentable {
         /// re-adds while collapsed gets pulled straight back out. Idempotent per toolbar.
         func observe(_ toolbar: NSToolbar) {
             guard self.toolbar !== toolbar else { return }
+
             stopObserving()
             self.toolbar = toolbar
             observer = NotificationCenter.default.addObserver(
@@ -204,6 +211,7 @@ struct SidebarSeparatorHider: NSViewRepresentable {
         /// Removes the tracking separator while collapsed, or restores it once expanded.
         func enforce() {
             guard let toolbar else { return }
+
             let separatorIndex = toolbar.items.firstIndex { $0 is NSTrackingSeparatorToolbarItem }
             if collapsed {
                 if let index = separatorIndex {

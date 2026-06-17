@@ -16,6 +16,7 @@ extension QuestionsView {
     /// stored id so a blank detail pane is restored faithfully too.
     func persistSelectedQuestion() {
         guard didRestoreSelection, let account = accounts.currentAccountID else { return }
+
         let key = Self.selectedQuestionKey(account)
         if let selectedQuestionID {
             UserDefaults.standard.set(selectedQuestionID, forKey: key)
@@ -35,6 +36,7 @@ extension QuestionsView {
     ) -> Int? {
         guard !hasSelection, !hasPendingNavigation,
               let savedID, availableIDs.contains(savedID) else { return nil }
+
         return savedID
     }
 
@@ -44,8 +46,10 @@ extension QuestionsView {
     /// so an explicit navigation always wins.
     func restoreSelectedQuestionIfNeeded() {
         guard !didRestoreSelection, !questions.isEmpty else { return }
+
         didRestoreSelection = true
         guard let account = accounts.currentAccountID else { return }
+
         let stored = UserDefaults.standard.object(forKey: Self.selectedQuestionKey(account)) as? Int
         guard let id = Self.questionToRestore(
             savedID: stored,
@@ -53,6 +57,7 @@ extension QuestionsView {
             hasPendingNavigation: pendingSelectQuestionID != nil || nav.questionsRequest != nil,
             availableIDs: Set(questions.map(\.id))
         ) else { return }
+
         selectedQuestionIDs = [id]
         // Bring the restored row into view; the List won't scroll to it on its own.
         pendingScrollToID = id

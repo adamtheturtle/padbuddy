@@ -24,6 +24,7 @@ enum CacheDisk {
     private nonisolated static func url(kind: String, account: UUID) -> URL? {
         guard let base = FileManager.default.urls(for: .applicationSupportDirectory,
                                                   in: .userDomainMask).first else { return nil }
+
         let dir = base.appending(path: "com.coderpad.app/DataCache", directoryHint: .isDirectory)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir.appending(path: "\(kind)-\(account.uuidString).json")
@@ -32,6 +33,7 @@ enum CacheDisk {
     nonisolated static func load<T: Decodable>(_: T.Type, kind: String, account: UUID) -> T? {
         guard let url = url(kind: kind, account: account),
               let data = try? Data(contentsOf: url) else { return nil }
+
         do {
             return try JSONDecoder().decode(T.self, from: data)
         } catch {
@@ -43,6 +45,7 @@ enum CacheDisk {
 
     nonisolated static func save(_ value: some Encodable, kind: String, account: UUID) {
         guard let url = url(kind: kind, account: account) else { return }
+
         do {
             let data = try JSONEncoder().encode(value)
             try data.write(to: url, options: .atomic)
@@ -54,6 +57,7 @@ enum CacheDisk {
 
     nonisolated static func delete(kind: String, account: UUID) {
         guard let url = url(kind: kind, account: account) else { return }
+
         try? FileManager.default.removeItem(at: url)
     }
 }
@@ -87,6 +91,7 @@ final class PadsCacheStore {
         padsByAccount[accountID] = pads
         diskConsulted.insert(accountID)
         guard persist else { return }
+
         // Index the complete list (not the streaming snapshots) when the user opted in.
         SpotlightIndexer.updatePads(pads, account: accountID)
         // Mirror every account's pads into the widget container (keyed by id) so a
@@ -188,6 +193,7 @@ final class QuestionsCacheStore {
         for accountID in targets {
             guard let questions = questionsByAccount[accountID],
                   questions.contains(where: { $0.id == questionID }) else { continue }
+
             let reduced = questions.filter { $0.id != questionID }
             questionsByAccount[accountID] = reduced
             writeQueue.enqueue {

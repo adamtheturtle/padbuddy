@@ -30,11 +30,13 @@ final class FavoritePadsStore {
 
     func favorites(account: UUID?) -> [String] {
         guard let account else { return [] }
+
         return byAccount[account] ?? []
     }
 
     func isFavorite(_ id: String, account: UUID?) -> Bool {
         guard let account else { return false }
+
         return byAccount[account]?.contains(id) ?? false
     }
 
@@ -43,6 +45,7 @@ final class FavoritePadsStore {
     func add(_ id: String, account: UUID) {
         var ids = byAccount[account] ?? []
         guard !ids.contains(id) else { return }
+
         ids.append(id)
         byAccount[account] = ids
         save()
@@ -62,6 +65,7 @@ final class FavoritePadsStore {
 
     func remove(_ id: String, account: UUID) {
         guard var ids = byAccount[account], let index = ids.firstIndex(of: id) else { return }
+
         ids.remove(at: index)
         byAccount[account] = ids
         save()
@@ -72,6 +76,7 @@ final class FavoritePadsStore {
     func move(_ id: String, before targetID: String, account: UUID) {
         var ids = byAccount[account] ?? []
         guard let from = ids.firstIndex(of: id), ids.contains(targetID), id != targetID else { return }
+
         ids.remove(at: from)
         let insertAt = ids.firstIndex(of: targetID) ?? ids.count
         ids.insert(id, at: insertAt)
@@ -111,6 +116,7 @@ final class PadOpenedStore {
     /// When the pad was last opened under this account, or `nil` if never opened.
     func lastOpened(_ padID: String, account: UUID?) -> Date? {
         guard let account else { return nil }
+
         return byAccount[account]?[padID]
     }
 

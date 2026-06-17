@@ -22,6 +22,7 @@ struct OrgMemberPicker: View {
     private var filtered: [String] {
         let trimmedQuery = query.trimmingCharacters(in: .whitespaces)
         guard !trimmedQuery.isEmpty else { return options }
+
         return options.filter { label($0).localizedCaseInsensitiveContains(trimmedQuery) }
     }
 
@@ -87,6 +88,7 @@ struct OrgMemberPicker: View {
                 if isSelected {
                     Image(systemName: "checkmark")
                         .foregroundStyle(.tint)
+                        .accessibilityLabel("Selected")
                 }
             }
             .contentShape(Rectangle())

@@ -23,7 +23,7 @@ struct FileTreeRows: View {
             if node.isFolder {
                 folderRow(node)
                 if !collapsedFolders.contains(node.id) {
-                    FileTreeRows(
+                    Self(
                         nodes: node.children,
                         depth: depth + 1,
                         selectedID: selectedID,
@@ -51,9 +51,11 @@ struct FileTreeRows: View {
                     .font(.system(size: disclosureChevronSize, weight: .semibold))
                     .foregroundStyle(.secondary)
                     .frame(width: 10)
+                    .accessibilityHidden(true)
                 Image(systemName: "folder")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
                 Text(node.name)
                     .font(.caption)
                     .lineLimit(1)
@@ -86,6 +88,7 @@ struct FileTreeRows: View {
                 Image(systemName: "doc")
                     .font(.caption2)
                     .foregroundStyle(isSelected ? Color.accentColor : .secondary)
+                    .accessibilityHidden(true)
                 Text(file.name)
                     .font(.caption)
                     .lineLimit(1)

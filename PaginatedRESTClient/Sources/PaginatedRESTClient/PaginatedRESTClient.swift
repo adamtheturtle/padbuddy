@@ -123,6 +123,7 @@ public struct PaginatedRESTClient {
 
     public func fetch<T: Decodable & Sendable>(_ type: T.Type, path: String) async throws -> T {
         guard !apiKey.isEmpty else { throw errors.missingAPIKey() }
+
         return try await performWithRetry(type, request: authorizedGET(baseURL.appending(path: path)))
     }
 
@@ -187,6 +188,7 @@ public struct PaginatedRESTClient {
         emit: ([W.Item]) -> Void
     ) async throws {
         guard !apiKey.isEmpty else { throw errors.missingAPIKey() }
+
         let baseQuery: [URLQueryItem] = sort.map { [URLQueryItem(name: "sort", value: $0)] } ?? []
 
         /// Builds `…/path?sort=…&page=N`. Page numbers are constructed here
@@ -201,6 +203,7 @@ public struct PaginatedRESTClient {
         }
 
         guard let firstURL = pageURL(nil) else { throw errors.http(status: 0, body: "Invalid URL") }
+
         let firstPage = try await performWithRetry(W.self, request: authorizedGET(firstURL))
         // `seen` de-dupes by each item's stable identity across every page, so an
         // over-requested page that echoes page 1 can't duplicate rows.
@@ -233,6 +236,7 @@ public struct PaginatedRESTClient {
     ) {
         for item in newItems {
             guard let key = identity(item) else { items.append(item); continue }
+
             if seen.insert(key).inserted { items.append(item) }
         }
     }
@@ -264,6 +268,7 @@ public struct PaginatedRESTClient {
         try await withThrowingTaskGroup(of: (Int, W).self) { group in
             func enqueue(_ page: Int) throws {
                 guard let url = pageURL(page) else { throw errors.http(status: 0, body: "Invalid URL") }
+
                 group.addTask {
                     try await (page, performWithRetry(W.self, request: authorizedGET(url)))
                 }
@@ -311,6 +316,7 @@ public struct PaginatedRESTClient {
             pages += 1
             // Safety valve against a server that keeps handing back next_page links.
             guard pages < 1000, let next = page.nextPage, let nextURL = URL(string: next) else { break }
+
             url = nextURL
         }
     }
@@ -330,6 +336,7 @@ public struct PaginatedRESTClient {
             } catch {
                 attempt += 1
                 guard attempt < maxAttempts, errors.isTransient(error) else { throw error }
+
                 logger.debug(
                     """
                     Transient failure on \(request.url?.path ?? "", privacy: .public); \
@@ -350,6 +357,7 @@ public struct PaginatedRESTClient {
         body: some Encodable
     ) async throws -> T {
         guard !apiKey.isEmpty else { throw errors.missingAPIKey() }
+
         var request = URLRequest(url: baseURL.appending(path: path))
         request.httpMethod = method
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
@@ -376,6 +384,7 @@ public struct PaginatedRESTClient {
             let body = String(data: data, encoding: .utf8) ?? ""
             throw errors.http(status: http.statusCode, body: body)
         }
+
         do {
             // Decode off the main actor: the client is MainActor-isolated, so on a large
             // account (~40 pages × 50 nested objects) decoding here would hitch the UI.

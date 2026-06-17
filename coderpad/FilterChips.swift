@@ -78,11 +78,11 @@ private struct ChipMenuShell<MenuContent: View>: View {
                 menu()
             } label: {
                 HStack(spacing: 4) {
-                    Image(systemName: icon).font(.caption)
+                    Image(systemName: icon).font(.caption).accessibilityHidden(true)
                     Text(text).font(.callout).lineLimit(1)
                     // Drop the disclosure chevron when active — the × takes the
                     // trailing slot — so the chip doesn't grow a second glyph.
-                    if !isActive { Image(systemName: "chevron.down").font(.caption2) }
+                    if !isActive { Image(systemName: "chevron.down").font(.caption2).accessibilityHidden(true) }
                 }
                 .contentShape(Rectangle())
             }

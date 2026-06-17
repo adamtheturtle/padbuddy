@@ -64,12 +64,14 @@ struct MenuBarView: View {
     /// shows "Loading…".
     var pads: [Pad] {
         guard let id = store.currentAccountID else { return [] }
+
         return padsCache.get(id).sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
     }
 
     /// The current account's questions, newest first, from the shared cache.
     var questions: [Question] {
         guard let id = store.currentAccountID else { return [] }
+
         return questionsCache.get(id).sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
     }
 

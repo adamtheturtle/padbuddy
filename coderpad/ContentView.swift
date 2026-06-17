@@ -110,6 +110,7 @@ struct ContentView: View {
     /// isn't reopened on the next change.
     private func consumeOpenPadID() {
         guard let id = nav.openPadID, !id.isEmpty else { return }
+
         nav.openPadID = nil
         if let url = URL(string: "https://app.coderpad.io/\(id)") {
             openWindow(id: "pad-browser", value: url)

@@ -1168,6 +1168,9 @@
         }
       }
     },
+    "Authentication error" : {
+
+    },
     "Auto-filled from your organization" : {
       "localizations" : {
         "en-GB" : {
@@ -4798,6 +4801,9 @@
           }
         }
       }
+    },
+    "Selected" : {
+
     },
     "Send Email" : {
       "localizations" : {

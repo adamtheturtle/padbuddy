@@ -99,6 +99,7 @@ struct Sidebar: View {
     /// combined view spans accounts that may differ, so it keeps the normal Quota row.
     var quotaIsUnlimited: Bool {
         guard !isMergedView, let id = accountID else { return false }
+
         return quotaCache.get(id)?.unlimited == true
     }
 
@@ -151,6 +152,7 @@ struct Sidebar: View {
                 Image(systemName: icon)
                     .imageScale(.medium)
                     .foregroundStyle(isSelected ? Color.accentColor : iconTint)
+                    .accessibilityHidden(true)
                     .frame(width: 22)
                 Text(label)
                     .font(.callout)

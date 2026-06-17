@@ -101,12 +101,14 @@ struct SettingsView: View {
                     requireBiometricsToRevealKey = true
                     return
                 }
+
                 let context = LAContext()
                 var policyError: NSError?
                 guard context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &policyError) else {
                     requireBiometricsToRevealKey = false
                     return
                 }
+
                 Task {
                     let success = await (try? context.evaluatePolicy(
                         .deviceOwnerAuthentication,
@@ -123,6 +125,7 @@ struct SettingsView: View {
     /// only once.
     private func openPendingEdit(_ id: UUID?) {
         guard let id, store.accounts.contains(where: { $0.id == id }) else { return }
+
         navigation.selectedTab = .accounts
         addingAccount = nil
         selectedAccountID = id

@@ -69,13 +69,15 @@ extension PadDetailView {
             mutateError = "This pad has no code to save."
             return
         }
+
         do {
             if files.count == 1 {
                 let panel = NSSavePanel()
                 panel.canCreateDirectories = true
-                panel.nameFieldStringValue = (files[0].relativePath as NSString).lastPathComponent
+                panel.nameFieldStringValue = URL(fileURLWithPath: files[0].relativePath).lastPathComponent
                 panel.message = "Save the code from \"\(suggestedBaseName)\""
                 guard panel.runModal() == .OK, let url = panel.url else { return }
+
                 try files[0].contents.write(to: url, atomically: true, encoding: .utf8)
             } else {
                 let panel = NSOpenPanel()
@@ -86,6 +88,7 @@ extension PadDetailView {
                 panel.prompt = "Save"
                 panel.message = "Choose where to save the \(files.count) files from \"\(suggestedBaseName)\""
                 guard panel.runModal() == .OK, let directory = panel.url else { return }
+
                 let root = directory.appending(path: Self.sanitizeComponent(suggestedBaseName))
                 let fileManager = FileManager.default
                 for file in files {

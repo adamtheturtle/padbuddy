@@ -76,6 +76,7 @@ extension String {
                              comment: "A multi-file project environment for a language, e.g. \"Python Project\"")
             }
             guard !isEmpty else { return self }
+
             return prefix(1).uppercased() + dropFirst()
         }
     }
@@ -114,7 +115,13 @@ enum CoderPadLinks {
             URLQueryItem(name: "subject", value: "CoderPad for Mac feedback"),
             URLQueryItem(name: "body", value: body)
         ]
-        return components.url ?? URL(string: "mailto:\(feedbackEmail)")!
+        if let url = components.url {
+            return url
+        }
+        // `feedbackEmail` is a compile-time-constant valid address, so the mailto URL
+        // always parses; the apiDocs fallback only keeps the return non-optional
+        // without a force-unwrap.
+        return URL(string: "mailto:\(feedbackEmail)") ?? Self.apiDocs
     }
 }
 

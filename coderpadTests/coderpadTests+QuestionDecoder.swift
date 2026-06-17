@@ -51,8 +51,8 @@ struct QuestionDecoderTests {
     func `decodes a minimal question with id only`() throws {
         let question = try decode(#"{"id": 1}"#)
         #expect(question.id == 1)
-        #expect(question.title == "")
-        #expect(question.ownerEmail == "")
+        #expect(question.title.isEmpty)
+        #expect(question.ownerEmail.isEmpty)
         #expect(question.candidateInstructions.isEmpty)
     }
 

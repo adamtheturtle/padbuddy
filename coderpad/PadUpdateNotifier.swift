@@ -77,6 +77,7 @@ final class PadUpdateNotifier: NSObject {
         guard GeneralSettings.notifyOnPadUpdates,
               !changes.isEmpty,
               !NSApp.isActive else { return }
+
         Task { await post(changes: changes) }
     }
 
@@ -85,8 +86,10 @@ final class PadUpdateNotifier: NSObject {
         switch settings.authorizationStatus {
         case .notDetermined:
             guard await (try? center.requestAuthorization(options: [.alert, .sound])) == true else { return }
+
         case .denied:
             return
+
         default:
             break
         }
@@ -124,6 +127,7 @@ final class PadUpdateNotifier: NSObject {
         guard kinds.count == 1, let kind = kinds.first else {
             return String(localized: "\(count) pads have new activity")
         }
+
         switch kind {
         case .new: return String(localized: "\(count) new pads")
         case .ended: return String(localized: "\(count) interviews ended")

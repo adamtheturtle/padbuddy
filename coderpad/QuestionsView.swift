@@ -96,6 +96,7 @@ struct QuestionsView: View {
         sidebar
             .task(id: QuestionsTaskKey(apiKey: client.apiKey, phase: scenePhase)) {
                 guard scenePhase == .active else { return }
+
                 if questions.isEmpty, let id = accounts.currentAccountID {
                     questions = cache.get(id)
                 }
@@ -159,6 +160,7 @@ struct QuestionsView: View {
                     // Per-org ids collide across accounts, so ignore a mutation the
                     // poster scoped to a different account than this view shows.
                     guard scopedToThisAccount(update.account) else { continue }
+
                     let question = update.question
                     if let index = questions.firstIndex(where: { $0.id == question.id }) {
                         questions[index] = question
@@ -169,6 +171,7 @@ struct QuestionsView: View {
             .task {
                 for await deletion in AppRouter.questionDeletions {
                     guard scopedToThisAccount(deletion.account) else { continue }
+
                     let id = deletion.id
                     // Drop the deleted id from the selection. If it was the primary,
                     // move to a neighbor (computed while `questions` still holds the
@@ -196,6 +199,7 @@ struct QuestionsView: View {
                 // (the first click selects it). Reads `selection` live.
                 doubleClickProxy.onDoubleClick = {
                     guard let question = selection else { return }
+
                     openWindow(id: "question",
                                value: QuestionWindowID(account: accounts.currentAccountID, id: question.id))
                 }
@@ -250,6 +254,7 @@ struct QuestionsView: View {
     /// matching method in `PadsView` for the appear-vs-change rationale.
     private func applyPendingRequest() {
         guard let request = nav.questionsRequest else { return }
+
         nav.questionsRequest = nil
         if let saved = request.applySearch { apply(saved) }
         if let query = request.search { search = query }
@@ -274,6 +279,7 @@ struct QuestionsView: View {
     private func resolvePendingSelection() {
         guard let id = pendingSelectQuestionID,
               let match = questions.first(where: { $0.id == id }) else { return }
+
         selectedQuestionIDs = [match.id]
         pendingScrollToID = match.id
         pendingSelectQuestionID = nil
@@ -281,6 +287,7 @@ struct QuestionsView: View {
 
     func reload() async {
         guard !client.apiKey.isEmpty else { return }
+
         isLoading = true
         error = nil
         defer { isLoading = false }

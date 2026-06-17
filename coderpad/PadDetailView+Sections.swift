@@ -31,9 +31,9 @@ extension PadDetailView {
                             isActive: env.id == pad.activeEnvironmentID,
                             showActiveBadge: environments.count > 1,
                             language: env.language,
-                            exampleQuestionID: env.exampleQuestionID,
                             padID: pad.id,
-                            dark: colorScheme == .dark
+                            dark: colorScheme == .dark,
+                            exampleQuestionID: env.exampleQuestionID
                         )
                     }
                 }
@@ -129,6 +129,7 @@ extension PadDetailView {
     /// its visibility check agree on whether there's anything to show.
     private var whiteboardURL: URL? {
         guard let drawing = pad.drawing, !drawing.isEmpty else { return nil }
+
         return URL(string: drawing)
     }
 
@@ -151,10 +152,12 @@ extension PadDetailView {
                                     ProgressView().controlSize(.small)
                                 }
                                 .frame(height: 180)
+
                             case let .success(image):
                                 image
                                     .resizable()
                                     .scaledToFit()
+
                             case .failure:
                                 ZStack {
                                     Color.subtleStroke
@@ -163,6 +166,7 @@ extension PadDetailView {
                                         .font(.callout)
                                 }
                                 .frame(height: 120)
+
                             @unknown default:
                                 EmptyView()
                             }
@@ -208,6 +212,7 @@ extension PadDetailView {
     func displayFiles(for env: PadEnvironment) -> [CodeFile] {
         env.fileContents.enumerated().compactMap { index, file in
             guard let body = file.contents, !body.isEmpty else { return nil }
+
             let stableID = file.path.flatMap { $0.isEmpty ? nil : $0 } ?? "idx-\(index)"
             return CodeFile(
                 id: stableID,

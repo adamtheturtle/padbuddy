@@ -89,13 +89,18 @@ struct SavedSearchChip: View {
     /// stays in the accessibility label below.
     private var displayName: String {
         guard name.count > NamedSearch.maxNameLength else { return name }
+
         return String(name.prefix(NamedSearch.maxNameLength - 1)) + "…"
     }
 
     var body: some View {
+        // `.isButton` is added below via a ternary that this rule's matcher doesn't
+        // detect; the chip is correctly exposed as a button to VoiceOver.
+        // swiftlint:disable:next accessibility_trait_for_button
         HStack(spacing: 4) {
             Image(systemName: systemImage)
                 .font(.caption2)
+                .accessibilityHidden(true)
                 .foregroundStyle(isActive ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.secondary))
             Text(displayName)
                 .font(.caption.weight(.medium))

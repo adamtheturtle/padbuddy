@@ -82,6 +82,7 @@ struct PadBrowserView: View {
             Image(systemName: "wifi.exclamationmark")
                 .font(.system(size: errorIconSize))
                 .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
             VStack(spacing: 4) {
                 Text("Couldn’t load this pad")
                     .font(.title3.bold())

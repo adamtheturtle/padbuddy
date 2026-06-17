@@ -17,6 +17,7 @@ extension MergedPadsView {
         content
             .task(id: MergedPadsTaskKey(accountKey: accountKey, phase: scenePhase)) {
                 guard scenePhase == .active else { return }
+
                 seedFromCache()
                 // Reopen the pad selected last session, once the seeded cache (or the
                 // reload below) provides a list to resolve it against.
@@ -53,6 +54,7 @@ extension MergedPadsView {
             }
             .onChange(of: nav.mergedPadsMineRequest, initial: true) { _, request in
                 guard let request else { return }
+
                 nav.mergedPadsMineRequest = nil
                 if mineOnly != request { mineOnly = request }
             }
@@ -62,6 +64,7 @@ extension MergedPadsView {
             // best-effort the per-account view uses.
             .onChange(of: router.pendingFavoritePadID) { _, id in
                 guard let id else { return }
+
                 router.pendingFavoritePadID = nil
                 selectedIDs = [id]
             }
@@ -212,6 +215,7 @@ extension MergedPadsView {
             }
             .onKeyPress(.return) {
                 guard let selection else { return .ignored }
+
                 openPad(selection)
                 return .handled
             }
@@ -243,6 +247,7 @@ extension MergedPadsView {
                 // the user's own scrolling afterward is never overridden.
                 .onChange(of: pendingScrollToID) { _, id in
                     guard let id else { return }
+
                     proxy.scrollTo(id, anchor: .center)
                     pendingScrollToID = nil
                 }
@@ -287,6 +292,7 @@ extension MergedPadsView {
     /// browser — exactly as the row's old gesture and the detail "Open" button do.
     func openSelectedPadInWindow() {
         guard let url = selection?.webURL else { return }
+
         if BrowserSettings.openLinksIn == .external {
             BrowserSettings.openExternally(url)
         } else {

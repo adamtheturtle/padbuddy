@@ -30,13 +30,18 @@ private final nonisolated class MockScreenURLProtocol: URLProtocol {
             client?.urlProtocol(self, didFailWithError: URLError(.badURL))
             return
         }
+
         let method = request.httpMethod ?? "GET"
         // Strip the versioned prefix so routing reads cleanly.
         let path = components.path.replacingOccurrences(of: "/assessment/api/v1.1", with: "")
         let query = (components.queryItems ?? []).reduce(into: [String: String]()) { $0[$1.name] = $1.value }
         let (status, body) = Self.respond(method: method, path: path, query: query)
-        let response = HTTPURLResponse(url: url, statusCode: status, httpVersion: "HTTP/1.1",
-                                       headerFields: ["Content-Type": "application/json"])!
+        guard let response = HTTPURLResponse(url: url, statusCode: status, httpVersion: "HTTP/1.1",
+                                             headerFields: ["Content-Type": "application/json"]) else {
+            client?.urlProtocol(self, didFailWithError: URLError(.badServerResponse))
+            return
+        }
+
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: Data(body.utf8))
         client?.urlProtocolDidFinishLoading(self)
@@ -161,9 +166,14 @@ private final nonisolated class MockScreenUnauthorizedURLProtocol: URLProtocol {
             client?.urlProtocol(self, didFailWithError: URLError(.badURL))
             return
         }
+
         let body = Data(#"{"code": "Unauthorized", "message": "Invalid API key"}"#.utf8)
-        let response = HTTPURLResponse(url: url, statusCode: 401, httpVersion: "HTTP/1.1",
-                                       headerFields: ["Content-Type": "application/json"])!
+        guard let response = HTTPURLResponse(url: url, statusCode: 401, httpVersion: "HTTP/1.1",
+                                             headerFields: ["Content-Type": "application/json"]) else {
+            client?.urlProtocol(self, didFailWithError: URLError(.badServerResponse))
+            return
+        }
+
         client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
         client?.urlProtocol(self, didLoad: body)
         client?.urlProtocolDidFinishLoading(self)
@@ -191,6 +201,9 @@ struct ScreenClientTests {
         #expect(backend.name == "Backend Screen")
         #expect(backend.languages == ["java", "python"])
         #expect(backend.pinned)
+        // The key-path form (`contains(where: \.archived)`) trips a spurious
+        // "call can throw" diagnostic inside the #expect macro expansion.
+        // swiftlint:disable:next prefer_key_path
         #expect(campaigns.contains { $0.archived })
     }
 

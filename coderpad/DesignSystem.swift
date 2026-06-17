@@ -20,6 +20,7 @@ extension Color {
         var string = hex.trimmingCharacters(in: .whitespacesAndNewlines)
         if string.hasPrefix("#") { string.removeFirst() }
         guard string.count == 6, let value = UInt32(string, radix: 16) else { return nil }
+
         self.init(.sRGB,
                   red: Double((value >> 16) & 0xFF) / 255,
                   green: Double((value >> 8) & 0xFF) / 255,
@@ -30,6 +31,7 @@ extension Color {
     /// to fixed components (e.g. a dynamic/catalog color).
     var hexString: String? {
         guard let resolved = NSColor(self).usingColorSpace(.sRGB) else { return nil }
+
         let red = Int((resolved.redComponent * 255).rounded())
         let green = Int((resolved.greenComponent * 255).rounded())
         let blue = Int((resolved.blueComponent * 255).rounded())
@@ -290,7 +292,7 @@ struct Chip: View {
     var body: some View {
         HStack(spacing: 4) {
             if let systemImage {
-                Image(systemName: systemImage).font(.caption2)
+                Image(systemName: systemImage).font(.caption2).accessibilityHidden(true)
             }
             Text(text).font(.caption)
         }
@@ -317,7 +319,7 @@ struct MetaLabel: View {
     var body: some View {
         HStack(spacing: 4) {
             if let systemImage {
-                Image(systemName: systemImage).font(.caption2)
+                Image(systemName: systemImage).font(.caption2).accessibilityHidden(true)
             }
             Text(text).font(.caption)
         }

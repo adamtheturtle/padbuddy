@@ -83,12 +83,14 @@ struct AccountEditor: View {
     func toggleReveal() {
         if revealKey { revealKey = false; return }
         guard requireBiometricsToRevealKey else { revealKey = true; return }
+
         let context = LAContext()
         var policyError: NSError?
         guard context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &policyError) else {
             revealKey = true
             return
         }
+
         Task {
             let success = await (try? context.evaluatePolicy(
                 .deviceOwnerAuthentication,

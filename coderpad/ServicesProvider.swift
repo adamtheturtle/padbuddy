@@ -13,6 +13,9 @@ import AppKit
 import Foundation
 
 final class ServicesProvider: NSObject {
+    // The @objc Service signature and the NSPasteboard URL reader below are
+    // Objective-C bridging contracts, so NSString/NSURL are required here.
+    // swiftlint:disable legacy_objc_type
     /// Handles the "Open Pad in CoderPad" service. The selection is routed through
     /// the app's own `coderpad://pad/<id>` deep link via LaunchServices — the same
     /// path the Recent Pads widget and Dock menu use — so it reliably launches or
@@ -26,6 +29,7 @@ final class ServicesProvider: NSObject {
             return
         }
         guard let deepLink = URL(string: "coderpad://pad/\(id)") else { return }
+
         AppActivator.bringToFront()
         URLOpener.open(deepLink)
     }
@@ -41,6 +45,8 @@ final class ServicesProvider: NSObject {
         }
         return nil
     }
+
+    // swiftlint:enable legacy_objc_type
 
     /// Pure string → id extraction, kept separate so it's unit-testable. Accepts a
     /// CoderPad web URL (the id is its first path component), a `coderpad://pad/<id>`
@@ -68,6 +74,7 @@ final class ServicesProvider: NSObject {
               trimmed.unicodeScalars.allSatisfy({ CharacterSet.alphanumerics.contains($0) }) else {
             return nil
         }
+
         return trimmed
     }
 }

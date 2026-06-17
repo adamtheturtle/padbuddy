@@ -95,6 +95,7 @@ enum BrowserSettings {
         var seen = Set<String>()
         return urls.compactMap { appURL -> InstalledBrowser? in
             guard let id = Bundle(url: appURL)?.bundleIdentifier, seen.insert(id).inserted else { return nil }
+
             return InstalledBrowser(bundleID: id, name: displayName(for: appURL))
         }
         .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
@@ -103,6 +104,7 @@ enum BrowserSettings {
     /// The name of the system's current default browser, e.g. "Safari".
     static func systemDefaultBrowserName() -> String {
         guard let appURL = NSWorkspace.shared.urlForApplication(toOpen: probeURL) else { return "Safari" }
+
         return displayName(for: appURL)
     }
 
@@ -332,6 +334,7 @@ enum GeneralSettings {
         let defaults = UserDefaults.standard
         guard defaults.string(forKey: Key.presence) == nil,
               defaults.object(forKey: Key.hideDockIcon) != nil else { return }
+
         let presence: AppPresence = defaults.bool(forKey: Key.hideDockIcon) ? .menuBarOnly : .dockAndMenuBar
         defaults.set(presence.rawValue, forKey: Key.presence)
         defaults.removeObject(forKey: Key.hideDockIcon)
@@ -342,6 +345,7 @@ enum GeneralSettings {
     static var refreshSeconds: Int {
         let stored = UserDefaults.standard.integer(forKey: Key.refreshSeconds)
         guard stored != 0 else { return defaultRefreshSeconds }
+
         return min(max(stored, minRefreshSeconds), maxRefreshSeconds)
     }
 

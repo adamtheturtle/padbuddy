@@ -10,7 +10,7 @@ extension QuestionsView {
     var filtered: [Question] {
         let favoriteIDs = favoritesOnly ? favoriteIDSet : nil
         return questions.filter { question in
-            (favoriteIDs == nil || favoriteIDs!.contains(question.id)) &&
+            (favoriteIDs?.contains(question.id) ?? true) &&
                 (languageFilter == nil || (question.language ?? "").lowercased() == languageFilter) &&
                 (ownerFilter == nil || question.ownerEmail == ownerFilter) &&
                 (typeFilter == nil || question.interviewType.rawValue == typeFilter) &&
@@ -44,16 +44,21 @@ extension QuestionsView {
             return items.sorted {
                 $0.displayTitle.localizedCaseInsensitiveCompare($1.displayTitle) == .orderedAscending
             }
+
         case .titleDesc:
             return items.sorted {
                 $0.displayTitle.localizedCaseInsensitiveCompare($1.displayTitle) == .orderedDescending
             }
+
         case .lastUsedDesc:
             return items.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
+
         case .lastUsedAsc:
             return items.sorted { ($0.updatedAt ?? .distantPast) < ($1.updatedAt ?? .distantPast) }
+
         case .usedDesc:
             return items.sorted { ($0.used ?? 0) > ($1.used ?? 0) }
+
         case .usedAsc:
             return items.sorted { ($0.used ?? 0) < ($1.used ?? 0) }
         }
@@ -67,6 +72,7 @@ extension QuestionsView {
     func neighborSelection(forDeletedQuestion id: Int) -> Question? {
         let visible = sorted
         guard let index = visible.firstIndex(where: { $0.id == id }) else { return visible.first }
+
         if visible.indices.contains(index + 1) { return visible[index + 1] }
         if visible.indices.contains(index - 1) { return visible[index - 1] }
         return nil
@@ -78,6 +84,7 @@ extension QuestionsView {
     /// this list.
     func scopedToThisAccount(_ account: UUID?) -> Bool {
         guard let account else { return true }
+
         return account == accounts.currentAccountID
     }
 
@@ -98,6 +105,7 @@ extension QuestionsView {
     /// questions at all, where a "0 questions" line would just restate the empty list.
     var countSubtitle: String {
         guard !questions.isEmpty else { return "" }
+
         let count = sorted.count
         return count == 1 ? String(localized: "\(count) question") : String(localized: "\(count) questions")
     }
@@ -159,6 +167,7 @@ extension QuestionsView {
                 // so the user's own scrolling afterward is never overridden.
                 .onChange(of: pendingScrollToID) { _, id in
                     guard let id else { return }
+
                     proxy.scrollTo(id, anchor: .center)
                     pendingScrollToID = nil
                 }
@@ -349,6 +358,7 @@ extension QuestionsView {
 
     func toggleFavorite(_ question: Question) {
         guard let account = accounts.currentAccountID else { return }
+
         favorites.toggle(question.id, title: question.displayTitle, account: account)
         // Unstarring the last favorite hides the Favorites chip, so drop the
         // filter too — otherwise it would strand the list on an empty result with

@@ -41,6 +41,7 @@ private struct MacPullToRefresh: ViewModifier {
             .background(
                 PullToRefreshScrollBridge(threshold: threshold, pull: $pull) {
                     guard !isRefreshing else { return }
+
                     isRefreshing = true
                     Task {
                         await action()
@@ -114,6 +115,7 @@ private struct PullToRefreshScrollBridge: NSViewRepresentable {
         // once this helper view is committed into the window hierarchy.
         view.onMoveToWindow = { [weak coordinator, weak view] in
             guard let coordinator, let view else { return }
+
             coordinator.connect(from: view)
         }
         return view
@@ -152,6 +154,7 @@ private struct PullToRefreshScrollBridge: NSViewRepresentable {
 
         func connect(from view: NSView) {
             guard scrollView == nil, let scrollView = Self.scrollView(near: view) else { return }
+
             self.scrollView = scrollView
             // Guarantee rubber-banding at the top even when the list is short.
             scrollView.verticalScrollElasticity = .allowed
@@ -166,6 +169,7 @@ private struct PullToRefreshScrollBridge: NSViewRepresentable {
 
         @objc private func boundsChanged() {
             guard let scrollView else { return }
+
             // A `List` uses a flipped clip view, so the visible origin dips below
             // zero as the content rubber-bands past the top edge.
             overscroll = max(0, -scrollView.contentView.bounds.origin.y)
@@ -189,6 +193,7 @@ private struct PullToRefreshScrollBridge: NSViewRepresentable {
         private static func scrollView(near view: NSView) -> NSScrollView? {
             if let enclosing = view.enclosingScrollView { return enclosing }
             guard let root = view.window?.contentView else { return nil }
+
             let point = view.convert(CGPoint(x: view.bounds.midX, y: view.bounds.midY), to: root)
             var best: NSScrollView?
             var bestArea = CGFloat.greatestFiniteMagnitude

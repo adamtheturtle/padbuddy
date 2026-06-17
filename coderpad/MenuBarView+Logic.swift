@@ -11,6 +11,7 @@ extension MenuBarView {
     /// when quota hasn't loaded yet (or the API doesn't report it).
     var quotaSummary: String? {
         guard let quota else { return nil }
+
         if quota.unlimited == true { return String(localized: "Unlimited pads") }
         if let remaining = quota.padsRemaining {
             if let limit = quota.billingCyclePadLimit {
@@ -40,6 +41,7 @@ extension MenuBarView {
     func activityLabel(_ pad: Pad) -> String {
         let title = pad.title.isEmpty ? pad.id : pad.title
         guard let updated = pad.informativeUpdatedAt else { return title }
+
         return "\(title) · \(updated.formatted(.relative(presentation: .named)))"
     }
 
@@ -77,6 +79,7 @@ extension MenuBarView {
     /// group) so the user's starred questions lead the one-click pad list.
     func questionsForMenu(favoriteIDs: Set<Int>) -> [Question] {
         guard !favoriteIDs.isEmpty else { return questions }
+
         return questions.filter { favoriteIDs.contains($0.id) }
             + questions.filter { !favoriteIDs.contains($0.id) }
     }

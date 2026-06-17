@@ -36,7 +36,8 @@ struct NamedSearch: Identifiable, Codable, Hashable {
     var createdWindow: PadDateWindow?
     var draftFilter: String?
 
-    init(id: UUID = UUID(), name: String,
+    init(name: String,
+         id: UUID = UUID(),
          search: String = "",
          stateFilter: PadState? = nil, languageFilter: String? = nil,
          ownerFilter: String? = nil, teamFilter: String? = nil,
@@ -77,6 +78,7 @@ struct NamedSearch: Identifiable, Codable, Hashable {
 
     private func appendWindowDescription(_ window: PadDateWindow?, noun: String, to parts: inout [String]) {
         guard let window, window.isActive else { return }
+
         if window.customStart != nil || window.customEnd != nil {
             parts.append("\(noun) within a custom date range")
         } else if let range = window.range {
@@ -90,7 +92,7 @@ struct NamedSearch: Identifiable, Codable, Hashable {
     /// sidebar share one definition of "this search is currently applied" and can
     /// never drift. Fields a given list doesn't use stay nil on both sides, so the
     /// full-field comparison is correct for both pads and questions.
-    func hasSameFilters(as other: NamedSearch) -> Bool {
+    func hasSameFilters(as other: Self) -> Bool {
         search == other.search &&
             stateFilter == other.stateFilter &&
             languageFilter == other.languageFilter &&
@@ -139,6 +141,7 @@ final class SavedSearchStore {
 
     func searches(account: UUID?, kind: SavedSearchKind) -> [NamedSearch] {
         guard let account else { return [] }
+
         return byAccount[account]?[kind.rawValue] ?? []
     }
 
@@ -167,9 +170,11 @@ final class SavedSearchStore {
             legacyPending = false
             return
         }
+
         // No account to attribute the searches to yet — keep the blob and retry on
         // the next mutation (or next launch) once an account exists.
         guard let account = AccountsStore.shared.currentAccountID else { return }
+
         if !legacy.isEmpty {
             byAccount[account, default: [:]][SavedSearchKind.pads.rawValue, default: []]
                 .insert(contentsOf: legacy, at: 0)
@@ -234,6 +239,7 @@ final class FavoriteQuestionsStore {
     /// and the menu bar — the callers that only care about identity, not titles.
     func favorites(account: UUID?) -> [Int] {
         guard let account else { return [] }
+
         return (byAccount[account] ?? []).map(\.id)
     }
 
@@ -241,11 +247,13 @@ final class FavoriteQuestionsStore {
     /// sidebar rows that show a name.
     func titledFavorites(account: UUID?) -> [FavoriteQuestion] {
         guard let account else { return [] }
+
         return byAccount[account] ?? []
     }
 
     func isFavorite(_ id: Int, account: UUID?) -> Bool {
         guard let account else { return false }
+
         return byAccount[account]?.contains { $0.id == id } ?? false
     }
 
@@ -271,6 +279,7 @@ final class FavoriteQuestionsStore {
     func add(_ id: Int, title: String, account: UUID) {
         var entries = byAccount[account] ?? []
         guard !entries.contains(where: { $0.id == id }) else { return }
+
         entries.append(FavoriteQuestion(id: id, title: title))
         byAccount[account] = entries
         save()
@@ -283,6 +292,7 @@ final class FavoriteQuestionsStore {
         var entries = byAccount[account] ?? []
         guard let from = entries.firstIndex(where: { $0.id == id }),
               entries.contains(where: { $0.id == targetID }), id != targetID else { return }
+
         let moved = entries.remove(at: from)
         let insertAt = entries.firstIndex(where: { $0.id == targetID }) ?? entries.count
         entries.insert(moved, at: insertAt)
@@ -297,6 +307,7 @@ final class FavoriteQuestionsStore {
     /// actually changed, so it doesn't churn the store on every load.
     func refreshTitles(from questions: [Question], account: UUID) {
         guard var entries = byAccount[account], !entries.isEmpty else { return }
+
         let titles = Dictionary(
             questions.map { ($0.id, $0.displayTitle) },
             uniquingKeysWith: { first, _ in first }
@@ -305,10 +316,12 @@ final class FavoriteQuestionsStore {
         for index in entries.indices {
             guard let title = titles[entries[index].id],
                   !title.isEmpty, title != entries[index].title else { continue }
+
             entries[index].title = title
             changed = true
         }
         guard changed else { return }
+
         byAccount[account] = entries
         save()
     }

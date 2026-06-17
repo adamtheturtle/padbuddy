@@ -146,6 +146,7 @@ struct AccountFooter: View {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .font(.system(size: 11))
                                 .foregroundStyle(.red)
+                                .accessibilityLabel("Authentication error")
                                 .background(Circle().fill(.background).padding(-1))
                                 .help("This account's API key is invalid")
                         }

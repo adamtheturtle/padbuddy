@@ -108,6 +108,7 @@ extension PadDetailView {
     /// back silently to free-text email entry when unavailable.
     private func loadOrgUsers() async {
         guard orgUsers.isEmpty, !client.apiKey.isEmpty else { return }
+
         if let org = try? await client.organization() {
             orgUsers = org.users.sorted {
                 ($0.name ?? $0.email).localizedCaseInsensitiveCompare($1.name ?? $1.email) == .orderedAscending
@@ -120,17 +121,20 @@ extension PadDetailView {
     func commitTitle() async {
         let newTitle = titleDraft
         guard newTitle != pad.title else { return }
+
         await save(PadUpdate(id: pad.id, title: newTitle)) { titleDraft = pad.title }
     }
 
     func commitLanguage(_ language: String) async {
         guard language != pad.language else { return }
+
         await save(PadUpdate(id: pad.id, language: language)) { draftLanguage = pad.language ?? "python3" }
     }
 
     func commitOwner(_ email: String) async {
         let normalized = email.trimmingCharacters(in: .whitespaces)
         guard normalized != pad.ownerEmail else { return }
+
         // An empty owner makes the server resolve the pad to the key owner.
         await save(PadUpdate(id: pad.id, ownerEmail: normalized.isEmpty ? nil : normalized)) {
             draftOwner = pad.ownerEmail
@@ -139,11 +143,13 @@ extension PadDetailView {
 
     func commitPrivate(_ isPrivate: Bool) async {
         guard isPrivate != (pad.isPrivate ?? false) else { return }
+
         await save(PadUpdate(id: pad.id, isPrivate: isPrivate)) { draftIsPrivate = pad.isPrivate ?? false }
     }
 
     func commitExecution(_ enabled: Bool) async {
         guard enabled != (pad.executionEnabled ?? true) else { return }
+
         await save(PadUpdate(id: pad.id, executionEnabled: enabled)) { draftExecution = pad.executionEnabled ?? true }
     }
 

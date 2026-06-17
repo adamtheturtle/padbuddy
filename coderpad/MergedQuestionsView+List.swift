@@ -14,6 +14,7 @@ extension MergedQuestionsView {
         content
             .task(id: QuestionsTaskKey(apiKey: accountKey, phase: scenePhase)) {
                 guard scenePhase == .active else { return }
+
                 seedFromCache()
                 // Reopen the question selected last session, once the seeded cache (or
                 // the reload below) provides a list to resolve it against.
@@ -34,6 +35,7 @@ extension MergedQuestionsView {
                 // account it routed to.
                 doubleClickProxy.onDoubleClick = {
                     guard let question = selection else { return }
+
                     openWindow(id: "question",
                                value: QuestionWindowID(account: router.selectedQuestionAccountID, id: question.id))
                 }
@@ -54,8 +56,9 @@ extension MergedQuestionsView {
             // simply won't resolve, the same best-effort the per-account view uses).
             .onChange(of: router.pendingFavoriteQuestion) { _, request in
                 guard let request else { return }
+
                 router.pendingFavoriteQuestion = nil
-                selectedRowIDs = [MergedQuestionsView.rowID(account: request.account, question: request.id)]
+                selectedRowIDs = [Self.rowID(account: request.account, question: request.id)]
             }
             // Keep the sidebar's "My Questions" row in sync with this list's "Mine"
             // preset: publish the live state and consume any sidebar toggle, the
@@ -65,6 +68,7 @@ extension MergedQuestionsView {
             }
             .onChange(of: nav.mergedQuestionsMineRequest, initial: true) { _, request in
                 guard let request else { return }
+
                 nav.mergedQuestionsMineRequest = nil
                 if mineOnly != request { mineOnly = request }
             }
@@ -88,6 +92,7 @@ extension MergedQuestionsView {
                     // row — but only when no other rows remain selected.
                     let removed = selectedRowIDs.filter { rowID in
                         guard let row = row(forRowID: rowID) else { return false }
+
                         return row.item.id == id && (account == nil || row.account.id == account)
                     }
                     let primaryDeleted = selectedRowID.map { removed.contains($0) } ?? false
@@ -110,7 +115,7 @@ extension MergedQuestionsView {
             .sheet(item: $creatingForAccount) { account in
                 NewQuestionSheet(client: account.makeClient()) { created in
                     insert(created, into: account)
-                    let rowID = MergedQuestionsView.rowID(account: account.id, question: created.id)
+                    let rowID = Self.rowID(account: account.id, question: created.id)
                     select(AccountScoped(account: account, item: created, id: rowID))
                     selectedRowIDs = [rowID]
                     creatingForAccount = nil
@@ -207,6 +212,7 @@ extension MergedQuestionsView {
                 // so the user's own scrolling afterward is never overridden.
                 .onChange(of: pendingScrollToRowID) { _, id in
                     guard let id else { return }
+
                     proxy.scrollTo(id, anchor: .center)
                     pendingScrollToRowID = nil
                 }

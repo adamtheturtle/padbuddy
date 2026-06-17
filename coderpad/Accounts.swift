@@ -63,6 +63,7 @@ final class AccountsStore {
 
     var currentAccount: Account? {
         guard let id = currentAccountID else { return accounts.first }
+
         return accounts.first(where: { $0.id == id }) ?? accounts.first
     }
 
@@ -141,13 +142,14 @@ final class AccountsStore {
         if !accounts.contains(where: \.isBadKeyDemo) {
             add(.demoBadKey())
         }
-        if let demo = accounts.first(where: { $0.isBadKeyDemo }) {
+        if let demo = accounts.first(where: \.isBadKeyDemo) {
             currentAccountID = demo.id
         }
     }
 
     func update(_ account: Account) {
         guard let index = accounts.firstIndex(where: { $0.id == account.id }) else { return }
+
         let previous = accounts[index]
         accounts[index] = account
         // A changed key or server points at potentially different data (even a
@@ -199,6 +201,7 @@ final class AccountsStore {
 
     private static func loadAccounts() -> [Account]? {
         guard let data = Keychain.readData(account: Keychain.accountsAccount) else { return nil }
+
         do {
             // Decode element-by-element so a single invalid account (e.g. one persisted
             // without a user email) is dropped rather than failing the whole store and
@@ -218,6 +221,7 @@ final class AccountsStore {
 
     private func persistAccounts() {
         guard !Self.isUITesting else { return }
+
         let snapshot = accounts
         // Move Keychain I/O off the main thread to keep the UI responsive, but keep
         // writes ordered so a slower earlier write can't overwrite a newer snapshot.
@@ -238,6 +242,7 @@ final class AccountsStore {
 
     private func persistCurrentID() {
         guard !Self.isUITesting else { return }
+
         if let id = currentAccountID {
             UserDefaults.standard.set(id.uuidString, forKey: Self.currentIDDefaultsKey)
         } else {
@@ -247,6 +252,7 @@ final class AccountsStore {
 
     private func persistShowAllAccounts() {
         guard !Self.isUITesting else { return }
+
         UserDefaults.standard.set(showAllAccounts, forKey: Self.showAllAccountsDefaultsKey)
     }
 }
@@ -257,7 +263,7 @@ final class AccountsStore {
 struct LenientElement<Wrapped: Decodable>: Decodable {
     let value: Wrapped?
 
-    init(from decoder: any Decoder) throws {
+    init(from decoder: any Decoder) {
         value = try? decoder.singleValueContainer().decode(Wrapped.self)
     }
 }

@@ -69,6 +69,7 @@ nonisolated enum WidgetSharedStore {
     /// `account` is nil — the file an unconfigured widget reads.
     private static func padsFileName(account: String?) -> String {
         guard let account, !account.isEmpty else { return defaultPadsFile }
+
         return "recent-pads-\(account).json"
     }
 
@@ -89,6 +90,7 @@ nonisolated enum WidgetSharedStore {
     static func load(account: String? = nil) -> [WidgetPadSnapshot] {
         guard let url = fileURL(padsFileName(account: account)),
               let data = try? Data(contentsOf: url) else { return [] }
+
         return (try? JSONDecoder().decode([WidgetPadSnapshot].self, from: data)) ?? []
     }
 
@@ -96,6 +98,7 @@ nonisolated enum WidgetSharedStore {
     /// has been written yet.
     static func loadAccounts() -> [WidgetAccount] {
         guard let url = fileURL(accountsFile), let data = try? Data(contentsOf: url) else { return [] }
+
         return (try? JSONDecoder().decode([WidgetAccount].self, from: data)) ?? []
     }
 
@@ -103,6 +106,7 @@ nonisolated enum WidgetSharedStore {
     static func loadFavorites(account: String) -> [WidgetQuestion] {
         guard let url = fileURL(favoritesFileName(account: account)),
               let data = try? Data(contentsOf: url) else { return [] }
+
         return (try? JSONDecoder().decode([WidgetQuestion].self, from: data)) ?? []
     }
 
@@ -112,12 +116,14 @@ nonisolated enum WidgetSharedStore {
     static func save(_ pads: [WidgetPadSnapshot], account: String? = nil) {
         guard let url = fileURL(padsFileName(account: account)),
               let data = try? JSONEncoder().encode(pads) else { return }
+
         try? data.write(to: url, options: .atomic)
     }
 
     /// Atomically replaces the account index read by the configuration picker.
     static func saveAccounts(_ accounts: [WidgetAccount]) {
         guard let url = fileURL(accountsFile), let data = try? JSONEncoder().encode(accounts) else { return }
+
         try? data.write(to: url, options: .atomic)
     }
 
@@ -125,6 +131,7 @@ nonisolated enum WidgetSharedStore {
     static func saveFavorites(_ favorites: [WidgetQuestion], account: String) {
         guard let url = fileURL(favoritesFileName(account: account)),
               let data = try? JSONEncoder().encode(favorites) else { return }
+
         try? data.write(to: url, options: .atomic)
     }
 

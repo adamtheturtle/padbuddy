@@ -152,6 +152,7 @@ extension PadDetailView {
     private func eventContext(_ event: PadEvent) -> String? {
         guard let meta = event.metadata?.trimmingCharacters(in: .whitespacesAndNewlines),
               !meta.isEmpty else { return nil }
+
         switch event.kind.lowercased() {
         case "ran", "executed": return meta.languageDisplayName
         case "added_question": return "#\(meta)"

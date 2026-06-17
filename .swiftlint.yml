@@ -1,14 +1,49 @@
 # SwiftLint configuration.
 #
-# Uses SwiftLint's default rule set (nothing disabled). The intended CI gate is
-# `swiftlint --strict`, where any violation fails the build.
+# Strategy: enable (nearly) every opt-in rule on top of the default set, then
+# subtract only the rules that (a) duplicate or fight SwiftFormat — which owns
+# formatting here — (b) are mutually exclusive with a rule we keep, or (c) are
+# counterproductive for an app target. `swiftlint --strict` in CI fails on any
+# violation. SwiftFormat owns *formatting*; SwiftLint owns *correctness*.
 #
-# NOTE: not yet enforced in CI. The codebase currently has ~270 violations under
-# this config; reaching a strict-clean baseline needs a one-time cleanup pass
-# (`swiftlint --fix` clears ~77; the rest are manual identifier renames, line
-# wraps, and file/function refactors). Run that on its own — ideally batched with
-# the SwiftFormat reformat — then uncomment the SwiftLint step in
-# .github/workflows/ci.yml.
+# Intentionally NOT enabled, by reason:
+#   formatting (SwiftFormat's job): contrasted_opening_brace, indentation_width,
+#     all multiline_*, vertical_whitespace_*, vertical_parameter_alignment_on_call,
+#     operator_usage_whitespace, period_spacing, attributes, modifier_order,
+#     sorted_imports, number_separator, unneeded_parentheses_in_closure_argument,
+#     switch_case_on_newline, closure_spacing, closure_end_indentation,
+#     collection_alignment, comma_inheritance, let_var_whitespace,
+#     literal_expression_end_indentation, trailing_closure, multiline_function_chains
+#   opposite of a kept rule: explicit_self (we keep redundant_self),
+#     extension_access_modifier, no_extension_access_modifier, explicit_acl,
+#     explicit_top_level_acl
+#   counterproductive for an app: explicit_type_interface, no_magic_numbers,
+#     missing_docs, required_deinit, explicit_enum_raw_value,
+#     conditional_returns_on_newline, discouraged_optional_boolean,
+#     discouraged_optional_collection, discouraged_default_parameter,
+#     type_contents_order, file_types_order, one_declaration_per_file, file_name,
+#     anonymous_argument_in_multiline_closure, prefixed_toplevel_constant,
+#     sorted_enum_cases (would break semantically-ordered enums),
+#     closure_body_length (fights SwiftUI's large view-body closures, the same
+#     idiom the long-body type-check budget already guards), no_grouping_extension
+#     (the codebase deliberately organizes types with in-file extensions),
+#     no_empty_block (fires on idiomatic empty singletons and SwiftUI dismiss
+#     closures), variable_shadowing (fires on the idiomatic `let x = x` value
+#     capture and standard closure parameters)
+#   tooling mismatch: prefer_nimble, nimble_operator (no Quick/Nimble)
+#   conflicts with SwiftFormat: local_doc_comment — SwiftFormat's docComments rule
+#     wants `///` on nested function declarations, the opposite of this rule
+#   false positive on SwiftUI: unused_parameter — flags the `$binding` projected
+#     closure parameter (e.g. WindowGroup(for:) { $url in }) as unused even though
+#     its wrapped value is used
+#   catch-22: balanced_xctest_lifecycle would require a tearDown to match setUp,
+#     but an empty tearDown then trips empty_xctest_method (which we keep)
+#   architecture conflict: private_swiftui_state — views are split across
+#     Type+Feature.swift files to satisfy file_length, so their @State must be
+#     module-internal rather than private.
+#
+# unused_declaration and unused_import are analyzer-only; they take effect under
+# `swiftlint analyze` (needs a compiler log), not plain `lint`.
 
 included:
   - coderpad
@@ -19,3 +54,98 @@ excluded:
   - cmark-gfm        # vendored C library
   - build_release    # SPM checkouts / build output
   - DerivedData
+
+opt_in_rules:
+  - accessibility_label_for_image
+  - accessibility_trait_for_button
+  - array_init
+  - capture_variable
+  - contains_over_filter_count
+  - contains_over_filter_is_empty
+  - contains_over_first_not_nil
+  - contains_over_range_nil_comparison
+  - convenience_type
+  - direct_return
+  - discarded_notification_center_observer
+  - discouraged_assert
+  - discouraged_none_name
+  - discouraged_object_literal
+  - empty_collection_literal
+  - empty_count
+  - empty_string
+  - empty_xctest_method
+  - enum_case_associated_values_count
+  - expiring_todo
+  - explicit_init
+  - fallthrough
+  - fatal_error_message
+  - file_header
+  - file_name_no_space
+  - final_test_case
+  - first_where
+  - flatmap_over_map_reduce
+  - force_unwrapping
+  - function_default_parameter_at_end
+  - ibinspectable_in_extension
+  - identical_operands
+  - implicit_return
+  - implicitly_unwrapped_optional
+  - incompatible_concurrency_annotation
+  - joined_default_parameter
+  - last_where
+  - legacy_multiple
+  - legacy_objc_type
+  - legacy_uigraphics_function
+  - lower_acl_than_parent
+  - non_overridable_class_declaration
+  - nslocalizedstring_key
+  - nslocalizedstring_require_bundle
+  - object_literal
+  - optional_enum_case_matching
+  - overridden_super_call
+  - override_in_extension
+  - pattern_matching_keywords
+  - prefer_asset_symbols
+  - prefer_condition_list
+  - prefer_key_path
+  - prefer_self_in_static_references
+  - prefer_self_type_over_type_of_self
+  - prefer_zero_over_explicit_init
+  - private_action
+  - private_outlet
+  - private_subject
+  - prohibited_interface_builder
+  - prohibited_super_call
+  - quick_discouraged_call
+  - quick_discouraged_focused_test
+  - quick_discouraged_pending_test
+  - raw_value_for_camel_cased_codable_enum
+  - reduce_into
+  - redundant_final
+  - redundant_nil_coalescing
+  - redundant_self
+  - redundant_type_annotation
+  - required_enum_case
+  - return_value_from_void_function
+  - self_binding
+  - shorthand_argument
+  - shorthand_optional_binding
+  - single_test_class
+  - sorted_first_last
+  - static_operator
+  - strict_fileprivate
+  - strong_iboutlet
+  - superfluous_else
+  - test_case_accessibility
+  - toggle_bool
+  - typesafe_array_init
+  - unavailable_function
+  - unhandled_throwing_task
+  - unneeded_escaping
+  - unowned_variable_capture
+  - untyped_error_in_catch
+  - unused_declaration
+  - unused_import
+  - weak_delegate
+  - xct_specific_matcher
+  - yoda_condition

@@ -69,6 +69,7 @@ final class WebController: NSObject {
 
     func attach(_ webView: WKWebView) {
         guard self.webView !== webView else { return }
+
         self.webView = webView
         observers = [
             webView.observe(\.canGoBack, options: [.initial, .new]) { [weak self] _, change in
@@ -84,7 +85,9 @@ final class WebController: NSObject {
                 Task { @MainActor in self?.isLoading = value }
             },
             webView.observe(\.url, options: [.initial, .new]) { [weak self] _, change in
-                let value = change.newValue ?? nil
+                // KVO hands back a double-optional `URL??`; flatten to `URL?`. (`?? nil`
+                // would do it too, but both linters wrongly flag that as redundant.)
+                let value = change.newValue.flatMap(\.self)
                 Task { @MainActor in self?.currentURL = value }
             }
         ]
@@ -108,6 +111,7 @@ final class WebController: NSObject {
     /// which is what users reach for when a page is stuck on stale content.
     func hardReload() {
         guard let webView else { return }
+
         let dataStore = webView.configuration.websiteDataStore
         let cacheTypes: Set<String> = [
             WKWebsiteDataTypeDiskCache,
@@ -125,6 +129,7 @@ final class WebController: NSObject {
     /// matching what clearing site data does in a regular browser.
     func clearSession() {
         guard let webView else { return }
+
         let dataStore = webView.configuration.websiteDataStore
         let sessionTypes: Set<String> = [
             WKWebsiteDataTypeCookies,
@@ -200,6 +205,7 @@ extension WebController: WKUIDelegate, NSWindowDelegate {
     /// Drop our reference when the user closes a popup manually.
     func windowWillClose(_ notification: Notification) {
         guard let window = notification.object as? NSWindow else { return }
+
         popupWindows = popupWindows.filter { $0.value !== window }
     }
 
@@ -236,6 +242,9 @@ extension WebController: WKUIDelegate, NSWindowDelegate {
 // MARK: - Navigation failures
 
 extension WebController: WKNavigationDelegate {
+    // WKNavigationDelegate declares these callbacks with `WKNavigation!`, so the
+    // implicitly-unwrapped optionals here are forced by the protocol signatures.
+    // swiftlint:disable implicitly_unwrapped_optional
     /// A new navigation started — clear any stale failure so the error overlay
     /// disappears while we try again.
     func webView(_: WKWebView,
@@ -264,6 +273,8 @@ extension WebController: WKNavigationDelegate {
         retryOrReport(error)
     }
 
+    // swiftlint:enable implicitly_unwrapped_optional
+
     private func retryOrReport(_ error: any Error) {
         // A user- or script-cancelled navigation (e.g. a redirect superseding the
         // request) isn't a failure to recover from — reloading would fight the page.
@@ -275,6 +286,7 @@ extension WebController: WKNavigationDelegate {
             MainActor.assumeIsolated { loadFailure = error.localizedDescription }
             return
         }
+
         if !didRetryLoad {
             didRetryLoad = true
             Task { @MainActor [weak self] in

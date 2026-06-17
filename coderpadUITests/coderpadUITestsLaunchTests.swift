@@ -8,7 +8,7 @@
 import XCTest
 
 final class CoderpadUITestsLaunchTests: XCTestCase {
-    // swiftlint:disable:next static_over_final_class
+    // swiftlint:disable:next static_over_final_class non_overridable_class_declaration
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
         true
     }

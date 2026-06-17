@@ -257,6 +257,7 @@ extension EnvironmentCodeCard {
         panel.canCreateDirectories = true
         panel.isExtensionHidden = false
         guard panel.runModal() == .OK, let url = panel.url else { return }
+
         try? file.contents.write(to: url, atomically: true, encoding: .utf8)
     }
 
@@ -270,6 +271,7 @@ extension EnvironmentCodeCard {
         panel.nameFieldStringValue = "pad-\(padID)"
         panel.canCreateDirectories = true
         guard panel.runModal() == .OK, let destination = panel.url else { return }
+
         try? writeFolder(of: files, to: destination)
     }
 

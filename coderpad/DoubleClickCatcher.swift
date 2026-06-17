@@ -47,9 +47,12 @@ final class TableDoubleClickProxy: NSObject {
 
     @objc func fire() {
         guard let tableView, tableView.clickedRow >= 0 else { return }
+
         onDoubleClick()
     }
 
+    // The NSObject override's signature declares `Selector!`; we can't change it.
+    // swiftlint:disable:next implicitly_unwrapped_optional
     override nonisolated func forwardingTarget(for selector: Selector!) -> Any? {
         if let forwardingTarget, forwardingTarget.responds(to: selector) {
             return forwardingTarget
@@ -77,6 +80,7 @@ struct TableDoubleClickInstaller: NSViewRepresentable {
 
     private func install(from view: NSView) {
         guard let table = view.enclosingTableView else { return }
+
         proxy.tableView = table
         // Preserve SwiftUI's existing target so the table's single-click `action`
         // (`onAction:`) still reaches it after we take over `target` for `doubleAction`.

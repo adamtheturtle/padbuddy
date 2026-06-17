@@ -120,6 +120,7 @@ struct NewQuestionSheet: View {
     /// chosen one. Driven by `OrgDirectory`, which is loaded app-wide.
     private func applyOrgDefaultLanguage() {
         guard !languageEdited, let def = directory.defaultLanguage, !def.isEmpty else { return }
+
         language = def
     }
 
@@ -132,6 +133,7 @@ struct NewQuestionSheet: View {
             let draft = await QuestionDrafter.draft(prompt: draftPrompt, language: language)
             isDrafting = false
             guard let draft else { return }
+
             if !draft.title.isEmpty { title = draft.title }
             if !draft.description.isEmpty { description = draft.description }
             if !draft.instructions.isEmpty { instructions = draft.instructions }

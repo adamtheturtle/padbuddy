@@ -149,6 +149,7 @@ struct QuestionDetailView: View {
     /// per-account favorite state as the in-pane toolbar star.
     private func consumePendingFavoriteToggle() {
         guard nav.toggleFavoriteQuestionID == question.id else { return }
+
         nav.toggleFavoriteQuestionID = nil
         toggleFavorite()
     }
@@ -161,6 +162,7 @@ struct QuestionDetailView: View {
     /// pending (the confirm dialog can't reopen while the banner is up).
     private func startDeletion() {
         guard deletionTask == nil else { return }
+
         deletionTask = Task {
             try? await Task.sleep(for: Self.deletionGracePeriod)
             if Task.isCancelled { return }
@@ -188,6 +190,7 @@ struct QuestionDetailView: View {
         if deletionTask != nil {
             HStack(spacing: 12) {
                 Image(systemName: "trash")
+                    .accessibilityHidden(true)
                 Text("Deleting “\(question.title.isEmpty ? "this question" : question.title)”…")
                     .lineLimit(1)
                 Spacer(minLength: 8)
@@ -211,6 +214,7 @@ struct QuestionDetailView: View {
 
     private func toggleFavorite() {
         guard let account = accounts.currentAccountID else { return }
+
         favorites.toggle(question.id, title: question.displayTitle, account: account)
     }
 
@@ -219,6 +223,7 @@ struct QuestionDetailView: View {
     /// exactly as the in-pane "New Pad" button does.
     private func consumePendingPadCreation() {
         guard nav.createPadForQuestionID == question.id else { return }
+
         nav.createPadForQuestionID = nil
         // A routed request can outlive this detail pane — the user may select
         // another question before creation finishes, recreating the view (`.id`)
@@ -228,6 +233,7 @@ struct QuestionDetailView: View {
         let openWindow = openWindow
         Task {
             guard let url = await makePadFromQuestion() else { return }
+
             if BrowserSettings.openLinksIn == .external {
                 BrowserSettings.openExternally(url)
             } else {
@@ -241,6 +247,7 @@ struct QuestionDetailView: View {
     /// without that confirmation step.
     private func consumePendingDelete() {
         guard nav.deleteQuestionID == question.id else { return }
+
         nav.deleteQuestionID = nil
         showDeleteConfirm = true
     }

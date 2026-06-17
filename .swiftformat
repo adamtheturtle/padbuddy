@@ -3,11 +3,20 @@
 # Pairs with .swiftlint.yml: SwiftFormat owns *formatting*, SwiftLint owns
 # *correctness*. The two are kept non-overlapping so they never fight.
 #
-# NOTE: not yet enforced in CI. Enabling the `swiftformat . --lint` gate needs a
-# one-time repo-wide `swiftformat .` reformat to establish a clean baseline; run
-# that, commit it on its own, then add the check to .github/workflows/ci.yml.
+# Enforced in CI via `swiftformat . --lint` (see .github/workflows/ci.yml).
 
 --swiftversion 6.2
+
+# Opt-in (default-off) rules we enable. Limited to safe, auto-applied formatting
+# rules; rules that change semantics or identifiers (acronyms, preferFinalClasses,
+# preferSwiftTesting, sortSwitchCases, propertyTypes) or cause large churn
+# (organizeDeclarations, markTypes, wrapEnumCases) are deliberately left off.
+# privateStateVariables is off for the same reason private_swiftui_state is
+# disabled in SwiftLint: @State is shared across Type+Feature.swift files.
+--enable blankLineAfterSwitchCase
+--enable blankLinesAfterGuardStatements
+--enable isEmpty
+--enable noExplicitOwnership
 
 # Keep SwiftFormat from fighting SwiftLint's default rules:
 # SwiftLint's `trailing_comma` forbids trailing commas in collection literals,
