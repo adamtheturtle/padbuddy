@@ -171,31 +171,18 @@ struct ScreenCampaignRow: View {
     }
 }
 
-/// The Screen section's detail (third) column. Reflects the drill-down state: a
-/// selected test session (its full report lands in #435), else the campaign being
-/// browsed, else a prompt to pick a campaign.
+/// The Screen section's detail (third) column when no test session is selected: prompt
+/// to pick a test once a campaign is open, else to pick a campaign. A selected test's
+/// report is shown by `ScreenTestDetailView` (#435).
 struct ScreenDetailPlaceholder: View {
     var campaign: ScreenCampaign?
-    var test: ScreenTestSession?
 
     var body: some View {
-        if let test {
-            ContentUnavailableView {
-                Label(testTitle(test), systemImage: "person.crop.rectangle.stack")
-            } description: {
-                Text("This test session's full report will appear here.")
-            }
-        } else if campaign != nil {
+        if campaign != nil {
             ContentUnavailableView("Select a test session", systemImage: "person.crop.rectangle.stack")
         } else {
             ContentUnavailableView("Select a campaign", systemImage: "person.crop.rectangle.stack")
         }
-    }
-
-    private func testTitle(_ test: ScreenTestSession) -> String {
-        if let name = test.candidateName, !name.isEmpty { return name }
-        if let email = test.candidateEmail, !email.isEmpty { return email }
-        return String(localized: "Test session")
     }
 }
 

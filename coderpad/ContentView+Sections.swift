@@ -107,10 +107,13 @@ struct SectionDetail: View {
                                    description: Text("This section shows everything in the list."))
 
         case .screen:
-            // Reflects the Screen drill-down: a selected test session (its full report
-            // lands in #435), else the campaign being browsed.
-            ScreenDetailPlaceholder(campaign: nav.screenCampaignSelection,
-                                    test: nav.screenTestSelection)
+            // A selected test session shows its report (#435); otherwise prompt based on
+            // the drill-down state.
+            if let test = nav.screenTestSelection, let screen = store.currentAccount?.makeScreenClient() {
+                ScreenTestDetailView(client: screen, test: test).id(test.id)
+            } else {
+                ScreenDetailPlaceholder(campaign: nav.screenCampaignSelection)
+            }
         }
     }
 
