@@ -121,20 +121,9 @@ struct QuestionDetailView: View {
         } message: {
             Text("You'll have a few seconds to undo before it's permanently deleted.")
         }
-        .alert("Couldn’t create pad",
-               isPresented: Binding(get: { createPadError != nil },
-                                    set: { if !$0 { createPadError = nil } })) {
-            Button("OK", role: .cancel) { createPadError = nil }
-        } message: {
-            if let createPadError { Text(createPadError) }
-        }
-        .alert("Couldn’t save question",
-               isPresented: Binding(get: { editError != nil },
-                                    set: { if !$0 { editError = nil } })) {
-            Button("OK", role: .cancel) { editError = nil }
-        } message: {
-            if let editError { Text(editError) }
-        }
+        .modifier(QuestionDetailErrorAlerts(createPadError: $createPadError,
+                                            editError: $editError,
+                                            deleteError: $deleteError))
         .onAppear {
             consumePendingPadCreation()
             consumePendingDelete()
@@ -277,5 +266,39 @@ struct QuestionDetailView: View {
             createPadError = error.localizedDescription
             return nil
         }
+    }
+}
+
+/// The detail view's three failure alerts (pad creation, edit, delete), pulled
+/// into a `ViewModifier` so they don't inflate the `core` view body's type-check
+/// time past the warnings-as-errors limit.
+private struct QuestionDetailErrorAlerts: ViewModifier {
+    @Binding var createPadError: String?
+    @Binding var editError: String?
+    @Binding var deleteError: String?
+
+    func body(content: Content) -> some View {
+        content
+            .alert("Couldn’t create pad",
+                   isPresented: Binding(get: { createPadError != nil },
+                                        set: { if !$0 { createPadError = nil } })) {
+                Button("OK", role: .cancel) { createPadError = nil }
+            } message: {
+                if let createPadError { Text(createPadError) }
+            }
+            .alert("Couldn’t save question",
+                   isPresented: Binding(get: { editError != nil },
+                                        set: { if !$0 { editError = nil } })) {
+                Button("OK", role: .cancel) { editError = nil }
+            } message: {
+                if let editError { Text(editError) }
+            }
+            .alert("Couldn’t delete question",
+                   isPresented: Binding(get: { deleteError != nil },
+                                        set: { if !$0 { deleteError = nil } })) {
+                Button("OK", role: .cancel) { deleteError = nil }
+            } message: {
+                if let deleteError { Text(deleteError) }
+            }
     }
 }
