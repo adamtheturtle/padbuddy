@@ -293,7 +293,9 @@ extension MergedPadsView {
                 row.item, lastOpened: openedStore.lastOpened(row.item.id, account: row.account.id)
             ),
             accountName: row.account.name,
-            account: row.account.id
+            account: row.account.id,
+            isFavorite: favoritePads.isFavorite(row.item.id, account: row.account.id),
+            onToggleFavorite: { favoritePads.toggle(row.item.id, account: row.account.id) }
         )
         .contextMenu { padContextMenu(row) }
     }

@@ -31,6 +31,7 @@ struct MergedPadsView: View {
     @State var nav = AppNavigation.shared
     @State var cache = PadsCacheStore.shared
     @State var openedStore = PadOpenedStore.shared
+    @State var favoritePads = FavoritePadsStore.shared
     /// The latest pads per account. Seeded from each account's disk cache on appear
     /// for an instant list, then replaced as the live fan-out fetch lands.
     @State var padsByAccount: [UUID: [Pad]] = [:]

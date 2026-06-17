@@ -231,10 +231,20 @@ extension PadsView {
     }
 
     private func padRow(_ pad: Pad) -> some View {
-        PadRow(pad: pad, isChanged: PadListLogic.hasNewActivitySinceOpen(
-            pad, lastOpened: openedStore.lastOpened(pad.id, account: accounts.currentAccountID)
-        ), account: accounts.currentAccountID)
-            .contextMenu { padContextMenu(pad) }
+        PadRow(
+            pad: pad,
+            isChanged: PadListLogic.hasNewActivitySinceOpen(
+                pad, lastOpened: openedStore.lastOpened(pad.id, account: accounts.currentAccountID)
+            ),
+            account: accounts.currentAccountID,
+            isFavorite: favoritePads.isFavorite(pad.id, account: accounts.currentAccountID),
+            onToggleFavorite: {
+                guard let account = accounts.currentAccountID else { return }
+
+                favoritePads.toggle(pad.id, account: account)
+            }
+        )
+        .contextMenu { padContextMenu(pad) }
     }
 
     /// The leading-swipe button that pins or unpins a pad as a favorite (#348),
