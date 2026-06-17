@@ -109,9 +109,6 @@ extension SettingsView {
                             .foregroundStyle(.secondary)
                     }
                 }
-            } footer: {
-                Text("How often pads and questions reload in the background.")
-                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
