@@ -73,7 +73,7 @@ struct CodeFile: Identifiable, Hashable {
     /// An empty stand-in so `EnvironmentCodeCard.selected` stays total without a
     /// force-subscript. Callers already guard against rendering the card with no files
     /// (#419), so this is purely a defensive fallback and never actually displayed.
-    static let placeholder = CodeFile(id: "", path: nil, contents: "", language: nil)
+    static let placeholder = Self(id: "", path: nil, contents: "", language: nil)
 }
 
 /// A code card for one environment. Single-file environments render exactly as
