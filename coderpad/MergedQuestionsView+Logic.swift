@@ -272,7 +272,13 @@ extension MergedQuestionsView {
 
         questions[index] = question
         questionsByAccount[accountID] = questions
-        if selection?.id == question.id { selection = question }
+        // Question ids collide across accounts, so also require the edited
+        // question to belong to the account whose question is currently routed
+        // into the detail pane — otherwise account B's edit would silently
+        // replace account A's open question.
+        if selection?.id == question.id, accountID == router.selectedQuestionAccountID {
+            selection = question
+        }
     }
 
     /// Remove a deleted question. With a known `account`, only that account's copy
