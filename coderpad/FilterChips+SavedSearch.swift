@@ -79,8 +79,18 @@ struct SavedSearchChip: View {
         isActive ? Color.accentColor.opacity(0.35) : Color.primary.opacity(0.08)
     }
 
+    /// White on the accent glass capsule (macOS 26), accent on the light fallback
+    /// fill (macOS 15) while applied, primary when idle — so an applied chip's text
+    /// and icon stay readable instead of accent-on-accent (#397).
     private var contentColor: AnyShapeStyle {
-        isActive ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.primary)
+        isActive ? AnyShapeStyle(chipLabelColor(isActive: true)) : AnyShapeStyle(.primary)
+    }
+
+    /// The leading icon and the delete glyph: white on the accent glass capsule
+    /// (macOS 26) / accent on the light fallback fill (macOS 15) while applied, and
+    /// secondary when idle, so neither washes out against the applied chip (#397).
+    private var iconColor: AnyShapeStyle {
+        isActive ? AnyShapeStyle(chipLabelColor(isActive: true)) : AnyShapeStyle(.secondary)
     }
 
     /// New names are capped on save, but names persisted before the cap (or any
@@ -101,7 +111,7 @@ struct SavedSearchChip: View {
             Image(systemName: systemImage)
                 .font(.caption2)
                 .accessibilityHidden(true)
-                .foregroundStyle(isActive ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.secondary))
+                .foregroundStyle(iconColor)
             Text(displayName)
                 .font(.caption.weight(.medium))
                 .foregroundStyle(contentColor)
@@ -112,7 +122,7 @@ struct SavedSearchChip: View {
                 } label: {
                     Image(systemName: "xmark")
                         .font(.caption2)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(iconColor)
                 }
                 .buttonStyle(.borderless)
                 .accessibilityLabel("Delete saved search \(name)")

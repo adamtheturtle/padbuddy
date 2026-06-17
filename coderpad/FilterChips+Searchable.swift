@@ -64,7 +64,7 @@ struct SearchableFilterChip: View {
     }
 
     private var labelColor: Color {
-        isActive ? Color.accentColor : Color.primary
+        chipLabelColor(isActive: isActive)
     }
 
     var body: some View {

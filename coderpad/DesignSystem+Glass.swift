@@ -96,6 +96,22 @@ extension View {
     }
 }
 
+/// The readable label colour for a filter chip given whether its filter is set.
+/// An idle chip uses `.primary`. A *set* chip on macOS 26 wears accent-tinted
+/// (saturated) glass via ``chipCapsule``, so its label must be white — the same
+/// pairing the system uses for `.glassProminent` — because accent text on the
+/// accent capsule is unreadable (#397). On macOS 15 the set chip instead wears a
+/// light-accent fill, where the accent label reads fine, so it keeps the accent.
+@MainActor
+func chipLabelColor(isActive: Bool) -> Color {
+    guard isActive else { return .primary }
+
+    if #available(macOS 26, *) {
+        return .white
+    }
+    return .accentColor
+}
+
 /// Groups several `glassEffect`/glass-styled controls so the system can blend and
 /// morph them as a single Liquid Glass shape on macOS 26. On macOS 15 it's a plain
 /// passthrough, so the same call site compiles and lays out identically there.

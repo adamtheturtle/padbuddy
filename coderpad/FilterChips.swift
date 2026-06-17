@@ -148,7 +148,7 @@ struct FilterChipMenu<Option: Hashable>: View {
     }
 
     private var labelColor: Color {
-        isActive ? Color.accentColor : Color.primary
+        chipLabelColor(isActive: isActive)
     }
 
     var body: some View {
@@ -217,7 +217,7 @@ struct DateRangeFilterChip: View {
     }
 
     private var labelColor: Color {
-        isActive ? Color.accentColor : Color.primary
+        chipLabelColor(isActive: isActive)
     }
 
     /// No dashes in user-facing copy (house style): join the two dates with "to".
