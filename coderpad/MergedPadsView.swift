@@ -108,10 +108,17 @@ final class FilteredScopedPadsCache {
     var rows: [AccountScoped<Pad>] = []
 }
 
-/// Memo holding the merged list's sorted cross-account rows for one render, so
-/// the many reads of `scoped` in one `body` share a single sort.
+/// Memo holding the merged list's sorted cross-account rows and chip-option lists,
+/// rebuilt only when the merged pads or sort change (keyed by `signature`), so the
+/// O(n log n) sort and the option Sets no longer rerun on every render (#366).
 final class ScopedPadsCache {
     var rows: [AccountScoped<Pad>] = []
+    var availableStates: [PadState] = []
+    var availableLanguages: [String] = []
+    var availableOwners: [String] = []
+    /// The hash of the inputs the cached values were built from; `nil` until the
+    /// first build. `refreshScoped()` skips the rebuild while this is unchanged.
+    var signature: Int?
 }
 
 struct MergedPadsTaskKey: Hashable {

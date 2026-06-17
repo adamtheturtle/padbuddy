@@ -84,9 +84,16 @@ struct MergedQuestionsView: View {
     }
 }
 
-/// Memo holding the merged questions list's combined rows for one render.
+/// Memo holding the merged questions list's combined rows and chip-option lists,
+/// rebuilt only when the merged questions change (keyed by `signature`), so the
+/// tagged-array build and the option Sets no longer rerun on every render (#366).
 final class ScopedQuestionsCache {
     var rows: [AccountScoped<Question>] = []
+    var availableLanguages: [String] = []
+    var availableOwners: [String] = []
+    /// The hash of the inputs the cached values were built from; `nil` until the
+    /// first build. `refreshScoped()` skips the rebuild while this is unchanged.
+    var signature: Int?
 }
 
 /// Memo holding the merged questions list's filtered + sorted rows for one render,

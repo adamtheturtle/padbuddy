@@ -19,17 +19,49 @@ extension MergedQuestionsView {
         scopedCache.rows
     }
 
-    /// Rebuild the memoized `scoped` rows for one render. Reads only
-    /// `questionsByAccount` so it never triggers a cache read.
+    /// Rebuild the memoized `scoped` rows when the underlying data changes, rather
+    /// than once per render: the tagged-array build and the chip-option Sets only
+    /// rerun when the merged questions actually change, not on every keystroke /
+    /// selection / filter toggle (#366). Reads only `questionsByAccount` so it never
+    /// triggers a cache read.
     func refreshScoped() {
+        let mergeable = accounts.mergeableAccounts
+        let signature = scopedSignature(mergeable: mergeable)
+        guard scopedCache.signature != signature else { return }
+
+        scopedCache.signature = signature
+
         var rows: [AccountScoped<Question>] = []
-        for account in accounts.mergeableAccounts {
+        for account in mergeable {
             for question in questionsByAccount[account.id] ?? [] {
                 rows.append(AccountScoped(account: account, item: question,
                                           id: Self.rowID(account: account.id, question: question.id)))
             }
         }
         scopedCache.rows = rows
+        // Rebuild the chip-option lists in the same pass, sharing the input signature.
+        scopedCache.availableLanguages = Array(Set(rows.compactMap { $0.item.language?.lowercased() })
+            .filter { !$0.isEmpty }).sorted()
+        scopedCache.availableOwners = Array(Set(rows.map(\.item.ownerEmail))
+            .filter { !$0.isEmpty }).sorted()
+    }
+
+    /// A cheap hash of everything `scoped` (and the chip-option lists) depends on:
+    /// per mergeable account, its id and every question. `Question` is `Hashable`, so
+    /// any change to a displayed field invalidates the memo — the cached rows carry
+    /// these values into both the filter pass and the list. O(n) hashing replaces the
+    /// per-render array rebuild + two full Set passes.
+    func scopedSignature(mergeable: [Account]) -> Int {
+        var hasher = Hasher()
+        for account in mergeable {
+            hasher.combine(account.id)
+            let questions = questionsByAccount[account.id] ?? []
+            hasher.combine(questions.count)
+            for question in questions {
+                hasher.combine(question)
+            }
+        }
+        return hasher.finalize()
     }
 
     /// The account-namespaced row id used for selection and `ForEach` identity.
@@ -173,12 +205,14 @@ extension MergedQuestionsView {
 
     // MARK: - Options
 
+    /// Chip-option lists, memoized alongside `scoped` and recomputed only when the
+    /// merged questions change (#366) rather than rebuilt over every row on each access.
     var availableLanguages: [String] {
-        Array(Set(scoped.compactMap { $0.item.language?.lowercased() }).filter { !$0.isEmpty }).sorted()
+        scopedCache.availableLanguages
     }
 
     var availableOwners: [String] {
-        Array(Set(scoped.map(\.item.ownerEmail)).filter { !$0.isEmpty }).sorted()
+        scopedCache.availableOwners
     }
 
     var activeFilterCount: Int {

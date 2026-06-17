@@ -23,19 +23,52 @@ extension MergedPadsView {
         scopedCache.rows
     }
 
-    /// Rebuild the memoized `scoped` rows for one render. Mirrors `refreshFiltered`
-    /// (and `PadsView`'s `filtered` memo): a reference-type cache so `body` can
-    /// refresh it without mutating SwiftUI state mid-evaluation. Reads only
-    /// `padsByAccount` (seeded from cache, then refreshed) so it never triggers a
-    /// cache read.
+    /// Rebuild the memoized `scoped` rows when the underlying data changes. A
+    /// reference-type cache (so `body` can refresh it without mutating SwiftUI state
+    /// mid-evaluation), keyed to a cheap signature rather than "once per render": the
+    /// O(n log n) cross-account sort and the chip-option Sets only rebuild when the
+    /// merged pads (or sort) change, not on every keystroke / filter toggle (#366).
     func refreshScoped() {
+        let mergeable = accounts.mergeableAccounts
+        let signature = scopedSignature(mergeable: mergeable)
+        guard scopedCache.signature != signature else { return }
+
+        scopedCache.signature = signature
+
         var rows: [AccountScoped<Pad>] = []
-        for account in accounts.mergeableAccounts {
+        for account in mergeable {
             for pad in padsByAccount[account.id] ?? [] {
                 rows.append(AccountScoped(account: account, item: pad, id: pad.id))
             }
         }
-        scopedCache.rows = sort.sorted(rows, by: \.item)
+        let sorted = sort.sorted(rows, by: \.item)
+        scopedCache.rows = sorted
+        // Rebuild the chip-option lists in the same pass (same input signature).
+        scopedCache.availableStates = Array(Set(sorted.map(\.item.status)))
+            .sorted { $0.label < $1.label }
+        scopedCache.availableLanguages = Array(Set(sorted.compactMap { $0.item.language?.lowercased() })
+            .filter { !$0.isEmpty }).sorted()
+        scopedCache.availableOwners = Array(Set(sorted.map(\.item.ownerEmail))
+            .filter { !$0.isEmpty }).sorted()
+    }
+
+    /// A cheap hash of everything `scoped` (and the chip-option lists) depends on: the
+    /// sort and, per mergeable account, its id and every pad. `Pad` is `Hashable`, so
+    /// any displayed-field change invalidates the memo (the cached rows carry these
+    /// `Pad` values into the list). O(n) hashing replaces the O(n log n) sort + three
+    /// Set passes that previously ran every render.
+    func scopedSignature(mergeable: [Account]) -> Int {
+        var hasher = Hasher()
+        hasher.combine(sort)
+        for account in mergeable {
+            hasher.combine(account.id)
+            let pads = padsByAccount[account.id] ?? []
+            hasher.combine(pads.count)
+            for pad in pads {
+                hasher.combine(pad)
+            }
+        }
+        return hasher.finalize()
     }
 
     var filtered: [AccountScoped<Pad>] {
@@ -89,16 +122,18 @@ extension MergedPadsView {
 
     // MARK: - Options
 
+    /// Chip-option lists, memoized alongside `scoped` and recomputed only when the
+    /// merged pads change (#366) rather than rebuilt over every row on each access.
     var availableStates: [PadState] {
-        Array(Set(scoped.map(\.item.status))).sorted { $0.label < $1.label }
+        scopedCache.availableStates
     }
 
     var availableLanguages: [String] {
-        Array(Set(scoped.compactMap { $0.item.language?.lowercased() }).filter { !$0.isEmpty }).sorted()
+        scopedCache.availableLanguages
     }
 
     var availableOwners: [String] {
-        Array(Set(scoped.map(\.item.ownerEmail)).filter { !$0.isEmpty }).sorted()
+        scopedCache.availableOwners
     }
 
     var activeFilterCount: Int {
