@@ -115,6 +115,29 @@ struct RecentPadsConfigurationIntent: WidgetConfigurationIntent {
     /// unset the button creates a blank pad in the current account.
     @Parameter(title: "New Pad question")
     var newPadQuestion: WidgetQuestionEntity?
+
+    /// Hides the "Rows" control on families where it does nothing (#410). Small shows a
+    /// single pad and ignores the count entirely; medium clamps every choice to three,
+    /// so the picker is meaningless there too. Only the large family can vary between
+    /// three, five, and seven rows, so it's the only one that surfaces "Rows". Omitting
+    /// a parameter from a family's `Summary` removes it from that family's config editor.
+    static var parameterSummary: some ParameterSummary {
+        Switch(.widgetFamily) {
+            Case(.systemLarge) {
+                Summary {
+                    \.$account
+                    \.$rowCount
+                    \.$newPadQuestion
+                }
+            }
+            DefaultCase {
+                Summary {
+                    \.$account
+                    \.$newPadQuestion
+                }
+            }
+        }
+    }
 }
 
 /// A pinnable account, sourced from the account index the app mirrors into the App
