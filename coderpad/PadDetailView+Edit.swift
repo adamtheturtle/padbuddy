@@ -122,21 +122,27 @@ extension PadDetailView {
         let newTitle = titleDraft
         guard newTitle != pad.title else { return }
 
-        await save(PadUpdate(id: pad.id, title: newTitle)) { titleDraft = pad.title }
+        await save(PadUpdate(id: pad.id, title: newTitle), optimistic: optimisticPad(title: newTitle)) {
+            titleDraft = pad.title
+        }
     }
 
     func commitLanguage(_ language: String) async {
         guard language != pad.language else { return }
 
-        await save(PadUpdate(id: pad.id, language: language)) { draftLanguage = pad.language ?? "python3" }
+        await save(PadUpdate(id: pad.id, language: language), optimistic: optimisticPad()) {
+            draftLanguage = pad.language ?? "python3"
+        }
     }
 
     func commitOwner(_ email: String) async {
         let normalized = email.trimmingCharacters(in: .whitespaces)
         guard normalized != pad.ownerEmail else { return }
 
-        // An empty owner makes the server resolve the pad to the key owner.
-        await save(PadUpdate(id: pad.id, ownerEmail: normalized.isEmpty ? nil : normalized)) {
+        // An empty owner makes the server resolve the pad to the key owner, whose email
+        // can't be known locally — so this one edit keeps the authoritative re-GET
+        // (`optimistic: nil`) rather than guessing the resolved owner.
+        await save(PadUpdate(id: pad.id, ownerEmail: normalized.isEmpty ? nil : normalized), optimistic: nil) {
             draftOwner = pad.ownerEmail
         }
     }
@@ -144,22 +150,44 @@ extension PadDetailView {
     func commitPrivate(_ isPrivate: Bool) async {
         guard isPrivate != (pad.isPrivate ?? false) else { return }
 
-        await save(PadUpdate(id: pad.id, isPrivate: isPrivate)) { draftIsPrivate = pad.isPrivate ?? false }
+        await save(PadUpdate(id: pad.id, isPrivate: isPrivate), optimistic: optimisticPad()) {
+            draftIsPrivate = pad.isPrivate ?? false
+        }
     }
 
     func commitExecution(_ enabled: Bool) async {
         guard enabled != (pad.executionEnabled ?? true) else { return }
 
-        await save(PadUpdate(id: pad.id, executionEnabled: enabled)) { draftExecution = pad.executionEnabled ?? true }
+        await save(PadUpdate(id: pad.id, executionEnabled: enabled), optimistic: optimisticPad()) {
+            draftExecution = pad.executionEnabled ?? true
+        }
     }
 
-    /// Sends a single-field update and propagates the refreshed pad. On failure it
-    /// surfaces the error and runs `revert` to snap the field back to the server's
-    /// value, so the control never lies about what's saved.
-    private func save(_ body: PadUpdate, revert: () -> Void) async {
+    /// The pad with every immediately-committed draft applied (language, privacy,
+    /// execution). `title` is passed only by `commitTitle` — for the other fields the
+    /// committed `pad.title` is kept so an as-yet-uncommitted title edit isn't pushed
+    /// out early. Building from the full draft set (not just the one changed field) keeps
+    /// concurrent rapid edits from clobbering each other, since those drafts are always
+    /// the saved value (#376).
+    private func optimisticPad(title: String? = nil) -> Pad {
+        pad.applying(title: title, language: draftLanguage,
+                     isPrivate: draftIsPrivate, executionEnabled: draftExecution)
+    }
+
+    /// Sends a single-field update and propagates the result. When `optimistic` is
+    /// supplied the local copy is authoritative, so it PUTs without the redundant re-GET
+    /// and propagates the optimistic pad (#376); otherwise (owner edits) it re-fetches
+    /// the server's resolved state. On failure it surfaces the error and runs `revert`
+    /// so the control never lies about what's saved.
+    private func save(_ body: PadUpdate, optimistic: Pad?, revert: () -> Void) async {
         do {
-            let updated = try await client.updatePad(body)
-            AppRouter.padUpdated(updated)
+            if let optimistic {
+                try await client.updatePadWithoutRefetch(body)
+                AppRouter.padUpdated(optimistic)
+            } else {
+                let updated = try await client.updatePad(body)
+                AppRouter.padUpdated(updated)
+            }
         } catch {
             mutateError = error.localizedDescription
             revert()

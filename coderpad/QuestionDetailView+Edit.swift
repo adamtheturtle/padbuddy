@@ -107,13 +107,15 @@ extension QuestionDetailView {
         let newTitle = titleDraft
         guard newTitle != question.title else { return }
 
-        await save(QuestionUpdate(id: question.id, title: newTitle)) { titleDraft = question.title }
+        await save(QuestionUpdate(id: question.id, title: newTitle),
+                   optimistic: optimisticQuestion(title: newTitle)) { titleDraft = question.title }
     }
 
     func commitLanguage(_ language: String) async {
         guard language != question.language else { return }
 
-        await save(QuestionUpdate(id: question.id, language: language)) {
+        await save(QuestionUpdate(id: question.id, language: language),
+                   optimistic: optimisticQuestion()) {
             draftLanguage = question.language ?? "python3"
         }
     }
@@ -122,7 +124,8 @@ extension QuestionDetailView {
         guard padType != currentType else { return }
 
         // `take_home` and `pad_type` are coupled, so a type change commits both.
-        await save(QuestionUpdate(id: question.id, takeHome: padType == "take-home", padType: padType)) {
+        await save(QuestionUpdate(id: question.id, takeHome: padType == "take-home", padType: padType),
+                   optimistic: optimisticQuestion()) {
             draftPadType = currentType
         }
     }
@@ -136,13 +139,15 @@ extension QuestionDetailView {
     func commitDescription(_ text: String) async -> Bool {
         guard text != (question.description ?? "") else { return true }
 
-        return await saveContent(QuestionUpdate(id: question.id, description: text))
+        return await saveContent(QuestionUpdate(id: question.id, description: text),
+                                 optimistic: optimisticQuestion(description: text))
     }
 
     func commitSolution(_ text: String) async -> Bool {
         guard text != (question.solution ?? "") else { return true }
 
-        return await saveContent(QuestionUpdate(id: question.id, solution: text))
+        return await saveContent(QuestionUpdate(id: question.id, solution: text),
+                                 optimistic: optimisticQuestion(solution: text))
     }
 
     /// Commits one candidate-instruction part. The whole list is resent with only
@@ -163,16 +168,32 @@ extension QuestionDetailView {
 
             payloads.append(CandidateInstructionPayload(instructions: text, defaultVisible: true))
         }
-        return await saveContent(QuestionUpdate(id: question.id, candidateInstructions: payloads))
+        return await saveContent(QuestionUpdate(id: question.id, candidateInstructions: payloads),
+                                 optimistic: optimisticQuestion(candidateInstructions: payloads))
     }
 
-    /// Sends a single-field content update and propagates the refreshed question,
-    /// returning whether it succeeded. On failure it surfaces the error; the inline
-    /// editor keeps the unsaved text so nothing is lost.
-    private func saveContent(_ body: QuestionUpdate) async -> Bool {
+    /// The question with the immediately-committed metadata drafts (language, type)
+    /// applied, plus whichever long-form field this commit changed. As with the pad
+    /// editor, building from the full saved-draft set keeps concurrent edits from
+    /// clobbering each other; `title` is supplied only by `commitTitle` so an
+    /// uncommitted title isn't pushed out early (#376).
+    func optimisticQuestion(title: String? = nil, description: String? = nil, solution: String? = nil,
+                            candidateInstructions: [CandidateInstructionPayload]? = nil) -> Question {
+        question.applying(
+            title: title, language: draftLanguage,
+            takeHome: draftPadType == "take-home", padType: draftPadType,
+            description: description, solution: solution,
+            candidateInstructions: candidateInstructions
+        )
+    }
+
+    /// Sends a single-field content update and propagates the optimistic question
+    /// without the redundant re-GET (#376), returning whether it succeeded. On failure
+    /// it surfaces the error; the inline editor keeps the unsaved text so nothing is lost.
+    private func saveContent(_ body: QuestionUpdate, optimistic: Question) async -> Bool {
         do {
-            let saved = try await client.updateQuestion(body)
-            AppRouter.questionUpdated(saved, account: accountID)
+            try await client.updateQuestionWithoutRefetch(body)
+            AppRouter.questionUpdated(optimistic, account: accountID)
             return true
         } catch {
             editError = error.localizedDescription
@@ -180,13 +201,14 @@ extension QuestionDetailView {
         }
     }
 
-    /// Sends a single-field update and propagates the refreshed question. On failure
-    /// it surfaces the error and runs `revert` to snap the field back to the server's
-    /// value, so the control never lies about what's saved.
-    private func save(_ body: QuestionUpdate, revert: () -> Void) async {
+    /// Sends a single-field update and propagates the optimistic question without the
+    /// redundant re-GET (#376). On failure it surfaces the error and runs `revert` to
+    /// snap the field back to the server's value, so the control never lies about what's
+    /// saved.
+    private func save(_ body: QuestionUpdate, optimistic: Question, revert: () -> Void) async {
         do {
-            let saved = try await client.updateQuestion(body)
-            AppRouter.questionUpdated(saved, account: accountID)
+            try await client.updateQuestionWithoutRefetch(body)
+            AppRouter.questionUpdated(optimistic, account: accountID)
         } catch {
             editError = error.localizedDescription
             revert()

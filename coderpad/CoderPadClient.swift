@@ -274,6 +274,13 @@ struct CoderPadClient {
         return try await getPad(id: body.id)
     }
 
+    /// Sends the modify-pad PUT without the follow-up GET, for the inline per-field
+    /// editors that hold an authoritative optimistic copy and merge the change locally —
+    /// saving a GET per field, reconciled on the next refresh (#376).
+    func updatePadWithoutRefetch(_ body: PadUpdate) async throws {
+        _ = try await rest.send(StatusOnly.self, method: "PUT", path: "/api/pads/\(body.id)", body: body)
+    }
+
     /// Ends the interview, by setting `ended` on the pad. The live API replies
     /// `{"status":"OK"}` with no pad body.
     func endPad(id: String) async throws {
@@ -319,6 +326,13 @@ struct CoderPadClient {
     func updateQuestion(_ body: QuestionUpdate) async throws -> Question {
         _ = try await rest.send(StatusOnly.self, method: "PUT", path: "/api/questions/\(body.id)", body: body)
         return try await getQuestion(id: body.id)
+    }
+
+    /// Sends the modify-question PUT without the follow-up GET, for the inline
+    /// per-field editors that hold an authoritative optimistic copy and merge the
+    /// change locally — saving a GET per field, reconciled on the next refresh (#376).
+    func updateQuestionWithoutRefetch(_ body: QuestionUpdate) async throws {
+        _ = try await rest.send(StatusOnly.self, method: "PUT", path: "/api/questions/\(body.id)", body: body)
     }
 
     func deleteQuestion(id: Int) async throws {
