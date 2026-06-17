@@ -84,9 +84,12 @@ struct MergedOrganizationView: View {
                 .pickerStyle(.menu)
                 .help("Stats period")
             }
+            // Hidden by default — reachable via View ▸ Customize Toolbar… or the
+            // File ▸ Reload command (⌘R) (#413).
             ToolbarItem(id: "reload", placement: .automatic) {
                 ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
             }
+            .defaultCustomization(.hidden)
         }
     }
 

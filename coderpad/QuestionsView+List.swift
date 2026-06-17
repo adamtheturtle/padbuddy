@@ -138,6 +138,7 @@ extension QuestionsView {
             ToolbarItem(id: "reload", placement: .automatic) {
                 ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
             }
+            .defaultCustomization(.hidden)
             // Grouped beside Reload at the list column's leading edge rather
             // than floating at the trailing edge: a `.primaryAction` here shares the
             // window's trailing region with the detail pane's actions, so selecting

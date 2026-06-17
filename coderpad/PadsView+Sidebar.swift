@@ -118,9 +118,12 @@ extension PadsView {
         // (trailing window toolbar, Finder-style); this column only owns the section
         // actions below.
         .toolbar(id: "pads") {
+            // Hidden by default — reachable via View ▸ Customize Toolbar…, the
+            // File ▸ Reload command (⌘R), or pull-to-refresh (#413).
             ToolbarItem(id: "reload", placement: .automatic) {
                 ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
             }
+            .defaultCustomization(.hidden)
             // Grouped beside Reload at the list column's leading edge rather than
             // floating at the trailing edge: a `.primaryAction` here shares the
             // window's trailing region with the detail pane's actions, so selecting
