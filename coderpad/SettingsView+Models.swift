@@ -312,9 +312,10 @@ enum GeneralSettings {
         UserDefaults.standard.bool(forKey: Key.spotlightIndexing)
     }
 
-    /// Default auto-refresh cadence, matching the value the panes used before this
-    /// became configurable.
-    static let defaultRefreshSeconds = 90
+    /// Default auto-refresh cadence. Kept tight (15s) so pads and questions stay
+    /// close to live without a manual reload (#412); users can dial it back up to
+    /// 10 minutes in Settings.
+    static let defaultRefreshSeconds = 15
     static let minRefreshSeconds = 15
     static let maxRefreshSeconds = 600
 
