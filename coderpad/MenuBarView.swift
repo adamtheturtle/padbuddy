@@ -121,10 +121,6 @@ struct MenuBarView: View {
 
             Divider()
 
-            recentMenus
-
-            Divider()
-
             navigationItems(account: account)
 
             Divider()
@@ -210,32 +206,6 @@ struct MenuBarView: View {
             }
             if myPads.count > topCount {
                 Text("…\(myPads.count - topCount) more").foregroundStyle(.secondary)
-            }
-        }
-    }
-
-    /// Section sub-menus mirroring the app's lists: the most recently updated
-    /// questions and pads, so the menu bar offers a quick jump into recent work
-    /// without opening the window first.
-    @ViewBuilder
-    private var recentMenus: some View {
-        if !questions.isEmpty {
-            Menu("Recent Questions") {
-                ForEach(questions.prefix(topCount)) { question in
-                    Button(question.displayTitle) { openQuestion(question) }
-                }
-            }
-        }
-
-        if !pads.isEmpty {
-            Menu("Recent Activity") {
-                ForEach(pads.prefix(topCount)) { pad in
-                    Button(activityLabel(pad)) {
-                        if let url = pad.webURL {
-                            BrowserSettings.openExternally(url)
-                        }
-                    }
-                }
             }
         }
     }

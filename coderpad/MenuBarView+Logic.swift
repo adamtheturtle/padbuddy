@@ -36,22 +36,6 @@ extension MenuBarView {
         return "\(title)\(language)"
     }
 
-    /// Label for a pad in the "Recent Activity" sub-menu, trailing the title with a
-    /// relative "updated" time since recency is the point of that section.
-    func activityLabel(_ pad: Pad) -> String {
-        let title = pad.title.isEmpty ? pad.id : pad.title
-        guard let updated = pad.informativeUpdatedAt else { return title }
-
-        return "\(title) · \(updated.formatted(.relative(presentation: .named)))"
-    }
-
-    /// Opens the main window on the Questions list with `question` selected, the
-    /// same route the sidebar uses for a favorite question.
-    func openQuestion(_ question: Question) {
-        AppNavigation.shared.showQuestions(QuestionsRequest(selectQuestionID: question.id))
-        openMain()
-    }
-
     /// Pads owned by the account's configured email, if the user set one in Settings.
     /// Otherwise falls back to the most-frequent owner email in the fetched list, since
     /// the CoderPad API doesn't tell us which user the key belongs to.
