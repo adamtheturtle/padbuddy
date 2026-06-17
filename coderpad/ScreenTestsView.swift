@@ -23,6 +23,7 @@ struct ScreenTestsView: View {
     @State private var loadError: String?
     @State private var statusFilter: String?
     @State private var selectedID: Int?
+    @State private var showInvite = false
 
     var body: some View {
         List(selection: $selectedID) {
@@ -46,7 +47,18 @@ struct ScreenTestsView: View {
         // Leaving this campaign (popping back to the campaigns list) clears the
         // detail column's test selection so it doesn't show a stale report.
         .onDisappear { nav.screenTestSelection = nil }
+        .sheet(isPresented: $showInvite) {
+            ScreenInviteSheet(client: client, campaign: campaign) {
+                Task { await load() }
+            }
+        }
         .toolbar {
+            ToolbarItem {
+                Button { showInvite = true } label: {
+                    Label("Invite Candidate", systemImage: "person.badge.plus")
+                }
+                .help("Invite a candidate to this campaign.")
+            }
             ToolbarItem {
                 Menu {
                     Picker("Status", selection: $statusFilter) {
