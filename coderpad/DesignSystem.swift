@@ -9,10 +9,12 @@ import SwiftUI
 extension Color {
     static let cardBackground = Color(nsColor: .controlBackgroundColor)
     static let subtleStroke = Color.primary.opacity(0.08)
-    /// The neutral capsule fill an *idle* filter chip wears so every chip in the bar
-    /// reads as a control rather than bare text + chevron (#352). Matches the
-    /// saved-search chips' resting pill; a set filter swaps this for the accent fill.
-    static let chipIdleFill = Color.primary.opacity(0.06)
+    /// The neutral capsule fill an *idle* filter chip wears on macOS 15 so every chip
+    /// in the bar reads as a control rather than bare text + chevron (#352). On
+    /// macOS 26 the chips use Liquid Glass instead (see `chipCapsule`); this is the
+    /// fallback, bumped from a near-invisible 6% so it still plainly reads as a
+    /// filled control on Sequoia. A set filter swaps this for the accent fill.
+    static let chipIdleFill = Color.primary.opacity(0.11)
 
     /// Parses an "#RRGGBB" (or "RRGGBB") hex string into an sRGB color, or `nil` if
     /// it isn't a well-formed six-digit hex value.
