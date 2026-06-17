@@ -158,7 +158,12 @@ struct NewPadSheet: View {
               let question = questions.first(where: { $0.id == id }) else { return }
 
         if title.isEmpty { title = question.title }
-        if !languageEdited, let lang = question.language, !lang.isEmpty { language = lang }
+        if !languageEdited, let lang = question.language, !lang.isEmpty {
+            language = lang
+            // Treat the question's language as a deliberate choice so a late-arriving
+            // org default (applied from `.task`/`.onChange`) can't clobber it.
+            languageEdited = true
+        }
     }
 
     /// One `organization()` call backs both the Team picker and the searchable
