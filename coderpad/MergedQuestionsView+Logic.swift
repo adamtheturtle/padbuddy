@@ -87,6 +87,19 @@ extension MergedQuestionsView {
         let favoritesByAccount = Dictionary(uniqueKeysWithValues: accounts.mergeableAccounts.map {
             ($0.id, Set(favorites.favorites(account: $0.id)))
         })
+        // Skip the filter+sort on selection-only body passes (mirrors #395). `scoped` is
+        // itself memoized, so its signature stands in for the rows; favoritesByAccount is
+        // in the key so toggling a favorite still re-runs.
+        let key = SortedQuestionsCache.Key(
+            scopedSignature: scopedCache.signature ?? 0,
+            filterSignature: filterSignature,
+            favoritesOnly: favoritesOnly,
+            sortRawValue: sort.rawValue,
+            favoritesByAccount: favoritesByAccount
+        )
+        guard sortedCache.key != key else { return }
+
+        sortedCache.key = key
         sortedCache.favoritesByAccount = favoritesByAccount
         let filtered = scoped.filter { row in
             let item = row.item
@@ -106,36 +119,34 @@ extension MergedQuestionsView {
                     || (item.language ?? "").localizedCaseInsensitiveContains(search)
                     || (item.authorName ?? "").localizedCaseInsensitiveContains(search))
         }
+        sortedCache.rows = sortRows(filtered)
+    }
+
+    /// Orders the filtered cross-account rows by the active sort. Extracted from
+    /// `refreshSorted()` so that function stays within the body-length lint.
+    private func sortRows(_ rows: [AccountScoped<Question>]) -> [AccountScoped<Question>] {
         switch sort {
         case .titleAsc:
-            sortedCache.rows = filtered.sorted {
+            rows.sorted {
                 $0.item.displayTitle.localizedCaseInsensitiveCompare($1.item.displayTitle) == .orderedAscending
             }
 
         case .titleDesc:
-            sortedCache.rows = filtered.sorted {
+            rows.sorted {
                 $0.item.displayTitle.localizedCaseInsensitiveCompare($1.item.displayTitle) == .orderedDescending
             }
 
         case .lastUsedDesc:
-            sortedCache.rows = filtered.sorted {
-                ($0.item.updatedAt ?? .distantPast) > ($1.item.updatedAt ?? .distantPast)
-            }
+            rows.sorted { ($0.item.updatedAt ?? .distantPast) > ($1.item.updatedAt ?? .distantPast) }
 
         case .lastUsedAsc:
-            sortedCache.rows = filtered.sorted {
-                ($0.item.updatedAt ?? .distantPast) < ($1.item.updatedAt ?? .distantPast)
-            }
+            rows.sorted { ($0.item.updatedAt ?? .distantPast) < ($1.item.updatedAt ?? .distantPast) }
 
         case .usedDesc:
-            sortedCache.rows = filtered.sorted {
-                ($0.item.used ?? 0) > ($1.item.used ?? 0)
-            }
+            rows.sorted { ($0.item.used ?? 0) > ($1.item.used ?? 0) }
 
         case .usedAsc:
-            sortedCache.rows = filtered.sorted {
-                ($0.item.used ?? 0) < ($1.item.used ?? 0)
-            }
+            rows.sorted { ($0.item.used ?? 0) < ($1.item.used ?? 0) }
         }
     }
 

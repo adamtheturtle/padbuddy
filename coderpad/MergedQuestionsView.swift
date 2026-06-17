@@ -102,4 +102,22 @@ final class ScopedQuestionsCache {
 final class SortedQuestionsCache {
     var rows: [AccountScoped<Question>] = []
     var favoritesByAccount: [UUID: Set<Int>] = [:]
+    /// The inputs the cached rows were filtered+sorted for. A row click re-runs `body`
+    /// several times via the selection cascade, and only the selection differs across
+    /// those passes — so when this key is unchanged `refreshSorted()` reuses the cached
+    /// rows instead of re-running the O(n) cross-account filter and sort each time, the
+    /// merged-questions counterpart of the single-account fix in #395.
+    var key: Key?
+
+    struct Key: Equatable {
+        /// Signature of the memoized `scoped` rows this ran over, so a real data change
+        /// (handled by `refreshScoped()`) invalidates the filter+sort too.
+        let scopedSignature: Int
+        let filterSignature: String
+        let favoritesOnly: Bool
+        let sortRawValue: String
+        /// Favorites drive both the favorites filter and each row's star, so a toggle
+        /// must re-run; comparing the small id sets is cheap and exact.
+        let favoritesByAccount: [UUID: Set<Int>]
+    }
 }

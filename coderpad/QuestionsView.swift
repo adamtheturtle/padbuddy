@@ -21,6 +21,11 @@ struct QuestionsView: View {
     @State private var cache = QuestionsCacheStore.shared
     @State var favorites = FavoriteQuestionsStore.shared
     @State var questions: [Question] = []
+    /// Bumped on every mutation of `questions`, so `refreshSorted()` can tell a real
+    /// list change from a body pass driven only by the selection (the selection cascade
+    /// re-runs `body` several times per click). Mirrors `PadsView.padsRevision` (#395).
+    /// Any new assignment to `questions` must bump this.
+    @State var questionsRevision = 0
 
     @State var isLoading = false
     @State var error: (any Error)?
@@ -105,6 +110,7 @@ struct QuestionsView: View {
 
                 if questions.isEmpty, let id = accounts.currentAccountID {
                     questions = cache.get(id)
+                    questionsRevision += 1
                 }
                 // Closure form so a change to the interval in Settings takes effect on
                 // the next cycle without restarting the task.
@@ -115,6 +121,7 @@ struct QuestionsView: View {
             .sheet(isPresented: $showCreate) {
                 NewQuestionSheet(client: client) { created in
                     questions.insert(created, at: 0)
+                    questionsRevision += 1
                     selectedQuestionIDs = [created.id]
                     showCreate = false
                 } onCancel: { showCreate = false }
@@ -170,6 +177,7 @@ struct QuestionsView: View {
                     let question = update.question
                     if let index = questions.firstIndex(where: { $0.id == question.id }) {
                         questions[index] = question
+                        questionsRevision += 1
                         if selection?.id == question.id { selection = question }
                     }
                 }
@@ -187,6 +195,7 @@ struct QuestionsView: View {
                     let neighbor = wasPrimary ? neighborSelection(forDeletedQuestion: id) : nil
                     selectedQuestionIDs.remove(id)
                     questions.removeAll { $0.id == id }
+                    questionsRevision += 1
                     // Keep the disk cache and Spotlight index in step; otherwise the
                     // deleted question lingers there until a full reload.
                     cache.removeQuestion(id: id, account: accounts.currentAccountID)
@@ -306,9 +315,13 @@ struct QuestionsView: View {
             var fetched: [Question] = []
             for try await snapshot in client.listQuestionsIncrementally() {
                 fetched = snapshot
-                if isInitialLoad { questions = snapshot }
+                if isInitialLoad {
+                    questions = snapshot
+                    questionsRevision += 1
+                }
             }
             questions = fetched
+            questionsRevision += 1
             if let id = accounts.currentAccountID {
                 cache.set(id, questions: fetched)
             }
