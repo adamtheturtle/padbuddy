@@ -205,6 +205,8 @@ extension MergedPadsView {
             .help("Sort pads")
             .accessibilityLabel("Sort pads")
         }
+        // Opt-in detail-pane toggle, hidden by default (#404).
+        DetailPaneToggleToolbarContent()
     }
 
     private var padCollection: some View {

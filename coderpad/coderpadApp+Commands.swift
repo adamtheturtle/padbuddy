@@ -63,7 +63,11 @@ struct ViewCommands: Commands {
             .disabled(sidebarToggle == nil)
 
             Button(detailPaneHidden ? "Show Detail Pane" : "Hide Detail Pane") {
-                detailPaneHidden.toggle()
+                // Animate the layout swap so the detail pane eases in/out like the
+                // sidebar's toggle does, rather than snapping (#403). NavigationSplitView
+                // exposes no detail-column visibility to animate natively, so the smooth
+                // transition wraps the two/three-column swap instead.
+                withAnimation(.smooth) { detailPaneHidden.toggle() }
             }
             .keyboardShortcut("d", modifiers: [.command, .control])
 
