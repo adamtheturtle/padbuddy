@@ -63,6 +63,13 @@ extension MergedPadsView {
     }
 
     func pad(forID id: String) -> Pad? {
+        // Resolve the owning account in O(1) via the route map and index into just
+        // that account's pads, rather than scanning every account's full array (#368).
+        if let accountID = router.padAccountID[id],
+           let match = padsByAccount[accountID]?.first(where: { $0.id == id }) {
+            return match
+        }
+        // Fallback: the route map can lag a just-inserted pad, so scan as before.
         for pads in padsByAccount.values {
             if let match = pads.first(where: { $0.id == id }) { return match }
         }
@@ -308,8 +315,17 @@ extension MergedPadsView {
     }
 
     func removePad(id: String) {
-        for (accountID, pads) in padsByAccount where pads.contains(where: { $0.id == id }) {
-            padsByAccount[accountID] = pads.filter { $0.id != id }
+        // Pad ids are global slugs, so the route map points at the single owning
+        // account — drop the row from just that account rather than scanning and
+        // rebuilding every account's array (#368).
+        if let accountID = router.padAccountID[id],
+           padsByAccount[accountID]?.contains(where: { $0.id == id }) == true {
+            padsByAccount[accountID] = padsByAccount[accountID]?.filter { $0.id != id }
+        } else {
+            // Fallback when the route map doesn't have the pad yet.
+            for (accountID, pads) in padsByAccount where pads.contains(where: { $0.id == id }) {
+                padsByAccount[accountID] = pads.filter { $0.id != id }
+            }
         }
         publishRoutes()
     }

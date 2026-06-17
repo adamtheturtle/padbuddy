@@ -8,8 +8,12 @@
 import SwiftUI
 
 extension MergedPadsView {
-    func accountName(_ id: UUID) -> String {
-        accounts.accounts.first { $0.id == id }?.name ?? "Account"
+    /// A name lookup for the Account chip's formatter that builds a `[UUID: String]`
+    /// index once and captures it, so resolving each option is O(1) rather than a
+    /// linear scan of `accounts` per option (#368).
+    func accountNameFormatter() -> (UUID) -> String {
+        let names = Dictionary(accounts.accounts.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
+        return { names[$0] ?? "Account" }
     }
 
     /// Cross-account quick presets: "Mine" (owned by each account's own user) and
@@ -34,7 +38,7 @@ extension MergedPadsView {
                 title: String(localized: "Account"), icon: "person.crop.circle",
                 selected: $accountFilter,
                 options: accounts.mergeableAccounts.map(\.id),
-                formatter: { accountName($0) }
+                formatter: accountNameFormatter()
             )
             .measuresFilterBarWidth()
             FilterChipMenu(
