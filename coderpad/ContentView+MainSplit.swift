@@ -158,7 +158,7 @@ struct MainSplit: View {
     /// single-pane sections, so they drop the third column entirely.
     var sectionHasDetail: Bool {
         switch section {
-        case .pads, .questions: true
+        case .pads, .questions, .screen: true
         case .organization, .quota: false
         }
     }
@@ -188,6 +188,7 @@ struct MainSplit: View {
         case .questions: String(localized: "Questions")
         case .organization: String(localized: "Organization")
         case .quota: String(localized: "Quota")
+        case .screen: String(localized: "Screen")
         }
     }
 
@@ -278,7 +279,8 @@ struct MainSplit: View {
         .task(id: SessionKey(accountID: store.currentAccountID, merged: store.isMergedView)) {
             if store.isMergedView {
                 if let raw = UserDefaults.standard.string(forKey: "section.merged"),
-                   let restored = AppSection(rawValue: raw) {
+                   let restored = AppSection(rawValue: raw), restored != .screen {
+                    // Screen is per-account, so it never applies in the combined view (#432).
                     section = restored
                 }
                 // Section is settled, so the collapse can map to the right column count.
@@ -290,7 +292,9 @@ struct MainSplit: View {
                 monitor.start()
             } else if let account = store.currentAccount {
                 if let raw = UserDefaults.standard.string(forKey: "section.\(account.id.uuidString)"),
-                   let restored = AppSection(rawValue: raw) {
+                   let restored = AppSection(rawValue: raw),
+                   restored != .screen || account.makeScreenClient() != nil {
+                    // Don't land on Screen if the account no longer has a Screen key (#432).
                     section = restored
                 }
                 // Section is settled, so the collapse can map to the right column count.

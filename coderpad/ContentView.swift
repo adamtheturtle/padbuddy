@@ -6,7 +6,7 @@
 import SwiftUI
 
 enum AppSection: String, Hashable {
-    case pads, questions, organization, quota
+    case pads, questions, organization, quota, screen
 }
 
 struct ContentView: View {

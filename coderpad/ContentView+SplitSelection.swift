@@ -69,7 +69,9 @@ extension MainSplit {
             }
             restoredSections.insert(section)
 
-        case .organization, .quota:
+        // Screen has no selectable list rows yet (placeholder); selection restore
+        // for campaigns/test sessions lands with #434.
+        case .organization, .quota, .screen:
             break
         }
     }

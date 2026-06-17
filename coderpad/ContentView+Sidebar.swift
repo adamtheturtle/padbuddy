@@ -88,6 +88,11 @@ struct Sidebar: View {
         .onChange(of: quotaIsUnlimited) { _, unlimited in
             if unlimited, section == .quota { section = .pads }
         }
+        // If the Screen section becomes unreachable (key removed, or switching to the
+        // combined view), step away to Pads so the user isn't left on a gone section.
+        .onChange(of: screenSectionAvailable) { _, available in
+            if !available, section == .screen { section = .pads }
+        }
     }
 
     var accountID: UUID? {
@@ -101,6 +106,15 @@ struct Sidebar: View {
         guard !isMergedView, let id = accountID else { return false }
 
         return quotaCache.get(id)?.unlimited == true
+    }
+
+    /// Whether the current account has CoderPad Screen configured, gating the Screen
+    /// section the way `quotaIsUnlimited` gates Quota. Single-account only — the
+    /// combined view spans accounts and Screen is per-account for now (#432).
+    var screenSectionAvailable: Bool {
+        guard !isMergedView else { return false }
+
+        return accounts.currentAccount?.makeScreenClient() != nil
     }
 
     /// The non-navigable Quota row shown on an unlimited plan: it states the plan is

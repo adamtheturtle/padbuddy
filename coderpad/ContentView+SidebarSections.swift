@@ -115,7 +115,7 @@ extension Sidebar {
             if isMergedView { return !mergedMineOnly(for: kind) }
             return !items(for: kind).contains { liveFilter(for: kind).hasSameFilters(as: $0.search) }
 
-        case .organization, .quota:
+        case .organization, .quota, .screen:
             return nav.section == value
         }
     }
@@ -124,9 +124,12 @@ extension Sidebar {
     /// rows above and the arrow-key handler so the two never disagree. Quota drops
     /// out on an unlimited plan, where its row is a non-navigable indicator (#306).
     var sectionOrder: [AppSection] {
-        quotaIsUnlimited
-            ? [.pads, .questions, .organization]
-            : [.pads, .questions, .organization, .quota]
+        var order: [AppSection] = [.pads, .questions, .organization]
+        // Quota drops out on an unlimited plan, where its row is a non-navigable
+        // indicator (#306); Screen only appears when the account has a Screen key (#432).
+        if !quotaIsUnlimited { order.append(.quota) }
+        if screenSectionAvailable { order.append(.screen) }
+        return order
     }
 
     /// Drives the section `List`'s selection. The getter is *derived* from each pane's
@@ -168,6 +171,7 @@ extension Sidebar {
         case .questions: ("Questions", "questionmark.bubble")
         case .organization: ("Organization", "building.2")
         case .quota: ("Quota", "gauge.with.dots.needle.67percent")
+        case .screen: ("Screen", "person.crop.rectangle.stack")
         }
     }
 
@@ -195,6 +199,11 @@ extension Sidebar {
             // The quota page is unreachable on an unlimited plan (#306); the row is a
             // plain indicator there and never calls this, but guard anyway.
             if !quotaIsUnlimited { section = value }
+
+        case .screen:
+            // Only reachable when the account has a Screen key (the row is gated on
+            // `screenSectionAvailable`), but guard anyway.
+            if screenSectionAvailable { section = value }
         }
     }
 

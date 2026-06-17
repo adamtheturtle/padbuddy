@@ -34,6 +34,9 @@ struct SectionContent: View {
             case .organization: OrganizationView(client: client).id(account.id)
 
             case .quota: QuotaView(client: client).id(account.id)
+
+            // Phase 1 scaffolding (#432): list/detail content lands in #433+.
+            case .screen: ScreenSectionPlaceholder().id(account.id)
             }
         }
     }
@@ -57,6 +60,10 @@ struct SectionContent: View {
                 MergedOrganizationView()
             case .quota:
                 MergedQuotaView()
+            // Screen is per-account only for now (#432), so it's excluded from the
+            // combined view — its row never appears there, but the switch is exhaustive.
+            case .screen:
+                EmptyView()
             }
         }
         .id("merged-\(section.rawValue)")
@@ -90,6 +97,9 @@ struct SectionDetail: View {
         case .organization, .quota:
             ContentUnavailableView("Nothing selected", systemImage: "sidebar.squares.leading",
                                    description: Text("This section shows everything in the list."))
+
+        case .screen:
+            ScreenDetailPlaceholder()
         }
     }
 
