@@ -87,7 +87,9 @@ struct SearchableFilterChip: View {
         .contentShape(Capsule())
         .onTapGesture { presented.toggle() }
         .chipClearOverlay(isActive: isActive, label: String(localized: "Clear \(title) filter")) { selected = nil }
-        .disabled(options.isEmpty)
+        // Only disable when there's nothing to pick *and* no active filter to clear;
+        // an active filter must stay clearable even if its option list reloaded empty.
+        .disabled(options.isEmpty && !isActive)
         .accessibilityElement(children: .ignore)
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel("\(title) filter")
