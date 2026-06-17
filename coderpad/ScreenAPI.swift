@@ -29,6 +29,15 @@ nonisolated struct ScreenCampaign: Decodable, Identifiable, Hashable {
     let pinned: Bool
     let archived: Bool
 
+    /// Memberwise init for tests and previews; the live decode path uses `init(from:)`.
+    init(id: Int, name: String, languages: [String] = [], pinned: Bool = false, archived: Bool = false) {
+        self.id = id
+        self.name = name
+        self.languages = languages
+        self.pinned = pinned
+        self.archived = archived
+    }
+
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(Int.self, forKey: .id)

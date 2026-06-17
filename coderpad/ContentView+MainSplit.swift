@@ -60,6 +60,7 @@ struct MainSplit: View {
     /// active one is routed to the single searchable field via ``activeSearch``.
     @State var padSearch = ""
     @State var questionSearch = ""
+    @State var screenSearch = ""
 
     /// Drives the lifted searchable field's focus so ⌘F (via ``FindAction``) can
     /// still jump straight into it from anywhere in the window.
@@ -69,13 +70,21 @@ struct MainSplit: View {
     /// Only `threeColumnSplit` (Pads/Questions) carries the field, so the default
     /// arm simply covers Pads.
     var activeSearch: Binding<String> {
-        section == .questions ? $questionSearch : $padSearch
+        switch section {
+        case .questions: $questionSearch
+        case .screen: $screenSearch
+        default: $padSearch
+        }
     }
 
     var searchPrompt: Text {
         // Each branch must be its own `Text` literal so SwiftUI localizes it; a
         // `Text(ternary-of-Strings)` would use the verbatim initializer (#111).
-        section == .questions ? Text("Search questions") : Text("Search pads")
+        switch section {
+        case .questions: Text("Search questions")
+        case .screen: Text("Search campaigns")
+        default: Text("Search pads")
+        }
     }
 
     /// Drives the sidebar collapse/expand. Bound to the `NavigationSplitView` so

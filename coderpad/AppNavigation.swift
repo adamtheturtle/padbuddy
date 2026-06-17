@@ -54,6 +54,12 @@ final class AppNavigation {
     /// Consumed and cleared by QuestionsView when it appears or this value changes.
     var questionsRequest: QuestionsRequest?
 
+    /// The campaign selected in the Screen section's list, read by the test-sessions
+    /// column so selecting a campaign drives what it shows (#433). Kept here rather
+    /// than as a `MainSplit` binding so it doesn't need threading through the shared
+    /// split columns; the campaigns list owns it and the detail column observes it.
+    var screenCampaignSelection: ScreenCampaign?
+
     /// The live filter signature of each list, republished by its pane whenever its
     /// filters change (and on appear). The sidebar compares these against the
     /// suggested and saved rows to highlight whichever search is currently applied,

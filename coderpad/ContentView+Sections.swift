@@ -17,6 +17,7 @@ struct SectionContent: View {
     @Binding var questionSelection: Question?
     @Binding var padSearch: String
     @Binding var questionSearch: String
+    @Binding var screenSearch: String
 
     var body: some View {
         if store.isMergedView {
@@ -35,8 +36,14 @@ struct SectionContent: View {
 
             case .quota: QuotaView(client: client).id(account.id)
 
-            // Phase 1 scaffolding (#432): list/detail content lands in #433+.
-            case .screen: ScreenSectionPlaceholder().id(account.id)
+            // The Screen row only shows when a Screen client exists (#432), but guard
+            // anyway; the campaigns list is the content column (#433).
+            case .screen:
+                if let screen = account.makeScreenClient() {
+                    ScreenCampaignsView(client: screen, search: $screenSearch).id(account.id)
+                } else {
+                    ScreenSectionPlaceholder()
+                }
             }
         }
     }
@@ -73,6 +80,7 @@ struct SectionContent: View {
 struct SectionDetail: View {
     @State private var store = AccountsStore.shared
     @State private var router = MergedRouting.shared
+    @State private var nav = AppNavigation.shared
     let section: AppSection
     @Binding var padSelection: Pad?
     @Binding var questionSelection: Question?
@@ -99,7 +107,9 @@ struct SectionDetail: View {
                                    description: Text("This section shows everything in the list."))
 
         case .screen:
-            ScreenDetailPlaceholder()
+            // The selected campaign's test sessions land in #434; for now the detail
+            // reflects which campaign is selected.
+            ScreenDetailPlaceholder(campaign: nav.screenCampaignSelection)
         }
     }
 

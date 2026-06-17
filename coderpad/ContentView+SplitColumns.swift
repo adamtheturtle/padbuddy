@@ -36,7 +36,8 @@ extension MainSplit {
                 padSelection: $padSelection,
                 questionSelection: $questionSelection,
                 padSearch: $padSearch,
-                questionSearch: $questionSearch
+                questionSearch: $questionSearch,
+                screenSearch: $screenSearch
             )
             // Round to whole points and only assign on a real change. The measured
             // filter-bar width feeds this column's own min width, so re-writing it
@@ -124,7 +125,8 @@ extension MainSplit {
                     padSelection: $padSelection,
                     questionSelection: $questionSelection,
                     padSearch: $padSearch,
-                    questionSearch: $questionSearch
+                    questionSearch: $questionSearch,
+                    screenSearch: $screenSearch
                 )
                 // Organization and Quota publish no count, so this resets the subtitle
                 // back to the static section subtitle when switching in from a list.
