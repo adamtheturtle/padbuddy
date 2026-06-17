@@ -12,6 +12,15 @@
 	<true/>
 	<key>com.apple.security.network.client</key>
 	<true/>
+	<!-- Sparkle (#28): the sandboxed app talks to Sparkle's Installer XPC service
+	     (-spks) and its launcher (-spki) over these mach ports to install updates.
+	     The Downloader service (-spkd) is unnecessary because we already hold
+	     com.apple.security.network.client. See docs/sparkle-setup.md. -->
+	<key>com.apple.security.temporary-exception.mach-lookup.global-name</key>
+	<array>
+		<string>$(PRODUCT_BUNDLE_IDENTIFIER)-spks</string>
+		<string>$(PRODUCT_BUNDLE_IDENTIFIER)-spki</string>
+	</array>
 	<key>keychain-access-groups</key>
 	<array>
 		<string>$(AppIdentifierPrefix)com.adamdangoor.coderpad</string>

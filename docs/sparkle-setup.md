@@ -37,19 +37,16 @@ background update checks.
      `REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY`).
    - Add the **private** key's contents as the repo secret `SPARKLE_PRIVATE_ED_KEY`.
 
-3. **Sandbox entitlements (required — the app is sandboxed).** Sparkle's updater
-   runs in XPC services that need explicit sandbox permission. Per Sparkle's
-   "Sandboxing" guide, add to `coderpad/coderpad.entitlements`:
-   - `com.apple.security.temporary-exception.mach-lookup.global-name` →
-     `$(PRODUCT_BUNDLE_IDENTIFIER)-spks` (Sparkle's installer XPC) and
-     `$(PRODUCT_BUNDLE_IDENTIFIER)-spki` (its progress/launcher), and
-   - set `SUEnableInstallerLauncherService` = `YES` in `Info.plist`.
-
-   Follow the current Sparkle docs exactly — the precise keys depend on the Sparkle
-   version. Verify the sandboxed app can download and install an update before
-   shipping. Re-confirm `scripts/package-and-notarize.sh` still signs the embedded
-   Sparkle XPC services (it signs nested code inside-out, so they should be covered,
-   but check on the first signed release).
+3. **Sandbox entitlements — already wired.** Because the app is sandboxed,
+   `coderpad/coderpad.entitlements` grants the mach-lookup temporary-exceptions
+   `$(PRODUCT_BUNDLE_IDENTIFIER)-spks` (Sparkle's installer XPC) and `-spki` (its
+   launcher), and `Info.plist` sets `SUEnableInstallerLauncherService` = `YES`. The
+   Downloader service (`-spkd`) is intentionally omitted — the app already holds
+   `com.apple.security.network.client`, which Sparkle prefers. **You still must
+   verify** an update actually downloads and installs on a real (signed, sandboxed)
+   build, and confirm `scripts/package-and-notarize.sh` signs the embedded Sparkle
+   XPC services (it signs nested code inside-out, so they should be covered — check
+   on the first signed release).
 
 4. **First release.** Tag a `v*` release. With `SPARKLE_PRIVATE_ED_KEY` set, the
    workflow runs `scripts/generate-appcast.sh` and attaches `appcast.xml`.
