@@ -67,12 +67,12 @@ struct OrganizationView: View {
 
     var body: some View {
         Group {
-            if isLoading, organization == nil {
-                ProgressView("Loading organization…")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            } else if let error, organization == nil {
+            if let error, organization == nil {
                 APIErrorView(error: error) { Task { await reload() } }
             } else {
+                // No blocking spinner on first load (#362): show the layout straight
+                // away with the stat tiles' own "…" placeholders, and let the
+                // toolbar's reload button carry the loading state instead.
                 VStack(spacing: 0) {
                     if period == .custom { customRangeHeader }
                     ScrollView {
