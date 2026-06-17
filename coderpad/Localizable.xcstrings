@@ -1169,7 +1169,14 @@
       }
     },
     "Authentication error" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Error de autenticación"
+          }
+        }
+      }
     },
     "Auto-filled from your organization" : {
       "localizations" : {
@@ -1308,7 +1315,14 @@
       }
     },
     "Check for Updates…" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Buscar actualizaciones…"
+          }
+        }
+      }
     },
     "Choose one of your saved accounts in Settings." : {
       "localizations" : {
@@ -1401,7 +1415,14 @@
       }
     },
     "Code panel width" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Anchura del panel de código"
+          }
+        }
+      }
     },
     "Code preview of %@ in %@ in pad %@" : {
       "localizations" : {
@@ -1561,10 +1582,24 @@
       }
     },
     "Collapsed" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Contraída"
+          }
+        }
+      }
     },
     "Collapses the folder" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Contrae la carpeta"
+          }
+        }
+      }
     },
     "Color" : {
       "localizations" : {
@@ -1767,7 +1802,14 @@
       }
     },
     "Couldn’t delete question" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudo eliminar la pregunta"
+          }
+        }
+      }
     },
     "Couldn’t load this pad" : {
       "localizations" : {
@@ -1941,7 +1983,14 @@
       }
     },
     "Current account" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Cuenta actual"
+          }
+        }
+      }
     },
     "Custom %@ Range" : {
       "localizations" : {
@@ -1974,7 +2023,14 @@
       }
     },
     "Date Created" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Fecha de creación"
+          }
+        }
+      }
     },
     "Default" : {
       "localizations" : {
@@ -2640,10 +2696,24 @@
       }
     },
     "Expanded" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Expandida"
+          }
+        }
+      }
     },
     "Expands the folder" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Expande la carpeta"
+          }
+        }
+      }
     },
     "Explain this file" : {
       "localizations" : {
@@ -2907,10 +2977,24 @@
       }
     },
     "Hide Detail Pane" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Ocultar panel de detalles"
+          }
+        }
+      }
     },
     "Hide Sidebar" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Ocultar barra lateral"
+          }
+        }
+      }
     },
     "Hide the API key." : {
       "localizations" : {
@@ -2923,7 +3007,14 @@
       }
     },
     "Hide the detail pane" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Ocultar el panel de detalles"
+          }
+        }
+      }
     },
     "How often pads and questions reload in the background." : {
       "extractionState" : "stale",
@@ -3083,7 +3174,14 @@
       }
     },
     "Last Updated" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Actualizado por última vez"
+          }
+        }
+      }
     },
     "Last Used" : {
       "localizations" : {
@@ -3703,7 +3801,14 @@
       }
     },
     "Off" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Desactivado"
+          }
+        }
+      }
     },
     "Offline — read-only" : {
       "localizations" : {
@@ -4198,7 +4303,14 @@
       }
     },
     "Pad Unavailable" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pad no disponible"
+          }
+        }
+      }
     },
     "Pads" : {
       "localizations" : {
@@ -4441,7 +4553,14 @@
       }
     },
     "Question prompt" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Descripción de la pregunta"
+          }
+        }
+      }
     },
     "Question Unavailable" : {
       "localizations" : {
@@ -4838,7 +4957,14 @@
       }
     },
     "Selected" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Seleccionado"
+          }
+        }
+      }
     },
     "Send Email" : {
       "localizations" : {
@@ -4981,7 +5107,14 @@
       }
     },
     "Show Detail Pane" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mostrar panel de detalles"
+          }
+        }
+      }
     },
     "Show my active pads on the Dock icon" : {
       "localizations" : {
@@ -5004,7 +5137,14 @@
       }
     },
     "Show only active pads" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mostrar solo pads activos"
+          }
+        }
+      }
     },
     "Show only started pads" : {
       "extractionState" : "stale",
@@ -5068,7 +5208,14 @@
       }
     },
     "Show Sidebar" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mostrar barra lateral"
+          }
+        }
+      }
     },
     "Show the API key." : {
       "localizations" : {
@@ -5081,7 +5228,14 @@
       }
     },
     "Show the detail pane" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mostrar el panel de detalles"
+          }
+        }
+      }
     },
     "Shows pads from %@" : {
       "localizations" : {
@@ -5184,7 +5338,14 @@
       }
     },
     "Sort pads" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Ordenar pads"
+          }
+        }
+      }
     },
     "Sort questions" : {
       "localizations" : {
@@ -5537,7 +5698,14 @@
       }
     },
     "This pad couldn’t be loaded." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudo cargar este pad."
+          }
+        }
+      }
     },
     "This question couldn’t be loaded." : {
       "localizations" : {
