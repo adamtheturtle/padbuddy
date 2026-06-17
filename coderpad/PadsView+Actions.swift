@@ -294,9 +294,11 @@ extension PadsView {
                 // transiently shrink the visible list to just page 1.
                 if isInitialLoad {
                     pads = snapshot
+                    padsRevision += 1
                 }
             }
             pads = fetched
+            padsRevision += 1
             finalize(fetched: fetched)
         } catch {
             self.error = error

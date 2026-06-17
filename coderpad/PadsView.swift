@@ -84,6 +84,14 @@ struct PadsView: View {
     /// Per-render memo for `filtered` (see `refreshFiltered()`). A reference type so
     /// `body` can refresh it without mutating SwiftUI state mid-evaluation.
     @State var filteredCache = FilteredPadsCache()
+    /// Bumped on every mutation of `pads`, so `refreshFiltered()` can tell a real
+    /// list change from a body pass driven only by the selection. A click re-runs
+    /// `body` several times (the `selectedIDs → selectedID → selection` cascade);
+    /// without this token each pass re-ran the O(n) filter + O(n log n) sort over
+    /// the whole org, which is what made clicking a row slow on a 2000-pad list
+    /// while a filtered (small) list stayed instant (#395). Any new assignment to
+    /// `pads` must bump this.
+    @State var padsRevision = 0
     @State var savedSearches = SavedSearchStore.shared
     @State var showSaveSearch = false
     @State var saveSearchName = ""
@@ -143,6 +151,7 @@ struct PadsView: View {
 
                 if pads.isEmpty, let id = accounts.currentAccountID {
                     pads = cache.get(id)
+                    padsRevision += 1
                 }
                 // Reopen the pad that was selected last session, once a list exists
                 // to resolve it against (the cache above, or the reload below).
@@ -212,6 +221,7 @@ struct PadsView: View {
                 for await updated in AppRouter.padUpdates {
                     if let index = pads.firstIndex(where: { $0.id == updated.id }) {
                         pads[index] = updated
+                        padsRevision += 1
                         if selection?.id == updated.id { selection = updated }
                     }
                 }
@@ -226,6 +236,7 @@ struct PadsView: View {
                     let neighbor = wasPrimary ? neighborSelection(forDeleted: id) : nil
                     selectedIDs.remove(id)
                     pads.removeAll { $0.id == id }
+                    padsRevision += 1
                     // Keep the disk cache, Spotlight index, and widget in step;
                     // otherwise the deleted pad lingers there until a full reload.
                     cache.removePad(id: id)
@@ -248,6 +259,7 @@ struct PadsView: View {
             .sheet(isPresented: $showCreate) {
                 NewPadSheet(client: client, initialQuestionID: seedQuestionID) { created in
                     pads.insert(created, at: 0)
+                    padsRevision += 1
                     selectedIDs = [created.id]
                     showCreate = false
                     seedQuestionID = nil
@@ -317,4 +329,17 @@ private struct TaskKey: Hashable {
 /// `body` can refresh it without triggering a SwiftUI state mutation.
 final class FilteredPadsCache {
     var pads: [Pad] = []
+    /// The inputs `pads` was last computed for. When an unrelated body pass (e.g. a
+    /// selection change) leaves these identical, `refreshFiltered()` reuses the same
+    /// array instead of re-filtering and re-sorting the whole org (#395).
+    var key: Key?
+
+    struct Key: Equatable {
+        let padsRevision: Int
+        let filterSignature: String
+        let sortRawValue: String
+        /// Owner display names feed the search predicate, so a directory that finishes
+        /// loading after the list must re-filter. Its entry count is a cheap proxy.
+        let directoryCount: Int
+    }
 }

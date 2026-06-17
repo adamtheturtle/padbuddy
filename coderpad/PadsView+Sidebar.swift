@@ -20,6 +20,18 @@ extension PadsView {
     }
 
     func refreshFiltered() {
+        // Skip the filter+sort when nothing that affects the result changed. `body`
+        // re-runs several times per click as the selection settles, and only the
+        // selection differs across those passes — re-filtering and re-sorting the
+        // whole org each time is what made clicking a row slow on large lists (#395).
+        let key = FilteredPadsCache.Key(
+            padsRevision: padsRevision,
+            filterSignature: filterSignature,
+            sortRawValue: sort.rawValue,
+            directoryCount: directory.nameByEmail.count
+        )
+        guard filteredCache.key != key else { return }
+
         let matched = PadListLogic.filter(
             pads,
             using: PadFilterCriteria(
@@ -35,6 +47,7 @@ extension PadsView {
             display: directory.display
         )
         filteredCache.pads = sort.sorted(matched)
+        filteredCache.key = key
     }
 
     /// The pad to select after the pad with `id` is deleted. Picks the row that
