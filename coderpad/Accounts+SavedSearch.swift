@@ -157,6 +157,16 @@ final class SavedSearchStore {
         save()
     }
 
+    /// Drops every saved search (both kinds) for an account, called when the
+    /// account is removed or re-keyed so its search definitions don't linger in
+    /// UserDefaults (#379).
+    func remove(account: UUID) {
+        guard byAccount[account] != nil else { return }
+
+        byAccount[account] = nil
+        save()
+    }
+
     /// Carries pre-existing global pad searches (saved before searches became
     /// per-account) into the current account's pad bucket, so upgrading doesn't
     /// silently drop them. Folds the legacy searches in alongside any existing
@@ -298,6 +308,18 @@ final class FavoriteQuestionsStore {
         entries.insert(moved, at: insertAt)
         byAccount[account] = entries
         save()
+        WidgetSync.syncFavorites(account: account)
+    }
+
+    /// Drops every starred question for an account, called when the account is
+    /// removed or re-keyed so its question ids and captured titles don't linger in
+    /// UserDefaults — the titles can carry candidate names, a privacy concern (#379).
+    func remove(account: UUID) {
+        guard byAccount[account] != nil else { return }
+
+        byAccount[account] = nil
+        save()
+        // Push the now-empty favorites to the widget so its question picker drops them too.
         WidgetSync.syncFavorites(account: account)
     }
 

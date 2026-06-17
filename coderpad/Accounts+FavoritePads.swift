@@ -84,6 +84,15 @@ final class FavoritePadsStore {
         save()
     }
 
+    /// Drops every favorite for an account, called when the account is removed or
+    /// re-keyed so its pinned pad ids don't linger in UserDefaults (#379).
+    func remove(account: UUID) {
+        guard byAccount[account] != nil else { return }
+
+        byAccount[account] = nil
+        save()
+    }
+
     private func save() {
         do {
             let data = try JSONEncoder().encode(byAccount)
@@ -124,6 +133,15 @@ final class PadOpenedStore {
     /// next changes. `now` is injectable for tests.
     func markOpened(_ padID: String, account: UUID, now: Date = Date()) {
         byAccount[account, default: [:]][padID] = now
+        save()
+    }
+
+    /// Drops an account's open-history, called when the account is removed or
+    /// re-keyed so its pad-open timestamps don't linger in UserDefaults (#379).
+    func remove(account: UUID) {
+        guard byAccount[account] != nil else { return }
+
+        byAccount[account] = nil
         save()
     }
 

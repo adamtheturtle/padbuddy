@@ -163,6 +163,10 @@ final class AccountsStore {
             QuotaCacheStore.shared.remove(account.id)
             SpotlightIndexer.removeAccount(account.id)
             AccountHealthMonitor.shared.clearUnauthorized(account.id)
+            // Re-keying may point at a different org, so the per-account favorites,
+            // saved searches, and pad-open history no longer apply (a leftover
+            // per-org favorite id could even re-attach to an unrelated question). #379
+            clearPersonalData(for: account.id)
         }
     }
 
@@ -179,6 +183,18 @@ final class AccountsStore {
         QuotaCacheStore.shared.remove(id)
         SpotlightIndexer.removeAccount(id)
         AccountHealthMonitor.shared.clearUnauthorized(id)
+        clearPersonalData(for: id)
+    }
+
+    /// Clears the per-account UserDefaults stores that aren't part of the network
+    /// caches above — favorites, saved searches, and pad-open history — so removing
+    /// or re-keying an account leaves nothing behind (a storage leak and, for the
+    /// stored question titles, a mild privacy concern). #379
+    private func clearPersonalData(for id: UUID) {
+        FavoritePadsStore.shared.remove(account: id)
+        FavoriteQuestionsStore.shared.remove(account: id)
+        SavedSearchStore.shared.remove(account: id)
+        PadOpenedStore.shared.remove(account: id)
     }
 
     private func migrateLegacyIfNeeded() {
