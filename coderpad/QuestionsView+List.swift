@@ -237,9 +237,11 @@ extension QuestionsView {
         // Edit ▸ Copy / ⌘C copies the selected questions' web URLs (one per line)
         // while the list holds focus, matching the row's "Copy Question URL" action
         // and extending it to a multi-row selection.
+        // One pass over the selection: `copyLinkCommand` already returns nil for an empty
+        // string, so the prior call-site `.isEmpty` check — which evaluated the O(N)
+        // `selectedQuestionURLsInOrder` a second time — is redundant (#417).
         .onCopyCommand(perform: copyLinkCommand(
-            selectedQuestionURLsInOrder.isEmpty ? nil
-                : selectedQuestionURLsInOrder.joined(separator: "\n")
+            selectedQuestionURLsInOrder.joined(separator: "\n")
         ))
     }
 

@@ -269,9 +269,11 @@ extension MergedQuestionsView {
         // while the list holds focus, matching the row's "Copy Question URL" action
         // and extending it to a multi-row selection. Each link is built from its
         // originating account's server URL, so a merged-list copy honors custom domains.
+        // One pass over the selection: `copyLinkCommand` already returns nil for an empty
+        // string, so the prior call-site `.isEmpty` check — which evaluated the O(N)
+        // `selectedQuestionURLsInOrder` a second time — is redundant (#417).
         .onCopyCommand(perform: copyLinkCommand(
-            selectedQuestionURLsInOrder.isEmpty ? nil
-                : selectedQuestionURLsInOrder.joined(separator: "\n")
+            selectedQuestionURLsInOrder.joined(separator: "\n")
         ))
     }
 

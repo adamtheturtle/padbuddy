@@ -185,9 +185,11 @@ extension PadsView {
             // Edit ▸ Copy / ⌘C copies the selected pads' web URLs (one per line) while
             // the list holds focus, matching the row's "Copy Pad URL" action and
             // extending it to a multi-row selection.
+            // One pass over the filtered list: `copyLinkCommand` already returns nil for
+            // an empty string (no selection), so the prior call-site `.isEmpty` check —
+            // which evaluated the O(N) `selectedPadsInOrder` a second time — is redundant.
             .onCopyCommand(perform: copyLinkCommand(
-                selectedPadsInOrder.isEmpty ? nil
-                    : selectedPadsInOrder.map(\.url).joined(separator: "\n")
+                selectedPadsInOrder.map(\.url).joined(separator: "\n")
             ))
     }
 
