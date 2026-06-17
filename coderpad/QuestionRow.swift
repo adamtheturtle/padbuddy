@@ -66,13 +66,15 @@ struct QuestionRow: View {
                 }
                 Spacer(minLength: 8)
                 if let lastUsed = question.updatedAt {
-                    Text(lastUsed.formatted(.relative(presentation: .named)))
+                    // Cached labels rather than `.formatted` per render — see PadRow (#439).
+                    let labels = RelativeDateLabel.labels(for: lastUsed)
+                    Text(labels.relative)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .fixedSize()
-                        .help("Last used \(lastUsed.formatted(date: .long, time: .shortened))")
-                        .accessibilityLabel("Last used \(lastUsed.formatted(.relative(presentation: .named)))")
+                        .help("Last used \(labels.tooltip)")
+                        .accessibilityLabel("Last used \(labels.relative)")
                 }
             }
             // Read the title + metadata block as one VoiceOver element with a
@@ -106,7 +108,7 @@ struct QuestionRow: View {
         if question.isDraft == true { parts.append("Draft") }
         if let author = question.authorName { parts.append(author) }
         if let lastUsed = question.updatedAt {
-            parts.append("last used \(lastUsed.formatted(.relative(presentation: .named)))")
+            parts.append("last used \(RelativeDateLabel.labels(for: lastUsed).relative)")
         }
         return parts.joined(separator: ", ")
     }

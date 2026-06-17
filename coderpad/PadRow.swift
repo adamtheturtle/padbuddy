@@ -83,12 +83,16 @@ struct PadRow: View {
                 // in the same .caption/.secondary styling, rather than as a faint extra
                 // line tucked under the metadata.
                 if let updated = pad.informativeUpdatedAt {
-                    Text(updated.formatted(.relative(presentation: .named)))
+                    // Cached labels rather than `.formatted` per render: on a large list
+                    // this row's body is re-evaluated for every visible row on each
+                    // selection pass, and `.formatted(.relative:)` is costly (#439).
+                    let labels = RelativeDateLabel.labels(for: updated)
+                    Text(labels.relative)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .fixedSize()
-                        .help("Updated \(updated.formatted(date: .long, time: .shortened))")
+                        .help("Updated \(labels.tooltip)")
                 }
             }
             // Read the title + metadata block as one VoiceOver element with a coherent
@@ -152,7 +156,7 @@ struct PadRow: View {
         if pad.interviewType == .takeHome { parts.append("Take-home") }
         parts.append(directory.display(pad.ownerEmail))
         if let updated = pad.informativeUpdatedAt {
-            parts.append("updated \(updated.formatted(.relative(presentation: .named)))")
+            parts.append("updated \(RelativeDateLabel.labels(for: updated).relative)")
         }
         if isChanged { parts.append("recently updated") }
         return parts.joined(separator: ", ")
