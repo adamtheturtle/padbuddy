@@ -5,7 +5,31 @@
 
 import SwiftUI
 
-struct PadRow: View {
+struct PadRow: View, Equatable {
+    /// Skip re-evaluating a row's body when its inputs are unchanged. A `List`
+    /// builds a view for every row, and a selection change re-runs the list body, so
+    /// without this SwiftUI re-rendered all N rows (each doing Date formatting) on
+    /// every click — ~1.5s on a 2500-pad list. The favorite-toggle closure is excluded
+    /// (closures aren't comparable and it's stable per row).
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        // Compare only the fields this row actually renders, not the whole `Pad`
+        // (which carries participant/environment arrays). On a 2500-row list this
+        // `==` runs for every row on every selection pass, so a full struct compare —
+        // including those arrays — was a large share of the per-pass cost.
+        let lpad = lhs.pad, rpad = rhs.pad
+        return lpad.id == rpad.id
+            && lpad.title == rpad.title
+            && lpad.status == rpad.status
+            && lpad.language == rpad.language
+            && lpad.ownerEmail == rpad.ownerEmail
+            && lpad.interviewType == rpad.interviewType
+            && lpad.updatedAt == rpad.updatedAt
+            && lhs.isChanged == rhs.isChanged
+            && lhs.accountName == rhs.accountName
+            && lhs.account == rhs.account
+            && lhs.isFavorite == rhs.isFavorite
+    }
+
     let pad: Pad
     var isChanged: Bool = false
     /// The owning account's name, shown as a badge only in the combined "All

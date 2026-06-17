@@ -247,6 +247,7 @@ extension PadsView {
                 favoritePads.toggle(pad.id, account: account)
             }
         )
+        .equatable()
         .contextMenu { padContextMenu(pad) }
     }
 

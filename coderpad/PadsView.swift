@@ -145,8 +145,8 @@ struct PadsView: View {
     }
 
     var body: some View {
-        // Recompute the filtered list exactly once per render; all reads below hit
-        // the memo (see `refreshFiltered()`).
+        // Recompute the filtered list and chip options exactly once per render; all
+        // reads below hit the memos (see `refreshFiltered()` / `refreshChipOptions()`).
         refreshFiltered()
         refreshChipOptions()
         return sidebar
@@ -181,16 +181,21 @@ struct PadsView: View {
             .onChange(of: selectedIDs) { previous, current in
                 let primary = MultiSelectLogic.primaryID(previous: previous, current: current)
                 if selectedID != primary { selectedID = primary }
-            }
-            // Bridge the lightweight list selection (`selectedID`) to the `Pad`
-            // binding the detail pane reads. Each side writes only when the id truly
-            // differs, so the two `onChange`s can't ping-pong.
-            .onChange(of: selectedID) { _, newID in
-                if selection?.id != newID {
-                    selection = newID.flatMap { id in pads.first { $0.id == id } }
+                // Resolve the detail-pane `Pad` in the same pass rather than via a second
+                // `onChange(selectedID)`. A click re-runs `body` once per state write, and
+                // each pass rebuilds the list's prepared rows — so collapsing the
+                // selectedIDs → selectedID → selection chain into one update cycle removes
+                // a full list rebuild per click on a large list. `selectedID` is only ever
+                // derived from `selectedIDs` (here) or from an external `selection` change
+                // (below), so there's no separate writer that still needs the bridge.
+                if selection?.id != primary {
+                    selection = primary.flatMap { id in pads.first { $0.id == id } }
                 }
                 // Remember the open pad per account so the list reopens to it next launch.
-                persistSelectedPad()
+                // Deferred off the click's synchronous path: this writes UserDefaults, and a
+                // UserDefaults change re-reads the @AppStorage-backed `sort` mid-update,
+                // which invalidated the whole list (an extra full rebuild) on every click.
+                Task { @MainActor in persistSelectedPad() }
             }
             .onChange(of: nav.padsRequest) { _, _ in applyPendingRequest() }
             // The account id is often nil on first appear; restore once it lands, and
@@ -212,7 +217,11 @@ struct PadsView: View {
                 if isRestoringSelection {
                     isRestoringSelection = false
                 } else if let newValue, let account = accounts.currentAccountID {
-                    openedStore.markOpened(newValue.id, account: account)
+                    // Deferred off the click's synchronous path: `markOpened` mutates the
+                    // shared (Observable) open-history store that every row reads for its
+                    // "new activity" dot, so doing it inline rebuilds the whole list during
+                    // the selection. A turn later the dot clears without stalling the click.
+                    Task { @MainActor in openedStore.markOpened(newValue.id, account: account) }
                 }
                 if selectedID != newValue?.id { selectedID = newValue?.id }
             }
