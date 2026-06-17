@@ -234,12 +234,12 @@ extension QuestionsView {
         // stay enabled whenever this window is frontmost and a question
         // is selected, not only while the list holds keyboard focus.
         .focusedSceneValue(\.focusedQuestion, selection)
-        // Edit ▸ Copy / ⌘C copies the selected questions' web URLs (one per line)
-        // while the list holds focus, matching the row's "Copy Question URL" action
-        // and extending it to a multi-row selection.
-        // One pass: copyLinkCommand returns nil for an empty string, so a call-site
-        // `.isEmpty` check (a second O(N) evaluation) would be redundant (#417).
-        .onCopyCommand(perform: copyLinkCommand(selectedQuestionURLsInOrder.joined(separator: "\n")))
+        // Edit ▸ Copy / ⌘C copies the selected questions' web URLs (one per line) while
+        // the list holds focus. The O(N) `selectedQuestionURLsInOrder` scan is built
+        // lazily (only on an actual copy); the per-render gate is the O(1) empty check.
+        .onCopyCommand(perform: copyLinkCommand(hasSelection: !selectedQuestionIDs.isEmpty) {
+            selectedQuestionURLsInOrder.joined(separator: "\n")
+        })
     }
 
     /// The selected questions' web URLs in the order they appear in the list (not

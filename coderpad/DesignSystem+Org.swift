@@ -245,12 +245,25 @@ extension FocusedValues {
 /// the first responder, so this never steals ⌘C from a focused text field. Shared
 /// by every pad and question list so a selected row copies its link, the standard
 /// macOS list-copy behavior users reach for to paste into Slack, mail, or an event.
-func copyLinkCommand(_ urlString: String?) -> (() -> [NSItemProvider])? {
-    guard let urlString, !urlString.isEmpty else { return nil }
+func copyLinkCommand(hasSelection: Bool,
+                     urls makeURLString: @escaping () -> String) -> (() -> [NSItemProvider])? {
+    // `hasSelection` is the O(1) gate (an empty selection set), so returning nil to
+    // disable Edit ▸ Copy costs nothing on the render path. The link string itself —
+    // an O(N) scan over the filtered list to resolve the selected rows — is built
+    // lazily inside the returned closure, so it runs only when the user actually
+    // copies, not on every body pass that constructs this modifier. Evaluating it
+    // eagerly here is what added an O(N) scan to each selection-driven render and made
+    // clicking through a large list lag.
+    guard hasSelection else { return nil }
 
-    // NSItemProvider needs an NSItemProviderWriting; String isn't one, but NSString is.
-    // swiftlint:disable:next legacy_objc_type
-    return { [NSItemProvider(object: urlString as NSString)] }
+    return {
+        let urlString = makeURLString()
+        guard !urlString.isEmpty else { return [] }
+
+        // NSItemProvider needs an NSItemProviderWriting; String isn't one, but NSString is.
+        // swiftlint:disable:next legacy_objc_type
+        return [NSItemProvider(object: urlString as NSString)]
+    }
 }
 
 /// Action published by whichever pane currently owns a search field, so the

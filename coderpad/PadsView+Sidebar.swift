@@ -168,13 +168,12 @@ extension PadsView {
             .focusedSceneValue(\.focusedPad, selection)
             // Edit ▸ Copy / ⌘C copies the selected pads' web URLs (one per line) while
             // the list holds focus, matching the row's "Copy Pad URL" action and
-            // extending it to a multi-row selection.
-            // One pass over the filtered list: `copyLinkCommand` already returns nil for
-            // an empty string (no selection), so the prior call-site `.isEmpty` check —
-            // which evaluated the O(N) `selectedPadsInOrder` a second time — is redundant.
-            .onCopyCommand(perform: copyLinkCommand(
+            // extending it to a multi-row selection. The O(N) `selectedPadsInOrder` scan
+            // is built lazily (only on an actual copy); the per-render gate is the O(1)
+            // empty-selection check, so it stays off the click path.
+            .onCopyCommand(perform: copyLinkCommand(hasSelection: !selectedIDs.isEmpty) {
                 selectedPadsInOrder.map(\.url).joined(separator: "\n")
-            ))
+            })
     }
 
     /// The selected pads in the order they appear in the list (not the selection
