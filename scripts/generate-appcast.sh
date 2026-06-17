@@ -37,7 +37,9 @@ if [ -z "$ARCHIVE" ]; then
         [ -f "$candidate" ] && ARCHIVE="$candidate" && break
     done
 fi
-[ -n "$ARCHIVE" ] && [ -f "$ARCHIVE" ] || die "update archive not found for $TAG"
+if [ -z "$ARCHIVE" ] || [ ! -f "$ARCHIVE" ]; then
+    die "update archive not found for $TAG"
+fi
 
 : "${SPARKLE_PRIVATE_ED_KEY:?set SPARKLE_PRIVATE_ED_KEY (Sparkle EdDSA private key)}"
 
