@@ -123,6 +123,84 @@ struct WindowMinWidth: NSViewRepresentable {
     }
 }
 
+/// Turns on user customization for the host window's toolbar so View ▸ Customize
+/// Toolbar… is enabled (#408). Every section and detail toolbar is already a
+/// customizable `.toolbar(id:)` with stable item ids, so the customization palette
+/// works once it's allowed — but SwiftUI never flips `allowsUserCustomization` to
+/// `true` on the merged window toolbar for this `NavigationSplitView` + `.searchable`
+/// setup, which leaves `ToolbarCommands()`'s menu item permanently disabled. There's
+/// no SwiftUI lever for the flag, so set it on the `NSToolbar` directly.
+///
+/// Mirrors `SidebarSeparatorHider`: deferred a runloop turn (the window/toolbar isn't
+/// attached at make/update time) and re-enforced via `NSToolbar.willAddItemNotification`,
+/// because SwiftUI rebuilds the toolbar whenever it swaps in the detail-pane items and a
+/// one-shot set wouldn't survive that.
+struct ToolbarCustomizationEnabler: NSViewRepresentable {
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    func makeNSView(context: Context) -> NSView {
+        let view = NSView()
+        apply(from: view, coordinator: context.coordinator)
+        return view
+    }
+
+    func updateNSView(_ nsView: NSView, context: Context) {
+        apply(from: nsView, coordinator: context.coordinator)
+    }
+
+    static func dismantleNSView(_: NSView, coordinator: Coordinator) {
+        coordinator.stopObserving()
+    }
+
+    private func apply(from view: NSView, coordinator: Coordinator) {
+        DispatchQueue.main.async {
+            guard let toolbar = view.window?.toolbar else { return }
+
+            coordinator.observe(toolbar)
+            coordinator.enforce()
+        }
+    }
+
+    final class Coordinator {
+        private weak var toolbar: NSToolbar?
+        private var observer: (any NSObjectProtocol)?
+
+        /// Re-enable customization whenever SwiftUI rebuilds the toolbar (it re-adds
+        /// items on every selection-driven detail swap). Idempotent per toolbar.
+        func observe(_ toolbar: NSToolbar) {
+            guard self.toolbar !== toolbar else { return }
+
+            stopObserving()
+            self.toolbar = toolbar
+            observer = NotificationCenter.default.addObserver(
+                forName: NSToolbar.willAddItemNotification,
+                object: toolbar,
+                queue: .main
+            ) { [weak self] _ in
+                // Deferred a runloop turn: SwiftUI sets `allowsUserCustomization` back to
+                // false at the *end* of the reconfiguration that emits these adds, so a
+                // synchronous re-enable here is immediately clobbered. Re-asserting after
+                // the batch settles sticks (verified live: the flag holds once idle).
+                DispatchQueue.main.async { self?.enforce() }
+            }
+        }
+
+        func stopObserving() {
+            if let observer { NotificationCenter.default.removeObserver(observer) }
+            observer = nil
+            toolbar = nil
+        }
+
+        func enforce() {
+            guard let toolbar, !toolbar.allowsUserCustomization else { return }
+
+            toolbar.allowsUserCustomization = true
+        }
+    }
+}
+
 /// Suppresses AppKit's tracking separator while the sidebar is collapsed.
 /// `NavigationSplitView` adds an `NSTrackingSeparatorToolbarItem` to align a toolbar
 /// divider with a split divider. With the sidebar collapsed the content column shifts to

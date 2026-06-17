@@ -258,6 +258,10 @@ struct MainSplit: View {
             // sidebar is collapsed — with no sidebar divider to track it draws a stray
             // vertical line right after the leading actions (#337).
             .background(SidebarSeparatorHider(collapsed: columnVisibility != .all))
+            // Enable View ▸ Customize Toolbar… — SwiftUI leaves the merged window
+            // toolbar's `allowsUserCustomization` off for this split + search setup,
+            // disabling the menu item even though every toolbar is customizable (#408).
+            .background(ToolbarCustomizationEnabler())
         }
         .onChange(of: containerWidth) { _, width in updateSidebarCollapse(for: width) }
         // Honor a deliberate reopen in a too-narrow window so the auto-collapse doesn't
