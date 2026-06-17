@@ -15,6 +15,12 @@ enum WidgetSync {
     /// How many pads the widget ever needs, even at its largest size.
     private static let maxPads = 8
 
+    /// Serializes the widget mirror's JSON encode + atomic disk writes off the main
+    /// actor, so a cache `set` (which fires on every list reload and the 5-minute
+    /// background refresh) doesn't block the UI on file I/O (#373). Serial so writes
+    /// to the same shared files stay ordered.
+    private static let writeQueue = DispatchQueue(label: "com.coderpad.widget-sync", qos: .utility)
+
     /// Mirrors one account's most recently updated pads into the shared container,
     /// keyed by account id so a configured widget can pin it. When `isCurrent`, it
     /// also rewrites the default snapshot an unconfigured widget reads. Cheap and
@@ -26,12 +32,17 @@ enum WidgetSync {
     /// fires during the store's `init` — re-entering the singleton there would
     /// deadlock its one-time initializer.
     static func refresh(pads: [Pad], account accountID: UUID, isCurrent: Bool) {
+        // Build the small snapshot slice on the caller (cheap: a sort + prefix of
+        // `maxPads`), then hand the encode + atomic writes to a background queue so
+        // the main actor isn't blocked on disk I/O (#373).
         let snapshots = recentSnapshots(from: pads)
-        WidgetSharedStore.save(snapshots, account: accountID.uuidString)
-        if isCurrent {
-            WidgetSharedStore.save(snapshots)
+        writeQueue.async {
+            WidgetSharedStore.save(snapshots, account: accountID.uuidString)
+            if isCurrent {
+                WidgetSharedStore.save(snapshots)
+            }
+            WidgetCenter.shared.reloadAllTimelines()
         }
-        WidgetCenter.shared.reloadAllTimelines()
     }
 
     /// Clears the default snapshot (read when no account is pinned) and reloads, for
