@@ -23,6 +23,12 @@ name: Release
 #   NOTARY_APPLE_ID                   Apple ID email for notarytool
 #   NOTARY_PASSWORD                   app-specific password for that Apple ID
 #   NOTARY_TEAM_ID                    Apple Developer Team ID (e.g. 6L9H6Q8CUF)
+#
+# Optional, for Sparkle in-app updates (#28) — when set, a signed appcast.xml is
+# generated and attached to the Release so installed copies can auto-update:
+#   SPARKLE_PRIVATE_ED_KEY            EdDSA private key from `generate_keys -x`
+#                                     (its public half goes in Info.plist's
+#                                     SUPublicEDKey). See docs/sparkle-setup.md.
 on:
   push:
     tags:
@@ -40,6 +46,9 @@ jobs:
     # keys off this so the workflow degrades gracefully to an unsigned .zip.
     env:
       SIGNING_AVAILABLE: ${{ secrets.DEVELOPER_ID_APP_CERT_P12_BASE64 != '' && (secrets.ASC_KEY != '' || secrets.NOTARY_APPLE_ID != '') }}
+      # Sparkle appcast generation is independent of signing: it only needs the
+      # EdDSA key, so installed copies can verify updates. Inert when unset.
+      SPARKLE_AVAILABLE: ${{ secrets.SPARKLE_PRIVATE_ED_KEY != '' }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -134,6 +143,14 @@ jobs:
           ditto -c -k --sequesterRsrc --keepParent \
             "${{ steps.app.outputs.path }}" "coderpad-${GITHUB_REF_NAME}.zip"
 
+      # --- Sparkle appcast (when the EdDSA signing key is configured) -------
+
+      - name: Generate Sparkle appcast
+        if: env.SPARKLE_AVAILABLE == 'true'
+        env:
+          SPARKLE_PRIVATE_ED_KEY: ${{ secrets.SPARKLE_PRIVATE_ED_KEY }}
+        run: ./scripts/generate-appcast.sh "${GITHUB_REF_NAME}"
+
       # --- Publish ----------------------------------------------------------
 
       - name: Generate release notes
@@ -144,7 +161,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           ASSETS=()
-          for f in "coderpad-${GITHUB_REF_NAME}.dmg" "coderpad-${GITHUB_REF_NAME}.zip"; do
+          for f in "coderpad-${GITHUB_REF_NAME}.dmg" "coderpad-${GITHUB_REF_NAME}.zip" "appcast.xml"; do
             [ -f "$f" ] && ASSETS+=("$f")
           done
           gh release create "${GITHUB_REF_NAME}" \

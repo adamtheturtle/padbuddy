@@ -2,6 +2,16 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- Sparkle in-app updates (#28). Inert until the Sparkle package is linked.
+	     SUFeedURL points at the appcast attached to the latest GitHub Release
+	     (release.yml uploads appcast.xml). SUPublicEDKey MUST be replaced with the
+	     EdDSA public key printed by Sparkle's `generate_keys` — the placeholder
+	     below makes every update fail signature verification (fail-safe) until set.
+	     See docs/sparkle-setup.md. -->
+	<key>SUFeedURL</key>
+	<string>https://github.com/adamtheturtle/coderpad-macos/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

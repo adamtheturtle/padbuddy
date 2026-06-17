@@ -67,6 +67,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // without needing a log-out/in during development.
         NSApp.servicesProvider = servicesProvider
         NSUpdateDynamicServices()
+        // Start Sparkle's updater so scheduled background update checks run from
+        // launch (#28). No-op until the Sparkle package is linked.
+        #if canImport(Sparkle)
+            SoftwareUpdater.shared.start()
+        #endif
     }
 
     /// The menu shown when right-clicking the Dock icon. Offers the same quick
@@ -251,6 +256,14 @@ struct CoderpadApp: App {
     private var appCommands: some Commands {
         CommandGroup(replacing: .appInfo) {
             Button("About CoderPad") { showAbout() }
+        }
+        // "Check for Updates…" sits just below About, its conventional home. The
+        // item only appears once the Sparkle package is linked (#28); without it
+        // this group is empty and adds nothing.
+        CommandGroup(after: .appInfo) {
+            #if canImport(Sparkle)
+                CheckForUpdatesButton()
+            #endif
         }
         CommandGroup(replacing: .newItem) {
             Button("New Pad…") {
