@@ -144,39 +144,16 @@ extension PadDetailView {
                     Button {
                         openExternalOrInApp(url)
                     } label: {
-                        AsyncImage(url: url) { phase in
-                            switch phase {
-                            case .empty:
-                                ZStack {
-                                    Color.subtleStroke
-                                    ProgressView().controlSize(.small)
-                                }
-                                .frame(height: 180)
-
-                            case let .success(image):
-                                image
-                                    .resizable()
-                                    .scaledToFit()
-
-                            case .failure:
-                                ZStack {
-                                    Color.subtleStroke
-                                    Label("Couldn’t load whiteboard", systemImage: "photo")
-                                        .foregroundStyle(.secondary)
-                                        .font(.callout)
-                                }
-                                .frame(height: 120)
-
-                            @unknown default:
-                                EmptyView()
-                            }
-                        }
-                        .frame(maxWidth: .infinity)
-                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .stroke(Color.subtleStroke, lineWidth: 1)
-                        )
+                        // Downsampled + cached so a large whiteboard isn't decoded
+                        // at full resolution, and isn't re-fetched every time this
+                        // pad's detail view is rebuilt (#375).
+                        WhiteboardImage(url: url)
+                            .frame(maxWidth: .infinity)
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .stroke(Color.subtleStroke, lineWidth: 1)
+                            )
                     }
                     .buttonStyle(.plain)
                     .help("Open the whiteboard full size")
