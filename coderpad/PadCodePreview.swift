@@ -178,9 +178,12 @@ struct EnvironmentCodeCard: View {
     /// Builds the folder tree from a flat file list. Pure and static so it can run
     /// once at `init` time.
     private static func makeFileTree(from files: [CodeFile]) -> [FileTreeNode] {
-        let entries = files.map { file -> (segments: [String], file: CodeFile) in
+        // Explicitly-typed intermediates keep the tuple-returning map cheap to
+        // type-check; the inferred chain otherwise blows the 250ms budget on CI's
+        // slower toolchain (#427).
+        let entries: [(segments: [String], file: CodeFile)] = files.map { file in
             let path = file.path ?? file.name
-            let segments = path.split(separator: "/")
+            let segments: [String] = path.split(separator: "/")
                 .map(String.init)
                 .filter { $0 != "." && $0 != ".." }
             return (segments.isEmpty ? [file.name] : segments, file)

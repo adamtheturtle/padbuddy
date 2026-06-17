@@ -108,8 +108,11 @@ extension PadDetailView {
     /// components so a malformed path can't escape the destination folder.
     private static func relativePath(for file: CodeFile) -> String {
         if let path = file.path, !path.isEmpty {
-            let components = path.split(separator: "/")
-                .map(String.init)
+            // Explicitly-typed intermediates keep each step cheap to type-check: the
+            // chained map/filter inference otherwise blows the 250ms budget on CI's
+            // slower toolchain (#427).
+            let rawComponents: [String] = path.split(separator: "/").map(String.init)
+            let components: [String] = rawComponents
                 .filter { $0 != "." && $0 != ".." }
                 .map { sanitizeComponent($0) }
                 .filter { !$0.isEmpty }
