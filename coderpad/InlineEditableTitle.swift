@@ -46,6 +46,7 @@ struct InlineEditableTitle: View {
     /// leaving the field flexible so the placeholder still shows.
     private var fieldWidth: CGFloat? {
         guard naturalWidth > 0, availableWidth > 0 else { return nil }
+
         return min(naturalWidth, max(0, availableWidth - Self.pencilReserve))
     }
 
