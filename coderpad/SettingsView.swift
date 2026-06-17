@@ -55,7 +55,7 @@ struct SettingsView: View {
     @AppStorage(GeneralSettings.Key.requireBiometricsToRevealKey) var requireBiometricsToRevealKey = false
     @AppStorage(GeneralSettings.Key.spotlightIndexing) var spotlightIndexing = false
     @AppStorage(GeneralSettings.Key.notifyOnPadUpdates) var notifyOnPadUpdates = false
-    @AppStorage(DockBadge.Key.enabled) var dockBadgeEnabled = true
+    @AppStorage(DockBadge.Key.scope) var dockBadgeScope: DockBadgeScope = .allAccounts
     @State var accountsStore = AccountsStore.shared
 
     // Launch-at-login mirrors the live `SMAppService` state rather than UserDefaults,

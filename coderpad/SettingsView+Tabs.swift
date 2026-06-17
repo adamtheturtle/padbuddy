@@ -47,23 +47,21 @@ extension SettingsView {
             }
 
             Section {
-                Toggle("Show my active pads on the Dock icon", isOn: $dockBadgeEnabled)
-                    .onChange(of: dockBadgeEnabled) { _, _ in
-                        // Apply or clear the badge immediately rather than waiting for the
-                        // next pad refresh.
-                        DockBadge.refresh()
+                Picker("Show my active pads on the Dock icon", selection: $dockBadgeScope) {
+                    ForEach(DockBadgeScope.allCases) { scope in
+                        Text(scope.label).tag(scope)
                     }
-                    .disabled(!presence.showsDockIcon)
-            } footer: {
-                Text("Counts the started pads you own across all your accounts.")
-                    .foregroundStyle(.secondary)
+                }
+                .onChange(of: dockBadgeScope) { _, _ in
+                    // Apply or clear the badge immediately rather than waiting for the
+                    // next pad refresh.
+                    DockBadge.refresh()
+                }
+                .disabled(!presence.showsDockIcon)
             }
 
             Section {
                 Toggle("Require Touch ID to reveal API keys", isOn: biometricGateBinding)
-            } footer: {
-                Text("Turning this off also requires Touch ID, so it can't be bypassed.")
-                    .foregroundStyle(.secondary)
             }
 
             Section {

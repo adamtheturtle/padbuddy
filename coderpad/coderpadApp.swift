@@ -38,8 +38,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // then honor it from the moment the app launches.
         GeneralSettings.migratePresenceIfNeeded()
         GeneralSettings.applyDockVisibility()
-        // Seed the badge from whatever pads are already cached; it refreshes again as
-        // each account's list loads.
+        // Carry an old on/off Dock-badge choice into the new scope preference (#399),
+        // then seed the badge from whatever pads are already cached; it refreshes again
+        // as each account's list loads.
+        DockBadge.migrateScopeIfNeeded()
         DockBadge.refresh()
         // Keep the current account's pads fresh on a timer even when no window is open
         // and the menu is never clicked — the one state where nothing else fetches.
