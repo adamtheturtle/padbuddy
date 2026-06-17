@@ -105,3 +105,26 @@ struct InlineEditableTitle: View {
             )
     }
 }
+
+private struct InlineEditableTitlePreview: View {
+    @State private var short = "Short Pad"
+    @State private var long = "An Extremely Long Pad Title That Would Otherwise Re-Jig The Whole Window"
+    @FocusState private var focus: Bool
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 24) {
+            InlineEditableTitle(text: $short, placeholder: "Untitled Pad", focus: $focus) {}
+                .border(.red)
+            InlineEditableTitle(text: $long, placeholder: "Untitled Pad", focus: $focus) {}
+                .border(.red)
+        }
+        // A narrow pane: the long title must truncate within this width rather than
+        // forcing the row (red border) wider.
+        .frame(width: 320, alignment: .leading)
+        .padding()
+    }
+}
+
+#Preview {
+    InlineEditableTitlePreview()
+}
