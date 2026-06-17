@@ -95,6 +95,10 @@ public struct PaginatedRESTClient {
     /// `Logger` is `Sendable`, so it travels into the nonisolated pagination methods.
     nonisolated let logger: Logger
 
+    /// Upper bound on `next_page` follows for one list, guarding against a server
+    /// that keeps handing back links. Hitting it throws rather than truncating.
+    nonisolated static let maxSequentialPages = 1000
+
     public init(
         apiKey: String,
         baseURL: URL,
@@ -314,8 +318,15 @@ public struct PaginatedRESTClient {
             Self.appendNew(page.pageItems, to: &items, seen: &seen, identity: W.identity(of:))
             emit(items)
             pages += 1
+            guard let next = page.nextPage, let nextURL = URL(string: next) else { break }
+
             // Safety valve against a server that keeps handing back next_page links.
-            guard pages < 1000, let next = page.nextPage, let nextURL = URL(string: next) else { break }
+            // Surface the cap as an error rather than silently truncating the list —
+            // a caller swallowing data without any signal is worse than a failure.
+            guard pages < Self.maxSequentialPages else {
+                throw errors.http(status: 0,
+                                  body: "Pagination exceeded \(Self.maxSequentialPages) sequential pages")
+            }
 
             url = nextURL
         }
