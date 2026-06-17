@@ -106,7 +106,12 @@ struct WindowMinWidth: NSViewRepresentable {
                 forName: NSWindow.didResizeNotification,
                 object: window,
                 queue: .main
-            ) { [weak self] _ in self?.report() }
+            ) { [weak self] _ in
+                // The observer runs on `.main`, so `report()` (which touches main-actor
+                // AppKit window state) is safe to call synchronously — assert that
+                // isolation rather than calling it from the nonisolated block (#420).
+                MainActor.assumeIsolated { self?.report() }
+            }
         }
 
         func report() {
