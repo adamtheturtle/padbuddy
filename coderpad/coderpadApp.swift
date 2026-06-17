@@ -42,6 +42,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // then seed the badge from whatever pads are already cached; it refreshes again
         // as each account's list loads.
         DockBadge.migrateScopeIfNeeded()
+        // The Dock badge only renders for an app granted the `.badge` capability
+        // (macOS Monterey+, #317), so ask for it when the badge is in use. Idempotent,
+        // so re-requesting every launch is harmless.
+        if DockBadge.scope != .off { PadUpdateNotifier.shared.requestBadgeAuthorization() }
         DockBadge.refresh()
         // Keep the current account's pads fresh on a timer even when no window is open
         // and the menu is never clicked — the one state where nothing else fetches.

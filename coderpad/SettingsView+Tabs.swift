@@ -52,7 +52,11 @@ extension SettingsView {
                         Text(scope.label).tag(scope)
                     }
                 }
-                .onChange(of: dockBadgeScope) { _, _ in
+                .onChange(of: dockBadgeScope) { _, scope in
+                    // The Dock badge only renders once the app holds the `.badge`
+                    // capability (macOS Monterey+, #317), so ask for it the moment the
+                    // user switches the badge on — when the prompt is expected.
+                    if scope != .off { PadUpdateNotifier.shared.requestBadgeAuthorization() }
                     // Apply or clear the badge immediately rather than waiting for the
                     // next pad refresh.
                     DockBadge.refresh()
