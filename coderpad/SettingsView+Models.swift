@@ -57,7 +57,7 @@ enum BrowserSettings {
     }
 
     /// A representative URL used to discover http(s)-capable apps.
-    private static let probeURL = URL(string: "https://app.coderpad.io")!
+    private static let probeURL = URL.staticURL("https://app.coderpad.io")
 
     /// Open a link in the user's chosen browser, honoring the background preference.
     @MainActor

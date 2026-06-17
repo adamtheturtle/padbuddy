@@ -85,8 +85,8 @@ extension String {
 // MARK: - CoderPad links and languages
 
 enum CoderPadLinks {
-    static let apiSettings = URL(string: "https://app.coderpad.io/dashboard/settings")!
-    static let apiDocs = URL(string: "https://coderpad.io/resources/docs/coderpad-interview/api/")!
+    static let apiSettings = URL.staticURL("https://app.coderpad.io/dashboard/settings")
+    static let apiDocs = URL.staticURL("https://coderpad.io/resources/docs/coderpad-interview/api/")
 
     /// Where "Send Feedback…" delivers. This is an unofficial client, so reports go
     /// to the developer rather than CoderPad.
@@ -149,5 +149,5 @@ enum CoderPadLanguages {
     /// and so on) that this list omits. CoderPad's pad-creation API only mints
     /// single-file language environments, so those can't be made from here; they're
     /// created in the web app instead.
-    static let projectEnvironmentsURL = URL(string: "https://app.coderpad.io")!
+    static let projectEnvironmentsURL = URL.staticURL("https://app.coderpad.io")
 }

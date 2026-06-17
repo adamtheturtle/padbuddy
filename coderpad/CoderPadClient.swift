@@ -133,7 +133,7 @@ struct CoderPadClient {
 
     /// The standard hosted CoderPad endpoint, used when an account doesn't
     /// override it (e.g. a self-hosted or regional deployment).
-    static let defaultBaseURL = URL(string: "https://app.coderpad.io")!
+    static let defaultBaseURL = URL.staticURL("https://app.coderpad.io")
 
     init(apiKey: String,
          baseURL: URL = Self.defaultBaseURL,

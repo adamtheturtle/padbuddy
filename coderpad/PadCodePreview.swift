@@ -69,6 +69,11 @@ struct CodeFile: Identifiable, Hashable {
         let ext = path[path.index(after: dot)...].lowercased()
         return languageByExtension[ext] ?? baseLanguage(fallback)
     }
+
+    /// An empty stand-in so `EnvironmentCodeCard.selected` stays total without a
+    /// force-subscript. Callers already guard against rendering the card with no files
+    /// (#419), so this is purely a defensive fallback and never actually displayed.
+    static let placeholder = CodeFile(id: "", path: nil, contents: "", language: nil)
 }
 
 /// A code card for one environment. Single-file environments render exactly as
@@ -163,7 +168,7 @@ struct EnvironmentCodeCard: View {
     @State var showExplanation = false
 
     var selected: CodeFile {
-        files.first { $0.id == selectedFileID } ?? files[0]
+        files.first { $0.id == selectedFileID } ?? files.first ?? .placeholder
     }
 
     var isMultiFile: Bool {

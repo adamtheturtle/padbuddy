@@ -26,9 +26,9 @@ struct ScreenClient {
     nonisolated let session: URLSession
 
     /// The US server. EU customers override with `euBaseURL`.
-    static let defaultBaseURL = URL(string: "https://www.codingame.com")!
+    static let defaultBaseURL = URL.staticURL("https://www.codingame.com")
     /// The EU server, for organizations hosted in the EU region.
-    static let euBaseURL = URL(string: "https://www.codingame.eu")!
+    static let euBaseURL = URL.staticURL("https://www.codingame.eu")
 
     /// All endpoints live under this versioned prefix. The version is bumped only
     /// for breaking changes (added response fields are non-breaking — see `ScreenAPI`).
