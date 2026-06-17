@@ -45,9 +45,18 @@ struct ViewCommands: Commands {
     /// Shares the Organization view's persisted period key, mirroring its toolbar
     /// Period picker as a menu command.
     @AppStorage(StatsPeriod.storageKey) private var statsPeriod: StatsPeriod = .days7
+    /// Shares the main split's detail-pane visibility (#394), so this menu item and the
+    /// layout stay in lockstep. Toggling it lets Pads/Questions drop the third column so
+    /// the window can be made very thin — just the sidebar and the list.
+    @AppStorage(MainSplit.detailPaneHiddenKey) private var detailPaneHidden = false
 
     var body: some Commands {
         CommandGroup(after: .toolbar) {
+            Button(detailPaneHidden ? "Show Detail Pane" : "Hide Detail Pane") {
+                detailPaneHidden.toggle()
+            }
+            .keyboardShortcut("d", modifiers: [.command, .control])
+
             Menu("Stats Period") {
                 Picker("Stats Period", selection: $statsPeriod) {
                     ForEach(StatsPeriod.allCases) { Text($0.rawValue).tag($0) }

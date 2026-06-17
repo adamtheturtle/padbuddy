@@ -163,6 +163,22 @@ struct MainSplit: View {
         }
     }
 
+    /// UserDefaults key for the user's "hide the detail pane" choice, shared with the
+    /// View ▸ Hide Detail Pane menu command (#394). A window-layout preference, so it's
+    /// global rather than per-account.
+    static let detailPaneHiddenKey = "detail.pane.hidden"
+
+    /// When set, Pads/Questions drop their detail (third) column too, so the window can
+    /// be made very thin — just the sidebar and the list (#394). Toggled from the View
+    /// menu; persisted so the layout is restored next launch.
+    @AppStorage(Self.detailPaneHiddenKey) var detailPaneHidden = false
+
+    /// Whether the detail column should be shown for the current section: only the
+    /// list-backed sections have one, and only when the user hasn't hidden it.
+    var showsDetailColumn: Bool {
+        sectionHasDetail && !detailPaneHidden
+    }
+
     /// The window/toolbar title, driven by the visible section so it reads like
     /// Mail's current-mailbox title ("Pads", "Questions", …) instead of falling
     /// back to the "CoderPad" scene name when nothing is selected.
@@ -208,7 +224,7 @@ struct MainSplit: View {
                 UnauthorizedBanner(monitor: monitor)
             }
             Group {
-                if sectionHasDetail {
+                if showsDetailColumn {
                     threeColumnSplit
                 } else {
                     twoColumnSplit

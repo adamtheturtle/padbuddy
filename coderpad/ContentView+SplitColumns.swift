@@ -96,41 +96,64 @@ extension MainSplit {
     }
 
     var twoColumnSplit: some View {
-        NavigationSplitView(columnVisibility: $columnVisibility) {
-            Sidebar(section: $section)
-                // Drop the framework's default toggle; `sidebarToggle` below supplies a
-                // leading-edge replacement so the content actions don't float past the
-                // collapsed-sidebar inset (#337).
-                .toolbar(removing: .sidebarToggle)
-                // Grow the sidebar's minimum to fit the widest row label. Rounded
-                // and only reassigned on a real change, so feeding the measured
-                // width back into the same column's min doesn't thrash layout.
-                .onPreferenceChange(SidebarRowWidthKey.self) { width in
-                    guard width > 0 else { return }
+        listSearchable(
+            NavigationSplitView(columnVisibility: $columnVisibility) {
+                Sidebar(section: $section)
+                    // Drop the framework's default toggle; `sidebarToggle` below supplies a
+                    // leading-edge replacement so the content actions don't float past the
+                    // collapsed-sidebar inset (#337).
+                    .toolbar(removing: .sidebarToggle)
+                    // Grow the sidebar's minimum to fit the widest row label. Rounded
+                    // and only reassigned on a real change, so feeding the measured
+                    // width back into the same column's min doesn't thrash layout.
+                    .onPreferenceChange(SidebarRowWidthKey.self) { width in
+                        guard width > 0 else { return }
 
-                    let needed = (width + Self.sidebarRowChrome).rounded()
-                    if abs(sidebarMinWidth - needed) > 0.5 { sidebarMinWidth = needed }
-                }
-                .navigationSplitViewColumnWidth(
-                    min: sidebarMinWidth,
-                    ideal: max(280, sidebarMinWidth),
-                    max: max(340, sidebarMinWidth)
+                        let needed = (width + Self.sidebarRowChrome).rounded()
+                        if abs(sidebarMinWidth - needed) > 0.5 { sidebarMinWidth = needed }
+                    }
+                    .navigationSplitViewColumnWidth(
+                        min: sidebarMinWidth,
+                        ideal: max(280, sidebarMinWidth),
+                        max: max(340, sidebarMinWidth)
+                    )
+                    .navigationTitle("")
+            } detail: {
+                SectionContent(
+                    section: section,
+                    padSelection: $padSelection,
+                    questionSelection: $questionSelection,
+                    padSearch: $padSearch,
+                    questionSearch: $questionSearch
                 )
-                .navigationTitle("")
-        } detail: {
-            SectionContent(
-                section: section,
-                padSelection: $padSelection,
-                questionSelection: $questionSelection,
-                padSearch: $padSearch,
-                questionSearch: $questionSearch
-            )
-            // Organization and Quota publish no count, so this resets the subtitle
-            // back to the static section subtitle when switching in from a list.
-            .onPreferenceChange(SectionCountKey.self) { sectionCount = $0 }
-        }
+                // Organization and Quota publish no count, so this resets the subtitle
+                // back to the static section subtitle when switching in from a list.
+                .onPreferenceChange(SectionCountKey.self) { sectionCount = $0 }
+            }
+        )
         .toolbar { sidebarToggle }
         .navigationTitle(sectionTitle)
         .navigationSubtitle(displaySubtitle)
+    }
+
+    /// Attaches the same window-toolbar search field `threeColumnSplit` carries, but
+    /// only for the list-backed sections — so a Pads/Questions window with its detail
+    /// pane hidden (#394) keeps search, while Organization/Quota (which have nothing to
+    /// search) don't gain a useless field. Mirrors the wiring in `threeColumnSplit`.
+    @ViewBuilder
+    func listSearchable(_ content: some View) -> some View {
+        if sectionHasDetail {
+            content
+                .searchable(text: activeSearch, placement: .toolbar, prompt: searchPrompt)
+                .searchFocused($searchFieldFocused)
+                .focusedSceneValue(
+                    \.findAction,
+                    FindAction(id: section == .questions ? "questions" : "pads") {
+                        searchFieldFocused = true
+                    }
+                )
+        } else {
+            content
+        }
     }
 }
