@@ -173,14 +173,23 @@ private struct PullToRefreshScrollBridge: NSViewRepresentable {
             // A `List` uses a flipped clip view, so the visible origin dips below
             // zero as the content rubber-bands past the top edge.
             overscroll = max(0, -scrollView.contentView.bounds.origin.y)
-            pull?.wrappedValue = min(1, overscroll / threshold)
+            // This AppKit notification can fire while SwiftUI is mid-layout (e.g. when
+            // the list reloads), so defer the @State write to the next runloop tick to
+            // avoid "modifying state during view update". `overscroll` stays in sync
+            // synchronously, so the release trigger below remains accurate.
+            let newPull = min(1, overscroll / threshold)
+            DispatchQueue.main.async { [weak self] in
+                self?.pull?.wrappedValue = newPull
+            }
         }
 
         @objc private func liveScrollEnded() {
             let shouldTrigger = overscroll >= threshold
             overscroll = 0
-            pull?.wrappedValue = 0
-            if shouldTrigger { onTrigger() }
+            DispatchQueue.main.async { [weak self] in
+                self?.pull?.wrappedValue = 0
+                if shouldTrigger { self?.onTrigger() }
+            }
         }
 
         /// Finds the scroll view this helper is layered over. A `ScrollView`'s
