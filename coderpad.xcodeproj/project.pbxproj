@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		668E402A2FE2F7DC00AA8228 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 668E40292FE2F7DC00AA8228 /* Sparkle */; };
 		66E3CC582FDA31CC00FE87A9 /* Highlightr in Frameworks */ = {isa = PBXBuildFile; productRef = 66E3CC572FDA31CC00FE87A9 /* Highlightr */; };
 		66E3CDBE2FDD6D1C00FE87A9 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 66E3CD092FDD5BA300FE87A9 /* WidgetKit.framework */; };
 		66E3CDBF2FDD6D1C00FE87A9 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 66E3CD0B2FDD5BA300FE87A9 /* SwiftUI.framework */; };
@@ -115,6 +116,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				66F0566B2FE06F5A000FA68C /* Textual in Frameworks */,
+				668E402A2FE2F7DC00AA8228 /* Sparkle in Frameworks */,
 				66F0576B2FE0BDB5000FA68C /* PaginatedRESTClient in Frameworks */,
 				66E3CC582FDA31CC00FE87A9 /* Highlightr in Frameworks */,
 			);
@@ -204,6 +206,7 @@
 				66E3CC572FDA31CC00FE87A9 /* Highlightr */,
 				66F0566A2FE06F5A000FA68C /* Textual */,
 				66F0576A2FE0BDB5000FA68C /* PaginatedRESTClient */,
+				668E40292FE2F7DC00AA8228 /* Sparkle */,
 			);
 			productName = coderpad;
 			productReference = 66C8C50B2FA73AB0009B720C /* CoderPad.app */;
@@ -318,6 +321,7 @@
 				66E3CC562FDA31CC00FE87A9 /* XCRemoteSwiftPackageReference "Highlightr" */,
 				66F056692FE06F5A000FA68C /* XCRemoteSwiftPackageReference "textual" */,
 				66F057692FE0BDB5000FA68C /* XCLocalSwiftPackageReference "PaginatedRESTClient" */,
+				668E40282FE2F7DC00AA8228 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 66C8C50C2FA73AB0009B720C /* Products */;
@@ -851,6 +855,14 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		668E40282FE2F7DC00AA8228 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.9.3;
+			};
+		};
 		66E3CC562FDA31CC00FE87A9 /* XCRemoteSwiftPackageReference "Highlightr" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/raspu/Highlightr";
@@ -870,6 +882,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		668E40292FE2F7DC00AA8228 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 668E40282FE2F7DC00AA8228 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
 		66E3CC572FDA31CC00FE87A9 /* Highlightr */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 66E3CC562FDA31CC00FE87A9 /* XCRemoteSwiftPackageReference "Highlightr" */;
