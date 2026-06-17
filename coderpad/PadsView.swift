@@ -84,6 +84,9 @@ struct PadsView: View {
     /// Per-render memo for `filtered` (see `refreshFiltered()`). A reference type so
     /// `body` can refresh it without mutating SwiftUI state mid-evaluation.
     @State var filteredCache = FilteredPadsCache()
+    /// Per-render memo for the filter-chip option lists (see `refreshChipOptions()`),
+    /// rebuilt only when `pads` changes rather than on every selection-driven pass (#416).
+    @State var chipOptionsCache = PadChipOptionsCache()
     /// Bumped on every mutation of `pads`, so `refreshFiltered()` can tell a real
     /// list change from a body pass driven only by the selection. A click re-runs
     /// `body` several times (the `selectedIDs → selectedID → selection` cascade);
@@ -145,6 +148,7 @@ struct PadsView: View {
         // Recompute the filtered list exactly once per render; all reads below hit
         // the memo (see `refreshFiltered()`).
         refreshFiltered()
+        refreshChipOptions()
         return sidebar
             .task(id: TaskKey(apiKey: client.apiKey, phase: scenePhase)) {
                 guard scenePhase == .active else { return }
@@ -342,4 +346,21 @@ final class FilteredPadsCache {
         /// loading after the list must re-filter. Its entry count is a cheap proxy.
         let directoryCount: Int
     }
+}
+
+/// Holds the filter-chip option lists (states, languages, owners, teams) across one
+/// render so the filter bar's reads share a single pass over `pads`. Each list is a
+/// Set build + sort over the whole pad array, and the bar is rendered in `body`, so
+/// without this each was an O(n) scan re-run on every selection-driven body pass —
+/// the same selection-lag profile #395 fixed for the list (#416). A class so `body`
+/// can refresh it without mutating SwiftUI state mid-evaluation; the cross-account
+/// `MergedPadsView` already memoizes these the same way (`scopedCache`).
+final class PadChipOptionsCache {
+    var states: [PadState] = []
+    var languages: [String] = []
+    var owners: [String] = []
+    var teams: [String] = []
+    /// The `padsRevision` these were computed for. Chip options depend only on the pad
+    /// collection, so an unrelated body pass (a selection change) reuses them.
+    var padsRevision: Int?
 }

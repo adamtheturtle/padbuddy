@@ -12,6 +12,38 @@ extension PadsView {
         DefaultSearch.padDefaults(me: accounts.currentAccount?.userEmail)
     }
 
+    var availableStates: [PadState] {
+        chipOptionsCache.states
+    }
+
+    var availableLanguages: [String] {
+        chipOptionsCache.languages
+    }
+
+    var availableOwners: [String] {
+        chipOptionsCache.owners
+    }
+
+    var availableTeams: [String] {
+        chipOptionsCache.teams
+    }
+
+    /// Recompute the four filter-chip option lists once per pad-collection change.
+    /// `body` re-runs several times per click as the selection settles, and only the
+    /// selection differs across those passes — rebuilding each Set+sort over the whole
+    /// org every time is what this avoids (#416). Called at the top of `body` alongside
+    /// `refreshFiltered()`, so every `available*` read in that pass is O(1) and current.
+    func refreshChipOptions() {
+        guard chipOptionsCache.padsRevision != padsRevision else { return }
+
+        chipOptionsCache.states = Array(Set(pads.map(\.status))).sorted { $0.label < $1.label }
+        chipOptionsCache.languages = Array(Set(pads.compactMap { $0.language?.lowercased() })
+            .filter { !$0.isEmpty }).sorted()
+        chipOptionsCache.owners = Array(Set(pads.map(\.ownerEmail)).filter { !$0.isEmpty }).sorted()
+        chipOptionsCache.teams = Array(Set(pads.compactMap { $0.team?.name })).sorted()
+        chipOptionsCache.padsRevision = padsRevision
+    }
+
     @ViewBuilder
     var savedSearchesBar: some View {
         let saved = savedSearches.searches(account: accounts.currentAccountID, kind: .pads)

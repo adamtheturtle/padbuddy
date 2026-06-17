@@ -67,22 +67,6 @@ extension PadsView {
         return nil
     }
 
-    var availableStates: [PadState] {
-        Array(Set(pads.map(\.status))).sorted { $0.label < $1.label }
-    }
-
-    var availableLanguages: [String] {
-        Array(Set(pads.compactMap { $0.language?.lowercased() }).filter { !$0.isEmpty }).sorted()
-    }
-
-    var availableOwners: [String] {
-        Array(Set(pads.map(\.ownerEmail)).filter { !$0.isEmpty }).sorted()
-    }
-
-    var availableTeams: [String] {
-        Array(Set(pads.compactMap { $0.team?.name })).sorted()
-    }
-
     /// The Updated and Created date filters are independent, so each active one
     /// counts on its own.
     var activeFilterCount: Int {
