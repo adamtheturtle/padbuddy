@@ -71,6 +71,13 @@ struct QuestionWindow: View {
     /// Fetch the question once when it isn't in the cache, so a restored window on a
     /// cold cache fills in. Cache hits skip the network entirely.
     private func loadIfNeeded() async {
+        // If the window was reused for a different question, drop the previous
+        // fetch so its stale result can't satisfy the `fetched == nil` guard
+        // (and can't render via `cachedQuestion ?? fetched`).
+        if let fetched, fetched.id != value?.id {
+            self.fetched = nil
+            loadFailed = false
+        }
         guard cachedQuestion == nil, fetched == nil, let value, let account else { return }
 
         do {
