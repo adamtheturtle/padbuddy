@@ -24,11 +24,16 @@ struct ScreenTestsView: View {
     @State private var statusFilter: String?
     @State private var selectedID: Int?
     @State private var showInvite = false
+    @State private var testPendingDelete: ScreenTestSession?
+    @State private var actionError: String?
+    @State private var showResentConfirmation = false
 
     var body: some View {
         List(selection: $selectedID) {
             ForEach(filtered) { test in
-                ScreenTestRow(test: test).tag(test.id)
+                ScreenTestRow(test: test)
+                    .tag(test.id)
+                    .contextMenu { rowActions(test) }
             }
         }
         .overlay { statusOverlay }
@@ -51,6 +56,29 @@ struct ScreenTestsView: View {
             ScreenInviteSheet(client: client, campaign: campaign) {
                 Task { await load() }
             }
+        }
+        .confirmationDialog(
+            "Delete this test session?",
+            isPresented: .init(get: { testPendingDelete != nil },
+                               set: { if !$0 { testPendingDelete = nil } }),
+            titleVisibility: .visible,
+            presenting: testPendingDelete
+        ) { test in
+            Button("Delete", role: .destructive) { Task { await delete(test) } }
+            Button("Cancel", role: .cancel) {}
+        } message: { _ in
+            Text("This permanently removes the candidate's test session. This can't be undone.")
+        }
+        .alert("Couldn't complete that action",
+               isPresented: .init(get: { actionError != nil }, set: { if !$0 { actionError = nil } })) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(actionError ?? "")
+        }
+        .alert("Invitation resent", isPresented: $showResentConfirmation) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("The candidate was emailed their invitation again.")
         }
         .toolbar {
             ToolbarItem {
@@ -149,6 +177,59 @@ struct ScreenTestsView: View {
         } catch {
             loadError = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
         }
+    }
+
+    // MARK: Row actions (write paths, #437)
+
+    /// The cancel/resend/delete actions for a row, gated by status: resend and cancel
+    /// apply only to an invitation the candidate hasn't started yet ("waiting"); delete
+    /// is always available behind a confirmation.
+    @ViewBuilder
+    private func rowActions(_ test: ScreenTestSession) -> some View {
+        if test.status == "waiting" {
+            Button { Task { await resend(test) } } label: {
+                Label("Resend Invitation", systemImage: "paperplane")
+            }
+            Button { Task { await cancel(test) } } label: {
+                Label("Cancel Invitation", systemImage: "xmark.circle")
+            }
+            Divider()
+        }
+        Button(role: .destructive) { testPendingDelete = test } label: {
+            Label("Delete Test Session", systemImage: "trash")
+        }
+    }
+
+    private func resend(_ test: ScreenTestSession) async {
+        do {
+            try await client.resendTest(id: test.id)
+            showResentConfirmation = true
+        } catch {
+            actionError = message(for: error)
+        }
+    }
+
+    private func cancel(_ test: ScreenTestSession) async {
+        do {
+            try await client.cancelTest(id: test.id)
+            await load()
+        } catch {
+            actionError = message(for: error)
+        }
+    }
+
+    private func delete(_ test: ScreenTestSession) async {
+        do {
+            try await client.deleteTest(id: test.id)
+            if selectedID == test.id { selectedID = nil }
+            await load()
+        } catch {
+            actionError = message(for: error)
+        }
+    }
+
+    private func message(for error: any Error) -> String {
+        (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
     }
 }
 
