@@ -135,11 +135,16 @@ struct ChipLabel: View {
                 .accessibilityHidden(true)
         }
         .padding(.horizontal, 10).padding(.vertical, 5)
-        .background(fillColor, in: Capsule())
         .foregroundStyle(labelColor)
-        // Thicken the hairline border under Increase Contrast so the chip outline
-        // stays defined for low-vision users.
-        .overlay(Capsule().stroke(strokeColor, lineWidth: ChipContrast.lineWidth(contrast)))
+        // Glass on macOS 26, opaque capsule on 15. The fallback thickens its
+        // hairline border under Increase Contrast so the outline stays defined for
+        // low-vision users (#352).
+        .chipCapsule(
+            glassTint: showsClear ? .accentColor : nil,
+            fallbackFill: fillColor,
+            fallbackStroke: strokeColor,
+            fallbackStrokeWidth: ChipContrast.lineWidth(contrast)
+        )
     }
 }
 

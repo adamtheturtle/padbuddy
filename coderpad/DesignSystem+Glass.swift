@@ -45,6 +45,31 @@ extension View {
         }
     }
 
+    /// Backs a filter chip with a capsule that reads as a distinct control. On
+    /// macOS 26 the idle chip gets interactive Liquid Glass (and an accent-tinted
+    /// glass when its filter is set), so a row of chips floats above the list as a
+    /// clear functional layer rather than bare text + chevron (#352 — the owner
+    /// wants these to plainly read as controls, and prioritises the Tahoe look).
+    /// On macOS 15 it falls back to the opaque capsule fill + hairline stroke the
+    /// chips have always used. The filter bar sits in the control layer above the
+    /// list content, so glass here matches Apple's guidance even though dense
+    /// *content*-layer surfaces (cards, list rows, badges) still keep flat material.
+    @ViewBuilder
+    func chipCapsule(
+        glassTint: Color?,
+        fallbackFill: some ShapeStyle,
+        fallbackStroke: Color,
+        fallbackStrokeWidth: CGFloat
+    ) -> some View {
+        if #available(macOS 26, *) {
+            let glass: Glass = (glassTint.map { Glass.regular.tint($0) } ?? .regular).interactive()
+            glassEffect(glass, in: Capsule())
+        } else {
+            background(fallbackFill, in: Capsule())
+                .overlay(Capsule().stroke(fallbackStroke, lineWidth: fallbackStrokeWidth))
+        }
+    }
+
     /// Applies the Liquid Glass button style to every button in this subtree on
     /// macOS 26, leaving the macOS 15 appearance untouched (`.automatic`). Intended
     /// for a row of icon controls grouped in a ``GlassCluster`` so they read as one

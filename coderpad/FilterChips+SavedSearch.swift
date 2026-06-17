@@ -119,8 +119,15 @@ struct SavedSearchChip: View {
             }
         }
         .padding(.horizontal, 8).padding(.vertical, 4)
-        .background(fillStyle, in: Capsule())
-        .overlay(Capsule().strokeBorder(strokeColor, lineWidth: 0.5))
+        // Glass on macOS 26 (accent-tinted while applied; the interactive variant
+        // supplies the hover/press response the manual fill gives on 15), opaque
+        // capsule on 15 (#352).
+        .chipCapsule(
+            glassTint: isActive ? .accentColor : nil,
+            fallbackFill: fillStyle,
+            fallbackStroke: strokeColor,
+            fallbackStrokeWidth: 0.5
+        )
         .contentShape(Capsule())
         .onTapGesture { onApply() }
         .onHover { hovered = $0 }

@@ -110,9 +110,13 @@ private struct ChipMenuShell<MenuContent: View>: View {
             }
         }
         .padding(.horizontal, 10).padding(.vertical, 5)
-        .background(fillColor, in: Capsule())
         .foregroundStyle(labelColor)
-        .overlay(Capsule().stroke(strokeColor, lineWidth: ChipContrast.lineWidth(contrast)))
+        .chipCapsule(
+            glassTint: isActive ? .accentColor : nil,
+            fallbackFill: fillColor,
+            fallbackStroke: strokeColor,
+            fallbackStrokeWidth: ChipContrast.lineWidth(contrast)
+        )
         .fixedSize()
     }
 }
