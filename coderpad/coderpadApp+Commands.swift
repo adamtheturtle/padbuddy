@@ -71,12 +71,16 @@ struct ViewCommands: Commands {
             }
             .keyboardShortcut("d", modifiers: [.command, .control])
 
-            Menu("Stats Period") {
-                Picker("Stats Period", selection: $statsPeriod) {
-                    ForEach(StatsPeriod.allCases) { Text($0.rawValue).tag($0) }
-                }
-                .pickerStyle(.inline)
+            // Inline rather than a nested `Menu`: the picker mirrors `@AppStorage`, so
+            // it rebuilds on every selection, and as a submenu AppKit re-indexed it
+            // mid-insert of an adjacent auto-separator and logged a benign but noisy
+            // "didChangeSubmenu: …wrong item" warning (#407). An inline picker has no
+            // submenu to re-index, so the warning can't fire; its label renders as a
+            // "Stats Period" section header in the View menu.
+            Picker("Stats Period", selection: $statsPeriod) {
+                ForEach(StatsPeriod.allCases) { Text($0.rawValue).tag($0) }
             }
+            .pickerStyle(.inline)
         }
     }
 }
