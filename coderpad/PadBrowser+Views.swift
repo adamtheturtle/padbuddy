@@ -53,7 +53,6 @@ struct WebViewRepresentable: NSViewRepresentable {
 struct PadBrowserView: View {
     let url: URL
     @State private var controller = WebController()
-    @Environment(\.dismiss) private var dismiss
     /// The load-failure icon's point size, scaled with the user's preferred text
     /// size (tracking Large Title) so it honors the accessibility setting.
     @ScaledMetric(relativeTo: .largeTitle) private var errorIconSize: CGFloat = 40
