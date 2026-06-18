@@ -71,6 +71,29 @@ APP_NAME="$(basename "$APP" .app)"
 DMG="${2:-${APP%.app}.dmg}"
 VOLUME_NAME="${VOLUME_NAME:-$APP_NAME}"
 
+# Team ID, parsed from the signing identity name ("Developer ID Application: Name
+# (TEAMID)"). Needed to expand $(AppIdentifierPrefix) in the entitlements below.
+TEAM_ID="$(printf '%s' "$SIGNING_IDENTITY" | sed -n 's/.*(\([A-Z0-9]\{10\}\)).*/\1/p')"
+[ -n "$TEAM_ID" ] || die "couldn't parse a Team ID from SIGNING_IDENTITY ('$SIGNING_IDENTITY') — expected the form 'Developer ID Application: Name (TEAMID)'"
+
+# codesign does NOT expand Xcode build-setting variables — only Xcode's build system
+# does, during a normal build. So re-signing with the raw source .entitlements files
+# would bake literal "$(PRODUCT_BUNDLE_IDENTIFIER)" / "$(AppIdentifierPrefix)" strings
+# into the signature; AMFI then refuses to launch the app ("Launchd job spawn failed",
+# RBSRequestErrorDomain 5 / POSIX 163) because e.g. keychain-access-groups is malformed.
+# Expand those variables here, per bundle (PRODUCT_BUNDLE_IDENTIFIER is the *bundle's
+# own* id, so the app and the widget get their own), and sign with the expanded copy.
+ENT_WORK="$(mktemp -d)"
+expanded_entitlements() {
+  local src="$1" bundle="$2" bid out
+  bid="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$bundle/Contents/Info.plist")"
+  [ -n "$bid" ] || die "no CFBundleIdentifier in $bundle"
+  out="$ENT_WORK/$(basename "$bundle").entitlements.plist"
+  sed -e "s|\$(PRODUCT_BUNDLE_IDENTIFIER)|$bid|g" \
+    -e "s|\$(AppIdentifierPrefix)|$TEAM_ID.|g" "$src" > "$out"
+  printf '%s' "$out"
+}
+
 # --- Code signing -----------------------------------------------------------
 # Sign with Hardened Runtime (--options runtime) and a secure timestamp; both
 # are required for notarization. Sign nested code inside-out before the app, as
@@ -138,11 +161,13 @@ done < <(
 # silent strip-on-fallback path here.
 while IFS= read -r -d '' appex; do
   echo "    sign appex: ${appex#"$APP"/}"
-  sign --entitlements "$WIDGET_ENTITLEMENTS" "$appex"
+  sign --entitlements "$(expanded_entitlements "$WIDGET_ENTITLEMENTS" "$appex")" "$appex"
 done < <(find "$APP/Contents" -name '*.appex' -print0 | sort -rz)
 
 echo "==> Signing app bundle (entitlements: ${ENTITLEMENTS#"$REPO_ROOT"/})"
-sign --entitlements "$ENTITLEMENTS" "$APP"
+sign --entitlements "$(expanded_entitlements "$ENTITLEMENTS" "$APP")" "$APP"
+
+rm -rf "$ENT_WORK"
 
 echo "==> Verifying signature"
 codesign --verify --deep --strict --verbose=2 "$APP"

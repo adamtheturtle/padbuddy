@@ -4,6 +4,13 @@ All notable changes to the CoderPad macOS app are recorded here. Versions follow
 the `v<MARKETING_VERSION>` tags that drive the release pipeline; the build number is
 the repository commit count, so it rises monotonically with every release.
 
+## v0.1.4
+
+Fixes the v0.1.x builds failing to launch ("CoderPad can't be opened" / Launchd
+job spawn failed): the packaging script now expands Xcode entitlement build
+variables before re-signing, so keychain-access-groups and the Sparkle mach-lookup
+exceptions are well-formed and AMFI allows the app to spawn.
+
 ## v0.1.3
 
 Maintenance release — the second half of the Sparkle update-path test (#428): a
