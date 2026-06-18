@@ -86,46 +86,52 @@ struct ScreenTestsView: View {
         } message: {
             Text("The candidate was emailed their invitation again.")
         }
-        .toolbar {
-            ToolbarItem {
-                Button { showInvite = true } label: {
-                    Label("Invite Candidate", systemImage: "person.badge.plus")
-                }
-                .help("Invite a candidate to this campaign.")
+        .toolbar { toolbarContent }
+    }
+
+    /// Extracted from `body` so its getter stays under the Release build's 250ms
+    /// type-check budget (warnings-as-errors); adding the date-range item tipped the
+    /// inline toolbar over on Xcode 26.5 (#443).
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItem {
+            Button { showInvite = true } label: {
+                Label("Invite Candidate", systemImage: "person.badge.plus")
             }
-            ToolbarItem {
-                Menu {
-                    Picker("Status", selection: $statusFilter) {
-                        Text("All Statuses").tag(String?.none)
-                        ForEach(statuses, id: \.self) { status in
-                            Text(ScreenTestStatus.label(status)).tag(String?.some(status))
-                        }
+            .help("Invite a candidate to this campaign.")
+        }
+        ToolbarItem {
+            Menu {
+                Picker("Status", selection: $statusFilter) {
+                    Text("All Statuses").tag(String?.none)
+                    ForEach(statuses, id: \.self) { status in
+                        Text(ScreenTestStatus.label(status)).tag(String?.some(status))
                     }
-                } label: {
-                    Label("Filter by Status", systemImage: "line.3.horizontal.decrease.circle")
                 }
-                .help("Filter test sessions by status.")
+            } label: {
+                Label("Filter by Status", systemImage: "line.3.horizontal.decrease.circle")
             }
-            ToolbarItem {
-                Menu {
-                    Picker("Date Range", selection: $dateRange) {
-                        ForEach(ScreenTestDateRange.allCases) { range in
-                            Text(range.label).tag(range)
-                        }
+            .help("Filter test sessions by status.")
+        }
+        ToolbarItem {
+            Menu {
+                Picker("Date Range", selection: $dateRange) {
+                    ForEach(ScreenTestDateRange.allCases) { range in
+                        Text(range.label).tag(range)
                     }
-                    .pickerStyle(.inline)
-                } label: {
-                    Label("Date Range", systemImage: "calendar")
                 }
-                .help("Only fetch test sessions active within a recent window.")
+                .pickerStyle(.inline)
+            } label: {
+                Label("Date Range", systemImage: "calendar")
             }
-            ToolbarItem {
-                Button { Task { await load() } } label: {
-                    Label("Reload", systemImage: "arrow.clockwise")
-                }
-                .help("Reload test sessions.")
-                .disabled(isLoading)
+            .help("Only fetch test sessions active within a recent window.")
+        }
+        ToolbarItem {
+            Button { Task { await load() } } label: {
+                Label("Reload", systemImage: "arrow.clockwise")
             }
+            .help("Reload test sessions.")
+            .disabled(isLoading)
         }
     }
 
