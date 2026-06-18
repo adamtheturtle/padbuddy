@@ -15,14 +15,21 @@ nonisolated enum Keychain {
     static let legacySingleKeyAccount = "apiKey"
 
     private static func baseQuery(account: String) -> [String: Any] {
+        // Deliberately the legacy (file-based) keychain — NOT the data-protection keychain
+        // (`kSecUseDataProtectionKeychain`). On macOS the data-protection keychain needs a
+        // keychain-access-group entitlement (Keychain Sharing) or a profile's
+        // application-identifier to be usable at all; this app is sandboxed but embeds no
+        // profile and can't declare keychain-access-groups — that entitlement made AMFI
+        // refuse to launch the notarized build (the "can't be opened" bug, see #451). With
+        // neither, every data-protection SecItemAdd failed with errSecMissingEntitlement
+        // (-34018, verified), silently dropping every saved account across launches (#460).
+        // The legacy keychain needs no such entitlement and works for a sandboxed,
+        // profile-less app. Trade-off: a Debug *rebuild* changes the code signature and so
+        // re-prompts for keychain access; a stable notarized build never does.
         [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: account,
-            // Use the modern data-protection keychain so macOS doesn't prompt
-            // for password on every Debug rebuild (the legacy file keychain
-            // ties ACLs to the app's code signature, which changes per build).
-            kSecUseDataProtectionKeychain as String: true
+            kSecAttrAccount as String: account
         ]
     }
 
@@ -44,7 +51,6 @@ nonisolated enum Keychain {
         if status == errSecItemNotFound {
             var insert = query
             insert[kSecValueData as String] = data
-            insert[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
             let addStatus = SecItemAdd(insert as CFDictionary, nil)
             if addStatus != errSecSuccess {
                 persistenceLogger.error(
