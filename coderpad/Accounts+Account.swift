@@ -214,7 +214,13 @@ struct Account: Identifiable, Codable, Hashable {
             return .live(apiKey: apiKey, baseURL: resolvedBaseURL)
         }
 
-        return .mock(unauthorized: isBadKeyDemo)
+        // Key the mock client by the account's own apiKey so the good demo ("demo")
+        // and the bad-key demo ("demo-bad-key") have distinct client identities. They
+        // otherwise share the default "demo" key, which collides in caches keyed by
+        // client identity (server + key) — e.g. OrganizationCacheStore (#374) would
+        // serve the good demo's cached org to the bad-key client after the good one
+        // had loaded, instead of letting the bad key 401.
+        return .mock(unauthorized: isBadKeyDemo, key: apiKey)
     }
 
     /// The CoderPad **Screen** client this account talks to, or `nil` when a real
