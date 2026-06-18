@@ -201,6 +201,15 @@ struct ToolbarCustomizationEnabler: NSViewRepresentable {
         func enforce() {
             guard let toolbar, !toolbar.allowsUserCustomization else { return }
 
+            // AppKit asserts (crashes) that a *customizable* toolbar must have a unique,
+            // non-empty identifier. SwiftUI leaves the merged window toolbar's identifier
+            // EMPTY for a section whose content doesn't vend a `.toolbar(id:)` — e.g. the
+            // Screen section, whose `NavigationStack` toolbar is uncustomizable — so
+            // enabling customization there would crash. Only enable it for an identified
+            // toolbar; identified sections (Pads/Questions/…) still get Customize Toolbar…
+            // and the observer re-enforces when one of those toolbars is swapped back in.
+            guard !toolbar.identifier.isEmpty else { return }
+
             toolbar.allowsUserCustomization = true
         }
     }
