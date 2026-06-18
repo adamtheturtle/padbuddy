@@ -7,45 +7,25 @@ import AppKit
 import SwiftUI
 
 struct MenuBarLabel: View {
-    @State private var monitor = PadActivityMonitor.shared
-
     var body: some View {
-        // `doc.text.magnifyingglass` has no `.badge` variant, so when there are
-        // unseen pad changes we overlay a small dot rather than swap the glyph.
-        // The menu bar renders the label as a monochrome template, so the dot
-        // tracks the bar's foreground tint instead of showing red.
         Image(systemName: "doc.text.magnifyingglass")
-            .overlay(alignment: .topTrailing) {
-                if monitor.unseenChangedCount > 0 {
-                    Circle()
-                        .frame(width: 5, height: 5)
-                        .offset(x: 3, y: -2)
-                }
-            }
-            // The unseen-changes dot is shape- and tint-only, so name the count for
-            // VoiceOver rather than leaving the menu bar item announcing a bare glyph (#79).
-            .accessibilityLabel(monitor.unseenChangedCount > 0
-                ? "CoderPad, \(monitor.unseenChangedCount) unseen pad "
-                + "\(monitor.unseenChangedCount == 1 ? "change" : "changes")"
-                : "CoderPad")
+            .accessibilityLabel("CoderPad")
     }
 }
 
 struct MenuBarView: View {
     @State var store = AccountsStore.shared
-    @State private var monitor = PadActivityMonitor.shared
     /// When offline the app is read-only, so the menu's create actions disable and a
     /// small note explains why (#321).
     @State private var network = NetworkMonitor.shared
     @State private var favorites = FavoriteQuestionsStore.shared
-    // Read the pads/questions/quota from the same shared, disk-backed caches the
-    // main window uses, rather than refetching into private state on every open.
-    // That's what kept the menu showing "Loading…" so often: each open cleared its
-    // own copy and waited on the network (#327). Now the menu shows cached data
-    // instantly and `load` refreshes it in the background without clearing.
+    // Read the pads/questions from the same shared, disk-backed caches the main window
+    // uses, rather than refetching into private state on every open. That's what kept
+    // the menu showing "Loading…" so often: each open cleared its own copy and waited
+    // on the network (#327). Now the menu shows cached data instantly and `load`
+    // refreshes it in the background without clearing.
     @State private var padsCache = PadsCacheStore.shared
     @State private var questionsCache = QuestionsCacheStore.shared
-    @State private var quotaCache = QuotaCacheStore.shared
     @State var isLoading = false
     @State var errorMessage: String?
     /// Per-render memo of the sorted pads/questions, refreshed once at the top of
@@ -91,11 +71,6 @@ struct MenuBarView: View {
             .sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
     }
 
-    /// The current account's cached quota, or `nil` before it has ever loaded.
-    var quota: Quota? {
-        store.currentAccountID.flatMap { quotaCache.get($0) }
-    }
-
     var body: some View {
         if let account = store.currentAccount {
             accountMenu(account: account)
@@ -129,17 +104,12 @@ struct MenuBarView: View {
         }
     }
 
-    /// Offline and unseen-change banners shown at the top of the menu.
+    /// The offline banner shown at the top of the menu.
     @ViewBuilder
     private var statusItems: some View {
         if network.isOffline {
             Text("Offline — read-only")
                 .font(.caption).foregroundStyle(.orange)
-        }
-        if monitor.unseenChangedCount > 0 {
-            Text("\(monitor.unseenChangedCount) updated")
-                .font(.caption).foregroundStyle(.orange)
-            Button("Mark All as Seen") { monitor.markSeen() }
         }
     }
 
@@ -178,15 +148,11 @@ struct MenuBarView: View {
         }
     }
 
-    /// "My Pads" header, quota summary, and the user's recent pads (or a status line).
+    /// "My Pads" header and the user's recent pads (or a status line).
     @ViewBuilder
     private func myPadsItems(account: Account) -> some View {
         Text("My Pads · \(account.name)")
             .font(.caption).foregroundStyle(.secondary)
-        if let quotaSummary {
-            Text(quotaSummary)
-                .font(.caption).foregroundStyle(.secondary)
-        }
 
         if isLoading, pads.isEmpty {
             Text("Loading…").foregroundStyle(.secondary)

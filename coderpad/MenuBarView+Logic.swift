@@ -7,22 +7,6 @@ import AppKit
 import SwiftUI
 
 extension MenuBarView {
-    /// A one-line summary of the account's pad quota for the header, or `nil`
-    /// when quota hasn't loaded yet (or the API doesn't report it).
-    var quotaSummary: String? {
-        guard let quota else { return nil }
-
-        if quota.unlimited == true { return String(localized: "Unlimited pads") }
-        if let remaining = quota.padsRemaining {
-            if let limit = quota.billingCyclePadLimit {
-                return String(localized: "\(remaining) of \(limit) pads remaining")
-            }
-            return String(localized: "\(remaining) pads remaining")
-        }
-        if let used = quota.padsUsed { return String(localized: "\(used) pads used") }
-        return nil
-    }
-
     /// Opens the main window and switches it to `section`. The section is durable
     /// navigation state, so this works whether or not the window is already open.
     func go(_ section: AppSection) {
@@ -97,7 +81,6 @@ extension MenuBarView {
             // or refetch (#370).
             async let padsTask = client.listPads(sort: "updated_at,desc")
             async let qsTask = client.listQuestions(sort: "updated_at,desc")
-            async let quotaTask = client.quota()
             // Write fetched results straight into the shared caches (no clearing
             // first): the menu — and every other view reading these stores — keeps
             // showing the previous data until the fresh data lands, so switching
@@ -106,9 +89,6 @@ extension MenuBarView {
             PadsCacheStore.shared.set(account.id, pads: fetched)
             if let fetchedQuestions = try? await qsTask {
                 QuestionsCacheStore.shared.set(account.id, questions: fetchedQuestions)
-            }
-            if let fetchedQuota = try? await quotaTask {
-                QuotaCacheStore.shared.set(account.id, quota: fetchedQuota)
             }
         } catch {
             errorMessage = error.localizedDescription
