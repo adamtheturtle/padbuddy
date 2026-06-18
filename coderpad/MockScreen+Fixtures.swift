@@ -23,7 +23,7 @@ nonisolated enum MockScreenFixtures {
 
     /// `days` ago as epoch milliseconds.
     private static func daysAgo(_ days: Double) -> Int {
-        Int((Date.now.timeIntervalSince1970 - days * 86_400) * 1000)
+        Int((Date.now.timeIntervalSince1970 - days * 86400) * 1000)
     }
 
     // MARK: - Campaigns
@@ -54,15 +54,15 @@ nonisolated enum MockScreenFixtures {
             session(id: 5001, campaign: 101, status: "completed",
                     name: "Ada Lovelace", email: "ada@example.com",
                     sent: 9, started: 8, ended: 8, tags: ["referral", "senior"],
-                    report: report(score: 88, points: 88, total: 100, duration: 3240,
+                    report: report(score: 88, duration: 3240,
                                    comparative: 71, warnings: ["Left full screen once"],
-                                   technologies: backendTech(java: 90, ds: 86))),
+                                   technologies: backendTech(java: 90, algorithms: 86))),
             session(id: 5002, campaign: 101, status: "completed",
                     name: "Alan Turing", email: "alan@example.com",
                     sent: 6, started: 5, ended: 5, tags: ["inbound"],
-                    report: report(score: 64, points: 64, total: 100, duration: 3600,
+                    report: report(score: 64, duration: 3600,
                                    comparative: 48, warnings: [],
-                                   technologies: backendTech(java: 60, ds: 68))),
+                                   technologies: backendTech(java: 60, algorithms: 68))),
             session(id: 5003, campaign: 101, status: "in_progress",
                     name: "Grace Hopper", email: "grace@example.com",
                     sent: 1, started: 0.2, ended: nil, tags: []),
@@ -80,7 +80,7 @@ nonisolated enum MockScreenFixtures {
             session(id: 5101, campaign: 102, status: "completed",
                     name: "Margaret Hamilton", email: "margaret@example.com",
                     sent: 4, started: 3, ended: 3, tags: ["senior"],
-                    report: report(score: 92, points: 92, total: 100, duration: 2700,
+                    report: report(score: 92, duration: 2700,
                                    comparative: 83, warnings: [],
                                    technologies: frontendTech())),
             session(id: 5102, campaign: 102, status: "waiting",
@@ -97,7 +97,7 @@ nonisolated enum MockScreenFixtures {
             session(id: 5201, campaign: 103, status: "completed",
                     name: "Tim Berners-Lee", email: "tim@example.com",
                     sent: 2, started: 2, ended: 1, tags: ["inbound"],
-                    report: report(score: 76, points: 76, total: 100, duration: 3000,
+                    report: report(score: 76, duration: 3000,
                                    comparative: 58, warnings: ["Pasted from clipboard"],
                                    technologies: frontendTech())),
             session(id: 5202, campaign: 103, status: "in_progress",
@@ -111,7 +111,7 @@ nonisolated enum MockScreenFixtures {
             session(id: 5301, campaign: 104, status: "completed",
                     name: "John McCarthy", email: "john@example.com",
                     sent: 5, started: 4, ended: 4, tags: [],
-                    report: report(score: 81, points: 81, total: 100, duration: 3300,
+                    report: report(score: 81, duration: 3300,
                                    comparative: 66, warnings: [],
                                    technologies: dataScienceTech())),
             session(id: 5302, campaign: 104, status: "waiting",
@@ -126,9 +126,9 @@ nonisolated enum MockScreenFixtures {
     /// of them seeds `last_activity_time` so the list's most-recent-first sort is stable.
     private static func session(
         id: Int, campaign: Int, status: String,
-        name: String?, email: String?,
-        sent: Double?, started: Double?, ended: Double?,
-        tags: [String], report: [String: Any]? = nil
+        name: String? = nil, email: String? = nil,
+        sent: Double? = nil, started: Double? = nil, ended: Double? = nil,
+        tags: [String] = [], report: [String: Any]? = nil
     ) -> [String: Any] {
         var session: [String: Any] = [
             "id": id, "id_test": id, "status": status, "campaign_id": campaign,
@@ -149,12 +149,14 @@ nonisolated enum MockScreenFixtures {
 
     // MARK: - Report builders
 
+    /// Builds a report dict. Fixture points always equal the score and the total is
+    /// always 100, so both are derived here rather than passed.
     private static func report(
-        score: Double, points: Int, total: Int, duration: Int,
-        comparative: Double, warnings: [String], technologies: [String: Any]
+        score: Double, duration: Int, comparative: Double,
+        warnings: [String], technologies: [String: Any]
     ) -> [String: Any] {
         [
-            "score": score, "points": points, "total_points": total,
+            "score": score, "points": Int(score.rounded()), "total_points": 100,
             "duration": duration, "total_duration": duration,
             "comparative_score": comparative, "warnings": warnings,
             "technologies": technologies,
@@ -162,15 +164,15 @@ nonisolated enum MockScreenFixtures {
         ]
     }
 
-    private static func backendTech(java: Double, ds: Double) -> [String: Any] {
+    private static func backendTech(java: Double, algorithms: Double) -> [String: Any] {
         [
             "Java": technology(score: java, skills: [
                 "Language knowledge": skill(score: java + 2),
                 "Problem solving": skill(score: java - 4)
             ]),
-            "Algorithms": technology(score: ds, skills: [
-                "Data structures": skill(score: ds),
-                "Complexity": skill(score: ds - 6)
+            "Algorithms": technology(score: algorithms, skills: [
+                "Data structures": skill(score: algorithms),
+                "Complexity": skill(score: algorithms - 6)
             ])
         ]
     }
@@ -225,13 +227,13 @@ nonisolated enum MockScreenFixtures {
 
         context.beginPDFPage(nil)
         context.setFillColor(CGColor(red: 0.1, green: 0.1, blue: 0.12, alpha: 1))
-        draw("CoderPad Screen — Demo Report", in: context, x: 30, y: 240, size: 20)
-        draw("Candidate: \(candidate)", in: context, x: 30, y: 198, size: 14)
+        draw("CoderPad Screen — Demo Report", in: context, originX: 30, originY: 240, size: 20)
+        draw("Candidate: \(candidate)", in: context, originX: 30, originY: 198, size: 14)
         if let score {
-            draw("Overall score: \(Int(score.rounded()))/100", in: context, x: 30, y: 170, size: 14)
+            draw("Overall score: \(Int(score.rounded()))/100", in: context, originX: 30, originY: 170, size: 14)
         }
         context.setFillColor(CGColor(red: 0.4, green: 0.4, blue: 0.42, alpha: 1))
-        draw("Sample report data generated by the in-app demo.", in: context, x: 30, y: 120, size: 11)
+        draw("Sample report data generated by the in-app demo.", in: context, originX: 30, originY: 120, size: 11)
         context.endPDFPage()
         context.closePDF()
         return pdfData as Data
@@ -240,14 +242,14 @@ nonisolated enum MockScreenFixtures {
     /// Draws a single line of text at a baseline point, using the context's current fill
     /// color (Core Text falls back to it when no foreground-color attribute is set).
     private static func draw(_ string: String, in context: CGContext,
-                             x: CGFloat, y: CGFloat, size: CGFloat) {
+                             originX: CGFloat, originY: CGFloat, size: CGFloat) {
         let font = CTFontCreateWithName("Helvetica" as CFString, size, nil)
         let attributes: [NSAttributedString.Key: Any] = [
             NSAttributedString.Key(kCTFontAttributeName as String): font
         ]
         let attributed = NSAttributedString(string: string, attributes: attributes)
         let line = CTLineCreateWithAttributedString(attributed)
-        context.textPosition = CGPoint(x: x, y: y)
+        context.textPosition = CGPoint(x: originX, y: originY)
         CTLineDraw(line, context)
     }
 }

@@ -206,15 +206,18 @@ nonisolated enum MockScreenResponses {
         switch method {
         case "GET":
             return json(200, ["url": (state.webhookURL as Any?) ?? NSNull()])
+
         case "POST":
             // The body is the URL as a bare JSON string, per the API contract.
             if let body, let url = try? JSONDecoder().decode(String.self, from: body) {
                 state.webhookURL = url
             }
             return noContent()
+
         case "DELETE":
             state.webhookURL = nil
             return noContent()
+
         default:
             return nil
         }

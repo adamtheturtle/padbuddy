@@ -103,10 +103,10 @@ final nonisolated class MockScreenURLProtocol: URLProtocol {
         // isolated store, mirroring MockURLProtocol's per-key isolation.
         let state = MockScreenStateRegistry.state(forKey: Self.apiKey(from: request))
         let result = MockScreenResponses.respond(state: state,
-                                                  method: method,
-                                                  path: url.path,
-                                                  query: query,
-                                                  body: bodyData)
+                                                 method: method,
+                                                 path: url.path,
+                                                 query: query,
+                                                 body: bodyData)
 
         guard let response = HTTPURLResponse(
             url: url, statusCode: result.status, httpVersion: "HTTP/1.1",

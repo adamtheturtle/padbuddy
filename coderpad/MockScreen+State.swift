@@ -34,6 +34,7 @@ final nonisolated class MockScreenState: @unchecked Sendable {
     func allTests() -> [[String: Any]] {
         (MockScreenFixtures.tests() + createdTests).compactMap { test in
             guard let id = test["id"] as? Int else { return test }
+
             if deletedTestIDs.contains(id) { return nil }
 
             var session = test
