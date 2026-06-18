@@ -5,6 +5,7 @@
 
 import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 extension PadsView {
     static let dateRangeOptions = PadDateRange.options
@@ -183,170 +184,103 @@ extension PadsView {
     }
 
     private var padList: some View {
-        // Wrap in a reader so a restored selection can be scrolled into view on
-        // launch (see `pendingScrollToID`); the reader sits outside the `.id` below
-        // so its proxy survives the filter-driven list rebuilds.
-        ScrollViewReader { proxy in
-            List(selection: $selectedIDs) {
-                ForEach(filtered) { pad in
-                    padRow(pad)
-                        .tag(pad.id)
-                        .installsTableDoubleClick(doubleClickProxy)
-                        // Swipe from the leading edge to pin/unpin the pad, mirroring the
-                        // questions list's favorite swipe (#348). Full swipe favorites in
-                        // one gesture since it's a harmless, reversible toggle.
-                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                            favoriteSwipeButton(pad)
-                        }
-                        // Full swipe is allowed because it only opens the confirmation
-                        // dialog below — it never deletes outright, so an accidental
-                        // swipe is recoverable.
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(role: .destructive) {
-                                padPendingDelete = pad
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
-                            .disabled(isReadOnly)
-                        }
-                }
-            }
-            .listStyle(.inset)
-            // Re-identify the list whenever the *filter* changes so SwiftUI does a fresh
-            // render (the fast path — same as the initial load) instead of an in-place
-            // diff of a handful of rows against thousands, which is what made clearing a
-            // filter slow on large orgs. Keyed on `filterSignature` only, so background
-            // `pads` refreshes still take the cheap incremental diff and keep scroll
-            // position. `transaction` then suppresses the cross-fade between identities.
-            // The sort joins the key too: changing it reorders every row, so a fresh
-            // render beats animating a wholesale reorder (#361).
-            .id("\(filterSignature)|\(sort.rawValue)")
-            .transaction { $0.animation = nil }
-            #if DEBUG
-            // Print the per-selection stall + row-body eval counts to the console, so
-            // the large-list click cost stays measurable (#439). DEBUG-only.
-            .onChange(of: selectedIDs) { SelectionProfiler.selectionChanged() }
-            #endif
-            // Scroll the restored pad into view once, then clear the request so the
-            // user's own scrolling afterward is never overridden.
-            .onChange(of: pendingScrollToID) { _, id in
-                guard let id else { return }
-
-                proxy.scrollTo(id, anchor: .center)
-                pendingScrollToID = nil
-            }
-        }
-    }
-
-    private func padRow(_ pad: Pad) -> some View {
-        PadRow(
-            pad: pad,
-            isChanged: PadListLogic.hasNewActivitySinceOpen(
-                pad, lastOpened: openedStore.lastOpened(pad.id, account: accounts.currentAccountID)
-            ),
-            account: accounts.currentAccountID,
-            isFavorite: favoritePads.isFavorite(pad.id, account: accounts.currentAccountID),
-            onToggleFavorite: {
+        // NSTableView-backed (#439): a SwiftUI `List` rebuilds every row on each
+        // selection and stalled large lists, and `.equatable()` rows can't be made
+        // both lazy and click-safe. An `NSTableView` recycles only visible rows — like
+        // Mail — so the list does ~0 work on selection regardless of length, while each
+        // row still hosts the SwiftUI content (favorite star, drag, context menu).
+        PadListTable(
+            pads: filtered,
+            selection: $selectedIDs,
+            scrollToID: pendingScrollToID,
+            onScrolledToID: { pendingScrollToID = nil },
+            isReadOnly: isReadOnly,
+            rowContent: { pad in
+                AnyView(PadRowHostableContent(
+                    pad: pad,
+                    isChanged: PadListLogic.hasNewActivitySinceOpen(
+                        pad, lastOpened: openedStore.lastOpened(pad.id, account: accounts.currentAccountID)
+                    ),
+                    ownerDisplay: directory.display(pad.ownerEmail),
+                    account: accounts.currentAccountID,
+                    favoritePads: favoritePads
+                ))
+            },
+            onDoubleClick: { openPadDetailWindow($0) },
+            onReturn: { openPad($0) },
+            isFavorite: { favoritePads.isFavorite($0.id, account: accounts.currentAccountID) },
+            onToggleFavorite: { pad in
                 guard let account = accounts.currentAccountID else { return }
 
                 favoritePads.toggle(pad.id, account: account)
-            }
+            },
+            onDelete: { padPendingDelete = $0 },
+            pasteboardItem: { padPasteboardItem($0) },
+            menuItems: { padTableMenuItems($0) }
         )
-        .contextMenu { padContextMenu(pad) }
+        #if DEBUG
+        // Still prints the per-selection stall; row evals should now be ~0 since
+        // NSTableView doesn't re-host rows on a selection change (#439).
+        .onChange(of: selectedIDs) { SelectionProfiler.selectionChanged() }
+        #endif
     }
 
-    /// The leading-swipe button that pins or unpins a pad as a favorite (#348),
-    /// mirroring the questions list's favorite swipe. Yellow to match the star used
-    /// throughout the sidebar's Favorite Pads section.
-    @ViewBuilder
-    func favoriteSwipeButton(_ pad: Pad) -> some View {
-        let isFavorite = favoritePads.isFavorite(pad.id, account: accounts.currentAccountID)
-        Button {
-            guard let account = accounts.currentAccountID else { return }
+    /// The drag payload for a pad row in the `NSTableView`-backed list: the pad's web
+    /// URL (so external apps receive a link) plus the internal `FavoriteDrop` JSON (so
+    /// it can be dropped on the sidebar Favorites to pin it, #297). Built at the AppKit
+    /// layer because the hosted SwiftUI content is hit-transparent — a SwiftUI
+    /// `.draggable` there would never grab. Mirrors `PadDragPayload`.
+    private func padPasteboardItem(_ pad: Pad) -> NSPasteboardItem? {
+        guard let url = pad.webURL else { return nil }
 
-            favoritePads.toggle(pad.id, account: account)
-        } label: {
-            Label(isFavorite ? "Unfavorite" : "Favorite",
-                  systemImage: isFavorite ? "star.slash" : "star")
+        let item = NSPasteboardItem()
+        item.setString(url.absoluteString, forType: .URL)
+        item.setString(url.absoluteString, forType: .string)
+        if let account = accounts.currentAccountID,
+           let data = try? JSONEncoder().encode(
+               FavoriteDrop.pad(account: account, id: pad.id, title: pad.title.isEmpty ? pad.id : pad.title)
+           ) {
+            item.setData(data, forType: NSPasteboard.PasteboardType(UTType.coderpadFavorite.identifier))
         }
-        .tint(.yellow)
+        return item
     }
 
-    /// Right-click actions for a pad row. These are the quick, self-contained
-    /// operations (open, copy, share, narrow the list); the destructive lifecycle
-    /// actions stay behind the detail view's confirmations, reached by selecting
-    /// the pad first.
-    @ViewBuilder
-    func padContextMenu(_ pad: Pad) -> some View {
-        // Right-clicking a row that's part of a multi-row selection acts on the whole
-        // selection, the way Finder does; otherwise it's the usual single-row menu.
+    /// The right-click menu for a pad row in the `NSTableView`-backed list, built as
+    /// AppKit `PadRowMenuItem`s (the hosted SwiftUI content is hit-transparent, so a
+    /// SwiftUI `.contextMenu` can't be used). A multi-row selection acts on the whole
+    /// selection, the way Finder does; otherwise it's the single-row menu. (Share is
+    /// reachable from the detail pane.)
+    func padTableMenuItems(_ pad: Pad) -> [PadRowMenuItem] {
         if selectedIDs.count > 1, selectedIDs.contains(pad.id) {
-            bulkContextMenu
-        } else {
-            singlePadContextMenu(pad)
+            let pads = selectedPadsInOrder
+            return [
+                .button(title: String(localized: "Copy \(pads.count) Pad Links")) {
+                    Clipboard.copy(pads.map(\.url).joined(separator: "\n"))
+                },
+                .separator,
+                .button(title: String(localized: "Delete \(pads.count) Pads…"),
+                        isDestructive: true, isEnabled: !isReadOnly) {
+                    padsPendingBulkDelete = pads
+                },
+            ]
         }
-    }
-
-    /// The right-click menu for a multi-row selection: copy every selected pad's
-    /// link, or delete them all behind a confirmation.
-    @ViewBuilder
-    private var bulkContextMenu: some View {
-        let pads = selectedPadsInOrder
-        Button {
-            Clipboard.copy(pads.map(\.url).joined(separator: "\n"))
-        } label: {
-            Label("Copy \(pads.count) Pad Links", systemImage: "link")
-        }
-        Divider()
-        Button(role: .destructive) {
-            padsPendingBulkDelete = pads
-        } label: {
-            Label("Delete \(pads.count) Pads…", systemImage: "trash")
-        }
-        .disabled(isReadOnly)
-    }
-
-    /// The usual single-row right-click menu: open, share, copy id/url, narrow the
-    /// list to the owner, or delete behind a confirmation.
-    @ViewBuilder
-    private func singlePadContextMenu(_ pad: Pad) -> some View {
-        Button {
-            selectedIDs = [pad.id]
-            openPad(pad)
-        } label: {
-            Label("Open Pad", systemImage: "doc.text.image")
-        }
-        if let url = pad.webURL {
-            ShareLink(item: url) {
-                Label("Share…", systemImage: "square.and.arrow.up")
-            }
-        }
-        Divider()
-        Button {
-            Clipboard.copy(pad.id)
-        } label: {
-            Label("Copy Pad ID", systemImage: "number")
-        }
-        Button {
-            Clipboard.copy(pad.url)
-        } label: {
-            Label("Copy Pad URL", systemImage: "link")
-        }
-        Divider()
-        Button {
-            ownerFilter = pad.ownerEmail
-        } label: {
-            Label("Show Pads from \(directory.display(pad.ownerEmail))", systemImage: "person")
-        }
-        Divider()
-        // Opens the same confirmation dialog as the row's swipe action — a
-        // right-click route to Delete alongside the swipe.
-        Button(role: .destructive) {
-            padPendingDelete = pad
-        } label: {
-            Label("Delete…", systemImage: "trash")
-        }
-        .disabled(isReadOnly)
+        return [
+            .button(title: String(localized: "Open Pad")) {
+                selectedIDs = [pad.id]
+                openPad(pad)
+            },
+            .separator,
+            .button(title: String(localized: "Copy Pad ID")) { Clipboard.copy(pad.id) },
+            .button(title: String(localized: "Copy Pad URL")) { Clipboard.copy(pad.url) },
+            .separator,
+            .button(title: String(localized: "Show Pads from \(directory.display(pad.ownerEmail))")) {
+                ownerFilter = pad.ownerEmail
+            },
+            .separator,
+            .button(title: String(localized: "Delete…"), isDestructive: true, isEnabled: !isReadOnly) {
+                padPendingDelete = pad
+            },
+        ]
     }
 
     /// Open a pad honoring the user's browser preference: externally when chosen,

@@ -271,3 +271,48 @@ struct FavoriteStarButton: View {
             : "Add \(title) to Favorites")
     }
 }
+
+/// The pad row as hosted inside the `NSTableView`-backed `PadListTable` (#439). The
+/// title/metadata block is `.allowsHitTesting(false)` so left-clicks pass straight
+/// through the `NSHostingView` to the table for native selection; only the favorite
+/// star stays hittable so it can be toggled. Selection, double-click, swipe, drag, and
+/// the context menu are the table's job — so there's no `.contentShape`, `.draggable`,
+/// or `.contextMenu` here (those would re-swallow the click).
+struct PadRowHostableContent: View {
+    let pad: Pad
+    var isChanged: Bool = false
+    var accountName: String?
+    var ownerDisplay: String
+    /// The owning account, used to read/toggle the favorite state.
+    var account: UUID?
+    /// Read live in `body` (it's `@Observable`) so toggling the star re-renders this
+    /// hosted row immediately — the cell isn't otherwise re-created on a favorite
+    /// change. Passing a static `Bool` left the star stuck (#439).
+    var favoritePads: FavoritePadsStore
+    @State private var hovered = false
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 8) {
+            PadRowInfo(
+                pad: pad,
+                isChanged: isChanged,
+                accountName: accountName,
+                ownerDisplay: ownerDisplay
+            )
+            .equatable()
+            .allowsHitTesting(false)
+            FavoriteStarButton(
+                isFavorite: favoritePads.isFavorite(pad.id, account: account),
+                hovered: hovered,
+                title: pad.title.isEmpty ? pad.id : pad.title,
+                onToggle: {
+                    guard let account else { return }
+
+                    favoritePads.toggle(pad.id, account: account)
+                }
+            )
+        }
+        .padding(.vertical, 4)
+        .onHover { hovered = $0 }
+    }
+}
