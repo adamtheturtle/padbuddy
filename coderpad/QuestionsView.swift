@@ -13,9 +13,6 @@ struct QuestionsView: View {
     @Environment(\.openWindow) var openWindow
     /// While offline the app is read-only, so create/edit/delete controls disable (#321).
     @Environment(\.isReadOnly) var isReadOnly
-    /// Long-lived target for the list's native double-click-to-open (see
-    /// `TableDoubleClickProxy`); opens the selected question in its own window.
-    @State var doubleClickProxy = TableDoubleClickProxy()
     @State var accounts = AccountsStore.shared
     @State var nav = AppNavigation.shared
     @State private var cache = QuestionsCacheStore.shared
@@ -210,14 +207,6 @@ struct QuestionsView: View {
                 applyPendingRequest()
                 publishLiveFilter()
                 selectedQuestionIDs = selection.map { [$0.id] } ?? []
-                // Double-clicking a row opens the selected question in its own window
-                // (the first click selects it). Reads `selection` live.
-                doubleClickProxy.onDoubleClick = {
-                    guard let question = selection else { return }
-
-                    openWindow(id: "question",
-                               value: QuestionWindowID(account: accounts.currentAccountID, id: question.id))
-                }
             }
             // The List edits `selectedQuestionIDs`; derive the primary row from it so
             // the detail pane, restore, and persistence keep working off the single

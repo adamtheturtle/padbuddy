@@ -189,12 +189,11 @@ extension PadsView {
         // both lazy and click-safe. An `NSTableView` recycles only visible rows — like
         // Mail — so the list does ~0 work on selection regardless of length, while each
         // row still hosts the SwiftUI content (favorite star, drag, context menu).
-        PadListTable(
-            pads: filtered,
+        ListTable(
+            items: filtered,
             selection: $selectedIDs,
             scrollToID: pendingScrollToID,
             onScrolledToID: { pendingScrollToID = nil },
-            isReadOnly: isReadOnly,
             rowContent: { pad in
                 AnyView(PadRowHostableContent(
                     pad: pad,
@@ -208,13 +207,22 @@ extension PadsView {
             },
             onDoubleClick: { openPadDetailWindow($0) },
             onReturn: { openPad($0) },
-            isFavorite: { favoritePads.isFavorite($0.id, account: accounts.currentAccountID) },
-            onToggleFavorite: { pad in
-                guard let account = accounts.currentAccountID else { return }
+            leadingActions: { pad in
+                let starred = favoritePads.isFavorite(pad.id, account: accounts.currentAccountID)
+                return [RowSwipeAction(
+                    title: starred ? String(localized: "Unfavorite") : String(localized: "Favorite"),
+                    tint: .systemYellow
+                ) {
+                    guard let account = accounts.currentAccountID else { return }
 
-                favoritePads.toggle(pad.id, account: account)
+                    favoritePads.toggle(pad.id, account: account)
+                }]
             },
-            onDelete: { padPendingDelete = $0 },
+            trailingActions: { pad in
+                isReadOnly ? [] : [RowSwipeAction(title: String(localized: "Delete"), isDestructive: true) {
+                    padPendingDelete = pad
+                }]
+            },
             pasteboardItem: { padPasteboardItem($0) },
             menuItems: { padTableMenuItems($0) }
         )
@@ -246,11 +254,11 @@ extension PadsView {
     }
 
     /// The right-click menu for a pad row in the `NSTableView`-backed list, built as
-    /// AppKit `PadRowMenuItem`s (the hosted SwiftUI content is hit-transparent, so a
+    /// AppKit `RowMenuItem`s (the hosted SwiftUI content is hit-transparent, so a
     /// SwiftUI `.contextMenu` can't be used). A multi-row selection acts on the whole
     /// selection, the way Finder does; otherwise it's the single-row menu. (Share is
     /// reachable from the detail pane.)
-    func padTableMenuItems(_ pad: Pad) -> [PadRowMenuItem] {
+    func padTableMenuItems(_ pad: Pad) -> [RowMenuItem] {
         if selectedIDs.count > 1, selectedIDs.contains(pad.id) {
             let pads = selectedPadsInOrder
             return [

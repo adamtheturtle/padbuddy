@@ -42,9 +42,6 @@ extension MergedPadsView {
                 // bridging the selection, so the list opens in the same view.
                 restoreFilters()
                 selectedIDs = selection.map { [$0.id] } ?? []
-                // Double-clicking a row opens the selected pad (the first click
-                // selects it). Reads `selection` live, so it stays correct.
-                doubleClickProxy.onDoubleClick = { openSelectedPadDetailWindow() }
             }
             // Re-persist whenever any filter changes; `filterSignature` shifts for
             // every filter control, so one observer covers them all.
@@ -289,57 +286,46 @@ extension MergedPadsView {
     }
 
     private var padList: some View {
-        // Wrap in a reader so a restored selection can be scrolled into view on
-        // launch (see `pendingScrollToID`); the reader sits outside the `.id` below
-        // so its proxy survives the filter-driven list rebuilds.
-        ScrollViewReader { proxy in
-            padListBody
-                // Scroll the restored pad into view once, then clear the request so
-                // the user's own scrolling afterward is never overridden.
-                .onChange(of: pendingScrollToID) { _, id in
-                    guard let id else { return }
-
-                    proxy.scrollTo(id, anchor: .center)
-                    pendingScrollToID = nil
-                }
-        }
-    }
-
-    private var padListBody: some View {
-        List(selection: $selectedIDs) {
-            ForEach(filtered) { row in
-                padRow(row)
-                    .tag(row.item.id)
-                    .installsTableDoubleClick(doubleClickProxy)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        Button(role: .destructive) {
-                            padPendingDelete = row.item
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
-                        .disabled(isReadOnly)
-                    }
-            }
-        }
-        .listStyle(.inset)
-        // The sort joins the identity key: changing it reorders every row, so a
-        // fresh render beats animating a wholesale reorder (#361).
-        .id("\(filterSignature)|\(sort.rawValue)")
-        .transaction { $0.animation = nil }
-    }
-
-    private func padRow(_ row: AccountScoped<Pad>) -> some View {
-        PadRow(
-            pad: row.item,
-            isChanged: PadListLogic.hasNewActivitySinceOpen(
-                row.item, lastOpened: openedStore.lastOpened(row.item.id, account: row.account.id)
-            ),
-            accountName: row.account.name,
-            account: row.account.id,
-            isFavorite: favoritePads.isFavorite(row.item.id, account: row.account.id),
-            onToggleFavorite: { favoritePads.toggle(row.item.id, account: row.account.id) }
+        // NSTableView-backed (#439): recycles only visible rows, so selection is
+        // instant on large combined lists — see `ListTable` and the pads list.
+        ListTable(
+            items: filtered,
+            selection: $selectedIDs,
+            scrollToID: pendingScrollToID,
+            onScrolledToID: { pendingScrollToID = nil },
+            rowContent: { row in
+                AnyView(PadRowHostableContent(
+                    pad: row.item,
+                    isChanged: PadListLogic.hasNewActivitySinceOpen(
+                        row.item, lastOpened: openedStore.lastOpened(row.item.id, account: row.account.id)
+                    ),
+                    accountName: row.account.name,
+                    ownerDisplay: directory.display(row.item.ownerEmail),
+                    account: row.account.id,
+                    favoritePads: favoritePads
+                ))
+            },
+            // Double-click opens the pad's native detail in its own window with the
+            // originating account (#354); Return opens its live URL in the browser.
+            onDoubleClick: { row in
+                openWindow(id: "pad", value: PadWindowID(account: row.account.id, id: row.item.id))
+            },
+            onReturn: { openPad($0.item) },
+            leadingActions: { row in
+                let starred = favoritePads.isFavorite(row.item.id, account: row.account.id)
+                return [RowSwipeAction(
+                    title: starred ? String(localized: "Unfavorite") : String(localized: "Favorite"),
+                    tint: .systemYellow
+                ) { favoritePads.toggle(row.item.id, account: row.account.id) }]
+            },
+            trailingActions: { row in
+                isReadOnly ? [] : [RowSwipeAction(title: String(localized: "Delete"), isDestructive: true) {
+                    padPendingDelete = row.item
+                }]
+            },
+            pasteboardItem: { padPasteboardItem($0) },
+            menuItems: { padTableMenuItems($0) }
         )
-        .contextMenu { padContextMenu(row) }
     }
 
     /// Opens the selected pad's native detail in its own window on double-click,

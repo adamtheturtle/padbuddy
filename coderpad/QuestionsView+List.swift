@@ -5,6 +5,7 @@
 
 import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 extension QuestionsView {
     /// The question to select after the question with `id` is deleted: the next
@@ -96,78 +97,79 @@ extension QuestionsView {
     }
 
     private var questionsList: some View {
-        // Wrap in a reader so a restored selection can be scrolled into view on
-        // launch (see `pendingScrollToID`); the reader sits outside the `.id` below
-        // so its proxy survives the filter/sort-driven list rebuilds.
-        ScrollViewReader { proxy in
-            questionsListBody
-                // Scroll the restored question into view once, then clear the request
-                // so the user's own scrolling afterward is never overridden.
-                .onChange(of: pendingScrollToID) { _, id in
-                    guard let id else { return }
+        // NSTableView-backed (#439): recycles only visible rows, so selection is
+        // instant on large lists — see `ListTable` and the pads list.
+        ListTable(
+            items: sorted,
+            selection: $selectedQuestionIDs,
+            scrollToID: pendingScrollToID,
+            onScrolledToID: { pendingScrollToID = nil },
+            rowContent: { question in
+                AnyView(QuestionRowHostableContent(
+                    question: question,
+                    account: accounts.currentAccountID,
+                    favorites: favorites,
+                    onToggleFavorite: { toggleFavorite(question) }
+                ))
+            },
+            onDoubleClick: { openQuestionWindow($0) },
+            onReturn: { openQuestionWindow($0) },
+            leadingActions: { question in
+                let starred = favoriteIDSet.contains(question.id)
+                return [RowSwipeAction(
+                    title: starred ? String(localized: "Unfavorite") : String(localized: "Favorite"),
+                    tint: .systemYellow
+                ) { toggleFavorite(question) }]
+            },
+            trailingActions: { question in
+                guard !isReadOnly else { return [] }
 
-                    proxy.scrollTo(id, anchor: .center)
-                    pendingScrollToID = nil
-                }
-        }
-    }
-
-    private var questionsListBody: some View {
-        List(selection: $selectedQuestionIDs) {
-            ForEach(sorted) { question in
-                QuestionRow(question: question, isFavorite: favoriteIDSet.contains(question.id),
-                            account: accounts.currentAccountID,
-                            onToggleFavorite: { toggleFavorite(question) })
-                    .tag(question.id)
-                    .installsTableDoubleClick(doubleClickProxy)
-                    .contextMenu { questionContextMenu(question) }
-                    .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                        favoriteSwipeButton(question)
-                    }
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        // Same path as the context-menu "Delete Question…": select
-                        // the row, then let its detail pane run the undoable delete.
-                        Button(role: .destructive) {
-                            selectedQuestionIDs = [question.id]
-                            nav.deleteQuestionID = question.id
-                        } label: {
-                            Label("Delete", systemImage: "trash")
-                        }
-                        .disabled(isReadOnly)
-                        Button {
-                            // Same path as the context menu and detail
-                            // "New Pad" button: select the question, then
-                            // let its detail pane create and open the pad.
-                            selectedQuestionIDs = [question.id]
-                            nav.createPadForQuestionID = question.id
-                        } label: {
-                            Label("New Pad", systemImage: "doc.badge.plus")
-                        }
-                        .tint(.accentColor)
-                        .disabled(isReadOnly)
-                    }
-            }
-        }
-        .listStyle(.inset)
-        // Re-identify the list when the filter, favorites toggle, or sort changes so
-        // SwiftUI does a fresh render (fast — same as the initial load) instead of an
-        // in-place diff of the visible set against thousands of rows, which made
-        // clearing a filter slow on large orgs. Keyed off the list-shape inputs only,
-        // so background `questions` refreshes still take the cheap incremental diff
-        // and keep scroll position.
-        .id("\(filterSignature)|\(favoritesOnly)|\(sort.rawValue)")
-        .transaction { $0.animation = nil }
-        .macPullToRefresh { await reload() }
-        // Scene-scoped, mirroring PadsView: the Question menu commands
-        // stay enabled whenever this window is frontmost and a question
-        // is selected, not only while the list holds keyboard focus.
+                return [
+                    // Same path as the context-menu "Delete Question…": select the row,
+                    // then let its detail pane run the undoable delete.
+                    RowSwipeAction(title: String(localized: "Delete"), isDestructive: true) {
+                        selectedQuestionIDs = [question.id]
+                        nav.deleteQuestionID = question.id
+                    },
+                    RowSwipeAction(title: String(localized: "New Pad"), tint: .controlAccentColor) {
+                        selectedQuestionIDs = [question.id]
+                        nav.createPadForQuestionID = question.id
+                    },
+                ]
+            },
+            pasteboardItem: { questionPasteboardItem($0) },
+            menuItems: { questionTableMenuItems($0) }
+        )
+        // Scene-scoped, mirroring PadsView: the Question menu commands stay enabled
+        // whenever this window is frontmost and a question is selected.
         .focusedSceneValue(\.focusedQuestion, selection)
-        // Edit ▸ Copy / ⌘C copies the selected questions' web URLs (one per line) while
-        // the list holds focus. The O(N) `selectedQuestionURLsInOrder` scan is built
-        // lazily (only on an actual copy); the per-render gate is the O(1) empty check.
+        // Edit ▸ Copy / ⌘C copies the selected questions' web URLs (one per line).
         .onCopyCommand(perform: copyLinkCommand(hasSelection: !selectedQuestionIDs.isEmpty) {
             selectedQuestionURLsInOrder.joined(separator: "\n")
         })
+        .macPullToRefresh { await reload() }
+    }
+
+    /// Opens a question in its own window (double-click / Return), the first click
+    /// having selected it.
+    private func openQuestionWindow(_ question: Question) {
+        openWindow(id: "question", value: QuestionWindowID(account: accounts.currentAccountID, id: question.id))
+    }
+
+    /// The drag payload for a question row: its web URL (external link drops) plus the
+    /// internal `FavoriteDrop` JSON (so it drops onto the sidebar Favorites, #297).
+    private func questionPasteboardItem(_ question: Question) -> NSPasteboardItem? {
+        let url = question.webURL(baseURL: client.baseURL)
+        let item = NSPasteboardItem()
+        item.setString(url.absoluteString, forType: .URL)
+        item.setString(url.absoluteString, forType: .string)
+        if let account = accounts.currentAccountID,
+           let data = try? JSONEncoder().encode(
+               FavoriteDrop.question(account: account, id: question.id, title: question.displayTitle)
+           ) {
+            item.setData(data, forType: NSPasteboard.PasteboardType(UTType.coderpadFavorite.identifier))
+        }
+        return item
     }
 
     /// The selected questions' web URLs in the order they appear in the list (not
@@ -195,111 +197,58 @@ extension QuestionsView {
         }
     }
 
-    /// Right-click actions for a question row. Actions that need the detail pane's
-    /// machinery (its sheets and confirmations) select the question first, then
-    /// route the request through `AppNavigation` — the same pattern as "New Pad
-    /// from Question" — so the detail view performs them with its existing UI.
-    @ViewBuilder
-    func questionContextMenu(_ question: Question) -> some View {
-        // Right-clicking a row that's part of a multi-row selection copies every
-        // selected link at once, Finder-style; a single row keeps its full menu.
+    /// The right-click menu for a question row in the `NSTableView`-backed list, built
+    /// as AppKit `RowMenuItem`s (the hosted content is hit-transparent, so a SwiftUI
+    /// `.contextMenu` can't be used). A multi-row selection copies/deletes the whole
+    /// selection, Finder-style; a single row keeps its full menu. Actions needing the
+    /// detail pane's machinery select the question first, then route through
+    /// `AppNavigation`. (Share is reachable from the detail pane.)
+    func questionTableMenuItems(_ question: Question) -> [RowMenuItem] {
         if selectedQuestionIDs.count > 1, selectedQuestionIDs.contains(question.id) {
             let questions = selectedQuestionsInOrder
-            Button {
-                Clipboard.copy(questions.map { $0.webURL(baseURL: client.baseURL).absoluteString }
-                    .joined(separator: "\n"))
-            } label: {
-                Label("Copy \(questions.count) Question Links", systemImage: "link")
-            }
-            Divider()
-            Button(role: .destructive) {
-                questionsPendingBulkDelete = questions
-            } label: {
-                Label("Delete \(questions.count) Questions…", systemImage: "trash")
-            }
-            .disabled(isReadOnly)
-        } else {
-            singleQuestionContextMenu(question)
+            return [
+                .button(title: String(localized: "Copy \(questions.count) Question Links")) {
+                    Clipboard.copy(questions.map { $0.webURL(baseURL: client.baseURL).absoluteString }
+                        .joined(separator: "\n"))
+                },
+                .separator,
+                .button(title: String(localized: "Delete \(questions.count) Questions…"),
+                        isDestructive: true, isEnabled: !isReadOnly) {
+                    questionsPendingBulkDelete = questions
+                },
+            ]
         }
-    }
-
-    /// The full right-click menu for a single question row (the non-multi-selection
-    /// case of `questionContextMenu`).
-    @ViewBuilder
-    private func singleQuestionContextMenu(_ question: Question) -> some View {
-        Button {
-            // Mirror the detail view's "New Pad" button: select the question so
-            // its detail pane shows, then let that pane create the pad and open
-            // it inline.
-            selectedQuestionIDs = [question.id]
-            nav.createPadForQuestionID = question.id
-        } label: {
-            Label("New Pad from Question", systemImage: "plus.rectangle.on.rectangle")
-        }
-        .disabled(isReadOnly)
-        favoriteToggleButton(question)
-        ShareLink(item: question.webURL(baseURL: client.baseURL)) {
-            Label("Share…", systemImage: "square.and.arrow.up")
-        }
-        Divider()
-        Button {
-            Clipboard.copy(question.displayTitle)
-        } label: {
-            Label("Copy Title", systemImage: "doc.on.doc")
-        }
-        Button {
-            Clipboard.copy(question.webURL(baseURL: client.baseURL).absoluteString)
-        } label: {
-            Label("Copy Question URL", systemImage: "link")
-        }
-        Button {
-            ownerFilter = question.ownerEmail
-        } label: {
-            Label("Show Questions from \(directory.display(question.ownerEmail))", systemImage: "person")
-        }
+        let starred = favoriteIDSet.contains(question.id)
+        var items: [RowMenuItem] = [
+            .button(title: String(localized: "New Pad from Question"), isEnabled: !isReadOnly) {
+                selectedQuestionIDs = [question.id]
+                nav.createPadForQuestionID = question.id
+            },
+            .button(title: starred ? String(localized: "Remove from Favorites")
+                : String(localized: "Add to Favorites")) {
+                toggleFavorite(question)
+            },
+            .separator,
+            .button(title: String(localized: "Copy Title")) { Clipboard.copy(question.displayTitle) },
+            .button(title: String(localized: "Copy Question URL")) {
+                Clipboard.copy(question.webURL(baseURL: client.baseURL).absoluteString)
+            },
+            .button(title: String(localized: "Show Questions from \(directory.display(question.ownerEmail))")) {
+                ownerFilter = question.ownerEmail
+            },
+        ]
         if let lang = question.language, !lang.isEmpty {
-            Button {
+            items.append(.button(title: String(localized: "Show \(lang.languageDisplayName) Questions")) {
                 languageFilter = lang.lowercased()
-            } label: {
-                Label("Show \(lang.languageDisplayName) Questions",
-                      systemImage: "chevron.left.slash.chevron.right")
-            }
+            })
         }
-        Divider()
-        Button(role: .destructive) {
+        items.append(.separator)
+        items.append(.button(title: String(localized: "Delete Question…"),
+                             isDestructive: true, isEnabled: !isReadOnly) {
             selectedQuestionIDs = [question.id]
             nav.deleteQuestionID = question.id
-        } label: {
-            Label("Delete Question…", systemImage: "trash")
-        }
-        .disabled(isReadOnly)
-    }
-
-    /// Context-menu entry that stars or unstars a question. Favorites can be
-    /// filtered to via the Favorites chip and lead the menu bar's "New Pad from
-    /// Question" submenu, so a frequently used question is quick to reach.
-    @ViewBuilder
-    func favoriteToggleButton(_ question: Question) -> some View {
-        let isFavorite = favoriteIDSet.contains(question.id)
-        Button {
-            toggleFavorite(question)
-        } label: {
-            Label(isFavorite ? String(localized: "Remove from Favorites") : String(localized: "Add to Favorites"),
-                  systemImage: isFavorite ? "star.slash" : "star")
-        }
-    }
-
-    /// Leading swipe action mirroring the favorite context-menu entry.
-    @ViewBuilder
-    func favoriteSwipeButton(_ question: Question) -> some View {
-        let isFavorite = favoriteIDSet.contains(question.id)
-        Button {
-            toggleFavorite(question)
-        } label: {
-            Label(isFavorite ? "Unfavorite" : "Favorite",
-                  systemImage: isFavorite ? "star.slash" : "star")
-        }
-        .tint(.yellow)
+        })
+        return items
     }
 
     func toggleFavorite(_ question: Question) {

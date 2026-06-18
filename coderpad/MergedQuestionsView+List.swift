@@ -39,15 +39,6 @@ extension MergedQuestionsView {
                 selectedRowIDs = selection
                     .flatMap { sel in scoped.first { $0.item.id == sel.id }?.id }
                     .map { [$0] } ?? []
-                // Double-clicking a row opens the selected question in its own window
-                // (the first click selects it). Reads the live selection and the
-                // account it routed to.
-                doubleClickProxy.onDoubleClick = {
-                    guard let question = selection else { return }
-
-                    openWindow(id: "question",
-                               value: QuestionWindowID(account: router.selectedQuestionAccountID, id: question.id))
-                }
             }
             // Re-persist whenever any filter changes; `filterSignature` shifts for
             // every filter control, so one observer covers them all.
@@ -230,60 +221,46 @@ extension MergedQuestionsView {
     }
 
     private var questionsList: some View {
-        // Wrap in a reader so a restored selection can be scrolled into view on
-        // launch (see `pendingScrollToRowID`); the reader sits outside the `.id`
-        // below so its proxy survives the filter/sort-driven list rebuilds.
-        ScrollViewReader { proxy in
-            questionsListBody
-                // Scroll the restored question into view once, then clear the request
-                // so the user's own scrolling afterward is never overridden.
-                .onChange(of: pendingScrollToRowID) { _, id in
-                    guard let id else { return }
-
-                    proxy.scrollTo(id, anchor: .center)
-                    pendingScrollToRowID = nil
-                }
-        }
-    }
-
-    private var questionsListBody: some View {
-        List(selection: $selectedRowIDs) {
-            ForEach(sorted) { row in
-                QuestionRow(
+        // NSTableView-backed (#439): recycles only visible rows, so selection is
+        // instant on large combined lists — see `ListTable`.
+        ListTable(
+            items: sorted,
+            selection: $selectedRowIDs,
+            scrollToID: pendingScrollToRowID,
+            onScrolledToID: { pendingScrollToRowID = nil },
+            rowContent: { row in
+                AnyView(QuestionRowHostableContent(
                     question: row.item,
-                    isFavorite: isFavorite(row),
                     accountName: row.account.name,
                     account: row.account.id,
+                    favorites: favorites,
                     onToggleFavorite: { toggleFavorite(row) }
-                )
-                .tag(row.id)
-                .installsTableDoubleClick(doubleClickProxy)
-                .contextMenu { questionContextMenu(row) }
-                .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                    Button {
-                        toggleFavorite(row)
-                    } label: {
-                        Label(isFavorite(row) ? "Unfavorite" : "Favorite",
-                              systemImage: isFavorite(row) ? "star.slash" : "star")
-                    }
-                    .tint(.yellow)
-                }
-                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                    // Same path as the context-menu "Delete Question…": select the
-                    // row, then let its detail pane run the undoable delete.
-                    Button(role: .destructive) {
-                        select(row)
-                        nav.deleteQuestionID = row.item.id
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
-                    .disabled(isReadOnly)
-                }
-            }
-        }
-        .listStyle(.inset)
-        .id("\(filterSignature)|\(favoritesOnly)|\(sort.rawValue)")
-        .transaction { $0.animation = nil }
+                ))
+            },
+            // Double-click / Return open the question in its own window with the
+            // originating account (the first click selects it).
+            onDoubleClick: { openQuestionWindow($0) },
+            onReturn: { openQuestionWindow($0) },
+            leadingActions: { row in
+                let starred = isFavorite(row)
+                return [RowSwipeAction(
+                    title: starred ? String(localized: "Unfavorite") : String(localized: "Favorite"),
+                    tint: .systemYellow
+                ) { toggleFavorite(row) }]
+            },
+            trailingActions: { row in
+                guard !isReadOnly else { return [] }
+
+                // Same path as the context-menu "Delete Question…": select the row,
+                // then let its detail pane run the undoable delete.
+                return [RowSwipeAction(title: String(localized: "Delete"), isDestructive: true) {
+                    select(row)
+                    nav.deleteQuestionID = row.item.id
+                }]
+            },
+            pasteboardItem: { questionPasteboardItem($0) },
+            menuItems: { questionTableMenuItems($0) }
+        )
         .overlay { questionsOverlay }
         .macPullToRefresh { await reload() }
         .focusedSceneValue(\.focusedQuestion, selection)
@@ -296,6 +273,11 @@ extension MergedQuestionsView {
         .onCopyCommand(perform: copyLinkCommand(hasSelection: !selectedRowIDs.isEmpty) {
             selectedQuestionURLsInOrder.joined(separator: "\n")
         })
+    }
+
+    /// Opens a combined-list question in its own window with its originating account.
+    private func openQuestionWindow(_ row: AccountScoped<Question>) {
+        openWindow(id: "question", value: QuestionWindowID(account: row.account.id, id: row.item.id))
     }
 
     /// The selected questions' web URLs in the order they appear in the list (not

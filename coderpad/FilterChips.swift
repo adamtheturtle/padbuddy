@@ -19,8 +19,8 @@ import SwiftUI
 /// its own `focusRingType` ring — which the SwiftUI modifier doesn't reach, so a
 /// stray blue box still appears around the chip when it takes keyboard focus (#341).
 /// Attached via `.background`, the helper sits inside the control's view tree and
-/// walks up to set `focusRingType = .none` on the hosting views (mirroring how
-/// ``TableDoubleClickInstaller`` reaches its enclosing table).
+/// walks up to set `focusRingType = .none` on the hosting views (the same
+/// walk-up-the-view-tree trick an `NSViewRepresentable` uses to reach its host).
 private struct FocusRingSuppressor: NSViewRepresentable {
     func makeNSView(context _: Context) -> NSView {
         let view = NSView()

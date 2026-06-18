@@ -6,134 +6,33 @@
 import SwiftUI
 
 #if DEBUG
-/// Per-selection render profiler (#439). Counts, per selection change, how many row
-/// parent bodies vs memoized content bodies evaluate, plus the rough main-thread
-/// stall. Wired up from the list's `selectedIDs` `onChange`; DEBUG-only so it never
-/// ships in release.
+/// Per-selection render profiler (#439). Counts how many memoized row-content bodies
+/// (`PadRowInfo` / `QuestionRowInfo`) evaluate per selection change, plus the rough
+/// main-thread stall. With the `NSTableView`-backed `ListTable` the table doesn't
+/// re-host rows on a selection change, so this should stay near zero — what's left of
+/// the stall is the detail-pane/selection cascade, not the list. Wired up from a
+/// list's selection `onChange`; DEBUG-only so it never ships in release.
 @MainActor
 enum SelectionProfiler {
-    static var rowEvals = 0
     static var memoizedEvals = 0
 
-    static func rowTick() { rowEvals += 1 }
     static func memoizedTick() { memoizedEvals += 1 }
 
-    /// Call from the list's `selectedIDs` `onChange`. Resets the counters, then reads
-    /// them back after the current update cycle drains to approximate the stall.
+    /// Call from the list's selection `onChange`. Resets the counter, then reads it
+    /// back after the current update cycle drains to approximate the stall.
     static func selectionChanged() {
         let start = CFAbsoluteTimeGetCurrent()
-        rowEvals = 0
         memoizedEvals = 0
         DispatchQueue.main.async {
             let ms = (CFAbsoluteTimeGetCurrent() - start) * 1000
-            print(String(format: "⏱️ #439 selection stall ≈ %.1fms — row parent bodies = %d, memoized content bodies = %d",
-                         ms, rowEvals, memoizedEvals))
+            print(String(format: "⏱️ #439 selection stall ≈ %.1fms — memoized row bodies = %d", ms, memoizedEvals))
         }
     }
 }
 #endif
 
-/// A single pad row. Owns the row's interactive surface — the hit-test shape, hover,
-/// drag, and the favorite button — and embeds the static title/metadata block as an
-/// `.equatable()` child (``PadRowInfo``).
-///
-/// Why only the inert block is memoized (#439): a macOS `List` rebuilds every row's
-/// body on each selection change, so on a large list (thousands of pads) clicking a
-/// row re-ran every row's view tree and stalled the main thread. Memoizing the inert
-/// text/badges/date block with `.equatable()` skips re-rendering it for unchanged
-/// rows, which is the bulk of the cost.
-///
-/// Everything click-related stays OUT of the `EquatableView`: `.contentShape` wraps
-/// the content HStack directly (so clicks on the text select, not just empty space),
-/// the favorite `Button` and `.draggable` stay hittable, and `.tag()` /
-/// `.installsTableDoubleClick` / `.contextMenu` / `.swipeActions` are applied by the
-/// list. Wrapping the *whole* row (hit surface included) in an `EquatableView` would
-/// be lazier/faster but breaks selection and drag — a hittable view inside an
-/// `EquatableView` stops the `List` row from registering clicks, and there's no
-/// arrangement that keeps click-to-select, drag, and laziness all working at once
-/// (commit e9746df and follow-ups). Correctness wins; only the inert block is memoized.
-struct PadRow: View {
-    let pad: Pad
-    var isChanged: Bool = false
-    /// The owning account's name, shown as a badge only in the combined "All
-    /// Accounts" view so each row says which account it came from. `nil` in the
-    /// normal single-account list, where the badge would be noise.
-    var accountName: String?
-    /// The owning account's id, so a drag onto the sidebar can pin the pad to the
-    /// right account (the originating one in the merged view, not the active one).
-    var account: UUID?
-    /// Whether this pad is pinned as a favorite, driving the trailing star.
-    var isFavorite: Bool = false
-    /// Toggles the pad's favorite state from the trailing star, mirroring QuestionRow.
-    var onToggleFavorite: () -> Void = {}
-    @Environment(\.orgDirectory) private var directory
-    @State private var hovered = false
-
-    var body: some View {
-        #if DEBUG
-        let _ = SelectionProfiler.rowTick()
-        #endif
-        // Drag a pad out as its web URL, so it can be dropped into Slack, Mail,
-        // Notes, etc. as a link that reopens the pad — and, when we know the owning
-        // account, also carry an internal favorite payload so it can be dropped onto
-        // the sidebar Favorites to pin it (#297). Only when the URL parses; otherwise
-        // the row is simply not draggable.
-        if let url = pad.webURL {
-            if let account {
-                rowContent.draggable(PadDragPayload(
-                    account: account,
-                    id: pad.id,
-                    title: pad.title.isEmpty ? pad.id : pad.title,
-                    url: url
-                ))
-            } else {
-                rowContent.draggable(url)
-            }
-        } else {
-            rowContent
-        }
-    }
-
-    private var rowContent: some View {
-        // Mirror QuestionRow's structure so the two lists read at the same height:
-        // an outer center-aligned HStack holds the top-aligned title/metadata block
-        // (with the trailing date) and, centered against the full row height, the
-        // favorite star as a row-level action.
-        HStack(alignment: .center, spacing: 8) {
-            // Resolve the owner name here (it depends on the observable directory) and
-            // pass the resolved string in, so the memoized block's equality covers both
-            // the owner email and a directory update without holding the directory.
-            PadRowInfo(
-                pad: pad,
-                isChanged: isChanged,
-                accountName: accountName,
-                ownerDisplay: directory.display(pad.ownerEmail)
-            )
-            .equatable()
-            FavoriteStarButton(
-                isFavorite: isFavorite,
-                hovered: hovered,
-                title: pad.title.isEmpty ? pad.id : pad.title,
-                onToggle: onToggleFavorite
-            )
-        }
-        .padding(.vertical, 4)
-        // Make the entire row frame hittable — including the title/badges, the
-        // trailing Spacer, and any empty space — so a click anywhere selects it and a
-        // double-click opens it (#322). On the content HStack (not an EquatableView
-        // wrapper) so clicks on the text register too.
-        .contentShape(Rectangle())
-        .onHover { hovered = $0 }
-        // Single click selects/previews the pad in the detail pane; double click
-        // opens it. Both are handled natively by the list (selection) and the
-        // table's `doubleAction` (open), installed by the owning list — see
-        // `TableDoubleClickProxy`. A SwiftUI tap gesture here would break the list's
-        // own click-to-select (#324/#326).
-    }
-}
-
 /// The pad row's static title/metadata/date block — the bulk of the row's render
-/// cost — memoized via `.equatable()` by ``PadRow`` (#439). It holds no interaction
+/// cost — memoized via `.equatable()` by ``PadRowHostableContent`` (#439). It holds no interaction
 /// and no closures, so wrapping it in an `EquatableView` can't affect the row's
 /// hit-testing or selection. `==` compares only the fields it renders, so a selection
 /// change on an unchanged row skips rebuilding it.
@@ -141,7 +40,7 @@ private struct PadRowInfo: View, Equatable {
     let pad: Pad
     let isChanged: Bool
     let accountName: String?
-    /// The owner's display name as already resolved by ``PadRow`` against the org
+    /// The owner's display name as already resolved by ``PadRowHostableContent`` against the org
     /// directory; compared in `==` so a directory update re-renders the block.
     let ownerDisplay: String
 

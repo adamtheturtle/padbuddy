@@ -18,9 +18,6 @@ struct MergedQuestionsView: View {
     /// While offline the app is read-only, so create/edit/delete controls disable (#321).
     @Environment(\.isReadOnly) var isReadOnly
     @Environment(\.openWindow) var openWindow
-    /// Long-lived target for the list's native double-click-to-open (see
-    /// `TableDoubleClickProxy`); opens the selected question in its own window.
-    @State var doubleClickProxy = TableDoubleClickProxy()
     @State var accounts = AccountsStore.shared
     @State var router = MergedRouting.shared
     @State var cache = QuestionsCacheStore.shared

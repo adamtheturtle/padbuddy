@@ -2,73 +2,80 @@
 //  MergedQuestionsView+ContextMenu.swift
 //  coderpad
 //
-//  The per-row and multi-row right-click context menus for the combined questions
-//  list. Split out of MergedQuestionsView+List.swift to keep it under the line cap.
+//  The per-row right-click menu and drag payload for the combined questions list's
+//  `NSTableView`-backed `ListTable`. Split out of MergedQuestionsView+List.swift to
+//  keep it under the line cap.
 //
 
+import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 extension MergedQuestionsView {
-    @ViewBuilder
-    func questionContextMenu(_ row: AccountScoped<Question>) -> some View {
-        // Right-clicking a row that's part of a multi-row selection copies every
-        // selected link at once, Finder-style; a single row keeps its full menu.
+    /// The right-click menu for a combined-questions row, built as AppKit
+    /// `RowMenuItem`s (the hosted content is hit-transparent, so a SwiftUI
+    /// `.contextMenu` can't be used). A multi-row selection acts on the whole
+    /// selection, Finder-style; otherwise it's the single-row menu. Actions needing the
+    /// detail pane select the row first, then route through `AppNavigation`. (Share is
+    /// reachable from the detail pane.)
+    func questionTableMenuItems(_ row: AccountScoped<Question>) -> [RowMenuItem] {
         if selectedRowIDs.count > 1, selectedRowIDs.contains(row.id) {
-            bulkSelectionContextMenu()
-        } else {
-            Button {
+            let rows = selectedRowsInOrder
+            return [
+                .button(title: String(localized: "Copy \(rows.count) Question Links")) {
+                    Clipboard.copy(rows
+                        .map { $0.item.webURL(baseURL: $0.account.resolvedBaseURL).absoluteString }
+                        .joined(separator: "\n"))
+                },
+                .separator,
+                .button(title: String(localized: "Delete \(rows.count) Questions…"),
+                        isDestructive: true, isEnabled: !isReadOnly) {
+                    rowsPendingBulkDelete = rows
+                },
+            ]
+        }
+        let starred = isFavorite(row)
+        return [
+            .button(title: String(localized: "New Pad from Question"), isEnabled: !isReadOnly) {
                 select(row)
                 nav.createPadForQuestionID = row.item.id
-            } label: {
-                Label("New Pad from Question", systemImage: "plus.rectangle.on.rectangle")
-            }
-            .disabled(isReadOnly)
-            Button {
+            },
+            .button(title: starred ? String(localized: "Remove from Favorites")
+                : String(localized: "Add to Favorites")) {
                 toggleFavorite(row)
-            } label: {
-                Label(isFavorite(row) ? "Remove from Favorites" : "Add to Favorites",
-                      systemImage: isFavorite(row) ? "star.slash" : "star")
-            }
-            ShareLink(item: row.item.webURL(baseURL: row.account.resolvedBaseURL)) {
-                Label("Share…", systemImage: "square.and.arrow.up")
-            }
-            Divider()
-            Button { Clipboard.copy(row.item.displayTitle) } label: {
-                Label("Copy Title", systemImage: "doc.on.doc")
-            }
-            Button { Clipboard.copy(row.item.webURL(baseURL: row.account.resolvedBaseURL).absoluteString) } label: {
-                Label("Copy Question URL", systemImage: "link")
-            }
-            Button { accountFilter = row.account.id } label: {
-                Label("Show Only \(row.account.name)", systemImage: "person.crop.circle")
-            }
-            Divider()
-            Button(role: .destructive) {
+            },
+            .separator,
+            .button(title: String(localized: "Copy Title")) { Clipboard.copy(row.item.displayTitle) },
+            .button(title: String(localized: "Copy Question URL")) {
+                Clipboard.copy(row.item.webURL(baseURL: row.account.resolvedBaseURL).absoluteString)
+            },
+            .button(title: String(localized: "Show Only \(row.account.name)")) {
+                accountFilter = row.account.id
+            },
+            .separator,
+            .button(title: String(localized: "Delete Question…"), isDestructive: true, isEnabled: !isReadOnly) {
                 select(row)
                 nav.deleteQuestionID = row.item.id
-            } label: {
-                Label("Delete Question…", systemImage: "trash")
-            }
-            .disabled(isReadOnly)
-        }
+            },
+        ]
     }
 
-    @ViewBuilder
-    private func bulkSelectionContextMenu() -> some View {
-        let rows = selectedRowsInOrder
-        Button {
-            Clipboard.copy(rows
-                .map { $0.item.webURL(baseURL: $0.account.resolvedBaseURL).absoluteString }
-                .joined(separator: "\n"))
-        } label: {
-            Label("Copy \(rows.count) Question Links", systemImage: "link")
+    /// The drag payload for a combined-questions row: its web URL (resolved against the
+    /// originating account's server, external link drops) plus the internal
+    /// `FavoriteDrop` JSON carrying that account (so it drops onto the sidebar
+    /// Favorites and pins to the right account, #297).
+    func questionPasteboardItem(_ row: AccountScoped<Question>) -> NSPasteboardItem? {
+        let url = row.item.webURL(baseURL: row.account.resolvedBaseURL)
+        let item = NSPasteboardItem()
+        item.setString(url.absoluteString, forType: .URL)
+        item.setString(url.absoluteString, forType: .string)
+        if let data = try? JSONEncoder().encode(FavoriteDrop.question(
+            account: row.account.id,
+            id: row.item.id,
+            title: row.item.displayTitle
+        )) {
+            item.setData(data, forType: NSPasteboard.PasteboardType(UTType.coderpadFavorite.identifier))
         }
-        Divider()
-        Button(role: .destructive) {
-            rowsPendingBulkDelete = rows
-        } label: {
-            Label("Delete \(rows.count) Questions…", systemImage: "trash")
-        }
-        .disabled(isReadOnly)
+        return item
     }
 }

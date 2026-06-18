@@ -5,72 +5,8 @@
 
 import SwiftUI
 
-/// A single question row. Owns the row's interactive surface — the hit-test shape,
-/// hover, drag, and the favorite button — and embeds the static title/metadata block
-/// as an `.equatable()` child (``QuestionRowInfo``). See ``PadRow`` for why only the
-/// inert block is memoized, keeping click/selection/drag machinery out of the
-/// `EquatableView` (#439).
-struct QuestionRow: View {
-    let question: Question
-    var isFavorite: Bool = false
-    /// The owning account's name, shown as a badge only in the combined "All
-    /// Accounts" view. `nil` in the normal single-account list.
-    var accountName: String?
-    /// The owning account's id, so dragging the row onto the sidebar can pin the
-    /// question to the right account (the originating one in the merged view).
-    var account: UUID?
-    var onToggleFavorite: () -> Void = {}
-
-    @State private var hovered = false
-
-    var body: some View {
-        #if DEBUG
-        let _ = SelectionProfiler.rowTick()
-        #endif
-        // Drag onto the sidebar Favorites to pin the question (#297). Only when the
-        // owning account is known, so the drop can pin it to the right account.
-        if let account {
-            rowContent.draggable(FavoriteDrop.question(
-                account: account,
-                id: question.id,
-                title: question.displayTitle
-            ))
-        } else {
-            rowContent
-        }
-    }
-
-    private var rowContent: some View {
-        // The text/metadata block keeps its top alignment (title, chips, and the
-        // last-used date all read from the top), while the favorite star is
-        // centered against the row's full height as a row-level action distinct
-        // from the metadata.
-        HStack(alignment: .center, spacing: 8) {
-            QuestionRowInfo(question: question, accountName: accountName)
-                .equatable()
-            FavoriteStarButton(
-                isFavorite: isFavorite,
-                hovered: hovered,
-                title: question.displayTitle,
-                onToggle: onToggleFavorite
-            )
-        }
-        .padding(.vertical, 4)
-        // Make the whole row hittable (text, Spacer, empty space) so a click anywhere
-        // selects it — on the content HStack, not an EquatableView wrapper, so clicks
-        // on the text register too.
-        .contentShape(Rectangle())
-        .onHover { hovered = $0 }
-        // Single click selects/previews the question in the detail pane; double
-        // click opens it in its own window. Both are handled natively by the list
-        // (selection) and the table's `doubleAction` (open), installed by the owning
-        // list — see `TableDoubleClickProxy`. A SwiftUI tap gesture here would break
-        // the list's own click-to-select (#324/#326).
-    }
-}
-
 /// The question row's static title/metadata/date block — the bulk of the row's
-/// render cost — memoized via `.equatable()` by ``QuestionRow`` (#439). It holds no
+/// render cost — memoized via `.equatable()` by ``QuestionRowHostableContent`` (#439). It holds no
 /// interaction and no closures, so wrapping it in an `EquatableView` can't affect the
 /// row's hit-testing or selection. `==` compares only the fields it renders.
 private struct QuestionRowInfo: View, Equatable {
@@ -157,5 +93,40 @@ private struct QuestionRowInfo: View, Equatable {
             parts.append("last used \(RelativeDateLabel.labels(for: lastUsed).relative)")
         }
         return parts.joined(separator: ", ")
+    }
+}
+
+/// The question row as hosted inside the `NSTableView`-backed `ListTable` (#439). The
+/// title/metadata block is `.allowsHitTesting(false)` so left-clicks pass through the
+/// `NSHostingView` to the table for native selection; only the favorite star stays
+/// hittable. Mirrors ``PadRowHostableContent``. Selection, double-click, swipe, drag,
+/// and the context menu are the table's job.
+struct QuestionRowHostableContent: View {
+    let question: Question
+    var accountName: String?
+    /// The owning account, used to read the favorite state.
+    var account: UUID?
+    /// Read live in `body` (it's `@Observable`) so toggling the star re-renders the
+    /// hosted row immediately — the cell isn't otherwise re-created on a favorite change.
+    var favorites: FavoriteQuestionsStore
+    /// Toggles the favorite via the owning view's method (which may also clear the
+    /// Favorites filter when the last star is removed), rather than the store directly.
+    var onToggleFavorite: () -> Void
+    @State private var hovered = false
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 8) {
+            QuestionRowInfo(question: question, accountName: accountName)
+                .equatable()
+                .allowsHitTesting(false)
+            FavoriteStarButton(
+                isFavorite: favorites.isFavorite(question.id, account: account),
+                hovered: hovered,
+                title: question.displayTitle,
+                onToggle: onToggleFavorite
+            )
+        }
+        .padding(.vertical, 4)
+        .onHover { hovered = $0 }
     }
 }

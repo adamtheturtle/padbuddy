@@ -1,17 +1,27 @@
 //
-//  PadListTable.swift
+//  ListTable.swift
 //  coderpad
 //
 
 import AppKit
 import SwiftUI
 
-/// One entry in a pad row's right-click menu, built by the caller and rendered as an
+/// One entry in a row's right-click menu, built by the caller and rendered as an
 /// `NSMenuItem` (the hosted SwiftUI content is hit-transparent, so the menu can't be a
 /// SwiftUI `.contextMenu`).
-enum PadRowMenuItem {
+enum RowMenuItem {
     case button(title: String, isDestructive: Bool = false, isEnabled: Bool = true, perform: () -> Void)
     case separator
+}
+
+/// One swipe action on a row edge, rendered as an `NSTableViewRowAction`.
+struct RowSwipeAction {
+    var title: String
+    var isDestructive: Bool = false
+    /// Background colour for the revealed button (e.g. yellow for favorite). `nil`
+    /// uses the system default (grey for regular, red for destructive).
+    var tint: NSColor?
+    var perform: () -> Void
 }
 
 /// Carries a menu item's closure as an `NSMenuItem.representedObject`, so a single
@@ -21,53 +31,48 @@ private final class MenuActionBox {
     init(_ perform: @escaping () -> Void) { self.perform = perform }
 }
 
-/// An `NSTableView`-backed pad list (#439). Unlike SwiftUI `List` — which rebuilds
-/// *every* row's body on each selection change and stalled large lists, and whose
+/// An `NSTableView`-backed list (#439). Unlike SwiftUI `List` — which rebuilds *every*
+/// row's body on each selection change and stalled large lists, and whose
 /// `.equatable()` rows can't be made both lazy and click-safe — an `NSTableView`
 /// materializes and recycles only the visible rows, so selection is near-instant
 /// regardless of length, the way Mail's message list works.
 ///
-/// Each row hosts the SwiftUI `PadRowHostableContent` in an `NSHostingView`. The
-/// hosted content is hit-transparent except its favorite star, so left-clicks fall
-/// through to the table for native selection. Selection, double-click-to-open, swipe
-/// actions, keyboard nav, drag, and the right-click menu are all native table
-/// behaviors driven by the closures below.
-struct PadListTable: NSViewRepresentable {
+/// Each row hosts a SwiftUI view in an `NSHostingView`. The hosted content must be
+/// hit-transparent except its interactive controls (e.g. a favorite star) — apply
+/// `.allowsHitTesting(false)` to the non-interactive parts — so left-clicks fall
+/// through to the table for native selection. Selection, double-click, swipe, keyboard
+/// nav, drag, and the right-click menu are native table behaviors driven by closures.
+struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: Hashable {
     /// The rows to show, already filtered and sorted by the caller.
-    var pads: [Pad]
-    /// The selected pad ids, two-way bound to the owning view's `selectedIDs`.
-    @Binding var selection: Set<String>
-    /// A pad id to scroll into view once (e.g. a restored selection on launch).
-    var scrollToID: String?
+    var items: [Item]
+    /// The selected ids, two-way bound to the owning view's selection set.
+    @Binding var selection: Set<Item.ID>
+    /// An id to scroll into view once (e.g. a restored selection on launch).
+    var scrollToID: Item.ID?
     /// Called after `scrollToID` has been honored so the caller can clear it.
     var onScrolledToID: () -> Void
-    /// Disables the destructive swipe action when the account is read-only.
-    var isReadOnly: Bool
-    /// The SwiftUI content for a row (`PadRowHostableContent`).
-    var rowContent: (Pad) -> AnyView
-    /// Opens the pad in its own window on double-click.
-    var onDoubleClick: (Pad) -> Void
-    /// Opens the pad (browser) on Return, matching the previous `.onKeyPress(.return)`.
-    var onReturn: (Pad) -> Void
-    /// Whether the pad is currently a favorite, for the leading swipe's title/icon.
-    var isFavorite: (Pad) -> Bool
-    /// Toggles the pad's favorite state (leading swipe).
-    var onToggleFavorite: (Pad) -> Void
-    /// Requests deletion of the pad (trailing swipe) — opens the caller's confirmation.
-    var onDelete: (Pad) -> Void
-    /// The drag payload for a row: carries the pad's URL (external drops) and the
-    /// internal favorite JSON (so it can be dropped on the sidebar Favorites). `nil`
-    /// makes the row non-draggable. Built at the AppKit layer because the hosted
-    /// SwiftUI content is hit-transparent, which disables a SwiftUI `.draggable`.
-    var pasteboardItem: (Pad) -> NSPasteboardItem?
+    /// The SwiftUI content for a row (hit-transparent except its controls).
+    var rowContent: (Item) -> AnyView
+    /// Opens the item on double-click.
+    var onDoubleClick: (Item) -> Void
+    /// Opens the item on Return, matching the previous `.onKeyPress(.return)`.
+    var onReturn: (Item) -> Void
+    /// Leading-edge swipe actions (e.g. favorite). Empty → no leading swipe.
+    var leadingActions: (Item) -> [RowSwipeAction]
+    /// Trailing-edge swipe actions (e.g. delete). Empty → no trailing swipe.
+    var trailingActions: (Item) -> [RowSwipeAction]
+    /// The drag payload for a row, or `nil` to make it non-draggable. Built at the
+    /// AppKit layer because the hosted SwiftUI content is hit-transparent, which
+    /// disables a SwiftUI `.draggable`.
+    var pasteboardItem: (Item) -> NSPasteboardItem?
     /// The right-click menu entries for a row. The caller decides single-row vs
     /// multi-selection contents (reading its own selection). Empty → no menu.
-    var menuItems: (Pad) -> [PadRowMenuItem]
+    var menuItems: (Item) -> [RowMenuItem]
 
     func makeCoordinator() -> Coordinator { Coordinator(self) }
 
     func makeNSView(context: Context) -> NSScrollView {
-        let table = PadTableView()
+        let table = KeyHandlingTableView()
         table.headerView = nil
         table.style = .inset
         table.usesAutomaticRowHeights = true
@@ -75,7 +80,7 @@ struct PadListTable: NSViewRepresentable {
         table.allowsEmptySelection = true
         table.selectionHighlightStyle = .regular
         table.backgroundColor = .clear
-        let column = NSTableColumn(identifier: .padColumn)
+        let column = NSTableColumn(identifier: .listColumn)
         column.resizingMask = .autoresizingMask
         table.addTableColumn(column)
         table.dataSource = context.coordinator
@@ -84,13 +89,13 @@ struct PadListTable: NSViewRepresentable {
         table.doubleAction = #selector(Coordinator.handleDoubleClick)
         table.onReturn = { [weak coordinator = context.coordinator] in coordinator?.handleReturn() }
         table.menuForRow = { [weak coordinator = context.coordinator] row in coordinator?.menu(forRow: row) }
-        // Allow dragging rows out of the app (a pad link into Slack/Mail) and onto the
+        // Allow dragging rows out of the app (a link into Slack/Mail) and onto the
         // in-app sidebar Favorites (the internal favorite payload).
         table.setDraggingSourceOperationMask([.copy, .generic], forLocal: true)
         table.setDraggingSourceOperationMask(.copy, forLocal: false)
 
         context.coordinator.tableView = table
-        context.coordinator.reloadIfNeeded(pads, force: true)
+        context.coordinator.reloadIfNeeded(items, force: true)
 
         let scroll = NSScrollView()
         scroll.documentView = table
@@ -106,7 +111,7 @@ struct PadListTable: NSViewRepresentable {
 
         // Only reload when the row set actually changed (filter/sort/refresh) — never
         // on a bare selection change, which is the whole point of the rewrite.
-        coordinator.reloadIfNeeded(pads, force: false)
+        coordinator.reloadIfNeeded(items, force: false)
         coordinator.applySelection(selection)
 
         if let scrollToID, let row = coordinator.index(of: scrollToID) {
@@ -117,23 +122,23 @@ struct PadListTable: NSViewRepresentable {
 
     @MainActor
     final class Coordinator: NSObject, NSTableViewDataSource, NSTableViewDelegate {
-        var parent: PadListTable
+        var parent: ListTable
         weak var tableView: NSTableView?
-        private var pads: [Pad] = []
-        private var indexByID: [String: Int] = [:]
+        private var items: [Item] = []
+        private var indexByID: [Item.ID: Int] = [:]
         /// Guards against the selection binding and the table's selection ping-ponging.
         private var isApplyingSelection = false
 
-        init(_ parent: PadListTable) {
+        init(_ parent: ListTable) {
             self.parent = parent
         }
 
         // MARK: Data
 
-        func reloadIfNeeded(_ newPads: [Pad], force: Bool) {
-            let changed = force || newPads.map(\.id) != pads.map(\.id)
-            pads = newPads
-            indexByID = Dictionary(newPads.enumerated().map { ($1.id, $0) }, uniquingKeysWith: { first, _ in first })
+        func reloadIfNeeded(_ newItems: [Item], force: Bool) {
+            let changed = force || newItems.map(\.id) != items.map(\.id)
+            items = newItems
+            indexByID = Dictionary(newItems.enumerated().map { ($1.id, $0) }, uniquingKeysWith: { first, _ in first })
             guard changed else { return }
 
             tableView?.reloadData()
@@ -141,27 +146,27 @@ struct PadListTable: NSViewRepresentable {
             applySelection(parent.selection)
         }
 
-        func index(of id: String) -> Int? { indexByID[id] }
+        func index(of id: Item.ID) -> Int? { indexByID[id] }
 
-        func numberOfRows(in _: NSTableView) -> Int { pads.count }
+        func numberOfRows(in _: NSTableView) -> Int { items.count }
 
         func tableView(_ tableView: NSTableView, viewFor _: NSTableColumn?, row: Int) -> NSView? {
-            let cell = tableView.makeView(withIdentifier: .padCell, owner: self) as? PadRowCellView
-                ?? PadRowCellView(identifier: .padCell)
-            cell.host(parent.rowContent(pads[row]))
+            let cell = tableView.makeView(withIdentifier: .listCell, owner: self) as? HostingCellView
+                ?? HostingCellView(identifier: .listCell)
+            cell.host(parent.rowContent(items[row]))
             return cell
         }
 
         func tableView(_: NSTableView, pasteboardWriterForRow row: Int) -> (any NSPasteboardWriting)? {
-            guard pads.indices.contains(row) else { return nil }
+            guard items.indices.contains(row) else { return nil }
 
-            return parent.pasteboardItem(pads[row])
+            return parent.pasteboardItem(items[row])
         }
 
         // MARK: Selection
 
         /// Push the binding's selection into the table without echoing it back.
-        func applySelection(_ ids: Set<String>) {
+        func applySelection(_ ids: Set<Item.ID>) {
             guard let tableView else { return }
 
             let rows = IndexSet(ids.compactMap { indexByID[$0] })
@@ -175,71 +180,57 @@ struct PadListTable: NSViewRepresentable {
         func tableViewSelectionDidChange(_ notification: Notification) {
             guard !isApplyingSelection, let tableView = notification.object as? NSTableView else { return }
 
-            let ids = Set(tableView.selectedRowIndexes.compactMap { pads.indices.contains($0) ? pads[$0].id : nil })
+            let ids = Set(tableView.selectedRowIndexes.compactMap { items.indices.contains($0) ? items[$0].id : nil })
             if ids != parent.selection { parent.selection = ids }
         }
 
         // MARK: Actions
 
         @objc func handleDoubleClick() {
-            guard let tableView, tableView.clickedRow >= 0, pads.indices.contains(tableView.clickedRow) else { return }
+            guard let tableView, tableView.clickedRow >= 0, items.indices.contains(tableView.clickedRow) else { return }
 
-            parent.onDoubleClick(pads[tableView.clickedRow])
+            parent.onDoubleClick(items[tableView.clickedRow])
         }
 
         func handleReturn() {
-            guard let tableView, let row = tableView.selectedRowIndexes.first, pads.indices.contains(row) else { return }
+            guard let tableView, let row = tableView.selectedRowIndexes.first, items.indices.contains(row) else { return }
 
-            parent.onReturn(pads[row])
+            parent.onReturn(items[row])
         }
 
         // MARK: Swipe actions
 
         func tableView(_: NSTableView, rowActionsForRow row: Int,
                        edge: NSTableView.RowActionEdge) -> [NSTableViewRowAction] {
-            guard pads.indices.contains(row) else { return [] }
+            guard items.indices.contains(row) else { return [] }
 
-            let pad = pads[row]
-            switch edge {
-            case .leading:
-                let starred = parent.isFavorite(pad)
-                let action = NSTableViewRowAction(
-                    style: .regular,
-                    title: starred ? String(localized: "Unfavorite") : String(localized: "Favorite")
+            let item = items[row]
+            let actions = edge == .leading ? parent.leadingActions(item) : parent.trailingActions(item)
+            return actions.map { action in
+                let rowAction = NSTableViewRowAction(
+                    style: action.isDestructive ? .destructive : .regular,
+                    title: action.title
                 ) { [weak self] _, _ in
-                    self?.parent.onToggleFavorite(pad)
+                    action.perform()
                     self?.tableView?.rowActionsVisible = false
                 }
-                action.backgroundColor = .systemYellow
-                return [action]
-            case .trailing:
-                guard !parent.isReadOnly else { return [] }
-
-                let action = NSTableViewRowAction(
-                    style: .destructive,
-                    title: String(localized: "Delete")
-                ) { [weak self] _, _ in
-                    self?.parent.onDelete(pad)
-                    self?.tableView?.rowActionsVisible = false
-                }
-                return [action]
-            @unknown default:
-                return []
+                if let tint = action.tint { rowAction.backgroundColor = tint }
+                return rowAction
             }
         }
 
         // MARK: Context menu
 
         func menu(forRow row: Int) -> NSMenu? {
-            guard pads.indices.contains(row) else { return nil }
+            guard items.indices.contains(row) else { return nil }
 
-            let items = parent.menuItems(pads[row])
-            guard !items.isEmpty else { return nil }
+            let entries = parent.menuItems(items[row])
+            guard !entries.isEmpty else { return nil }
 
             let menu = NSMenu()
             menu.autoenablesItems = false
-            for item in items {
-                switch item {
+            for entry in entries {
+                switch entry {
                 case .separator:
                     menu.addItem(.separator())
                 case let .button(title, _, isEnabled, perform):
@@ -259,10 +250,10 @@ struct PadListTable: NSViewRepresentable {
     }
 }
 
-/// `NSTableView` subclass: forwards Return/Enter to a handler (open the selected pad),
+/// `NSTableView` subclass: forwards Return/Enter to a handler (open the selected row),
 /// and builds the per-row right-click menu. Arrow keys keep the table's native
 /// row-to-row navigation.
-private final class PadTableView: NSTableView {
+private final class KeyHandlingTableView: NSTableView {
     var onReturn: (() -> Void)?
     var menuForRow: ((Int) -> NSMenu?)?
 
@@ -286,7 +277,7 @@ private final class PadTableView: NSTableView {
 
 /// A table cell that hosts a row's SwiftUI content in an `NSHostingView`, sized to the
 /// content's intrinsic height so `usesAutomaticRowHeights` lays the row out correctly.
-private final class PadRowCellView: NSTableCellView {
+private final class HostingCellView: NSTableCellView {
     private var hosting: NSHostingView<AnyView>?
 
     init(identifier: NSUserInterfaceItemIdentifier) {
@@ -317,6 +308,6 @@ private final class PadRowCellView: NSTableCellView {
 }
 
 private extension NSUserInterfaceItemIdentifier {
-    static let padCell = NSUserInterfaceItemIdentifier("PadRowCellView")
-    static let padColumn = NSUserInterfaceItemIdentifier("PadColumn")
+    static let listCell = NSUserInterfaceItemIdentifier("ListTableHostingCell")
+    static let listColumn = NSUserInterfaceItemIdentifier("ListTableColumn")
 }
