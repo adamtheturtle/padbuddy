@@ -182,7 +182,24 @@ else
 fi
 
 echo "==> Submitting $DMG to the notary service (this can take a few minutes)"
-xcrun notarytool submit "$DMG" "${notarytool_creds[@]}" --wait
+# `notarytool submit --wait` exits 0 even when the result is `Invalid`, so capture
+# the output, pull out the submission id, and only proceed on `Accepted`. On any
+# other status fetch the detailed notary log (the only place that lists *why* a
+# binary was rejected — signing/entitlements/hardened-runtime issues) and fail.
+set +e
+submit_output="$(xcrun notarytool submit "$DMG" "${notarytool_creds[@]}" --wait 2>&1)"
+submit_rc=$?
+set -e
+printf '%s\n' "$submit_output"
+submission_id="$(printf '%s\n' "$submit_output" | awk '/^[[:space:]]*id:/ { print $2; exit }')"
+
+if ! printf '%s\n' "$submit_output" | grep -q 'status: Accepted'; then
+  if [ -n "$submission_id" ]; then
+    echo "==> Notarization was not Accepted — fetching the notary log for $submission_id"
+    xcrun notarytool log "$submission_id" "${notarytool_creds[@]}" || true
+  fi
+  die "notarization failed for $DMG (notarytool exit $submit_rc; status not Accepted)"
+fi
 
 echo "==> Stapling the notarization ticket"
 xcrun stapler staple "$DMG"
