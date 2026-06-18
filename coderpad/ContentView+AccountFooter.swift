@@ -9,7 +9,7 @@ import SwiftUI
 struct AccountFooter: View {
     @State private var store = AccountsStore.shared
     @State private var monitor = AccountHealthMonitor.shared
-    @State private var addingAccount: Account?
+    @Environment(\.openSettings) private var openSettings
     /// Size of the combined-view glyph, paired with (and roughly matching) the 30pt
     /// avatar shown in the single-account branch. Scales with the user's text size so
     /// it honors accessibility sizing; the two branches are mutually exclusive, so this
@@ -20,34 +20,29 @@ struct AccountFooter: View {
         HStack(spacing: 10) {
             accountMenu
             Spacer()
-            addAccountButton
-        }
-        .sheet(item: $addingAccount) { account in
-            AccountEditor(initial: account) { saved in
-                store.add(saved)
-                addingAccount = nil
-            } onCancel: {
-                addingAccount = nil
+            // With an account active, "Manage Accounts" lives in the switcher menu;
+            // with none, surface it as the footer's sole entry point (#455).
+            if store.currentAccount == nil {
+                manageAccountsButton
             }
         }
     }
 
-    private var addAccountButton: some View {
-        Button { addingAccount = newAccountDraft() } label: {
-            Image(systemName: "person.crop.circle.badge.plus")
-        }
-        .buttonStyle(.borderless)
-        .help("Add account")
-        .accessibilityLabel("Add account")
+    /// Opens Settings on the Accounts tab — the single "manage accounts" entry point
+    /// that replaces the footer's old separate Add Account button/sheet and Settings
+    /// link (#455). Adding, editing, and removing accounts all happen on that tab.
+    private func manageAccounts() {
+        SettingsNavigation.shared.selectedTab = .accounts
+        openSettings()
     }
 
-    /// A blank draft to add, or — when option is held and the dev env vars are
-    /// set — one pre-filled from `CODERPAD_API_KEY` for quick real-data testing.
-    private func newAccountDraft() -> Account {
-        if NSEvent.modifierFlags.contains(.option), let dev = Account.fromDevEnvironment() {
-            return dev
+    private var manageAccountsButton: some View {
+        Button { manageAccounts() } label: {
+            Label("Manage Accounts", systemImage: "person.crop.circle")
         }
-        return Account(name: "", apiKey: "")
+        .buttonStyle(.borderless)
+        .help("Add or manage accounts in Settings")
+        .accessibilityLabel("Manage accounts")
     }
 
     /// The whole account identity (avatar + name) is the menu trigger, and the
@@ -81,10 +76,7 @@ struct AccountFooter: View {
                     }
                 }
                 Divider()
-                Button("Add Account…") { addingAccount = Account(name: "", apiKey: "") }
-                SettingsLink {
-                    Text("Settings…")
-                }
+                Button("Manage Accounts…") { manageAccounts() }
             } label: {
                 triggerLabel
             }
