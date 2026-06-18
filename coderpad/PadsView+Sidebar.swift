@@ -222,6 +222,11 @@ extension PadsView {
             // render beats animating a wholesale reorder (#361).
             .id("\(filterSignature)|\(sort.rawValue)")
             .transaction { $0.animation = nil }
+            #if DEBUG
+            // Print the per-selection stall + row-body eval counts to the console, so
+            // the large-list click cost stays measurable (#439). DEBUG-only.
+            .onChange(of: selectedIDs) { SelectionProfiler.selectionChanged() }
+            #endif
             // Scroll the restored pad into view once, then clear the request so the
             // user's own scrolling afterward is never overridden.
             .onChange(of: pendingScrollToID) { _, id in

@@ -5,6 +5,10 @@
 
 import SwiftUI
 
+/// A single question row. A tiny non-equatable shell that owns the hover state and
+/// applies the hit-test shape, embedding all content in one `.equatable()` child
+/// (``QuestionRowContent``). See ``PadRow`` for why everything click-related stays
+/// outside the equatable boundary while the content is memoized (#439).
 struct QuestionRow: View {
     let question: Question
     var isFavorite: Bool = false
@@ -19,20 +23,75 @@ struct QuestionRow: View {
     @State private var hovered = false
 
     var body: some View {
+        #if DEBUG
+        let _ = SelectionProfiler.rowTick()
+        #endif
+        QuestionRowContent(
+            question: question,
+            isFavorite: isFavorite,
+            accountName: accountName,
+            account: account,
+            hovered: hovered,
+            onToggleFavorite: onToggleFavorite
+        )
+        .equatable()
+        .contentShape(Rectangle())
+        .onHover { hovered = $0 }
+        // Single click selects/previews the question in the detail pane; double
+        // click opens it in its own window. Both are handled natively by the list
+        // (selection) and the table's `doubleAction` (open), installed by the owning
+        // list — see `TableDoubleClickProxy`. A SwiftUI tap gesture here would break
+        // the list's own click-to-select (#324/#326).
+    }
+}
+
+/// All of a question row's content — the title/metadata/date block, the favorite
+/// star, and the drag payload — memoized via `.equatable()` by ``QuestionRow``
+/// (#439). `==` compares only the rendered fields, so a selection change on an
+/// unchanged row skips rebuilding it; the toggle closure is excluded and `hovered` is
+/// included so the trailing star still reveals itself on hover.
+private struct QuestionRowContent: View, Equatable {
+    let question: Question
+    let isFavorite: Bool
+    let accountName: String?
+    let account: UUID?
+    let hovered: Bool
+    let onToggleFavorite: () -> Void
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        let lhsq = lhs.question, rhsq = rhs.question
+        return lhsq.id == rhsq.id
+            && lhsq.title == rhsq.title
+            && lhsq.language == rhsq.language
+            && lhsq.interviewType == rhsq.interviewType
+            && lhsq.used == rhsq.used
+            && lhsq.isDraft == rhsq.isDraft
+            && lhsq.authorName == rhsq.authorName
+            && lhsq.updatedAt == rhsq.updatedAt
+            && lhs.isFavorite == rhs.isFavorite
+            && lhs.accountName == rhs.accountName
+            && lhs.account == rhs.account
+            && lhs.hovered == rhs.hovered
+    }
+
+    var body: some View {
+        #if DEBUG
+        let _ = SelectionProfiler.memoizedTick()
+        #endif
         // Drag onto the sidebar Favorites to pin the question (#297). Only when the
         // owning account is known, so the drop can pin it to the right account.
         if let account {
-            rowContent.draggable(FavoriteDrop.question(
+            row.draggable(FavoriteDrop.question(
                 account: account,
                 id: question.id,
                 title: question.displayTitle
             ))
         } else {
-            rowContent
+            row
         }
     }
 
-    private var rowContent: some View {
+    private var row: some View {
         // The text/metadata block keeps its top alignment (title, chips, and the
         // last-used date all read from the top), while the favorite star is
         // centered against the row's full height as a row-level action distinct
@@ -82,16 +141,14 @@ struct QuestionRow: View {
             // and label separately; the favorite star stays its own action.
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(accessibilityLabel)
-            favoriteButton
+            FavoriteStarButton(
+                isFavorite: isFavorite,
+                hovered: hovered,
+                title: question.displayTitle,
+                onToggle: onToggleFavorite
+            )
         }
         .padding(.vertical, 4)
-        .contentShape(Rectangle())
-        .onHover { hovered = $0 }
-        // Single click selects/previews the question in the detail pane; double
-        // click opens it in its own window. Both are handled natively by the list
-        // (selection) and the table's `doubleAction` (open), installed by the owning
-        // list — see `TableDoubleClickProxy`. A SwiftUI tap gesture here would break
-        // the list's own click-to-select (#324/#326).
     }
 
     /// The row's title and metadata composed into one VoiceOver phrase, matching
@@ -111,23 +168,5 @@ struct QuestionRow: View {
             parts.append("last used \(RelativeDateLabel.labels(for: lastUsed).relative)")
         }
         return parts.joined(separator: ", ")
-    }
-
-    /// Inline favorite toggle, à la Mail's flag: always shown (filled) once the
-    /// question is starred, and revealed faintly on hover otherwise so the resting
-    /// list stays uncluttered. The button always occupies its slot — only opacity
-    /// changes on hover — so rows don't shift as the pointer moves down the list.
-    private var favoriteButton: some View {
-        Button(action: onToggleFavorite) {
-            Image(systemName: isFavorite ? "star.fill" : "star")
-                .font(.caption)
-                .foregroundStyle(isFavorite ? AnyShapeStyle(.yellow) : AnyShapeStyle(.secondary))
-                .contentTransition(.symbolEffect(.replace))
-        }
-        .buttonStyle(.plain)
-        .opacity(isFavorite || hovered ? 1 : 0)
-        .help(isFavorite ? "Remove from Favorites" : "Add to Favorites")
-        .accessibilityLabel(isFavorite ? "Remove \(question.displayTitle) from Favorites"
-            : "Add \(question.displayTitle) to Favorites")
     }
 }

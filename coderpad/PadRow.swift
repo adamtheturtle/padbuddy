@@ -5,6 +5,51 @@
 
 import SwiftUI
 
+#if DEBUG
+/// Per-selection render profiler (#439). Counts, per selection change, how many row
+/// parent bodies vs memoized content bodies evaluate, plus the rough main-thread
+/// stall. A macOS `List` rebuilds *every* row on each selection, so the memoized
+/// count staying near zero is what proves `.equatable()` is doing its job. Wired up
+/// from the list's `selectedIDs` `onChange`; DEBUG-only so it never ships in release.
+@MainActor
+enum SelectionProfiler {
+    static var rowEvals = 0
+    static var memoizedEvals = 0
+
+    static func rowTick() { rowEvals += 1 }
+    static func memoizedTick() { memoizedEvals += 1 }
+
+    /// Call from the list's `selectedIDs` `onChange`. Resets the counters, then reads
+    /// them back after the current update cycle drains to approximate the stall.
+    static func selectionChanged() {
+        let start = CFAbsoluteTimeGetCurrent()
+        rowEvals = 0
+        memoizedEvals = 0
+        DispatchQueue.main.async {
+            let ms = (CFAbsoluteTimeGetCurrent() - start) * 1000
+            print(String(format: "⏱️ #439 selection stall ≈ %.1fms — row parent bodies = %d, memoized content bodies = %d",
+                         ms, rowEvals, memoizedEvals))
+        }
+    }
+}
+#endif
+
+/// A single pad row. A deliberately tiny non-equatable shell: it owns the hover
+/// state, applies the row's hit-test shape, and embeds all the actual content in one
+/// `.equatable()` child (``PadRowContent``).
+///
+/// Why this shape (#439): a macOS `List` isn't lazy — it rebuilds *every* row's body
+/// on each selection change, so on a large list (thousands of pads) a single click
+/// re-ran every row's full view tree and stalled the main thread for ~0.5s+. The win
+/// is to skip that rebuild for unchanged rows via `.equatable()`. But wrapping the
+/// *whole* row (tag/selection/hit-test included) in an `EquatableView` breaks
+/// clicking: when the row update is skipped, the `.contentShape` hit area and the
+/// double-click installer go stale, so rows stop registering clicks (commit e9746df
+/// and later regressions). The fix is to keep everything click-related OUT of the
+/// equatable boundary — `.contentShape` and `.onHover` here, and `.tag()` /
+/// `.installsTableDoubleClick` / `.contextMenu` / `.swipeActions` applied by the list
+/// outside the row — while ``PadRowContent`` (all the expensive text/badges/date/drag)
+/// gets memoized. This shell body stays cheap enough to run for every row each pass.
 struct PadRow: View {
     let pad: Pad
     var isChanged: Bool = false
@@ -23,6 +68,78 @@ struct PadRow: View {
     @State private var hovered = false
 
     var body: some View {
+        #if DEBUG
+        let _ = SelectionProfiler.rowTick()
+        #endif
+        // Resolve the owner name here (it depends on the observable directory) and
+        // pass the resolved string in, so the content's equality covers both the
+        // owner email and a directory update without holding the directory itself.
+        PadRowContent(
+            pad: pad,
+            isChanged: isChanged,
+            accountName: accountName,
+            account: account,
+            isFavorite: isFavorite,
+            hovered: hovered,
+            ownerDisplay: directory.display(pad.ownerEmail),
+            onToggleFavorite: onToggleFavorite
+        )
+        .equatable()
+        // Hit-test shape and hover stay OUTSIDE the equatable boundary so they're
+        // re-applied every pass and never go stale on a skipped row. Make the entire
+        // row frame hittable — including the trailing Spacer and empty space — so a
+        // double-click anywhere on the row opens the pad, not just the title/badges
+        // (#322).
+        .contentShape(Rectangle())
+        .onHover { hovered = $0 }
+        // Single click selects/previews the pad in the detail pane; double click
+        // opens it. Both are handled natively by the list (selection) and the
+        // table's `doubleAction` (open), installed by the owning list — see
+        // `TableDoubleClickProxy`. A SwiftUI tap gesture here would break the list's
+        // own click-to-select (#324/#326).
+    }
+}
+
+/// All of a pad row's content — the title/metadata/date block, the favorite star,
+/// and the drag payload — memoized via `.equatable()` by ``PadRow`` (#439). `==`
+/// compares only the fields the row actually renders, so a selection change on an
+/// unchanged row skips rebuilding the whole subtree. The favorite-toggle closure is
+/// excluded (closures aren't comparable and it's stable per row); `hovered` is
+/// included so the trailing star still reveals itself on hover.
+private struct PadRowContent: View, Equatable {
+    let pad: Pad
+    let isChanged: Bool
+    let accountName: String?
+    let account: UUID?
+    let isFavorite: Bool
+    let hovered: Bool
+    /// The owner's display name as already resolved by ``PadRow`` against the org
+    /// directory; compared in `==` so a directory update re-renders the row.
+    let ownerDisplay: String
+    let onToggleFavorite: () -> Void
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        let lpad = lhs.pad, rpad = rhs.pad
+        return lpad.id == rpad.id
+            && lpad.title == rpad.title
+            && lpad.status == rpad.status
+            && lpad.language == rpad.language
+            && lpad.interviewType == rpad.interviewType
+            // `informativeUpdatedAt` (not raw `updatedAt`) is what the row renders,
+            // and it folds in `endedAt`, so compare it directly.
+            && lpad.informativeUpdatedAt == rpad.informativeUpdatedAt
+            && lhs.isChanged == rhs.isChanged
+            && lhs.accountName == rhs.accountName
+            && lhs.account == rhs.account
+            && lhs.isFavorite == rhs.isFavorite
+            && lhs.hovered == rhs.hovered
+            && lhs.ownerDisplay == rhs.ownerDisplay
+    }
+
+    var body: some View {
+        #if DEBUG
+        let _ = SelectionProfiler.memoizedTick()
+        #endif
         // Drag a pad out as its web URL, so it can be dropped into Slack, Mail,
         // Notes, etc. as a link that reopens the pad — and, when we know the owning
         // account, also carry an internal favorite payload so it can be dropped onto
@@ -30,21 +147,21 @@ struct PadRow: View {
         // the row is simply not draggable.
         if let url = pad.webURL {
             if let account {
-                rowContent.draggable(PadDragPayload(
+                row.draggable(PadDragPayload(
                     account: account,
                     id: pad.id,
                     title: pad.title.isEmpty ? pad.id : pad.title,
                     url: url
                 ))
             } else {
-                rowContent.draggable(url)
+                row.draggable(url)
             }
         } else {
-            rowContent
+            row
         }
     }
 
-    private var rowContent: some View {
+    private var row: some View {
         // Mirror QuestionRow's structure so the two lists read at the same height:
         // an outer center-aligned HStack holds the top-aligned title/metadata block
         // (with the trailing date) and, centered against the full row height, the
@@ -73,7 +190,7 @@ struct PadRow: View {
                             InterviewType.takeHome.chip
                         }
                     }
-                    Text(directory.display(pad.ownerEmail))
+                    Text(ownerDisplay)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
@@ -84,8 +201,8 @@ struct PadRow: View {
                 // line tucked under the metadata.
                 if let updated = pad.informativeUpdatedAt {
                     // Cached labels rather than `.formatted` per render: on a large list
-                    // this row's body is re-evaluated for every visible row on each
-                    // selection pass, and `.formatted(.relative:)` is costly (#439).
+                    // this block is re-evaluated for every visible row on each selection
+                    // pass, and `.formatted(.relative:)` is costly (#439).
                     let labels = RelativeDateLabel.labels(for: updated)
                     Text(labels.relative)
                         .font(.caption)
@@ -101,37 +218,14 @@ struct PadRow: View {
             // favorite star stays its own action.
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(accessibilityLabel)
-            favoriteButton
+            FavoriteStarButton(
+                isFavorite: isFavorite,
+                hovered: hovered,
+                title: pad.title.isEmpty ? pad.id : pad.title,
+                onToggle: onToggleFavorite
+            )
         }
         .padding(.vertical, 4)
-        // Make the entire row frame hittable — including the trailing Spacer and
-        // any empty space — so a double-click anywhere on the row opens the pad,
-        // not just on the opaque title/badges (#322). Mirrors QuestionRow.
-        .contentShape(Rectangle())
-        .onHover { hovered = $0 }
-        // Single click selects/previews the pad in the detail pane; double click
-        // opens it. Both are handled natively by the list (selection) and the
-        // table's `doubleAction` (open), installed by the owning list — see
-        // `TableDoubleClickProxy`. A SwiftUI tap gesture here would break the list's
-        // own click-to-select (#324/#326).
-    }
-
-    /// Inline favorite toggle on the trailing edge, matching QuestionRow's star:
-    /// always shown (filled) once the pad is pinned, and revealed faintly on hover
-    /// otherwise so the resting list stays uncluttered. The button always occupies
-    /// its slot — only opacity changes on hover — so rows don't shift on hover.
-    private var favoriteButton: some View {
-        Button(action: onToggleFavorite) {
-            Image(systemName: isFavorite ? "star.fill" : "star")
-                .font(.caption)
-                .foregroundStyle(isFavorite ? AnyShapeStyle(.yellow) : AnyShapeStyle(.secondary))
-                .contentTransition(.symbolEffect(.replace))
-        }
-        .buttonStyle(.plain)
-        .opacity(isFavorite || hovered ? 1 : 0)
-        .help(isFavorite ? "Remove from Favorites" : "Add to Favorites")
-        .accessibilityLabel(isFavorite ? "Remove \(pad.title.isEmpty ? pad.id : pad.title) from Favorites"
-            : "Add \(pad.title.isEmpty ? pad.id : pad.title) to Favorites")
     }
 
     /// The "updated since last refresh" dot, shown only when the pad changed since
@@ -154,11 +248,39 @@ struct PadRow: View {
             parts.append(language.languageDisplayName)
         }
         if pad.interviewType == .takeHome { parts.append("Take-home") }
-        parts.append(directory.display(pad.ownerEmail))
+        parts.append(ownerDisplay)
         if let updated = pad.informativeUpdatedAt {
             parts.append("updated \(RelativeDateLabel.labels(for: updated).relative)")
         }
         if isChanged { parts.append("recently updated") }
         return parts.joined(separator: ", ")
+    }
+}
+
+/// Inline favorite toggle on a pad/question row, à la Mail's flag: always shown
+/// (filled) once pinned, and revealed faintly on hover otherwise so the resting list
+/// stays uncluttered. The button always occupies its slot — only opacity changes on
+/// hover — so rows don't shift as the pointer moves. Lives inside the memoized
+/// content of each row (``PadRowContent`` / `QuestionRow`), so it's only rebuilt when
+/// its own inputs change.
+struct FavoriteStarButton: View {
+    let isFavorite: Bool
+    let hovered: Bool
+    /// The row's display title, used only to phrase the accessibility label.
+    let title: String
+    let onToggle: () -> Void
+
+    var body: some View {
+        Button(action: onToggle) {
+            Image(systemName: isFavorite ? "star.fill" : "star")
+                .font(.caption)
+                .foregroundStyle(isFavorite ? AnyShapeStyle(.yellow) : AnyShapeStyle(.secondary))
+                .contentTransition(.symbolEffect(.replace))
+        }
+        .buttonStyle(.plain)
+        .opacity(isFavorite || hovered ? 1 : 0)
+        .help(isFavorite ? "Remove from Favorites" : "Add to Favorites")
+        .accessibilityLabel(isFavorite ? "Remove \(title) from Favorites"
+            : "Add \(title) to Favorites")
     }
 }
