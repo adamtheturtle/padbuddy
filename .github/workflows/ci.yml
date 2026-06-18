@@ -163,3 +163,50 @@ jobs:
         with:
           name: TestResults
           path: TestResults.xcresult
+
+  release-build:
+    name: Release build
+    # The Release configuration compiles with -warn-long-function-bodies=250 /
+    # -warn-long-expression-type-checking=250 as warnings-as-errors, so a SwiftUI body
+    # whose type-check exceeds 250ms fails ONLY here — never in the Debug `test` build or
+    # the lint gate. That trap silently blocked the first distributable release (#427),
+    # so compile Release on every push to main (where releases are cut from), plus
+    # nightly/manual. Skipped on pull_request to limit 10x-billed macOS minutes; the
+    # lint gate still runs there.
+    if: github.event_name != 'pull_request'
+    runs-on: macos-26
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # Pin an explicit Xcode rather than the image default, which drifts as Apple
+      # ships updates. 26.5 is the newest stable on the macos-26 image — and the one
+      # release.yml builds with, so it reproduces the type-check budget exactly.
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.5.app
+          xcodebuild -version
+
+      - name: Cache DerivedData
+        uses: actions/cache@v5
+        with:
+          path: DerivedDataRelease
+          key: deriveddata-release-${{ runner.os }}-${{ hashFiles('coderpad.xcodeproj/project.pbxproj', '**/*.swift') }}
+          restore-keys: |
+            deriveddata-release-${{ runner.os }}-
+
+      # Compile only (no test, no signing): the goal is to surface the warnings-as-errors
+      # type-check trap, which fails at compile time.
+      - name: Build Release
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project coderpad.xcodeproj \
+            -scheme coderpad \
+            -configuration Release \
+            -destination 'platform=macOS' \
+            -derivedDataPath DerivedDataRelease \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO

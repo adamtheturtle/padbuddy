@@ -153,8 +153,19 @@ struct PadsView: View {
         // reads below hit the memos (see `refreshFiltered()` / `refreshChipOptions()`).
         refreshFiltered()
         refreshChipOptions()
-        return sidebar
-            .task(id: TaskKey(apiKey: client.apiKey, phase: scenePhase)) {
+        return decoratedSheets
+    }
+
+    // `body` is split across these intermediate `some View` properties rather than one
+    // long modifier chain: a ~17-modifier chain makes the Swift type-checker infer a
+    // single deeply-nested generic type and blows the Release build's 250ms
+    // type-check-timing budget (warnings-as-errors). Each sub-chain type-checks
+    // independently here, so none exceeds the budget. Order is preserved. (#427)
+
+    /// `sidebar` plus the per-session load task and the core selection bridge.
+    private var decoratedLifecycle: some View {
+        sidebar
+            .task(id: PadsTaskKey(apiKey: client.apiKey, phase: scenePhase)) {
                 guard scenePhase == .active else { return }
 
                 if pads.isEmpty, let id = accounts.currentAccountID {
@@ -201,6 +212,11 @@ struct PadsView: View {
                 // which invalidated the whole list (an extra full rebuild) on every click.
                 Task { @MainActor in persistSelectedPad() }
             }
+    }
+
+    /// The request / account-change / filter / selection observers.
+    private var decoratedObservers: some View {
+        decoratedLifecycle
             .onChange(of: nav.padsRequest) { _, _ in applyPendingRequest() }
             // The account id is often nil on first appear; restore once it lands, and
             // swap to the new account's saved filters whenever the account changes.
@@ -236,6 +252,11 @@ struct PadsView: View {
                 }
                 if selectedID != newValue?.id { selectedID = newValue?.id }
             }
+    }
+
+    /// The reload / pad-update / pad-deletion router streams.
+    private var decoratedStreams: some View {
+        decoratedObservers
             .task {
                 for await _ in AppRouter.reloads {
                     await reload()
@@ -269,6 +290,12 @@ struct PadsView: View {
                     }
                 }
             }
+    }
+
+    /// The save-search / new-pad / smart-filter sheets, delete confirmations, and
+    /// delete-error alert.
+    private var decoratedSheets: some View {
+        decoratedStreams
             .sheet(isPresented: $showSaveSearch) {
                 SaveSearchSheet(
                     name: $saveSearchName,
@@ -341,46 +368,4 @@ struct PadsView: View {
                 Text(deleteError ?? "")
             }
     }
-}
-
-private struct TaskKey: Hashable {
-    let apiKey: String
-    let phase: ScenePhase
-}
-
-/// Holds the filtered pad list across one render so the several reads of `filtered`
-/// in `PadsView.body` share a single filter pass. A class (not a `@State` value) so
-/// `body` can refresh it without triggering a SwiftUI state mutation.
-final class FilteredPadsCache {
-    var pads: [Pad] = []
-    /// The inputs `pads` was last computed for. When an unrelated body pass (e.g. a
-    /// selection change) leaves these identical, `refreshFiltered()` reuses the same
-    /// array instead of re-filtering and re-sorting the whole org (#395).
-    var key: Key?
-
-    struct Key: Equatable {
-        let padsRevision: Int
-        let filterSignature: String
-        let sortRawValue: String
-        /// Owner display names feed the search predicate, so a directory that finishes
-        /// loading after the list must re-filter. Its entry count is a cheap proxy.
-        let directoryCount: Int
-    }
-}
-
-/// Holds the filter-chip option lists (states, languages, owners, teams) across one
-/// render so the filter bar's reads share a single pass over `pads`. Each list is a
-/// Set build + sort over the whole pad array, and the bar is rendered in `body`, so
-/// without this each was an O(n) scan re-run on every selection-driven body pass —
-/// the same selection-lag profile #395 fixed for the list (#416). A class so `body`
-/// can refresh it without mutating SwiftUI state mid-evaluation; the cross-account
-/// `MergedPadsView` already memoizes these the same way (`scopedCache`).
-final class PadChipOptionsCache {
-    var states: [PadState] = []
-    var languages: [String] = []
-    var owners: [String] = []
-    var teams: [String] = []
-    /// The `padsRevision` these were computed for. Chip options depend only on the pad
-    /// collection, so an unrelated body pass (a selection change) reuses them.
-    var padsRevision: Int?
 }

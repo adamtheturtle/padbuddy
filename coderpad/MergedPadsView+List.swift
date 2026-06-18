@@ -13,7 +13,18 @@ extension MergedPadsView {
     /// The full content with every lifecycle task, selection bridge, sheet, and
     /// confirmation dialog attached. `body` only memoizes the filtered list and
     /// returns this.
+    ///
+    /// Split across several intermediate `some View` properties rather than one long
+    /// modifier chain: a single ~20-modifier chain makes the Swift type-checker infer
+    /// one deeply-nested generic type and blows the Release build's 250ms
+    /// type-check-timing budget (warnings-as-errors). Each sub-chain type-checks
+    /// independently here, so none exceeds the budget. Order is preserved. (#427)
     var decorated: some View {
+        decoratedDialogs
+    }
+
+    /// `content` plus the per-session lifecycle and the core selection bridge.
+    private var decoratedLifecycle: some View {
         content
             .task(id: MergedPadsTaskKey(accountKey: accountKey, phase: scenePhase)) {
                 guard scenePhase == .active else { return }
@@ -53,6 +64,11 @@ extension MergedPadsView {
                 }
                 Task { @MainActor in persistSelectedPad() }
             }
+    }
+
+    /// The "Mine" preset / favourite / settle-on-selection observers.
+    private var decoratedSync: some View {
+        decoratedLifecycle
             // Keep the sidebar's "My Pads" row in sync with this list's "Mine"
             // preset: publish the live state (so the highlight is honest however
             // it changed — chip or sidebar) and consume any toggle the sidebar
@@ -91,6 +107,11 @@ extension MergedPadsView {
                 }
                 if selectedID != newValue?.id { selectedID = newValue?.id }
             }
+    }
+
+    /// The reload / pad-update / pad-deletion router streams.
+    private var decoratedStreams: some View {
+        decoratedSync
             .task {
                 for await _ in AppRouter.reloads {
                     await reload()
@@ -118,6 +139,11 @@ extension MergedPadsView {
                     }
                 }
             }
+    }
+
+    /// The new-pad sheet, delete confirmations, and delete-error alert.
+    private var decoratedDialogs: some View {
+        decoratedStreams
             .sheet(item: $creatingForAccount) { account in
                 NewPadSheet(client: account.makeClient()) { created in
                     insert(created, into: account)
@@ -258,7 +284,7 @@ extension MergedPadsView {
     /// The selected pads in the order they appear in the list (rather than the
     /// selection set's arbitrary order), so a multi-row Copy or Delete reads top to
     /// bottom. Resolved against `filtered` — the rows the user can actually see.
-    private var selectedPadsInOrder: [Pad] {
+    var selectedPadsInOrder: [Pad] {
         filtered.compactMap { selectedIDs.contains($0.item.id) ? $0.item : nil }
     }
 
@@ -324,64 +350,5 @@ extension MergedPadsView {
 
         let account = router.account(forPadID: pad.id)?.id
         openWindow(id: "pad", value: PadWindowID(account: account, id: pad.id))
-    }
-
-    @ViewBuilder
-    private func padContextMenu(_ row: AccountScoped<Pad>) -> some View {
-        // Right-clicking a row that's part of a multi-row selection acts on the whole
-        // selection, the way Finder does; otherwise it's the usual single-row menu.
-        if selectedIDs.count > 1, selectedIDs.contains(row.item.id) {
-            bulkContextMenu
-        } else {
-            Button {
-                selectedIDs = [row.item.id]
-                openPad(row.item)
-            } label: {
-                Label("Open Pad", systemImage: "doc.text.image")
-            }
-            if let url = row.item.webURL {
-                ShareLink(item: url) { Label("Share…", systemImage: "square.and.arrow.up") }
-            }
-            Divider()
-            Button { Clipboard.copy(row.item.id) } label: {
-                Label("Copy Pad ID", systemImage: "number")
-            }
-            Button { Clipboard.copy(row.item.url) } label: {
-                Label("Copy Pad URL", systemImage: "link")
-            }
-            Divider()
-            Button { accountFilter = row.account.id } label: {
-                Label("Show Only \(row.account.name)", systemImage: "person.crop.circle")
-            }
-            Button { ownerFilter = row.item.ownerEmail } label: {
-                Label("Show Pads from \(directory.display(row.item.ownerEmail))", systemImage: "person")
-            }
-            Divider()
-            Button(role: .destructive) {
-                padPendingDelete = row.item
-            } label: {
-                Label("Delete…", systemImage: "trash")
-            }
-            .disabled(isReadOnly)
-        }
-    }
-
-    /// The actions offered when right-clicking inside a multi-row selection: copy
-    /// every selected pad's link at once, or delete them all (behind a confirmation).
-    @ViewBuilder
-    private var bulkContextMenu: some View {
-        let pads = selectedPadsInOrder
-        Button {
-            Clipboard.copy(pads.map(\.url).joined(separator: "\n"))
-        } label: {
-            Label("Copy \(pads.count) Pad Links", systemImage: "link")
-        }
-        Divider()
-        Button(role: .destructive) {
-            padsPendingBulkDelete = pads
-        } label: {
-            Label("Delete \(pads.count) Pads…", systemImage: "trash")
-        }
-        .disabled(isReadOnly)
     }
 }

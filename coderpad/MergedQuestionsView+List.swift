@@ -10,7 +10,16 @@ import AppKit
 import SwiftUI
 
 extension MergedQuestionsView {
+    /// Split across several intermediate `some View` properties rather than one long
+    /// modifier chain: a single ~13-modifier chain makes the Swift type-checker infer one
+    /// deeply-nested generic type and blows the Release build's 250ms type-check-timing
+    /// budget (warnings-as-errors). Each sub-chain type-checks independently. Order is
+    /// preserved. (#427)
     var decorated: some View {
+        decoratedDialogs
+    }
+
+    private var decoratedLifecycle: some View {
         content
             .task(id: QuestionsTaskKey(apiKey: accountKey, phase: scenePhase)) {
                 guard scenePhase == .active else { return }
@@ -56,6 +65,10 @@ extension MergedQuestionsView {
                 selectRow(primary)
                 Task { @MainActor in persistSelectedRow() }
             }
+    }
+
+    private var decoratedSync: some View {
+        decoratedLifecycle
             // A favourite tapped in the merged sidebar arrives here with its account,
             // so it selects the right row even when two orgs share a per-org id. Cleared
             // once consumed; left untouched if the row hasn't loaded yet (the row id
@@ -78,6 +91,10 @@ extension MergedQuestionsView {
                 nav.mergedQuestionsMineRequest = nil
                 if mineOnly != request { mineOnly = request }
             }
+    }
+
+    private var decoratedStreams: some View {
+        decoratedSync
             .task {
                 for await update in AppRouter.questionUpdates {
                     applyUpdated(update.question, account: update.account)
@@ -113,6 +130,10 @@ extension MergedQuestionsView {
                     await reload()
                 }
             }
+    }
+
+    private var decoratedDialogs: some View {
+        decoratedStreams
             .sheet(item: $creatingForAccount) { account in
                 NewQuestionSheet(client: account.makeClient()) { created in
                     insert(created, into: account)
@@ -286,7 +307,7 @@ extension MergedQuestionsView {
 
     /// The selected rows in list order, carrying their source account, for a
     /// multi-row Copy or Delete.
-    private var selectedRowsInOrder: [AccountScoped<Question>] {
+    var selectedRowsInOrder: [AccountScoped<Question>] {
         sorted.filter { selectedRowIDs.contains($0.id) }
     }
 
@@ -317,68 +338,5 @@ extension MergedQuestionsView {
         } else if scoped.isEmpty, !isLoading {
             ContentUnavailableView("No Questions", systemImage: "questionmark.bubble")
         }
-    }
-
-    @ViewBuilder
-    private func questionContextMenu(_ row: AccountScoped<Question>) -> some View {
-        // Right-clicking a row that's part of a multi-row selection copies every
-        // selected link at once, Finder-style; a single row keeps its full menu.
-        if selectedRowIDs.count > 1, selectedRowIDs.contains(row.id) {
-            bulkSelectionContextMenu()
-        } else {
-            Button {
-                select(row)
-                nav.createPadForQuestionID = row.item.id
-            } label: {
-                Label("New Pad from Question", systemImage: "plus.rectangle.on.rectangle")
-            }
-            .disabled(isReadOnly)
-            Button {
-                toggleFavorite(row)
-            } label: {
-                Label(isFavorite(row) ? "Remove from Favorites" : "Add to Favorites",
-                      systemImage: isFavorite(row) ? "star.slash" : "star")
-            }
-            ShareLink(item: row.item.webURL(baseURL: row.account.resolvedBaseURL)) {
-                Label("Share…", systemImage: "square.and.arrow.up")
-            }
-            Divider()
-            Button { Clipboard.copy(row.item.displayTitle) } label: {
-                Label("Copy Title", systemImage: "doc.on.doc")
-            }
-            Button { Clipboard.copy(row.item.webURL(baseURL: row.account.resolvedBaseURL).absoluteString) } label: {
-                Label("Copy Question URL", systemImage: "link")
-            }
-            Button { accountFilter = row.account.id } label: {
-                Label("Show Only \(row.account.name)", systemImage: "person.crop.circle")
-            }
-            Divider()
-            Button(role: .destructive) {
-                select(row)
-                nav.deleteQuestionID = row.item.id
-            } label: {
-                Label("Delete Question…", systemImage: "trash")
-            }
-            .disabled(isReadOnly)
-        }
-    }
-
-    @ViewBuilder
-    private func bulkSelectionContextMenu() -> some View {
-        let rows = selectedRowsInOrder
-        Button {
-            Clipboard.copy(rows
-                .map { $0.item.webURL(baseURL: $0.account.resolvedBaseURL).absoluteString }
-                .joined(separator: "\n"))
-        } label: {
-            Label("Copy \(rows.count) Question Links", systemImage: "link")
-        }
-        Divider()
-        Button(role: .destructive) {
-            rowsPendingBulkDelete = rows
-        } label: {
-            Label("Delete \(rows.count) Questions…", systemImage: "trash")
-        }
-        .disabled(isReadOnly)
     }
 }
