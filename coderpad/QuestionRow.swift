@@ -28,7 +28,10 @@ private struct QuestionRowInfo: View, Equatable {
 
     var body: some View {
         #if DEBUG
-        let _ = SelectionProfiler.memoizedTick()
+            // `let _` is required inside a ViewBuilder (a bare `_ =` isn't a valid
+            // builder expression), so silence redundant_discardable_let here.
+            // swiftlint:disable:next redundant_discardable_let
+            let _ = SelectionProfiler.memoizedTick()
         #endif
         HStack(alignment: .top, spacing: 10) {
             VStack(alignment: .leading, spacing: 4) {

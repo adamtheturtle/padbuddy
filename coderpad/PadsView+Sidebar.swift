@@ -227,8 +227,8 @@ extension PadsView {
             menuItems: { padTableMenuItems($0) }
         )
         #if DEBUG
-        // Still prints the per-selection stall; row evals should now be ~0 since
-        // NSTableView doesn't re-host rows on a selection change (#439).
+            // Still prints the per-selection stall; row evals should now be ~0 since
+            // NSTableView doesn't re-host rows on a selection change (#439).
         .onChange(of: selectedIDs) { SelectionProfiler.selectionChanged() }
         #endif
     }
@@ -269,7 +269,7 @@ extension PadsView {
                 .button(title: String(localized: "Delete \(pads.count) Pads…"),
                         isDestructive: true, isEnabled: !isReadOnly) {
                     padsPendingBulkDelete = pads
-                },
+                }
             ]
         }
         return [
@@ -287,7 +287,7 @@ extension PadsView {
             .separator,
             .button(title: String(localized: "Delete…"), isDestructive: true, isEnabled: !isReadOnly) {
                 padPendingDelete = pad
-            },
+            }
         ]
     }
 

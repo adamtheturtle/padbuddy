@@ -28,7 +28,9 @@ struct RowSwipeAction {
 /// `@objc` action can dispatch any item.
 private final class MenuActionBox {
     let perform: () -> Void
-    init(_ perform: @escaping () -> Void) { self.perform = perform }
+    init(_ perform: @escaping () -> Void) {
+        self.perform = perform
+    }
 }
 
 /// An `NSTableView`-backed list (#439). Unlike SwiftUI `List` — which rebuilds *every*
@@ -69,7 +71,9 @@ struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: Hashabl
     /// multi-selection contents (reading its own selection). Empty → no menu.
     var menuItems: (Item) -> [RowMenuItem]
 
-    func makeCoordinator() -> Coordinator { Coordinator(self) }
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
 
     func makeNSView(context: Context) -> NSScrollView {
         let table = KeyHandlingTableView()
@@ -104,7 +108,7 @@ struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: Hashabl
         return scroll
     }
 
-    func updateNSView(_ scrollView: NSScrollView, context: Context) {
+    func updateNSView(_: NSScrollView, context: Context) {
         let coordinator = context.coordinator
         coordinator.parent = self
         guard let table = coordinator.tableView else { return }
@@ -146,9 +150,13 @@ struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: Hashabl
             applySelection(parent.selection)
         }
 
-        func index(of id: Item.ID) -> Int? { indexByID[id] }
+        func index(of id: Item.ID) -> Int? {
+            indexByID[id]
+        }
 
-        func numberOfRows(in _: NSTableView) -> Int { items.count }
+        func numberOfRows(in _: NSTableView) -> Int {
+            items.count
+        }
 
         func tableView(_ tableView: NSTableView, viewFor _: NSTableColumn?, row: Int) -> NSView? {
             let cell = tableView.makeView(withIdentifier: .listCell, owner: self) as? HostingCellView
@@ -193,7 +201,8 @@ struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: Hashabl
         }
 
         func handleReturn() {
-            guard let tableView, let row = tableView.selectedRowIndexes.first, items.indices.contains(row) else { return }
+            guard let tableView, let row = tableView.selectedRowIndexes.first,
+                  items.indices.contains(row) else { return }
 
             parent.onReturn(items[row])
         }
@@ -286,7 +295,9 @@ private final class HostingCellView: NSTableCellView {
     }
 
     @available(*, unavailable)
-    required init?(coder _: NSCoder) { nil }
+    required init?(coder _: NSCoder) {
+        nil
+    }
 
     func host(_ view: AnyView) {
         if let hosting {
@@ -301,7 +312,7 @@ private final class HostingCellView: NSTableCellView {
             hostingView.leadingAnchor.constraint(equalTo: leadingAnchor),
             hostingView.trailingAnchor.constraint(equalTo: trailingAnchor),
             hostingView.topAnchor.constraint(equalTo: topAnchor),
-            hostingView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            hostingView.bottomAnchor.constraint(equalTo: bottomAnchor)
         ])
         hosting = hostingView
     }

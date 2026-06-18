@@ -134,7 +134,7 @@ extension QuestionsView {
                     RowSwipeAction(title: String(localized: "New Pad"), tint: .controlAccentColor) {
                         selectedQuestionIDs = [question.id]
                         nav.createPadForQuestionID = question.id
-                    },
+                    }
                 ]
             },
             pasteboardItem: { questionPasteboardItem($0) },
@@ -215,7 +215,7 @@ extension QuestionsView {
                 .button(title: String(localized: "Delete \(questions.count) Questions…"),
                         isDestructive: true, isEnabled: !isReadOnly) {
                     questionsPendingBulkDelete = questions
-                },
+                }
             ]
         }
         let starred = favoriteIDSet.contains(question.id)
@@ -226,8 +226,8 @@ extension QuestionsView {
             },
             .button(title: starred ? String(localized: "Remove from Favorites")
                 : String(localized: "Add to Favorites")) {
-                toggleFavorite(question)
-            },
+                    toggleFavorite(question)
+                },
             .separator,
             .button(title: String(localized: "Copy Title")) { Clipboard.copy(question.displayTitle) },
             .button(title: String(localized: "Copy Question URL")) {
@@ -235,7 +235,7 @@ extension QuestionsView {
             },
             .button(title: String(localized: "Show Questions from \(directory.display(question.ownerEmail))")) {
                 ownerFilter = question.ownerEmail
-            },
+            }
         ]
         if let lang = question.language, !lang.isEmpty {
             items.append(.button(title: String(localized: "Show \(lang.languageDisplayName) Questions")) {
@@ -245,9 +245,9 @@ extension QuestionsView {
         items.append(.separator)
         items.append(.button(title: String(localized: "Delete Question…"),
                              isDestructive: true, isEnabled: !isReadOnly) {
-            selectedQuestionIDs = [question.id]
-            nav.deleteQuestionID = question.id
-        })
+                selectedQuestionIDs = [question.id]
+                nav.deleteQuestionID = question.id
+            })
         return items
     }
 

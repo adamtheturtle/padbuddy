@@ -6,29 +6,32 @@
 import SwiftUI
 
 #if DEBUG
-/// Per-selection render profiler (#439). Counts how many memoized row-content bodies
-/// (`PadRowInfo` / `QuestionRowInfo`) evaluate per selection change, plus the rough
-/// main-thread stall. With the `NSTableView`-backed `ListTable` the table doesn't
-/// re-host rows on a selection change, so this should stay near zero — what's left of
-/// the stall is the detail-pane/selection cascade, not the list. Wired up from a
-/// list's selection `onChange`; DEBUG-only so it never ships in release.
-@MainActor
-enum SelectionProfiler {
-    static var memoizedEvals = 0
+    /// Per-selection render profiler (#439). Counts how many memoized row-content bodies
+    /// (`PadRowInfo` / `QuestionRowInfo`) evaluate per selection change, plus the rough
+    /// main-thread stall. With the `NSTableView`-backed `ListTable` the table doesn't
+    /// re-host rows on a selection change, so this should stay near zero — what's left of
+    /// the stall is the detail-pane/selection cascade, not the list. Wired up from a
+    /// list's selection `onChange`; DEBUG-only so it never ships in release.
+    @MainActor
+    enum SelectionProfiler {
+        static var memoizedEvals = 0
 
-    static func memoizedTick() { memoizedEvals += 1 }
+        static func memoizedTick() {
+            memoizedEvals += 1
+        }
 
-    /// Call from the list's selection `onChange`. Resets the counter, then reads it
-    /// back after the current update cycle drains to approximate the stall.
-    static func selectionChanged() {
-        let start = CFAbsoluteTimeGetCurrent()
-        memoizedEvals = 0
-        DispatchQueue.main.async {
-            let ms = (CFAbsoluteTimeGetCurrent() - start) * 1000
-            print(String(format: "⏱️ #439 selection stall ≈ %.1fms — memoized row bodies = %d", ms, memoizedEvals))
+        /// Call from the list's selection `onChange`. Resets the counter, then reads it
+        /// back after the current update cycle drains to approximate the stall.
+        static func selectionChanged() {
+            let start = CFAbsoluteTimeGetCurrent()
+            memoizedEvals = 0
+            DispatchQueue.main.async {
+                let elapsedMs = (CFAbsoluteTimeGetCurrent() - start) * 1000
+                print(String(format: "⏱️ #439 selection stall ≈ %.1fms — memoized row bodies = %d",
+                             elapsedMs, memoizedEvals))
+            }
         }
     }
-}
 #endif
 
 /// The pad row's static title/metadata/date block — the bulk of the row's render
@@ -61,7 +64,10 @@ private struct PadRowInfo: View, Equatable {
 
     var body: some View {
         #if DEBUG
-        let _ = SelectionProfiler.memoizedTick()
+            // `let _` is required inside a ViewBuilder (a bare `_ =` isn't a valid
+            // builder expression), so silence redundant_discardable_let here.
+            // swiftlint:disable:next redundant_discardable_let
+            let _ = SelectionProfiler.memoizedTick()
         #endif
         HStack(alignment: .top, spacing: 10) {
             // A small leading dot marking activity since the row was last opened,

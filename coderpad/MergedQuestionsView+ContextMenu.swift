@@ -31,7 +31,7 @@ extension MergedQuestionsView {
                 .button(title: String(localized: "Delete \(rows.count) Questions…"),
                         isDestructive: true, isEnabled: !isReadOnly) {
                     rowsPendingBulkDelete = rows
-                },
+                }
             ]
         }
         let starred = isFavorite(row)
@@ -42,8 +42,8 @@ extension MergedQuestionsView {
             },
             .button(title: starred ? String(localized: "Remove from Favorites")
                 : String(localized: "Add to Favorites")) {
-                toggleFavorite(row)
-            },
+                    toggleFavorite(row)
+                },
             .separator,
             .button(title: String(localized: "Copy Title")) { Clipboard.copy(row.item.displayTitle) },
             .button(title: String(localized: "Copy Question URL")) {
@@ -56,7 +56,7 @@ extension MergedQuestionsView {
             .button(title: String(localized: "Delete Question…"), isDestructive: true, isEnabled: !isReadOnly) {
                 select(row)
                 nav.deleteQuestionID = row.item.id
-            },
+            }
         ]
     }
 

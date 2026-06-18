@@ -27,7 +27,7 @@ extension MergedPadsView {
                 .button(title: String(localized: "Delete \(pads.count) Pads…"),
                         isDestructive: true, isEnabled: !isReadOnly) {
                     padsPendingBulkDelete = pads
-                },
+                }
             ]
         }
         return [
@@ -48,7 +48,7 @@ extension MergedPadsView {
             .separator,
             .button(title: String(localized: "Delete…"), isDestructive: true, isEnabled: !isReadOnly) {
                 padPendingDelete = row.item
-            },
+            }
         ]
     }
 
