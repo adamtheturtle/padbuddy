@@ -78,11 +78,24 @@ struct SettingsView: View {
             browserTab
                 .tabItem { Label("Browser", systemImage: "safari") }
                 .tag(SettingsTab.browser)
-            menuBarTab
-                .tabItem { Label("Menu Bar", systemImage: "menubar.rectangle") }
-                .tag(SettingsTab.menuBar)
+            // The Menu Bar pane only configures the menu-bar extra, so it's hidden when
+            // the app runs Dock-only and shows no menu-bar icon — nothing it sets would
+            // be visible (#453).
+            if presence.showsMenuBarIcon {
+                menuBarTab
+                    .tabItem { Label("Menu Bar", systemImage: "menubar.rectangle") }
+                    .tag(SettingsTab.menuBar)
+            }
         }
         .frame(minWidth: 620, minHeight: 440)
+        // If the Menu Bar tab is hidden while it's the active selection (presence just
+        // switched to Dock-only), fall back to General so the window isn't left on a
+        // tab that no longer exists.
+        .onChange(of: presence) { _, newValue in
+            if !newValue.showsMenuBarIcon, navigation.selectedTab == .menuBar {
+                navigation.selectedTab = .general
+            }
+        }
         // A caller (e.g. the unauthorized banner) can request the editor for a
         // specific account; honor it both when Settings first appears and while it's
         // already open.
