@@ -164,6 +164,50 @@ jobs:
           name: TestResults
           path: TestResults.xcresult
 
+  tsan:
+    name: Thread Sanitizer
+    # TSan is ~5-10x slower than a normal test run, so it's deliberately NOT on
+    # the nightly schedule — trigger it manually (Actions ▸ Run workflow) before a
+    # release or when chasing a data race. It runs the TSan test plan, which turns
+    # on Thread Sanitizer (and keeps the Main Thread Checker on) over the full
+    # suite. continue-on-error keeps a newly-surfaced race from reding the run
+    # until it's triaged (#458); make it blocking once the suite runs clean.
+    if: github.event_name == 'workflow_dispatch'
+    continue-on-error: true
+    needs: swift-lint
+    runs-on: macos-26
+    timeout-minutes: 40
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # Pin an explicit Xcode rather than the image default, which drifts as
+      # Apple ships updates. 26.5 matches the other macOS jobs.
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.5.app
+          xcodebuild -version
+
+      - name: Test under Thread Sanitizer
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project coderpad.xcodeproj \
+            -scheme coderpad \
+            -testPlan TSan \
+            -destination 'platform=macOS' \
+            -resultBundlePath TSanResults.xcresult \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload TSan results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: TSanResults
+          path: TSanResults.xcresult
+
   release-build:
     name: Release build
     # The Release configuration compiles with -warn-long-function-bodies=250 /

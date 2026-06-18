@@ -1,0 +1,38 @@
+{
+  "configurations" : [
+    {
+      "id" : "F0000000-0000-0000-0000-0000000000C5",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "mainThreadCheckerEnabled" : true,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:coderpad.xcodeproj",
+      "identifier" : "66C8C50A2FA73AB0009B720C",
+      "name" : "coderpad"
+    },
+    "threadSanitizerEnabled" : true
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:coderpad.xcodeproj",
+        "identifier" : "66C8C5192FA73AB2009B720C",
+        "name" : "coderpadTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:coderpad.xcodeproj",
+        "identifier" : "66C8C5232FA73AB2009B720C",
+        "name" : "coderpadUITests"
+      }
+    }
+  ],
+  "version" : 1
+}
