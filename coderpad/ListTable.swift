@@ -92,7 +92,13 @@ struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: Hashabl
         table.target = context.coordinator
         table.doubleAction = #selector(Coordinator.handleDoubleClick)
         table.onReturn = { [weak coordinator = context.coordinator] in coordinator?.handleReturn() }
-        table.menuForRow = { [weak coordinator = context.coordinator] row in coordinator?.menu(forRow: row) }
+        // Drive the right-click menu through the table's own `menu` property (populated
+        // lazily in `menuNeedsUpdate`) rather than overriding `menu(for:)`. That lets
+        // NSTableView's native contextual-menu machinery run, which draws the focus-ring
+        // outline around a right-clicked row that isn't selected (#450).
+        let rowMenu = NSMenu()
+        rowMenu.delegate = context.coordinator
+        table.menu = rowMenu
         // Allow dragging rows out of the app (a link into Slack/Mail) and onto the
         // in-app sidebar Favorites (the internal favorite payload).
         table.setDraggingSourceOperationMask([.copy, .generic], forLocal: true)
@@ -125,7 +131,7 @@ struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: Hashabl
     }
 
     @MainActor
-    final class Coordinator: NSObject, NSTableViewDataSource, NSTableViewDelegate {
+    final class Coordinator: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSMenuDelegate {
         var parent: ListTable
         weak var tableView: NSTableView?
         private var items: [Item] = []
@@ -237,15 +243,19 @@ struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: Hashabl
 
         // MARK: Context menu
 
-        func menu(forRow row: Int) -> NSMenu? {
-            guard items.indices.contains(row) else { return nil }
+        /// Populate the table's persistent context menu for the row the user
+        /// right-clicked. Driving the menu through NSTableView's own `menu` property
+        /// plus this delegate — rather than overriding `menu(for:)` to return a fresh
+        /// menu — lets AppKit's native contextual-menu machinery run, which draws the
+        /// focus-ring outline around a right-clicked row that isn't selected (#450).
+        /// `clickedRow` is set by NSTableView before the menu opens.
+        func menuNeedsUpdate(_ menu: NSMenu) {
+            menu.removeAllItems()
+            let row = tableView?.clickedRow ?? -1
+            guard items.indices.contains(row) else { return }
 
-            let entries = parent.menuItems(items[row])
-            guard !entries.isEmpty else { return nil }
-
-            let menu = NSMenu()
             menu.autoenablesItems = false
-            for entry in entries {
+            for entry in parent.menuItems(items[row]) {
                 switch entry {
                 case .separator:
                     menu.addItem(.separator())
@@ -257,7 +267,6 @@ struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: Hashabl
                     menu.addItem(menuItem)
                 }
             }
-            return menu
         }
 
         @objc private func runMenuAction(_ sender: NSMenuItem) {
@@ -266,12 +275,12 @@ struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: Hashabl
     }
 }
 
-/// `NSTableView` subclass: forwards Return/Enter to a handler (open the selected row),
-/// and builds the per-row right-click menu. Arrow keys keep the table's native
-/// row-to-row navigation.
+/// `NSTableView` subclass: forwards Return/Enter to a handler (open the selected row).
+/// The per-row right-click menu is the table's own `menu` property, populated lazily by
+/// the coordinator's `menuNeedsUpdate(_:)` — see #450. Arrow keys keep the table's
+/// native row-to-row navigation.
 private final class KeyHandlingTableView: NSTableView {
     var onReturn: (() -> Void)?
-    var menuForRow: ((Int) -> NSMenu?)?
 
     override func keyDown(with event: NSEvent) {
         // 36 = Return, 76 = keypad Enter.
@@ -283,11 +292,14 @@ private final class KeyHandlingTableView: NSTableView {
     }
 
     override func menu(for event: NSEvent) -> NSMenu? {
+        // Only show the menu — and let AppKit run its native right-clicked-row
+        // highlight (#450) — when the click lands on a row, not the empty area below
+        // the list. `super` sets `clickedRow`, draws the outline, and returns `menu`,
+        // whose items the coordinator fills in via `menuNeedsUpdate(_:)`.
         let point = convert(event.locationInWindow, from: nil)
-        let row = row(at: point)
-        guard row >= 0 else { return nil }
+        guard row(at: point) >= 0 else { return nil }
 
-        return menuForRow?(row)
+        return super.menu(for: event)
     }
 }
 
