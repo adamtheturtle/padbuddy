@@ -32,6 +32,25 @@ struct ScreenTestsView: View {
     @State private var showResentConfirmation = false
 
     var body: some View {
+        coreList
+            .sheet(isPresented: $showInvite) {
+                ScreenInviteSheet(client: client, campaign: campaign) {
+                    Task { await load() }
+                }
+            }
+            .modifier(ScreenTestActionAlerts(
+                testPendingDelete: $testPendingDelete,
+                actionError: $actionError,
+                showResentConfirmation: $showResentConfirmation,
+                onDelete: { test in Task { await delete(test) } }
+            ))
+            .toolbar { toolbarContent }
+    }
+
+    /// The list plus its data/selection lifecycle, split out of `body` so each getter
+    /// stays under the Release build's 250ms type-check budget — the full modifier chain
+    /// (list + sheet + dialog + alerts + toolbar) blew it on Xcode 26.5 (#443).
+    private var coreList: some View {
         List(selection: $selectedID) {
             ForEach(filtered) { test in
                 ScreenTestRow(test: test)
@@ -58,35 +77,6 @@ struct ScreenTestsView: View {
         // Leaving this campaign (popping back to the campaigns list) clears the
         // detail column's test selection so it doesn't show a stale report.
         .onDisappear { nav.screenTestSelection = nil }
-        .sheet(isPresented: $showInvite) {
-            ScreenInviteSheet(client: client, campaign: campaign) {
-                Task { await load() }
-            }
-        }
-        .confirmationDialog(
-            "Delete this test session?",
-            isPresented: .init(get: { testPendingDelete != nil },
-                               set: { if !$0 { testPendingDelete = nil } }),
-            titleVisibility: .visible,
-            presenting: testPendingDelete
-        ) { test in
-            Button("Delete", role: .destructive) { Task { await delete(test) } }
-            Button("Cancel", role: .cancel) {}
-        } message: { _ in
-            Text("This permanently removes the candidate's test session. This can't be undone.")
-        }
-        .alert("Couldn't complete that action",
-               isPresented: .init(get: { actionError != nil }, set: { if !$0 { actionError = nil } })) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text(actionError ?? "")
-        }
-        .alert("Invitation resent", isPresented: $showResentConfirmation) {
-            Button("OK", role: .cancel) {}
-        } message: {
-            Text("The candidate was emailed their invitation again.")
-        }
-        .toolbar { toolbarContent }
     }
 
     /// Extracted from `body` so its getter stays under the Release build's 250ms
@@ -346,40 +336,6 @@ enum ScreenTestStatus {
         case "cancelled": .orange
         default: .secondary
         }
-    }
-}
-
-/// A coarse, server-side date window for the test-sessions fetch (#443), mapped to the
-/// Screen API's `from` lower bound. `.all` sends no bound (every session).
-enum ScreenTestDateRange: String, CaseIterable, Identifiable {
-    case all
-    case last7
-    case last30
-    case last90
-
-    var id: String {
-        rawValue
-    }
-
-    var label: String {
-        switch self {
-        case .all: String(localized: "All time")
-        case .last7: String(localized: "Last 7 days")
-        case .last30: String(localized: "Last 30 days")
-        case .last90: String(localized: "Last 90 days")
-        }
-    }
-
-    /// The window's lower-bound date relative to now, or `nil` for "all time".
-    var lowerBound: Date? {
-        let days: Double
-        switch self {
-        case .all: return nil
-        case .last7: days = 7
-        case .last30: days = 30
-        case .last90: days = 90
-        }
-        return Date(timeIntervalSinceNow: -days * 24 * 60 * 60)
     }
 }
 
