@@ -208,6 +208,41 @@ jobs:
           name: TSanResults
           path: TSanResults.xcresult
 
+  periphery:
+    name: Dead code (Periphery)
+    # Advisory only. Periphery needs a full index build (as expensive as the
+    # `test` job's 10x-billed macOS minutes), so it runs nightly/manual rather
+    # than per push, and `continue-on-error` keeps a noisy report from reding the
+    # run. Promote it to a blocking gate once the report is proven clean and
+    # stable. Config (targets, retain rules) lives in .periphery.yml.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    continue-on-error: true
+    needs: swift-lint
+    runs-on: macos-26
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # Pin an explicit Xcode rather than the image default, which drifts as
+      # Apple ships updates. 26.5 matches the rest of the macOS jobs — Periphery
+      # indexes via the selected Xcode's SourceKit, so it runs after this step.
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.5.app
+          xcodebuild -version
+
+      - name: Install Periphery
+        # Homebrew ships a prebuilt Periphery; the advisory job doesn't need the
+        # exact-version pinning the blocking lint gate uses.
+        run: brew install periphery
+
+      # Reads .periphery.yml. --clean-build forces a fresh index so a cached
+      # build can't hide or stale a finding. github-actions formatting surfaces
+      # each unused symbol as an inline annotation in the run.
+      - name: Scan for dead code
+        run: periphery scan --clean-build --format github-actions
+
   release-build:
     name: Release build
     # The Release configuration compiles with -warn-long-function-bodies=250 /
