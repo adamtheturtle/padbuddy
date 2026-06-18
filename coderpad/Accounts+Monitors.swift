@@ -138,8 +138,4 @@ final class PadActivityMonitor {
             unseenChangedCount = changedCount
         }
     }
-
-    func markSeen() {
-        unseenChangedCount = 0
-    }
 }
