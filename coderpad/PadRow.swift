@@ -8,9 +8,8 @@ import SwiftUI
 #if DEBUG
 /// Per-selection render profiler (#439). Counts, per selection change, how many row
 /// parent bodies vs memoized content bodies evaluate, plus the rough main-thread
-/// stall. A macOS `List` rebuilds *every* row on each selection, so the memoized
-/// count staying near zero is what proves `.equatable()` is doing its job. Wired up
-/// from the list's `selectedIDs` `onChange`; DEBUG-only so it never ships in release.
+/// stall. Wired up from the list's `selectedIDs` `onChange`; DEBUG-only so it never
+/// ships in release.
 @MainActor
 enum SelectionProfiler {
     static var rowEvals = 0
@@ -34,22 +33,25 @@ enum SelectionProfiler {
 }
 #endif
 
-/// A single pad row. A deliberately tiny non-equatable shell: it owns the hover
-/// state, applies the row's hit-test shape, and embeds all the actual content in one
-/// `.equatable()` child (``PadRowContent``).
+/// A single pad row. Owns the row's interactive surface — the hit-test shape, hover,
+/// drag, and the favorite button — and embeds the static title/metadata block as an
+/// `.equatable()` child (``PadRowInfo``).
 ///
-/// Why this shape (#439): a macOS `List` isn't lazy — it rebuilds *every* row's body
-/// on each selection change, so on a large list (thousands of pads) a single click
-/// re-ran every row's full view tree and stalled the main thread for ~0.5s+. The win
-/// is to skip that rebuild for unchanged rows via `.equatable()`. But wrapping the
-/// *whole* row (tag/selection/hit-test included) in an `EquatableView` breaks
-/// clicking: when the row update is skipped, the `.contentShape` hit area and the
-/// double-click installer go stale, so rows stop registering clicks (commit e9746df
-/// and later regressions). The fix is to keep everything click-related OUT of the
-/// equatable boundary — `.contentShape` and `.onHover` here, and `.tag()` /
-/// `.installsTableDoubleClick` / `.contextMenu` / `.swipeActions` applied by the list
-/// outside the row — while ``PadRowContent`` (all the expensive text/badges/date/drag)
-/// gets memoized. This shell body stays cheap enough to run for every row each pass.
+/// Why only the inert block is memoized (#439): a macOS `List` rebuilds every row's
+/// body on each selection change, so on a large list (thousands of pads) clicking a
+/// row re-ran every row's view tree and stalled the main thread. Memoizing the inert
+/// text/badges/date block with `.equatable()` skips re-rendering it for unchanged
+/// rows, which is the bulk of the cost.
+///
+/// Everything click-related stays OUT of the `EquatableView`: `.contentShape` wraps
+/// the content HStack directly (so clicks on the text select, not just empty space),
+/// the favorite `Button` and `.draggable` stay hittable, and `.tag()` /
+/// `.installsTableDoubleClick` / `.contextMenu` / `.swipeActions` are applied by the
+/// list. Wrapping the *whole* row (hit surface included) in an `EquatableView` would
+/// be lazier/faster but breaks selection and drag — a hittable view inside an
+/// `EquatableView` stops the `List` row from registering clicks, and there's no
+/// arrangement that keeps click-to-select, drag, and laziness all working at once
+/// (commit e9746df and follow-ups). Correctness wins; only the inert block is memoized.
 struct PadRow: View {
     let pad: Pad
     var isChanged: Bool = false
@@ -71,25 +73,55 @@ struct PadRow: View {
         #if DEBUG
         let _ = SelectionProfiler.rowTick()
         #endif
-        // Resolve the owner name here (it depends on the observable directory) and
-        // pass the resolved string in, so the content's equality covers both the
-        // owner email and a directory update without holding the directory itself.
-        PadRowContent(
-            pad: pad,
-            isChanged: isChanged,
-            accountName: accountName,
-            account: account,
-            isFavorite: isFavorite,
-            hovered: hovered,
-            ownerDisplay: directory.display(pad.ownerEmail),
-            onToggleFavorite: onToggleFavorite
-        )
-        .equatable()
-        // Hit-test shape and hover stay OUTSIDE the equatable boundary so they're
-        // re-applied every pass and never go stale on a skipped row. Make the entire
-        // row frame hittable — including the trailing Spacer and empty space — so a
-        // double-click anywhere on the row opens the pad, not just the title/badges
-        // (#322).
+        // Drag a pad out as its web URL, so it can be dropped into Slack, Mail,
+        // Notes, etc. as a link that reopens the pad — and, when we know the owning
+        // account, also carry an internal favorite payload so it can be dropped onto
+        // the sidebar Favorites to pin it (#297). Only when the URL parses; otherwise
+        // the row is simply not draggable.
+        if let url = pad.webURL {
+            if let account {
+                rowContent.draggable(PadDragPayload(
+                    account: account,
+                    id: pad.id,
+                    title: pad.title.isEmpty ? pad.id : pad.title,
+                    url: url
+                ))
+            } else {
+                rowContent.draggable(url)
+            }
+        } else {
+            rowContent
+        }
+    }
+
+    private var rowContent: some View {
+        // Mirror QuestionRow's structure so the two lists read at the same height:
+        // an outer center-aligned HStack holds the top-aligned title/metadata block
+        // (with the trailing date) and, centered against the full row height, the
+        // favorite star as a row-level action.
+        HStack(alignment: .center, spacing: 8) {
+            // Resolve the owner name here (it depends on the observable directory) and
+            // pass the resolved string in, so the memoized block's equality covers both
+            // the owner email and a directory update without holding the directory.
+            PadRowInfo(
+                pad: pad,
+                isChanged: isChanged,
+                accountName: accountName,
+                ownerDisplay: directory.display(pad.ownerEmail)
+            )
+            .equatable()
+            FavoriteStarButton(
+                isFavorite: isFavorite,
+                hovered: hovered,
+                title: pad.title.isEmpty ? pad.id : pad.title,
+                onToggle: onToggleFavorite
+            )
+        }
+        .padding(.vertical, 4)
+        // Make the entire row frame hittable — including the title/badges, the
+        // trailing Spacer, and any empty space — so a click anywhere selects it and a
+        // double-click opens it (#322). On the content HStack (not an EquatableView
+        // wrapper) so clicks on the text register too.
         .contentShape(Rectangle())
         .onHover { hovered = $0 }
         // Single click selects/previews the pad in the detail pane; double click
@@ -100,23 +132,18 @@ struct PadRow: View {
     }
 }
 
-/// All of a pad row's content — the title/metadata/date block, the favorite star,
-/// and the drag payload — memoized via `.equatable()` by ``PadRow`` (#439). `==`
-/// compares only the fields the row actually renders, so a selection change on an
-/// unchanged row skips rebuilding the whole subtree. The favorite-toggle closure is
-/// excluded (closures aren't comparable and it's stable per row); `hovered` is
-/// included so the trailing star still reveals itself on hover.
-private struct PadRowContent: View, Equatable {
+/// The pad row's static title/metadata/date block — the bulk of the row's render
+/// cost — memoized via `.equatable()` by ``PadRow`` (#439). It holds no interaction
+/// and no closures, so wrapping it in an `EquatableView` can't affect the row's
+/// hit-testing or selection. `==` compares only the fields it renders, so a selection
+/// change on an unchanged row skips rebuilding it.
+private struct PadRowInfo: View, Equatable {
     let pad: Pad
     let isChanged: Bool
     let accountName: String?
-    let account: UUID?
-    let isFavorite: Bool
-    let hovered: Bool
     /// The owner's display name as already resolved by ``PadRow`` against the org
-    /// directory; compared in `==` so a directory update re-renders the row.
+    /// directory; compared in `==` so a directory update re-renders the block.
     let ownerDisplay: String
-    let onToggleFavorite: () -> Void
 
     static func == (lhs: Self, rhs: Self) -> Bool {
         let lpad = lhs.pad, rpad = rhs.pad
@@ -130,9 +157,6 @@ private struct PadRowContent: View, Equatable {
             && lpad.informativeUpdatedAt == rpad.informativeUpdatedAt
             && lhs.isChanged == rhs.isChanged
             && lhs.accountName == rhs.accountName
-            && lhs.account == rhs.account
-            && lhs.isFavorite == rhs.isFavorite
-            && lhs.hovered == rhs.hovered
             && lhs.ownerDisplay == rhs.ownerDisplay
     }
 
@@ -140,92 +164,57 @@ private struct PadRowContent: View, Equatable {
         #if DEBUG
         let _ = SelectionProfiler.memoizedTick()
         #endif
-        // Drag a pad out as its web URL, so it can be dropped into Slack, Mail,
-        // Notes, etc. as a link that reopens the pad — and, when we know the owning
-        // account, also carry an internal favorite payload so it can be dropped onto
-        // the sidebar Favorites to pin it (#297). Only when the URL parses; otherwise
-        // the row is simply not draggable.
-        if let url = pad.webURL {
-            if let account {
-                row.draggable(PadDragPayload(
-                    account: account,
-                    id: pad.id,
-                    title: pad.title.isEmpty ? pad.id : pad.title,
-                    url: url
-                ))
-            } else {
-                row.draggable(url)
-            }
-        } else {
-            row
-        }
-    }
-
-    private var row: some View {
-        // Mirror QuestionRow's structure so the two lists read at the same height:
-        // an outer center-aligned HStack holds the top-aligned title/metadata block
-        // (with the trailing date) and, centered against the full row height, the
-        // favorite star as a row-level action.
-        HStack(alignment: .center, spacing: 8) {
-            HStack(alignment: .top, spacing: 10) {
-                // A small leading dot marking activity since the row was last opened,
-                // in a fixed-width gutter so titles stay aligned whether or not a row
-                // has it. The owner is named in the subtitle below.
-                changedIndicator
-                    .frame(width: 8)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(pad.title.isEmpty ? pad.id : pad.title)
-                        .font(.callout.weight(.medium))
-                        .foregroundStyle(.primary)
-                        .lineLimit(1)
-                    HStack(spacing: 8) {
-                        StateBadge(state: pad.status)
-                        if let accountName {
-                            MetaLabel(text: accountName, systemImage: "person.crop.circle")
-                        }
-                        if let language = pad.language, !language.isEmpty {
-                            MetaLabel(text: language.languageDisplayName)
-                        }
-                        if pad.interviewType == .takeHome {
-                            InterviewType.takeHome.chip
-                        }
+        HStack(alignment: .top, spacing: 10) {
+            // A small leading dot marking activity since the row was last opened,
+            // in a fixed-width gutter so titles stay aligned whether or not a row
+            // has it. The owner is named in the subtitle below.
+            changedIndicator
+                .frame(width: 8)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(pad.title.isEmpty ? pad.id : pad.title)
+                    .font(.callout.weight(.medium))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                HStack(spacing: 8) {
+                    StateBadge(state: pad.status)
+                    if let accountName {
+                        MetaLabel(text: accountName, systemImage: "person.crop.circle")
                     }
-                    Text(ownerDisplay)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
+                    if let language = pad.language, !language.isEmpty {
+                        MetaLabel(text: language.languageDisplayName)
+                    }
+                    if pad.interviewType == .takeHome {
+                        InterviewType.takeHome.chip
+                    }
                 }
-                Spacer(minLength: 8)
-                // Mirror the question row: the relative date sits on the trailing edge
-                // in the same .caption/.secondary styling, rather than as a faint extra
-                // line tucked under the metadata.
-                if let updated = pad.informativeUpdatedAt {
-                    // Cached labels rather than `.formatted` per render: on a large list
-                    // this block is re-evaluated for every visible row on each selection
-                    // pass, and `.formatted(.relative:)` is costly (#439).
-                    let labels = RelativeDateLabel.labels(for: updated)
-                    Text(labels.relative)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .fixedSize()
-                        .help("Updated \(labels.tooltip)")
-                }
+                Text(ownerDisplay)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
-            // Read the title + metadata block as one VoiceOver element with a coherent
-            // label, rather than stopping on each badge/label separately. The "changed"
-            // indicator is a color-only dot, so fold it into the label as well; the
-            // favorite star stays its own action.
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(accessibilityLabel)
-            FavoriteStarButton(
-                isFavorite: isFavorite,
-                hovered: hovered,
-                title: pad.title.isEmpty ? pad.id : pad.title,
-                onToggle: onToggleFavorite
-            )
+            Spacer(minLength: 8)
+            // Mirror the question row: the relative date sits on the trailing edge
+            // in the same .caption/.secondary styling, rather than as a faint extra
+            // line tucked under the metadata.
+            if let updated = pad.informativeUpdatedAt {
+                // Cached labels rather than `.formatted` per render: on a large list
+                // this block is re-evaluated for every visible row on each selection
+                // pass, and `.formatted(.relative:)` is costly (#439).
+                let labels = RelativeDateLabel.labels(for: updated)
+                Text(labels.relative)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .fixedSize()
+                    .help("Updated \(labels.tooltip)")
+            }
         }
-        .padding(.vertical, 4)
+        // Read the title + metadata block as one VoiceOver element with a coherent
+        // label, rather than stopping on each badge/label separately. The "changed"
+        // indicator is a color-only dot, so fold it into the label as well; the
+        // favorite star stays its own action.
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityLabel)
     }
 
     /// The "updated since last refresh" dot, shown only when the pad changed since
@@ -260,9 +249,7 @@ private struct PadRowContent: View, Equatable {
 /// Inline favorite toggle on a pad/question row, à la Mail's flag: always shown
 /// (filled) once pinned, and revealed faintly on hover otherwise so the resting list
 /// stays uncluttered. The button always occupies its slot — only opacity changes on
-/// hover — so rows don't shift as the pointer moves. Lives inside the memoized
-/// content of each row (``PadRowContent`` / `QuestionRow`), so it's only rebuilt when
-/// its own inputs change.
+/// hover — so rows don't shift as the pointer moves.
 struct FavoriteStarButton: View {
     let isFavorite: Bool
     let hovered: Bool
