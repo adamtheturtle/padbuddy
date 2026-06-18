@@ -4,6 +4,12 @@ All notable changes to the CoderPad macOS app are recorded here. Versions follow
 the `v<MARKETING_VERSION>` tags that drive the release pipeline; the build number is
 the repository commit count, so it rises monotonically with every release.
 
+## v0.1.3
+
+Maintenance release — the second half of the Sparkle update-path test (#428): a
+v0.1.2 install should detect, download, and install this build from the public
+update feed.
+
 ## v0.1.1
 
 Maintenance release. No functional changes over v0.1.0 — its purpose is to exercise
