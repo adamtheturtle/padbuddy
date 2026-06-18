@@ -260,7 +260,10 @@ struct MenuBarView: View {
         Divider()
         Button("Add Account…") {
             // Jump straight into adding an account on the Accounts tab rather than
-            // landing on a generic Settings tab (#452).
+            // landing on a generic Settings tab (#452). The tab must be selected
+            // *before* Settings opens — setting it from SettingsView.onAppear is too
+            // late for the TabView to honor, which is why it stayed on General.
+            SettingsNavigation.shared.selectedTab = .accounts
             SettingsNavigation.shared.startAddingAccount = true
             openMain()
             AppRouter.requestOpenSettings()
