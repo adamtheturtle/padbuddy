@@ -162,8 +162,16 @@ struct AccountRoundTripTests {
         // A whitespace-only key counts as absent.
         let blank = Account(name: "B", apiKey: "k", userEmail: "me@acme.com", screenApiKey: "   ")
         #expect(blank.makeScreenClient() == nil)
-        // Demo accounts have no Screen key, so no Screen client.
-        #expect(Account.demo().makeScreenClient() == nil)
+    }
+
+    @Test
+    func `demo accounts use the in-process mock Screen client`() throws {
+        // The demo account has no Screen key, but gets the mock client so the demo can
+        // exercise the full Screen UI with fixture data.
+        let demoClient = try #require(Account.demo().makeScreenClient())
+        #expect(demoClient.baseURL == MockScreen.baseURL)
+        // The bad-key demo still gets a (401-answering) mock client, not nil.
+        #expect(Account.demoBadKey().makeScreenClient() != nil)
     }
 
     @Test

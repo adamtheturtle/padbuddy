@@ -26,7 +26,7 @@ extension URL {
     /// Builds a URL from a hardcoded, known-valid literal without force-unwrapping, so a
     /// future typo degrades to a harmless fallback rather than trapping at launch (#419).
     /// For compile-time literals only — never user input, which must use the failable init.
-    static func staticURL(_ string: StaticString) -> URL {
+    nonisolated static func staticURL(_ string: StaticString) -> URL {
         URL(string: "\(string)") ?? URL(fileURLWithPath: "/")
     }
 }

@@ -217,11 +217,17 @@ struct Account: Identifiable, Codable, Hashable {
         return .mock(unauthorized: isBadKeyDemo)
     }
 
-    /// The CoderPad **Screen** client this account talks to, or `nil` when the account
-    /// has no Screen key — so demo/mock and Interview-only accounts simply have no
-    /// Screen. Screen is additive to the Interview `apiKey`; the client is pointed at
+    /// The CoderPad **Screen** client this account talks to, or `nil` when a real
+    /// account has no Screen key — so Interview-only accounts simply have no Screen.
+    /// Demo/mock accounts get the in-process mock Screen client (answering 401 for the
+    /// bad-key demo) so the demo exercises the full Screen UI with fixture data. Screen
+    /// is additive to the Interview `apiKey`; for a real account the client is pointed at
     /// the US or EU server per `screenRegion`.
     func makeScreenClient() -> ScreenClient? {
+        if isMock {
+            return .mock(unauthorized: isBadKeyDemo)
+        }
+
         let trimmed = screenApiKey?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         guard !trimmed.isEmpty else { return nil }
 
