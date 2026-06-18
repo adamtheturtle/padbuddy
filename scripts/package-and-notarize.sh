@@ -121,7 +121,7 @@ while IFS= read -r -d '' nested; do
 done < <(
   find "$APP/Contents" \
     \( -name '*.framework' -o -name '*.dylib' -o -name '*.bundle' \
-      -o -name '*.xpc' -o -name '*.app' \) \
+      -o -name '*.xpc' -o -name '*.app' -o -name 'Autoupdate' \) \
     -print0 | sort -rz
 )
 
