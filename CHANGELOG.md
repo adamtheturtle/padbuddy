@@ -4,6 +4,14 @@ All notable changes to the CoderPad macOS app are recorded here. Versions follow
 the `v<MARKETING_VERSION>` tags that drive the release pipeline; the build number is
 the repository commit count, so it rises monotonically with every release.
 
+## v0.1.5
+
+Fixes "CoderPad can't be opened" on launch. Two signing-side issues: the packaging
+script now expands Xcode entitlement variables before re-signing, and the redundant
+keychain-access-groups entitlement (a provisioning-profile-required entitlement that
+a Developer-ID build can't satisfy) is removed — it only restated the app's default
+keychain group, so there's no functional change.
+
 ## v0.1.4
 
 Fixes the v0.1.x builds failing to launch ("CoderPad can't be opened" / Launchd

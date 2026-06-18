@@ -21,9 +21,11 @@
 		<string>$(PRODUCT_BUNDLE_IDENTIFIER)-spks</string>
 		<string>$(PRODUCT_BUNDLE_IDENTIFIER)-spki</string>
 	</array>
-	<key>keychain-access-groups</key>
-	<array>
-		<string>$(AppIdentifierPrefix)com.adamdangoor.coderpad</string>
-	</array>
+	<!-- No keychain-access-groups: the app never sets kSecAttrAccessGroup, so it uses
+	     its default group ($(AppIdentifierPrefix)$(CFBundleIdentifier)) implicitly. The
+	     entitlement only restated that default, but keychain-access-groups is a
+	     provisioning-profile-required entitlement — and a Developer-ID build embeds no
+	     profile, so declaring it made AMFI refuse to launch the app ("can't be opened" /
+	     Launchd job spawn failed). Removing it is functionally identical and fixes launch. -->
 </dict>
 </plist>
