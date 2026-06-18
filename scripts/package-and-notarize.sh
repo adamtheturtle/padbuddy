@@ -101,12 +101,27 @@ while IFS= read -r -d '' nested; do
       continue
     fi
     ;;
+  *.xpc | *.app)
+    # Sparkle embeds pre-signed XPC services (Installer.xpc, and Downloader.xpc for
+    # sandboxed apps) plus an Updater.app inside its framework. Signing the framework
+    # does NOT re-sign these nested code bundles — they keep Sparkle's own signature,
+    # which the notary rejects ("not signed with a valid Developer ID certificate" /
+    # "signature does not include a secure timestamp"). Re-sign each with our
+    # Developer ID + Hardened Runtime + a secure timestamp, preserving its own
+    # entitlements so sandboxed Sparkle keeps working. The deepest-first sort below
+    # guarantees these are signed before the framework that contains them.
+    echo "    sign (preserve entitlements): ${nested#"$APP"/}"
+    codesign --force --options runtime --timestamp \
+      --preserve-metadata=entitlements --sign "$SIGNING_IDENTITY" "$nested"
+    continue
+    ;;
   esac
   echo "    sign: ${nested#"$APP"/}"
   sign "$nested"
 done < <(
   find "$APP/Contents" \
-    \( -name '*.framework' -o -name '*.dylib' -o -name '*.bundle' \) \
+    \( -name '*.framework' -o -name '*.dylib' -o -name '*.bundle' \
+      -o -name '*.xpc' -o -name '*.app' \) \
     -print0 | sort -rz
 )
 
