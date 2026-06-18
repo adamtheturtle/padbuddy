@@ -27,6 +27,10 @@ final class SettingsNavigation {
     /// When set, Settings opens the editor for this account as it appears, then
     /// clears it. Lets the unauthorized banner jump straight to the account's settings.
     var accountToEdit: UUID?
+    /// When true, Settings switches to the Accounts tab and immediately opens the
+    /// "add account" editor, then clears the flag. Lets the menu bar's "Add Account…"
+    /// jump straight into adding rather than landing on a generic Settings tab (#452).
+    var startAddingAccount = false
     private init() {}
 }
 
@@ -82,8 +86,14 @@ struct SettingsView: View {
         // A caller (e.g. the unauthorized banner) can request the editor for a
         // specific account; honor it both when Settings first appears and while it's
         // already open.
-        .onAppear { openPendingEdit(navigation.accountToEdit) }
+        .onAppear {
+            openPendingEdit(navigation.accountToEdit)
+            startPendingAddAccount()
+        }
         .onChange(of: navigation.accountToEdit) { _, id in openPendingEdit(id) }
+        .onChange(of: navigation.startAddingAccount) { _, flag in
+            if flag { startPendingAddAccount() }
+        }
     }
 
     /// Binding for the "Require Touch ID to reveal API keys" toggle. Turning the gate
@@ -130,6 +140,18 @@ struct SettingsView: View {
         addingAccount = nil
         selectedAccountID = id
         navigation.accountToEdit = nil
+    }
+
+    /// Switch to the Accounts tab and open a fresh account editor when a caller (the
+    /// menu bar's "Add Account…") has requested it, then clear the flag so it fires
+    /// once (#452).
+    private func startPendingAddAccount() {
+        guard navigation.startAddingAccount else { return }
+
+        navigation.selectedTab = .accounts
+        selectedAccountID = nil
+        addingAccount = Account(name: "", apiKey: "")
+        navigation.startAddingAccount = false
     }
 }
 

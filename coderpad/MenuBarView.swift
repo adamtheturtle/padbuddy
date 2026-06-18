@@ -259,6 +259,9 @@ struct MenuBarView: View {
             .font(.caption).foregroundStyle(.secondary)
         Divider()
         Button("Add Account…") {
+            // Jump straight into adding an account on the Accounts tab rather than
+            // landing on a generic Settings tab (#452).
+            SettingsNavigation.shared.startAddingAccount = true
             openMain()
             AppRouter.requestOpenSettings()
         }
