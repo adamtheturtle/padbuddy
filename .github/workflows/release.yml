@@ -158,13 +158,33 @@ jobs:
 
       - name: Create GitHub Release
         env:
+          # Artifacts publish to the PUBLIC releases repo so Sparkle can fetch the
+          # appcast + DMG unauthenticated (a private repo's assets 404 without a
+          # token). Cross-repo publishing can't use the default GITHUB_TOKEN — it's
+          # scoped to this private repo — so it needs a PAT with contents:write on the
+          # releases repo, stored as the RELEASES_REPO_TOKEN secret. If that secret is
+          # absent the release falls back to this repo, and the workflow warns that the
+          # update feed won't be publicly reachable until the token is added.
+          RELEASES_REPO: adamtheturtle/coderpad-macos-releases
+          RELEASES_REPO_TOKEN: ${{ secrets.RELEASES_REPO_TOKEN }}
           GH_TOKEN: ${{ github.token }}
         run: |
           ASSETS=()
           for f in "coderpad-${GITHUB_REF_NAME}.dmg" "coderpad-${GITHUB_REF_NAME}.zip" "appcast.xml"; do
             [ -f "$f" ] && ASSETS+=("$f")
           done
-          gh release create "${GITHUB_REF_NAME}" \
-            "${ASSETS[@]}" \
-            --title "${GITHUB_REF_NAME}" \
-            --notes-file RELEASE_NOTES.md
+          if [ -n "$RELEASES_REPO_TOKEN" ]; then
+            echo "Publishing $GITHUB_REF_NAME to the public releases repo $RELEASES_REPO"
+            GH_TOKEN="$RELEASES_REPO_TOKEN" gh release create "${GITHUB_REF_NAME}" \
+              "${ASSETS[@]}" \
+              --repo "$RELEASES_REPO" \
+              --target main \
+              --title "${GITHUB_REF_NAME}" \
+              --notes-file RELEASE_NOTES.md
+          else
+            echo "::warning::RELEASES_REPO_TOKEN is not set — publishing to the private repo instead. The Sparkle update feed will not be publicly reachable until the token is added and a release is cut to $RELEASES_REPO."
+            gh release create "${GITHUB_REF_NAME}" \
+              "${ASSETS[@]}" \
+              --title "${GITHUB_REF_NAME}" \
+              --notes-file RELEASE_NOTES.md
+          fi

@@ -18,8 +18,12 @@
 # Optional environment:
 #   SPARKLE_VERSION     Sparkle release whose `generate_appcast` tool to fetch
 #                       (default below). Bump if you adopt a newer Sparkle.
-#   GITHUB_SERVER_URL   GitHub base URL (default https://github.com).
-#   GITHUB_REPOSITORY   owner/repo (default adamtheturtle/coderpad-macos).
+#   GITHUB_SERVER_URL     GitHub base URL (default https://github.com).
+#   RELEASES_REPOSITORY   owner/repo whose Releases host the DMG the appcast points
+#                         at — the PUBLIC artifacts repo, since the app fetches the
+#                         enclosure unauthenticated (default
+#                         adamtheturtle/coderpad-macos-releases). This is NOT the
+#                         private source repo.
 #
 # Writes appcast.xml to the current directory. This script is unverified end to
 # end (it runs only once the secret is set, during the first Sparkle release) —
@@ -45,8 +49,10 @@ fi
 
 SPARKLE_VERSION="${SPARKLE_VERSION:-2.6.4}"
 SERVER_URL="${GITHUB_SERVER_URL:-https://github.com}"
-REPOSITORY="${GITHUB_REPOSITORY:-adamtheturtle/coderpad-macos}"
-DOWNLOAD_PREFIX="${SERVER_URL}/${REPOSITORY}/releases/download/${TAG}/"
+# Enclosure URLs must point at the PUBLIC artifacts repo (the app downloads them
+# unauthenticated), not the private source repo.
+RELEASES_REPOSITORY="${RELEASES_REPOSITORY:-adamtheturtle/coderpad-macos-releases}"
+DOWNLOAD_PREFIX="${SERVER_URL}/${RELEASES_REPOSITORY}/releases/download/${TAG}/"
 
 WORK="$(mktemp -d)"
 KEY_FILE="$WORK/sparkle_ed_private_key"

@@ -2,14 +2,15 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<!-- Sparkle in-app updates (#28). Inert until the Sparkle package is linked.
-	     SUFeedURL points at the appcast attached to the latest GitHub Release
-	     (release.yml uploads appcast.xml). SUPublicEDKey MUST be replaced with the
-	     EdDSA public key printed by Sparkle's `generate_keys` — the placeholder
-	     below makes every update fail signature verification (fail-safe) until set.
-	     See docs/sparkle-setup.md. -->
+	<!-- Sparkle in-app updates (#28). SUFeedURL points at the appcast on the latest
+	     release of the PUBLIC artifacts repo (coderpad-macos-releases), NOT this
+	     private source repo: the app fetches the feed + DMG unauthenticated, and a
+	     private repo's release assets 404 without a token. release.yml publishes the
+	     signed/notarized DMG + appcast there. SUPublicEDKey is the EdDSA public key
+	     from Sparkle's `generate_keys`; a mismatch fails signature verification
+	     (fail-safe). See docs/sparkle-setup.md. -->
 	<key>SUFeedURL</key>
-	<string>https://github.com/adamtheturtle/coderpad-macos/releases/latest/download/appcast.xml</string>
+	<string>https://github.com/adamtheturtle/coderpad-macos-releases/releases/latest/download/appcast.xml</string>
 	<key>SUPublicEDKey</key>
 	<string>GM4rpkCx9FMbd+Sk64pU6v6659APlNWYLMKzGU3OIyU=</string>
 	<!-- Required for a sandboxed app: routes installs through Sparkle's Installer
