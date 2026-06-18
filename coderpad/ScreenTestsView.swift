@@ -22,6 +22,9 @@ struct ScreenTestsView: View {
     @State private var isLoading = false
     @State private var loadError: String?
     @State private var statusFilter: String?
+    /// Server-side date filter (#443): narrows the `GET /tests` fetch by a lower-bound
+    /// date so large campaigns don't pull every historical session. Re-fetches on change.
+    @State private var dateRange: ScreenTestDateRange = .all
     @State private var selectedID: Int?
     @State private var showInvite = false
     @State private var testPendingDelete: ScreenTestSession?
@@ -40,6 +43,9 @@ struct ScreenTestsView: View {
         .reportsSectionCount(countSubtitle)
         .navigationTitle(campaign.name)
         .task(id: campaign.id) { await load() }
+        // The date range is a server-side filter, so changing it re-fetches (onChange,
+        // not a second .task, so it doesn't double-fetch alongside the campaign task).
+        .onChange(of: dateRange) { _, _ in Task { await load() } }
         .task {
             for await _ in AppRouter.reloads {
                 await load()
@@ -99,6 +105,19 @@ struct ScreenTestsView: View {
                     Label("Filter by Status", systemImage: "line.3.horizontal.decrease.circle")
                 }
                 .help("Filter test sessions by status.")
+            }
+            ToolbarItem {
+                Menu {
+                    Picker("Date Range", selection: $dateRange) {
+                        ForEach(ScreenTestDateRange.allCases) { range in
+                            Text(range.label).tag(range)
+                        }
+                    }
+                    .pickerStyle(.inline)
+                } label: {
+                    Label("Date Range", systemImage: "calendar")
+                }
+                .help("Only fetch test sessions active within a recent window.")
             }
             ToolbarItem {
                 Button { Task { await load() } } label: {
@@ -169,7 +188,8 @@ struct ScreenTestsView: View {
         isLoading = true
         defer { isLoading = false }
         do {
-            tests = try await client.listAllTests(campaignID: campaign.id)
+            let fromMs = dateRange.lowerBound.map { Int($0.timeIntervalSince1970 * 1000) }
+            tests = try await client.listAllTests(campaignID: campaign.id, from: fromMs)
             loadError = nil
             if let id = selectedID, !tests.contains(where: { $0.id == id }) {
                 selectedID = nil
@@ -320,6 +340,40 @@ enum ScreenTestStatus {
         case "cancelled": .orange
         default: .secondary
         }
+    }
+}
+
+/// A coarse, server-side date window for the test-sessions fetch (#443), mapped to the
+/// Screen API's `from` lower bound. `.all` sends no bound (every session).
+enum ScreenTestDateRange: String, CaseIterable, Identifiable {
+    case all
+    case last7
+    case last30
+    case last90
+
+    var id: String {
+        rawValue
+    }
+
+    var label: String {
+        switch self {
+        case .all: String(localized: "All time")
+        case .last7: String(localized: "Last 7 days")
+        case .last30: String(localized: "Last 30 days")
+        case .last90: String(localized: "Last 90 days")
+        }
+    }
+
+    /// The window's lower-bound date relative to now, or `nil` for "all time".
+    var lowerBound: Date? {
+        let days: Double
+        switch self {
+        case .all: return nil
+        case .last7: days = 7
+        case .last30: days = 30
+        case .last90: days = 90
+        }
+        return Date(timeIntervalSinceNow: -days * 24 * 60 * 60)
     }
 }
 

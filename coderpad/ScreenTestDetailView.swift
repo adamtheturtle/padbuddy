@@ -21,6 +21,11 @@ struct ScreenTestDetailView: View {
     @State private var detail: ScreenTestSession?
     @State private var isFetchingReport = false
     @State private var reportError: String?
+    // Optional report-export options (#443), mapped onto the Screen API's PDF query
+    // params. All default off, so an untouched export keeps the server's defaults.
+    @State private var exportAnonymized = false
+    @State private var exportIncludeRank = false
+    @State private var exportIncludeComparative = false
 
     /// The session to display: the refetched copy when available, else the list's.
     private var session: ScreenTestSession {
@@ -176,6 +181,16 @@ struct ScreenTestDetailView: View {
                 Label("Save PDF", systemImage: "square.and.arrow.down")
             }
             .disabled(isFetchingReport)
+            Menu {
+                Toggle("Anonymized", isOn: $exportAnonymized)
+                Toggle("Include rank", isOn: $exportIncludeRank)
+                Toggle("Include comparative score", isOn: $exportIncludeComparative)
+            } label: {
+                Label("Report Options", systemImage: "slider.horizontal.3")
+            }
+            .menuStyle(.borderlessButton)
+            .fixedSize()
+            .help("Choose what the exported PDF report includes.")
         }
         .help("Fetch the candidate's report as a PDF.")
     }
@@ -224,7 +239,12 @@ struct ScreenTestDetailView: View {
         isFetchingReport = true
         defer { isFetchingReport = false }
         do {
-            let data = try await client.testReport(id: test.id)
+            let data = try await client.testReport(
+                id: test.id,
+                anonymous: exportAnonymized ? true : nil,
+                includeRank: exportIncludeRank ? true : nil,
+                includeComparativeScore: exportIncludeComparative ? true : nil
+            )
             if save {
                 saveReport(data)
             } else {
