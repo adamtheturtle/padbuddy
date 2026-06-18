@@ -124,7 +124,12 @@ struct CoderpadApp: App {
     @AppStorage(GeneralSettings.Key.presence) private var presence: AppPresence = .dockAndMenuBar
 
     var body: some Scene {
-        WindowGroup("CoderPad", id: "main") {
+        // A single, unique main window (`Window`, not `WindowGroup`): opening "main"
+        // again — from the menu bar's Add Account, the Dock icon, or "Open Main
+        // Window" — focuses the existing window instead of spawning a duplicate (#459).
+        // The app still survives closing it (windowless menu-bar mode) because
+        // `applicationShouldTerminateAfterLastWindowClosed` returns false.
+        Window("CoderPad", id: "main") {
             ContentView()
                 // Width floor is owned by `MainSplit`, derived from the live column
                 // minimums (and enforced via the sidebar's auto-collapse) rather
