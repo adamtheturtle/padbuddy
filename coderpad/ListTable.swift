@@ -137,10 +137,10 @@ struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: Hashabl
             self.parent = parent
         }
 
-        // Xcode 26.5's SIL optimizer (EarlyPerfInliner) crashes while optimizing this
-        // generic Coordinator's destructor in the Release build (local Xcode 27 is
-        // unaffected). An explicit, optimization-opted-out deinit sidesteps the compiler
-        // bug; the member-wise teardown it would otherwise synthesize is unchanged.
+        /// Xcode 26.5's SIL optimizer (EarlyPerfInliner) crashes while optimizing this
+        /// generic Coordinator's destructor in the Release build (local Xcode 27 is
+        /// unaffected). An explicit, optimization-opted-out deinit sidesteps the compiler
+        /// bug; the member-wise teardown it would otherwise synthesize is unchanged.
         @_optimize(none)
         deinit {}
 
