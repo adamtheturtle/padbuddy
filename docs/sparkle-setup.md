@@ -1,5 +1,9 @@
 # Sparkle in-app updates (#28)
 
+> Cutting a release day-to-day is just `git tag` + `git push` — see
+> [releasing.md](releasing.md). This file covers the one-time setup and the
+> public-repo architecture behind it.
+
 The app ships with a **build-safe Sparkle scaffold**: all Sparkle code is behind
 `#if canImport(Sparkle)` (`coderpad/SoftwareUpdater.swift`), so the project builds
 with or without the dependency. The feature stays dormant until the one-time setup
