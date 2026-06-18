@@ -132,9 +132,11 @@ struct DesignSystemRenderTests {
             "StatTile")
     }
 
-    @Test func `pad row renders, draggable and not`() throws {
-        // A pad with a parseable URL takes the `.draggable` branch; one without
-        // falls back to the plain row. Both must still rasterize.
+    @Test func `pad row renders`() throws {
+        // The pad row is now hosted inside the NSTableView-backed `ListTable` as
+        // `PadRowHostableContent` (#439) — dragging and selection are the table's
+        // job, so the row renders the same whether or not the pad has a URL. A pad
+        // with a title and one falling back to its id must both still rasterize.
         let withURL = try CoderPadClient.decoder.decode(
             Pad.self,
             from: Data(#"""
@@ -142,8 +144,16 @@ struct DesignSystemRenderTests {
             """#.utf8)
         )
         let noURL = try CoderPadClient.decoder.decode(Pad.self, from: Data(#"{"id": "X1", "url": ""}"#.utf8))
-        expectRenders(PadRow(pad: withURL).frame(width: 320), "PadRow draggable")
-        expectRenders(PadRow(pad: noURL).frame(width: 320), "PadRow without URL")
+        expectRenders(
+            PadRowHostableContent(pad: withURL, ownerDisplay: "owner@x.co", favoritePads: .shared)
+                .frame(width: 320),
+            "PadRowHostableContent with title"
+        )
+        expectRenders(
+            PadRowHostableContent(pad: noURL, ownerDisplay: "", favoritePads: .shared)
+                .frame(width: 320),
+            "PadRowHostableContent without title"
+        )
     }
 
     @Test func `question print document renders`() throws {
