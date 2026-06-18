@@ -40,10 +40,10 @@ struct WidgetQuestion: Codable, Identifiable, Hashable {
 /// snapshot for the current account (`recent-pads.json`), and the account index
 /// (`widget-accounts.json`); this reads them back.
 enum WidgetSharedStore {
-    /// Must match the app's `WidgetSharedStore.appGroupID`. If `containerURL` ever
-    /// returns nil at runtime, this likely needs the team-id prefixed form
-    /// (`6L9H6Q8CUF.group.com.adamdangoor.coderpad`) on macOS.
-    static let appGroupID = "group.com.adamdangoor.coderpad"
+    /// Must match the app's `WidgetSharedStore.appGroupID`. Team-ID-prefixed so
+    /// notarized Developer-ID builds are authorized for the App Group without the
+    /// per-launch "access data from other apps" prompt (#451).
+    static let appGroupID = "6L9H6Q8CUF.group.com.adamdangoor.coderpad"
 
     /// The widget's kind, shared with the app's reload logic.
     static let widgetKind = "RecentPadsWidget"

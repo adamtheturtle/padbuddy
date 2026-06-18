@@ -54,10 +54,10 @@ nonisolated struct WidgetQuestion: Codable, Identifiable, Hashable {
 /// by an unconfigured widget), and an account index (`widget-accounts.json`) that
 /// backs the configuration picker.
 nonisolated enum WidgetSharedStore {
-    /// Shared container identifier. Declared in both targets' entitlements. If
-    /// `containerURL` ever returns nil at runtime, this likely needs the team-id
-    /// prefixed form (`6L9H6Q8CUF.group.com.adamdangoor.coderpad`) on macOS.
-    static let appGroupID = "group.com.adamdangoor.coderpad"
+    /// Shared container identifier. Declared in both targets' entitlements. Uses the
+    /// team-ID-prefixed form so notarized Developer-ID builds (no provisioning profile)
+    /// are authorized for the App Group without the per-launch access prompt (#451).
+    static let appGroupID = "6L9H6Q8CUF.group.com.adamdangoor.coderpad"
 
     /// The widget's kind, shared so the app and widget agree on the identifier.
     static let widgetKind = "RecentPadsWidget"

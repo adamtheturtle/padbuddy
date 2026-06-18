@@ -4,9 +4,15 @@
 <dict>
 	<key>com.apple.security.app-sandbox</key>
 	<true/>
+	<!-- Team-ID-prefixed app group (not the bare "group." form): a notarized
+	     Developer-ID build embeds no provisioning profile, and macOS 15+ only
+	     authorizes a "group."-prefixed App Group when it's listed in the profile —
+	     otherwise it prompts the user to "allow access to data from other apps" on
+	     every launch (#451). The "<TeamID>.group." form needs no profile; the system
+	     authorizes it by matching the team-ID prefix to the signing identity. -->
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.com.adamdangoor.coderpad</string>
+		<string>6L9H6Q8CUF.group.com.adamdangoor.coderpad</string>
 	</array>
 	<key>com.apple.security.files.user-selected.read-write</key>
 	<true/>

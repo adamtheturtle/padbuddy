@@ -4,9 +4,11 @@
 <dict>
 	<key>com.apple.security.app-sandbox</key>
 	<true/>
+	<!-- Team-ID-prefixed app group — see the app's coderpad.entitlements for why the
+	     bare "group." form triggers a per-launch access prompt on notarized builds (#451). -->
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.com.adamdangoor.coderpad</string>
+		<string>6L9H6Q8CUF.group.com.adamdangoor.coderpad</string>
 	</array>
 </dict>
 </plist>
