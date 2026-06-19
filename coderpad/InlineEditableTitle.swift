@@ -149,7 +149,11 @@ struct InlineEditableTitle: View {
 }
 
 private struct InlineEditableTitlePreview: View {
+    // Preview-only @State read via its $-projected binding.
+    // periphery:ignore
     @State private var short = "Short Pad"
+    // Preview-only @State read via its $-projected binding.
+    // periphery:ignore
     @State private var long = "An Extremely Long Pad Title That Would Otherwise Re-Jig The Whole Window"
     @FocusState private var focus: Bool
 

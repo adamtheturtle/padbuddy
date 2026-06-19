@@ -45,9 +45,10 @@ nonisolated struct WidgetQuestion: Codable, Identifiable, Hashable {
     let title: String
 }
 
-/// Reads and writes the recent-pads snapshots in the App Group container shared by
-/// the app and the widget. All members are `nonisolated` so the widget's timeline
-/// provider can call them off the main actor.
+/// Writes the recent-pads snapshots into the App Group container shared with the
+/// widget (the widget reads them back through its own parallel `WidgetSharedStore`
+/// in `RecentPadsWidget/WidgetSharedSnapshot.swift`). All members are `nonisolated`
+/// so they can be called off the main actor.
 ///
 /// The container holds one snapshot per account (`recent-pads-<id>.json`), a
 /// default snapshot for the account currently on screen (`recent-pads.json`, read
@@ -58,9 +59,6 @@ nonisolated enum WidgetSharedStore {
     /// team-ID-prefixed form so notarized Developer-ID builds (no provisioning profile)
     /// are authorized for the App Group without the per-launch access prompt (#451).
     static let appGroupID = "6L9H6Q8CUF.group.com.adamdangoor.coderpad"
-
-    /// The widget's kind, shared so the app and widget agree on the identifier.
-    static let widgetKind = "RecentPadsWidget"
 
     private static let defaultPadsFile = "recent-pads.json"
     private static let accountsFile = "widget-accounts.json"
@@ -82,32 +80,6 @@ nonisolated enum WidgetSharedStore {
         FileManager.default
             .containerURL(forSecurityApplicationGroupIdentifier: appGroupID)?
             .appending(path: name, directoryHint: .notDirectory)
-    }
-
-    /// Pads for `account`, or the default snapshot when `account` is nil. Returns an
-    /// empty list when the file is missing (e.g. a pinned account with nothing cached
-    /// yet) rather than falling back to a different account's pads.
-    static func load(account: String? = nil) -> [WidgetPadSnapshot] {
-        guard let url = fileURL(padsFileName(account: account)),
-              let data = try? Data(contentsOf: url) else { return [] }
-
-        return (try? JSONDecoder().decode([WidgetPadSnapshot].self, from: data)) ?? []
-    }
-
-    /// The mirrored account list backing the configuration picker, or empty when none
-    /// has been written yet.
-    static func loadAccounts() -> [WidgetAccount] {
-        guard let url = fileURL(accountsFile), let data = try? Data(contentsOf: url) else { return [] }
-
-        return (try? JSONDecoder().decode([WidgetAccount].self, from: data)) ?? []
-    }
-
-    /// `account`'s mirrored favourite questions, for the New Pad button picker.
-    static func loadFavorites(account: String) -> [WidgetQuestion] {
-        guard let url = fileURL(favoritesFileName(account: account)),
-              let data = try? Data(contentsOf: url) else { return [] }
-
-        return (try? JSONDecoder().decode([WidgetQuestion].self, from: data)) ?? []
     }
 
     /// Atomically replaces `account`'s snapshot (or the default snapshot when nil). A

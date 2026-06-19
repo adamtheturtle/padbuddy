@@ -144,6 +144,8 @@ struct EnvironmentCodeCard: View {
     }
 
     @State var selectedFileID: String?
+    // SwiftUI @State read only via its $-projected binding.
+    // periphery:ignore
     /// Folder paths the user has collapsed. Absence means expanded, so every
     /// folder starts open and the whole project is visible by default.
     @State var collapsedFolders: Set<String> = []

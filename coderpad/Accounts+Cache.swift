@@ -316,6 +316,8 @@ final class PadDetailCacheStore {
         }
     }
 
+    // Deliberate cache-eviction API, kept for lifecycle symmetry.
+    // periphery:ignore
     func remove(_ padID: String) {
         byPad[padID] = nil
         lru.removeAll { $0 == padID }

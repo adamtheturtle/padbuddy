@@ -299,6 +299,8 @@ enum GeneralSettings {
         UserDefaults.standard.bool(forKey: Key.notifyOnPadUpdates)
     }
 
+    // Deliberate non-SwiftUI accessor, symmetric with the other GeneralSettings flags.
+    // periphery:ignore
     /// Whether revealing a saved API key in Settings must be unlocked with Touch ID
     /// (falling back to the login password). Off by default.
     static var requireBiometricsToRevealKey: Bool {

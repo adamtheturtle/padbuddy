@@ -99,6 +99,8 @@ struct RecentPadsConfigurationIntent: WidgetConfigurationIntent {
         "Recent Pads"
     }
 
+    // Read by the AppIntents framework (Shortcuts metadata), not Swift.
+    // periphery:ignore
     static var description: IntentDescription {
         IntentDescription("Choose which account's pads to show, and how many.")
     }

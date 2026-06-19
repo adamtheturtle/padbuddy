@@ -35,6 +35,8 @@ final class AccountHealthMonitor {
         }
     }
 
+    // Deliberate monitor lifecycle API, kept for start/stop symmetry.
+    // periphery:ignore
     func stop() {
         checkTask?.cancel()
         checkTask = nil
@@ -107,6 +109,8 @@ final class PadsBackgroundRefresher {
         }
     }
 
+    // Deliberate monitor lifecycle API, kept for start/stop symmetry.
+    // periphery:ignore
     func stop() {
         refreshTask?.cancel()
         refreshTask = nil

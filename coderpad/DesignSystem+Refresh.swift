@@ -32,6 +32,8 @@ enum RefreshSchedule {
     }
 }
 
+// Fixed-interval convenience overload, kept alongside the dynamic-interval one.
+// periphery:ignore
 /// Runs `work` immediately, then re-runs it on `interval` until the task is cancelled.
 /// Cancellation breaks the loop cleanly instead of being swallowed by `try?`.
 func periodicReload(interval: Duration, work: () async -> Void) async {

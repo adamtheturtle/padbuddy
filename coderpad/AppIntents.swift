@@ -37,6 +37,8 @@ struct CoderPadShortcuts: AppShortcutsProvider {
 
 struct OpenPadByIDIntent: AppIntent {
     static let title: LocalizedStringResource = "Open Pad by ID"
+    // Read by the AppIntents framework (Shortcuts metadata), not Swift.
+    // periphery:ignore
     static let description = IntentDescription("Open a specific CoderPad pad in the in-app browser.")
     static let openAppWhenRun: Bool = true
 
@@ -58,6 +60,8 @@ struct OpenPadByIDIntent: AppIntent {
 
 struct SearchPadsIntent: AppIntent {
     static let title: LocalizedStringResource = "Search Pads"
+    // Read by the AppIntents framework (Shortcuts metadata), not Swift.
+    // periphery:ignore
     static let description = IntentDescription("Open CoderPad and search pads matching a query.")
     static let openAppWhenRun: Bool = true
 
@@ -76,6 +80,8 @@ struct SearchPadsIntent: AppIntent {
 
 struct NewPadIntent: AppIntent {
     static let title: LocalizedStringResource = "New Pad"
+    // Read by the AppIntents framework (Shortcuts metadata), not Swift.
+    // periphery:ignore
     static let description = IntentDescription("Open CoderPad and start creating a new pad.")
     static let openAppWhenRun: Bool = true
 
@@ -90,6 +96,8 @@ struct NewPadIntent: AppIntent {
 
 struct OpenPadsIntent: AppIntent {
     static let title: LocalizedStringResource = "Open Pads"
+    // Read by the AppIntents framework (Shortcuts metadata), not Swift.
+    // periphery:ignore
     static let description = IntentDescription("Open the Pads list in CoderPad.")
     static let openAppWhenRun: Bool = true
 

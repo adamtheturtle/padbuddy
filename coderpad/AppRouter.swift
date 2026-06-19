@@ -55,15 +55,6 @@ enum AppRouter {
         voidStream(.openPadByURLRequested)
     }
 
-    /// Ask the main window to open Settings.
-    static func requestOpenSettings() {
-        center.post(name: .openSettingsRequested, object: nil)
-    }
-
-    static var openSettingsRequests: AsyncStream<Void> {
-        voidStream(.openSettingsRequested)
-    }
-
     /// Ask the app to open `url` in a Pad Browser window.
     static func requestOpenPadInBrowser(_ url: URL) {
         center.post(name: .openPadInBrowserRequested, object: url)
@@ -163,6 +154,5 @@ private extension Notification.Name {
     static let padDeleted = Notification.Name("coderpad.padDeleted")
     static let questionUpdated = Notification.Name("coderpad.questionUpdated")
     static let questionDeleted = Notification.Name("coderpad.questionDeleted")
-    static let openSettingsRequested = Notification.Name("coderpad.openSettingsRequested")
     static let openPadInBrowserRequested = Notification.Name("coderpad.openPadInBrowserRequested")
 }

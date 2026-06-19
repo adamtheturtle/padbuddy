@@ -86,11 +86,6 @@ struct ContentView: View {
         .task { consumeOpenPadID() }
         .onChange(of: nav.openPadID) { _, _ in consumeOpenPadID() }
         .task {
-            for await _ in AppRouter.openSettingsRequests {
-                openSettings()
-            }
-        }
-        .task {
             for await url in AppRouter.openPadInBrowserRequests {
                 openWindow(id: "pad-browser", value: url)
             }

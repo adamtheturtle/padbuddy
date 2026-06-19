@@ -56,6 +56,8 @@ struct AccountEditor: View {
     /// Validation state of the optional Screen key, kept separate from the Interview
     /// key's `validation`: Screen is additive and never gates Save.
     @State var screenValidation: ValidationState = .idle
+    // SwiftUI @State read only via its $-projected binding (DisclosureGroup).
+    // periphery:ignore
     /// Whether the optional Screen credentials section is expanded. Starts open when
     /// the account already has a Screen key (so it's visible), collapsed otherwise so
     /// it doesn't clutter accounts that don't use Screen.
