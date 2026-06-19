@@ -11,9 +11,9 @@
 //  uses a unique state key so write paths don't leak into the others.
 //
 
+@testable import coderpad
 import Foundation
 import Testing
-@testable import coderpad
 
 @Suite("Screen demo data (MockScreen fixtures)")
 struct ScreenDemoDataTests {
