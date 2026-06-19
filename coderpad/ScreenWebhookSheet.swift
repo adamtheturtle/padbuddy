@@ -53,6 +53,10 @@ struct ScreenWebhookSheet: View {
                 .textFieldStyle(.roundedBorder)
                 .autocorrectionDisabled()
                 .accessibilityLabel("Webhook URL")
+                // Return in the field commits the webhook, like the Save button (#469).
+                // A focused TextField swallows Return, so the default-action shortcut on
+                // Save alone doesn't fire while the field has focus.
+                .onSubmit { if isValidHTTPS, !isSaving { Task { await save() } } }
 
             if let error {
                 Label(error, systemImage: "xmark.octagon.fill")
