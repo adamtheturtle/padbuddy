@@ -46,7 +46,7 @@ extension PadDetailView {
                         )
                     }
                 } else {
-                    participantGrid(names: pad.participants, tint: .purple)
+                    participantList(names: pad.participants, tint: .purple)
                 }
             }
         }
@@ -63,15 +63,21 @@ extension PadDetailView {
             Label(title, systemImage: systemImage)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(tint)
-            participantGrid(names: names, tint: tint, clickable: clickable)
+            participantList(names: names, tint: tint, clickable: clickable)
         }
     }
 
-    private func participantGrid(names: [String], tint: Color, clickable: Bool = false) -> some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 180), spacing: 8)], alignment: .leading, spacing: 8) {
+    /// A single full-width column of participant rows. An earlier
+    /// `LazyVGrid(.adaptive(minimum: 180))` reflowed into two columns once the detail
+    /// pane grew past ~368pt, which made a role with a single participant (the common
+    /// case) suddenly drop to half-width — its grey row background appeared to shrink
+    /// as the window got bigger (#476). A single column keeps every row flush-width and
+    /// stable across resizes; the rows already stack compactly enough for many names.
+    private func participantList(names: [String], tint: Color, clickable: Bool = false) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
             // Key by position rather than the name itself: two participants can
             // share a display name (or the same name can appear twice), and
-            // `id: \.self` would then hand the grid duplicate IDs.
+            // `id: \.self` would then hand the list duplicate IDs.
             ForEach(Array(names.enumerated()), id: \.offset) { _, name in
                 // Interviewers are org members, so we can resolve their email and
                 // make the row a button that jumps to their pads, mirroring the
