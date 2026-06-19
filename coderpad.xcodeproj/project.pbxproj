@@ -89,7 +89,6 @@
 		66E3CDBD2FDD6D1C00FE87A9 /* RecentPadsWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = RecentPadsWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		66E3CDD32FDD6E0400FE87A9 /* RecentPadsWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RecentPadsWidgetExtension.entitlements; sourceTree = "<group>"; };
 		66F5440C2FE5EECD000214AA /* CoderPad.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CoderPad.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		66F5440D2FE5EECD000214AA /* coderpad copy-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "coderpad copy-Info.plist"; path = "/Users/adam/Documents/repositories/coderpad/coderpad copy-Info.plist"; sourceTree = "<absolute>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -207,7 +206,6 @@
 				66C8C5272FA73AB2009B720C /* coderpadUITests */,
 				66E3CDC02FDD6D1C00FE87A9 /* RecentPadsWidget */,
 				66E3CC512FDA19E400FE87A9 /* Frameworks */,
-				66F5440D2FE5EECD000214AA /* coderpad copy-Info.plist */,
 				66C8C50C2FA73AB0009B720C /* Products */,
 			);
 			sourceTree = "<group>";
