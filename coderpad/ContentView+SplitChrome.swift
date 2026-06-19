@@ -204,19 +204,21 @@ struct ToolbarCustomizationEnabler: NSViewRepresentable {
 
             stopObserving()
             self.window = window
-            // `willAddItem` is posted per-toolbar; observe ANY toolbar (object: nil) and
-            // filter to this window's *current* toolbar, so a section's toolbar swap is
-            // handled without a stale per-instance reference. SwiftUI also resets
+            // `willAddItem` is posted per-toolbar; observe ANY toolbar (object: nil) so a
+            // section's toolbar swap is handled without a stale per-instance reference.
+            // We don't filter by `note.object` here — touching the main-actor `window`
+            // synchronously from this `@Sendable` observer body is a data-race error under
+            // Xcode 26.5's strict checking, and it's unnecessary: `enforce()` always reads
+            // (and guards on) this window's *current* `toolbar`, so reacting to an
+            // unrelated toolbar's add is a cheap, idempotent no-op. SwiftUI resets
             // `allowsUserCustomization` to false at the end of the reconfiguration that
             // emits these adds, so the re-enable is deferred a runloop turn to stick.
             addObserver = NotificationCenter.default.addObserver(
                 forName: NSToolbar.willAddItemNotification,
                 object: nil,
                 queue: .main
-            ) { [weak self] note in
-                guard let self, (note.object as? NSToolbar) === self.window?.toolbar else { return }
-
-                DispatchQueue.main.async { self.enforce() }
+            ) { [weak self] _ in
+                DispatchQueue.main.async { self?.enforce() }
             }
             // Re-assert when the window becomes key — covers the case where the toolbar
             // settled with no further item adds before the user reaches the View menu.
