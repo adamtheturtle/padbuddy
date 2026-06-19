@@ -37,7 +37,8 @@ extension QuestionDetailView {
                             Text($0.label).tag($0.rawValue)
                         }
                         if InterviewType(rawValue: draftPadType) == nil {
-                            Text(draftPadType.capitalized).tag(draftPadType)
+                            Text(draftPadType.replacingOccurrences(of: "_", with: " ").capitalized)
+                                .tag(draftPadType)
                         }
                     }
                     .labelsHidden()
@@ -90,9 +91,18 @@ extension QuestionDetailView {
     // MARK: - Drafts
 
     /// The question's current type as a `pad_type` raw value, derived from the
-    /// `take_home` flag when the explicit `pad_type` is absent.
+    /// `take_home` flag when the explicit `pad_type` is absent. Normalizes the
+    /// API's underscore spellings (e.g. `take_home`) to the canonical hyphenated
+    /// `InterviewType` raw value so the picker matches a known option rather than
+    /// falling through to the raw-string branch (#462).
     var currentType: String {
-        question.padType ?? (question.takeHome == true ? "take-home" : "live")
+        if let normalized = InterviewType(rawType: question.padType) {
+            return normalized.rawValue
+        }
+        if let padType = question.padType, !padType.isEmpty {
+            return padType
+        }
+        return question.takeHome == true ? "take-home" : "live"
     }
 
     func seedDrafts() {
