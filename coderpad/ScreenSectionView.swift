@@ -38,31 +38,13 @@ struct ScreenCampaignsView: View {
                 }
             }
             .overlay { statusOverlay }
-            .reportsSectionCount(countSubtitle)
+            // Once a campaign is drilled into, the tests view supplies its own count;
+            // stop reporting "X campaigns" so it doesn't linger as the subtitle (#467).
+            .reportsSectionCount(path.isEmpty ? countSubtitle : "")
             .navigationDestination(for: ScreenCampaign.self) { campaign in
                 ScreenTestsView(client: client, campaign: campaign, search: $search)
             }
-            .toolbar {
-                ToolbarItem {
-                    Toggle(isOn: $showArchived) {
-                        Label("Show Archived", systemImage: "archivebox")
-                    }
-                    .help("Include archived campaigns in the list.")
-                }
-                ToolbarItem {
-                    Button { showWebhook = true } label: {
-                        Label("Webhook", systemImage: "bolt.horizontal")
-                    }
-                    .help("View or configure the Screen event webhook.")
-                }
-                ToolbarItem {
-                    Button { Task { await load() } } label: {
-                        Label("Reload", systemImage: "arrow.clockwise")
-                    }
-                    .help("Reload campaigns.")
-                    .disabled(isLoading)
-                }
-            }
+            .toolbar(id: "screen-campaigns") { campaignsToolbar }
         }
         .sheet(isPresented: $showWebhook) {
             ScreenWebhookSheet(client: client)
@@ -80,6 +62,33 @@ struct ScreenCampaignsView: View {
             nav.screenCampaignSelection = newPath.last
             if newPath.isEmpty { nav.screenTestSelection = nil }
         }
+    }
+
+    /// The campaigns-list toolbar. An identified, customizable toolbar (so Customize
+    /// Toolbar… is enabled here too, #464) with Reload hidden by default — ⌘R already
+    /// reloads, so the button is opt-in via Customize Toolbar (#465).
+    @ToolbarContentBuilder
+    private var campaignsToolbar: some CustomizableToolbarContent {
+        ToolbarItem(id: "show-archived", placement: .automatic) {
+            Toggle(isOn: $showArchived) {
+                Label("Show Archived", systemImage: "archivebox")
+            }
+            .help("Include archived campaigns in the list.")
+        }
+        ToolbarItem(id: "webhook", placement: .automatic) {
+            Button { showWebhook = true } label: {
+                Label("Webhook", systemImage: "bolt.horizontal")
+            }
+            .help("View or configure the Screen event webhook.")
+        }
+        ToolbarItem(id: "reload", placement: .automatic) {
+            Button { Task { await load() } } label: {
+                Label("Reload", systemImage: "arrow.clockwise")
+            }
+            .help("Reload campaigns.")
+            .disabled(isLoading)
+        }
+        .defaultCustomization(.hidden)
     }
 
     /// Campaigns matching the search and archived filters, pinned ones first and then
