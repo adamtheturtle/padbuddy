@@ -61,7 +61,7 @@ extension AccountEditor {
                 Text("CoderPad Screen")
                     .font(.callout.weight(.semibold))
                     .foregroundStyle(.primary)
-                Text("Optional — connect this account to Screen assessments.")
+                Text("Optional: connect this account to Screen assessments.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

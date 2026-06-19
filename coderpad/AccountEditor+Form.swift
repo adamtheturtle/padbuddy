@@ -100,7 +100,7 @@ extension AccountEditor {
                         Required to save.
                         """)
                         if !hasEmail {
-                            Text("Required — pick which member you are to finish.")
+                            Text("Required: pick which member you are to finish.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                         } else if isEditing, !isValidated {

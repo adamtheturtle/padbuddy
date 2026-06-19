@@ -108,7 +108,7 @@ struct MenuBarView: View {
     @ViewBuilder
     private var statusItems: some View {
         if network.isOffline {
-            Text("Offline — read-only")
+            Text("Offline (read-only)")
                 .font(.caption).foregroundStyle(.orange)
         }
     }

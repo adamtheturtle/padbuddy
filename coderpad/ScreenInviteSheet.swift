@@ -107,7 +107,7 @@ struct ScreenInviteSheet: View {
                     }
                 }
             } else {
-                Text("No candidate link was returned — the candidate was emailed their invitation.")
+                Text("No candidate link was returned. The candidate was emailed their invitation.")
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }

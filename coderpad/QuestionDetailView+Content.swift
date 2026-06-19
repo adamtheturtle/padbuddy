@@ -227,7 +227,7 @@ extension QuestionDetailView {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 testCaseLine(label: "Input", value: argumentsDisplay(testCase.arguments))
-                testCaseLine(label: "Expected", value: testCase.returnValue ?? "—")
+                testCaseLine(label: "Expected", value: testCase.returnValue ?? String(localized: "None"))
             }
             Spacer(minLength: 8)
             if testCase.visible == false {
@@ -253,7 +253,7 @@ extension QuestionDetailView {
     /// The API returns each argument as its own already-formatted string (e.g. a
     /// quoted string or a JSON literal), so join them into a call-style list.
     func argumentsDisplay(_ arguments: [String]?) -> String {
-        guard let arguments, !arguments.isEmpty else { return "—" }
+        guard let arguments, !arguments.isEmpty else { return String(localized: "None") }
 
         return arguments.joined(separator: ", ")
     }

@@ -161,7 +161,7 @@ struct PadPrintDocument: View {
 
     private var summaryRows: [(String, String)] {
         var rows: [(String, String)] = [
-            ("Type", pad.interviewType?.label ?? "—"),
+            ("Type", pad.interviewType?.label ?? "None"),
             ("State", pad.status.label),
             ("Owner", displayName(pad.ownerEmail))
         ]

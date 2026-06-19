@@ -227,7 +227,7 @@ nonisolated enum MockScreenFixtures {
 
         context.beginPDFPage(nil)
         context.setFillColor(CGColor(red: 0.1, green: 0.1, blue: 0.12, alpha: 1))
-        draw("CoderPad Screen — Demo Report", in: context, originX: 30, originY: 240, size: 20)
+        draw("CoderPad Screen: Demo Report", in: context, originX: 30, originY: 240, size: 20)
         draw("Candidate: \(candidate)", in: context, originX: 30, originY: 198, size: 14)
         if let score {
             draw("Overall score: \(Int(score.rounded()))/100", in: context, originX: 30, originY: 170, size: 14)
