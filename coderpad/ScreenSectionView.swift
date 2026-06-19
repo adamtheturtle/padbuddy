@@ -35,6 +35,7 @@ struct ScreenCampaignsView: View {
                     NavigationLink(value: campaign) {
                         ScreenCampaignRow(campaign: campaign)
                     }
+                    .contextMenu { campaignActions(campaign) }
                 }
             }
             .overlay { statusOverlay }
@@ -62,6 +63,15 @@ struct ScreenCampaignsView: View {
             nav.screenCampaignSelection = newPath.last
             if newPath.isEmpty { nav.screenTestSelection = nil }
         }
+    }
+
+    /// Right-click actions for a campaign row (#466). The Screen API exposes no
+    /// per-campaign mutations, so these are navigation and copy: drill into the
+    /// campaign's test sessions, or copy its name.
+    @ViewBuilder
+    private func campaignActions(_ campaign: ScreenCampaign) -> some View {
+        Button("Show Test Sessions") { path = [campaign] }
+        Button("Copy Name") { Clipboard.copy(campaign.name) }
     }
 
     /// The campaigns-list toolbar. An identified, customizable toolbar (so Customize
