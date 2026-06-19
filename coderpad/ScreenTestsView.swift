@@ -44,7 +44,7 @@ struct ScreenTestsView: View {
                 showResentConfirmation: $showResentConfirmation,
                 onDelete: { test in Task { await delete(test) } }
             ))
-            .toolbar { toolbarContent }
+            .toolbar(id: "screen-tests") { toolbarContent }
     }
 
     /// The list plus its data/selection lifecycle, split out of `body` so each getter
@@ -83,14 +83,14 @@ struct ScreenTestsView: View {
     /// type-check budget (warnings-as-errors); adding the date-range item tipped the
     /// inline toolbar over on Xcode 26.5 (#443).
     @ToolbarContentBuilder
-    private var toolbarContent: some ToolbarContent {
-        ToolbarItem {
+    private var toolbarContent: some CustomizableToolbarContent {
+        ToolbarItem(id: "invite", placement: .automatic) {
             Button { showInvite = true } label: {
                 Label("Invite Candidate", systemImage: "person.badge.plus")
             }
             .help("Invite a candidate to this campaign.")
         }
-        ToolbarItem {
+        ToolbarItem(id: "status-filter", placement: .automatic) {
             Menu {
                 Picker("Status", selection: $statusFilter) {
                     Text("All Statuses").tag(String?.none)
@@ -103,7 +103,7 @@ struct ScreenTestsView: View {
             }
             .help("Filter test sessions by status.")
         }
-        ToolbarItem {
+        ToolbarItem(id: "date-range", placement: .automatic) {
             Menu {
                 Picker("Date Range", selection: $dateRange) {
                     ForEach(ScreenTestDateRange.allCases) { range in
@@ -116,7 +116,7 @@ struct ScreenTestsView: View {
             }
             .help("Only fetch test sessions active within a recent window.")
         }
-        ToolbarItem {
+        ToolbarItem(id: "reload", placement: .automatic) {
             Button { Task { await load() } } label: {
                 Label("Reload", systemImage: "arrow.clockwise")
             }
