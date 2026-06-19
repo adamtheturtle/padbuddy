@@ -328,14 +328,4 @@ extension MergedPadsView {
             onTopRowChange: { persistTopRow($0) }
         )
     }
-
-    /// Opens the selected pad's native detail in its own window on double-click,
-    /// the pad counterpart to double-clicking a question row (#354). The owning
-    /// account travels with the id so the window uses the right client/server URL.
-    func openSelectedPadDetailWindow() {
-        guard let pad = selection else { return }
-
-        let account = router.account(forPadID: pad.id)?.id
-        openWindow(id: "pad", value: PadWindowID(account: account, id: pad.id))
-    }
 }

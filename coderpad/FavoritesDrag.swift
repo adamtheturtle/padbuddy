@@ -7,7 +7,8 @@
 //  the sidebar drop target needs to pin the right item to the right account, even
 //  in the combined "All Accounts" view where the source account must travel with
 //  the id. Pad rows keep dragging their web URL out for external drops (Slack,
-//  Mail) by exposing both representations through `PadDragPayload`.
+//  Mail); since the #439 NSTableView migration that drag is assembled at the AppKit
+//  layer (see `padPasteboardItem`), carrying the URL plus the `FavoriteDrop` JSON.
 //
 
 import SwiftUI
@@ -36,24 +37,6 @@ enum FavoriteDrop: Codable, Transferable {
 
     static var transferRepresentation: some TransferRepresentation {
         CodableRepresentation(contentType: .coderpadFavorite)
-    }
-}
-
-/// A pad row's drag payload, exposing two representations: its web URL (so external
-/// apps still receive a link, the row's existing behavior) and the internal
-/// `FavoriteDrop` (so the sidebar can pin it). The URL comes first so external
-/// consumers keep preferring the link.
-struct PadDragPayload: Transferable {
-    let account: UUID
-    let id: String
-    let title: String
-    let url: URL
-
-    static var transferRepresentation: some TransferRepresentation {
-        ProxyRepresentation(exporting: \.url)
-        ProxyRepresentation(exporting: { payload in
-            FavoriteDrop.pad(account: payload.account, id: payload.id, title: payload.title)
-        })
     }
 }
 

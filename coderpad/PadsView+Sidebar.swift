@@ -238,7 +238,7 @@ extension PadsView {
     /// URL (so external apps receive a link) plus the internal `FavoriteDrop` JSON (so
     /// it can be dropped on the sidebar Favorites to pin it, #297). Built at the AppKit
     /// layer because the hosted SwiftUI content is hit-transparent — a SwiftUI
-    /// `.draggable` there would never grab. Mirrors `PadDragPayload`.
+    /// `.draggable` there would never grab.
     private func padPasteboardItem(_ pad: Pad) -> NSPasteboardItem? {
         guard let url = pad.webURL else { return nil }
 
