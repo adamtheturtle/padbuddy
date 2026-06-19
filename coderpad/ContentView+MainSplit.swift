@@ -11,6 +11,9 @@ import SwiftUI
 struct MainSplit: View {
     @State var store = AccountsStore.shared
     @State var network = NetworkMonitor.shared
+    /// Observed so the Screen section's title/search prompt can reflect whether a
+    /// campaign is drilled into (campaigns → candidates), see #467/#468/#470.
+    @State var nav = AppNavigation.shared
     @Binding var section: AppSection
     let directory: OrgDirectory
     let monitor: AccountHealthMonitor
@@ -82,7 +85,10 @@ struct MainSplit: View {
         // `Text(ternary-of-Strings)` would use the verbatim initializer (#111).
         switch section {
         case .questions: Text("Search questions")
-        case .screen: Text("Search campaigns")
+        // The single window field is shared by the campaigns list and a drilled-into
+        // campaign's candidate list, so name what it actually searches now (#470).
+        case .screen:
+            if nav.screenCampaignSelection == nil { Text("Search campaigns") } else { Text("Search candidates") }
         default: Text("Search pads")
         }
     }
@@ -197,7 +203,9 @@ struct MainSplit: View {
         case .questions: String(localized: "Questions")
         case .organization: String(localized: "Organization")
         case .quota: String(localized: "Quota")
-        case .screen: String(localized: "Screen")
+        // The Screen section's content column is the campaigns list (a drilled-into
+        // campaign's tests view supplies its own title), so name it "Campaigns" (#468).
+        case .screen: String(localized: "Campaigns")
         }
     }
 
