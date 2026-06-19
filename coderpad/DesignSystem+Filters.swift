@@ -114,6 +114,12 @@ struct FlowLayout<Content: View>: View {
               verticalSpacing: lineSpacing) {
             content()
         }
+        // Fill the available width and pin to the leading edge. HFlow sizes to its
+        // content, so without this it would be centred by a wider parent; the
+        // hand-rolled layout this replaced always claimed the full proposed width and
+        // left-aligned within it, so the saved-search and filter chips stayed flush
+        // left even on a single, partly-filled row (#391).
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
