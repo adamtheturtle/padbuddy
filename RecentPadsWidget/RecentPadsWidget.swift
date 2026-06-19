@@ -274,15 +274,24 @@ struct RecentPadsWidgetEntryView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-            // With no pads to open, the most useful action is creating one, so
-            // surface the New Pad button on every family (#425) — the compact, icon-only
-            // pill on small where there's no room for the label.
-            NewPadButton(accountID: entry.newPadAccountID, questionID: entry.newPadQuestionID,
-                         compact: family == .systemSmall)
-                .padding(.top, 2)
+            // `Link` is ignored on systemSmall, so the explicit New Pad button only
+            // works on the larger families — show it there. The small empty tile makes
+            // New Pad its whole-tile action instead (see `emptyStateURL`).
+            if family != .systemSmall {
+                NewPadButton(accountID: entry.newPadAccountID, questionID: entry.newPadQuestionID)
+                    .padding(.top, 2)
+            }
         }
         .padding()
-        .widgetURL(URL(string: "coderpad://pads"))
+        .widgetURL(emptyStateURL)
+    }
+
+    /// The empty state's whole-tile destination. With no pads to open, creating one is
+    /// the most useful action — so on small (where the inline button can't be shown)
+    /// the tile opens New Pad directly; larger families keep the explicit button and
+    /// open the Pads list.
+    private var emptyStateURL: URL? {
+        URL(string: family == .systemSmall ? "coderpad://new-pad" : "coderpad://pads")
     }
 
     /// A compact header above the pad list carrying the New Pad action, so a pad
@@ -297,21 +306,17 @@ struct RecentPadsWidgetEntryView: View {
         }
     }
 
-    /// Small family: the most recent pad fills the widget (whole-tile deep link),
-    /// with a New Pad button pinned top-right as its own tap target (#425). Modern
-    /// widgets route taps outside an interactive control to `widgetURL`, so the two
-    /// coexist — the button creates a pad, tapping anywhere else opens the pad.
+    /// Small family: the most recent pad fills the widget and the whole tile opens it
+    /// (`widgetURL`). It carries no New Pad button — `Link` is ignored on systemSmall
+    /// and `OpenURLIntent` can't open a custom URL scheme, so neither mechanism can add
+    /// a second tap target here (#456). New Pad lives on the medium/large families; an
+    /// empty small tile instead opens New Pad as its whole-tile action.
     private var smallView: some View {
         VStack(alignment: .leading, spacing: 6) {
             if let first = entry.pads.first {
-                HStack(alignment: .top, spacing: 6) {
-                    Text(first.title)
-                        .font(.headline)
-                        .lineLimit(3)
-                    Spacer(minLength: 4)
-                    NewPadButton(accountID: entry.newPadAccountID,
-                                 questionID: entry.newPadQuestionID, compact: true)
-                }
+                Text(first.title)
+                    .font(.headline)
+                    .lineLimit(3)
                 Spacer(minLength: 0)
                 HStack(spacing: 6) {
                     if let language = first.languageLabel {
@@ -356,18 +361,17 @@ struct RecentPadsWidgetEntryView: View {
     }
 }
 
-/// Creates a new pad straight from the widget. It opens the app via the
-/// `coderpad://new-pad` deep link the app already routes (the same one the
-/// Control Center `NewPadControl` uses), so the widget extension stays
-/// dependency-free and never has to compile the app-only `NewPadIntent`. When a
-/// favourite question is configured, the link carries its account and id so the app
-/// switches to that account and pre-seeds the create sheet with the question.
+/// Creates a new pad straight from the widget by opening the `coderpad://new-pad`
+/// deep link the app routes. Uses a `Link`, NOT `Button(intent: OpenURLIntent(...))`:
+/// `OpenURLIntent` only opens universal (https) links and silently ignores a custom
+/// URL scheme, which is why the New Pad button did nothing (#456); `Link` opens a
+/// custom scheme in the owning app — the same mechanism the pad rows use. `Link`
+/// works only on the medium/large families (systemSmall ignores it), so this is
+/// shown only there. When a favourite question is configured the link carries its
+/// account and id so the app switches to that account and pre-seeds the create sheet.
 private struct NewPadButton: View {
     var accountID: String?
     var questionID: Int?
-    /// Icon-only on the small family, where there's no room for a label; the larger
-    /// families show the full "New Pad" pill.
-    var compact = false
 
     private var url: URL {
         var components = URLComponents()
@@ -381,22 +385,16 @@ private struct NewPadButton: View {
     }
 
     var body: some View {
-        // A filled accent pill reads as a real button; the previous `.borderless`
-        // style rendered as bare accent text that looked unfinished on the widget
-        // (#426). `.controlSize(.small)` keeps it compact enough for the header.
-        Button(intent: OpenURLIntent(url)) {
-            if compact {
-                Image(systemName: "plus")
-                    .font(.caption2.weight(.bold))
-                    .accessibilityLabel("New Pad")
-            } else {
-                Label("New Pad", systemImage: "plus")
-                    .font(.caption2.weight(.semibold))
-            }
+        // A filled accent pill reads as a real button (#426). Styled by hand since
+        // `.buttonStyle` doesn't apply to `Link`.
+        Link(destination: url) {
+            Label("New Pad", systemImage: "plus")
+                .font(.caption2.weight(.semibold))
+                .padding(.horizontal, 8)
+                .padding(.vertical, 4)
+                .background(Color.accentColor, in: Capsule())
+                .foregroundStyle(.white)
         }
-        .buttonStyle(.borderedProminent)
-        .controlSize(.small)
-        .tint(.accentColor)
     }
 }
 
@@ -476,6 +474,13 @@ private func languageTint(for language: String?) -> Color {
 }
 
 #Preview(as: .systemMedium) {
+    RecentPadsWidget()
+} timeline: {
+    RecentPadsEntry(date: Date(), pads: RecentPadsProvider.sample)
+    RecentPadsEntry(date: Date(), pads: [])
+}
+
+#Preview(as: .systemSmall) {
     RecentPadsWidget()
 } timeline: {
     RecentPadsEntry(date: Date(), pads: RecentPadsProvider.sample)
