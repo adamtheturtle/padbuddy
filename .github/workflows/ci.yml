@@ -57,11 +57,11 @@ jobs:
 
   # Swift style gate. Runs on every push/PR (and nightly) so a SwiftLint or
   # SwiftFormat regression is caught before it lands on main, rather than only
-  # surfacing in the nightly build. This is the lone macOS job that runs per
-  # push — but it just downloads two pinned binaries and lints (~1 min), so it
-  # sidesteps the expensive full compile in `test` below. Both tools run as
-  # prebuilt binaries at a pinned version so CI matches the local toolchain
-  # exactly; bump these in lockstep with any local upgrade.
+  # surfacing in the nightly build. It runs on a 1x Linux runner (see the
+  # container note below), so there is no per-push macOS cost — the expensive
+  # macOS jobs all stay nightly/manual. Both tools run as prebuilt binaries at a
+  # pinned version so CI matches the local toolchain; bump these in lockstep with
+  # any local upgrade.
   swift-lint:
     name: SwiftLint & SwiftFormat
     runs-on: ubuntu-latest
