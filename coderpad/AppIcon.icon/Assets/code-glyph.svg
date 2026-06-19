@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Foreground layer: the white </> code glyph, centred on a 1024×1024 canvas.
+     Strokes use round caps/joins so the system-drawn Liquid Glass highlights
+     read cleanly off the edges. Geometry traced from the existing app icon. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <g fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round">
+    <!-- left chevron  < -->
+    <path d="M300 331 L219 511 L300 691" stroke-width="74"/>
+    <!-- forward slash  / -->
+    <path d="M455 700 L569 322" stroke-width="58"/>
+    <!-- right chevron  > -->
+    <path d="M724 331 L805 511 L724 691" stroke-width="74"/>
+  </g>
+</svg>
