@@ -239,25 +239,4 @@ struct Account: Identifiable, Codable, Hashable {
 
         return .live(apiKey: trimmed, baseURL: screenRegion.baseURL)
     }
-
-    /// A draft account pre-filled from the `CODERPAD_API_KEY` (and optional
-    /// `CODERPAD_USER_EMAIL`) env vars set in the scheme's Run action, or `nil`
-    /// when no key is present. Debug-only convenience so testing against real
-    /// data via the Add Account button doesn't mean re-pasting the key each run;
-    /// option-click the button to fill from this. Env vars are readable under the
-    /// App Sandbox, unlike a home-directory dotfile — keep that scheme non-shared
-    /// (xcuserdata) so the key never lands in git.
-    static func fromDevEnvironment() -> Self? {
-        #if DEBUG
-            let env = ProcessInfo.processInfo.environment
-            guard let rawKey = env["CODERPAD_API_KEY"]?.trimmingCharacters(in: .whitespacesAndNewlines),
-                  !rawKey.isEmpty else { return nil }
-
-            let email = env["CODERPAD_USER_EMAIL"]?
-                .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            return Self(name: "Dev (env key)", apiKey: rawKey, userEmail: email)
-        #else
-            return nil
-        #endif
-    }
 }

@@ -101,6 +101,10 @@ struct PadCommands: Commands {
     /// Mirrors the window's read-only state (offline) so the mutating items disable
     /// to match the in-window controls (#321). `nil`/`false` means editable.
     @FocusedValue(\.isReadOnly) private var isReadOnly
+    /// Whether the focused pad has any code to save yet, so "Save Code…" disables
+    /// until its environments (or legacy inline contents) have loaded. `nil` when
+    /// no pad detail is frontmost.
+    @FocusedValue(\.padHasSavableCode) private var padHasSavableCode
     /// Shares the Pads list's persisted sort key, so the menu's "Sort By" submenu
     /// and the list toolbar's Sort picker stay in lockstep (#415).
     @AppStorage(PadSort.storageKey) private var sort: PadSort = .updatedDesc
@@ -206,7 +210,7 @@ struct PadCommands: Commands {
                 AppNavigation.shared.saveCodePadID = pad.id
             }
             .keyboardShortcut("s", modifiers: [.command])
-            .disabled(pad == nil)
+            .disabled(pad == nil || padHasSavableCode != true)
 
             Divider()
 

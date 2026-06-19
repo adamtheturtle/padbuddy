@@ -187,6 +187,9 @@ struct PadDetailView: View {
                                            displayName: directory.display),
                           jobTitle: pad.title.isEmpty ? pad.id : pad.title)
         })
+        // Publish whether there's anything to save so File ▸ Save Code… can disable
+        // until the pad's code (environments or legacy inline contents) has loaded.
+        .focusedSceneValue(\.padHasSavableCode, hasSavableCode)
         .task(id: pad.id) { await load() }
         .confirmationDialog("End this interview?", isPresented: $showEndConfirm, titleVisibility: .visible) {
             Button("End Interview", role: .destructive) { Task { await endInterview() } }

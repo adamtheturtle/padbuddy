@@ -161,3 +161,11 @@ extension PadDetailView {
         return extensionByLanguage[lowered] ?? "txt"
     }
 }
+
+extension FocusedValues {
+    /// Whether the focused pad's detail pane has any code to save yet, published by
+    /// `PadDetailView` so the Pad menu's "Save Code…" command disables until at least
+    /// one environment (or a legacy pad's inline contents) has loaded. `nil` when no
+    /// pad detail is frontmost.
+    @Entry var padHasSavableCode: Bool?
+}
