@@ -65,11 +65,18 @@ struct InlineEditableTitle: View {
                 // A plain TextField hard-*clips* an over-long title instead of showing
                 // a trailing ellipsis (#445). While not editing, hide the field's text
                 // and overlay a tail-truncating Text in its place so a long title reads
-                // "Some long titl…"; the field stays mounted (at opacity 0) so a click
-                // still falls through to focus it and start editing.
+                // "Some long titl…". The overlay carries an explicit tap-to-focus
+                // rather than relying on the click "falling through" to the invisible
+                // field — an opacity-0 TextField doesn't reliably become first
+                // responder on click, which left the title looking uneditable (#461).
                 .opacity(focus.wrappedValue ? 1 : 0)
                 .overlay(alignment: .leading) {
-                    if !focus.wrappedValue { truncatingDisplay }
+                    if !focus.wrappedValue {
+                        truncatingDisplay
+                            .contentShape(Rectangle())
+                            .onTapGesture { if !isReadOnly { focus.wrappedValue = true } }
+                            .accessibilityAddTraits(.isButton)
+                    }
                 }
                 .background(titleWidthReader)
                 .accessibilityHint("Edit title")
@@ -98,7 +105,7 @@ struct InlineEditableTitle: View {
 
     /// The resting (non-editing) title: a tail-truncating `Text` shown over the
     /// hidden field so a long title ends in an ellipsis instead of being clipped
-    /// (#445). Hit-transparent so taps reach the field beneath to begin editing, and
+    /// (#445). The overlaying view owns a tap-to-focus gesture (#461); this is
     /// hidden from accessibility since the field already exposes the title. A tooltip
     /// surfaces the full title when it's truncated.
     private var truncatingDisplay: some View {
@@ -113,7 +120,6 @@ struct InlineEditableTitle: View {
         .lineLimit(1)
         .truncationMode(.tail)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .allowsHitTesting(false)
         .accessibilityHidden(true)
     }
 
