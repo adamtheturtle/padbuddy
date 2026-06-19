@@ -19,15 +19,11 @@
 # Notarization credentials — supply ONE of, in this precedence order:
 # (1) a stored profile:
 #   NOTARY_KEYCHAIN_PROFILE   A `notarytool store-credentials` profile name.
-# (2) an App Store Connect API key (preferred for CI — scope-fixed, rotatable,
-#     and not bound to a person's Apple ID):
+# (2) an App Store Connect API key (used for CI — scope-fixed, rotatable, and not
+#     bound to a person's Apple ID):
 #   ASC_KEY            The .p8 private key, base64-encoded (so it fits one secret).
 #   ASC_KEY_ID         The key's ID (the 10-char string in the .p8 filename).
 #   ASC_ISSUER_ID      The issuer UUID from App Store Connect → Users and Access → Keys.
-# (3) an Apple ID + app-specific password (legacy fallback):
-#   NOTARY_APPLE_ID    Apple ID email used for notarytool.
-#   NOTARY_PASSWORD    App-specific password for that Apple ID.
-#   NOTARY_TEAM_ID     Apple Developer Team ID (e.g. 6L9H6Q8CUF).
 #
 # Optional environment:
 #   ENTITLEMENTS         Entitlements plist embedded when signing the app
@@ -194,7 +190,8 @@ codesign --force --timestamp --sign "$SIGNING_IDENTITY" "$DMG"
 notarytool_creds=()
 if [ -n "${NOTARY_KEYCHAIN_PROFILE:-}" ]; then
   notarytool_creds=(--keychain-profile "$NOTARY_KEYCHAIN_PROFILE")
-elif [ -n "${ASC_KEY:-}" ]; then
+else
+  : "${ASC_KEY:?set ASC_KEY (+ ASC_KEY_ID/ASC_ISSUER_ID) or NOTARY_KEYCHAIN_PROFILE}"
   : "${ASC_KEY_ID:?set ASC_KEY_ID alongside ASC_KEY}"
   : "${ASC_ISSUER_ID:?set ASC_ISSUER_ID alongside ASC_KEY}"
   # The .p8 is supplied base64-encoded so it fits in a single CI secret. Decode
@@ -209,15 +206,6 @@ elif [ -n "${ASC_KEY:-}" ]; then
     --key "$ASC_KEY_PATH"
     --key-id "$ASC_KEY_ID"
     --issuer "$ASC_ISSUER_ID"
-  )
-else
-  : "${NOTARY_APPLE_ID:?set NOTARY_APPLE_ID, ASC_KEY, or NOTARY_KEYCHAIN_PROFILE}"
-  : "${NOTARY_PASSWORD:?set NOTARY_PASSWORD, ASC_KEY, or NOTARY_KEYCHAIN_PROFILE}"
-  : "${NOTARY_TEAM_ID:?set NOTARY_TEAM_ID, ASC_KEY, or NOTARY_KEYCHAIN_PROFILE}"
-  notarytool_creds=(
-    --apple-id "$NOTARY_APPLE_ID"
-    --password "$NOTARY_PASSWORD"
-    --team-id "$NOTARY_TEAM_ID"
   )
 fi
 

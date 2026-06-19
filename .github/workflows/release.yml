@@ -15,14 +15,10 @@ name: Release
 #   DEVELOPER_ID_APP_CERT_P12_BASE64  base64 of the Developer ID Application
 #                                     certificate + private key, exported as .p12
 #   DEVELOPER_ID_APP_CERT_PASSWORD    password protecting that .p12
-# Plus notarization credentials — EITHER an App Store Connect API key (preferred):
+# Plus notarization credentials — an App Store Connect API key:
 #   ASC_KEY                           base64 of the App Store Connect API .p8 key
 #   ASC_KEY_ID                        the key's 10-char ID
 #   ASC_ISSUER_ID                     the issuer UUID for that key
-# OR a legacy Apple ID + app-specific password:
-#   NOTARY_APPLE_ID                   Apple ID email for notarytool
-#   NOTARY_PASSWORD                   app-specific password for that Apple ID
-#   NOTARY_TEAM_ID                    Apple Developer Team ID (e.g. 6L9H6Q8CUF)
 #
 # Optional, for Sparkle in-app updates (#28) — when set, a signed appcast.xml is
 # generated and attached to the Release so installed copies can auto-update:
@@ -45,7 +41,7 @@ jobs:
     # Derived once from the presence of signing secrets; every conditional step
     # keys off this so the workflow degrades gracefully to an unsigned .zip.
     env:
-      SIGNING_AVAILABLE: ${{ secrets.DEVELOPER_ID_APP_CERT_P12_BASE64 != '' && (secrets.ASC_KEY != '' || secrets.NOTARY_APPLE_ID != '') }}
+      SIGNING_AVAILABLE: ${{ secrets.DEVELOPER_ID_APP_CERT_P12_BASE64 != '' && secrets.ASC_KEY != '' }}
       # Sparkle appcast generation is independent of signing: it only needs the
       # EdDSA key, so installed copies can verify updates. Inert when unset.
       SPARKLE_AVAILABLE: ${{ secrets.SPARKLE_PRIVATE_ED_KEY != '' }}
@@ -121,15 +117,11 @@ jobs:
       - name: Sign, notarize, and package (.dmg)
         if: env.SIGNING_AVAILABLE == 'true'
         env:
-          # App Store Connect API key (preferred) — the script picks this over the
-          # Apple-ID trio when ASC_KEY is set.
+          # App Store Connect API key — scope-fixed, rotatable, not bound to a
+          # person's Apple ID (verified on the v0.1.7 release, #364).
           ASC_KEY: ${{ secrets.ASC_KEY }}
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-          # Legacy Apple-ID fallback, kept until the key path is verified on a release.
-          NOTARY_APPLE_ID: ${{ secrets.NOTARY_APPLE_ID }}
-          NOTARY_PASSWORD: ${{ secrets.NOTARY_PASSWORD }}
-          NOTARY_TEAM_ID: ${{ secrets.NOTARY_TEAM_ID }}
         run: |
           ./scripts/package-and-notarize.sh \
             "${{ steps.app.outputs.path }}" \

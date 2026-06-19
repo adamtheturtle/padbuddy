@@ -65,9 +65,9 @@ Set these under **Settings → Secrets and variables → Actions**:
 | --- | --- |
 | `DEVELOPER_ID_APP_CERT_P12_BASE64` | The Developer ID Application certificate + private key exported as a `.p12`, base64-encoded (`base64 -i cert.p12 \| pbcopy`) |
 | `DEVELOPER_ID_APP_CERT_PASSWORD` | The password protecting that `.p12` |
-| `NOTARY_APPLE_ID` | Apple ID email used for notarization |
-| `NOTARY_PASSWORD` | An [app-specific password](https://support.apple.com/en-us/102654) for that Apple ID |
-| `NOTARY_TEAM_ID` | Apple Developer Team ID (e.g. `6L9H6Q8CUF`) |
+| `ASC_KEY` | The App Store Connect API `.p8` key, base64-encoded (`base64 -i AuthKey_XXXX.p8 \| pbcopy`) |
+| `ASC_KEY_ID` | The key's 10-char ID (the `XXXX` in the `.p8` filename) |
+| `ASC_ISSUER_ID` | The issuer UUID from App Store Connect → Users and Access → Integrations |
 
 Obtaining the Developer ID Application certificate requires a **paid** Apple
 Developer account ($99/yr); the free account cannot issue one. Export it from
@@ -82,9 +82,9 @@ Developer ID identity in your login keychain:
 
 ```sh
 export SIGNING_IDENTITY="Developer ID Application: Your Name (6L9H6Q8CUF)"
-export NOTARY_APPLE_ID="you@example.com"
-export NOTARY_PASSWORD="app-specific-password"
-export NOTARY_TEAM_ID="6L9H6Q8CUF"
+export ASC_KEY="$(base64 -i AuthKey_XXXXXXXXXX.p8)"
+export ASC_KEY_ID="XXXXXXXXXX"
+export ASC_ISSUER_ID="00000000-0000-0000-0000-000000000000"
 scripts/package-and-notarize.sh path/to/coderpad.app coderpad.dmg
 ```
 
