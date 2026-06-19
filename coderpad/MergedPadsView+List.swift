@@ -89,6 +89,22 @@ extension MergedPadsView {
                 router.pendingFavoritePadID = nil
                 selectedIDs = [id]
             }
+            // Consume a New Pad request routed here (widget/Dock/Control Center/menu
+            // ⌘N deep links all funnel through `coderpad://new-pad` → `showPads`).
+            // The single-account `PadsView` owns search/owner/saved-search requests;
+            // merged mode only needs the create case, which it had been silently
+            // dropping — the New Pad button did nothing while "All Accounts" was on
+            // (#456). Creation is inherently single-account, so seed the current
+            // account's sheet (a link that pinned an account already left merged mode
+            // in `handleDeepLink`). `initial: true` covers a request queued before
+            // this list mounted, e.g. from a cold launch.
+            .onChange(of: nav.padsRequest, initial: true) { _, request in
+                guard let request, request.startCreating, !isReadOnly else { return }
+
+                nav.padsRequest = nil
+                creatingSeedQuestionID = request.seedQuestionID
+                creatingForAccount = newPadDefaultAccount
+            }
             .onChange(of: selection) { _, newValue in
                 // Debounced off the click's synchronous path: `markOpened` mutates the shared
                 // Observable open-history store every row reads, so it rebuilds the whole
@@ -142,12 +158,14 @@ extension MergedPadsView {
     private var decoratedDialogs: some View {
         decoratedStreams
             .sheet(item: $creatingForAccount) { account in
-                NewPadSheet(client: account.makeClient()) { created in
+                NewPadSheet(client: account.makeClient(), initialQuestionID: creatingSeedQuestionID) { created in
                     insert(created, into: account)
                     selectedIDs = [created.id]
                     creatingForAccount = nil
+                    creatingSeedQuestionID = nil
                 } onCancel: {
                     creatingForAccount = nil
+                    creatingSeedQuestionID = nil
                 }
             }
             .confirmationDialog(
@@ -205,6 +223,14 @@ extension MergedPadsView {
         // than as an inline bar above the list.
         .reportsSectionCount(countSubtitle)
         .toolbar(id: "merged-pads") { padsToolbar }
+    }
+
+    /// The account a deep-link New Pad targets in merged mode: the current account
+    /// when its key is usable, else the first mergeable account that has a key. Nil
+    /// only when no account has a key, in which case the request is a no-op.
+    private var newPadDefaultAccount: Account? {
+        if let current = accounts.currentAccount, !current.apiKey.isEmpty { return current }
+        return accounts.mergeableAccounts.first { !$0.apiKey.isEmpty }
     }
 
     @ToolbarContentBuilder

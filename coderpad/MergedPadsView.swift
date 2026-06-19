@@ -83,6 +83,10 @@ struct MergedPadsView: View {
     /// The account a New Pad is being created for, chosen from the toolbar menu
     /// since creation is inherently single-account.
     @State var creatingForAccount: Account?
+    /// A favourite question to seed the create sheet with, carried by a New Pad
+    /// request (e.g. the widget/Dock/Control Center deep link) consumed in merged
+    /// mode. Cleared alongside `creatingForAccount` when the sheet closes.
+    @State var creatingSeedQuestionID: Int?
     /// The active sort, shared with the single-account Pads list via `@AppStorage`
     /// so the order is consistent across both (#361).
     @AppStorage(PadSort.storageKey) var sort: PadSort = .updatedDesc
