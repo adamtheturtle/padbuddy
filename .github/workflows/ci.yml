@@ -286,7 +286,10 @@ jobs:
       # build can't hide or stale a finding. github-actions formatting surfaces
       # each unused symbol as an inline annotation in the run.
       - name: Scan for dead code
-        run: periphery scan --clean-build --format github-actions
+        # --relative-results is required by current Periphery when the
+        # github-actions formatter is used (it emits repo-relative paths so the
+        # inline annotations resolve).
+        run: periphery scan --clean-build --format github-actions --relative-results
 
   release-build:
     name: Release build
