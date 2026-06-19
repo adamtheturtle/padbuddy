@@ -146,11 +146,6 @@ jobs:
       - name: Build & test
         run: |
           set -o pipefail
-          # SWIFT_ENABLE_EXPLICIT_MODULES=NO works around a flaky Xcode 26.5
-          # dependency-scanner failure on a clean build: the test target's
-          # `@testable import CoderPad` intermittently fails with "Unable to resolve
-          # module dependency: 'CoderPad'" (a parallel explicit-modules race; see #478).
-          # Implicit modules are slower but resolve the host app reliably.
           xcodebuild test \
             -project coderpad.xcodeproj \
             -scheme coderpad \
@@ -158,7 +153,6 @@ jobs:
             -destination 'platform=macOS' \
             -derivedDataPath DerivedData \
             -resultBundlePath TestResults.xcresult \
-            SWIFT_ENABLE_EXPLICIT_MODULES=NO \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
@@ -203,7 +197,6 @@ jobs:
             -testPlan TSan \
             -destination 'platform=macOS' \
             -resultBundlePath TSanResults.xcresult \
-            SWIFT_ENABLE_EXPLICIT_MODULES=NO \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
