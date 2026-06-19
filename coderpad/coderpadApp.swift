@@ -34,44 +34,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_: Notification) {
-        // Carry an existing "Hide Dock icon" choice into the new presence preference,
-        // then honor it from the moment the app launches.
-        GeneralSettings.migratePresenceIfNeeded()
+        // Honor the presence preference from the moment the app launches. The migration
+        // that may set it ran earlier in `AppLaunch.run()` (from `CoderpadApp.init()`).
+        // This stays here, not in `AppLaunch`, because it sets `NSApp`'s activation
+        // policy and must run after the app has finished launching.
         GeneralSettings.applyDockVisibility()
-        // Carry an old on/off Dock-badge choice into the new scope preference (#399),
-        // then seed the badge from whatever pads are already cached; it refreshes again
-        // as each account's list loads.
-        DockBadge.migrateScopeIfNeeded()
-        // The Dock badge only renders for an app granted the `.badge` capability
-        // (macOS Monterey+, #317), so ask for it when the badge is in use. Idempotent,
-        // so re-requesting every launch is harmless.
-        if DockBadge.scope != .off { PadUpdateNotifier.shared.requestBadgeAuthorization() }
-        DockBadge.refresh()
-        // Mirror every account's favourite questions into the App Group up front so the
-        // Recent Pads widget's "New Pad question" picker is populated even before any
-        // Questions section has been opened this session (#411). The per-account sync
-        // otherwise only fires when an account's questions load or a favourite toggles.
-        WidgetSync.syncAllFavorites(AccountsStore.shared.accounts)
-        // Keep the current account's pads fresh on a timer even when no window is open
-        // and the menu is never clicked — the one state where nothing else fetches.
-        // Writing to PadsCacheStore cascades to the widget snapshot and Dock badge.
-        PadsBackgroundRefresher.shared.start()
-        // Watch network reachability so the app can drop into a read-only mode while
-        // CoderPad is unreachable, surfacing an offline banner and disabling edits (#321).
-        NetworkMonitor.shared.start()
-        // Become the notification-center delegate so taps on pad-update alerts route
-        // back into the app. Posting itself is opt-in (see `PadUpdateNotifier`).
-        PadUpdateNotifier.shared.register()
         // Offer the "Open Pad in CoderPad" Service (declared in Info.plist) to other
         // apps. NSUpdateDynamicServices refreshes the registry so the item appears
-        // without needing a log-out/in during development.
+        // without needing a log-out/in during development. Stays here because it wires
+        // up the delegate-retained `servicesProvider`.
         NSApp.servicesProvider = servicesProvider
         NSUpdateDynamicServices()
-        // Start Sparkle's updater so scheduled background update checks run from
-        // launch (#28). No-op until the Sparkle package is linked.
-        #if canImport(Sparkle)
-            SoftwareUpdater.shared.start()
-        #endif
     }
 
     /// The menu shown when right-clicking the Dock icon. Offers the same quick
@@ -122,6 +95,14 @@ struct CoderpadApp: App {
     /// Whether the app shows in the Dock, the menu bar, or both. Gates the menu-bar
     /// extra below so "Dock only" removes the menu-bar icon.
     @AppStorage(GeneralSettings.Key.presence) private var presence: AppPresence = .dockAndMenuBar
+
+    init() {
+        // Run the app-global launch seeding once at process launch. `init()` fires
+        // before the delegate's `applicationDidFinishLaunching(_:)` and regardless of
+        // which scene opens — so this also runs in Dock-only / menu-bar-only modes
+        // where no window appears and a scene `.task` would never fire (#286).
+        AppLaunch.run()
+    }
 
     var body: some Scene {
         // A single, unique main window (`Window`, not `WindowGroup`): opening "main"
