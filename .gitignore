@@ -7,3 +7,8 @@ build_release/
 
 # Swift Package Manager build artifacts (per-machine; contain absolute paths)
 .build/
+
+# Standalone-resolution lockfile for the in-repo library packages — only created by
+# a direct `swift build`. The app's own Package.resolved is authoritative for the
+# real build, so this would just drift. (The CoderPadMCP executable keeps its own.)
+CoderPadDesignSystem/Package.resolved

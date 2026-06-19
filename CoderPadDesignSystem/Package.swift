@@ -12,9 +12,15 @@ let package = Package(
     products: [
         .library(name: "CoderPadDesignSystem", targets: ["CoderPadDesignSystem"])
     ],
+    dependencies: [
+        // Backs the reusable `FlowLayout` wrapper (#391/#377). Pinned to the same
+        // major the app uses so the two resolve to one Flow version.
+        .package(url: "https://github.com/tevelee/SwiftUI-Flow", from: "3.4.0")
+    ],
     targets: [
         .target(
             name: "CoderPadDesignSystem",
+            dependencies: [.product(name: "Flow", package: "SwiftUI-Flow")],
             swiftSettings: [
                 .swiftLanguageMode(.v6),
                 .defaultIsolation(MainActor.self),

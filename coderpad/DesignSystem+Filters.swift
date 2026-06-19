@@ -3,7 +3,6 @@
 //  coderpad
 //
 
-import Flow
 import SwiftUI
 
 // MARK: - Filter bar width measurement
@@ -90,38 +89,9 @@ extension View {
     }
 }
 
-// MARK: - Flow layout
-
-/// Arranges its subviews left-to-right, wrapping to a new line whenever the next
-/// subview would overflow the available width. Lets a row of filter chips reflow
-/// onto multiple lines as its container narrows, instead of being clipped or
-/// forcing a horizontal scroll.
-///
-/// A thin wrapper over the Flow package's `HFlow` (#391, replacing a hand-rolled
-/// `Layout`): it pins the app-wide convention in one place — left-aligned rows with
-/// items vertically centred — and maps our `spacing` (gap between items in a row)
-/// and `lineSpacing` (gap between rows) onto HFlow's horizontal/vertical spacing, so
-/// the many filter-bar call sites stay terse and consistent.
-struct FlowLayout<Content: View>: View {
-    var spacing: CGFloat = 8
-    var lineSpacing: CGFloat = 8
-    @ViewBuilder var content: () -> Content
-
-    var body: some View {
-        HFlow(horizontalAlignment: .leading,
-              verticalAlignment: .center,
-              horizontalSpacing: spacing,
-              verticalSpacing: lineSpacing) {
-            content()
-        }
-        // Fill the available width and pin to the leading edge. HFlow sizes to its
-        // content, so without this it would be centred by a wider parent; the
-        // hand-rolled layout this replaced always claimed the full proposed width and
-        // left-aligned within it, so the saved-search and filter chips stayed flush
-        // left even on a single, partly-filled row (#391).
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
+// `FlowLayout` (the wrapping filter-bar layout, backed by the Flow package's HFlow)
+// now lives in the CoderPadDesignSystem package (#377) and is re-exported via
+// DesignSystem.swift, so the filter-bar call sites here use it unchanged.
 
 // The filter-chip view components (SearchableFilterChip, ChipLabel, the
 // chipClearOverlay helper, and the searchable popover) now live alongside the
