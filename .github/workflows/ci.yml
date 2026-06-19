@@ -107,10 +107,12 @@ jobs:
         run: |
           set -euo pipefail
           curl -sSfL -o swiftformat.zip "https://github.com/nicklockwood/SwiftFormat/releases/download/${SWIFTFORMAT_VERSION}/swiftformat_linux.zip"
+          # The Linux zip unpacks a binary named `swiftformat_linux` (the macOS
+          # zip used `swiftformat`).
           unzip -o -q swiftformat.zip
-          chmod +x swiftformat
-          ./swiftformat --version
-          ./swiftformat . --lint --reporter github-actions-log
+          chmod +x swiftformat_linux
+          ./swiftformat_linux --version
+          ./swiftformat_linux . --lint --reporter github-actions-log
 
   test:
     name: Build & Test
