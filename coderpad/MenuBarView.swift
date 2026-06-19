@@ -35,6 +35,7 @@ struct MenuBarView: View {
     @AppStorage("menuBarTopN") private var topN: Int = 3
     @AppStorage("menuBarStartedOnly") var startedOnly = false
     @Environment(\.openWindow) var openWindow
+    @Environment(\.openSettings) var openSettings
 
     /// The settings Stepper bounds this to 0…30, but a corrupted/externally-edited
     /// defaults value could be negative, and `Array.prefix(_:)` traps on a negative
@@ -187,8 +188,7 @@ struct MenuBarView: View {
             Button("Quota") { go(.quota) }
             Divider()
             Button("Settings…") {
-                openMain()
-                AppRouter.requestOpenSettings()
+                openSettingsPanel()
             }
         }
 
@@ -198,8 +198,7 @@ struct MenuBarView: View {
         .keyboardShortcut("r")
 
         Button("Settings…") {
-            openMain()
-            AppRouter.requestOpenSettings()
+            openSettingsPanel()
         }
         .keyboardShortcut(",")
 
@@ -265,8 +264,7 @@ struct MenuBarView: View {
             // late for the TabView to honor, which is why it stayed on General.
             SettingsNavigation.shared.selectedTab = .accounts
             SettingsNavigation.shared.startAddingAccount = true
-            openMain()
-            AppRouter.requestOpenSettings()
+            openSettingsPanel()
         }
         .keyboardShortcut("n")
 

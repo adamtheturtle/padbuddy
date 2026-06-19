@@ -69,6 +69,15 @@ extension MenuBarView {
         openWindow(id: "main")
     }
 
+    /// Opens the Settings window directly, without also opening the main window — a
+    /// menu-bar "Settings…" click should surface only Settings, not the app window
+    /// (#463). Activates the app first so the panel comes forward even when no
+    /// window is currently visible.
+    func openSettingsPanel() {
+        AppActivator.bringToFront()
+        openSettings()
+    }
+
     func load(account: Account) async {
         isLoading = true
         errorMessage = nil
