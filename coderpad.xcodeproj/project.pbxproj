@@ -15,6 +15,7 @@
 		66F0566B2FE06F5A000FA68C /* Textual in Frameworks */ = {isa = PBXBuildFile; productRef = 66F0566A2FE06F5A000FA68C /* Textual */; };
 		66F0576B2FE0BDB5000FA68C /* PaginatedRESTClient in Frameworks */ = {isa = PBXBuildFile; productRef = 66F0576A2FE0BDB5000FA68C /* PaginatedRESTClient */; };
 		66F543E52FE57AB9000214AA /* Flow in Frameworks */ = {isa = PBXBuildFile; productRef = 66F543E42FE57AB9000214AA /* Flow */; };
+		66F543E82FE5885B000214AA /* CoderPadDesignSystem in Frameworks */ = {isa = PBXBuildFile; productRef = 66F543E72FE5885B000214AA /* CoderPadDesignSystem */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -119,6 +120,7 @@
 				66F0566B2FE06F5A000FA68C /* Textual in Frameworks */,
 				66F543E52FE57AB9000214AA /* Flow in Frameworks */,
 				668E402A2FE2F7DC00AA8228 /* Sparkle in Frameworks */,
+				66F543E82FE5885B000214AA /* CoderPadDesignSystem in Frameworks */,
 				66F0576B2FE0BDB5000FA68C /* PaginatedRESTClient in Frameworks */,
 				66E3CC582FDA31CC00FE87A9 /* Highlightr in Frameworks */,
 			);
@@ -210,6 +212,7 @@
 				66F0576A2FE0BDB5000FA68C /* PaginatedRESTClient */,
 				668E40292FE2F7DC00AA8228 /* Sparkle */,
 				66F543E42FE57AB9000214AA /* Flow */,
+				66F543E72FE5885B000214AA /* CoderPadDesignSystem */,
 			);
 			productName = coderpad;
 			productReference = 66C8C50B2FA73AB0009B720C /* CoderPad.app */;
@@ -326,6 +329,7 @@
 				66F057692FE0BDB5000FA68C /* XCLocalSwiftPackageReference "PaginatedRESTClient" */,
 				668E40282FE2F7DC00AA8228 /* XCRemoteSwiftPackageReference "Sparkle" */,
 				66F543E32FE57AB9000214AA /* XCRemoteSwiftPackageReference "SwiftUI-Flow" */,
+				66F543E62FE5885B000214AA /* XCLocalSwiftPackageReference "CoderPadDesignSystem" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 66C8C50C2FA73AB0009B720C /* Products */;
@@ -856,6 +860,10 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = PaginatedRESTClient;
 		};
+		66F543E62FE5885B000214AA /* XCLocalSwiftPackageReference "CoderPadDesignSystem" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = CoderPadDesignSystem;
+		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
@@ -917,6 +925,10 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 66F543E32FE57AB9000214AA /* XCRemoteSwiftPackageReference "SwiftUI-Flow" */;
 			productName = Flow;
+		};
+		66F543E72FE5885B000214AA /* CoderPadDesignSystem */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = CoderPadDesignSystem;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
