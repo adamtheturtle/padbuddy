@@ -177,6 +177,7 @@ struct CoderpadApp: App {
         padBrowserScene
         questionScene
         padScene
+        screenTestScene
 
         Settings {
             SettingsView()
@@ -227,6 +228,18 @@ struct CoderpadApp: App {
         // swiftformat:disable:next unusedArguments
         WindowGroup("Pad", id: "pad", for: PadWindowID.self) { $value in
             PadWindow(value: value)
+                .frame(minWidth: 600, minHeight: 560)
+                .preferredColorScheme(appearance.colorScheme)
+        }
+    }
+
+    /// A Screen test session's report opened in its own window, from the tests list's
+    /// "Open in New Window" action / double-click (#474). Keyed by a lightweight id so
+    /// it survives state restoration.
+    private var screenTestScene: some Scene {
+        // swiftformat:disable:next unusedArguments
+        WindowGroup("Test Session", id: "screen-test", for: ScreenTestWindowID.self) { $value in
+            ScreenTestWindow(value: value)
                 .frame(minWidth: 600, minHeight: 560)
                 .preferredColorScheme(appearance.colorScheme)
         }

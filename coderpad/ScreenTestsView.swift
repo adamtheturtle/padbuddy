@@ -18,6 +18,8 @@ struct ScreenTestsView: View {
     let campaign: ScreenCampaign
     @Binding var search: String
     @State private var nav = AppNavigation.shared
+    @State private var accounts = AccountsStore.shared
+    @Environment(\.openWindow) private var openWindow
     @State private var tests: [ScreenTestSession] = []
     @State private var isLoading = false
     @State private var loadError: String?
@@ -202,6 +204,10 @@ struct ScreenTestsView: View {
     /// is always available behind a confirmation.
     @ViewBuilder
     private func rowActions(_ test: ScreenTestSession) -> some View {
+        Button { openTestWindow(test) } label: {
+            Label("Open in New Window", systemImage: "macwindow.on.rectangle")
+        }
+        Divider()
         if test.status == "waiting" {
             Button { Task { await resend(test) } } label: {
                 Label("Resend Invitation", systemImage: "paperplane")
@@ -214,6 +220,12 @@ struct ScreenTestsView: View {
         Button(role: .destructive) { testPendingDelete = test } label: {
             Label("Delete Test Session", systemImage: "trash")
         }
+    }
+
+    /// Opens a test session's report in its own window (#474). Screen is single-account,
+    /// so the current account owns the session.
+    private func openTestWindow(_ test: ScreenTestSession) {
+        openWindow(id: "screen-test", value: ScreenTestWindowID(account: accounts.currentAccountID, id: test.id))
     }
 
     private func resend(_ test: ScreenTestSession) async {
