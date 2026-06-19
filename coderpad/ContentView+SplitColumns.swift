@@ -71,7 +71,8 @@ extension MainSplit {
             SectionDetail(
                 section: section,
                 padSelection: $detailPad,
-                questionSelection: $detailQuestion
+                questionSelection: $detailQuestion,
+                screenSearch: $screenSearch
             )
             .navigationSplitViewColumnWidth(
                 min: effectiveDetailMinWidth,

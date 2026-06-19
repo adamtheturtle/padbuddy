@@ -84,6 +84,7 @@ struct SectionDetail: View {
     let section: AppSection
     @Binding var padSelection: Pad?
     @Binding var questionSelection: Question?
+    @Binding var screenSearch: String
 
     var body: some View {
         switch section {
@@ -107,12 +108,15 @@ struct SectionDetail: View {
                                    description: Text("This section shows everything in the list."))
 
         case .screen:
-            // A selected test session shows its report (#435); otherwise prompt based on
-            // the drill-down state.
-            if let test = nav.screenTestSelection, let screen = screenClient {
-                ScreenTestDetailView(client: screen, test: test).id(screenDetailID(for: test))
+            // The selected campaign's test sessions fill the detail column (#448); a
+            // session's report opens in its own window on double-click (#474). When no
+            // campaign is selected, prompt to pick one.
+            if let campaign = nav.screenCampaignSelection, let screen = screenClient {
+                ScreenTestsView(client: screen, campaign: campaign, search: $screenSearch,
+                                accountID: store.isMergedView ? router.selectedScreenAccountID : nil)
+                    .id(screenTestsID(for: campaign))
             } else {
-                ScreenDetailPlaceholder(campaign: nav.screenCampaignSelection)
+                ScreenDetailPlaceholder()
             }
         }
     }
@@ -129,14 +133,15 @@ struct SectionDetail: View {
         return store.currentAccount?.makeScreenClient()
     }
 
-    /// The Screen report's identity, namespaced by the routed account in the combined
-    /// view so two accounts' tests that share a per-org id recreate the detail pane
-    /// instead of reusing stale state (mirrors `questionDetailID`).
-    private func screenDetailID(for test: ScreenTestSession) -> String {
+    /// The Screen tests-list identity, namespaced by the routed account in the combined
+    /// view so switching between two accounts' campaigns that share a per-org id
+    /// recreates the detail pane (and re-fetches) instead of reusing stale state
+    /// (mirrors `questionDetailID`).
+    private func screenTestsID(for campaign: ScreenCampaign) -> String {
         if store.isMergedView, let account = router.selectedScreenAccountID {
-            return "\(account.uuidString):\(test.id)"
+            return "\(account.uuidString):\(campaign.id)"
         }
-        return String(test.id)
+        return String(campaign.id)
     }
 
     /// The client a selected pad's detail should use: in the combined view, the

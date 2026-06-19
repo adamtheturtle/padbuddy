@@ -4,19 +4,19 @@
 //
 //  The combined "All Accounts" Screen section (#442). Aggregates Screen campaigns
 //  across every mergeable account that has a Screen key, tagging each row with its
-//  source account so drilling into a campaign — and the selected test's report in
-//  the detail column — routes to the right account's `ScreenClient` (campaign and
+//  source account so selecting a campaign — and showing its test sessions in the
+//  detail column (#448) — routes to the right account's `ScreenClient` (campaign and
 //  test ids are numbered per org). Accounts without a Screen key are simply absent.
 //  Each account's client carries its own region base URL, so a US/EU mix fans out
-//  correctly. Mirrors `ScreenCampaignsView`'s campaigns → tests drill-down and
+//  correctly. Mirrors `ScreenCampaignsView`'s campaign selection and
 //  `MergedOrganizationView`'s concurrent per-account fan-out.
 //
 
 import SwiftUI
 
 /// A Screen campaign paired with the account it belongs to. `id` namespaces the
-/// per-org campaign id by account so the list and the `NavigationStack` path stay
-/// unambiguous even when two orgs share a campaign id.
+/// per-org campaign id by account so the list selection stays unambiguous even when
+/// two orgs share a campaign id.
 struct ScopedScreenCampaign: Identifiable, Hashable {
     let accountID: UUID
     let accountName: String
@@ -37,29 +37,24 @@ struct MergedScreenView: View {
     @State private var accountErrors: [UUID: String] = [:]
     @State private var isLoading = false
     @State private var showArchived = false
-    /// The campaigns → tests drill-down path, carrying the account so the pushed
-    /// tests list and the detail column talk to the right `ScreenClient`.
-    @State private var path: [ScopedScreenCampaign] = []
+    /// The selected campaign (namespaced id, account + per-org campaign id). Selecting a
+    /// campaign drives the detail column's test-sessions list and routes it to that
+    /// campaign's account `ScreenClient` (#448); single-click never swaps this list.
+    @State private var selectedScopedID: String?
 
     var body: some View {
-        NavigationStack(path: $path) {
-            List {
-                ForEach(filtered) { scoped in
-                    NavigationLink(value: scoped) {
-                        MergedScreenCampaignRow(scoped: scoped)
-                    }
+        List(selection: $selectedScopedID) {
+            ForEach(filtered) { scoped in
+                MergedScreenCampaignRow(scoped: scoped)
+                    .tag(scoped.id)
                     .contextMenu { campaignActions(scoped) }
-                }
             }
-            .overlay { statusOverlay }
-            // The campaign count at the list; the drilled-into campaign's candidate
-            // count once pushed (published by the tests list via AppNavigation, #475).
-            .reportsSectionCount(path.isEmpty ? countSubtitle : nav.screenTestsSubtitle)
-            .navigationDestination(for: ScopedScreenCampaign.self) { scoped in
-                destination(for: scoped)
-            }
-            .toolbar(id: "merged-screen") { toolbar }
         }
+        .overlay { statusOverlay }
+        // The campaign count with nothing selected; the selected campaign's candidate
+        // count once chosen (published by the tests list via AppNavigation, #475).
+        .reportsSectionCount(selectedScopedID == nil ? countSubtitle : nav.screenTestsSubtitle)
+        .toolbar(id: "merged-screen") { toolbar }
         .task(id: accountKey) { await load() }
         // Reload on ⌘R like the other lists (AppRouter.requestReload()).
         .task {
@@ -67,33 +62,42 @@ struct MergedScreenView: View {
                 await load()
             }
         }
-        // The drilled-into campaign drives the detail column's context and which
-        // account's client it routes to; clear both on popping back to the list.
-        .onChange(of: path) { _, newPath in
-            nav.screenCampaignSelection = newPath.last?.campaign
-            routing.selectedScreenAccountID = newPath.last?.accountID
-            if newPath.isEmpty { nav.screenTestSelection = nil }
+        // Restore the published selection on appear, and publish each change onward so the
+        // detail column shows the campaign's tests, routed to the right account (#448).
+        .onAppear {
+            if let account = routing.selectedScreenAccountID, let campaign = nav.screenCampaignSelection {
+                selectedScopedID = "\(account.uuidString):\(campaign.id)"
+            }
         }
-    }
-
-    @ViewBuilder
-    private func destination(for scoped: ScopedScreenCampaign) -> some View {
-        if let account = accounts.accounts.first(where: { $0.id == scoped.accountID }),
-           let client = account.makeScreenClient() {
-            ScreenTestsView(client: client, campaign: scoped.campaign,
-                            search: $search, accountID: scoped.accountID)
-        } else {
-            ContentUnavailableView("Account unavailable", systemImage: "person.crop.rectangle.stack")
+        .onChange(of: selectedScopedID) { _, id in
+            let scoped = scopedCampaign(id: id)
+            nav.screenCampaignSelection = scoped?.campaign
+            routing.selectedScreenAccountID = scoped?.accountID
         }
     }
 
     /// Right-click actions for a campaign row, mirroring the single-account view
-    /// (#466): drill into its test sessions, or copy its name. The Screen API
-    /// exposes no per-campaign mutations.
+    /// (#466): select it to show its test sessions in the detail column, or copy its
+    /// name. The Screen API exposes no per-campaign mutations.
     @ViewBuilder
     private func campaignActions(_ scoped: ScopedScreenCampaign) -> some View {
-        Button("Show Test Sessions") { path = [scoped] }
+        Button("Show Test Sessions") { selectedScopedID = scoped.id }
         Button("Copy Name") { Clipboard.copy(scoped.campaign.name) }
+    }
+
+    /// Resolves a namespaced row id back to its account-scoped campaign across the loaded
+    /// set, so a selection can route to the right account's `ScreenClient`.
+    private func scopedCampaign(id: String?) -> ScopedScreenCampaign? {
+        guard let id else { return nil }
+
+        for (account, _) in screenAccounts {
+            for campaign in campaignsByAccount[account.id] ?? [] {
+                let scoped = ScopedScreenCampaign(accountID: account.id, accountName: account.name,
+                                                  campaign: campaign)
+                if scoped.id == id { return scoped }
+            }
+        }
+        return nil
     }
 
     /// An identified, customizable toolbar (so Customize Toolbar… stays enabled here,
@@ -132,7 +136,9 @@ struct MergedScreenView: View {
     /// and archived toggles. Pinned first, then by name, then by account so the order
     /// is stable and predictable.
     private var filtered: [ScopedScreenCampaign] {
-        let query = search.trimmingCharacters(in: .whitespaces).lowercased()
+        // While a campaign is selected the search field targets its candidates (the
+        // detail column), so this list ignores the query then — keeping it in view.
+        let query = selectedScopedID == nil ? search.trimmingCharacters(in: .whitespaces).lowercased() : ""
         let scoped = screenAccounts.flatMap { account, _ in
             (campaignsByAccount[account.id] ?? []).map {
                 ScopedScreenCampaign(accountID: account.id, accountName: account.name, campaign: $0)
@@ -230,11 +236,10 @@ struct MergedScreenView: View {
                 }
             }
         }
-        // If the drilled-into campaign vanished (deleted, or its account lost its key),
-        // pop back to the campaigns list.
-        if let top = path.last,
-           !(campaignsByAccount[top.accountID]?.contains { $0.id == top.campaign.id } ?? false) {
-            path.removeAll()
+        // If the selected campaign vanished (deleted, or its account lost its key),
+        // clear the selection so the detail column stops showing its tests.
+        if let id = selectedScopedID, scopedCampaign(id: id) == nil {
+            selectedScopedID = nil
         }
     }
 }

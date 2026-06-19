@@ -54,19 +54,16 @@ final class AppNavigation {
     /// Consumed and cleared by QuestionsView when it appears or this value changes.
     var questionsRequest: QuestionsRequest?
 
-    /// The campaign drilled into in the Screen section's middle column (campaigns →
-    /// tests share that column via push navigation; #433/#434). Kept here rather than
-    /// as a `MainSplit` binding so it needs no threading through the shared split
-    /// columns; the campaigns list owns it and the detail column observes it.
+    /// The campaign selected in the Screen section's middle column. Selecting one drives
+    /// the detail column's test-sessions list (#448). Kept here rather than as a
+    /// `MainSplit` binding so it needs no threading through the shared split columns;
+    /// the campaigns list owns it and the detail column observes it.
     var screenCampaignSelection: ScreenCampaign?
-    /// The test session selected within a campaign's tests list, read by the detail
-    /// column to show its report (#434/#435).
-    var screenTestSelection: ScreenTestSession?
 
-    /// The drilled-into campaign's candidate-count subtitle (e.g. "12 candidates"),
-    /// published by the tests list. The campaigns view reports it as the window
-    /// subtitle while drilled in, since a pushed NavigationStack destination's own
-    /// preference doesn't reliably propagate out to the toolbar (#475).
+    /// The selected campaign's candidate-count subtitle (e.g. "12 candidates"), published
+    /// by the tests list (which lives in the detail column, #448). The campaigns column
+    /// reports it as the window subtitle while a campaign is selected, since the detail
+    /// column's own count preference doesn't propagate out to the toolbar (#475).
     var screenTestsSubtitle = ""
 
     /// The live filter signature of each list, republished by its pane whenever its

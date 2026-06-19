@@ -2,9 +2,9 @@
 //  ScreenTestsView.swift
 //  coderpad
 //
-//  The test-sessions list for a selected Screen campaign (#434). Pushed into the
-//  Screen section's middle column from the campaigns list (campaigns → tests share
-//  that column; the detail column shows the selected test's report, #435). Read-only.
+//  The test-sessions list for the selected Screen campaign (#434). Shown in the Screen
+//  section's detail column when a campaign is selected in the campaigns list (#448);
+//  a session's report opens in its own window on double-click (#474). Read-only.
 //
 
 import SwiftUI
@@ -78,8 +78,6 @@ struct ScreenTestsView: View {
             menuItems: { testTableMenuItems($0) }
         )
         .overlay { statusOverlay }
-        .reportsSectionCount(countSubtitle)
-        .navigationTitle(campaign.name)
         .task(id: campaign.id) { await load() }
         // The date range is a server-side filter, so changing it re-fetches (onChange,
         // not a second .task, so it doesn't double-fetch alongside the campaign task).
@@ -89,19 +87,13 @@ struct ScreenTestsView: View {
                 await load()
             }
         }
-        .onAppear { selectedIDs = nav.screenTestSelection.map { [$0.id] } ?? [] }
-        .onChange(of: selectedIDs) { _, ids in
-            nav.screenTestSelection = ids.first.flatMap { tid in tests.first { $0.id == tid } }
-        }
-        // Publish the candidate count so the campaigns view can show it as the window
-        // subtitle while drilled in (#475) — see `AppNavigation.screenTestsSubtitle`.
+        // This list lives in the detail column (#448); publish the candidate count so the
+        // campaigns column can show it as the window subtitle while a campaign is selected
+        // (#475) — see `AppNavigation.screenTestsSubtitle`. A test session's report opens
+        // in its own window on double-click / Return (#474); there's no inline report here.
         .onChange(of: countSubtitle, initial: true) { _, new in nav.screenTestsSubtitle = new }
-        // Leaving this campaign (popping back to the campaigns list) clears the detail
-        // column's test selection and the published candidate subtitle.
-        .onDisappear {
-            nav.screenTestSelection = nil
-            nav.screenTestsSubtitle = ""
-        }
+        // Deselecting the campaign tears this view down; reset the published candidate count.
+        .onDisappear { nav.screenTestsSubtitle = "" }
     }
 
     /// Extracted from `body` so its getter stays under the Release build's 250ms

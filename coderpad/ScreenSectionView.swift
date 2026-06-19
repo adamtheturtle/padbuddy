@@ -23,32 +23,25 @@ struct ScreenCampaignsView: View {
     @State private var loadError: String?
     @State private var showArchived = false
     @State private var showWebhook = false
-    /// The campaigns → tests drill-down path. Campaigns and tests share this middle
-    /// column via push navigation; the detail (third) column shows the selected test's
-    /// report (#434). One level deep — a campaign pushes its tests list.
-    @State private var path: [ScreenCampaign] = []
+    /// The selected campaign's id. Selecting a campaign drives the detail column's
+    /// test-sessions list (#448) — single-click selects and never swaps this list,
+    /// consistent with how Pads/Questions select a row and populate the detail column.
+    @State private var selectedCampaignID: Int?
 
     var body: some View {
-        NavigationStack(path: $path) {
-            List {
-                ForEach(filtered) { campaign in
-                    NavigationLink(value: campaign) {
-                        ScreenCampaignRow(campaign: campaign)
-                    }
+        List(selection: $selectedCampaignID) {
+            ForEach(filtered) { campaign in
+                ScreenCampaignRow(campaign: campaign)
+                    .tag(campaign.id)
                     .contextMenu { campaignActions(campaign) }
-                }
             }
-            .overlay { statusOverlay }
-            // At the campaigns list, show the campaign count; once drilled into a
-            // campaign, show that campaign's candidate count instead (published by the
-            // tests view via AppNavigation, since its own pushed-destination preference
-            // doesn't propagate out to the toolbar) (#467/#475).
-            .reportsSectionCount(path.isEmpty ? countSubtitle : nav.screenTestsSubtitle)
-            .navigationDestination(for: ScreenCampaign.self) { campaign in
-                ScreenTestsView(client: client, campaign: campaign, search: $search)
-            }
-            .toolbar(id: "screen-campaigns") { campaignsToolbar }
         }
+        .overlay { statusOverlay }
+        // With no campaign selected, show the campaign count; once one is selected the
+        // detail column shows its test sessions, so surface that campaign's candidate
+        // count instead (published by the tests view via AppNavigation) (#448/#475).
+        .reportsSectionCount(selectedCampaignID == nil ? countSubtitle : nav.screenTestsSubtitle)
+        .toolbar(id: "screen-campaigns") { campaignsToolbar }
         .sheet(isPresented: $showWebhook) {
             ScreenWebhookSheet(client: client)
         }
@@ -59,20 +52,20 @@ struct ScreenCampaignsView: View {
                 await load()
             }
         }
-        // The drilled-into campaign drives the detail column's context; clear the test
-        // selection when popping back to the campaigns list so it shows no stale report.
-        .onChange(of: path) { _, newPath in
-            nav.screenCampaignSelection = newPath.last
-            if newPath.isEmpty { nav.screenTestSelection = nil }
+        // Restore the published selection on appear, and publish each change onward so
+        // the detail column can show the selected campaign's test sessions (#448).
+        .onAppear { selectedCampaignID = nav.screenCampaignSelection?.id }
+        .onChange(of: selectedCampaignID) { _, id in
+            nav.screenCampaignSelection = campaigns.first { $0.id == id }
         }
     }
 
     /// Right-click actions for a campaign row (#466). The Screen API exposes no
-    /// per-campaign mutations, so these are navigation and copy: drill into the
-    /// campaign's test sessions, or copy its name.
+    /// per-campaign mutations, so these are selection and copy: select the campaign to
+    /// show its test sessions in the detail column, or copy its name.
     @ViewBuilder
     private func campaignActions(_ campaign: ScreenCampaign) -> some View {
-        Button("Show Test Sessions") { path = [campaign] }
+        Button("Show Test Sessions") { selectedCampaignID = campaign.id }
         Button("Copy Name") { Clipboard.copy(campaign.name) }
     }
 
@@ -104,9 +97,11 @@ struct ScreenCampaignsView: View {
     }
 
     /// Campaigns matching the search and archived filters, pinned ones first and then
-    /// alphabetical so the list has a stable, predictable order.
+    /// alphabetical so the list has a stable, predictable order. While a campaign is
+    /// selected the search field targets that campaign's candidates (the detail column),
+    /// so this list ignores the query then — keeping the selected campaign in view.
     private var filtered: [ScreenCampaign] {
-        let query = search.trimmingCharacters(in: .whitespaces).lowercased()
+        let query = selectedCampaignID == nil ? search.trimmingCharacters(in: .whitespaces).lowercased() : ""
         return campaigns
             .filter { (showArchived || !$0.archived) && (query.isEmpty || $0.name.lowercased().contains(query)) }
             .sorted { lhs, rhs in
@@ -153,9 +148,9 @@ struct ScreenCampaignsView: View {
         do {
             campaigns = try await client.listCampaigns()
             loadError = nil
-            // If the drilled-into campaign vanished, pop back to the list.
-            if let top = path.last, !campaigns.contains(where: { $0.id == top.id }) {
-                path.removeAll()
+            // If the selected campaign vanished, clear the selection (and its detail).
+            if let id = selectedCampaignID, !campaigns.contains(where: { $0.id == id }) {
+                selectedCampaignID = nil
             }
         } catch {
             loadError = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
@@ -202,18 +197,12 @@ struct ScreenCampaignRow: View {
     }
 }
 
-/// The Screen section's detail (third) column when no test session is selected: prompt
-/// to pick a test once a campaign is open, else to pick a campaign. A selected test's
-/// report is shown by `ScreenTestDetailView` (#435).
+/// The Screen section's detail (third) column when no campaign is selected: prompt to
+/// pick one. Once a campaign is selected its test sessions fill the detail column
+/// (#448); a session's report opens in its own window (`ScreenTestDetailView`, #474).
 struct ScreenDetailPlaceholder: View {
-    var campaign: ScreenCampaign?
-
     var body: some View {
-        if campaign != nil {
-            ContentUnavailableView("Select a test session", systemImage: "person.crop.rectangle.stack")
-        } else {
-            ContentUnavailableView("Select a campaign", systemImage: "person.crop.rectangle.stack")
-        }
+        ContentUnavailableView("Select a campaign", systemImage: "person.crop.rectangle.stack")
     }
 }
 
