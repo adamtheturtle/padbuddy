@@ -160,54 +160,91 @@ struct ToolbarCustomizationEnabler: NSViewRepresentable {
     }
 
     private func apply(from view: NSView, coordinator: Coordinator) {
-        DispatchQueue.main.async {
-            guard let toolbar = view.window?.toolbar else { return }
-
-            coordinator.observe(toolbar)
-            coordinator.enforce()
-        }
+        coordinator.bind(to: view)
     }
 
     final class Coordinator {
-        private weak var toolbar: NSToolbar?
-        private var observer: (any NSObjectProtocol)?
+        /// We track the host *window* (stable across section changes), not a specific
+        /// `NSToolbar`. SwiftUI swaps in a fresh `NSToolbar` instance whenever the
+        /// visible section vends a different `.toolbar(id:)` — switching Pads → Questions
+        /// → Screen each gives the window a new toolbar object. The old code bound its
+        /// observer to one toolbar instance and, with no representable inputs, never
+        /// re-ran to re-bind, so after a swap nothing re-enabled customization on the new
+        /// toolbar and "Customize Toolbar…" went grey (#473/#464). Observing the window
+        /// and always enforcing `window.toolbar` (the current one) fixes that.
+        private weak var window: NSWindow?
+        private var addObserver: (any NSObjectProtocol)?
+        private var keyObserver: (any NSObjectProtocol)?
 
-        /// Re-enable customization whenever SwiftUI rebuilds the toolbar (it re-adds
-        /// items on every selection-driven detail swap). Idempotent per toolbar.
-        func observe(_ toolbar: NSToolbar) {
-            guard self.toolbar !== toolbar else { return }
+        /// Resolves the host window (retrying briefly while the view attaches), then
+        /// observes it and enforces. Called on make/update.
+        func bind(to view: NSView?, remaining: Int = 30) {
+            DispatchQueue.main.async { [weak self, weak view] in
+                guard let self else { return }
+                guard let window = view?.window else {
+                    // The representable attaches a beat before it joins a window; retry
+                    // briefly so the initial section's toolbar still gets enabled.
+                    if remaining > 0 {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            self.bind(to: view, remaining: remaining - 1)
+                        }
+                    }
+                    return
+                }
+
+                observe(window)
+                enforce()
+            }
+        }
+
+        /// Observe the window's toolbar-item adds and key changes, re-enforcing each
+        /// time. Idempotent per window.
+        func observe(_ window: NSWindow) {
+            guard self.window !== window else { return }
 
             stopObserving()
-            self.toolbar = toolbar
-            observer = NotificationCenter.default.addObserver(
+            self.window = window
+            // `willAddItem` is posted per-toolbar; observe ANY toolbar (object: nil) and
+            // filter to this window's *current* toolbar, so a section's toolbar swap is
+            // handled without a stale per-instance reference. SwiftUI also resets
+            // `allowsUserCustomization` to false at the end of the reconfiguration that
+            // emits these adds, so the re-enable is deferred a runloop turn to stick.
+            addObserver = NotificationCenter.default.addObserver(
                 forName: NSToolbar.willAddItemNotification,
-                object: toolbar,
+                object: nil,
+                queue: .main
+            ) { [weak self] note in
+                guard let self, (note.object as? NSToolbar) === self.window?.toolbar else { return }
+
+                DispatchQueue.main.async { self.enforce() }
+            }
+            // Re-assert when the window becomes key — covers the case where the toolbar
+            // settled with no further item adds before the user reaches the View menu.
+            keyObserver = NotificationCenter.default.addObserver(
+                forName: NSWindow.didBecomeKeyNotification,
+                object: window,
                 queue: .main
             ) { [weak self] _ in
-                // Deferred a runloop turn: SwiftUI sets `allowsUserCustomization` back to
-                // false at the *end* of the reconfiguration that emits these adds, so a
-                // synchronous re-enable here is immediately clobbered. Re-asserting after
-                // the batch settles sticks (verified live: the flag holds once idle).
                 DispatchQueue.main.async { self?.enforce() }
             }
         }
 
         func stopObserving() {
-            if let observer { NotificationCenter.default.removeObserver(observer) }
-            observer = nil
-            toolbar = nil
+            if let addObserver { NotificationCenter.default.removeObserver(addObserver) }
+            if let keyObserver { NotificationCenter.default.removeObserver(keyObserver) }
+            addObserver = nil
+            keyObserver = nil
+            window = nil
         }
 
         func enforce() {
-            guard let toolbar, !toolbar.allowsUserCustomization else { return }
+            guard let toolbar = window?.toolbar, !toolbar.allowsUserCustomization else { return }
 
             // AppKit asserts (crashes) that a *customizable* toolbar must have a unique,
-            // non-empty identifier. SwiftUI leaves the merged window toolbar's identifier
-            // EMPTY for a section whose content doesn't vend a `.toolbar(id:)` — e.g. the
-            // Screen section, whose `NavigationStack` toolbar is uncustomizable — so
-            // enabling customization there would crash. Only enable it for an identified
-            // toolbar; identified sections (Pads/Questions/…) still get Customize Toolbar…
-            // and the observer re-enforces when one of those toolbars is swapped back in.
+            // non-empty identifier. SwiftUI can leave the merged window toolbar's
+            // identifier EMPTY while a section's toolbar is still settling, so only enable
+            // it once identified; a later item-add/key event re-runs this with the
+            // settled identifier.
             guard !toolbar.identifier.isEmpty else { return }
 
             toolbar.allowsUserCustomization = true
