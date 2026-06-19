@@ -108,12 +108,12 @@ extension Sidebar {
     var favoritesSection: some View {
         if !favoritePadItems.isEmpty || favoriteDragMonitor.isDragging {
             Section("Favorite Pads") {
-                favoritePadsBody(favoritePadItems).sidebarGroupRow()
+                favoritePadsBody(favoritePadItems).sidebarGroupSurface().sidebarGroupRow()
             }
         }
         if !favoriteItems.isEmpty || favoriteDragMonitor.isDragging {
             Section("Favorite Questions") {
-                favoriteQuestionsBody(favoriteItems).sidebarGroupRow()
+                favoriteQuestionsBody(favoriteItems).sidebarGroupSurface().sidebarGroupRow()
             }
         }
     }
