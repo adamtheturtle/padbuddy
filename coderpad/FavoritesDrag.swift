@@ -57,6 +57,20 @@ struct PadDragPayload: Transferable {
     }
 }
 
+/// App-level signal that a favorite-able pad or question is currently being dragged,
+/// so the sidebar can reveal its empty-Favourites drop zone *only* while a drop is
+/// possible and keep no resting gap otherwise (#444). The NSTableView row drag has
+/// clean begin/end callbacks, so `ListTable` sets this true when such a drag begins
+/// and false when it ends — no timeout or `NSDraggingSession` observer needed.
+@MainActor @Observable
+final class FavoriteDragMonitor {
+    static let shared = FavoriteDragMonitor()
+    private init() {}
+
+    /// True while a pad/question carrying a `coderpadFavorite` payload is in flight.
+    var isDragging = false
+}
+
 /// Identifies a favorite being dragged to reorder it within the sidebar (#299).
 /// Separate from ``FavoriteDrop`` so reorder and add-to-favorites never cross-fire.
 /// The account travels so reordering stays scoped to the right account's list.

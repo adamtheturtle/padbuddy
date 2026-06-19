@@ -182,15 +182,17 @@ extension Sidebar {
         }
     }
 
-    /// An empty favourites section keeps a silent, fixed-height drop zone (no "Drag …
-    /// here" caption, #440) so a pad/question can still be dragged onto it to create the
-    /// first favourite — the section's `.onDrop` needs a non-zero target area, and the
-    /// `FavoriteDropChrome` highlight already signals droppability while dragging.
+    /// An empty favourites section's drop zone, revealed *only* while a favorite drag is
+    /// in flight (#444) so the section keeps no resting gap (the earlier always-present
+    /// 28pt spacer from #440 read as unfinished). When a drag begins, it expands to give
+    /// the section's `.onDrop` a non-zero target; on drop/cancel it collapses again. The
+    /// `FavoriteDropChrome` highlight still signals droppability while a drag hovers.
     private var favoriteDropSpacer: some View {
         Color.clear
             .frame(maxWidth: .infinity)
-            .frame(height: 28)
+            .frame(height: favoriteDragMonitor.isDragging ? 28 : 0)
             .contentShape(Rectangle())
+            .animation(.smooth, value: favoriteDragMonitor.isDragging)
     }
 
     /// Decodes a dragged-in `FavoriteDrop` from a provider and hands it to `perform`

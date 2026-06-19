@@ -24,6 +24,9 @@ struct Sidebar: View {
     /// dragged over it, the Finder-style cue that dropping there will pin the item.
     @State var droppingFavoritePads = false
     @State var droppingFavoriteQuestions = false
+    /// Drives the empty-Favourites drop zone to appear only while a favorite drag is in
+    /// flight, so an empty section keeps no resting gap (#444).
+    @State var favoriteDragMonitor = FavoriteDragMonitor.shared
     /// The favorite row id a reorder drag is currently hovering, so an insertion line
     /// can be drawn above it (#299). Nil when no reorder drag is in flight.
     @State var reorderTargetID: String?

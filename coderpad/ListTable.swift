@@ -5,6 +5,7 @@
 
 import AppKit
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// One entry in a row's right-click menu, built by the caller and rendered as an
 /// `NSMenuItem` (the hosted SwiftUI content is hit-transparent, so the menu can't be a
@@ -182,6 +183,22 @@ struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: Hashabl
             guard items.indices.contains(row) else { return nil }
 
             return parent.pasteboardItem(items[row])
+        }
+
+        /// Flag a favorite drag as in progress so the sidebar reveals its empty-state
+        /// drop zone (#444) — but only when the dragged rows actually carry a favorite
+        /// payload, so a plain link-out drag doesn't reveal a target nothing can drop on.
+        func tableView(_: NSTableView, draggingSession session: NSDraggingSession,
+                       willBeginAt _: NSPoint, forRowIndexes _: IndexSet) {
+            let canFavorite = session.draggingPasteboard
+                .canReadItem(withDataConformingToTypes: [UTType.coderpadFavorite.identifier])
+            if canFavorite { FavoriteDragMonitor.shared.isDragging = true }
+        }
+
+        /// Drop or cancel — collapse the revealed drop zone again (#444).
+        func tableView(_: NSTableView, draggingSession _: NSDraggingSession,
+                       endedAt _: NSPoint, operation _: NSDragOperation) {
+            FavoriteDragMonitor.shared.isDragging = false
         }
 
         // MARK: Selection
