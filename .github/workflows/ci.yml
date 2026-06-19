@@ -131,52 +131,25 @@ jobs:
         run: xcodebuild -showsdks
 
       # Cache DerivedData (build intermediates, module cache) to speed up
-      # incremental builds. Keyed on the project + sources so it invalidates
-      # when they change, with a prefix fallback for partial reuse.
+      # incremental builds. Keyed on the project + sources so a same-commit
+      # re-run gets a legitimately warm tree.
+      #
+      # NO restore-keys prefix fallback (#478): the fallback restored a partial
+      # DerivedData from a DIFFERENT commit, and building the test target on top
+      # of those stale explicit-module artifacts broke `@testable import
+      # CoderPad` resolution ("Unable to resolve module dependency: 'CoderPad'").
+      # A clean build (the case when the exact key misses) resolves it fine — so
+      # we only ever restore an exact-source-match cache, never a cross-commit
+      # one. Builds are nightly/manual, so the occasional clean build is cheap
+      # insurance against a flaky stale cache.
       - name: Cache DerivedData
         uses: actions/cache@v5
         with:
           path: DerivedData
           key: deriveddata-${{ runner.os }}-${{ hashFiles('coderpad.xcodeproj/project.pbxproj', '**/*.swift') }}
-          restore-keys: |
-            deriveddata-${{ runner.os }}-
-
-      # Build the host app target FIRST, into the same DerivedData, before the
-      # test build. On a clean CI build the test target's `@testable import
-      # CoderPad` intermittently can't resolve the host module ("Unable to
-      # resolve module dependency: 'CoderPad'" / "no such module 'CoderPad'") —
-      # the test target compiles before CoderPad.swiftmodule is emitted (#478).
-      # The fix is the combination of (a) this prebuild materializing the host
-      # module up front and (b) building the test step below with explicit
-      # modules OFF — AND these two xcodebuild invocations must use IDENTICAL
-      # build settings (hence SWIFT_ENABLE_EXPLICIT_MODULES=NO here too), or the
-      # test action sees the app as out-of-date, rebuilds it concurrently with
-      # the test target, and the race returns. A warm DerivedData makes the
-      # prebuild near-free on cached runs.
-      - name: Build host app
-        run: |
-          set -o pipefail
-          xcodebuild build \
-            -project coderpad.xcodeproj \
-            -scheme coderpad \
-            -destination 'platform=macOS' \
-            -derivedDataPath DerivedData \
-            SWIFT_ENABLE_EXPLICIT_MODULES=NO \
-            CODE_SIGN_IDENTITY="-" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
 
       # The shared scheme defaults to the Fast plan (unit + render only) for quick
       # local iteration; CI runs the Full plan so it keeps the UI-test coverage.
-      #
-      # SWIFT_ENABLE_EXPLICIT_MODULES=NO here (not in the host-app build above):
-      # with the host module already materialized by the prior step, the test
-      # target's explicit-modules dependency scan still fails to resolve
-      # 'CoderPad' on a clean CI build (#478). Disabling explicit modules for
-      # the test build skips that scan, so the test sources compile by reading
-      # the on-disk CoderPad.swiftmodule the prebuild emitted. The app build
-      # keeps explicit modules (fast); only the small test target pays for the
-      # non-explicit build.
       - name: Build & test
         run: |
           set -o pipefail
@@ -187,7 +160,6 @@ jobs:
             -destination 'platform=macOS' \
             -derivedDataPath DerivedData \
             -resultBundlePath TestResults.xcresult \
-            SWIFT_ENABLE_EXPLICIT_MODULES=NO \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
@@ -223,24 +195,10 @@ jobs:
           sudo xcode-select -s /Applications/Xcode_26.5.app
           xcodebuild -version
 
-      # Build the host app first so the test target can resolve `@testable
-      # import CoderPad` on a clean build (#478). Uses the default DerivedData
-      # location, which the test step below reuses. Build settings (incl.
-      # SWIFT_ENABLE_EXPLICIT_MODULES=NO) must match the test step exactly, or
-      # the test action treats the app as out-of-date and rebuilds it
-      # concurrently with the test target, re-introducing the race.
-      - name: Build host app
-        run: |
-          set -o pipefail
-          xcodebuild build \
-            -project coderpad.xcodeproj \
-            -scheme coderpad \
-            -destination 'platform=macOS' \
-            SWIFT_ENABLE_EXPLICIT_MODULES=NO \
-            CODE_SIGN_IDENTITY="-" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
-
+      # No DerivedData cache here (unlike the test job), so this is always a
+      # clean build — which resolves `@testable import CoderPad` fine (#478;
+      # the failure there came from a stale cross-commit cache, not clean
+      # builds).
       - name: Test under Thread Sanitizer
         run: |
           set -o pipefail
@@ -250,7 +208,6 @@ jobs:
             -testPlan TSan \
             -destination 'platform=macOS' \
             -resultBundlePath TSanResults.xcresult \
-            SWIFT_ENABLE_EXPLICIT_MODULES=NO \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
