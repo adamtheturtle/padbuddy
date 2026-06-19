@@ -30,11 +30,16 @@ extension MergedPadsView {
                 }
             ]
         }
+        let starred = favoritePads.isFavorite(row.item.id, account: row.account.id)
         return [
             .button(title: String(localized: "Open Pad")) {
                 selectedIDs = [row.item.id]
                 openPad(row.item)
             },
+            .button(title: starred ? String(localized: "Remove from Favorites")
+                : String(localized: "Add to Favorites")) {
+                    favoritePads.toggle(row.item.id, account: row.account.id)
+                },
             .separator,
             .button(title: String(localized: "Copy Pad ID")) { Clipboard.copy(row.item.id) },
             .button(title: String(localized: "Copy Pad URL")) { Clipboard.copy(row.item.url) },

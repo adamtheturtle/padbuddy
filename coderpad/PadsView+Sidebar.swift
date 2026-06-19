@@ -275,11 +275,18 @@ extension PadsView {
                 }
             ]
         }
+        let starred = favoritePads.isFavorite(pad.id, account: accounts.currentAccountID)
         return [
             .button(title: String(localized: "Open Pad")) {
                 selectedIDs = [pad.id]
                 openPad(pad)
             },
+            .button(title: starred ? String(localized: "Remove from Favorites")
+                : String(localized: "Add to Favorites")) {
+                    guard let account = accounts.currentAccountID else { return }
+
+                    favoritePads.toggle(pad.id, account: account)
+                },
             .separator,
             .button(title: String(localized: "Copy Pad ID")) { Clipboard.copy(pad.id) },
             .button(title: String(localized: "Copy Pad URL")) { Clipboard.copy(pad.url) },
