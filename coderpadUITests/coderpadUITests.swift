@@ -31,10 +31,13 @@ final class CoderpadUITests: XCTestCase {
         return app
     }
 
-    /// Each pad row is a single accessibility element whose label starts with the
-    /// pad title (see `PadRow.accessibilityLabel`), so match on a label prefix.
+    /// Both pad and question rows are a single accessibility element whose label
+    /// starts with the row's title (see `PadRow`/`QuestionRow` — each folds its
+    /// title + metadata into one combined `accessibilityLabel` since the #439
+    /// NSTableView migration), so match on a label prefix rather than a discrete
+    /// `staticTexts[title]`, which the combined element no longer exposes.
     @MainActor
-    private func padRow(_ title: String, in app: XCUIApplication) -> XCUIElement {
+    private func row(_ title: String, in app: XCUIApplication) -> XCUIElement {
         app.descendants(matching: .any)
             .matching(NSPredicate(format: "label BEGINSWITH %@", title)).firstMatch
     }
@@ -50,19 +53,19 @@ final class CoderpadUITests: XCTestCase {
         let app = launchDemoApp()
 
         // Pads paint on launch.
-        XCTAssertTrue(padRow("Onsite: Jane Doe", in: app).waitForExistence(timeout: Self.listLoadTimeout),
+        XCTAssertTrue(row("Onsite: Jane Doe", in: app).waitForExistence(timeout: Self.listLoadTimeout),
                       "A seeded demo pad should appear once the list loads")
-        XCTAssertTrue(padRow("Phone screen: Sam Lee", in: app).exists,
+        XCTAssertTrue(row("Phone screen: Sam Lee", in: app).exists,
                       "Other seeded demo pads should be listed too")
 
         // ⌘2 → Questions, and the seeded questions load there.
         app.typeKey("2", modifierFlags: .command) // View ▸ Questions
-        XCTAssertTrue(app.staticTexts["FizzBuzz"].waitForExistence(timeout: Self.listLoadTimeout),
+        XCTAssertTrue(row("FizzBuzz", in: app).waitForExistence(timeout: Self.listLoadTimeout),
                       "A seeded demo question should appear after switching to Questions")
 
         // ⌘1 → back to Pads restores the list.
         app.typeKey("1", modifierFlags: .command) // back to Pads
-        XCTAssertTrue(padRow("Onsite: Jane Doe", in: app).waitForExistence(timeout: Self.listLoadTimeout),
+        XCTAssertTrue(row("Onsite: Jane Doe", in: app).waitForExistence(timeout: Self.listLoadTimeout),
                       "Returning to Pads should show the pad list again")
     }
 
