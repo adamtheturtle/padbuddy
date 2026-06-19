@@ -145,10 +145,14 @@ jobs:
       # test build. On a clean CI build the test target's `@testable import
       # CoderPad` intermittently can't resolve the host module ("Unable to
       # resolve module dependency: 'CoderPad'" / "no such module 'CoderPad'") —
-      # the test target compiles before CoderPad.swiftmodule is fully emitted.
-      # Disabling explicit modules didn't fix it (#478); materializing the host
-      # module up front does, and a warm DerivedData makes this near-free on
-      # cached runs.
+      # the test target compiles before CoderPad.swiftmodule is emitted (#478).
+      # The fix is the combination of (a) this prebuild materializing the host
+      # module up front and (b) building the test step below with explicit
+      # modules OFF — AND these two xcodebuild invocations must use IDENTICAL
+      # build settings (hence SWIFT_ENABLE_EXPLICIT_MODULES=NO here too), or the
+      # test action sees the app as out-of-date, rebuilds it concurrently with
+      # the test target, and the race returns. A warm DerivedData makes the
+      # prebuild near-free on cached runs.
       - name: Build host app
         run: |
           set -o pipefail
@@ -157,6 +161,7 @@ jobs:
             -scheme coderpad \
             -destination 'platform=macOS' \
             -derivedDataPath DerivedData \
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
@@ -220,7 +225,10 @@ jobs:
 
       # Build the host app first so the test target can resolve `@testable
       # import CoderPad` on a clean build (#478). Uses the default DerivedData
-      # location, which the test step below reuses.
+      # location, which the test step below reuses. Build settings (incl.
+      # SWIFT_ENABLE_EXPLICIT_MODULES=NO) must match the test step exactly, or
+      # the test action treats the app as out-of-date and rebuilds it
+      # concurrently with the test target, re-introducing the race.
       - name: Build host app
         run: |
           set -o pipefail
@@ -228,6 +236,7 @@ jobs:
             -project coderpad.xcodeproj \
             -scheme coderpad \
             -destination 'platform=macOS' \
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
