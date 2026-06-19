@@ -101,7 +101,42 @@ struct QuestionsView: View {
         // Refresh the per-render memo once, before `sidebar` (and its count subtitle,
         // filter bar, and row list) read `sorted`/`favoriteIDSet`/`available*` (#365).
         refreshSorted()
-        return sidebar
+        return decorated
+    }
+
+    /// `body` is split across these intermediate `some View` properties rather than one
+    /// ~16-modifier chain on `sidebar`: a single chain makes the Swift type-checker infer
+    /// one deeply-nested generic type that blew the Debug build's 250ms type-check budget
+    /// on CI's Xcode 26.5 (warnings-as-errors, ~256ms). Each sub-chain type-checks
+    /// independently here, so none exceeds the budget. Order is preserved. (#427)
+    private var decorated: some View {
+        decoratedObservers
+            .onChange(of: nav.questionsRequest) { _, _ in applyPendingRequest() }
+            // Republish the live filter so the sidebar highlights whichever suggested or
+            // saved row is applied, and falls back to the plain "Questions" row the moment
+            // any filter is edited. Keyed off a stable digest because a fresh
+            // `captureCurrentSearch` carries a new UUID each call and would fire endlessly.
+            .onChange(of: filterSignature) { _, _ in
+                persistFilters()
+                publishLiveFilter()
+            }
+            // A favorite tapped in the sidebar may arrive before the list has loaded;
+            // resolve the deferred selection as soon as the questions land. The
+            // last-open question is likewise restored once a list exists for it.
+            .onChange(of: questions) { _, _ in
+                restoreSelectedQuestionIfNeeded()
+                resolvePendingSelection()
+            }
+            .task {
+                for await _ in AppRouter.reloads {
+                    await reload()
+                }
+            }
+    }
+
+    /// `sidebar` plus the per-session load task and the create/save/smart-filter sheets.
+    private var decoratedSheets: some View {
+        sidebar
             .task(id: QuestionsTaskKey(apiKey: client.apiKey, phase: scenePhase)) {
                 guard scenePhase == .active else { return }
 
@@ -144,6 +179,11 @@ struct QuestionsView: View {
                     onCancel: { showSmartFilter = false }
                 )
             }
+    }
+
+    /// The bulk-delete confirmation and error alert, plus the question update/deletion streams.
+    private var decoratedStreams: some View {
+        decoratedSheets
             .confirmationDialog(
                 "Delete \(questionsPendingBulkDelete?.count ?? 0) questions?",
                 isPresented: .init(get: { questionsPendingBulkDelete != nil },
@@ -201,6 +241,11 @@ struct QuestionsView: View {
                     }
                 }
             }
+    }
+
+    /// The appear-time restore and the early selection/account observers.
+    private var decoratedObservers: some View {
+        decoratedStreams
             .onAppear {
                 // Restore first so a deep-link/favorite request can still override it.
                 restoreFilters()
@@ -236,27 +281,6 @@ struct QuestionsView: View {
             // The account id is often nil on first appear; restore once it lands, and
             // swap to the new account's saved filters whenever the account changes.
             .onChange(of: accounts.currentAccountID) { _, _ in restoreFiltersForAccountChange() }
-            .onChange(of: nav.questionsRequest) { _, _ in applyPendingRequest() }
-            // Republish the live filter so the sidebar highlights whichever suggested or
-            // saved row is applied, and falls back to the plain "Questions" row the moment
-            // any filter is edited. Keyed off a stable digest because a fresh
-            // `captureCurrentSearch` carries a new UUID each call and would fire endlessly.
-            .onChange(of: filterSignature) { _, _ in
-                persistFilters()
-                publishLiveFilter()
-            }
-            // A favorite tapped in the sidebar may arrive before the list has loaded;
-            // resolve the deferred selection as soon as the questions land. The
-            // last-open question is likewise restored once a list exists for it.
-            .onChange(of: questions) { _, _ in
-                restoreSelectedQuestionIfNeeded()
-                resolvePendingSelection()
-            }
-            .task {
-                for await _ in AppRouter.reloads {
-                    await reload()
-                }
-            }
     }
 
     /// Applies any request queued by `AppNavigation`, then clears it. See the
