@@ -84,7 +84,13 @@ struct InlineEditableTitle: View {
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .opacity(showsPencil ? 1 : 0)
+                // The pencil is a hint, but clicking it should begin editing too, not
+                // just hovering the title (#472). Tap-to-focus mirrors the resting
+                // title overlay above.
+                .contentShape(Rectangle())
+                .onTapGesture { if !isReadOnly { focus.wrappedValue = true } }
                 .accessibilityHidden(true)
+                .accessibilityAddTraits(.isButton)
             // Keeps the field + pencil pinned to the leading edge and makes the HStack
             // always fill the row, so the width reader below measures the pane's true
             // width rather than the hugged content — otherwise the cap would feed back
