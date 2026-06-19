@@ -27,7 +27,9 @@ struct ScreenTestsView: View {
     /// Server-side date filter (#443): narrows the `GET /tests` fetch by a lower-bound
     /// date so large campaigns don't pull every historical session. Re-fetches on change.
     @State private var dateRange: ScreenTestDateRange = .all
-    @State private var selectedID: Int?
+    /// The selected row ids. An `NSTableView`-backed `ListTable` (#439/#474) drives this
+    /// as a set; a single selection drives the detail column's report.
+    @State private var selectedIDs: Set<Int> = []
     @State private var showInvite = false
     @State private var testPendingDelete: ScreenTestSession?
     @State private var actionError: String?
@@ -53,13 +55,21 @@ struct ScreenTestsView: View {
     /// stays under the Release build's 250ms type-check budget — the full modifier chain
     /// (list + sheet + dialog + alerts + toolbar) blew it on Xcode 26.5 (#443).
     private var coreList: some View {
-        List(selection: $selectedID) {
-            ForEach(filtered) { test in
-                ScreenTestRow(test: test)
-                    .tag(test.id)
-                    .contextMenu { rowActions(test) }
-            }
-        }
+        // NSTableView-backed (#439/#474): instant selection on large lists, and a native
+        // double-click (and Return) opens the session in its own window.
+        ListTable(
+            items: filtered,
+            selection: $selectedIDs,
+            scrollToID: nil,
+            onScrolledToID: {},
+            rowContent: { test in AnyView(ScreenTestRow(test: test).allowsHitTesting(false)) },
+            onDoubleClick: { openTestWindow($0) },
+            onReturn: { openTestWindow($0) },
+            leadingActions: { _ in [] },
+            trailingActions: { _ in [] },
+            pasteboardItem: { _ in nil },
+            menuItems: { testTableMenuItems($0) }
+        )
         .overlay { statusOverlay }
         .reportsSectionCount(countSubtitle)
         .navigationTitle(campaign.name)
@@ -72,9 +82,9 @@ struct ScreenTestsView: View {
                 await load()
             }
         }
-        .onAppear { selectedID = nav.screenTestSelection?.id }
-        .onChange(of: selectedID) { _, id in
-            nav.screenTestSelection = id.flatMap { tid in tests.first { $0.id == tid } }
+        .onAppear { selectedIDs = nav.screenTestSelection.map { [$0.id] } ?? [] }
+        .onChange(of: selectedIDs) { _, ids in
+            nav.screenTestSelection = ids.first.flatMap { tid in tests.first { $0.id == tid } }
         }
         // Leaving this campaign (popping back to the campaigns list) clears the
         // detail column's test selection so it doesn't show a stale report.
@@ -189,9 +199,7 @@ struct ScreenTestsView: View {
             let fromMs = dateRange.lowerBound.map { Int($0.timeIntervalSince1970 * 1000) }
             tests = try await client.listAllTests(campaignID: campaign.id, from: fromMs)
             loadError = nil
-            if let id = selectedID, !tests.contains(where: { $0.id == id }) {
-                selectedID = nil
-            }
+            selectedIDs = selectedIDs.filter { id in tests.contains { $0.id == id } }
         } catch {
             loadError = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
         }
@@ -199,27 +207,22 @@ struct ScreenTestsView: View {
 
     // MARK: Row actions (write paths, #437)
 
-    /// The cancel/resend/delete actions for a row, gated by status: resend and cancel
-    /// apply only to an invitation the candidate hasn't started yet ("waiting"); delete
-    /// is always available behind a confirmation.
-    @ViewBuilder
-    private func rowActions(_ test: ScreenTestSession) -> some View {
-        Button { openTestWindow(test) } label: {
-            Label("Open in New Window", systemImage: "macwindow.on.rectangle")
-        }
-        Divider()
+    /// The right-click menu for a row, gated by status: resend and cancel apply only to
+    /// an invitation the candidate hasn't started yet ("waiting"); delete is always
+    /// available behind a confirmation. "Open in New Window" mirrors the double-click.
+    private func testTableMenuItems(_ test: ScreenTestSession) -> [RowMenuItem] {
+        var items: [RowMenuItem] = [
+            .button(title: String(localized: "Open in New Window")) { openTestWindow(test) },
+            .separator
+        ]
         if test.status == "waiting" {
-            Button { Task { await resend(test) } } label: {
-                Label("Resend Invitation", systemImage: "paperplane")
-            }
-            Button { Task { await cancel(test) } } label: {
-                Label("Cancel Invitation", systemImage: "xmark.circle")
-            }
-            Divider()
+            items.append(.button(title: String(localized: "Resend Invitation")) { Task { await resend(test) } })
+            items.append(.button(title: String(localized: "Cancel Invitation")) { Task { await cancel(test) } })
+            items.append(.separator)
         }
-        Button(role: .destructive) { testPendingDelete = test } label: {
-            Label("Delete Test Session", systemImage: "trash")
-        }
+        items.append(.button(title: String(localized: "Delete Test Session"),
+                             isDestructive: true) { testPendingDelete = test })
+        return items
     }
 
     /// Opens a test session's report in its own window (#474). Screen is single-account,
@@ -249,7 +252,7 @@ struct ScreenTestsView: View {
     private func delete(_ test: ScreenTestSession) async {
         do {
             try await client.deleteTest(id: test.id)
-            if selectedID == test.id { selectedID = nil }
+            selectedIDs.remove(test.id)
             await load()
         } catch {
             actionError = message(for: error)
