@@ -111,12 +111,14 @@ struct Sidebar: View {
         return quotaCache.get(id)?.unlimited == true
     }
 
-    /// Whether the current account has CoderPad Screen configured, gating the Screen
-    /// section the way `quotaIsUnlimited` gates Quota. Single-account only — the
-    /// combined view spans accounts and Screen is per-account for now (#432).
+    /// Whether the Screen section should appear, gating it the way `quotaIsUnlimited`
+    /// gates Quota. Single-account: the current account has a Screen key. Combined
+    /// view: at least one mergeable account has one, so the row aggregates those
+    /// accounts' campaigns (#442); accounts without a key are simply absent from it.
     var screenSectionAvailable: Bool {
-        guard !isMergedView else { return false }
-
+        if isMergedView {
+            return accounts.mergeableAccounts.contains { $0.makeScreenClient() != nil }
+        }
         return accounts.currentAccount?.makeScreenClient() != nil
     }
 

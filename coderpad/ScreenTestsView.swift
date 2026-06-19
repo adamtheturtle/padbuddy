@@ -17,6 +17,13 @@ struct ScreenTestsView: View {
     let client: ScreenClient
     let campaign: ScreenCampaign
     @Binding var search: String
+    /// The account this campaign belongs to in the combined "All Accounts" view
+    /// (#442), so opening a session in its own window addresses the right account
+    /// even though there's no single "current" account when merged. `nil` in the
+    /// single-account view, where the current account owns every session. (No
+    /// `= nil`: the synthesized memberwise init defaults an optional to nil, and
+    /// SwiftLint's `implicit_optional_initialization` forbids the explicit form.)
+    var accountID: UUID?
     @State private var nav = AppNavigation.shared
     @State private var accounts = AccountsStore.shared
     @Environment(\.openWindow) private var openWindow
@@ -231,10 +238,11 @@ struct ScreenTestsView: View {
         return items
     }
 
-    /// Opens a test session's report in its own window (#474). Screen is single-account,
-    /// so the current account owns the session.
+    /// Opens a test session's report in its own window (#474). The owning account is
+    /// the explicit `accountID` in the combined view (#442), else the current account.
     private func openTestWindow(_ test: ScreenTestSession) {
-        openWindow(id: "screen-test", value: ScreenTestWindowID(account: accounts.currentAccountID, id: test.id))
+        let owner = accountID ?? accounts.currentAccountID
+        openWindow(id: "screen-test", value: ScreenTestWindowID(account: owner, id: test.id))
     }
 
     private func resend(_ test: ScreenTestSession) async {

@@ -67,10 +67,10 @@ struct SectionContent: View {
                 MergedOrganizationView()
             case .quota:
                 MergedQuotaView()
-            // Screen is per-account only for now (#432), so it's excluded from the
-            // combined view — its row never appears there, but the switch is exhaustive.
+            // Campaigns aggregated across every Screen-enabled account (#442); the row
+            // only appears when at least one mergeable account has a Screen key.
             case .screen:
-                EmptyView()
+                MergedScreenView(search: $screenSearch)
             }
         }
         .id("merged-\(section.rawValue)")
@@ -109,12 +109,34 @@ struct SectionDetail: View {
         case .screen:
             // A selected test session shows its report (#435); otherwise prompt based on
             // the drill-down state.
-            if let test = nav.screenTestSelection, let screen = store.currentAccount?.makeScreenClient() {
-                ScreenTestDetailView(client: screen, test: test).id(test.id)
+            if let test = nav.screenTestSelection, let screen = screenClient {
+                ScreenTestDetailView(client: screen, test: test).id(screenDetailID(for: test))
             } else {
                 ScreenDetailPlaceholder(campaign: nav.screenCampaignSelection)
             }
         }
+    }
+
+    /// The Screen client for the selected test's report: in the combined view, the
+    /// account whose campaign is drilled into (routed via `MergedRouting`, since
+    /// campaign/test ids are per-org); otherwise the single current account (#442).
+    private var screenClient: ScreenClient? {
+        if store.isMergedView {
+            return router.selectedScreenAccountID
+                .flatMap { id in store.accounts.first { $0.id == id } }?
+                .makeScreenClient()
+        }
+        return store.currentAccount?.makeScreenClient()
+    }
+
+    /// The Screen report's identity, namespaced by the routed account in the combined
+    /// view so two accounts' tests that share a per-org id recreate the detail pane
+    /// instead of reusing stale state (mirrors `questionDetailID`).
+    private func screenDetailID(for test: ScreenTestSession) -> String {
+        if store.isMergedView, let account = router.selectedScreenAccountID {
+            return "\(account.uuidString):\(test.id)"
+        }
+        return String(test.id)
     }
 
     /// The client a selected pad's detail should use: in the combined view, the

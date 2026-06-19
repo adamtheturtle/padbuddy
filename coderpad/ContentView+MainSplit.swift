@@ -313,8 +313,11 @@ struct MainSplit: View {
             .task(id: SessionKey(accountID: store.currentAccountID, merged: store.isMergedView)) {
                 if store.isMergedView {
                     if let raw = UserDefaults.standard.string(forKey: "section.merged"),
-                       let restored = AppSection(rawValue: raw), restored != .screen {
-                        // Screen is per-account, so it never applies in the combined view (#432).
+                       let restored = AppSection(rawValue: raw),
+                       restored != .screen
+                       || store.mergeableAccounts.contains(where: { $0.makeScreenClient() != nil }) {
+                        // Screen now applies in the combined view when ≥1 account has a
+                        // Screen key (#442); don't land on it when none do.
                         section = restored
                     }
                     // Section is settled, so the collapse can map to the right column count.

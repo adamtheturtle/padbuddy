@@ -32,6 +32,13 @@ final class MergedRouting {
     /// accounts share a per-org question id.
     var selectedQuestionAccountID: UUID?
 
+    /// The account of the campaign drilled into in the combined Screen view (#442).
+    /// Set by `MergedScreenView` as the drill-down changes, so the detail column
+    /// routes a selected test session's report to that account's `ScreenClient` —
+    /// campaign and test ids are numbered per org, so the account must travel with
+    /// the selection. `nil` at the campaigns list (no campaign open).
+    var selectedScreenAccountID: UUID?
+
     /// A favourite question chosen from the sidebar in the merged view, carrying its
     /// account so the combined questions list selects the right row — per-org ids
     /// collide, so the id alone is ambiguous. Set by the sidebar, consumed and cleared
