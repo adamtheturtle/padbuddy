@@ -324,7 +324,8 @@ extension MergedPadsView {
                 }]
             },
             pasteboardItem: { padPasteboardItem($0) },
-            menuItems: { padTableMenuItems($0) }
+            menuItems: { padTableMenuItems($0) },
+            onTopRowChange: { persistTopRow($0) }
         )
     }
 

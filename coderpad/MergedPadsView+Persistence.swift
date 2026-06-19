@@ -91,6 +91,25 @@ extension MergedPadsView {
         }
     }
 
+    /// The single key for the merged list's free-scroll position (top visible row),
+    /// no account namespacing for the same reason as `selectedPadKey`.
+    static var topRowKey: String {
+        "pads.merged.topRow"
+    }
+
+    /// Persist the id of the row at the top of the viewport so an *unselected* merged
+    /// list reopens scrolled to roughly where it was left (#273). Guarded by the
+    /// selection restore so the empty startup state can't clobber it.
+    func persistTopRow(_ id: String?) {
+        guard didRestoreSelection else { return }
+
+        if let id {
+            UserDefaults.standard.set(id, forKey: Self.topRowKey)
+        } else {
+            UserDefaults.standard.removeObject(forKey: Self.topRowKey)
+        }
+    }
+
     /// Restore the previously-open pad once a list exists to resolve it against.
     /// Marks the restore complete as soon as pads load (so later changes persist),
     /// then reselects via `PadsView.padToRestore` — the same pure, unit-tested
@@ -101,15 +120,21 @@ extension MergedPadsView {
         guard !didRestoreSelection, !availableIDs.isEmpty else { return }
 
         didRestoreSelection = true
-        guard let id = PadsView.padToRestore(
+        if let id = PadsView.padToRestore(
             savedID: UserDefaults.standard.string(forKey: Self.selectedPadKey),
             hasSelection: selection != nil,
             hasPendingOpen: router.pendingFavoritePadID != nil,
             availableIDs: availableIDs
-        ) else { return }
-
-        selectedIDs = [id]
-        // Bring the restored row into view; the List won't scroll to it on its own.
-        pendingScrollToID = id
+        ) {
+            selectedIDs = [id]
+            // Bring the restored row into view; the List won't scroll to it on its own.
+            pendingScrollToID = id
+        } else if selection == nil, router.pendingFavoritePadID == nil,
+                  let topID = UserDefaults.standard.string(forKey: Self.topRowKey),
+                  availableIDs.contains(topID) {
+            // Nothing to reselect — return the unselected list to where it was scrolled
+            // last session (#273), without selecting anything.
+            pendingScrollToID = topID
+        }
     }
 }

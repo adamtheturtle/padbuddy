@@ -104,6 +104,25 @@ extension MergedQuestionsView {
         return savedRowID
     }
 
+    /// The single key for the merged list's free-scroll position (top visible row),
+    /// stored as the namespaced row id for the same reason as `selectedRowKey`.
+    static var topRowKey: String {
+        "questions.merged.topRow"
+    }
+
+    /// Persist the namespaced id of the row at the top of the viewport so an
+    /// *unselected* merged list reopens scrolled to roughly where it was left (#273).
+    /// Guarded by the selection restore so the empty startup state can't clobber it.
+    func persistTopRow(_ rowID: String?) {
+        guard didRestoreSelection else { return }
+
+        if let rowID {
+            UserDefaults.standard.set(rowID, forKey: Self.topRowKey)
+        } else {
+            UserDefaults.standard.removeObject(forKey: Self.topRowKey)
+        }
+    }
+
     /// Restore the previously-open question once a list exists to resolve it against.
     /// Marks the restore complete as soon as questions load (so later changes
     /// persist), then reselects via `rowToRestore`. Builds the available row ids from
@@ -119,15 +138,21 @@ extension MergedQuestionsView {
         guard !didRestoreSelection, !availableRowIDs.isEmpty else { return }
 
         didRestoreSelection = true
-        guard let rowID = Self.rowToRestore(
+        if let rowID = Self.rowToRestore(
             savedRowID: UserDefaults.standard.string(forKey: Self.selectedRowKey),
             hasSelection: selection != nil,
             hasPendingNavigation: router.pendingFavoriteQuestion != nil,
             availableRowIDs: availableRowIDs
-        ) else { return }
-
-        selectedRowIDs = [rowID]
-        // Bring the restored row into view; the List won't scroll to it on its own.
-        pendingScrollToRowID = rowID
+        ) {
+            selectedRowIDs = [rowID]
+            // Bring the restored row into view; the List won't scroll to it on its own.
+            pendingScrollToRowID = rowID
+        } else if selection == nil, router.pendingFavoriteQuestion == nil,
+                  let topID = UserDefaults.standard.string(forKey: Self.topRowKey),
+                  availableRowIDs.contains(topID) {
+            // Nothing to reselect — return the unselected list to where it was scrolled
+            // last session (#273), without selecting anything.
+            pendingScrollToRowID = topID
+        }
     }
 }
