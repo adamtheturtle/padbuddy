@@ -64,29 +64,39 @@ jobs:
   # exactly; bump these in lockstep with any local upgrade.
   swift-lint:
     name: SwiftLint & SwiftFormat
-    # macos-26 ships Xcode 26.x; SwiftLint loads SourceKit from the selected
-    # Xcode, so it must run on macOS rather than a cheaper Linux runner.
-    runs-on: macos-26
+    runs-on: ubuntu-latest
+    # The SwiftLint/SwiftFormat Linux binaries dlopen the Swift runtime and
+    # sourcekitd at launch; a bare ubuntu-latest runner ships no Swift, so they
+    # wouldn't start. The official Swift toolchain image supplies both. 6.2
+    # matches the Swift version in Xcode 26.5 that the macOS jobs select, so the
+    # sourcekit SwiftLint parses with is the same one used locally.
+    container: swift:6.2
     timeout-minutes: 10
+    # Inside a container GitHub runs `run:` steps with `sh` (dash), which rejects
+    # the `set -o pipefail` bashism the steps below rely on; the image ships bash,
+    # so pin it explicitly to match the bash the macOS runner used by default.
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
-      # Pin an explicit Xcode rather than the image default, which drifts as
-      # Apple ships updates. 26.5 is the newest stable on the macos-26 image.
-      # SwiftLint loads SourceKit from here, so it runs after this step.
-      - name: Select Xcode
+      # The full Swift image ships git but not the unzip/curl this job uses to
+      # fetch and unpack the pinned release binaries.
+      - name: Install fetch tools
         run: |
-          sudo xcode-select -s /Applications/Xcode_26.5.app
-          xcodebuild -version
+          set -euo pipefail
+          apt-get update
+          apt-get install -y --no-install-recommends curl unzip
 
       - name: SwiftLint (strict)
         env:
           SWIFTLINT_VERSION: 0.63.3
         run: |
           set -euo pipefail
-          curl -sSfL -o swiftlint.zip "https://github.com/realm/SwiftLint/releases/download/${SWIFTLINT_VERSION}/portable_swiftlint.zip"
-          unzip -o -q swiftlint.zip swiftlint
+          curl -sSfL -o swiftlint.zip "https://github.com/realm/SwiftLint/releases/download/${SWIFTLINT_VERSION}/swiftlint_linux_amd64.zip"
+          unzip -o -q swiftlint.zip
           chmod +x swiftlint
           ./swiftlint version
           ./swiftlint lint --strict --reporter github-actions-logging
@@ -96,11 +106,13 @@ jobs:
           SWIFTFORMAT_VERSION: 0.61.1
         run: |
           set -euo pipefail
-          curl -sSfL -o swiftformat.zip "https://github.com/nicklockwood/SwiftFormat/releases/download/${SWIFTFORMAT_VERSION}/swiftformat.zip"
-          unzip -o -q swiftformat.zip swiftformat
-          chmod +x swiftformat
-          ./swiftformat --version
-          ./swiftformat . --lint --reporter github-actions-log
+          curl -sSfL -o swiftformat.zip "https://github.com/nicklockwood/SwiftFormat/releases/download/${SWIFTFORMAT_VERSION}/swiftformat_linux.zip"
+          # The Linux zip unpacks a binary named `swiftformat_linux` (the macOS
+          # zip used `swiftformat`).
+          unzip -o -q swiftformat.zip
+          chmod +x swiftformat_linux
+          ./swiftformat_linux --version
+          ./swiftformat_linux . --lint --reporter github-actions-log
 
   test:
     name: Build & Test
