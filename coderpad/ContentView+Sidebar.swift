@@ -194,6 +194,12 @@ struct Sidebar: View {
                 in: RoundedRectangle(cornerRadius: 8, style: .continuous)
             )
             .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            // The framework desaturates native sidebar rows when the window stops being
+            // the active one, but these custom rows paint their own accent/primary
+            // colours that don't follow, so they'd stay fully bright while the section
+            // rows above them dimmed — the inconsistency #352 flags. Dim in step with the
+            // native treatment, matching the unlimited-quota row's fix (#347).
+            .opacity(controlActiveState == .inactive ? 0.5 : 1)
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])
@@ -216,41 +222,5 @@ extension View {
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
             .selectionDisabled()
-    }
-
-    /// Wraps a custom sidebar group's rows (Suggested / Saved Searches / Favorites) in a
-    /// subtle inset "surface" — a faint rounded fill behind the rows — so each group
-    /// reads as its own contained background beneath its header, the way System Settings
-    /// groups its rows, rather than floating bare on the sidebar material (#352). Kept
-    /// deliberately understated (a low-opacity neutral fill + hairline stroke, not the
-    /// saturated tiles that read as too jazzy in #398) and applied *inside* the
-    /// `sidebarGroupRow()` full-width row, so the selection highlight, drag-to-reorder
-    /// insertion line, and drop highlights all still paint over it unchanged.
-    func sidebarGroupSurface() -> some View {
-        modifier(SidebarGroupSurface())
-    }
-}
-
-/// The faint rounded backing for a sidebar group's rows. Reads `colorScheme` so the fill
-/// stays subtle on both the dark scrim (a touch lighter) and the light source-list
-/// material (a touch darker), and insets the card from the column edges so it doesn't run
-/// flush to the sidebar's sides.
-private struct SidebarGroupSurface: ViewModifier {
-    @Environment(\.colorScheme) private var colorScheme
-
-    func body(content: Content) -> some View {
-        content
-            .padding(.vertical, 4)
-            .padding(.horizontal, 6)
-            .background(
-                Color.primary.opacity(colorScheme == .dark ? 0.07 : 0.05),
-                in: RoundedRectangle(cornerRadius: 8, style: .continuous)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .stroke(Color.primary.opacity(0.05), lineWidth: 0.5)
-            )
-            .padding(.horizontal, 8)
-            .padding(.vertical, 2)
     }
 }

@@ -222,7 +222,6 @@ extension Sidebar {
                             }
                         }
                     }
-                    .sidebarGroupSurface()
                     .sidebarGroupRow()
                 }
             }
@@ -245,7 +244,6 @@ extension Sidebar {
                     nav.toggleMergedMine(kind: .questions)
                 }
             }
-            .sidebarGroupSurface()
             .sidebarGroupRow()
         }
     }
@@ -272,7 +270,6 @@ extension Sidebar {
                         }
                     }
                 }
-                .sidebarGroupSurface()
                 .sidebarGroupRow()
             }
         }
