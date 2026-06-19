@@ -86,9 +86,15 @@ struct ScreenTestsView: View {
         .onChange(of: selectedIDs) { _, ids in
             nav.screenTestSelection = ids.first.flatMap { tid in tests.first { $0.id == tid } }
         }
-        // Leaving this campaign (popping back to the campaigns list) clears the
-        // detail column's test selection so it doesn't show a stale report.
-        .onDisappear { nav.screenTestSelection = nil }
+        // Publish the candidate count so the campaigns view can show it as the window
+        // subtitle while drilled in (#475) — see `AppNavigation.screenTestsSubtitle`.
+        .onChange(of: countSubtitle, initial: true) { _, new in nav.screenTestsSubtitle = new }
+        // Leaving this campaign (popping back to the campaigns list) clears the detail
+        // column's test selection and the published candidate subtitle.
+        .onDisappear {
+            nav.screenTestSelection = nil
+            nav.screenTestsSubtitle = ""
+        }
     }
 
     /// Extracted from `body` so its getter stays under the Release build's 250ms
@@ -165,8 +171,8 @@ struct ScreenTestsView: View {
 
         let count = filtered.count
         return count == 1
-            ? String(localized: "\(count) test session")
-            : String(localized: "\(count) test sessions")
+            ? String(localized: "\(count) candidate")
+            : String(localized: "\(count) candidates")
     }
 
     @ViewBuilder

@@ -63,6 +63,12 @@ final class AppNavigation {
     /// column to show its report (#434/#435).
     var screenTestSelection: ScreenTestSession?
 
+    /// The drilled-into campaign's candidate-count subtitle (e.g. "12 candidates"),
+    /// published by the tests list. The campaigns view reports it as the window
+    /// subtitle while drilled in, since a pushed NavigationStack destination's own
+    /// preference doesn't reliably propagate out to the toolbar (#475).
+    var screenTestsSubtitle = ""
+
     /// The live filter signature of each list, republished by its pane whenever its
     /// filters change (and on appear). The sidebar compares these against the
     /// suggested and saved rows to highlight whichever search is currently applied,

@@ -39,9 +39,11 @@ struct ScreenCampaignsView: View {
                 }
             }
             .overlay { statusOverlay }
-            // Once a campaign is drilled into, the tests view supplies its own count;
-            // stop reporting "X campaigns" so it doesn't linger as the subtitle (#467).
-            .reportsSectionCount(path.isEmpty ? countSubtitle : "")
+            // At the campaigns list, show the campaign count; once drilled into a
+            // campaign, show that campaign's candidate count instead (published by the
+            // tests view via AppNavigation, since its own pushed-destination preference
+            // doesn't propagate out to the toolbar) (#467/#475).
+            .reportsSectionCount(path.isEmpty ? countSubtitle : nav.screenTestsSubtitle)
             .navigationDestination(for: ScreenCampaign.self) { campaign in
                 ScreenTestsView(client: client, campaign: campaign, search: $search)
             }
