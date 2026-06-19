@@ -41,25 +41,30 @@ the secret **`RELEASES_REPO_TOKEN`** (a fine-grained PAT scoped to just that rep
 ideal). Until it's set, `release.yml` falls back to publishing in the private repo and
 logs a warning — the public feed won't update.
 
-## One-time setup (manual)
+## One-time setup (complete)
 
-1. **Add the package.** Xcode ▸ File ▸ Add Package Dependencies… ▸
-   `https://github.com/sparkle-project/Sparkle`, pin "Up to Next Major", add the
-   `Sparkle` library to the **coderpad** app target. This flips `canImport(Sparkle)`
-   true and activates the scaffold.
+All four steps below are **done** — they're recorded here as the current state and
+for reference (e.g. how to rotate keys), not as pending work.
 
-2. **Generate EdDSA keys.** Run Sparkle's tool (from the package's artifacts, or
-   `Sparkle-x.y.z.tar.xz` ▸ `bin/generate_keys`):
+1. **Package added.** The `Sparkle` library (sparkle-project/Sparkle, "Up to Next
+   Major") is on the **coderpad** app target, committed to the project file +
+   `Package.resolved`. `canImport(Sparkle)` is therefore true and the scaffold is
+   active.
+
+2. **EdDSA keys generated.** The keypair was created with Sparkle's `generate_keys`;
+   the private key lives in the login Keychain and as the repo secret
+   `SPARKLE_PRIVATE_ED_KEY`, and the public key is in `Info.plist` `SUPublicEDKey`
+   (`GM4rpkCx9FMbd+Sk64pU6v6659APlNWYLMKzGU3OIyU=` — not the old placeholder).
+
+   To **rotate** the keys, re-run Sparkle's tool (from the package's artifacts, or
+   `Sparkle-x.y.z.tar.xz` ▸ `bin/generate_keys`), then update `SUPublicEDKey` and the
+   `SPARKLE_PRIVATE_ED_KEY` secret:
 
    ```sh
    ./bin/generate_keys                 # creates/stores the private key in the Keychain
    ./bin/generate_keys -p              # prints the PUBLIC key
    ./bin/generate_keys -x private.pem  # exports the PRIVATE key (keep secret!)
    ```
-
-   - Paste the **public** key into `Info.plist` `SUPublicEDKey` (replace
-     `REPLACE_WITH_SPARKLE_PUBLIC_ED_KEY`).
-   - Add the **private** key's contents as the repo secret `SPARKLE_PRIVATE_ED_KEY`.
 
 3. **Sandbox entitlements — already wired.** Because the app is sandboxed,
    `coderpad/coderpad.entitlements` grants the mach-lookup temporary-exceptions
