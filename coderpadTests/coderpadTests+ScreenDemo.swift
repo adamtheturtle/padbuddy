@@ -11,7 +11,7 @@
 //  uses a unique state key so write paths don't leak into the others.
 //
 
-@testable import coderpad
+@testable import CoderPad
 import Foundation
 import Testing
 
