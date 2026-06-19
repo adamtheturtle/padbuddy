@@ -15,12 +15,18 @@ let package = Package(
     dependencies: [
         // Backs the reusable `FlowLayout` wrapper (#391/#377). Pinned to the same
         // major the app uses so the two resolve to one Flow version.
-        .package(url: "https://github.com/tevelee/SwiftUI-Flow", from: "3.4.0")
+        .package(url: "https://github.com/tevelee/SwiftUI-Flow", from: "3.4.0"),
+        // Backs the reusable `MarkdownText` view (#377). Pinned to the exact version
+        // the app uses so the two resolve to one Textual revision.
+        .package(url: "https://github.com/adamtheturtle/textual", exact: "0.3.1-coderpad.2")
     ],
     targets: [
         .target(
             name: "CoderPadDesignSystem",
-            dependencies: [.product(name: "Flow", package: "SwiftUI-Flow")],
+            dependencies: [
+                .product(name: "Flow", package: "SwiftUI-Flow"),
+                .product(name: "Textual", package: "textual")
+            ],
             swiftSettings: [
                 .swiftLanguageMode(.v6),
                 .defaultIsolation(MainActor.self),

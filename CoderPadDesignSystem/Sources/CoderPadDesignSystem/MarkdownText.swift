@@ -1,12 +1,13 @@
 //
-//  DesignSystem+Markdown.swift
-//  coderpad
+//  MarkdownText.swift
+//  CoderPadDesignSystem
+//
+//  Generic GitHub-flavored Markdown renderer extracted from the app (#377). Domain-free,
+//  so the HackerRank app can reuse it.
 //
 
 import SwiftUI
 import Textual
-
-// MARK: - MarkdownText
 
 /// Renders GitHub-flavored Markdown via Textual, themed to match the app's
 /// typography. Call sites are unchanged: `MarkdownText(raw)`.
@@ -15,14 +16,14 @@ import Textual
 /// fenced code with a subtle fill, tables) already approximate the app's look,
 /// and `StructuredText` honors the ambient SwiftUI `.font`/`.foregroundStyle`,
 /// so we lean on the defaults rather than carrying a hand-rolled theme.
-struct MarkdownText: View {
+public struct MarkdownText: View {
     let raw: String
 
-    init(_ raw: String) {
+    public init(_ raw: String) {
         self.raw = raw
     }
 
-    var body: some View {
+    public var body: some View {
         if raw.isEmpty {
             Text("(empty)").foregroundStyle(.secondary)
         } else {
