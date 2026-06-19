@@ -141,6 +141,26 @@ jobs:
           restore-keys: |
             deriveddata-${{ runner.os }}-
 
+      # Build the host app target FIRST, into the same DerivedData, before the
+      # test build. On a clean CI build the test target's `@testable import
+      # CoderPad` intermittently can't resolve the host module ("Unable to
+      # resolve module dependency: 'CoderPad'" / "no such module 'CoderPad'") —
+      # the test target compiles before CoderPad.swiftmodule is fully emitted.
+      # Disabling explicit modules didn't fix it (#478); materializing the host
+      # module up front does, and a warm DerivedData makes this near-free on
+      # cached runs.
+      - name: Build host app
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project coderpad.xcodeproj \
+            -scheme coderpad \
+            -destination 'platform=macOS' \
+            -derivedDataPath DerivedData \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
       # The shared scheme defaults to the Fast plan (unit + render only) for quick
       # local iteration; CI runs the Full plan so it keeps the UI-test coverage.
       - name: Build & test
@@ -187,6 +207,20 @@ jobs:
         run: |
           sudo xcode-select -s /Applications/Xcode_26.5.app
           xcodebuild -version
+
+      # Build the host app first so the test target can resolve `@testable
+      # import CoderPad` on a clean build (#478). Uses the default DerivedData
+      # location, which the test step below reuses.
+      - name: Build host app
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project coderpad.xcodeproj \
+            -scheme coderpad \
+            -destination 'platform=macOS' \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
 
       - name: Test under Thread Sanitizer
         run: |
