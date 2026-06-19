@@ -5,6 +5,10 @@
 
 import SwiftUI
 
+#if canImport(Flow)
+    import Flow
+#endif
+
 // MARK: - Filter bar width measurement
 
 /// Carries the natural (unclipped) width of a filter bar up the view tree so the
@@ -95,70 +99,104 @@ extension View {
 /// subview would overflow the available width. Lets a row of filter chips reflow
 /// onto multiple lines as its container narrows, instead of being clipped or
 /// forcing a horizontal scroll.
-struct FlowLayout: Layout {
+///
+/// Backed by the Flow package's `HFlow` when that dependency is present (#391); the
+/// built-in `FallbackFlowLayout` below keeps the app building without it — the same
+/// `#if canImport` pattern Sparkle (#28) uses to sidestep the GUI-only package add.
+/// Call sites are identical either way; only the engine swaps. `spacing` is the
+/// gap between items in a row, `lineSpacing` the gap between rows.
+struct FlowLayout<Content: View>: View {
     var spacing: CGFloat = 8
     var lineSpacing: CGFloat = 8
+    @ViewBuilder var content: () -> Content
 
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache _: inout Void) -> CGSize {
-        let maxWidth = proposal.width ?? .infinity
-        var xPos: CGFloat = 0
-        var yPos: CGFloat = 0
-        var rowHeight: CGFloat = 0
-        var widestRow: CGFloat = 0
-        for subview in subviews {
-            let size = subview.sizeThatFits(.unspecified)
-            if xPos > 0, xPos + size.width > maxWidth {
-                widestRow = max(widestRow, xPos - spacing)
-                xPos = 0
-                yPos += rowHeight + lineSpacing
-                rowHeight = 0
+    var body: some View {
+        #if canImport(Flow)
+            // Left-aligned rows with items vertically centred (matching the fallback),
+            // mapping our item/line spacing onto HFlow's horizontal/vertical spacing.
+            HFlow(horizontalAlignment: .leading,
+                  verticalAlignment: .center,
+                  horizontalSpacing: spacing,
+                  verticalSpacing: lineSpacing) {
+                content()
             }
-            xPos += size.width + spacing
-            rowHeight = max(rowHeight, size.height)
-        }
-        widestRow = max(widestRow, xPos - spacing)
-        let width = maxWidth.isFinite ? maxWidth : widestRow
-        return CGSize(width: max(0, width), height: yPos + rowHeight)
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal _: ProposedViewSize, subviews: Subviews, cache _: inout Void) {
-        // Group subviews into rows first, then place each item vertically centred
-        // within its row. A single forward pass can't centre because a row's full
-        // height isn't known until it's complete — so a short control (e.g. a
-        // borderless Save button) would top-align against the taller capsule chips
-        // and appear to float high.
-        var rows: [[(index: Int, size: CGSize)]] = []
-        var current: [(index: Int, size: CGSize)] = []
-        var xPos = bounds.minX
-        for (index, subview) in subviews.enumerated() {
-            let size = subview.sizeThatFits(.unspecified)
-            if xPos > bounds.minX, xPos + size.width > bounds.maxX {
-                rows.append(current)
-                current = []
-                xPos = bounds.minX
+        #else
+            FallbackFlowLayout(spacing: spacing, lineSpacing: lineSpacing) {
+                content()
             }
-            current.append((index, size))
-            xPos += size.width + spacing
-        }
-        if !current.isEmpty { rows.append(current) }
-
-        var yPos = bounds.minY
-        for row in rows {
-            let rowHeight = row.map(\.size.height).max() ?? 0
-            var rowX = bounds.minX
-            for item in row {
-                let yOffset = (rowHeight - item.size.height) / 2
-                subviews[item.index].place(
-                    at: CGPoint(x: rowX, y: yPos + yOffset),
-                    anchor: .topLeading,
-                    proposal: ProposedViewSize(item.size)
-                )
-                rowX += item.size.width + spacing
-            }
-            yPos += rowHeight + lineSpacing
-        }
+        #endif
     }
 }
+
+#if !canImport(Flow)
+    /// The no-dependency fallback flow layout, used until the Flow package is added
+    /// (#391). Arranges subviews left-to-right, wrapping when the next would overflow
+    /// the available width, with each item vertically centred within its row.
+    struct FallbackFlowLayout: Layout {
+        var spacing: CGFloat = 8
+        var lineSpacing: CGFloat = 8
+
+        func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache _: inout Void) -> CGSize {
+            let maxWidth = proposal.width ?? .infinity
+            var xPos: CGFloat = 0
+            var yPos: CGFloat = 0
+            var rowHeight: CGFloat = 0
+            var widestRow: CGFloat = 0
+            for subview in subviews {
+                let size = subview.sizeThatFits(.unspecified)
+                if xPos > 0, xPos + size.width > maxWidth {
+                    widestRow = max(widestRow, xPos - spacing)
+                    xPos = 0
+                    yPos += rowHeight + lineSpacing
+                    rowHeight = 0
+                }
+                xPos += size.width + spacing
+                rowHeight = max(rowHeight, size.height)
+            }
+            widestRow = max(widestRow, xPos - spacing)
+            let width = maxWidth.isFinite ? maxWidth : widestRow
+            return CGSize(width: max(0, width), height: yPos + rowHeight)
+        }
+
+        func placeSubviews(in bounds: CGRect, proposal _: ProposedViewSize, subviews: Subviews, cache _: inout Void) {
+            // Group subviews into rows first, then place each item vertically centred
+            // within its row. A single forward pass can't centre because a row's full
+            // height isn't known until it's complete — so a short control (e.g. a
+            // borderless Save button) would top-align against the taller capsule chips
+            // and appear to float high.
+            var rows: [[(index: Int, size: CGSize)]] = []
+            var current: [(index: Int, size: CGSize)] = []
+            var xPos = bounds.minX
+            for (index, subview) in subviews.enumerated() {
+                let size = subview.sizeThatFits(.unspecified)
+                if xPos > bounds.minX, xPos + size.width > bounds.maxX {
+                    rows.append(current)
+                    current = []
+                    xPos = bounds.minX
+                }
+                current.append((index, size))
+                xPos += size.width + spacing
+            }
+            if !current.isEmpty { rows.append(current) }
+
+            var yPos = bounds.minY
+            for row in rows {
+                let rowHeight = row.map(\.size.height).max() ?? 0
+                var rowX = bounds.minX
+                for item in row {
+                    let yOffset = (rowHeight - item.size.height) / 2
+                    subviews[item.index].place(
+                        at: CGPoint(x: rowX, y: yPos + yOffset),
+                        anchor: .topLeading,
+                        proposal: ProposedViewSize(item.size)
+                    )
+                    rowX += item.size.width + spacing
+                }
+                yPos += rowHeight + lineSpacing
+            }
+        }
+    }
+#endif
 
 // The filter-chip view components (SearchableFilterChip, ChipLabel, the
 // chipClearOverlay helper, and the searchable popover) now live alongside the
