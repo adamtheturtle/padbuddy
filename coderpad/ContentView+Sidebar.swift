@@ -205,9 +205,16 @@ extension View {
     /// single, full-width `List` row: clears the framework's row insets, background, and
     /// separator so the group's own padding and highlights show through unchanged, and so
     /// these rows never pick up the native selection chrome reserved for the section rows.
+    ///
+    /// `.selectionDisabled()` keeps the `List`'s keyboard navigation (and Next/Previous
+    /// Section) from landing on these untagged rows: without it, arrow-key nav past the
+    /// last real section steps onto the Suggested/Saved/Favorites group rows instead of
+    /// cycling among the actual sections (#481). The inner search rows are still
+    /// clickable — they're `Button`s, unaffected by row-selection being disabled.
     func sidebarGroupRow() -> some View {
         listRowInsets(EdgeInsets())
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
+            .selectionDisabled()
     }
 }
