@@ -163,6 +163,15 @@ jobs:
 
       # The shared scheme defaults to the Fast plan (unit + render only) for quick
       # local iteration; CI runs the Full plan so it keeps the UI-test coverage.
+      #
+      # SWIFT_ENABLE_EXPLICIT_MODULES=NO here (not in the host-app build above):
+      # with the host module already materialized by the prior step, the test
+      # target's explicit-modules dependency scan still fails to resolve
+      # 'CoderPad' on a clean CI build (#478). Disabling explicit modules for
+      # the test build skips that scan, so the test sources compile by reading
+      # the on-disk CoderPad.swiftmodule the prebuild emitted. The app build
+      # keeps explicit modules (fast); only the small test target pays for the
+      # non-explicit build.
       - name: Build & test
         run: |
           set -o pipefail
@@ -173,6 +182,7 @@ jobs:
             -destination 'platform=macOS' \
             -derivedDataPath DerivedData \
             -resultBundlePath TestResults.xcresult \
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
@@ -231,6 +241,7 @@ jobs:
             -testPlan TSan \
             -destination 'platform=macOS' \
             -resultBundlePath TSanResults.xcresult \
+            SWIFT_ENABLE_EXPLICIT_MODULES=NO \
             CODE_SIGN_IDENTITY="-" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
