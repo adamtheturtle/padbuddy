@@ -121,15 +121,14 @@ extension Sidebar {
     }
 
     /// The top-to-bottom order of the navigable top-level sections, shared by the
-    /// rows above and the arrow-key handler so the two never disagree. Quota drops
-    /// out on an unlimited plan, where its row is a non-navigable indicator (#306).
+    /// sidebar rows, the arrow-key handler, and the Go ▸ Next/Previous Section
+    /// commands so they never disagree (#481). Delegates to `AppSection.navigable`,
+    /// the single source of truth (Quota drops out on an unlimited plan #306; Screen
+    /// appears only with a Screen key #432). Reads the shared account/quota stores —
+    /// the same @Observable instances this view holds — so it still invalidates the
+    /// sidebar when availability changes.
     var sectionOrder: [AppSection] {
-        var order: [AppSection] = [.pads, .questions, .organization]
-        // Quota drops out on an unlimited plan, where its row is a non-navigable
-        // indicator (#306); Screen only appears when the account has a Screen key (#432).
-        if !quotaIsUnlimited { order.append(.quota) }
-        if screenSectionAvailable { order.append(.screen) }
-        return order
+        AppSection.navigable
     }
 
     /// Drives the section `List`'s selection. The getter is *derived* from each pane's

@@ -370,10 +370,15 @@ struct CoderpadApp: App {
         }
     }
 
-    /// Moves the visible section forward (`+1`) or back (`-1`) through the fixed
-    /// section order, wrapping at the ends. Backs the Go menu's Next/Previous items.
+    /// Moves the visible section forward (`+1`) or back (`-1`) through the currently
+    /// navigable section order, wrapping at the ends. Backs the Go menu's
+    /// Next/Previous items. Uses `AppSection.navigable` — the same source as the
+    /// sidebar — so Quota and Screen are included whenever they're shown (#481);
+    /// the old hardcoded `[.pads, .questions, .organization]` skipped them.
     private func cycleSection(by delta: Int) {
-        let order: [AppSection] = [.pads, .questions, .organization]
+        let order = AppSection.navigable
+        guard !order.isEmpty else { return }
+
         let current = AppNavigation.shared.section
         let index = order.firstIndex(of: current) ?? 0
         let count = order.count

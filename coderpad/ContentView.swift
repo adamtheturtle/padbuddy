@@ -9,6 +9,32 @@ enum AppSection: String, Hashable {
     case pads, questions, organization, quota, screen
 }
 
+extension AppSection {
+    /// The top-to-bottom order of navigable top-level sections, computed from the
+    /// shared account + quota stores. Single source of truth for both the sidebar's
+    /// `sectionOrder` and the Go ▸ Next/Previous Section commands (`cycleSection`),
+    /// so the two never disagree. Quota drops out on an unlimited single-account plan
+    /// where its row is a non-navigable indicator (#306); Screen appears only when a
+    /// Screen key is configured (#432/#442). Mirrors `quotaIsUnlimited` /
+    /// `screenSectionAvailable` in ContentView+Sidebar.
+    static var navigable: [AppSection] {
+        let accounts = AccountsStore.shared
+        let merged = accounts.isMergedView
+        var order: [AppSection] = [.pads, .questions, .organization]
+
+        let quotaUnlimited = !merged
+            && (accounts.currentAccountID.map { QuotaCacheStore.shared.get($0)?.unlimited == true } ?? false)
+        if !quotaUnlimited { order.append(.quota) }
+
+        let screenAvailable = merged
+            ? accounts.mergeableAccounts.contains { $0.makeScreenClient() != nil }
+            : accounts.currentAccount?.makeScreenClient() != nil
+        if screenAvailable { order.append(.screen) }
+
+        return order
+    }
+}
+
 struct ContentView: View {
     @State private var store = AccountsStore.shared
     @State private var nav = AppNavigation.shared
