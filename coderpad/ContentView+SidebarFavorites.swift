@@ -96,18 +96,25 @@ extension Sidebar {
         }
     }
 
-    /// Favourite pads and questions get their own headed sections (#346). Each is
-    /// always shown, even when empty, so a row can be dragged onto it to create the
-    /// first favourite (an empty section shows a drop hint). Dropping pins the dragged
-    /// item to the account it came from (carried in the payload), which is what makes a
-    /// drop in the combined view land on the right account.
+    /// Favourite pads and questions get their own headed sections (#346). An empty
+    /// section is hidden entirely at rest so it leaves no header or gap in the sidebar
+    /// (#440/#444) — an empty `List` section still reserves a minimum-height row, so
+    /// zeroing the inner spacer alone wasn't enough. It reappears (with its drop zone)
+    /// only while a favourite drag is in progress, so a row can still be dragged onto an
+    /// empty section to create the first favourite. Dropping pins the dragged item to the
+    /// account it came from (carried in the payload), which makes a drop in the combined
+    /// view land on the right account.
     @ViewBuilder
     var favoritesSection: some View {
-        Section("Favorite Pads") {
-            favoritePadsBody(favoritePadItems).sidebarGroupRow()
+        if !favoritePadItems.isEmpty || favoriteDragMonitor.isDragging {
+            Section("Favorite Pads") {
+                favoritePadsBody(favoritePadItems).sidebarGroupRow()
+            }
         }
-        Section("Favorite Questions") {
-            favoriteQuestionsBody(favoriteItems).sidebarGroupRow()
+        if !favoriteItems.isEmpty || favoriteDragMonitor.isDragging {
+            Section("Favorite Questions") {
+                favoriteQuestionsBody(favoriteItems).sidebarGroupRow()
+            }
         }
     }
 
