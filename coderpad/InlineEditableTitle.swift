@@ -62,6 +62,15 @@ struct InlineEditableTitle: View {
                 // Hug the title up to the available width; a longer title is capped
                 // here and truncates rather than widening the whole pane (#429).
                 .frame(width: fieldWidth, alignment: .leading)
+                // A plain TextField hard-*clips* an over-long title instead of showing
+                // a trailing ellipsis (#445). While not editing, hide the field's text
+                // and overlay a tail-truncating Text in its place so a long title reads
+                // "Some long titl…"; the field stays mounted (at opacity 0) so a click
+                // still falls through to focus it and start editing.
+                .opacity(focus.wrappedValue ? 1 : 0)
+                .overlay(alignment: .leading) {
+                    if !focus.wrappedValue { truncatingDisplay }
+                }
                 .background(titleWidthReader)
                 .accessibilityHint("Edit title")
             Image(systemName: "pencil")
@@ -85,6 +94,27 @@ struct InlineEditableTitle: View {
         .contentShape(Rectangle())
         .onHover { hovered = $0 }
         .animation(.easeInOut(duration: 0.12), value: showsPencil)
+    }
+
+    /// The resting (non-editing) title: a tail-truncating `Text` shown over the
+    /// hidden field so a long title ends in an ellipsis instead of being clipped
+    /// (#445). Hit-transparent so taps reach the field beneath to begin editing, and
+    /// hidden from accessibility since the field already exposes the title. A tooltip
+    /// surfaces the full title when it's truncated.
+    private var truncatingDisplay: some View {
+        Group {
+            if text.isEmpty {
+                Text(placeholder).foregroundStyle(.secondary)
+            } else {
+                Text(text).help(text)
+            }
+        }
+        .font(.title.bold())
+        .lineLimit(1)
+        .truncationMode(.tail)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
     }
 
     /// Measures the title's natural width from a hidden, `fixedSize` copy of the
