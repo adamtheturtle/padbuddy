@@ -22,6 +22,12 @@ struct RowSwipeAction {
     /// Background colour for the revealed button (e.g. yellow for favorite). `nil`
     /// uses the system default (grey for regular, red for destructive).
     var tint: NSColor?
+    /// An SF Symbol shown on the revealed button instead of the title (#454), the
+    /// standard macOS swipe look (Finder/Mail). `nil` falls back to the text title.
+    /// `title` is still set so VoiceOver announces the action. (NSTableViewRowAction
+    /// renders an image *or* a title, never both — true icon-over-text isn't
+    /// expressible with the native API.)
+    var systemImage: String?
     var perform: () -> Void
 }
 
@@ -280,6 +286,11 @@ struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: Hashabl
                     self?.tableView?.rowActionsVisible = false
                 }
                 if let tint = action.tint { rowAction.backgroundColor = tint }
+                // An image replaces the title on the revealed button (Apple's docs); the
+                // title stays set above so VoiceOver still announces the action (#454).
+                if let symbol = action.systemImage {
+                    rowAction.image = NSImage(systemSymbolName: symbol, accessibilityDescription: action.title)
+                }
                 return rowAction
             }
         }

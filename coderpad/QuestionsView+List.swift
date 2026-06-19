@@ -118,7 +118,8 @@ extension QuestionsView {
                 let starred = favoriteIDSet.contains(question.id)
                 return [RowSwipeAction(
                     title: starred ? String(localized: "Unfavorite") : String(localized: "Favorite"),
-                    tint: .systemYellow
+                    tint: .systemYellow,
+                    systemImage: starred ? "star.slash" : "star.fill"
                 ) { toggleFavorite(question) }]
             },
             trailingActions: { question in
@@ -127,11 +128,13 @@ extension QuestionsView {
                 return [
                     // Same path as the context-menu "Delete Question…": select the row,
                     // then let its detail pane run the undoable delete.
-                    RowSwipeAction(title: String(localized: "Delete"), isDestructive: true) {
+                    RowSwipeAction(title: String(localized: "Delete"), isDestructive: true,
+                                   systemImage: "trash") {
                         selectedQuestionIDs = [question.id]
                         nav.deleteQuestionID = question.id
                     },
-                    RowSwipeAction(title: String(localized: "New Pad"), tint: .controlAccentColor) {
+                    RowSwipeAction(title: String(localized: "New Pad"), tint: .controlAccentColor,
+                                   systemImage: "plus.rectangle.on.rectangle") {
                         selectedQuestionIDs = [question.id]
                         nav.createPadForQuestionID = question.id
                     }

@@ -211,7 +211,8 @@ extension PadsView {
                 let starred = favoritePads.isFavorite(pad.id, account: accounts.currentAccountID)
                 return [RowSwipeAction(
                     title: starred ? String(localized: "Unfavorite") : String(localized: "Favorite"),
-                    tint: .systemYellow
+                    tint: .systemYellow,
+                    systemImage: starred ? "star.slash" : "star.fill"
                 ) {
                     guard let account = accounts.currentAccountID else { return }
 
@@ -219,9 +220,10 @@ extension PadsView {
                 }]
             },
             trailingActions: { pad in
-                isReadOnly ? [] : [RowSwipeAction(title: String(localized: "Delete"), isDestructive: true) {
-                    padPendingDelete = pad
-                }]
+                isReadOnly ? [] : [RowSwipeAction(title: String(localized: "Delete"), isDestructive: true,
+                                                  systemImage: "trash") {
+                        padPendingDelete = pad
+                    }]
             },
             pasteboardItem: { padPasteboardItem($0) },
             menuItems: { padTableMenuItems($0) },

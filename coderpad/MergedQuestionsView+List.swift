@@ -245,7 +245,8 @@ extension MergedQuestionsView {
                 let starred = isFavorite(row)
                 return [RowSwipeAction(
                     title: starred ? String(localized: "Unfavorite") : String(localized: "Favorite"),
-                    tint: .systemYellow
+                    tint: .systemYellow,
+                    systemImage: starred ? "star.slash" : "star.fill"
                 ) { toggleFavorite(row) }]
             },
             trailingActions: { row in
@@ -253,10 +254,11 @@ extension MergedQuestionsView {
 
                 // Same path as the context-menu "Delete Question…": select the row,
                 // then let its detail pane run the undoable delete.
-                return [RowSwipeAction(title: String(localized: "Delete"), isDestructive: true) {
-                    select(row)
-                    nav.deleteQuestionID = row.item.id
-                }]
+                return [RowSwipeAction(title: String(localized: "Delete"), isDestructive: true,
+                                       systemImage: "trash") {
+                        select(row)
+                        nav.deleteQuestionID = row.item.id
+                    }]
             },
             pasteboardItem: { questionPasteboardItem($0) },
             menuItems: { questionTableMenuItems($0) },

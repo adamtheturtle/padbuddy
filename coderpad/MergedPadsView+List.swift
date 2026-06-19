@@ -315,13 +315,15 @@ extension MergedPadsView {
                 let starred = favoritePads.isFavorite(row.item.id, account: row.account.id)
                 return [RowSwipeAction(
                     title: starred ? String(localized: "Unfavorite") : String(localized: "Favorite"),
-                    tint: .systemYellow
+                    tint: .systemYellow,
+                    systemImage: starred ? "star.slash" : "star.fill"
                 ) { favoritePads.toggle(row.item.id, account: row.account.id) }]
             },
             trailingActions: { row in
-                isReadOnly ? [] : [RowSwipeAction(title: String(localized: "Delete"), isDestructive: true) {
-                    padPendingDelete = row.item
-                }]
+                isReadOnly ? [] : [RowSwipeAction(title: String(localized: "Delete"), isDestructive: true,
+                                                  systemImage: "trash") {
+                        padPendingDelete = row.item
+                    }]
             },
             pasteboardItem: { padPasteboardItem($0) },
             menuItems: { padTableMenuItems($0) },
