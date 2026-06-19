@@ -274,11 +274,12 @@ jobs:
     # The Release configuration compiles with -warn-long-function-bodies=250 /
     # -warn-long-expression-type-checking=250 as warnings-as-errors, so a SwiftUI body
     # whose type-check exceeds 250ms fails ONLY here — never in the Debug `test` build or
-    # the lint gate. That trap silently blocked the first distributable release (#427),
-    # so compile Release on every push to main (where releases are cut from), plus
-    # nightly/manual. Skipped on pull_request to limit 10x-billed macOS minutes; the
-    # lint gate still runs there.
-    if: github.event_name != 'pull_request'
+    # the lint gate. That trap silently blocked the first distributable release (#427).
+    # This is a 10x-billed macOS compile, so it runs nightly + manual rather than on
+    # every push to main: release.yml recompiles Release at tag time, so a tripped trap
+    # still can't reach a shipped build — nightly just surfaces it within ~24h of the
+    # offending commit instead of on the commit itself.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     runs-on: macos-26
     timeout-minutes: 20
     steps:
