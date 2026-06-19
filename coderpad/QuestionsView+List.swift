@@ -138,7 +138,8 @@ extension QuestionsView {
                 ]
             },
             pasteboardItem: { questionPasteboardItem($0) },
-            menuItems: { questionTableMenuItems($0) }
+            menuItems: { questionTableMenuItems($0) },
+            onTopRowChange: { persistTopRow($0) }
         )
         // Scene-scoped, mirroring PadsView: the Question menu commands stay enabled
         // whenever this window is frontmost and a question is selected.

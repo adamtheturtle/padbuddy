@@ -208,64 +208,6 @@ extension PadsView {
         didRestoreSelection = false
     }
 
-    // MARK: - Selection persistence
-
-    static func selectedPadKey(_ account: UUID) -> String {
-        "pads.selectedPad.\(account.uuidString)"
-    }
-
-    /// Persist the id of the pad currently shown in the detail pane, per account, so
-    /// the list reopens to it next launch. Skipped until the restore has run so the
-    /// empty startup state can't clobber the saved id; clearing the selection removes
-    /// the stored id so a blank detail pane is also restored faithfully.
-    func persistSelectedPad() {
-        guard didRestoreSelection, let account = accounts.currentAccountID else { return }
-
-        let key = Self.selectedPadKey(account)
-        if let selectedID {
-            UserDefaults.standard.set(selectedID, forKey: key)
-        } else {
-            UserDefaults.standard.removeObject(forKey: key)
-        }
-    }
-
-    /// The saved pad to reselect on launch: the stored id, but only when nothing is
-    /// already selected, no deep link is pending, and the id is still in the loaded
-    /// list. Pure so the restore decision is unit-testable in isolation.
-    static func padToRestore(
-        savedID: String?,
-        hasSelection: Bool,
-        hasPendingOpen: Bool,
-        availableIDs: Set<String>
-    ) -> String? {
-        guard !hasSelection, !hasPendingOpen,
-              let savedID, availableIDs.contains(savedID) else { return nil }
-
-        return savedID
-    }
-
-    /// Restore the previously-open pad once its list is loaded. Marks the restore
-    /// complete as soon as pads exist (so later selection changes persist), then
-    /// reselects via `padToRestore`. Sets `isRestoringSelection` so the reselection
-    /// doesn't count as freshly opening the pad (which would clear its activity dot).
-    func restoreSelectedPadIfNeeded() {
-        guard !didRestoreSelection, !pads.isEmpty else { return }
-
-        didRestoreSelection = true
-        guard let account = accounts.currentAccountID else { return }
-        guard let id = Self.padToRestore(
-            savedID: UserDefaults.standard.string(forKey: Self.selectedPadKey(account)),
-            hasSelection: selection != nil,
-            hasPendingOpen: nav.openPadID != nil,
-            availableIDs: Set(pads.map(\.id))
-        ) else { return }
-
-        isRestoringSelection = true
-        selectedIDs = [id]
-        // Bring the restored row into view; the List won't scroll to it on its own.
-        pendingScrollToID = id
-    }
-
     // MARK: - Reload
 
     func reload() async {

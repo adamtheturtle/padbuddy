@@ -25,6 +25,25 @@ extension QuestionsView {
         }
     }
 
+    static func topRowKey(_ account: UUID) -> String {
+        "questions.topRow.\(account.uuidString)"
+    }
+
+    /// Persist the id of the row at the top of the list viewport, per account, so an
+    /// *unselected* list reopens scrolled to roughly where it was left (#273) — the
+    /// selection restore already covers the selected case. Guarded by the selection
+    /// restore so the empty startup state can't clobber the saved id.
+    func persistTopRow(_ id: Int?) {
+        guard didRestoreSelection, let account = accounts.currentAccountID else { return }
+
+        let key = Self.topRowKey(account)
+        if let id {
+            UserDefaults.standard.set(id, forKey: key)
+        } else {
+            UserDefaults.standard.removeObject(forKey: key)
+        }
+    }
+
     /// The saved question to reselect on launch: the stored id, but only when nothing
     /// is already selected, no navigation is pending, and the id is still in the loaded
     /// list. Pure so the restore decision is unit-testable in isolation.
@@ -51,15 +70,21 @@ extension QuestionsView {
         guard let account = accounts.currentAccountID else { return }
 
         let stored = UserDefaults.standard.object(forKey: Self.selectedQuestionKey(account)) as? Int
-        guard let id = Self.questionToRestore(
+        if let id = Self.questionToRestore(
             savedID: stored,
             hasSelection: selection != nil,
             hasPendingNavigation: pendingSelectQuestionID != nil || nav.questionsRequest != nil,
             availableIDs: Set(questions.map(\.id))
-        ) else { return }
-
-        selectedQuestionIDs = [id]
-        // Bring the restored row into view; the List won't scroll to it on its own.
-        pendingScrollToID = id
+        ) {
+            selectedQuestionIDs = [id]
+            // Bring the restored row into view; the List won't scroll to it on its own.
+            pendingScrollToID = id
+        } else if selection == nil, pendingSelectQuestionID == nil, nav.questionsRequest == nil,
+                  let topID = UserDefaults.standard.object(forKey: Self.topRowKey(account)) as? Int,
+                  questions.contains(where: { $0.id == topID }) {
+            // Nothing to reselect — return the unselected list to where it was scrolled
+            // last session (#273), without selecting anything.
+            pendingScrollToID = topID
+        }
     }
 }

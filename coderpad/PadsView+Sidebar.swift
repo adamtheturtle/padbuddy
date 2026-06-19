@@ -224,7 +224,8 @@ extension PadsView {
                 }]
             },
             pasteboardItem: { padPasteboardItem($0) },
-            menuItems: { padTableMenuItems($0) }
+            menuItems: { padTableMenuItems($0) },
+            onTopRowChange: { persistTopRow($0) }
         )
         #if DEBUG
             // Still prints the per-selection stall; row evals should now be ~0 since

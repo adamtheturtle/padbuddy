@@ -71,6 +71,11 @@ struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: Hashabl
     /// The right-click menu entries for a row. The caller decides single-row vs
     /// multi-selection contents (reading its own selection). Empty → no menu.
     var menuItems: (Item) -> [RowMenuItem]
+    /// Reports the id of the row at the top of the viewport when the user finishes a
+    /// scroll, so the caller can persist and restore the free-scroll position across
+    /// launches (#273). `nil` when the list is empty. Omitted = not tracked (the
+    /// synthesized memberwise init defaults this optional to nil).
+    var onTopRowChange: ((Item.ID?) -> Void)?
 
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -112,6 +117,16 @@ struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: Hashabl
         scroll.documentView = table
         scroll.hasVerticalScroller = true
         scroll.drawsBackground = false
+        // Report the top visible row when a user scroll settles, so the caller can
+        // persist/restore the free-scroll position (#273). didEndLiveScroll fires once
+        // per gesture — far cheaper than streaming every bounds change. The selector
+        // observer auto-unregisters when the coordinator deallocates (macOS 10.11+).
+        NotificationCenter.default.addObserver(
+            context.coordinator,
+            selector: #selector(Coordinator.liveScrollEnded),
+            name: NSScrollView.didEndLiveScrollNotification,
+            object: scroll
+        )
         return scroll
     }
 
@@ -235,6 +250,17 @@ struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: Hashabl
                   items.indices.contains(row) else { return }
 
             parent.onReturn(items[row])
+        }
+
+        /// A user scroll settled — report the id of the row now at the top of the
+        /// viewport so the caller can remember the scroll position (#273).
+        @objc func liveScrollEnded() {
+            guard parent.onTopRowChange != nil, let tableView else { return }
+
+            let visible = tableView.rows(in: tableView.visibleRect)
+            guard visible.length > 0, items.indices.contains(visible.location) else { return }
+
+            parent.onTopRowChange?(items[visible.location].id)
         }
 
         // MARK: Swipe actions
