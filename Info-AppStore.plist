@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Mac App Store Info.plist (#483). Identical to coderpad/Info.plist EXCEPT it
+	     omits the Sparkle keys (SUFeedURL, SUPublicEDKey, SUEnableInstallerLauncherService):
+	     the App Store delivers updates itself and rejects bundled third-party updaters.
+	     The App Store target does not link Sparkle, so the updater never reads these. -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.adamdangoor.coderpad</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>coderpad</string>
+			</array>
+		</dict>
+	</array>
+	<key>UTExportedTypeDeclarations</key>
+	<array>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.coderpad.favorite</string>
+			<key>UTTypeDescription</key>
+			<string>CoderPad Favorite</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict/>
+		</dict>
+		<dict>
+			<key>UTTypeIdentifier</key>
+			<string>com.coderpad.favorite-reorder</string>
+			<key>UTTypeDescription</key>
+			<string>CoderPad Favorite Reorder</string>
+			<key>UTTypeConformsTo</key>
+			<array>
+				<string>public.data</string>
+			</array>
+			<key>UTTypeTagSpecification</key>
+			<dict/>
+		</dict>
+	</array>
+	<key>NSServices</key>
+	<array>
+		<dict>
+			<key>NSMenuItem</key>
+			<dict>
+				<key>default</key>
+				<string>Open Pad in CoderPad</string>
+			</dict>
+			<key>NSMessage</key>
+			<string>openPad</string>
+			<key>NSPortName</key>
+			<string>CoderPad</string>
+			<key>NSSendTypes</key>
+			<array>
+				<string>public.url</string>
+				<string>public.utf8-plain-text</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

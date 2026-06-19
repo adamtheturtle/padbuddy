@@ -16,6 +16,12 @@
 		66F0576B2FE0BDB5000FA68C /* PaginatedRESTClient in Frameworks */ = {isa = PBXBuildFile; productRef = 66F0576A2FE0BDB5000FA68C /* PaginatedRESTClient */; };
 		66F543E52FE57AB9000214AA /* Flow in Frameworks */ = {isa = PBXBuildFile; productRef = 66F543E42FE57AB9000214AA /* Flow */; };
 		66F543E82FE5885B000214AA /* CoderPadDesignSystem in Frameworks */ = {isa = PBXBuildFile; productRef = 66F543E72FE5885B000214AA /* CoderPadDesignSystem */; };
+		66F544002FE5EECD000214AA /* Textual in Frameworks */ = {isa = PBXBuildFile; productRef = 66F543F62FE5EECD000214AA /* Textual */; };
+		66F544012FE5EECD000214AA /* Flow in Frameworks */ = {isa = PBXBuildFile; productRef = 66F543FB2FE5EECD000214AA /* Flow */; };
+		66F544032FE5EECD000214AA /* CoderPadDesignSystem in Frameworks */ = {isa = PBXBuildFile; productRef = 66F543FD2FE5EECD000214AA /* CoderPadDesignSystem */; };
+		66F544042FE5EECD000214AA /* PaginatedRESTClient in Frameworks */ = {isa = PBXBuildFile; productRef = 66F543F82FE5EECD000214AA /* PaginatedRESTClient */; };
+		66F544052FE5EECD000214AA /* Highlightr in Frameworks */ = {isa = PBXBuildFile; productRef = 66F543F42FE5EECD000214AA /* Highlightr */; };
+		66F544082FE5EECD000214AA /* RecentPadsWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 66E3CDBD2FDD6D1C00FE87A9 /* RecentPadsWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -40,6 +46,13 @@
 			remoteGlobalIDString = 66E3CDBC2FDD6D1C00FE87A9;
 			remoteInfo = RecentPadsWidgetExtension;
 		};
+		66F543F32FE5EECD000214AA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 66C8C5032FA73AB0009B720C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 66E3CDBC2FDD6D1C00FE87A9;
+			remoteInfo = RecentPadsWidgetExtension;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -54,6 +67,17 @@
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		66F544072FE5EECD000214AA /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				66F544082FE5EECD000214AA /* RecentPadsWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
@@ -64,6 +88,8 @@
 		66E3CD0B2FDD5BA300FE87A9 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		66E3CDBD2FDD6D1C00FE87A9 /* RecentPadsWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = RecentPadsWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		66E3CDD32FDD6E0400FE87A9 /* RecentPadsWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = RecentPadsWidgetExtension.entitlements; sourceTree = "<group>"; };
+		66F5440C2FE5EECD000214AA /* CoderPad.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = CoderPad.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		66F5440D2FE5EECD000214AA /* coderpad copy-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; name = "coderpad copy-Info.plist"; path = "/Users/adam/Documents/repositories/coderpad/coderpad copy-Info.plist"; sourceTree = "<absolute>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -81,6 +107,176 @@
 			);
 			target = 66E3CDBC2FDD6D1C00FE87A9 /* RecentPadsWidgetExtension */;
 		};
+		66F5440E2FE5EECE000214AA /* Exceptions for "coderpad" folder in "CoderPad-AppStore" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				AccountEditor.swift,
+				"AccountEditor+Form.swift",
+				"AccountEditor+Logic.swift",
+				"AccountEditor+OrgMemberPicker.swift",
+				"AccountEditor+Screen.swift",
+				Accounts.swift,
+				"Accounts+Account.swift",
+				"Accounts+Cache.swift",
+				"Accounts+FavoritePads.swift",
+				"Accounts+Keychain.swift",
+				"Accounts+Monitors.swift",
+				"Accounts+SavedSearch.swift",
+				AppActivator.swift,
+				AppIcon.icon,
+				AppIntents.swift,
+				AppLaunch.swift,
+				AppNavigation.swift,
+				AppRouter.swift,
+				AppShortcuts.xcstrings,
+				Assets.xcassets,
+				Clipboard.swift,
+				CoderPadAPI.swift,
+				"CoderPadAPI+OptimisticEdit.swift",
+				"CoderPadAPI+Organization.swift",
+				"CoderPadAPI+Questions.swift",
+				"CoderPadAPI+Requests.swift",
+				coderpadApp.swift,
+				"coderpadApp+Commands.swift",
+				CoderPadClient.swift,
+				ContentView.swift,
+				"ContentView+AccountFooter.swift",
+				"ContentView+Chrome.swift",
+				"ContentView+DetailPaneToggle.swift",
+				"ContentView+MainSplit.swift",
+				"ContentView+Sections.swift",
+				"ContentView+Sidebar.swift",
+				"ContentView+SidebarFavorites.swift",
+				"ContentView+SidebarSections.swift",
+				"ContentView+SplitChrome.swift",
+				"ContentView+SplitColumns.swift",
+				"ContentView+SplitSelection.swift",
+				"ContentView+SplitSidebar.swift",
+				"ContentView+WhatsNew.swift",
+				DesignSystem.swift,
+				"DesignSystem+Filters.swift",
+				"DesignSystem+Glass.swift",
+				"DesignSystem+Languages.swift",
+				"DesignSystem+Org.swift",
+				"DesignSystem+PullToRefresh.swift",
+				"DesignSystem+Refresh.swift",
+				DockBadge.swift,
+				DocumentPrinter.swift,
+				FavoritesDrag.swift,
+				FilterableListView.swift,
+				FilterChips.swift,
+				"FilterChips+SavedSearch.swift",
+				"FilterChips+Searchable.swift",
+				Info.plist,
+				InfoPlist.xcstrings,
+				InlineEditableTitle.swift,
+				ListTable.swift,
+				Localizable.xcstrings,
+				MenuBarView.swift,
+				"MenuBarView+Logic.swift",
+				MergedOrganizationView.swift,
+				MergedPadsView.swift,
+				"MergedPadsView+Bars.swift",
+				"MergedPadsView+ContextMenu.swift",
+				"MergedPadsView+List.swift",
+				"MergedPadsView+Logic.swift",
+				"MergedPadsView+Persistence.swift",
+				MergedQuestionsView.swift,
+				"MergedQuestionsView+Bars.swift",
+				"MergedQuestionsView+ContextMenu.swift",
+				"MergedQuestionsView+List.swift",
+				"MergedQuestionsView+Logic.swift",
+				"MergedQuestionsView+Persistence.swift",
+				MergedQuotaView.swift,
+				MergedRouting.swift,
+				MergedScreenView.swift,
+				MockScreen.swift,
+				"MockScreen+Fixtures.swift",
+				"MockScreen+Responses.swift",
+				"MockScreen+State.swift",
+				MockServer.swift,
+				"MockServer+Environments.swift",
+				"MockServer+Fixtures.swift",
+				"MockServer+Organization.swift",
+				"MockServer+Questions.swift",
+				"MockServer+Responses.swift",
+				"MockServer+State.swift",
+				MultiSelectLogic.swift,
+				NetworkMonitor.swift,
+				OrganizationView.swift,
+				PadBrowser.swift,
+				"PadBrowser+Views.swift",
+				PadCodeExplainer.swift,
+				PadCodePreview.swift,
+				"PadCodePreview+Card.swift",
+				"PadCodePreview+FileTree.swift",
+				PadDetailView.swift,
+				"PadDetailView+Edit.swift",
+				"PadDetailView+Events.swift",
+				"PadDetailView+Participants.swift",
+				"PadDetailView+SaveCode.swift",
+				"PadDetailView+Sections.swift",
+				PadListLogic.swift,
+				PadOwnerPicker.swift,
+				PadRow.swift,
+				PadSheets.swift,
+				PadsView.swift,
+				"PadsView+Actions.swift",
+				"PadsView+Caches.swift",
+				"PadsView+FilterBar.swift",
+				"PadsView+Restore.swift",
+				"PadsView+Sidebar.swift",
+				"PadsView+Sort.swift",
+				PadUpdateNotifier.swift,
+				PadWindow.swift,
+				PrivacyInfo.xcprivacy,
+				QuestionDetailView.swift,
+				"QuestionDetailView+Content.swift",
+				"QuestionDetailView+Edit.swift",
+				"QuestionDetailView+InlineEditableText.swift",
+				QuestionDrafter.swift,
+				QuestionRow.swift,
+				QuestionSheets.swift,
+				QuestionsView.swift,
+				"QuestionsView+Filtering.swift",
+				"QuestionsView+Filters.swift",
+				"QuestionsView+List.swift",
+				"QuestionsView+Restore.swift",
+				"QuestionsView+Sort.swift",
+				QuestionWindow.swift,
+				QuotaView.swift,
+				RelativeDateLabel.swift,
+				SavedSearchNamer.swift,
+				SaveSearchSheet.swift,
+				ScreenAPI.swift,
+				ScreenClient.swift,
+				ScreenInviteSheet.swift,
+				ScreenSectionView.swift,
+				ScreenTestDetailView.swift,
+				ScreenTestsView.swift,
+				"ScreenTestsView+Support.swift",
+				ScreenTestWindow.swift,
+				ScreenWebhookSheet.swift,
+				SearchInterpreter.swift,
+				"SearchInterpreter+Generate.swift",
+				ServicesProvider.swift,
+				SettingsView.swift,
+				"SettingsView+AccountsUI.swift",
+				"SettingsView+Models.swift",
+				"SettingsView+Tabs.swift",
+				SmartFilterSheet.swift,
+				SoftwareUpdater.swift,
+				SpotlightIndexer.swift,
+				SpotlightSummarizer.swift,
+				SyntaxHighlighting.swift,
+				"SyntaxHighlighting+Languages.swift",
+				URLOpener.swift,
+				WhiteboardImage.swift,
+				WidgetPadSnapshot.swift,
+				WidgetSync.swift,
+			);
+			target = 66F543F12FE5EECD000214AA /* CoderPad-AppStore */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -88,6 +284,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				66E3CDB82FDD67BE00FE87A9 /* Exceptions for "coderpad" folder in "coderpad" target */,
+				66F5440E2FE5EECE000214AA /* Exceptions for "coderpad" folder in "CoderPad-AppStore" target */,
 			);
 			path = coderpad;
 			sourceTree = "<group>";
@@ -149,6 +346,18 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		66F543FF2FE5EECD000214AA /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				66F544002FE5EECD000214AA /* Textual in Frameworks */,
+				66F544012FE5EECD000214AA /* Flow in Frameworks */,
+				66F544032FE5EECD000214AA /* CoderPadDesignSystem in Frameworks */,
+				66F544042FE5EECD000214AA /* PaginatedRESTClient in Frameworks */,
+				66F544052FE5EECD000214AA /* Highlightr in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -161,6 +370,7 @@
 				66C8C5272FA73AB2009B720C /* coderpadUITests */,
 				66E3CDC02FDD6D1C00FE87A9 /* RecentPadsWidget */,
 				66E3CC512FDA19E400FE87A9 /* Frameworks */,
+				66F5440D2FE5EECD000214AA /* coderpad copy-Info.plist */,
 				66C8C50C2FA73AB0009B720C /* Products */,
 			);
 			sourceTree = "<group>";
@@ -172,6 +382,7 @@
 				66C8C51A2FA73AB2009B720C /* coderpadTests.xctest */,
 				66C8C5242FA73AB2009B720C /* coderpadUITests.xctest */,
 				66E3CDBD2FDD6D1C00FE87A9 /* RecentPadsWidgetExtension.appex */,
+				66F5440C2FE5EECD000214AA /* CoderPad.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -286,6 +497,35 @@
 			productReference = 66E3CDBD2FDD6D1C00FE87A9 /* RecentPadsWidgetExtension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		66F543F12FE5EECD000214AA /* CoderPad-AppStore */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 66F544092FE5EECD000214AA /* Build configuration list for PBXNativeTarget "CoderPad-AppStore" */;
+			buildPhases = (
+				66F543FE2FE5EECD000214AA /* Sources */,
+				66F543FF2FE5EECD000214AA /* Frameworks */,
+				66F544062FE5EECD000214AA /* Resources */,
+				66F544072FE5EECD000214AA /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				66F543F22FE5EECD000214AA /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				66C8C50D2FA73AB0009B720C /* coderpad */,
+			);
+			name = "CoderPad-AppStore";
+			packageProductDependencies = (
+				66F543F42FE5EECD000214AA /* Highlightr */,
+				66F543F62FE5EECD000214AA /* Textual */,
+				66F543F82FE5EECD000214AA /* PaginatedRESTClient */,
+				66F543FB2FE5EECD000214AA /* Flow */,
+				66F543FD2FE5EECD000214AA /* CoderPadDesignSystem */,
+			);
+			productName = coderpad;
+			productReference = 66F5440C2FE5EECD000214AA /* CoderPad.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -340,6 +580,7 @@
 				66C8C5192FA73AB2009B720C /* coderpadTests */,
 				66C8C5232FA73AB2009B720C /* coderpadUITests */,
 				66E3CDBC2FDD6D1C00FE87A9 /* RecentPadsWidgetExtension */,
+				66F543F12FE5EECD000214AA /* CoderPad-AppStore */,
 			);
 		};
 /* End PBXProject section */
@@ -367,6 +608,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		66E3CDBB2FDD6D1C00FE87A9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		66F544062FE5EECD000214AA /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -404,6 +652,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		66F543FE2FE5EECD000214AA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -421,6 +676,11 @@
 			isa = PBXTargetDependency;
 			target = 66E3CDBC2FDD6D1C00FE87A9 /* RecentPadsWidgetExtension */;
 			targetProxy = 66E3CDCA2FDD6D1D00FE87A9 /* PBXContainerItemProxy */;
+		};
+		66F543F22FE5EECD000214AA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 66E3CDBC2FDD6D1C00FE87A9 /* RecentPadsWidgetExtension */;
+			targetProxy = 66F543F32FE5EECD000214AA /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -805,6 +1065,108 @@
 			};
 			name = Release;
 		};
+		66F5440A2FE5EECD000214AA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "coderpad-AppStore.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = 6L9H6Q8CUF;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = NO;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Info-AppStore.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = CoderPad;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_SWIFT_FLAGS = "-Xfrontend -warn-long-function-bodies=250 -Xfrontend -warn-long-expression-type-checking=250";
+				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.coderpad;
+				PRODUCT_NAME = CoderPad;
+				REGISTER_APP_GROUPS = YES;
+				RUNTIME_EXCEPTION_ALLOW_JIT = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
+				SWIFT_UPCOMING_FEATURE_EXISTENTIAL_ANY = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		66F5440B2FE5EECD000214AA /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "coderpad-AppStore.entitlements";
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = 6L9H6Q8CUF;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_INCOMING_NETWORK_CONNECTIONS = NO;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
+				ENABLE_RESOURCE_ACCESS_BLUETOOTH = NO;
+				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
+				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
+				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
+				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
+				ENABLE_RESOURCE_ACCESS_PRINTING = NO;
+				ENABLE_RESOURCE_ACCESS_USB = NO;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GCC_TREAT_WARNINGS_AS_ERRORS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Info-AppStore.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = CoderPad;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_SWIFT_FLAGS = "-Xfrontend -warn-long-function-bodies=250 -Xfrontend -warn-long-expression-type-checking=250";
+				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.coderpad;
+				PRODUCT_NAME = CoderPad;
+				REGISTER_APP_GROUPS = YES;
+				RUNTIME_EXCEPTION_ALLOW_JIT = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
+				SWIFT_UPCOMING_FEATURE_EXISTENTIAL_ANY = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -849,6 +1211,15 @@
 			buildConfigurations = (
 				66E3CDCE2FDD6D1D00FE87A9 /* Debug */,
 				66E3CDCF2FDD6D1D00FE87A9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		66F544092FE5EECD000214AA /* Build configuration list for PBXNativeTarget "CoderPad-AppStore" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				66F5440A2FE5EECD000214AA /* Debug */,
+				66F5440B2FE5EECD000214AA /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -899,6 +1270,30 @@
 				minimumVersion = 3.4.0;
 			};
 		};
+		66F543F52FE5EECD000214AA /* XCRemoteSwiftPackageReference "Highlightr" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/raspu/Highlightr";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.3.0;
+			};
+		};
+		66F543F72FE5EECD000214AA /* XCRemoteSwiftPackageReference "textual" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/adamtheturtle/textual";
+			requirement = {
+				kind = exactVersion;
+				version = "0.3.1-coderpad.2";
+			};
+		};
+		66F543FC2FE5EECD000214AA /* XCRemoteSwiftPackageReference "SwiftUI-Flow" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/tevelee/SwiftUI-Flow";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 3.4.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -927,6 +1322,29 @@
 			productName = Flow;
 		};
 		66F543E72FE5885B000214AA /* CoderPadDesignSystem */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = CoderPadDesignSystem;
+		};
+		66F543F42FE5EECD000214AA /* Highlightr */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 66F543F52FE5EECD000214AA /* XCRemoteSwiftPackageReference "Highlightr" */;
+			productName = Highlightr;
+		};
+		66F543F62FE5EECD000214AA /* Textual */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 66F543F72FE5EECD000214AA /* XCRemoteSwiftPackageReference "textual" */;
+			productName = Textual;
+		};
+		66F543F82FE5EECD000214AA /* PaginatedRESTClient */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = PaginatedRESTClient;
+		};
+		66F543FB2FE5EECD000214AA /* Flow */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 66F543FC2FE5EECD000214AA /* XCRemoteSwiftPackageReference "SwiftUI-Flow" */;
+			productName = Flow;
+		};
+		66F543FD2FE5EECD000214AA /* CoderPadDesignSystem */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = CoderPadDesignSystem;
 		};
