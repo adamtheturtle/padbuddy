@@ -72,6 +72,12 @@ jobs:
     # sourcekit SwiftLint parses with is the same one used locally.
     container: swift:6.2
     timeout-minutes: 10
+    # Inside a container GitHub runs `run:` steps with `sh` (dash), which rejects
+    # the `set -o pipefail` bashism the steps below rely on; the image ships bash,
+    # so pin it explicitly to match the bash the macOS runner used by default.
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Checkout
         uses: actions/checkout@v6
