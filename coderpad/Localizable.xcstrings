@@ -897,6 +897,9 @@
     "Aborted" : {
 
     },
+    "About" : {
+
+    },
     "About CoderPad" : {
       "localizations" : {
         "es" : {
@@ -6040,6 +6043,9 @@
         }
       }
     },
+    "This app is an unofficial client for the CoderPad interview platform. It is not affiliated with, authorized, maintained, or endorsed by CoderPad, Inc. “CoderPad” is a trademark of CoderPad, Inc." : {
+
+    },
     "This key works, but isn't authorized for: %@. Those sections may be empty." : {
       "localizations" : {
         "en-GB" : {
@@ -6471,6 +6477,9 @@
       }
     },
     "Validating Screen key…" : {
+
+    },
+    "Version" : {
 
     },
     "Version %@" : {
