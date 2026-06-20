@@ -6,6 +6,10 @@
 	     omits the Sparkle keys (SUFeedURL, SUPublicEDKey, SUEnableInstallerLauncherService):
 	     the App Store delivers updates itself and rejects bundled third-party updaters.
 	     The App Store target does not link Sparkle, so the updater never reads these. -->
+	<!-- The app uses only standard HTTPS/TLS (exempt encryption), so declare it here to
+	     skip the export-compliance prompt on every App Store Connect upload (#490). -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
