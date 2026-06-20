@@ -35,6 +35,18 @@ struct WidgetQuestion: Codable, Identifiable, Hashable {
     let title: String
 }
 
+/// A pending "create a new pad" request the widget's New Pad button records for the
+/// app to perform when it next activates. Used instead of a deep link because
+/// `OpenURLIntent` can't open the app's custom URL scheme and `Link` is ignored on
+/// the small widget family, so an interactive `Button` + this hand-off is the only
+/// thing that works on every family (#456). Kept in lock-step with the app's copy.
+struct WidgetNewPadRequest: Codable {
+    /// The account UUID string to switch to first (nil for the current account), and
+    /// the favourite question id to seed the create sheet with (nil for a blank pad).
+    let account: String?
+    let question: Int?
+}
+
 /// Reads the recent-pads snapshots from the App Group container shared with the app.
 /// The app writes one snapshot per account (`recent-pads-<id>.json`), a default
 /// snapshot for the current account (`recent-pads.json`), and the account index
@@ -50,6 +62,7 @@ enum WidgetSharedStore {
 
     private static let defaultPadsFile = "recent-pads.json"
     private static let accountsFile = "widget-accounts.json"
+    private static let newPadRequestFile = "pending-new-pad.json"
 
     /// File holding `account`'s pads, or the default (current-account) snapshot when
     /// `account` is nil.
@@ -92,6 +105,17 @@ enum WidgetSharedStore {
               let data = try? Data(contentsOf: url) else { return [] }
 
         return (try? JSONDecoder().decode([WidgetQuestion].self, from: data)) ?? []
+    }
+
+    /// Records a New Pad request for the app to pick up on its next activation. Written
+    /// as a file (not `UserDefaults`) so the app process sees it immediately across the
+    /// App Group, with no suite-cache delay. A no-op when the container is unavailable.
+    static func requestNewPad(account: String?, question: Int?) {
+        guard let url = fileURL(newPadRequestFile),
+              let data = try? JSONEncoder().encode(WidgetNewPadRequest(account: account, question: question))
+        else { return }
+
+        try? data.write(to: url, options: .atomic)
     }
 }
 

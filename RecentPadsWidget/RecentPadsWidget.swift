@@ -284,24 +284,15 @@ struct RecentPadsWidgetEntryView: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-            // `Link` is ignored on systemSmall, so the explicit New Pad button only
-            // works on the larger families — show it there. The small empty tile makes
-            // New Pad its whole-tile action instead (see `emptyStateURL`).
-            if family != .systemSmall {
-                NewPadButton(accountID: entry.newPadAccountID, questionID: entry.newPadQuestionID)
-                    .padding(.top, 2)
-            }
+            // With no pads to open, creating one is the most useful action, so surface
+            // the New Pad button on every family — the interactive intent button works
+            // even on small, where the compact icon-only pill fits (#456).
+            NewPadButton(accountID: entry.newPadAccountID, questionID: entry.newPadQuestionID,
+                         compact: family == .systemSmall)
+                .padding(.top, 2)
         }
         .padding()
-        .widgetURL(emptyStateURL)
-    }
-
-    /// The empty state's whole-tile destination. With no pads to open, creating one is
-    /// the most useful action — so on small (where the inline button can't be shown)
-    /// the tile opens New Pad directly; larger families keep the explicit button and
-    /// open the Pads list.
-    private var emptyStateURL: URL? {
-        URL(string: family == .systemSmall ? "coderpad://new-pad" : "coderpad://pads")
+        .widgetURL(URL(string: "coderpad://pads"))
     }
 
     /// A compact header above the pad list carrying the New Pad action, so a pad
@@ -316,17 +307,22 @@ struct RecentPadsWidgetEntryView: View {
         }
     }
 
-    /// Small family: the most recent pad fills the widget and the whole tile opens it
-    /// (`widgetURL`). It carries no New Pad button — `Link` is ignored on systemSmall
-    /// and `OpenURLIntent` can't open a custom URL scheme, so neither mechanism can add
-    /// a second tap target here (#456). New Pad lives on the medium/large families; an
-    /// empty small tile instead opens New Pad as its whole-tile action.
+    /// Small family: the most recent pad fills the widget, the whole tile opens it
+    /// (`widgetURL`), and a compact New Pad button is pinned top-right as its own tap
+    /// target. The button is an interactive `Button(intent:)`, which (unlike `Link`)
+    /// works on systemSmall and coexists with `widgetURL` — taps on the button create a
+    /// pad, taps elsewhere open the pad (#456).
     private var smallView: some View {
         VStack(alignment: .leading, spacing: 6) {
             if let first = entry.pads.first {
-                Text(first.title)
-                    .font(.headline)
-                    .lineLimit(3)
+                HStack(alignment: .top, spacing: 6) {
+                    Text(first.title)
+                        .font(.headline)
+                        .lineLimit(3)
+                    Spacer(minLength: 4)
+                    NewPadButton(accountID: entry.newPadAccountID,
+                                 questionID: entry.newPadQuestionID, compact: true)
+                }
                 Spacer(minLength: 0)
                 HStack(spacing: 6) {
                     if let language = first.languageLabel {
@@ -371,40 +367,41 @@ struct RecentPadsWidgetEntryView: View {
     }
 }
 
-/// Creates a new pad straight from the widget by opening the `coderpad://new-pad`
-/// deep link the app routes. Uses a `Link`, NOT `Button(intent: OpenURLIntent(...))`:
-/// `OpenURLIntent` only opens universal (https) links and silently ignores a custom
-/// URL scheme, which is why the New Pad button did nothing (#456); `Link` opens a
-/// custom scheme in the owning app — the same mechanism the pad rows use. `Link`
-/// works only on the medium/large families (systemSmall ignores it), so this is
-/// shown only there. When a favourite question is configured the link carries its
-/// account and id so the app switches to that account and pre-seeds the create sheet.
+/// Creates a new pad straight from the widget. An interactive `Button` backed by
+/// `CreatePadIntent`, NOT a `Link` or `Button(intent: OpenURLIntent(...))`: `Link` is
+/// ignored on the small widget family and `OpenURLIntent` can't open the app's custom
+/// URL scheme, so neither put a working New Pad button on every family. The intent
+/// records the request in the App Group and the app performs it on activation (#456,
+/// #485). When a favourite question is configured, the intent carries its account and
+/// id so the app switches to that account and pre-seeds the create sheet.
 private struct NewPadButton: View {
     var accountID: String?
     var questionID: Int?
-
-    private var url: URL {
-        var components = URLComponents()
-        components.scheme = "coderpad"
-        components.host = "new-pad"
-        var items: [URLQueryItem] = []
-        if let accountID { items.append(URLQueryItem(name: "account", value: accountID)) }
-        if let questionID { items.append(URLQueryItem(name: "question", value: String(questionID))) }
-        if !items.isEmpty { components.queryItems = items }
-        return components.url ?? URL(string: "coderpad://new-pad")!
-    }
+    /// Icon-only circular pill for the small family, where there's no room for the
+    /// "New Pad" label; the larger families show the full pill.
+    var compact = false
 
     var body: some View {
-        // A filled accent pill reads as a real button (#426). Styled by hand since
-        // `.buttonStyle` doesn't apply to `Link`.
-        Link(destination: url) {
-            Label("New Pad", systemImage: "plus")
-                .font(.caption2.weight(.semibold))
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.accentColor, in: Capsule())
-                .foregroundStyle(.white)
+        // `.buttonStyle(.plain)` so the hand-built accent pill shows rather than the
+        // default bordered chrome (#426).
+        Button(intent: CreatePadIntent(account: accountID, question: questionID)) {
+            if compact {
+                Image(systemName: "plus")
+                    .font(.caption2.weight(.bold))
+                    .padding(5)
+                    .background(Color.accentColor, in: Circle())
+                    .foregroundStyle(.white)
+                    .accessibilityLabel("New Pad")
+            } else {
+                Label("New Pad", systemImage: "plus")
+                    .font(.caption2.weight(.semibold))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.accentColor, in: Capsule())
+                    .foregroundStyle(.white)
+            }
         }
+        .buttonStyle(.plain)
     }
 }
 

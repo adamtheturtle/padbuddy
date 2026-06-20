@@ -1,0 +1,55 @@
+//
+//  CreatePadIntent.swift
+//  RecentPadsWidget
+//
+//  The App Intent behind the widget's (and Control Center's) New Pad button.
+//
+
+import AppIntents
+
+/// Creates a new pad straight from the widget or the Control Center / menu-bar
+/// control. It records the request in the shared App Group and opens the app, which
+/// performs it on activation (see the app's `applicationDidBecomeActive`).
+///
+/// This replaces `OpenURLIntent(coderpad://new-pad)`: `OpenURLIntent` only opens
+/// universal (https) links, never a custom URL scheme, so it silently did nothing
+/// (#456, #485). An interactive `Button(intent:)` also works on the small widget
+/// family, where `Link` is ignored — so this is the only mechanism that puts a
+/// working New Pad button on every family and on the control.
+/// Computed (not stored) statics so they're concurrency-safe under Swift 6 strict
+/// checking, matching `RecentPadsConfigurationIntent`.
+struct CreatePadIntent: AppIntent {
+    static var title: LocalizedStringResource {
+        "New Pad"
+    }
+
+    static var description: IntentDescription {
+        IntentDescription("Create a new CoderPad pad.")
+    }
+
+    /// Bring the app to the front when run, so the create sheet appears.
+    static var openAppWhenRun: Bool {
+        true
+    }
+
+    /// The account to switch to first (its UUID string), when the button was
+    /// configured to seed from a favourite question; nil creates a blank pad in the
+    /// current account. The seed question's id travels alongside it.
+    @Parameter(title: "Account")
+    var account: String?
+
+    @Parameter(title: "Question")
+    var question: Int?
+
+    init() {}
+
+    init(account: String?, question: Int?) {
+        self.account = account
+        self.question = question
+    }
+
+    func perform() async throws -> some IntentResult {
+        WidgetSharedStore.requestNewPad(account: account, question: question)
+        return .result()
+    }
+}

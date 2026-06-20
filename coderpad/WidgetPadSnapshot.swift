@@ -45,6 +45,14 @@ nonisolated struct WidgetQuestion: Codable, Identifiable, Hashable {
     let title: String
 }
 
+/// A pending "create a new pad" request the widget/Control Center New Pad button
+/// records for the app to perform on its next activation (the widget can't open the
+/// app's custom URL scheme, #456/#485). Kept in lock-step with the widget's copy.
+nonisolated struct WidgetNewPadRequest: Codable {
+    let account: String?
+    let question: Int?
+}
+
 /// Writes the recent-pads snapshots into the App Group container shared with the
 /// widget (the widget reads them back through its own parallel `WidgetSharedStore`
 /// in `RecentPadsWidget/WidgetSharedSnapshot.swift`). All members are `nonisolated`
@@ -62,6 +70,7 @@ nonisolated enum WidgetSharedStore {
 
     private static let defaultPadsFile = "recent-pads.json"
     private static let accountsFile = "widget-accounts.json"
+    private static let newPadRequestFile = "pending-new-pad.json"
 
     /// File holding `account`'s pads, or the default (current-account) snapshot when
     /// `account` is nil — the file an unconfigured widget reads.
@@ -105,6 +114,15 @@ nonisolated enum WidgetSharedStore {
               let data = try? JSONEncoder().encode(favorites) else { return }
 
         try? data.write(to: url, options: .atomic)
+    }
+
+    /// Returns and clears any pending New Pad request the widget/Control Center button
+    /// recorded, so the app performs it once on activation. Nil when none is pending.
+    static func takePendingNewPad() -> WidgetNewPadRequest? {
+        guard let url = fileURL(newPadRequestFile), let data = try? Data(contentsOf: url) else { return nil }
+
+        try? FileManager.default.removeItem(at: url)
+        return try? JSONDecoder().decode(WidgetNewPadRequest.self, from: data)
     }
 
     /// Removes a removed account's per-account snapshot and favourites so they stop

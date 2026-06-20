@@ -47,6 +47,33 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSUpdateDynamicServices()
     }
 
+    /// Perform any New Pad request the widget or Control Center button recorded. They
+    /// can't open the app's custom URL scheme (`OpenURLIntent` is https-only) or use a
+    /// `Link` on the small widget, so `CreatePadIntent` writes the request to the App
+    /// Group and brings the app forward; this consumes it once the app is active
+    /// (#456, #485). Reading on activation (rather than via `onOpenURL`) also covers a
+    /// cold launch, since the app activates after launching.
+    func applicationDidBecomeActive(_: Notification) {
+        guard let request = WidgetSharedStore.takePendingNewPad() else { return }
+
+        Self.routeNewPad(account: request.account, question: request.question)
+    }
+
+    /// Switches to the requested account (if any) and opens the Pads create sheet — the
+    /// shared destination of the `coderpad://new-pad` deep link and the widget/Control
+    /// Center New Pad button. An account is honoured only when it still exists; the
+    /// seeded question id is only unique within its owning org, so the account switch
+    /// must happen first.
+    @MainActor
+    static func routeNewPad(account: String?, question: Int?) {
+        if let account, let uuid = UUID(uuidString: account),
+           AccountsStore.shared.accounts.contains(where: { $0.id == uuid }) {
+            AccountsStore.shared.showAllAccounts = false
+            AccountsStore.shared.currentAccountID = uuid
+        }
+        AppNavigation.shared.showPads(PadsRequest(startCreating: true, seedQuestionID: question))
+    }
+
     /// The menu shown when right-clicking the Dock icon. Offers the same quick
     /// actions as the app's New menu, routed through the app's own `coderpad://`
     /// deep links so they work — and reopen the main window — whether or not a
@@ -326,22 +353,16 @@ struct CoderpadApp: App {
             AppNavigation.shared.show(.questions)
 
         case "new-pad":
-            // Backs the "New Pad" control (Control Center / menu bar), the Dock menu,
-            // and the widget button: switch to Pads and open the create sheet, the
-            // same flow as ⌘N. The widget button may also pin an account and seed a
-            // favourite question; switch to that account first (so the seeded id,
-            // which is only unique within its org, resolves against the right account)
-            // then queue the seed for the create sheet.
+            // Backs the Dock menu's New Pad item (the widget and Control Center buttons
+            // now route through `CreatePadIntent`/`applicationDidBecomeActive` instead,
+            // since they can't open this custom scheme). Switch to Pads and open the
+            // create sheet, the same flow as ⌘N — optionally pinning an account and
+            // seeding a favourite question, via the shared `routeNewPad`.
             let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-            if let accountID = components?.queryItems?.first(where: { $0.name == "account" })?.value,
-               let uuid = UUID(uuidString: accountID),
-               AccountsStore.shared.accounts.contains(where: { $0.id == uuid }) {
-                AccountsStore.shared.showAllAccounts = false
-                AccountsStore.shared.currentAccountID = uuid
-            }
+            let account = components?.queryItems?.first(where: { $0.name == "account" })?.value
             let seedQuestionID = components?.queryItems?
                 .first(where: { $0.name == "question" })?.value.flatMap(Int.init)
-            AppNavigation.shared.showPads(PadsRequest(startCreating: true, seedQuestionID: seedQuestionID))
+            AppDelegate.routeNewPad(account: account, question: seedQuestionID)
 
         case "new-question":
             AppNavigation.shared.showQuestions(QuestionsRequest(startCreating: true))
