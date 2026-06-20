@@ -196,7 +196,7 @@ struct MainSplit: View {
 
     /// The window/toolbar title, driven by the visible section so it reads like
     /// Mail's current-mailbox title ("Pads", "Questions", …) instead of falling
-    /// back to the "CoderPad" scene name when nothing is selected.
+    /// back to the "PadBuddy" scene name when nothing is selected.
     var sectionTitle: String {
         switch section {
         case .pads: String(localized: "Pads")

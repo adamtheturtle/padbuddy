@@ -7,7 +7,7 @@
 #   scripts/generate-appcast.sh <tag> [<update-archive>]
 #
 # <tag> is the release tag (e.g. v1.2.3). <update-archive> defaults to the
-# coderpad-<tag>.dmg / .zip produced earlier in the release workflow.
+# padbuddy-<tag>.dmg / .zip produced earlier in the release workflow.
 #
 # Required environment:
 #   SPARKLE_PRIVATE_ED_KEY   The EdDSA private key string printed by Sparkle's
@@ -37,7 +37,7 @@ TAG="${1:-}"
 
 ARCHIVE="${2:-}"
 if [ -z "$ARCHIVE" ]; then
-    for candidate in "coderpad-${TAG}.dmg" "coderpad-${TAG}.zip"; do
+    for candidate in "padbuddy-${TAG}.dmg" "padbuddy-${TAG}.zip"; do
         [ -f "$candidate" ] && ARCHIVE="$candidate" && break
     done
 fi

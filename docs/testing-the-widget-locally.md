@@ -22,8 +22,8 @@ your own Mac.
 Confirm the teams match before swapping:
 
 ```sh
-codesign -dvv <new>/CoderPad.app 2>&1 | grep TeamIdentifier        # 6L9H6Q8CUF
-codesign -dvv /Applications/CoderPad.app 2>&1 | grep TeamIdentifier # 6L9H6Q8CUF
+codesign -dvv <new>/PadBuddy.app 2>&1 | grep TeamIdentifier        # 6L9H6Q8CUF
+codesign -dvv /Applications/PadBuddy.app 2>&1 | grep TeamIdentifier # 6L9H6Q8CUF
 ```
 
 ## Procedure
@@ -33,20 +33,20 @@ codesign -dvv /Applications/CoderPad.app 2>&1 | grep TeamIdentifier # 6L9H6Q8CUF
 xcodebuild -project coderpad.xcodeproj -scheme coderpad \
   -configuration Release -derivedDataPath /tmp/cp-rel \
   build CODE_SIGN_STYLE=Automatic
-NEW=/tmp/cp-rel/Build/Products/Release/CoderPad.app
+NEW=/tmp/cp-rel/Build/Products/Release/PadBuddy.app
 
 # 2. Quit the running copy and its widget extension
-osascript -e 'quit app "CoderPad"' || true
-killall CoderPad RecentPadsWidgetExtension 2>/dev/null || true
+osascript -e 'quit app "PadBuddy"' || true
+killall PadBuddy RecentPadsWidgetExtension 2>/dev/null || true
 
 # 3. Back up and replace the installed app (keeps the App Group container)
-cp -R /Applications/CoderPad.app "/Applications/CoderPad backup.app"
-rm -rf /Applications/CoderPad.app
-cp -R "$NEW" /Applications/CoderPad.app
+cp -R /Applications/PadBuddy.app "/Applications/PadBuddy backup.app"
+rm -rf /Applications/PadBuddy.app
+cp -R "$NEW" /Applications/PadBuddy.app
 
 # 4. Re-register with LaunchServices and launch (repopulates the App Group)
-/System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister -f /Applications/CoderPad.app
-open /Applications/CoderPad.app
+/System/Library/Frameworks/CoreServices.framework/Versions/Current/Frameworks/LaunchServices.framework/Versions/Current/Support/lsregister -f /Applications/PadBuddy.app
+open /Applications/PadBuddy.app
 ```
 
 ## Force the widget to re-render
@@ -55,7 +55,7 @@ WidgetKit caches the previous render and may keep serving the **old extension
 binary**, so after installing:
 
 1. Open **Edit Widgets** / Notification Center.
-2. **Remove** the CoderPad widgets, then **re-add** them — this picks up the new
+2. **Remove** the PadBuddy widgets, then **re-add** them — this picks up the new
    extension. (`killall chronod` also nudges it.)
 
 ## Caveats

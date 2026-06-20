@@ -112,7 +112,7 @@ enum CoderPadLinks {
         components.scheme = "mailto"
         components.path = feedbackEmail
         components.queryItems = [
-            URLQueryItem(name: "subject", value: "CoderPad for Mac feedback"),
+            URLQueryItem(name: "subject", value: "PadBuddy for Mac feedback"),
             URLQueryItem(name: "body", value: body)
         ]
         if let url = components.url {

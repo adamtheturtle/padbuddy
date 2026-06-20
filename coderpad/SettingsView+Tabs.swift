@@ -34,7 +34,7 @@ extension SettingsView {
             }
 
             Section {
-                Picker("Show CoderPad in", selection: $presence) {
+                Picker("Show PadBuddy in", selection: $presence) {
                     ForEach(AppPresence.allCases) { mode in
                         Text(mode.label).tag(mode)
                     }
@@ -94,7 +94,7 @@ extension SettingsView {
                         if isOn { PadUpdateNotifier.shared.requestAuthorization() }
                     }
             } footer: {
-                Text("Alerts when pads gain activity while CoderPad is in the background.")
+                Text("Alerts when pads gain activity while PadBuddy is in the background.")
                     .foregroundStyle(.secondary)
             }
 

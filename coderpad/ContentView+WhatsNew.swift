@@ -80,7 +80,7 @@ struct WhatsNewSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("What's New in CoderPad").font(.title2.bold())
+                Text("What's New in PadBuddy").font(.title2.bold())
                     .accessibilityAddTraits(.isHeader)
                 Text("Version \(release.version)")
                     .font(.callout).foregroundStyle(.secondary)

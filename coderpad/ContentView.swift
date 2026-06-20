@@ -142,7 +142,7 @@ struct ContentView: View {
     private var noAccountView: some View {
         if store.accounts.isEmpty {
             ContentUnavailableView {
-                Label("Welcome to CoderPad", systemImage: "doc.text.magnifyingglass")
+                Label("Welcome to PadBuddy", systemImage: "doc.text.magnifyingglass")
             } actions: {
                 Button("Add Account") { addingAccount = Account(name: "", apiKey: "") }
                     .prominentGlassButtonStyle()

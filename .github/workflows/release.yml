@@ -81,9 +81,9 @@ jobs:
       - name: Locate built app
         id: app
         run: |
-          # Match by extension, not a hard-coded name: the product is CoderPad.app
-          # (PRODUCT_NAME=CoderPad), and `find -name` is case-sensitive even on a
-          # case-insensitive filesystem, so 'coderpad.app' would never match.
+          # Match by extension, not a hard-coded name: the product is PadBuddy.app
+          # (PRODUCT_NAME=PadBuddy), and matching `*.app` keeps this robust to any
+          # future product-name change without a case-sensitivity foot-gun.
           APP="$(find DerivedData/Build/Products/Release -maxdepth 1 -name '*.app' -print -quit)"
           test -n "$APP" || { echo "Built app not found"; exit 1; }
           echo "path=$APP" >> "$GITHUB_OUTPUT"
@@ -125,7 +125,7 @@ jobs:
         run: |
           ./scripts/package-and-notarize.sh \
             "${{ steps.app.outputs.path }}" \
-            "coderpad-${GITHUB_REF_NAME}.dmg"
+            "padbuddy-${GITHUB_REF_NAME}.dmg"
 
       # --- Fallback path: ad-hoc/unsigned .zip (when secrets absent) ---------
 
@@ -133,7 +133,7 @@ jobs:
         if: env.SIGNING_AVAILABLE != 'true'
         run: |
           ditto -c -k --sequesterRsrc --keepParent \
-            "${{ steps.app.outputs.path }}" "coderpad-${GITHUB_REF_NAME}.zip"
+            "${{ steps.app.outputs.path }}" "padbuddy-${GITHUB_REF_NAME}.zip"
 
       # --- Sparkle appcast (when the EdDSA signing key is configured) -------
 
@@ -162,7 +162,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           ASSETS=()
-          for f in "coderpad-${GITHUB_REF_NAME}.dmg" "coderpad-${GITHUB_REF_NAME}.zip" "appcast.xml"; do
+          for f in "padbuddy-${GITHUB_REF_NAME}.dmg" "padbuddy-${GITHUB_REF_NAME}.zip" "appcast.xml"; do
             [ -f "$f" ] && ASSETS+=("$f")
           done
           if [ -n "$RELEASES_REPO_TOKEN" ]; then

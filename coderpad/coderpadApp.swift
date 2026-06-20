@@ -17,7 +17,7 @@ func showAboutPanel() {
     let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
     AppActivator.bringToFront()
     NSApp.orderFrontStandardAboutPanel(options: [
-        NSApplication.AboutPanelOptionKey.applicationName: "CoderPad",
+        NSApplication.AboutPanelOptionKey.applicationName: "PadBuddy",
         NSApplication.AboutPanelOptionKey.applicationVersion: version,
         NSApplication.AboutPanelOptionKey.version: "Build \(build)",
         NSApplication.AboutPanelOptionKey(rawValue: "Copyright"): copyrightLine
@@ -137,7 +137,7 @@ struct CoderpadApp: App {
         // Window" — focuses the existing window instead of spawning a duplicate (#459).
         // The app still survives closing it (windowless menu-bar mode) because
         // `applicationShouldTerminateAfterLastWindowClosed` returns false.
-        Window("CoderPad", id: "main") {
+        Window("PadBuddy", id: "main") {
             ContentView()
                 // Width floor is owned by `MainSplit`, derived from the live column
                 // minimums (and enforced via the sidebar's auto-collapse) rather
@@ -281,7 +281,7 @@ struct CoderpadApp: App {
     @CommandsBuilder
     private var appCommands: some Commands {
         CommandGroup(replacing: .appInfo) {
-            Button("About CoderPad") { showAbout() }
+            Button("About PadBuddy") { showAbout() }
         }
         // "Check for Updates…" sits just below About, its conventional home. The
         // item only appears once the Sparkle package is linked (#28); without it

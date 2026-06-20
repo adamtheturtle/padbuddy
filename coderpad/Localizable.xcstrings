@@ -910,6 +910,9 @@
         }
       }
     },
+    "About PadBuddy" : {
+
+    },
     "Account" : {
       "localizations" : {
         "es" : {
@@ -1087,12 +1090,12 @@
         }
       }
     },
-    "Alerts when pads gain activity while CoderPad is in the background." : {
+    "Alerts when pads gain activity while PadBuddy is in the background." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "Te avisa cuando los pads tienen actividad mientras CoderPad está en segundo plano."
+            "value" : "Te avisa cuando los pads tienen actividad mientras PadBuddy está en segundo plano."
           }
         }
       }
@@ -4119,26 +4122,6 @@
         }
       }
     },
-    "Open CoderPad and search pads matching a query." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Abre CoderPad y busca pads que coincidan con una consulta."
-          }
-        }
-      }
-    },
-    "Open CoderPad and start creating a new pad." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Abre CoderPad y empieza a crear un nuevo pad."
-          }
-        }
-      }
-    },
     "Open in Browser" : {
       "localizations" : {
         "es" : {
@@ -4265,6 +4248,26 @@
         }
       }
     },
+    "Open PadBuddy and search pads matching a query." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Abre PadBuddy y busca pads que coincidan con una consulta."
+          }
+        }
+      }
+    },
+    "Open PadBuddy and start creating a new pad." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Abre PadBuddy y empieza a crear un nuevo pad."
+          }
+        }
+      }
+    },
     "Open Pads" : {
       "localizations" : {
         "es" : {
@@ -4338,12 +4341,12 @@
         }
       }
     },
-    "Open the Pads list in CoderPad." : {
+    "Open the Pads list in PadBuddy." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "Abre la lista de Pads en CoderPad."
+            "value" : "Abre la lista de Pads en PadBuddy."
           }
         }
       }
@@ -4548,6 +4551,9 @@
           }
         }
       }
+    },
+    "PadBuddy" : {
+
     },
     "Pads" : {
       "localizations" : {
@@ -5425,16 +5431,6 @@
     "Show Archived" : {
 
     },
-    "Show CoderPad in" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Mostrar CoderPad en"
-          }
-        }
-      }
-    },
     "Show Detail Pane" : {
       "localizations" : {
         "es" : {
@@ -5492,6 +5488,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Mostrar u ocultar la barra lateral"
+          }
+        }
+      }
+    },
+    "Show PadBuddy in" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mostrar PadBuddy en"
           }
         }
       }
@@ -6547,12 +6553,12 @@
     "Webhook URL" : {
 
     },
-    "Welcome to CoderPad" : {
+    "Welcome to PadBuddy" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "Te damos la bienvenida a CoderPad"
+            "value" : "Te damos la bienvenida a PadBuddy"
           }
         }
       }
@@ -6567,12 +6573,12 @@
         }
       }
     },
-    "What's New in CoderPad" : {
+    "What's New in PadBuddy" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "Novedades de CoderPad"
+            "value" : "Novedades de PadBuddy"
           }
         }
       }

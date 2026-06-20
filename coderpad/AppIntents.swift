@@ -62,7 +62,7 @@ struct SearchPadsIntent: AppIntent {
     static let title: LocalizedStringResource = "Search Pads"
     // Read by the AppIntents framework (Shortcuts metadata), not Swift.
     // periphery:ignore
-    static let description = IntentDescription("Open CoderPad and search pads matching a query.")
+    static let description = IntentDescription("Open PadBuddy and search pads matching a query.")
     static let openAppWhenRun: Bool = true
 
     @Parameter(title: "Query", description: "Text to search pad titles, owners, and participants for.")
@@ -82,7 +82,7 @@ struct NewPadIntent: AppIntent {
     static let title: LocalizedStringResource = "New Pad"
     // Read by the AppIntents framework (Shortcuts metadata), not Swift.
     // periphery:ignore
-    static let description = IntentDescription("Open CoderPad and start creating a new pad.")
+    static let description = IntentDescription("Open PadBuddy and start creating a new pad.")
     static let openAppWhenRun: Bool = true
 
     func perform() async -> some IntentResult {
@@ -98,7 +98,7 @@ struct OpenPadsIntent: AppIntent {
     static let title: LocalizedStringResource = "Open Pads"
     // Read by the AppIntents framework (Shortcuts metadata), not Swift.
     // periphery:ignore
-    static let description = IntentDescription("Open the Pads list in CoderPad.")
+    static let description = IntentDescription("Open the Pads list in PadBuddy.")
     static let openAppWhenRun: Bool = true
 
     func perform() async -> some IntentResult {
