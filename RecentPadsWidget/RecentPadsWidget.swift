@@ -7,6 +7,7 @@
 //
 
 import AppIntents
+import AppKit
 import SwiftUI
 import WidgetKit
 
@@ -83,12 +84,16 @@ struct RecentPadsWidget: Widget {
                                intent: RecentPadsConfigurationIntent.self,
                                provider: RecentPadsProvider()) { entry in
             RecentPadsWidgetEntryView(entry: entry)
-                // `.fill.tertiary` rather than `.background`: the `BackgroundStyle`
-                // (`.background`) resolved to an opaque black fill on the systemSmall and
-                // systemLarge tiles (medium rendered fine with identical code), the known
-                // "black widget" failure mode. `.fill.tertiary` is Apple's recommended
-                // widget container background and fills every family consistently (#456).
-                .containerBackground(.fill.tertiary, for: .widget)
+                // An explicit opaque grey, NOT `.background`/`.fill.tertiary`: the
+                // semantic `BackgroundStyle` (`.background`) resolved to opaque black on
+                // the systemSmall/systemLarge tiles (medium rendered fine with identical
+                // code), and the translucent `.fill.tertiary` read as near-black over the
+                // tile's black base. `windowBackgroundColor` is a solid, scheme-adaptive
+                // grey (dark-grey in dark mode, light-grey in light) that fills every
+                // family consistently (#456).
+                .containerBackground(for: .widget) {
+                    Color(nsColor: .windowBackgroundColor)
+                }
         }
         .configurationDisplayName("Recent Pads")
         .description("Your most recently updated CoderPad pads.")
