@@ -159,10 +159,12 @@ struct AppearancePicker: View {
 
     private func tile(_ option: AppAppearance) -> some View {
         let isSelected = selection == option
-        return VStack(spacing: 6) {
-            Button {
-                selection = option
-            } label: {
+        // The whole tile — swatch *and* the radio/label beneath it — is one button,
+        // so clicking the circle under the picture selects the option too (#493).
+        return Button {
+            selection = option
+        } label: {
+            VStack(spacing: 6) {
                 AppearanceSwatch(appearance: option)
                     .frame(width: 104, height: 64)
                     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
@@ -171,16 +173,19 @@ struct AppearancePicker: View {
                             .stroke(isSelected ? Color.accentColor : Color.subtleStroke,
                                     lineWidth: isSelected ? 3 : 1)
                     )
+                Label {
+                    Text(option.label).font(.callout)
+                } icon: {
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                }
+                .foregroundStyle(isSelected ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
+                .font(.callout)
             }
-            .buttonStyle(.plain)
-            Label {
-                Text(option.label).font(.callout)
-            } icon: {
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-            }
-            .foregroundStyle(isSelected ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
-            .font(.callout)
+            // Keep the whole tile area hit-testable, including the gap between
+            // the swatch and the label.
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(option.label)
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
