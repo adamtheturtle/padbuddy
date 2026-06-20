@@ -2,13 +2,20 @@
 //  DesignSystemRenderTests.swift
 //  coderpadTests
 //
-//  Render ("snapshot") coverage for the design-system primitives. Rather than
-//  pixel-comparing against committed reference images — which are fragile across
-//  OS/font-rendering changes and need recording/maintenance — these use SwiftUI's
-//  built-in `ImageRenderer` to confirm each primitive rasterizes to a valid,
-//  non-zero image. That guards against the common regressions (a primitive that
-//  crashes when rendered, or collapses to zero size) with no third-party
-//  dependency and nothing to keep in sync.
+//  Render ("snapshot") coverage for the app-coupled design-system primitives.
+//  Rather than pixel-comparing against committed reference images — which are
+//  fragile across OS/font-rendering changes and need recording/maintenance —
+//  these use SwiftUI's built-in `ImageRenderer` to confirm each primitive
+//  rasterizes to a valid, non-zero image. That guards against the common
+//  regressions (a primitive that crashes when rendered, or collapses to zero
+//  size) with no third-party dependency and nothing to keep in sync.
+//
+//  The generic primitives (Card, DetailSection, SectionHeader, LabeledRow,
+//  StatTile, Chip, MetaLabel, the label/tint/symbol AvatarCircle) now live in the
+//  CoderPadDesignSystem package and are covered by its own RenderTests (#377).
+//  This file keeps the app-coupled cases: StateBadge (on PadState), the
+//  AvatarCircle(account:) convenience, the account/appearance pickers, the
+//  interview-type chips, the pad row, and the print documents.
 //
 
 @testable import CoderPad
@@ -39,13 +46,9 @@ struct DesignSystemRenderTests {
         }
     }
 
-    @Test func `avatar circle renders`() {
-        expectRenders(AvatarCircle(label: "Jane Doe"), "AvatarCircle with a name")
-        // Empty label falls back to "?" — still must render.
-        expectRenders(AvatarCircle(label: ""), "AvatarCircle with empty label")
-        // The symbol + tint variant (custom account icon) must also rasterize.
-        expectRenders(AvatarCircle(label: "Acme", tint: .orange, symbol: "star.fill"),
-                      "AvatarCircle with symbol")
+    @Test func `avatar circle from account renders`() {
+        // The base AvatarCircle variants are covered in the package's RenderTests;
+        // here we exercise the app-side `AvatarCircle(account:)` convenience.
         expectRenders(AvatarCircle(account: Account(name: "Acme", apiKey: "k",
                                                     iconSymbol: "briefcase.fill", tintHex: "#FF8800")),
                       "AvatarCircle from account")
@@ -65,12 +68,6 @@ struct DesignSystemRenderTests {
                       "AccountTintPicker with a selection")
     }
 
-    @Test func `chip renders`() {
-        expectRenders(Chip(text: "Python", systemImage: "chevron.left.slash.chevron.right"),
-                      "Chip with icon")
-        expectRenders(Chip(text: "No icon"), "Chip without icon")
-    }
-
     @Test func `appearance picker renders for every selection`() {
         for option in AppAppearance.allCases {
             expectRenders(AppearancePicker(selection: .constant(option)),
@@ -78,58 +75,10 @@ struct DesignSystemRenderTests {
         }
     }
 
-    @Test func `meta label renders`() {
-        expectRenders(MetaLabel(text: "Cursor", systemImage: "person.crop.circle"),
-                      "MetaLabel with icon")
-        expectRenders(MetaLabel(text: "Python"), "MetaLabel without icon")
-    }
-
     @Test func `interview type chips render`() {
         for type in InterviewType.allCases {
             expectRenders(type.chip, "InterviewType.\(type.rawValue).chip")
         }
-    }
-
-    @Test func `card renders`() {
-        expectRenders(Card { Text("Body") }, "Card wrapping content")
-    }
-
-    @Test func `detail section renders`() {
-        expectRenders(
-            DetailSection(title: "Details", systemImage: "info.circle") {
-                LabeledRow(label: "Created", value: "1 Jan 2026").frame(width: 240)
-            },
-            "DetailSection without trailing"
-        )
-        expectRenders(
-            DetailSection(title: "Events", systemImage: "list.bullet.rectangle") {
-                ProgressView().controlSize(.small)
-            } content: {
-                Text("No events yet.")
-            }
-            .frame(width: 240),
-            "DetailSection with trailing accessory"
-        )
-    }
-
-    @Test func `section header renders`() {
-        expectRenders(SectionHeader(title: "Pads", systemImage: "doc.text"), "SectionHeader with icon")
-        expectRenders(SectionHeader(title: "Pads"), "SectionHeader without icon")
-    }
-
-    @Test func `labeled row renders`() {
-        expectRenders(LabeledRow(label: "Pad ID", value: "DEMOABC1").frame(width: 240),
-                      "LabeledRow")
-        expectRenders(LabeledRow(label: "URL", value: "https://app.coderpad.io/x", monospaced: true)
-            .frame(width: 240),
-            "LabeledRow monospaced")
-    }
-
-    @Test func `stat tile renders`() {
-        // StatTile fills the available width, so give it a width to size against.
-        expectRenders(StatTile(title: "Pads created", value: "42", systemImage: "doc.text")
-            .frame(width: 200),
-            "StatTile")
     }
 
     @Test func `pad row renders`() throws {

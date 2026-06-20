@@ -34,6 +34,16 @@ let package = Package(
                 .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
                 .enableUpcomingFeature("InferIsolatedConformances")
             ]
+        ),
+        .testTarget(
+            name: "CoderPadDesignSystemTests",
+            dependencies: ["CoderPadDesignSystem"],
+            swiftSettings: [
+                .swiftLanguageMode(.v6),
+                .defaultIsolation(MainActor.self),
+                .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
+                .enableUpcomingFeature("InferIsolatedConformances")
+            ]
         )
     ]
 )
