@@ -83,7 +83,12 @@ struct RecentPadsWidget: Widget {
                                intent: RecentPadsConfigurationIntent.self,
                                provider: RecentPadsProvider()) { entry in
             RecentPadsWidgetEntryView(entry: entry)
-                .containerBackground(.background, for: .widget)
+                // `.fill.tertiary` rather than `.background`: the `BackgroundStyle`
+                // (`.background`) resolved to an opaque black fill on the systemSmall and
+                // systemLarge tiles (medium rendered fine with identical code), the known
+                // "black widget" failure mode. `.fill.tertiary` is Apple's recommended
+                // widget container background and fills every family consistently (#456).
+                .containerBackground(.fill.tertiary, for: .widget)
         }
         .configurationDisplayName("Recent Pads")
         .description("Your most recently updated CoderPad pads.")
