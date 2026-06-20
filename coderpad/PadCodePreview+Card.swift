@@ -88,7 +88,13 @@ extension EnvironmentCodeCard {
             .padding(6)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(width: CGFloat(storedWidth))
+        // A determinate height that matches the code viewport beside it. Without it
+        // this vertical scroll is unbounded vertically *inside the detail pane's own
+        // vertical scroll* — for a project with many files the sidebar drives the row
+        // taller and the two vertical scrolls renegotiate combinatorially, the same
+        // main-thread hang as the code view (#494). Pinning it keeps the file list
+        // independently scrollable within a fixed row.
+        .frame(width: CGFloat(storedWidth), height: 360)
     }
 
     /// The draggable divider between the file list and the code. It draws the

@@ -319,7 +319,16 @@ struct HighlightedCode: View, Equatable {
                 .padding(.vertical, 8)
         }
         .defaultScrollAnchor(.topLeading)
-        .frame(maxWidth: .infinity, maxHeight: 360, alignment: .topLeading)
+        // A *determinate* height, not `maxHeight: 360`. This scroll is vertical and
+        // lives inside the detail pane's own vertical scroll; a flexible `maxHeight`
+        // range made the outer scroll re-measure this view's full (un-clamped) content
+        // height on every layout probe to decide where in 0...360 it should land —
+        // re-running CoreText text measurement combinatorially and beachballing the
+        // main thread (#494). Pinning the height gives the nested scroll an unambiguous
+        // size, so the outer scroll never renegotiates it; the code still scrolls in
+        // both axes within this fixed viewport.
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .frame(height: 360)
         // Re-run only when the inputs change; a same-id task isn't restarted, so
         // an unrelated re-render won't re-highlight.
         .task(id: HighlightInput(contents: contents, language: language, dark: dark)) {
