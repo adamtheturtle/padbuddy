@@ -45,6 +45,7 @@
       }
     },
     "(empty)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -214,6 +215,18 @@
         }
       }
     },
+    "%lld campaign" : {
+
+    },
+    "%lld campaigns" : {
+
+    },
+    "%lld candidate" : {
+
+    },
+    "%lld candidates" : {
+
+    },
     "%lld interviews ended" : {
       "localizations" : {
         "es" : {
@@ -317,6 +330,7 @@
       }
     },
     "%lld of %lld pads remaining" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -647,6 +661,7 @@
       }
     },
     "%lld pads remaining" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "variations" : {
@@ -669,6 +684,7 @@
       }
     },
     "%lld pads used" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "variations" : {
@@ -787,6 +803,7 @@
       }
     },
     "%lld updated" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "variations" : {
@@ -844,6 +861,9 @@
         }
       }
     },
+    "• %@" : {
+
+    },
     "⌘⇧N New Question, ⌘⌥C Copy Pad URL, ⌘↩ Open Pad in Browser." : {
       "localizations" : {
         "es" : {
@@ -873,6 +893,9 @@
           }
         }
       }
+    },
+    "Aborted" : {
+
     },
     "About CoderPad" : {
       "localizations" : {
@@ -1042,6 +1065,9 @@
         }
       }
     },
+    "Add or manage accounts in Settings" : {
+
+    },
     "Add to Favorites" : {
       "localizations" : {
         "en-GB" : {
@@ -1097,6 +1123,15 @@
           }
         }
       }
+    },
+    "All Statuses" : {
+
+    },
+    "All time" : {
+
+    },
+    "Anonymized" : {
+
     },
     "Any time" : {
       "localizations" : {
@@ -1157,6 +1192,9 @@
           }
         }
       }
+    },
+    "Archived" : {
+
     },
     "as spectator" : {
       "localizations" : {
@@ -1264,6 +1302,15 @@
         }
       }
     },
+    "By technology" : {
+
+    },
+    "Campaigns" : {
+
+    },
+    "Campaigns and test sessions will appear here." : {
+
+    },
     "Cancel" : {
       "localizations" : {
         "es" : {
@@ -1274,6 +1321,12 @@
         }
       }
     },
+    "Cancel Invitation" : {
+
+    },
+    "Cancelled" : {
+
+    },
     "Candidate" : {
       "localizations" : {
         "es" : {
@@ -1283,6 +1336,9 @@
           }
         }
       }
+    },
+    "Candidate email" : {
+
     },
     "Candidate instructions" : {
       "localizations" : {
@@ -1303,6 +1359,15 @@
           }
         }
       }
+    },
+    "Candidate link" : {
+
+    },
+    "Candidate name" : {
+
+    },
+    "candidate@example.com" : {
+
     },
     "Candidates" : {
       "localizations" : {
@@ -1333,6 +1398,9 @@
           }
         }
       }
+    },
+    "Choose what the exported PDF report includes." : {
+
     },
     "Clear" : {
       "localizations" : {
@@ -1546,6 +1614,12 @@
         }
       }
     },
+    "CoderPad Screen" : {
+
+    },
+    "CoderPad Screen sends test-session events (started, completed, …) to this URL." : {
+
+    },
     "CoderPad, %lld unseen pad %@" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1616,6 +1690,15 @@
           }
         }
       }
+    },
+    "Comma-separated (optional)" : {
+
+    },
+    "Completed" : {
+
+    },
+    "Completed %@" : {
+
     },
     "Continue" : {
       "localizations" : {
@@ -1690,6 +1773,12 @@
           }
         }
       }
+    },
+    "Copy Link" : {
+
+    },
+    "Copy Name" : {
+
     },
     "Copy Pad ID" : {
       "localizations" : {
@@ -1771,6 +1860,9 @@
         }
       }
     },
+    "Couldn't complete that action" : {
+
+    },
     "Couldn’t create pad" : {
       "localizations" : {
         "es" : {
@@ -1811,6 +1903,12 @@
         }
       }
     },
+    "Couldn't load campaigns" : {
+
+    },
+    "Couldn't load test sessions" : {
+
+    },
     "Couldn’t load this pad" : {
       "localizations" : {
         "es" : {
@@ -1830,6 +1928,9 @@
           }
         }
       }
+    },
+    "Couldn't open the report" : {
+
     },
     "Couldn't reach CoderPad. Check your connection and try again." : {
       "localizations" : {
@@ -2031,6 +2132,9 @@
           }
         }
       }
+    },
+    "Date Range" : {
+
     },
     "Default" : {
       "localizations" : {
@@ -2274,6 +2378,9 @@
         }
       }
     },
+    "Delete Test Session" : {
+
+    },
     "Delete this account?" : {
       "localizations" : {
         "es" : {
@@ -2303,6 +2410,9 @@
           }
         }
       }
+    },
+    "Delete this test session?" : {
+
     },
     "Delete…" : {
       "localizations" : {
@@ -2414,6 +2524,9 @@
         }
       }
     },
+    "Done" : {
+
+    },
     "Download all files as a folder" : {
       "localizations" : {
         "es" : {
@@ -2495,6 +2608,7 @@
       }
     },
     "Drag pads here." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2516,6 +2630,7 @@
       }
     },
     "Drag questions here." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2524,6 +2639,9 @@
           }
         }
       }
+    },
+    "Duration" : {
+
     },
     "e.g. active Python pads from my team" : {
       "localizations" : {
@@ -2594,6 +2712,9 @@
           }
         }
       }
+    },
+    "Email the candidate an invitation" : {
+
     },
     "Empty" : {
       "localizations" : {
@@ -2674,6 +2795,12 @@
           }
         }
       }
+    },
+    "Enter a valid https:// URL." : {
+
+    },
+    "Europe" : {
+
     },
     "Events" : {
       "localizations" : {
@@ -2826,6 +2953,9 @@
         }
       }
     },
+    "Fetch the candidate's report as a PDF." : {
+
+    },
     "Files" : {
       "localizations" : {
         "es" : {
@@ -2845,6 +2975,12 @@
           }
         }
       }
+    },
+    "Filter by Status" : {
+
+    },
+    "Filter test sessions by status." : {
+
     },
     "Find" : {
       "localizations" : {
@@ -2986,6 +3122,9 @@
         }
       }
     },
+    "Hide Screen API key" : {
+
+    },
     "Hide Sidebar" : {
       "localizations" : {
         "es" : {
@@ -3016,6 +3155,9 @@
         }
       }
     },
+    "Hide the Screen API key." : {
+
+    },
     "How often pads and questions reload in the background." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3037,6 +3179,9 @@
         }
       }
     },
+    "https://example.com/screen-hook" : {
+
+    },
     "Icon" : {
       "localizations" : {
         "es" : {
@@ -3057,6 +3202,9 @@
         }
       }
     },
+    "In Progress" : {
+
+    },
     "In-app browser" : {
       "localizations" : {
         "es" : {
@@ -3066,6 +3214,15 @@
           }
         }
       }
+    },
+    "Include archived campaigns in the list." : {
+
+    },
+    "Include comparative score" : {
+
+    },
+    "Include rank" : {
+
     },
     "Indexed on this Mac only. Pad titles can include candidate names." : {
       "localizations" : {
@@ -3106,6 +3263,21 @@
           }
         }
       }
+    },
+    "Invitation resent" : {
+
+    },
+    "Invitation Sent" : {
+
+    },
+    "Invite a candidate to this campaign." : {
+
+    },
+    "Invite Candidate" : {
+
+    },
+    "Invited" : {
+
     },
     "Key not authorized" : {
       "localizations" : {
@@ -3172,6 +3344,9 @@
           }
         }
       }
+    },
+    "Last activity" : {
+
     },
     "Last Updated" : {
       "localizations" : {
@@ -3350,7 +3525,17 @@
         }
       }
     },
+    "Manage accounts" : {
+
+    },
+    "Manage Accounts" : {
+
+    },
+    "Manage Accounts…" : {
+
+    },
     "Mark All as Seen" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3650,6 +3835,15 @@
         }
       }
     },
+    "No campaign matches your search." : {
+
+    },
+    "No campaigns" : {
+
+    },
+    "No candidate link was returned. The candidate was emailed their invitation." : {
+
+    },
     "No events yet." : {
       "localizations" : {
         "es" : {
@@ -3699,6 +3893,9 @@
           }
         }
       }
+    },
+    "No one has been invited to this campaign yet." : {
+
     },
     "No Pad" : {
       "localizations" : {
@@ -3770,6 +3967,15 @@
         }
       }
     },
+    "No report yet" : {
+
+    },
+    "No test session matches your filters." : {
+
+    },
+    "No test sessions" : {
+
+    },
     "None" : {
       "localizations" : {
         "es" : {
@@ -3779,6 +3985,9 @@
           }
         }
       }
+    },
+    "None of your Screen accounts could load campaigns." : {
+
     },
     "Nothing selected" : {
       "localizations" : {
@@ -3811,6 +4020,7 @@
       }
     },
     "Offline — read-only" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3819,6 +4029,9 @@
           }
         }
       }
+    },
+    "Offline (read-only)" : {
+
     },
     "OK" : {
       "localizations" : {
@@ -3859,6 +4072,9 @@
           }
         }
       }
+    },
+    "Only fetch test sessions active within a recent window." : {
+
     },
     "Open" : {
       "localizations" : {
@@ -3930,6 +4146,9 @@
         }
       }
     },
+    "Open in New Window" : {
+
+    },
     "Open in separate window" : {
       "localizations" : {
         "es" : {
@@ -3939,6 +4158,9 @@
           }
         }
       }
+    },
+    "Open Link" : {
+
     },
     "Open links" : {
       "localizations" : {
@@ -4060,6 +4282,9 @@
         }
       }
     },
+    "Open PDF" : {
+
+    },
     "Open Settings" : {
       "localizations" : {
         "es" : {
@@ -4160,6 +4385,12 @@
         }
       }
     },
+    "Optional: connect this account to CoderPad Screen (assessments)." : {
+
+    },
+    "Optional: connect this account to Screen assessments." : {
+
+    },
     "Order" : {
       "localizations" : {
         "es" : {
@@ -4221,6 +4452,9 @@
           }
         }
       }
+    },
+    "Overall score" : {
+
     },
     "Override only for self-hosted or regional CoderPad deployments. Leave blank to use the default." : {
       "localizations" : {
@@ -4392,6 +4626,9 @@
         }
       }
     },
+    "Paste your Screen API key" : {
+
+    },
     "Pending" : {
       "localizations" : {
         "es" : {
@@ -4412,6 +4649,9 @@
         }
       }
     },
+    "Pinned" : {
+
+    },
     "Plain text" : {
       "localizations" : {
         "es" : {
@@ -4431,6 +4671,9 @@
           }
         }
       }
+    },
+    "Points" : {
+
     },
     "Previous Section" : {
       "localizations" : {
@@ -4461,6 +4704,9 @@
           }
         }
       }
+    },
+    "Proctoring warnings" : {
+
     },
     "Project" : {
       "localizations" : {
@@ -4654,6 +4900,12 @@
         }
       }
     },
+    "Recruiter email" : {
+
+    },
+    "Region" : {
+
+    },
     "Reload" : {
       "localizations" : {
         "es" : {
@@ -4674,6 +4926,9 @@
         }
       }
     },
+    "Reload campaigns." : {
+
+    },
     "Reload page" : {
       "localizations" : {
         "es" : {
@@ -4683,6 +4938,9 @@
           }
         }
       }
+    },
+    "Reload test sessions." : {
+
     },
     "Reload Without Cache" : {
       "localizations" : {
@@ -4703,6 +4961,9 @@
           }
         }
       }
+    },
+    "Remove" : {
+
     },
     "Remove %@ from Favorites" : {
       "localizations" : {
@@ -4736,6 +4997,9 @@
         }
       }
     },
+    "Remove the webhook?" : {
+
+    },
     "Remove this account and its stored API key from this Mac." : {
       "localizations" : {
         "es" : {
@@ -4745,6 +5009,15 @@
           }
         }
       }
+    },
+    "Remove Webhook" : {
+
+    },
+    "Report" : {
+
+    },
+    "Report Options" : {
+
     },
     "Require Touch ID to reveal API keys" : {
       "localizations" : {
@@ -4757,6 +5030,7 @@
       }
     },
     "Required — pick which member you are to finish." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4765,6 +5039,12 @@
           }
         }
       }
+    },
+    "Required: pick which member you are to finish." : {
+
+    },
+    "Resend Invitation" : {
+
     },
     "Reset" : {
       "localizations" : {
@@ -4785,6 +5065,9 @@
           }
         }
       }
+    },
+    "Result notifications (optional)" : {
+
     },
     "Retry" : {
       "localizations" : {
@@ -4816,6 +5099,9 @@
         }
       }
     },
+    "Save PDF" : {
+
+    },
     "Save Search" : {
       "localizations" : {
         "es" : {
@@ -4846,6 +5132,27 @@
         }
       }
     },
+    "Score" : {
+
+    },
+    "Screen" : {
+
+    },
+    "Screen API Key" : {
+
+    },
+    "Screen Key" : {
+
+    },
+    "Screen key works." : {
+
+    },
+    "Screen Webhook" : {
+
+    },
+    "Screen will stop sending event callbacks until a new webhook is set." : {
+
+    },
     "Search %@" : {
       "localizations" : {
         "es" : {
@@ -4865,6 +5172,12 @@
           }
         }
       }
+    },
+    "Search campaigns" : {
+
+    },
+    "Search candidates" : {
+
     },
     "Search members" : {
       "localizations" : {
@@ -4936,6 +5249,9 @@
         }
       }
     },
+    "Select a campaign" : {
+
+    },
     "Select a pad" : {
       "localizations" : {
         "es" : {
@@ -4966,6 +5282,9 @@
         }
       }
     },
+    "Send" : {
+
+    },
     "Send Email" : {
       "localizations" : {
         "es" : {
@@ -4985,6 +5304,9 @@
           }
         }
       }
+    },
+    "Sent %@" : {
+
     },
     "Server URL" : {
       "localizations" : {
@@ -5057,6 +5379,7 @@
       }
     },
     "Share…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5095,6 +5418,9 @@
           }
         }
       }
+    },
+    "Show Archived" : {
+
     },
     "Show CoderPad in" : {
       "localizations" : {
@@ -5207,6 +5533,9 @@
         }
       }
     },
+    "Show Screen API key" : {
+
+    },
     "Show Sidebar" : {
       "localizations" : {
         "es" : {
@@ -5216,6 +5545,9 @@
           }
         }
       }
+    },
+    "Show Test Sessions" : {
+
     },
     "Show the API key." : {
       "localizations" : {
@@ -5236,6 +5568,9 @@
           }
         }
       }
+    },
+    "Show the Screen API key." : {
+
     },
     "Shows pads from %@" : {
       "localizations" : {
@@ -5356,6 +5691,9 @@
           }
         }
       }
+    },
+    "Started" : {
+
     },
     "Starter Code" : {
       "localizations" : {
@@ -5487,6 +5825,9 @@
         }
       }
     },
+    "Tags" : {
+
+    },
     "Take-home" : {
       "localizations" : {
         "es" : {
@@ -5537,6 +5878,12 @@
         }
       }
     },
+    "Test Session" : {
+
+    },
+    "Test Session Unavailable" : {
+
+    },
     "Text to search pad titles, owners, and participants for." : {
       "localizations" : {
         "es" : {
@@ -5566,6 +5913,9 @@
           }
         }
       }
+    },
+    "The candidate was emailed their invitation again." : {
+
     },
     "The marker shows where your usage would be if it tracked the billing cycle evenly." : {
       "localizations" : {
@@ -5597,6 +5947,9 @@
         }
       }
     },
+    "The scored report appears once the candidate completes the test." : {
+
+    },
     "The server couldn't find that. It may have already been deleted." : {
       "localizations" : {
         "es" : {
@@ -5606,6 +5959,9 @@
           }
         }
       }
+    },
+    "The test session was created." : {
+
     },
     "These %lld pads will be permanently deleted. This can't be undone." : {
       "localizations" : {
@@ -5650,6 +6006,9 @@
           }
         }
       }
+    },
+    "This account has no Screen campaigns yet." : {
+
     },
     "This account's API key is invalid" : {
       "localizations" : {
@@ -5707,6 +6066,9 @@
         }
       }
     },
+    "This permanently removes the candidate's test session. This can't be undone." : {
+
+    },
     "This question couldn’t be loaded." : {
       "localizations" : {
         "es" : {
@@ -5726,6 +6088,9 @@
           }
         }
       }
+    },
+    "This test session couldn’t be loaded." : {
+
     },
     "Time & space complexity" : {
       "localizations" : {
@@ -5827,6 +6192,9 @@
         }
       }
     },
+    "Try Again" : {
+
+    },
     "Turning this off also requires Touch ID, so it can't be bypassed." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -5884,6 +6252,12 @@
         }
       }
     },
+    "United States" : {
+
+    },
+    "Unknown candidate" : {
+
+    },
     "Unlimited" : {
       "localizations" : {
         "es" : {
@@ -5895,6 +6269,7 @@
       }
     },
     "Unlimited pads" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6072,6 +6447,9 @@
         }
       }
     },
+    "Validate Screen Key" : {
+
+    },
     "Validate to choose a different member." : {
       "localizations" : {
         "es" : {
@@ -6092,6 +6470,9 @@
         }
       }
     },
+    "Validating Screen key…" : {
+
+    },
     "Version %@" : {
       "localizations" : {
         "es" : {
@@ -6101,6 +6482,15 @@
           }
         }
       }
+    },
+    "View or configure the Screen event webhook." : {
+
+    },
+    "vs. community" : {
+
+    },
+    "Waiting" : {
+
     },
     "Watch" : {
       "localizations" : {
@@ -6142,6 +6532,12 @@
         }
       }
     },
+    "Webhook" : {
+
+    },
+    "Webhook URL" : {
+
+    },
     "Welcome to CoderPad" : {
       "localizations" : {
         "es" : {
@@ -6171,6 +6567,9 @@
           }
         }
       }
+    },
+    "Which CoderPad Screen region your key belongs to." : {
+
     },
     "Whiteboard" : {
       "localizations" : {
@@ -6247,6 +6646,9 @@
           }
         }
       }
+    },
+    "Your Screen accounts have no campaigns yet." : {
+
     },
     "Your trial expires %@." : {
       "localizations" : {
