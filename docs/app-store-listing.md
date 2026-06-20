@@ -82,17 +82,20 @@ Pages is enabled, the rendered source works:
 >
 > The app needs a valid CoderPad API key to show real content; without one it
 > correctly shows an empty / "add an account" state. To review the full
-> functionality, please add an account in Settings and paste this read-only
-> review key:
+> functionality WITHOUT any account or network access, use the built-in demo
+> data, which is included in this Release build:
 >
->     API key: <PASTE A REAL READ-ONLY CODERPAD API KEY HERE BEFORE SUBMITTING>
->     Server URL: leave blank (uses https://app.coderpad.io)
->     Your Email: pick the matching member after the key validates
+>     1. Open Settings (⌘,) and go to the Accounts tab.
+>     2. Click the wand button (a wand-and-sparkles icon) next to the account
+>        list and choose "Mock data".
+>     3. A "Demo" account is added and selected. It talks to an in-process mock
+>        server (no network), populating pads, questions, the organization view,
+>        quota, and the Screen section with realistic sample content.
 >
-> (The in-app "Mock data" demo account is compiled into Debug builds only and is
-> not present in this Release build, so a real review key is the reliable way to
-> exercise the app.)
-
-> **Action required before submitting:** generate a CoderPad API key on an
-> account that has a few sample pads/questions and paste it into the review note
-> above. A dedicated, low-privilege account is ideal.
+> The demo account requires no credentials and sends no data anywhere, so it is
+> the reliable way to exercise the full app during review.
+>
+> (Optional) To review against live data instead, add an account in Settings and
+> paste a read-only CoderPad API key; leave Server URL blank (it defaults to
+> https://app.coderpad.io), then pick the matching member after the key
+> validates.
