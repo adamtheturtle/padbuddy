@@ -81,8 +81,10 @@ extension SettingsView {
         }
     }
 
-    /// Claude Desktop uses a JSON config; merge into it with python so any MCP servers
-    /// already configured are preserved.
+    /// Claude Desktop uses a JSON config. The button merges PadBuddy straight into it
+    /// (preserving any servers already there); the manual command is kept as a fallback
+    /// for non-standard installs. The app is sandboxed, so the button asks for access to
+    /// the Claude folder once — see `MCPClientInstall`.
     private var mcpClaudeSection: some View {
         Section {
             Text("""
@@ -92,10 +94,22 @@ extension SettingsView {
             .font(.callout)
             .foregroundStyle(.secondary)
 
-            commandBlock(Self.claudeCommand)
-            copyButton(Self.claudeCommand)
+            Button {
+                MCPClientInstall.addToClaudeDesktop(executablePath: Self.executablePath)
+            } label: {
+                Label("Add to Claude Desktop", systemImage: "wand.and.stars")
+            }
+
+            DisclosureGroup("Prefer to run it yourself?") {
+                commandBlock(Self.claudeCommand)
+                copyButton(Self.claudeCommand)
+            }
+            .font(.callout)
         } header: {
             Text("Claude Desktop")
+        } footer: {
+            Text("The button asks for access to Claude's configuration folder the first time.")
+                .foregroundStyle(.secondary)
         }
     }
 
