@@ -1,0 +1,222 @@
+name: App Store
+
+# Archives the Sparkle-free `CoderPad-AppStore` target (#483) and uploads it to
+# App Store Connect (TestFlight + App Store review). This is SEPARATE from the
+# Developer ID DMG path in release.yml, which is unchanged: that ships the
+# `coderpad` target with Sparkle, this ships the `CoderPad-AppStore` target
+# without it.
+#
+# Trigger: a manual dispatch, or pushing an `appstore-v*` tag (e.g.
+# `git tag appstore-v1.2.3 && git push origin appstore-v1.2.3`). Keeping a
+# dedicated tag — rather than piggybacking release.yml's `v*` — lets the App
+# Store and Developer ID channels be cut independently (#487 open question).
+#
+# Required repository secrets for the upload path. When any are absent the job
+# degrades to an UNSIGNED archive that only asserts the target is Sparkle-free
+# (#483's acceptance check) — useful before the App Store Connect app record
+# (#489) and distribution certificates exist:
+#   ASC_KEY                            base64 of the App Store Connect API .p8 key
+#   ASC_KEY_ID                         the key's 10-char ID
+#   ASC_ISSUER_ID                      the issuer UUID for that key
+#       (the same trio release.yml already uses for notarization — here it also
+#        authorizes provisioning updates and the upload)
+#   APP_STORE_DIST_CERT_P12_BASE64     base64 of the Apple Distribution cert + key (.p12)
+#   APP_STORE_DIST_CERT_PASSWORD       password protecting that .p12
+#   MAC_INSTALLER_DIST_CERT_P12_BASE64 base64 of the Mac Installer Distribution cert + key (.p12)
+#   MAC_INSTALLER_DIST_CERT_PASSWORD   password protecting that .p12
+#
+# The app must already exist in App Store Connect (bundle id
+# com.adamdangoor.coderpad registered, app record created, agreements signed)
+# before an upload can succeed — that one-time manual setup is #489.
+on:
+  push:
+    tags:
+      - 'appstore-v*'
+  workflow_dispatch:
+    inputs:
+      marketing_version:
+        description: 'Marketing version (e.g. 1.2.3). Defaults to the latest v* tag minus its leading v.'
+        required: false
+        default: ''
+
+# Don't run two uploads against the same ref at once.
+concurrency:
+  group: appstore-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  appstore:
+    name: Archive & upload
+    runs-on: macos-26
+    timeout-minutes: 40
+    # Derived once from the presence of the distribution secrets; every
+    # conditional step keys off this so the job degrades to an unsigned,
+    # Sparkle-free archive validation when they're missing.
+    env:
+      UPLOAD_AVAILABLE: ${{ secrets.ASC_KEY != '' && secrets.APP_STORE_DIST_CERT_P12_BASE64 != '' && secrets.MAC_INSTALLER_DIST_CERT_P12_BASE64 != '' }}
+      TEAM_ID: '6L9H6Q8CUF'
+      ARCHIVE_PATH: build/PadBuddy.xcarchive
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          # Full history so the build number can be derived from the commit count.
+          fetch-depth: 0
+
+      # Pin an explicit Xcode rather than the image default, which drifts as
+      # Apple ships updates. 26.5 matches ci.yml and release.yml.
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.5.app
+          xcodebuild -version
+
+      - name: Resolve version
+        id: version
+        run: |
+          set -euo pipefail
+          # MARKETING_VERSION: the dispatch input if given; else an appstore-v* /
+          # v* tag minus its prefix; else the latest v* tag. CURRENT_PROJECT_VERSION
+          # is the commit count so build numbers rise monotonically across both the
+          # App Store and Developer ID channels (#48 / matches release.yml).
+          INPUT="${{ github.event.inputs.marketing_version }}"
+          if [ -n "$INPUT" ]; then
+            MARKETING_VERSION="$INPUT"
+          elif [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
+            TAG="${GITHUB_REF_NAME}"
+            MARKETING_VERSION="${TAG#appstore-v}"
+            MARKETING_VERSION="${MARKETING_VERSION#v}"
+          else
+            LATEST="$(git tag --list 'v*' --sort=-v:refname | head -1)"
+            MARKETING_VERSION="${LATEST#v}"
+          fi
+          test -n "$MARKETING_VERSION" || { echo "Could not resolve a marketing version"; exit 1; }
+          BUILD_NUMBER="$(git rev-list --count HEAD)"
+          echo "Marketing version $MARKETING_VERSION (build $BUILD_NUMBER)"
+          echo "marketing_version=$MARKETING_VERSION" >> "$GITHUB_OUTPUT"
+          echo "build_number=$BUILD_NUMBER" >> "$GITHUB_OUTPUT"
+
+      # --- Upload path: signed archive + export to App Store Connect ----------
+
+      - name: Import Apple Distribution certificate
+        if: env.UPLOAD_AVAILABLE == 'true'
+        # Same pinned action (v6.1.0 SHA) release.yml uses for the Developer ID
+        # cert. keychain: re-used across both import steps so both certs land on
+        # the same search list.
+        uses: apple-actions/import-codesign-certs@5142e029c445c10ffc7149d172e540235a065466
+        with:
+          p12-file-base64: ${{ secrets.APP_STORE_DIST_CERT_P12_BASE64 }}
+          p12-password: ${{ secrets.APP_STORE_DIST_CERT_PASSWORD }}
+
+      - name: Import Mac Installer Distribution certificate
+        if: env.UPLOAD_AVAILABLE == 'true'
+        uses: apple-actions/import-codesign-certs@5142e029c445c10ffc7149d172e540235a065466
+        with:
+          p12-file-base64: ${{ secrets.MAC_INSTALLER_DIST_CERT_P12_BASE64 }}
+          p12-password: ${{ secrets.MAC_INSTALLER_DIST_CERT_PASSWORD }}
+          # Don't recreate the keychain the previous step just populated.
+          create-keychain: false
+
+      - name: Write App Store Connect API key
+        if: env.UPLOAD_AVAILABLE == 'true'
+        id: asc
+        env:
+          ASC_KEY: ${{ secrets.ASC_KEY }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+        run: |
+          set -euo pipefail
+          # The .p8 is supplied base64-encoded so it fits one secret. Decode it to
+          # a private temp file (umask 077) that xcodebuild can read for both
+          # provisioning updates and the upload, mirroring package-and-notarize.sh.
+          KEY_DIR="$(mktemp -d)"
+          KEY_PATH="$KEY_DIR/AuthKey_${ASC_KEY_ID}.p8"
+          ( umask 077; printf '%s' "$ASC_KEY" | base64 --decode > "$KEY_PATH" )
+          echo "key_path=$KEY_PATH" >> "$GITHUB_OUTPUT"
+
+      - name: Archive (signed)
+        if: env.UPLOAD_AVAILABLE == 'true'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project coderpad.xcodeproj \
+            -scheme CoderPad-AppStore \
+            -configuration Release \
+            -destination 'generic/platform=macOS' \
+            -archivePath "$ARCHIVE_PATH" \
+            -authenticationKeyPath "${{ steps.asc.outputs.key_path }}" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            -allowProvisioningUpdates \
+            MARKETING_VERSION="${{ steps.version.outputs.marketing_version }}" \
+            CURRENT_PROJECT_VERSION="${{ steps.version.outputs.build_number }}"
+
+      - name: Export and upload to App Store Connect
+        if: env.UPLOAD_AVAILABLE == 'true'
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          # method=app-store-connect with destination=upload makes -exportArchive
+          # sign the .pkg and push it straight to App Store Connect in one step —
+          # no separate altool call. Automatic signing resolves the distribution
+          # profile via the API key + -allowProvisioningUpdates.
+          # manageAppVersionAndBuildNumber=false keeps our explicit stamping.
+          cat > ExportOptions.plist <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store-connect</string>
+            <key>destination</key>
+            <string>upload</string>
+            <key>signingStyle</key>
+            <string>automatic</string>
+            <key>teamID</key>
+            <string>${TEAM_ID}</string>
+            <key>manageAppVersionAndBuildNumber</key>
+            <false/>
+          </dict>
+          </plist>
+          EOF
+          xcodebuild -exportArchive \
+            -archivePath "$ARCHIVE_PATH" \
+            -exportOptionsPlist ExportOptions.plist \
+            -exportPath build/export \
+            -authenticationKeyPath "${{ steps.asc.outputs.key_path }}" \
+            -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
+            -allowProvisioningUpdates
+
+      # --- Fallback path: unsigned archive, assert Sparkle-free ---------------
+
+      - name: Archive (unsigned) and verify Sparkle-free
+        if: env.UPLOAD_AVAILABLE != 'true'
+        run: |
+          set -o pipefail
+          # Without distribution secrets we can't sign or upload, but we CAN prove
+          # the App Store target archives and embeds no Sparkle.framework — #483's
+          # acceptance check, run on every dispatch so a regression (e.g. someone
+          # links Sparkle into this target) fails CI immediately.
+          xcodebuild archive \
+            -project coderpad.xcodeproj \
+            -scheme CoderPad-AppStore \
+            -configuration Release \
+            -destination 'generic/platform=macOS' \
+            -archivePath "$ARCHIVE_PATH" \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            MARKETING_VERSION="${{ steps.version.outputs.marketing_version }}" \
+            CURRENT_PROJECT_VERSION="${{ steps.version.outputs.build_number }}"
+          APP="$(find "$ARCHIVE_PATH/Products/Applications" -maxdepth 1 -name '*.app' -print -quit)"
+          test -n "$APP" || { echo "Archived app not found"; exit 1; }
+          echo "Archived $APP"
+          if [ -e "$APP/Contents/Frameworks/Sparkle.framework" ]; then
+            echo "::error::Sparkle.framework is embedded in the App Store target — it must be Sparkle-free (#483)."
+            exit 1
+          fi
+          echo "OK: no Sparkle.framework under $APP/Contents/Frameworks (Sparkle-free)."

@@ -3,12 +3,12 @@
 //  coderpad
 //
 //  The "MCP Server" settings pane: explains what the built-in Model Context Protocol
-//  server is and why you'd use it, lets the user opt in, and, once enabled, shows the
-//  ready-to-paste configuration for each supported MCP client (#402). The app itself is
-//  the server (run with the --mcp flag, see MCPServer.swift), so there is nothing to
-//  build or download and no API key to paste: the config points the client at the app's
-//  own executable, which serves the selected account using the key already in the
-//  Keychain.
+//  server is and why you'd use it, lets the user opt in, and, once enabled, gives a
+//  copy-paste Terminal command per supported MCP client that writes the configuration
+//  (#402). The app itself is the server (run with the --mcp flag, see MCPServer.swift),
+//  so there is nothing to build or download and no API key to paste: the command points
+//  the client at the app's own executable, which serves the selected account using the
+//  key already in the Keychain.
 //
 
 import SwiftUI
@@ -42,64 +42,54 @@ extension SettingsView {
         .formStyle(.grouped)
     }
 
-    /// The shared setup flow: pick a client below, paste its configuration, restart it.
+    /// The shared flow: run the command for your assistant, then restart it.
     private var mcpSetupSection: some View {
         Section {
-            Label("Find your assistant below and copy its configuration.", systemImage: "1.circle")
-            Label("""
-            Paste it into that assistant's MCP configuration, then restart the assistant. \
-            It uses the account selected in PadBuddy.
-            """, systemImage: "2.circle")
+            Label("Copy the command for your assistant and run it in Terminal.", systemImage: "1.circle")
+            Label("Restart the assistant. It uses the account selected in PadBuddy.",
+                  systemImage: "2.circle")
         } header: {
             Text("Set it up")
         } footer: {
             Text("""
             The server reads the selected account's key straight from the Keychain, so \
-            your API key never appears in the configuration.
+            your API key is never written to a config file.
             """)
             .foregroundStyle(.secondary)
         }
     }
 
-    /// Claude Desktop uses a JSON config. The easiest way to open it is the built-in
-    /// Edit Config button, which creates and reveals the file for you.
+    /// Claude Desktop uses a JSON config; merge into it with python so any MCP servers
+    /// already configured are preserved.
     private var mcpClaudeSection: some View {
         Section {
-            Text("""
-            In Claude Desktop, open Settings (⌘,), select the Developer tab, \
-            and click Edit Config. That opens claude_desktop_config.json (in \
-            ~/Library/Application Support/Claude/). Paste the JSON below, merging it in if \
-            the file already has an "mcpServers" entry.
-            """)
-            .font(.callout)
-            .foregroundStyle(.secondary)
+            Text("Adds PadBuddy to Claude Desktop, keeping any servers you already have, then takes effect after a restart.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
 
-            configBlock(Self.claudeConfig)
-            copyButton(Self.claudeConfig)
+            commandBlock(Self.claudeCommand)
+            copyButton(Self.claudeCommand)
         } header: {
             Text("Claude Desktop")
         }
     }
 
-    /// The Codex CLI uses a TOML config at a fixed path, so just point the user there.
+    /// The Codex CLI uses a TOML config; append the entry (guarded so re-running is safe).
     private var mcpCodexSection: some View {
         Section {
-            Text("""
-            For the Codex CLI, open ~/.codex/config.toml (create it if it doesn't exist) \
-            and add the entry below.
-            """)
-            .font(.callout)
-            .foregroundStyle(.secondary)
+            Text("Adds PadBuddy to the Codex CLI's config at ~/.codex/config.toml.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
 
-            configBlock(Self.codexConfig)
-            copyButton(Self.codexConfig)
+            commandBlock(Self.codexCommand)
+            copyButton(Self.codexCommand)
         } header: {
             Text("Codex")
         }
     }
 
-    /// A monospaced, selectable block showing a configuration snippet.
-    private func configBlock(_ text: String) -> some View {
+    /// A monospaced, selectable block showing a shell command.
+    private func commandBlock(_ text: String) -> some View {
         Text(text)
             .font(.system(.callout, design: .monospaced))
             .textSelection(.enabled)
@@ -113,35 +103,52 @@ extension SettingsView {
         Button {
             Clipboard.copy(text)
         } label: {
-            Label("Copy configuration", systemImage: "doc.on.doc")
+            Label("Copy command", systemImage: "doc.on.doc")
         }
     }
 
-    /// Claude Desktop's JSON configuration. Points at the app's live executable path with
-    /// the --mcp flag; no key, since the server reads it from the Keychain at runtime.
-    static var claudeConfig: String {
+    /// Terminal command that adds PadBuddy to Claude Desktop's JSON config, creating the
+    /// file if needed and merging into any existing "mcpServers" so other servers survive.
+    static var claudeCommand: String {
         """
-        {
-          "mcpServers": {
-            "coderpad": {
-              "command": "\(executablePath)",
-              "args": ["--mcp"]
-            }
-          }
+        config="$HOME/Library/Application Support/Claude/claude_desktop_config.json"
+        mkdir -p "$(dirname "$config")"
+        python3 - "$config" <<'PY'
+        import json, os, sys
+        path = sys.argv[1]
+        config = {}
+        if os.path.exists(path):
+            try:
+                with open(path) as file:
+                    config = json.load(file)
+            except ValueError:
+                config = {}
+        config.setdefault("mcpServers", {})["coderpad"] = {
+            "command": "\(executablePath)",
+            "args": ["--mcp"],
         }
+        with open(path, "w") as file:
+            json.dump(config, file, indent=2)
+        print("Updated", path)
+        PY
         """
     }
 
-    /// The Codex CLI's TOML configuration, equivalent to ``claudeConfig``.
-    static var codexConfig: String {
+    /// Terminal command that appends the PadBuddy entry to the Codex CLI's TOML config.
+    /// Guarded by grep so running it twice doesn't add a duplicate table.
+    static var codexCommand: String {
         """
+        mkdir -p "$HOME/.codex"
+        grep -qsF '[mcp_servers.coderpad]' "$HOME/.codex/config.toml" || cat >> "$HOME/.codex/config.toml" <<'EOF'
+
         [mcp_servers.coderpad]
         command = "\(executablePath)"
         args = ["--mcp"]
+        EOF
         """
     }
 
-    /// The app's live executable path, so the config is correct wherever PadBuddy is
+    /// The app's live executable path, so the command is correct wherever PadBuddy is
     /// installed; falls back to the conventional install location if it can't be read.
     private static var executablePath: String {
         Bundle.main.executablePath ?? "/Applications/PadBuddy.app/Contents/MacOS/PadBuddy"
