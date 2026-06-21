@@ -196,6 +196,17 @@ private let tools: [Tool] = [
         inputSchema: objectSchema(["id": property("string", "The pad id / slug.")], required: ["id"])
     ),
     Tool(
+        name: "get_pad_code",
+        description: "Return just the code for a pad: every file with its filename, language, and contents. Handles both legacy single-file pads (the pad's \"contents\") and multi-file environments (each pad_environment's \"file_contents\"). Use this to read or review a candidate's code without digging through the whole pad object.",
+        inputSchema: objectSchema([
+            "id": property("string", "The pad id / slug."),
+            "max_file_chars": property(
+                "integer",
+                "Optional. Truncate each file's contents to at most this many characters (full file contents can be large). Omit for the complete contents."
+            )
+        ], required: ["id"])
+    ),
+    Tool(
         name: "list_questions",
         description: "List the organization's question bank, paginated. Returns the raw CoderPad API JSON, including next_page and total.",
         inputSchema: objectSchema(pagingProperties)
@@ -271,6 +282,13 @@ await server.withMethodHandler(CallTool.self) { params in
 
         return await toolResult(apiGet("/api/pads/\(id)"))
 
+    case "get_pad_code":
+        guard let id = stringArgument(params.arguments, "id"), !id.isEmpty else {
+            return missingArgument("id")
+        }
+
+        return await getPadCode(id: id, maxFileChars: intArgument(params.arguments, "max_file_chars"))
+
     case "list_questions":
         return await toolResult(apiGet("/api/questions/", query: pagingQuery(params.arguments)))
 
@@ -332,6 +350,114 @@ private func missingArgument(_ name: String) -> CallTool.Result {
     CallTool.Result(
         content: [.text(text: "Missing required argument: \(name)", annotations: nil, _meta: nil)],
         isError: true
+    )
+}
+
+// MARK: - get_pad_code
+
+/// Parses a JSON object body into a dictionary, or nil if it isn't an object.
+/// Used by get_pad_code so it can pull code fields out of the verbatim API JSON
+/// without binding to a rigid Codable schema (keeping it resilient to additions).
+private func jsonObject(_ body: String) -> [String: Any]? {
+    guard let data = body.data(using: .utf8),
+          let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+    else { return nil }
+
+    return object
+}
+
+/// Truncates a file body to `maxChars`, appending a marker noting how much was
+/// dropped. A nil/non-positive limit returns the body unchanged.
+private func truncate(_ body: String, to maxChars: Int?) -> String {
+    guard let maxChars, maxChars > 0, body.count > maxChars else { return body }
+
+    let dropped = body.count - maxChars
+    return String(body.prefix(maxChars)) + "\n… [truncated, \(dropped) more characters]"
+}
+
+/// A handful of common language → file extension mappings, used only to synthesize
+/// a filename for legacy single-file pads, which have no path of their own.
+private let languageExtensions: [String: String] = [
+    "python": "py", "python3": "py", "javascript": "js", "typescript": "ts",
+    "java": "java", "ruby": "rb", "go": "go", "golang": "go", "c": "c",
+    "cpp": "cpp", "c++": "cpp", "csharp": "cs", "c#": "cs", "php": "php",
+    "swift": "swift", "kotlin": "kt", "rust": "rs", "sql": "sql",
+    "scala": "scala", "r": "r", "perl": "pl", "bash": "sh", "shell": "sh"
+]
+
+/// Synthesizes `main.<ext>` for a file that has no path of its own (legacy
+/// single-file pads). Falls back to the language name as the extension, then txt.
+private func synthesizedFilename(language: String?) -> String {
+    guard let language, !language.isEmpty else { return "main.txt" }
+
+    let key = language.lowercased()
+    return "main.\(languageExtensions[key] ?? key)"
+}
+
+/// Implements get_pad_code: fetch the pad, then assemble a compact { pad_id, title,
+/// files: [{ filename, language, contents }] }. Multi-file environments
+/// (pad_environment_ids → /api/pad_environments/<id> → file_contents) take
+/// precedence; a legacy single-file pad's top-level "contents" is the fallback.
+private func getPadCode(id: String, maxFileChars: Int?) async -> CallTool.Result {
+    let padResponse = await apiGet("/api/pads/\(id)")
+    guard padResponse.ok else { return toolResult(padResponse) }
+    guard let pad = jsonObject(padResponse.body) else {
+        return CallTool.Result(
+            content: [.text(text: "Could not parse the pad response as JSON.", annotations: nil, _meta: nil)],
+            isError: true
+        )
+    }
+
+    var files: [[String: Any]] = []
+
+    let environmentIDs = (pad["pad_environment_ids"] as? [Any])?
+        .compactMap { ($0 as? Int) ?? Int("\($0)") } ?? []
+    for environmentID in environmentIDs {
+        let environmentResponse = await apiGet("/api/pad_environments/\(environmentID)")
+        guard environmentResponse.ok, let environment = jsonObject(environmentResponse.body) else { continue }
+
+        let environmentLanguage = environment["language"] as? String
+        let fileContents = environment["file_contents"] as? [[String: Any]] ?? []
+        for file in fileContents {
+            let language = (file["language"] as? String) ?? environmentLanguage
+            var entry: [String: Any] = [
+                "filename": (file["path"] as? String) ?? synthesizedFilename(language: language),
+                "contents": truncate(file["contents"] as? String ?? "", to: maxFileChars),
+                "environment_id": environmentID
+            ]
+            if let language { entry["language"] = language }
+            files.append(entry)
+        }
+    }
+
+    // Legacy single-file representation: only when no environment files were found.
+    if files.isEmpty, let contents = pad["contents"] as? String, !contents.isEmpty {
+        let language = pad["language"] as? String
+        var entry: [String: Any] = [
+            "filename": synthesizedFilename(language: language),
+            "contents": truncate(contents, to: maxFileChars)
+        ]
+        if let language { entry["language"] = language }
+        files.append(entry)
+    }
+
+    let result: [String: Any] = [
+        "pad_id": id,
+        "title": pad["title"] as? String ?? "",
+        "files": files
+    ]
+    guard let data = try? JSONSerialization.data(
+        withJSONObject: result, options: [.prettyPrinted, .sortedKeys]
+    ) else {
+        return CallTool.Result(
+            content: [.text(text: "Could not encode the pad code.", annotations: nil, _meta: nil)],
+            isError: true
+        )
+    }
+
+    return CallTool.Result(
+        content: [.text(text: String(decoding: data, as: UTF8.self), annotations: nil, _meta: nil)],
+        isError: nil
     )
 }
 
