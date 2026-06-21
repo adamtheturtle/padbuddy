@@ -37,9 +37,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// (#456, #485). Reading on activation (rather than via `onOpenURL`) also covers a
     /// cold launch, since the app activates after launching.
     func applicationDidBecomeActive(_: Notification) {
+        // When driving the seeded demo for screenshots/UI tests, grow the main window
+        // to fill the screen so captures show the full three-column layout (and meet
+        // the App Store's minimum screenshot size, #62) rather than a cold-launch
+        // sliver. Test-only: gated on `-uiTesting`, so it never affects real users.
+        sizeWindowForUITestingIfNeeded()
+
         guard let request = WidgetSharedStore.takePendingNewPad() else { return }
 
         Self.createPadInBrowser(account: request.account, question: request.question)
+    }
+
+    /// Expand the main window to the screen's visible frame under `-uiTesting`.
+    /// Idempotent and cheap, so running it on every activation is fine.
+    private func sizeWindowForUITestingIfNeeded() {
+        guard AccountsStore.isUITesting, let screen = NSScreen.main else { return }
+
+        let target = screen.visibleFrame
+        for window in NSApp.windows where window.isVisible && window.styleMask.contains(.titled) {
+            window.setFrame(target, display: true)
+        }
     }
 
     /// The menu shown when right-clicking the Dock icon. Offers the same quick

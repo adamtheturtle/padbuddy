@@ -69,6 +69,52 @@ final class CoderpadUITests: XCTestCase {
                       "Returning to Pads should show the pad list again")
     }
 
+    /// Captures real, PII-free screenshots of the seeded demo account for the
+    /// marketing site (`docs/`) and the App Store listing. It drives the app into
+    /// a few representative states and attaches a PNG of the main window for each
+    /// to the test result (the runner is sandboxed, so we can't write to disk
+    /// directly); export them from the `.xcresult` bundle afterwards.
+    ///
+    /// Skipped on CI (the headless runner has no display worth shooting and we
+    /// don't want to pay the window-capture cost nightly); run it locally via the
+    /// test navigator or `RunSomeTests` to refresh the assets.
+    @MainActor
+    func testCaptureMarketingScreenshots() throws {
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["GITHUB_ACTIONS"] == nil,
+                          "Screenshot capture is for local asset generation, not CI.")
+
+        let app = launchDemoApp()
+
+        func capture(_ name: String) {
+            let window = app.windows.firstMatch
+            let shot = window.exists ? window.screenshot() : app.screenshot()
+            let attachment = XCTAttachment(screenshot: shot)
+            attachment.name = name
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+
+        // Pads paint on launch; wait for them, then give the window a beat to grow
+        // to full size (`applicationDidBecomeActive` resizes it under `-uiTesting`).
+        XCTAssertTrue(row("Onsite: Jane Doe", in: app).waitForExistence(timeout: Self.listLoadTimeout),
+                      "A seeded demo pad should appear once the list loads")
+        usleep(1_000_000)
+
+        // Pads with a pad selected: the Mail-style three-column layout (sidebar +
+        // list + populated detail) — the hero shot for #505.
+        row("Onsite: Jane Doe", in: app).click()
+        usleep(1_500_000) // let the detail pane settle
+        capture("pads-detail")
+
+        // Questions section with a question selected — a feature shot for #506.
+        app.typeKey("2", modifierFlags: .command) // View ▸ Questions
+        XCTAssertTrue(row("FizzBuzz", in: app).waitForExistence(timeout: Self.listLoadTimeout),
+                      "A seeded demo question should appear after switching to Questions")
+        row("FizzBuzz", in: app).click()
+        usleep(1_500_000)
+        capture("questions-detail")
+    }
+
     /// Tracks cold-launch time, but `measure` re-runs the launch ~5 times — a cost
     /// nobody watches locally. It exists only to catch regressions in CI, so it's
     /// skipped unless `RUN_LAUNCH_PERF_TESTS` is set (the CI scheme sets it); local

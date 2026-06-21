@@ -94,6 +94,21 @@ a:hover { text-decoration: underline; }
 
 .note, .small { color: var(--muted); font-size: .9rem; }
 
+/* Hero product shot. Breaks out wider than the centered text column for impact,
+   framed with a rounded border and a soft shadow so it reads as a real window. */
+.hero-shot {
+  width: min(1040px, 94vw);
+  margin: 2.5rem auto 0;
+}
+.hero-shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
+}
+
 main { padding: 40px 0; }
 
 section { margin: 0 0 40px; }
