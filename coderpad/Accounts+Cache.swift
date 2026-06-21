@@ -60,6 +60,16 @@ enum CacheDisk {
 
         try? FileManager.default.removeItem(at: url)
     }
+
+    /// When the snapshot for `kind`+`account` was last written, or nil if there's no file.
+    /// Lets a reader (e.g. the headless MCP server, #520) judge freshness without loading
+    /// and decoding the whole snapshot.
+    nonisolated static func modificationDate(kind: String, account: UUID) -> Date? {
+        guard let url = url(kind: kind, account: account),
+              let attributes = try? FileManager.default.attributesOfItem(atPath: url.path) else { return nil }
+
+        return attributes[.modificationDate] as? Date
+    }
 }
 
 @Observable

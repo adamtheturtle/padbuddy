@@ -37,12 +37,28 @@ nonisolated extension MCPTools {
         var totalReported: Int?
         var pagesFetched = 0
         var truncated = false
+        var fromCache = false
         var error: Outcome?
     }
 
-    /// Pages `/api/pads/` from the first page following `next_page`, accumulating every pad
-    /// so the count/aggregate tools can tally in-process and return a small answer.
-    private static func fetchAllPads(key: String, base: URL) async -> PadScan {
+    /// Gets every pad for the account so the count/aggregate tools can tally in-process.
+    /// Prefers PadBuddy's fresh on-disk cache (#520) — one read instead of paging the whole
+    /// org through the API — and falls back to paging the API, then to a stale cache when
+    /// the API can't be reached (offline).
+    private static func fetchAllPads(accountID: String, key: String, base: URL) async -> PadScan {
+        if let cached = cachedPadDicts(accountID: accountID, requireFresh: true) {
+            return PadScan(pads: cached, totalReported: cached.count, fromCache: true)
+        }
+
+        let scan = await pageAllPadsFromAPI(key: key, base: base)
+        if scan.error != nil, let cached = cachedPadDicts(accountID: accountID, requireFresh: false) {
+            return PadScan(pads: cached, totalReported: cached.count, fromCache: true)
+        }
+        return scan
+    }
+
+    /// Pages `/api/pads/` from the first page following `next_page`, accumulating every pad.
+    private static func pageAllPadsFromAPI(key: String, base: URL) async -> PadScan {
         var scan = PadScan()
         var page: String?
         while scan.pagesFetched < maxPadPagesToFetch {
@@ -66,12 +82,12 @@ nonisolated extension MCPTools {
         return scan
     }
 
-    static func countPads(arguments: [String: Any], key: String, base: URL) async -> Outcome {
+    static func countPads(arguments: [String: Any], credentials: MCPCredentials) async -> Outcome {
         let owner = string(arguments, "owner")
         let state = string(arguments, "state")
         let language = string(arguments, "language")
 
-        let scan = await fetchAllPads(key: key, base: base)
+        let scan = await fetchAllPads(accountID: credentials.id, key: credentials.apiKey, base: credentials.baseURL)
         if let error = scan.error { return error }
 
         let matched = scan.pads.filter { MCPPadAggregation.matches($0, owner: owner, state: state, language: language) }
@@ -79,7 +95,8 @@ nonisolated extension MCPTools {
             "matched": matched.count,
             "scanned": scan.pads.count,
             "pages_fetched": scan.pagesFetched,
-            "truncated": scan.truncated
+            "truncated": scan.truncated,
+            "source": scan.fromCache ? "padbuddy_cache" : "coderpad_api"
         ]
         if let total = scan.totalReported { result["total_reported_by_api"] = total }
         let filters = MCPPadAggregation.filtersEcho(owner: owner, state: state, language: language)
@@ -93,7 +110,7 @@ nonisolated extension MCPTools {
     }
 
     static func aggregatePads(
-        groupBy: String, arguments: [String: Any], key: String, base: URL
+        groupBy: String, arguments: [String: Any], credentials: MCPCredentials
     ) async -> Outcome {
         guard let field = MCPPadAggregation.aggregateField(for: groupBy) else {
             return Outcome(
@@ -106,7 +123,7 @@ nonisolated extension MCPTools {
         let state = string(arguments, "state")
         let language = string(arguments, "language")
 
-        let scan = await fetchAllPads(key: key, base: base)
+        let scan = await fetchAllPads(accountID: credentials.id, key: credentials.apiKey, base: credentials.baseURL)
         if let error = scan.error { return error }
 
         let matched = scan.pads.filter { MCPPadAggregation.matches($0, owner: owner, state: state, language: language) }
@@ -121,7 +138,8 @@ nonisolated extension MCPTools {
             "distinct_groups": counts.count,
             "groups": groups,
             "pages_fetched": scan.pagesFetched,
-            "truncated": scan.truncated
+            "truncated": scan.truncated,
+            "source": scan.fromCache ? "padbuddy_cache" : "coderpad_api"
         ]
         let filters = MCPPadAggregation.filtersEcho(owner: owner, state: state, language: language)
         if !filters.isEmpty { result["filters"] = filters }

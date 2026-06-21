@@ -55,11 +55,14 @@ nonisolated enum MCPTools {
                  required: ["pad"]),
             tool("count_pads",
                  "Count pads, optionally filtered, WITHOUT returning the records — one cheap "
-                     + "call instead of paging every verbose record through the model.",
+                     + "call instead of paging every verbose record through the model. Served "
+                     + "from PadBuddy's local cache when it's fresh (and offline), else paged "
+                     + "live; the response's `source` field says which.",
                  properties: filterProperties.merging([account: accountSchema]) { _, new in new }),
             tool("aggregate_pads",
                  "Group pads by a field and return only the counts (not the records) — e.g. how "
-                     + "many pads each owner has, over a large org, without blowing context.",
+                     + "many pads each owner has, over a large org, without blowing context. Uses "
+                     + "PadBuddy's local cache when fresh (see the `source` field).",
                  properties: filterProperties.merging([
                      "group_by": stringSchema("Field to group by: owner, language, state, or month."),
                      account: accountSchema
@@ -162,7 +165,7 @@ nonisolated enum MCPTools {
         case "get_pad":
             guard let pad = string(arguments, "pad") else { return missing("pad") }
 
-            return await get("/api/pads/\(pad)", key: key, base: base)
+            return await getPadCacheBacked(pad: pad, credentials: credentials)
 
         case "get_pad_code":
             guard let pad = string(arguments, "pad") else { return missing("pad") }
@@ -173,26 +176,31 @@ nonisolated enum MCPTools {
         case "get_question":
             guard let question = int(arguments, "question") else { return missing("question") }
 
-            return await get("/api/questions/\(question)", key: key, base: base)
+            return await getQuestionCacheBacked(id: question, credentials: credentials)
 
         default:
-            return await padQuery(name: name, arguments: arguments, key: key, base: base)
+            return await padQuery(name: name, arguments: arguments, credentials: credentials)
         }
     }
 
     /// The pad count/aggregate/compact tools (#500), which page or project the pad list.
-    /// Falls through to `listOrSummary` for the plain GETs.
+    /// Falls through to `listOrSummary` for the plain GETs. Takes the whole `credentials`
+    /// because the count/aggregate tools also read the account's on-disk cache (#520),
+    /// which is keyed by account id, not just the API key/base.
     private static func padQuery(
-        name: String, arguments: [String: Any], key: String, base: URL
+        name: String, arguments: [String: Any], credentials: MCPCredentials
     ) async -> Outcome {
+        let key = credentials.apiKey
+        let base = credentials.baseURL
+
         switch name {
         case "count_pads":
-            return await countPads(arguments: arguments, key: key, base: base)
+            return await countPads(arguments: arguments, credentials: credentials)
 
         case "aggregate_pads":
             guard let groupBy = string(arguments, "group_by") else { return missing("group_by") }
 
-            return await aggregatePads(groupBy: groupBy, arguments: arguments, key: key, base: base)
+            return await aggregatePads(groupBy: groupBy, arguments: arguments, credentials: credentials)
 
         case "list_pads_compact":
             return await listPadsCompact(arguments: arguments, key: key, base: base)
