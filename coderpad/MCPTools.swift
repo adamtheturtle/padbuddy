@@ -39,6 +39,14 @@ nonisolated enum MCPTools {
             tool("get_pad", "Get a single pad by its slug/id.",
                  properties: ["pad": stringSchema("The pad's slug or id."), account: accountSchema],
                  required: ["pad"]),
+            tool("get_pad_code",
+                 "Return just the code in a pad: each file with its filename, language, and "
+                     + "contents (handles both legacy single-file pads and multi-file environments). "
+                     + "Use this to read a candidate's code without the whole pad object.",
+                 properties: ["pad": stringSchema("The pad's slug or id."),
+                              "max_file_chars": intSchema("Optional. Truncate each file to this many characters."),
+                              account: accountSchema],
+                 required: ["pad"]),
             tool("list_questions", "List the account's question bank. Optional page and sort.",
                  properties: ["page": intSchema("1-based page number."),
                               "sort": stringSchema("Sort order."),
@@ -84,8 +92,9 @@ nonisolated enum MCPTools {
         return await dispatch(name: name, arguments: arguments, credentials: credentials)
     }
 
-    /// Runs one account-scoped tool against the resolved credentials. Split out of `run`
-    /// so each stays within the cyclomatic-complexity budget.
+    /// Runs one account-scoped tool against the resolved credentials. The tools needing
+    /// an argument or assembly are handled here; the plain list/summary GETs delegate to
+    /// `listOrSummary`, so each function stays within the cyclomatic-complexity budget.
     private static func dispatch(
         name: String, arguments: [String: Any], credentials: MCPCredentials
     ) async -> Outcome {
@@ -96,30 +105,46 @@ nonisolated enum MCPTools {
         case "whoami":
             return await whoami(credentials: credentials)
 
-        case "list_pads":
-            return await get("/api/pads/", key: key, base: base, query: paging(arguments))
-
         case "get_pad":
             guard let pad = string(arguments, "pad") else { return missing("pad") }
 
             return await get("/api/pads/\(pad)", key: key, base: base)
 
-        case "list_questions":
-            return await get("/api/questions/", key: key, base: base, query: paging(arguments))
+        case "get_pad_code":
+            guard let pad = string(arguments, "pad") else { return missing("pad") }
+
+            let maxChars = int(arguments, "max_file_chars")
+            return await getPadCode(pad: pad, maxFileChars: maxChars, key: key, base: base)
 
         case "get_question":
             guard let question = int(arguments, "question") else { return missing("question") }
 
             return await get("/api/questions/\(question)", key: key, base: base)
 
+        default:
+            return await listOrSummary(name: name, arguments: arguments, key: key, base: base)
+        }
+    }
+
+    /// The plain list/summary GET tools, which take no required argument.
+    private static func listOrSummary(
+        name: String, arguments: [String: Any], key: String, base: URL
+    ) async -> Outcome {
+        switch name {
+        case "list_pads":
+            await get("/api/pads/", key: key, base: base, query: paging(arguments))
+
+        case "list_questions":
+            await get("/api/questions/", key: key, base: base, query: paging(arguments))
+
         case "get_quota":
-            return await get("/api/quota", key: key, base: base)
+            await get("/api/quota", key: key, base: base)
 
         case "get_organization":
-            return await get("/api/organization", key: key, base: base)
+            await get("/api/organization", key: key, base: base)
 
         default:
-            return Outcome(text: "Unknown tool: \(name)", isError: true)
+            Outcome(text: "Unknown tool: \(name)", isError: true)
         }
     }
 
@@ -147,6 +172,44 @@ nonisolated enum MCPTools {
         }
 
         return Outcome(text: text, isError: false)
+    }
+
+    // MARK: - get_pad_code (#499)
+
+    /// Fetches a pad and each of its environments, then assembles the compact code JSON
+    /// via the pure `MCPPadCode` helper.
+    private static func getPadCode(pad id: String, maxFileChars: Int?, key: String, base: URL) async -> Outcome {
+        let padResponse = await get("/api/pads/\(id)", key: key, base: base)
+        guard !padResponse.isError else { return padResponse }
+        guard let pad = jsonObject(padResponse.text) else {
+            return Outcome(text: "Could not parse the pad response as JSON.", isError: true)
+        }
+
+        var environments: [MCPPadCode.Environment] = []
+        for environmentID in MCPPadCode.environmentIDs(in: pad) {
+            let response = await get("/api/pad_environments/\(environmentID)", key: key, base: base)
+            guard !response.isError, let object = jsonObject(response.text) else { continue }
+
+            environments.append(MCPPadCode.Environment(id: environmentID, object: object))
+        }
+
+        let payload = MCPPadCode.payload(id: id, pad: pad, environments: environments, maxFileChars: maxFileChars)
+        guard let data = try? JSONSerialization.data(
+            withJSONObject: payload, options: [.prettyPrinted, .sortedKeys]
+        ) else {
+            return Outcome(text: "Could not encode the pad code.", isError: true)
+        }
+
+        return Outcome(text: String(bytes: data, encoding: .utf8) ?? "", isError: false)
+    }
+
+    /// Parses a JSON object body into a dictionary, or nil if it isn't an object.
+    private static func jsonObject(_ body: String) -> [String: Any]? {
+        guard let data = body.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else { return nil }
+
+        return object
     }
 
     // MARK: - whoami (#518)
