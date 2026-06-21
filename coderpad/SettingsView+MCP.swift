@@ -66,7 +66,7 @@ extension SettingsView {
     private var mcpClaudeSection: some View {
         Section {
             Text("""
-            In Claude Desktop, open Settings (Command-comma), select the Developer tab, \
+            In Claude Desktop, open Settings (⌘,), select the Developer tab, \
             and click Edit Config. That opens claude_desktop_config.json (in \
             ~/Library/Application Support/Claude/). Paste the JSON below, merging it in if \
             the file already has an "mcpServers" entry.
