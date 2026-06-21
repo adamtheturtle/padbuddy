@@ -24,9 +24,9 @@ enum MCPClientInstall {
     /// other MCP servers, then reports the outcome.
     @MainActor
     static func addToClaudeDesktop(executablePath: String) {
-        let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+        let support = realHomeDirectory.appendingPathComponent("Library/Application Support", isDirectory: true)
         guard let folder = grantFolderAccess(
-            preferred: support?.appendingPathComponent("Claude", isDirectory: true),
+            preferred: support.appendingPathComponent("Claude", isDirectory: true),
             fallback: support,
             message: "Select Claude Desktop's \u{201C}Claude\u{201D} folder so PadBuddy can add "
                 + "itself to its configuration."
@@ -49,7 +49,7 @@ enum MCPClientInstall {
     /// already present, then reports the outcome.
     @MainActor
     static func addToCodex(executablePath: String) {
-        let home = FileManager.default.homeDirectoryForCurrentUser
+        let home = realHomeDirectory
         guard let folder = grantFolderAccess(
             preferred: home.appendingPathComponent(".codex", isDirectory: true),
             fallback: home,
@@ -124,6 +124,18 @@ enum MCPClientInstall {
     }
 
     // MARK: - Access + alerts
+
+    /// The user's REAL home directory. In a sandboxed app `FileManager`'s home and
+    /// Application Support point inside the app container (~/Library/Containers/…), so
+    /// pre-pointing the panel there sends the user — and the written file — into the
+    /// container instead of the actual client config (the whole reason the button looked
+    /// like it did nothing). `getpwuid` returns the true home regardless of the sandbox.
+    private static var realHomeDirectory: URL {
+        if let pw = getpwuid(getuid()), let home = pw.pointee.pw_dir {
+            return URL(fileURLWithPath: String(cString: home), isDirectory: true)
+        }
+        return FileManager.default.homeDirectoryForCurrentUser
+    }
 
     /// Prompts for access to a config folder, pre-pointed at its standard location so the
     /// user usually just confirms. Returns nil if they cancel.
