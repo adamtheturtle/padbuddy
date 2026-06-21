@@ -162,6 +162,7 @@ struct CoderpadApp: App {
             ViewCommands()
             PadCommands()
             QuestionCommands()
+            TemplateCommands()
             WindowCommands()
         }
 

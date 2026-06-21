@@ -20,6 +20,16 @@ struct QuestionDeletion {
     let account: UUID?
 }
 
+/// A seed for the interview-template editor (#525): the question to base a new template
+/// on, plus a default name and language. Carried by the "Save Question as Template…"
+/// command so the editor opens pre-filled. `Identifiable` so it can drive a `.sheet(item:)`.
+struct TemplateSeed: Identifiable {
+    let id = UUID()
+    let questionID: Int
+    let name: String
+    let language: String
+}
+
 /// Typed, app-wide router for cross-cutting commands (reload, open-settings, bulk
 /// actions…) and data-change broadcasts (pad/question updated/deleted). It replaces
 /// scattered `NotificationCenter.default.post(name:object:)` calls and
@@ -62,6 +72,25 @@ enum AppRouter {
 
     static var commandPaletteRequests: AsyncStream<Void> {
         voidStream(.commandPaletteRequested)
+    }
+
+    /// Ask the main window to present the interview-templates management sheet (#525).
+    static func requestManageTemplates() {
+        center.post(name: .manageTemplatesRequested, object: nil)
+    }
+
+    static var manageTemplatesRequests: AsyncStream<Void> {
+        voidStream(.manageTemplatesRequested)
+    }
+
+    /// Ask the main window to open the template editor pre-seeded from a question (#525),
+    /// e.g. the Pad menu's "Save Question as Template…".
+    static func requestSaveQuestionAsTemplate(_ seed: TemplateSeed) {
+        center.post(name: .saveTemplateRequested, object: seed)
+    }
+
+    static var saveTemplateRequests: AsyncStream<TemplateSeed> {
+        payloadStream(.saveTemplateRequested) { $0.object as? TemplateSeed }
     }
 
     /// Ask the app to open `url` in a Pad Browser window.
@@ -160,6 +189,8 @@ private extension Notification.Name {
     static let reloadRequested = Notification.Name("coderpad.reloadRequested")
     static let openPadByURLRequested = Notification.Name("coderpad.openPadByURLRequested")
     static let commandPaletteRequested = Notification.Name("coderpad.commandPaletteRequested")
+    static let manageTemplatesRequested = Notification.Name("coderpad.manageTemplatesRequested")
+    static let saveTemplateRequested = Notification.Name("coderpad.saveTemplateRequested")
     static let padUpdated = Notification.Name("coderpad.padUpdated")
     static let padDeleted = Notification.Name("coderpad.padDeleted")
     static let questionUpdated = Notification.Name("coderpad.questionUpdated")

@@ -45,6 +45,8 @@ struct ContentView: View {
     @State private var openPadURLDraft: String = ""
     @State private var showOpenPadURL = false
     @State private var showCommandPalette = false
+    @State private var showManageTemplates = false
+    @State private var templateSeed: TemplateSeed?
     @State private var showWhatsNew = false
     @Environment(\.openWindow) private var openWindow
     @Environment(\.openSettings) private var openSettings
@@ -86,6 +88,16 @@ struct ContentView: View {
                 showCommandPalette = true
             }
         }
+        .task {
+            for await _ in AppRouter.manageTemplatesRequests {
+                showManageTemplates = true
+            }
+        }
+        .task {
+            for await seed in AppRouter.saveTemplateRequests {
+                templateSeed = seed
+            }
+        }
         // The "Open Pad by ID" intent routes through durable AppNavigation state so a
         // cold-launch request isn't dropped: consume whatever is already pending on
         // appear, and react to any value set afterwards.
@@ -115,6 +127,24 @@ struct ContentView: View {
         // the button. `onDismiss` is the single place this is recorded.
         .sheet(isPresented: $showCommandPalette) {
             CommandPaletteView()
+        }
+        .sheet(isPresented: $showManageTemplates) {
+            ManageTemplatesSheet()
+        }
+        .sheet(item: $templateSeed) { seed in
+            if let account = store.currentAccount {
+                TemplateEditorSheet(
+                    account: account,
+                    seedQuestionID: seed.questionID,
+                    seedName: seed.name,
+                    seedLanguage: seed.language,
+                    onSave: { saved in
+                        InterviewTemplatesStore.shared.add(saved, account: account.id)
+                        templateSeed = nil
+                    },
+                    onCancel: { templateSeed = nil }
+                )
+            }
         }
         .sheet(
             isPresented: $showWhatsNew,

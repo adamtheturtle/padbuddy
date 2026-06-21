@@ -195,6 +195,7 @@ final class AccountsStore {
         FavoriteQuestionsStore.shared.remove(account: id)
         SavedSearchStore.shared.remove(account: id)
         PadOpenedStore.shared.remove(account: id)
+        InterviewTemplatesStore.shared.remove(account: id)
     }
 
     private func migrateLegacyIfNeeded() {
