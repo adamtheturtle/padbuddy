@@ -897,9 +897,6 @@
     "Aborted" : {
 
     },
-    "About" : {
-
-    },
     "About CoderPad" : {
       "localizations" : {
         "es" : {
@@ -6466,6 +6463,7 @@
 
     },
     "Validate to choose a different member." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6486,9 +6484,6 @@
       }
     },
     "Validating Screen key…" : {
-
-    },
-    "Version" : {
 
     },
     "Version %@" : {

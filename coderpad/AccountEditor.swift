@@ -175,10 +175,6 @@ struct AccountEditor: View {
         .padding()
         .frame(minWidth: embedded ? nil : 460, minHeight: embedded ? nil : 320,
                maxHeight: embedded ? .infinity : nil, alignment: .top)
-        // For a saved account, pull the org's full member list as soon as the editor
-        // opens so the "Your Email" picker offers everyone without a manual Validate.
-        // Keyed on the account so switching accounts in the embedded pane re-fetches.
-        .task(id: draft.id) { await loadOrgMembersForEditing() }
         .onChange(of: draft.apiKey) { _, _ in validation = .idle; scopeWarning = nil }
         .onChange(of: draft.baseURL) { _, _ in validation = .idle }
         // A changed Screen key or region invalidates any prior Screen validation result.

@@ -14,6 +14,13 @@ struct OrgMemberPicker: View {
     @Binding var selection: String
     let options: [String]
     let label: (String) -> String
+    /// Whether the org's member list is still being fetched. Shown as a row inside
+    /// the popover rather than beside the field, so opening the editor doesn't shift
+    /// the layout while the list loads (#497).
+    var isLoading: Bool = false
+    /// Fired when the popover opens, so the caller can lazily fetch the member list
+    /// on demand instead of eagerly on appear — which avoids the on-open flash.
+    var onOpen: (() -> Void)?
 
     @State private var isPresented = false
     @State private var query = ""
@@ -29,6 +36,7 @@ struct OrgMemberPicker: View {
     var body: some View {
         Button {
             isPresented = true
+            onOpen?()
         } label: {
             HStack {
                 Text(selection.isEmpty ? String(localized: "Unset") : label(selection))
@@ -58,7 +66,17 @@ struct OrgMemberPicker: View {
                         ForEach(filtered, id: \.self) { email in
                             memberRow(email: email, title: label(email))
                         }
-                        if filtered.isEmpty {
+                        // While the full member list is still loading, the only option
+                        // is the saved email, so tell the user more are on the way.
+                        if isLoading {
+                            HStack(spacing: 6) {
+                                ProgressView().controlSize(.small)
+                                Text("Loading members…")
+                                    .foregroundStyle(.secondary)
+                                    .font(.callout)
+                            }
+                            .padding(8)
+                        } else if filtered.isEmpty {
                             Text("No members match “\(query)”")
                                 .foregroundStyle(.secondary)
                                 .font(.callout)

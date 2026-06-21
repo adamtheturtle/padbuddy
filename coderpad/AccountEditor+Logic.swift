@@ -164,12 +164,15 @@ extension AccountEditor {
         }
     }
 
-    /// For a saved account, fetch the org's member list in the background the moment the
-    /// editor opens, so the "Your Email" picker offers every member without the user
-    /// having to press Validate. Uses the already-saved (known-good) credentials and
-    /// touches only `orgUsers` — not the validation state — so it never flips the editor
-    /// into a validated/error state behind the user's back. Silent on failure: the saved
-    /// email stays selectable and Validate remains the path that surfaces a real problem.
+    /// For a saved account, fetch the org's member list on demand — when the user opens
+    /// the "Your Email" picker to choose a different member — so the picker offers every
+    /// member without the user having to press Validate. Loading lazily (rather than
+    /// eagerly on appear) keeps the row from flashing between the saved email and the
+    /// resolved name each time the editor opens (#497). Uses the already-saved
+    /// (known-good) credentials and touches only `orgUsers` — not the validation state —
+    /// so it never flips the editor into a validated/error state behind the user's back.
+    /// Silent on failure: the saved email stays selectable and Validate remains the path
+    /// that surfaces a real problem.
     func loadOrgMembersForEditing() async {
         guard isEditing, !isValidated, orgUsers.isEmpty else { return }
 

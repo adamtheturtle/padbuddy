@@ -93,7 +93,13 @@ extension AccountEditor {
                         OrgMemberPicker(
                             selection: $draft.userEmail,
                             options: emailOptions,
-                            label: emailLabel
+                            label: emailLabel,
+                            isLoading: isLoadingMembers,
+                            // Fetch the org's member list only when the user opens the
+                            // picker to choose a different member, rather than eagerly on
+                            // appear — eager loading made the row flash between the saved
+                            // email and the resolved name on every open (#497).
+                            onOpen: { Task { await loadOrgMembersForEditing() } }
                         )
                         .help("""
                         Identifies you for the My Pads and My Questions filters and the menu bar. \
@@ -103,20 +109,6 @@ extension AccountEditor {
                             Text("Required: pick which member you are to finish.")
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
-                        } else if isEditing, !isValidated {
-                            if isLoadingMembers {
-                                Text("Loading members…")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            } else if orgUsers.isEmpty {
-                                // The background fetch couldn't reach the org (e.g.
-                                // offline, or the key was revoked since saving), so
-                                // only the saved email is available; Validate retries
-                                // and surfaces the real error.
-                                Text("Validate to choose a different member.")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
                         }
                     }
                 }
