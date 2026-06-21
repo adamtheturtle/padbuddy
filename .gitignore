@@ -2,8 +2,16 @@
 xcuserdata/
 *.xcuserstate
 DerivedData/
+DerivedData_localrel/
 build/
 build_release/
+
+# Local release artifacts (a manual sign/notarize/publish run when CI is blocked).
+# The notarized .dmg is uploaded to the public coderpad-macos-releases repo, and that
+# repo holds the canonical appcast — so these are per-run outputs, never tracked here.
+*.dmg
+appcast.xml
+RELEASE_NOTES.md
 
 # Swift Package Manager build artifacts (per-machine; contain absolute paths)
 .build/
