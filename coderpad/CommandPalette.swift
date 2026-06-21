@@ -12,6 +12,7 @@
 //  new navigation machinery of its own.
 //
 
+import AppKit
 import SwiftUI
 
 /// One row in the command palette: enough to render it and a closure that performs its
@@ -95,6 +96,11 @@ struct CommandPaletteView: View {
     @State private var candidates: [PaletteResult] = []
     @State private var selectedIndex = 0
     @FocusState private var queryFocused: Bool
+    /// Local key-event monitor for the up/down arrows. The search field is focused so
+    /// the user can type, but AppKit's field editor then swallows the arrow keys for
+    /// caret movement before SwiftUI's `.onKeyPress` ever sees them (#532) — so we watch
+    /// for them at the event level and drive the selection ourselves.
+    @State private var arrowKeyMonitor: Any?
 
     /// At most this many results are shown, so a huge org doesn't render thousands of
     /// rows; the highest-scoring ones win.
@@ -127,6 +133,30 @@ struct CommandPaletteView: View {
         .onAppear {
             candidates = CommandPaletteBuilder.build()
             queryFocused = true
+            installArrowKeyMonitor()
+        }
+        .onDisappear(perform: removeArrowKeyMonitor)
+    }
+
+    /// Watches key-down events while the palette is open and moves the selection on the
+    /// up/down arrows, consuming them so the focused field doesn't also move its caret.
+    /// `keyCode` 125 is the down arrow, 126 the up arrow.
+    private func installArrowKeyMonitor() {
+        guard arrowKeyMonitor == nil else { return }
+
+        arrowKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+            switch event.keyCode {
+            case 125: move(by: 1); return nil
+            case 126: move(by: -1); return nil
+            default: return event
+            }
+        }
+    }
+
+    private func removeArrowKeyMonitor() {
+        if let monitor = arrowKeyMonitor {
+            NSEvent.removeMonitor(monitor)
+            arrowKeyMonitor = nil
         }
     }
 
@@ -142,8 +172,6 @@ struct CommandPaletteView: View {
                 .focused($queryFocused)
                 .onSubmit(activateSelection)
                 .onChange(of: query) { _, _ in selectedIndex = 0 }
-                .onKeyPress(.downArrow) { move(by: 1); return .handled }
-                .onKeyPress(.upArrow) { move(by: -1); return .handled }
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
@@ -167,7 +195,12 @@ struct CommandPaletteView: View {
                                 .id(index)
                                 .contentShape(Rectangle())
                                 .onTapGesture { activate(result) }
+                                // One combined element per row so VoiceOver reads it as a
+                                // single button, and the selected one announces (and exposes
+                                // for tests, #532) the `.isSelected` trait.
+                                .accessibilityElement(children: .combine)
                                 .accessibilityAddTraits(.isButton)
+                                .accessibilityAddTraits(index == selectedIndex ? .isSelected : [])
                         }
                     }
                 }

@@ -41,32 +41,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // to fill the screen so captures show the full three-column layout (and meet
         // the App Store's minimum screenshot size, #62) rather than a cold-launch
         // sliver. Test-only: gated on `-uiTesting`, so it never affects real users.
-        sizeWindowForUITestingIfNeeded()
+        UITestingWindow.sizeToScreenIfNeeded()
 
         guard let request = WidgetSharedStore.takePendingNewPad() else { return }
 
         Self.createPadInBrowser(account: request.account, question: request.question)
     }
-
-    /// Expand the main window to the screen's visible frame under `-uiTesting`.
-    /// Runs once: re-sizing on every activation churns the layout and makes the
-    /// screenshot test's clicks flaky.
-    private func sizeWindowForUITestingIfNeeded() {
-        guard AccountsStore.isUITesting, !Self.didSizeWindowForUITesting,
-              let screen = NSScreen.main else { return }
-
-        let target = screen.visibleFrame
-        for window in NSApp.windows where window.isVisible && window.styleMask.contains(.titled) {
-            // Pin the minimum size too: otherwise a later SwiftUI layout pass (e.g.
-            // when a section changes or the command palette opens) springs the
-            // window back to its content size, shrinking it mid-capture.
-            window.minSize = target.size
-            window.setFrame(target, display: true)
-        }
-        Self.didSizeWindowForUITesting = true
-    }
-
-    private static var didSizeWindowForUITesting = false
 
     /// The menu shown when right-clicking the Dock icon. Offers the same quick
     /// actions as the app's New menu, routed through the app's own `coderpad://`
@@ -179,6 +159,7 @@ struct CoderpadApp: App {
         .commands {
             appCommands
             FindCommands()
+            NewPadFromQuestionCommands()
             PrintCommands()
             // The system's Show/Hide and Customize Toolbar commands. Every section
             // and detail toolbar is a customizable `.toolbar(id:)` with stable item
@@ -317,10 +298,6 @@ struct CoderpadApp: App {
                 AppRouter.requestOpenPadByURL()
             }
             .keyboardShortcut("o", modifiers: [.command])
-            Button("Go to Anything…") {
-                AppRouter.requestCommandPalette()
-            }
-            .keyboardShortcut("k", modifiers: [.command])
             Divider()
             Button("Reload") {
                 AppRouter.requestReload()
@@ -328,6 +305,13 @@ struct CoderpadApp: App {
             .keyboardShortcut("r", modifiers: [.command])
         }
         CommandMenu("Go") {
+            // The command palette lives here, not in File: it's the "go to anything"
+            // entry point, so the Go menu is where users look for it (#533).
+            Button("Go to Anything…") {
+                AppRouter.requestCommandPalette()
+            }
+            .keyboardShortcut("k", modifiers: [.command])
+            Divider()
             Button("Pads") { post(.pads) }.keyboardShortcut("1", modifiers: [.command])
             Button("Questions") { post(.questions) }.keyboardShortcut("2", modifiers: [.command])
             Button("Organization") { post(.organization) }.keyboardShortcut("3", modifiers: [.command])

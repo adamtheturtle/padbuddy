@@ -19,8 +19,38 @@ enum CommandPaletteBuilder {
         results += commands()
         results += sections()
         results += templates()
+        results += newPadFromQuestions()
         results += accounts()
         results += padsAndQuestions()
+        return results
+    }
+
+    /// "New Pad from <Question>" entries for the account's favourite questions — the
+    /// one-click pad the menu-bar extra offers, surfaced in the palette too (#534).
+    /// Limited to favourites so the empty-query list stays short; any question can still
+    /// be opened (then "New Pad") from its own row.
+    private static func newPadFromQuestions() -> [PaletteResult] {
+        let store = AccountsStore.shared
+        let accounts = store.isMergedView ? store.mergeableAccounts : [store.currentAccount].compactMap(\.self)
+        let showAccount = accounts.count > 1
+
+        var results: [PaletteResult] = []
+        for account in accounts {
+            let favoriteIDs = Set(FavoriteQuestionsStore.shared.favorites(account: account.id))
+            guard !favoriteIDs.isEmpty else { continue }
+
+            for question in QuestionsCacheStore.shared.get(account.id) where favoriteIDs.contains(question.id) {
+                results.append(PaletteResult(
+                    id: "new-pad-from-question.\(account.id.uuidString).\(question.id)",
+                    kind: .command,
+                    title: "New Pad from \(question.displayTitle)",
+                    subtitle: subtitle(account: showAccount ? account.name : nil,
+                                       detail: "Create a pad from this question"),
+                    systemImage: "plus.rectangle.on.folder",
+                    searchText: "New Pad from question \(question.displayTitle)"
+                ) { InterviewTemplateRunner.createAndOpen(question: question, account: account) })
+            }
+        }
         return results
     }
 

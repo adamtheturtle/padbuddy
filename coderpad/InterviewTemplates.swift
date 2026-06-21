@@ -124,6 +124,20 @@ enum InterviewTemplateRunner {
         body.language = template.language
         if let custom = template.titlePattern, !custom.isEmpty { body.title = custom }
 
+        open(body, account: account, fallbackQuestionID: template.questionID)
+    }
+
+    /// Creates a pad directly from `question` (its default language) and opens it — the
+    /// same one-click "New Pad from Question" the menu-bar extra offers, surfaced in the
+    /// main-window menu and the command palette too (#534).
+    static func createAndOpen(question: Question, account: Account) {
+        open(PadCreate.fromQuestion(question), account: account, fallbackQuestionID: question.id)
+    }
+
+    /// Creates a pad from `body` and opens it, honoring the in-app/external browser
+    /// preference. On failure (offline, transient API error) it falls back to the in-app
+    /// create sheet seeded with the question, so the action is never silently lost.
+    private static func open(_ body: PadCreate, account: Account, fallbackQuestionID: Int?) {
         let client = account.makeClient()
         let accountID = account.id
         Task { @MainActor in
@@ -138,7 +152,7 @@ enum InterviewTemplateRunner {
                     AppRouter.requestOpenPadInBrowser(url)
                 }
             } catch {
-                AppDelegate.routeNewPad(account: accountID.uuidString, question: template.questionID)
+                AppDelegate.routeNewPad(account: accountID.uuidString, question: fallbackQuestionID)
             }
         }
     }

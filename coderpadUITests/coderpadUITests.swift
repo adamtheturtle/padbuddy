@@ -94,9 +94,9 @@ final class CoderpadUITests: XCTestCase {
             add(attachment)
         }
 
-        // Click a row by title, re-querying right before the click so a transient
-        // relayout (e.g. the one-shot window resize) can't leave us with a stale
-        // element reference.
+        /// Click a row by title, re-querying right before the click so a transient
+        /// relayout (e.g. the one-shot window resize) can't leave us with a stale
+        /// element reference.
         func clickRow(_ title: String) {
             let element = row(title, in: app)
             _ = element.waitForExistence(timeout: Self.listLoadTimeout)
@@ -104,7 +104,9 @@ final class CoderpadUITests: XCTestCase {
             // the one-shot window resize can otherwise stale the element snapshot
             // mid-click.
             let deadline = Date().addingTimeInterval(5)
-            while !element.isHittable, Date() < deadline { usleep(100_000) }
+            while !element.isHittable, Date() < deadline {
+                usleep(100_000)
+            }
             element.click()
         }
 
@@ -127,6 +129,45 @@ final class CoderpadUITests: XCTestCase {
         clickRow("FizzBuzz")
         usleep(1_500_000)
         capture("questions-detail")
+    }
+
+    /// The command palette's arrow keys move the selection (#532). The focused search
+    /// field's field editor used to swallow the arrows, so a local key monitor now drives
+    /// the selection; each row is a single accessibility element and the selected one
+    /// carries `.isSelected`, so we can read which row is highlighted directly (no
+    /// screenshot, and the app needn't stay frontmost for the query). Clicking a pad first
+    /// brings the window frontmost so ⌘K reaches it.
+    @MainActor
+    func testCommandPaletteArrowKeysMoveSelection() throws {
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["GITHUB_ACTIONS"] == nil,
+                          "Palette interaction is verified locally; kept out of CI to avoid flakiness.")
+
+        let app = launchDemoApp()
+
+        let firstPad = row("Onsite: Jane Doe", in: app)
+        XCTAssertTrue(firstPad.waitForExistence(timeout: Self.listLoadTimeout),
+                      "Pads should load before opening the palette")
+        let deadline = Date().addingTimeInterval(5)
+        while !firstPad.isHittable, Date() < deadline {
+            usleep(100_000)
+        }
+        firstPad.click() // bring the window frontmost so ⌘K is delivered
+
+        app.typeKey("k", modifierFlags: .command) // Go ▸ Go to Anything…
+
+        // The selected palette row is the only *button* reporting `isSelected` (the
+        // sidebar's selected row is a list cell, not a button).
+        let selectedRow = app.buttons.matching(NSPredicate(format: "isSelected == true")).firstMatch
+        XCTAssertTrue(selectedRow.waitForExistence(timeout: 10),
+                      "The palette should open with a selected row")
+        let firstLabel = selectedRow.label
+
+        app.typeKey(.downArrow, modifierFlags: [])
+        app.typeKey(.downArrow, modifierFlags: [])
+
+        // After two Down presses a different row should be highlighted.
+        expectation(for: NSPredicate(format: "label != %@", firstLabel), evaluatedWith: selectedRow)
+        waitForExpectations(timeout: 10)
     }
 
     /// Tracks cold-launch time, but `measure` re-runs the launch ~5 times — a cost
