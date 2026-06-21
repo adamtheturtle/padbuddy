@@ -102,6 +102,7 @@ struct CommandPaletteView: View {
     private var results: [PaletteResult] {
         let scored = candidates.compactMap { result -> (PaletteResult, Int)? in
             guard let score = paletteFuzzyScore(query, result.searchText) else { return nil }
+
             return (result, score)
         }
         // Stable order: by score, then keep the original (already category-grouped) order
@@ -133,6 +134,7 @@ struct CommandPaletteView: View {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
                 .font(.title3)
+                .accessibilityHidden(true)
             TextField("Jump to a pad, question, section, account, or command…", text: $query)
                 .textFieldStyle(.plain)
                 .font(.title3)
@@ -164,6 +166,7 @@ struct CommandPaletteView: View {
                                 .id(index)
                                 .contentShape(Rectangle())
                                 .onTapGesture { activate(result) }
+                                .accessibilityAddTraits(.isButton)
                         }
                     }
                 }
@@ -207,6 +210,7 @@ private struct PaletteRow: View {
             Image(systemName: result.systemImage)
                 .frame(width: 22)
                 .foregroundStyle(isSelected ? Color.white : .secondary)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 1) {
                 Text(result.title)
                     .lineLimit(1)
@@ -279,7 +283,7 @@ enum CommandPaletteBuilder {
                 subtitle: "Refresh the current section",
                 systemImage: "arrow.clockwise",
                 searchText: "Reload refresh"
-            ) { AppRouter.requestReload() },
+            ) { AppRouter.requestReload() }
         ]
     }
 
@@ -316,7 +320,7 @@ enum CommandPaletteBuilder {
 
     private static func padsAndQuestions() -> [PaletteResult] {
         let store = AccountsStore.shared
-        let accounts = store.isMergedView ? store.mergeableAccounts : [store.currentAccount].compactMap { $0 }
+        let accounts = store.isMergedView ? store.mergeableAccounts : [store.currentAccount].compactMap(\.self)
         let showAccount = accounts.count > 1
 
         var results: [PaletteResult] = []
@@ -367,7 +371,7 @@ enum CommandPaletteBuilder {
 
     /// Joins an optional account name and an optional detail into one subtitle line.
     private static func subtitle(account: String?, detail: String?) -> String? {
-        let parts = [account, detail?.isEmpty == true ? nil : detail].compactMap { $0 }
+        let parts = [account, detail?.isEmpty == true ? nil : detail].compactMap(\.self)
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 
