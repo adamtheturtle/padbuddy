@@ -13,8 +13,9 @@
 //    CODERPAD_BASE_URL  (optional)  override for self-hosted / regional deployments
 //                                   (defaults to https://app.coderpad.io)
 //
-//  Only read endpoints are exposed deliberately: a server an assistant can drive
-//  should not be able to create, edit, or delete interview content.
+//  Read tools are always available. Write tools (create/edit) are OFF unless
+//  CODERPAD_MCP_ALLOW_WRITES is set — a deliberate opt-in (#502). There is no delete
+//  tool: deletion stays a human action in the app.
 //
 
 import Foundation
@@ -66,6 +67,16 @@ private let screenBaseURL: URL = {
 
 private let screenAPIPrefix = "/assessment/api/v1.1"
 
+/// Write tools (create/edit) are OFF by default — reads are always available. Set
+/// `CODERPAD_MCP_ALLOW_WRITES` to a truthy value (1/true/yes/on) to advertise and
+/// enable them. This mirrors the in-app server's separate "allow changes" opt-in
+/// (#502): enabling the server doesn't grant write access; this flag does.
+private let allowWrites: Bool = {
+    let raw = environment["CODERPAD_MCP_ALLOW_WRITES"]?
+        .trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    return ["1", "true", "yes", "on"].contains(raw)
+}()
+
 // MARK: - CoderPad REST
 
 private struct APIResponse {
@@ -108,6 +119,34 @@ private func apiGet(_ path: String, query: [URLQueryItem] = []) async -> APIResp
 private func toolResult(_ response: APIResponse) -> CallTool.Result {
     let text = response.ok ? response.body : "HTTP \(response.status)\n\(response.body)"
     return CallTool.Result(content: [.text(text: text, annotations: nil, _meta: nil)], isError: response.ok ? nil : true)
+}
+
+/// Performs an authenticated write (POST/PUT) with a JSON body and returns the raw
+/// response, mirroring `apiGet`. Used only by the write tools, which are themselves
+/// gated behind `allowWrites`.
+private func apiSend(_ method: String, _ path: String, body: [String: Any]) async -> APIResponse {
+    guard let url = URLComponents(
+        url: baseURL.appending(path: path), resolvingAgainstBaseURL: false
+    )?.url else {
+        return APIResponse(status: 0, body: "Could not build a URL for \(path).")
+    }
+    guard let payload = try? JSONSerialization.data(withJSONObject: body) else {
+        return APIResponse(status: 0, body: "Could not encode the request body.")
+    }
+
+    var request = URLRequest(url: url)
+    request.httpMethod = method
+    request.httpBody = payload
+    request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.setValue("application/json", forHTTPHeaderField: "Accept")
+    do {
+        let (data, response) = try await URLSession.shared.data(for: request)
+        let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+        return APIResponse(status: status, body: String(decoding: data, as: UTF8.self))
+    } catch {
+        return APIResponse(status: 0, body: "Request to \(path) failed: \(error.localizedDescription)")
+    }
 }
 
 /// An authenticated GET against the CoderPad Screen API, which uses an `API-Key`
@@ -284,10 +323,76 @@ private let screenTools: [Tool] = [
     )
 ]
 
+/// Annotations for write tools so MCP clients can warn before running them: not
+/// read-only, and touching an external system. Updates also set `destructiveHint`
+/// since they overwrite existing interview content.
+private let createAnnotations = Tool.Annotations(readOnlyHint: false, destructiveHint: false, openWorldHint: true)
+private let updateAnnotations = Tool.Annotations(readOnlyHint: false, destructiveHint: true, openWorldHint: true)
+
+/// Write tools (create/edit), advertised only when `allowWrites` is on. There is no
+/// delete tool by design (#502): deletion stays a human action in the app.
+private let writeTools: [Tool] = [
+    Tool(
+        name: "create_pad",
+        description: "WRITE: create a new pad. All fields optional; seed code with `contents` OR a `question_id` (mutually exclusive). Returns the created pad, including its URL/slug.",
+        inputSchema: objectSchema([
+            "title": property("string", "Optional pad title."),
+            "language": property("string", "Optional starting language (e.g. \"python\")."),
+            "owner_email": property("string", "Optional owner email; defaults to the API key's user."),
+            "contents": property("string", "Optional starting code. Mutually exclusive with question_id."),
+            "notes": property("string", "Optional private interviewer notes."),
+            "question_id": property("integer", "Optional question id to seed the pad from. Mutually exclusive with contents."),
+            "team_id": property("string", "Optional team id (org owners only).")
+        ]),
+        annotations: createAnnotations
+    ),
+    Tool(
+        name: "update_pad",
+        description: "WRITE: update an existing pad's title, notes, owner, or language. Identify the pad by its id/slug.",
+        inputSchema: objectSchema([
+            "id": property("string", "The pad id / slug to update."),
+            "title": property("string", "New title."),
+            "notes": property("string", "New private interviewer notes."),
+            "owner_email": property("string", "New owner email."),
+            "language": property("string", "New language.")
+        ], required: ["id"]),
+        annotations: updateAnnotations
+    ),
+    Tool(
+        name: "create_question",
+        description: "WRITE: create a new question in the bank. `title` is required; the rest are optional. Returns the created question.",
+        inputSchema: objectSchema([
+            "title": property("string", "Question title (required)."),
+            "language": property("string", "Optional language."),
+            "description": property("string", "Optional description (Markdown)."),
+            "solution": property("string", "Optional reference solution."),
+            "contents": property("string", "Optional starter code.")
+        ], required: ["title"]),
+        annotations: createAnnotations
+    ),
+    Tool(
+        name: "update_question",
+        description: "WRITE: update an existing question's title, language, description, solution, or starter code. Identify it by its numeric id.",
+        inputSchema: objectSchema([
+            "id": property("integer", "The numeric question id to update."),
+            "title": property("string", "New title."),
+            "language": property("string", "New language."),
+            "description": property("string", "New description (Markdown)."),
+            "solution": property("string", "New reference solution."),
+            "contents": property("string", "New starter code.")
+        ], required: ["id"]),
+        annotations: updateAnnotations
+    )
+]
+
 /// The tools to advertise: the Screen ones appear only when Screen is configured,
-/// so a client without a Screen key isn't offered tools it can't use.
+/// and the write ones only when `allowWrites` is on — so a client is never offered
+/// tools it can't use.
 private func availableTools() -> [Tool] {
-    screenAPIKey == nil ? tools : tools + screenTools
+    var result = tools
+    if screenAPIKey != nil { result += screenTools }
+    if allowWrites { result += writeTools }
+    return result
 }
 
 // MARK: - Server
@@ -375,6 +480,35 @@ await server.withMethodHandler(CallTool.self) { params in
         }
 
         return await toolResult(screenGet("/tests/\(id)"))
+
+    case "create_pad":
+        guard allowWrites else { return writesDisabled() }
+
+        return await createPad(arguments: params.arguments)
+
+    case "update_pad":
+        guard allowWrites else { return writesDisabled() }
+        guard let id = stringArgument(params.arguments, "id"), !id.isEmpty else {
+            return missingArgument("id")
+        }
+
+        return await updatePad(id: id, arguments: params.arguments)
+
+    case "create_question":
+        guard allowWrites else { return writesDisabled() }
+        guard let title = optionalString(params.arguments, "title") else {
+            return missingArgument("title")
+        }
+
+        return await createQuestion(title: title, arguments: params.arguments)
+
+    case "update_question":
+        guard allowWrites else { return writesDisabled() }
+        guard let id = intArgument(params.arguments, "id") else {
+            return missingArgument("id (integer)")
+        }
+
+        return await updateQuestion(id: id, arguments: params.arguments)
 
     default:
         return CallTool.Result(
@@ -708,6 +842,81 @@ private func listPadsCompact(arguments: [String: Value]?) async -> CallTool.Resu
     if let total = object["total"], !(total is NSNull) { result["total"] = total }
 
     return jsonResult(result)
+}
+
+// MARK: - Write tools (#502, gated behind allowWrites)
+
+private func writesDisabled() -> CallTool.Result {
+    CallTool.Result(
+        content: [.text(
+            text: "Writes are disabled. Set CODERPAD_MCP_ALLOW_WRITES=1 to enable the create/edit tools.",
+            annotations: nil, _meta: nil
+        )],
+        isError: true
+    )
+}
+
+/// A trimmed non-empty string argument, or nil — so empty strings don't get sent as
+/// real values in write bodies.
+private func optionalString(_ arguments: [String: Value]?, _ key: String) -> String? {
+    guard let value = stringArgument(arguments, key)?.trimmingCharacters(in: .whitespacesAndNewlines),
+          !value.isEmpty
+    else { return nil }
+
+    return value
+}
+
+private func createPad(arguments: [String: Value]?) async -> CallTool.Result {
+    var body: [String: Any] = [:]
+    if let title = optionalString(arguments, "title") { body["title"] = title }
+    if let language = optionalString(arguments, "language") { body["language"] = language }
+    if let owner = optionalString(arguments, "owner_email") { body["owner_email"] = owner }
+    if let contents = optionalString(arguments, "contents") { body["contents"] = contents }
+    if let notes = optionalString(arguments, "notes") { body["notes"] = notes }
+    if let questionID = intArgument(arguments, "question_id") { body["question_id"] = questionID }
+    if let teamID = optionalString(arguments, "team_id") { body["team_id"] = teamID }
+
+    return await toolResult(apiSend("POST", "/api/pads/", body: body))
+}
+
+private func updatePad(id: String, arguments: [String: Value]?) async -> CallTool.Result {
+    var body: [String: Any] = [:]
+    if let title = optionalString(arguments, "title") { body["title"] = title }
+    if let notes = optionalString(arguments, "notes") { body["notes"] = notes }
+    if let owner = optionalString(arguments, "owner_email") { body["owner_email"] = owner }
+    if let language = optionalString(arguments, "language") { body["language"] = language }
+    guard !body.isEmpty else {
+        return missingArgument("at least one of title / notes / owner_email / language")
+    }
+
+    return await toolResult(apiSend("PUT", "/api/pads/\(id)", body: body))
+}
+
+private func createQuestion(title: String, arguments: [String: Value]?) async -> CallTool.Result {
+    var question: [String: Any] = ["title": title]
+    if let language = optionalString(arguments, "language") { question["language"] = language }
+    var body: [String: Any] = ["question": question]
+    if let description = optionalString(arguments, "description") { body["description"] = description }
+    if let solution = optionalString(arguments, "solution") { body["solution"] = solution }
+    if let contents = optionalString(arguments, "contents") { body["contents"] = contents }
+
+    return await toolResult(apiSend("POST", "/api/questions/", body: body))
+}
+
+private func updateQuestion(id: Int, arguments: [String: Value]?) async -> CallTool.Result {
+    var question: [String: Any] = [:]
+    if let title = optionalString(arguments, "title") { question["title"] = title }
+    if let language = optionalString(arguments, "language") { question["language"] = language }
+    var body: [String: Any] = [:]
+    if !question.isEmpty { body["question"] = question }
+    if let description = optionalString(arguments, "description") { body["description"] = description }
+    if let solution = optionalString(arguments, "solution") { body["solution"] = solution }
+    if let contents = optionalString(arguments, "contents") { body["contents"] = contents }
+    guard !body.isEmpty else {
+        return missingArgument("at least one of title / language / description / solution / contents")
+    }
+
+    return await toolResult(apiSend("PUT", "/api/questions/\(id)", body: body))
 }
 
 let transport = StdioTransport()

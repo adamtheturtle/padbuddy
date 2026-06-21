@@ -38,6 +38,21 @@ Screen is a separate product with its own API key and host (#314):
 | `screen_list_tests` | `campaignId` (int), `candidateEmail` (string), `start` (int), `limit` (int) — all optional | A page of test sessions (offset pagination via `pagination.nextStart`) |
 | `screen_get_test` | `id` (int, required) | One test session's status and report |
 
+### Write tools (create / edit)
+
+**Off by default.** These are advertised and usable only when
+`CODERPAD_MCP_ALLOW_WRITES` is set (see below) — enabling the server alone does not
+grant write access (#502). They're marked non-read-only (and updates destructive) so
+MCP clients can prompt before running them. There is **no delete tool** by design:
+deletion stays a human action in the app.
+
+| Tool | Arguments | Does |
+| --- | --- | --- |
+| `create_pad` | `title` / `language` / `owner_email` / `contents` / `notes` / `team_id` (string), `question_id` (int) — all optional | Creates a pad (seed with `contents` OR `question_id`) |
+| `update_pad` | `id` (string, required); `title` / `notes` / `owner_email` / `language` (optional) | Updates a pad's fields |
+| `create_question` | `title` (string, required); `language` / `description` / `solution` / `contents` (optional) | Creates a question |
+| `update_question` | `id` (int, required); `title` / `language` / `description` / `solution` / `contents` (optional) | Updates a question |
+
 ## Configuration
 
 Set via the environment:
@@ -48,6 +63,7 @@ Set via the environment:
 | `CODERPAD_BASE_URL` | no | `https://app.coderpad.io` | Override for self-hosted / regional deployments |
 | `CODERPAD_SCREEN_API_KEY` | no | — | A CoderPad Screen API key. When set, the `screen_*` tools are enabled |
 | `CODERPAD_SCREEN_REGION` | no | US | Set to `eu` for EU-hosted Screen organizations |
+| `CODERPAD_MCP_ALLOW_WRITES` | no | off | Set to `1`/`true`/`yes`/`on` to enable the create/edit (write) tools. Off by default |
 
 ## Build & run
 
