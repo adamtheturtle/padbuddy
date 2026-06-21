@@ -16,6 +16,12 @@
 	</array>
 	<key>com.apple.security.files.user-selected.read-write</key>
 	<true/>
+	<!-- Sandboxed apps can't drive NSPrintOperation without this; without it
+	     File ▸ Print… (and Save as PDF, #524) fails with "This application does
+	     not support printing." It needs no provisioning profile, so a notarized
+	     Developer-ID build can carry it safely (unlike keychain-access-groups). -->
+	<key>com.apple.security.print</key>
+	<true/>
 	<key>com.apple.security.network.client</key>
 	<true/>
 	<!-- Sparkle (#28): the sandboxed app talks to Sparkle's Installer XPC service

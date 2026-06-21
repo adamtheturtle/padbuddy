@@ -3,21 +3,26 @@
 //  coderpad
 //
 //  Print / Save-as-PDF (⌘P) support. SwiftUI has no print pipeline of its own on
-//  macOS, so a focused detail's print-friendly rendering is hosted in an
-//  `NSHostingView` and handed to `NSPrintOperation`, which drives the standard
-//  print panel — and "Save as PDF" falls out of that panel for free.
+//  macOS, so a focused detail's print-friendly rendering is rasterized with
+//  `ImageRenderer` and the image is handed to `NSPrintOperation`, which drives the
+//  standard print panel — and "Save as PDF" falls out of that panel for free.
 //
 
 import AppKit
 import SwiftUI
 
 /// Renders `content` to paper through the standard macOS print panel. The view is
-/// laid out at the printable page width and sized to its fitting height, then
-/// `NSPrintOperation` paginates anything taller than one page automatically.
+/// rasterized at the printable page width with `ImageRenderer`, and `NSPrintOperation`
+/// paginates the resulting image down the page automatically.
 ///
-/// The content is pinned to a light color scheme on a white background: paper is
-/// white, and the app's adaptive colors would otherwise print as whatever the
-/// current appearance happens to be (white-on-white in dark mode).
+/// Why rasterize rather than print an `NSHostingView` directly: `NSPrintOperation`
+/// captures a view through its `draw(_:)` path, but a layer-backed `NSHostingView`'s
+/// SwiftUI content isn't emitted there, so printing it yields a blank page. Drawing the
+/// rendered image in a plain `NSView.draw(_:)` is captured correctly.
+///
+/// The content is pinned to a light color scheme on a white background: paper is white,
+/// and the app's adaptive colors would otherwise print as whatever the current appearance
+/// happens to be (white-on-white in dark mode).
 @MainActor
 func printDocument(_ content: some View, jobTitle: String) {
     let info = NSPrintInfo()
@@ -35,12 +40,39 @@ func printDocument(_ content: some View, jobTitle: String) {
         .environment(\.colorScheme, .light)
         .background(Color.white)
 
-    let hosting = NSHostingView(rootView: document)
-    hosting.frame = NSRect(x: 0, y: 0, width: contentWidth, height: hosting.fittingSize.height)
+    let renderer = ImageRenderer(content: document)
+    renderer.scale = 2 // crisp text on paper rather than screen-resolution bitmap
+    guard let image = renderer.nsImage else { return }
 
-    let operation = NSPrintOperation(view: hosting, printInfo: info)
+    let operation = NSPrintOperation(view: PrintImageView(image: image), printInfo: info)
     operation.jobTitle = jobTitle
     operation.run()
+}
+
+/// A plain image-drawing view for printing. `NSPrintOperation` paginates it down the page
+/// via repeated `draw(_:)` calls — the standard view-drawing path, which (unlike a hosted
+/// SwiftUI view's layer) is captured into the print context. Flipped so the image's top
+/// lands on the first page.
+private final class PrintImageView: NSView {
+    private let image: NSImage
+
+    init(image: NSImage) {
+        self.image = image
+        super.init(frame: NSRect(origin: .zero, size: image.size))
+    }
+
+    @available(*, unavailable)
+    required init?(coder _: NSCoder) {
+        nil
+    }
+
+    override var isFlipped: Bool {
+        true
+    }
+
+    override func draw(_: NSRect) {
+        image.draw(in: NSRect(origin: .zero, size: image.size))
+    }
 }
 
 // MARK: - Print layout primitives
