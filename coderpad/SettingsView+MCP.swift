@@ -36,7 +36,9 @@ extension SettingsView {
             if mcpServerEnabled {
                 mcpSetupSection
                 mcpClaudeSection
+                mcpClaudeCodeSection
                 mcpCodexSection
+                mcpVerifySection
             }
         }
         .formStyle(.grouped)
@@ -77,6 +79,32 @@ extension SettingsView {
         }
     }
 
+    /// Claude Code (the `claude` CLI) is a different product from Claude Desktop with its
+    /// own MCP registry; it doesn't read claude_desktop_config.json, so it needs its own
+    /// `claude mcp add` command (#501).
+    private var mcpClaudeCodeSection: some View {
+        Section {
+            Text("""
+            Claude Code is the `claude` command-line tool, separate from Claude Desktop. \
+            It keeps its own list of MCP servers, so run this in Terminal.
+            """)
+            .font(.callout)
+            .foregroundStyle(.secondary)
+
+            commandBlock(Self.claudeCodeCommand)
+            copyButton(Self.claudeCodeCommand)
+        } header: {
+            Text("Claude Code")
+        } footer: {
+            Text("""
+            `-s user` makes PadBuddy available in every project, not just the current \
+            folder. Everything after `--` is passed to PadBuddy, so `--mcp` reaches the \
+            app instead of being read as an option of `claude mcp add`.
+            """)
+            .foregroundStyle(.secondary)
+        }
+    }
+
     /// The Codex CLI uses a TOML config; append the entry (guarded so re-running is safe).
     private var mcpCodexSection: some View {
         Section {
@@ -88,6 +116,30 @@ extension SettingsView {
             copyButton(Self.codexCommand)
         } header: {
             Text("Codex")
+        }
+    }
+
+    /// After running a command you almost always have to restart the assistant before it
+    /// sees the server; this section says how to confirm it connected and where to look
+    /// when it didn't (#501).
+    private var mcpVerifySection: some View {
+        Section {
+            Text("""
+            You usually have to fully restart the assistant before it picks up the server: \
+            quit Claude Desktop with Command-Q and reopen it; start a new session in Claude \
+            Code (or run `/mcp` to reconnect).
+            """)
+            .font(.callout)
+            .foregroundStyle(.secondary)
+
+            Text("""
+            To confirm Claude Code connected, run `claude mcp list` or \
+            `claude mcp get coderpad`. Claude Desktop writes logs to ~/Library/Logs/Claude/.
+            """)
+            .font(.callout)
+            .foregroundStyle(.secondary)
+        } header: {
+            Text("Seeing it in your assistant")
         }
     }
 
@@ -135,6 +187,13 @@ extension SettingsView {
         print("Updated", path)
         PY
         """
+    }
+
+    /// Terminal command that registers PadBuddy with Claude Code. `-s user` makes it
+    /// available in every project; the `--` separator hands `--mcp` to PadBuddy rather
+    /// than letting `claude mcp add` parse it.
+    static var claudeCodeCommand: String {
+        "claude mcp add coderpad -s user -- \(executablePath) --mcp"
     }
 
     /// Terminal command that appends the PadBuddy entry to the Codex CLI's TOML config.
