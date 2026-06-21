@@ -184,6 +184,15 @@ private let pagingProperties: [String: Value] = [
     "sort": property("string", "Optional sort field accepted by the CoderPad API (e.g. \"created_at\").")
 ]
 
+/// Client-side filters shared by the pad count/aggregate tools. Filtering happens
+/// in this process while paging the list, since the CoderPad list API has no
+/// server-side filter parameters.
+private let padFilterProperties: [String: Value] = [
+    "owner": property("string", "Only pads whose owner_email matches this, case-insensitively."),
+    "state": property("string", "Only pads in this state (e.g. \"active\", \"ended\")."),
+    "language": property("string", "Only pads in this language (e.g. \"python\").")
+]
+
 private let tools: [Tool] = [
     Tool(
         name: "list_pads",
@@ -205,6 +214,29 @@ private let tools: [Tool] = [
                 "Optional. Truncate each file's contents to at most this many characters (full file contents can be large). Omit for the complete contents."
             )
         ], required: ["id"])
+    ),
+    Tool(
+        name: "count_pads",
+        description: "Count pads, optionally filtered, WITHOUT returning the records. Pages the whole list internally and returns just the matched total — so \"how many pads match X\" is one cheap call instead of pulling every page of verbose JSON through the model.",
+        inputSchema: objectSchema(padFilterProperties)
+    ),
+    Tool(
+        name: "aggregate_pads",
+        description: "Group pads by a field and return only the counts (not the records). Pages the whole list internally and tallies in this process. Use this for questions like \"how many pads does each owner have?\" over large orgs without blowing the assistant's context.",
+        inputSchema: objectSchema(
+            padFilterProperties.merging([
+                "group_by": property(
+                    "string",
+                    "Field to group by: \"owner\" (owner_email), \"language\", \"state\", or \"month\" (created_at year-month)."
+                )
+            ]) { _, new in new },
+            required: ["group_by"]
+        )
+    ),
+    Tool(
+        name: "list_pads_compact",
+        description: "Like list_pads but returns only id, title, owner_email, state, language, and created_at per pad (dropping the verbose blob), so far more rows fit per response. Includes next_page and total for driving pagination.",
+        inputSchema: objectSchema(pagingProperties)
     ),
     Tool(
         name: "list_questions",
@@ -288,6 +320,19 @@ await server.withMethodHandler(CallTool.self) { params in
         }
 
         return await getPadCode(id: id, maxFileChars: intArgument(params.arguments, "max_file_chars"))
+
+    case "count_pads":
+        return await countPads(arguments: params.arguments)
+
+    case "aggregate_pads":
+        guard let groupBy = stringArgument(params.arguments, "group_by"), !groupBy.isEmpty else {
+            return missingArgument("group_by")
+        }
+
+        return await aggregatePads(groupBy: groupBy, arguments: params.arguments)
+
+    case "list_pads_compact":
+        return await listPadsCompact(arguments: params.arguments)
 
     case "list_questions":
         return await toolResult(apiGet("/api/questions/", query: pagingQuery(params.arguments)))
@@ -459,6 +504,210 @@ private func getPadCode(id: String, maxFileChars: Int?) async -> CallTool.Result
         content: [.text(text: String(decoding: data, as: UTF8.self), annotations: nil, _meta: nil)],
         isError: nil
     )
+}
+
+// MARK: - count_pads / aggregate_pads / list_pads_compact (#500)
+
+/// Safety cap on internal paging so a huge org (or a paging bug) can't loop
+/// forever. At ~50 pads/page this covers 25k pads; if hit, the result reports it
+/// as truncated rather than silently capping.
+private let maxPadPagesToFetch = 500
+
+/// At most this many groups are returned by aggregate_pads; if there are more, the
+/// top ones by count are returned and the result flags that it was truncated.
+private let maxAggregateGroups = 200
+
+/// The accumulated result of paging the whole pad list internally.
+private struct PadPageScan {
+    var pads: [[String: Any]] = []
+    var totalReported: Int?
+    var pagesFetched = 0
+    var truncated = false
+    var error: APIResponse?
+}
+
+/// Interprets a `next_page` value (a string token, or an int in some responses);
+/// nil means there are no more pages.
+private func nextPageToken(_ value: Any?) -> String? {
+    switch value {
+    case let token as String: token.isEmpty ? nil : token
+    case let number as Int: String(number)
+    default: nil
+    }
+}
+
+/// Pages `/api/pads/` from the first page following `next_page`, accumulating every
+/// pad, so the count/aggregate tools can tally in-process and return a small answer
+/// instead of streaming thousands of records through the model.
+private func fetchAllPads() async -> PadPageScan {
+    var scan = PadPageScan()
+    var page: String?
+    while scan.pagesFetched < maxPadPagesToFetch {
+        var query: [URLQueryItem] = []
+        if let page { query.append(URLQueryItem(name: "page", value: page)) }
+        let response = await apiGet("/api/pads/", query: query)
+        guard response.ok, let object = jsonObject(response.body) else {
+            scan.error = response
+            return scan
+        }
+
+        if scan.totalReported == nil { scan.totalReported = object["total"] as? Int }
+        if let pads = object["pads"] as? [[String: Any]] { scan.pads.append(contentsOf: pads) }
+        scan.pagesFetched += 1
+        guard let next = nextPageToken(object["next_page"]) else { return scan }
+
+        page = next
+    }
+
+    scan.truncated = true
+    return scan
+}
+
+/// Whether a pad passes the optional owner/state/language filters (case-insensitive
+/// exact match; an empty/absent filter always passes).
+private func padMatches(_ pad: [String: Any], owner: String?, state: String?, language: String?) -> Bool {
+    func equals(_ field: String, _ wanted: String?) -> Bool {
+        guard let wanted, !wanted.isEmpty else { return true }
+
+        return (pad[field] as? String)?.lowercased() == wanted.lowercased()
+    }
+
+    return equals("owner_email", owner) && equals("state", state) && equals("language", language)
+}
+
+/// Echoes the active filters back into a result, for clarity on what was counted.
+private func filtersEcho(owner: String?, state: String?, language: String?) -> [String: Any] {
+    var filters: [String: Any] = [:]
+    if let owner, !owner.isEmpty { filters["owner"] = owner }
+    if let state, !state.isEmpty { filters["state"] = state }
+    if let language, !language.isEmpty { filters["language"] = language }
+    return filters
+}
+
+/// Encodes a result dictionary as pretty JSON text.
+private func jsonResult(_ object: [String: Any]) -> CallTool.Result {
+    guard let data = try? JSONSerialization.data(
+        withJSONObject: object, options: [.prettyPrinted, .sortedKeys]
+    ) else {
+        return CallTool.Result(
+            content: [.text(text: "Could not encode the result.", annotations: nil, _meta: nil)],
+            isError: true
+        )
+    }
+
+    return CallTool.Result(
+        content: [.text(text: String(decoding: data, as: UTF8.self), annotations: nil, _meta: nil)],
+        isError: nil
+    )
+}
+
+private func countPads(arguments: [String: Value]?) async -> CallTool.Result {
+    let owner = stringArgument(arguments, "owner")
+    let state = stringArgument(arguments, "state")
+    let language = stringArgument(arguments, "language")
+
+    let scan = await fetchAllPads()
+    if let error = scan.error { return toolResult(error) }
+
+    let matched = scan.pads.filter { padMatches($0, owner: owner, state: state, language: language) }
+    var result: [String: Any] = [
+        "matched": matched.count,
+        "scanned": scan.pads.count,
+        "pages_fetched": scan.pagesFetched,
+        "truncated": scan.truncated
+    ]
+    if let total = scan.totalReported { result["total_reported_by_api"] = total }
+    let filters = filtersEcho(owner: owner, state: state, language: language)
+    if !filters.isEmpty { result["filters"] = filters }
+    if scan.truncated {
+        result["note"] = "Hit the internal page cap (\(maxPadPagesToFetch) pages); the count covers only the pads scanned."
+    }
+
+    return jsonResult(result)
+}
+
+private func aggregatePads(groupBy: String, arguments: [String: Value]?) async -> CallTool.Result {
+    let field: String
+    switch groupBy.lowercased() {
+    case "owner", "owner_email": field = "owner_email"
+    case "language": field = "language"
+    case "state": field = "state"
+    case "month", "created_at": field = "month"
+    default:
+        return CallTool.Result(
+            content: [.text(
+                text: "Unsupported group_by \"\(groupBy)\". Use owner, language, state, or month.",
+                annotations: nil, _meta: nil
+            )],
+            isError: true
+        )
+    }
+
+    let owner = stringArgument(arguments, "owner")
+    let state = stringArgument(arguments, "state")
+    let language = stringArgument(arguments, "language")
+
+    let scan = await fetchAllPads()
+    if let error = scan.error { return toolResult(error) }
+
+    let matched = scan.pads.filter { padMatches($0, owner: owner, state: state, language: language) }
+    var counts: [String: Int] = [:]
+    for pad in matched {
+        let key: String
+        if field == "month" {
+            let created = (pad["created_at"] as? String) ?? ""
+            key = created.count >= 7 ? String(created.prefix(7)) : "unknown"
+        } else {
+            key = (pad[field] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "unknown"
+        }
+        counts[key, default: 0] += 1
+    }
+
+    // Sort by count descending, then key ascending, so the output is deterministic.
+    let sorted = counts.sorted { $0.value != $1.value ? $0.value > $1.value : $0.key < $1.key }
+    let capped = Array(sorted.prefix(maxAggregateGroups))
+    let groups: [[String: Any]] = capped.map { ["value": $0.key, "count": $0.value] }
+
+    var result: [String: Any] = [
+        "group_by": field,
+        "matched": matched.count,
+        "scanned": scan.pads.count,
+        "distinct_groups": counts.count,
+        "groups": groups,
+        "pages_fetched": scan.pagesFetched,
+        "truncated": scan.truncated
+    ]
+    let filters = filtersEcho(owner: owner, state: state, language: language)
+    if !filters.isEmpty { result["filters"] = filters }
+    if counts.count > capped.count {
+        result["groups_truncated"] = true
+        result["note"] = "Showing the top \(capped.count) of \(counts.count) groups by count."
+    }
+    if scan.truncated {
+        result["page_cap_note"] = "Hit the internal page cap (\(maxPadPagesToFetch) pages); the aggregation covers only the pads scanned."
+    }
+
+    return jsonResult(result)
+}
+
+private func listPadsCompact(arguments: [String: Value]?) async -> CallTool.Result {
+    let response = await apiGet("/api/pads/", query: pagingQuery(arguments))
+    guard response.ok, let object = jsonObject(response.body) else { return toolResult(response) }
+
+    let pads = (object["pads"] as? [[String: Any]]) ?? []
+    let compact: [[String: Any]] = pads.map { pad in
+        var row: [String: Any] = [:]
+        for key in ["id", "title", "owner_email", "state", "language", "created_at"] where pad[key] != nil {
+            row[key] = pad[key]
+        }
+        return row
+    }
+
+    var result: [String: Any] = ["pads": compact, "count": compact.count]
+    if let next = object["next_page"], !(next is NSNull) { result["next_page"] = next }
+    if let total = object["total"], !(total is NSNull) { result["total"] = total }
+
+    return jsonResult(result)
 }
 
 let transport = StdioTransport()

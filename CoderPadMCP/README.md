@@ -19,6 +19,9 @@ API's JSON verbatim.
 | `list_pads` | `page` (int, optional), `sort` (string, optional) | A page of pads (≤50), with `next_page` / `total` |
 | `get_pad` | `id` (string, required) | One pad's full detail |
 | `get_pad_code` | `id` (string, required), `max_file_chars` (int, optional) | Just the pad's code — each file's `filename`, `language`, and `contents` (single-file and multi-file) |
+| `count_pads` | `owner` / `state` / `language` (string, optional) | Just the matched total — pages the whole list internally, no records returned |
+| `aggregate_pads` | `group_by` (string, required: owner/language/state/month), `owner` / `state` / `language` (optional) | Counts grouped by a field, computed in-process — e.g. pads per owner over a large org |
+| `list_pads_compact` | `page` (int, optional), `sort` (string, optional) | One page of pads with only id, title, owner_email, state, language, created_at (far smaller than `list_pads`) |
 | `list_questions` | `page` (int, optional), `sort` (string, optional) | A page of questions (≤50), with `next_page` / `total` |
 | `get_question` | `id` (int, required) | One question's full detail |
 | `get_quota` | — | The account's pad-quota usage |
