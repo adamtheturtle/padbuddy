@@ -47,6 +47,24 @@ nonisolated enum MCPTools {
                               "max_file_chars": intSchema("Optional. Truncate each file to this many characters."),
                               account: accountSchema],
                  required: ["pad"]),
+            tool("count_pads",
+                 "Count pads, optionally filtered, WITHOUT returning the records — one cheap "
+                     + "call instead of paging every verbose record through the model.",
+                 properties: filterProperties.merging([account: accountSchema]) { _, new in new }),
+            tool("aggregate_pads",
+                 "Group pads by a field and return only the counts (not the records) — e.g. how "
+                     + "many pads each owner has, over a large org, without blowing context.",
+                 properties: filterProperties.merging([
+                     "group_by": stringSchema("Field to group by: owner, language, state, or month."),
+                     account: accountSchema
+                 ]) { _, new in new },
+                 required: ["group_by"]),
+            tool("list_pads_compact",
+                 "Like list_pads but returns only id, title, owner_email, state, language, and "
+                     + "created_at per pad, so far more rows fit per response.",
+                 properties: ["page": intSchema("1-based page number."),
+                              "sort": stringSchema("Sort order."),
+                              account: accountSchema]),
             tool("list_questions", "List the account's question bank. Optional page and sort.",
                  properties: ["page": intSchema("1-based page number."),
                               "sort": stringSchema("Sort order."),
@@ -70,6 +88,16 @@ nonisolated enum MCPTools {
             "Optional. Which account to use, by its name or id (see list_accounts). "
                 + "Defaults to the account selected in the app."
         )
+    }
+
+    /// The owner/state/language filters shared by count_pads and aggregate_pads. The list
+    /// API has no server-side filters, so these are applied in-process while paging.
+    private static var filterProperties: [String: [String: Any]] {
+        [
+            "owner": stringSchema("Only pads whose owner_email matches this, case-insensitively."),
+            "state": stringSchema("Only pads in this state (e.g. \"active\", \"ended\")."),
+            "language": stringSchema("Only pads in this language (e.g. \"python\").")
+        ]
     }
 
     /// Dispatches a tool call to its CoderPad endpoint, against the account selected by the
@@ -122,6 +150,28 @@ nonisolated enum MCPTools {
             return await get("/api/questions/\(question)", key: key, base: base)
 
         default:
+            return await padQuery(name: name, arguments: arguments, key: key, base: base)
+        }
+    }
+
+    /// The pad count/aggregate/compact tools (#500), which page or project the pad list.
+    /// Falls through to `listOrSummary` for the plain GETs.
+    private static func padQuery(
+        name: String, arguments: [String: Any], key: String, base: URL
+    ) async -> Outcome {
+        switch name {
+        case "count_pads":
+            return await countPads(arguments: arguments, key: key, base: base)
+
+        case "aggregate_pads":
+            guard let groupBy = string(arguments, "group_by") else { return missing("group_by") }
+
+            return await aggregatePads(groupBy: groupBy, arguments: arguments, key: key, base: base)
+
+        case "list_pads_compact":
+            return await listPadsCompact(arguments: arguments, key: key, base: base)
+
+        default:
             return await listOrSummary(name: name, arguments: arguments, key: key, base: base)
         }
     }
@@ -148,111 +198,14 @@ nonisolated enum MCPTools {
         }
     }
 
-    // MARK: - list_accounts (#519)
-
-    /// Lists every configured account the server can act as — id, display name, resolved
-    /// user email, base URL, and whether it's the current default — as JSON. API keys are
-    /// deliberately never included.
-    private static func listAccounts(directory: MCPAccountDirectory) -> Outcome {
-        let currentID = directory.current?.id
-        let list: [[String: Any]] = directory.accounts.map { account in
-            [
-                "id": account.id,
-                "name": account.accountName,
-                "user_email": account.userEmail,
-                "base_url": account.baseURL.absoluteString,
-                "is_current": account.id == currentID
-            ]
-        }
-
-        guard let data = try? JSONSerialization.data(
-            withJSONObject: ["accounts": list], options: [.prettyPrinted, .sortedKeys]
-        ), let text = String(bytes: data, encoding: .utf8) else {
-            return Outcome(text: "Could not encode the account list.", isError: true)
-        }
-
-        return Outcome(text: text, isError: false)
-    }
-
-    // MARK: - get_pad_code (#499)
-
-    /// Fetches a pad and each of its environments, then assembles the compact code JSON
-    /// via the pure `MCPPadCode` helper.
-    private static func getPadCode(pad id: String, maxFileChars: Int?, key: String, base: URL) async -> Outcome {
-        let padResponse = await get("/api/pads/\(id)", key: key, base: base)
-        guard !padResponse.isError else { return padResponse }
-        guard let pad = jsonObject(padResponse.text) else {
-            return Outcome(text: "Could not parse the pad response as JSON.", isError: true)
-        }
-
-        var environments: [MCPPadCode.Environment] = []
-        for environmentID in MCPPadCode.environmentIDs(in: pad) {
-            let response = await get("/api/pad_environments/\(environmentID)", key: key, base: base)
-            guard !response.isError, let object = jsonObject(response.text) else { continue }
-
-            environments.append(MCPPadCode.Environment(id: environmentID, object: object))
-        }
-
-        let payload = MCPPadCode.payload(id: id, pad: pad, environments: environments, maxFileChars: maxFileChars)
-        guard let data = try? JSONSerialization.data(
-            withJSONObject: payload, options: [.prettyPrinted, .sortedKeys]
-        ) else {
-            return Outcome(text: "Could not encode the pad code.", isError: true)
-        }
-
-        return Outcome(text: String(bytes: data, encoding: .utf8) ?? "", isError: false)
-    }
-
-    /// Parses a JSON object body into a dictionary, or nil if it isn't an object.
-    private static func jsonObject(_ body: String) -> [String: Any]? {
-        guard let data = body.data(using: .utf8),
-              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-        else { return nil }
-
-        return object
-    }
-
-    // MARK: - whoami (#518)
-
-    /// Reports the acting account's identity as JSON: its display name and resolved user
-    /// email (known locally, since the CoderPad API doesn't expose the key's owner), the
-    /// server base URL, and the organization name (fetched from `/api/organization`). The
-    /// API key is deliberately never included. If the org fetch fails, the local fields
-    /// are still returned with a note, so `whoami` stays useful offline.
-    private static func whoami(credentials: MCPCredentials) async -> Outcome {
-        var info: [String: Any] = [
-            "account_name": credentials.accountName,
-            "user_email": credentials.userEmail,
-            "base_url": credentials.baseURL.absoluteString
-        ]
-
-        let org = await get("/api/organization", key: credentials.apiKey, base: credentials.baseURL)
-        if !org.isError,
-           let data = org.text.data(using: .utf8),
-           let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let name = object["organization_name"] as? String {
-            info["organization_name"] = name
-        } else {
-            info["organization_note"] = "Could not fetch the organization name from the API."
-        }
-
-        guard let data = try? JSONSerialization.data(
-            withJSONObject: info, options: [.prettyPrinted, .sortedKeys]
-        ), let text = String(bytes: data, encoding: .utf8) else {
-            return Outcome(text: "Could not encode the account info.", isError: true)
-        }
-
-        return Outcome(text: text, isError: false)
-    }
-
     // MARK: - HTTP
 
     /// Performs an authenticated GET and returns the raw JSON body verbatim, or an error
     /// outcome carrying the HTTP status / failure reason.
-    private static func get(_ path: String,
-                            key: String,
-                            base: URL,
-                            query: [URLQueryItem] = []) async -> Outcome {
+    static func get(_ path: String,
+                    key: String,
+                    base: URL,
+                    query: [URLQueryItem] = []) async -> Outcome {
         guard var components = URLComponents(url: base.appending(path: path),
                                              resolvingAgainstBaseURL: false) else {
             return Outcome(text: "Could not build a URL for \(path).", isError: true)
@@ -280,7 +233,7 @@ nonisolated enum MCPTools {
         }
     }
 
-    private static func paging(_ arguments: [String: Any]) -> [URLQueryItem] {
+    static func paging(_ arguments: [String: Any]) -> [URLQueryItem] {
         var query: [URLQueryItem] = []
         if let page = int(arguments, "page") { query.append(URLQueryItem(name: "page", value: String(page))) }
         if let sort = string(arguments, "sort") { query.append(URLQueryItem(name: "sort", value: sort)) }
@@ -294,14 +247,14 @@ nonisolated enum MCPTools {
     // MARK: - Argument coercion
 
     /// Reads a string argument, tolerating a number sent where a string was expected.
-    private static func string(_ arguments: [String: Any], _ name: String) -> String? {
+    static func string(_ arguments: [String: Any], _ name: String) -> String? {
         if let value = arguments[name] as? String, !value.isEmpty { return value }
         if let value = arguments[name] as? Int { return String(value) }
         return nil
     }
 
     /// Reads an integer argument, tolerating a numeric string.
-    private static func int(_ arguments: [String: Any], _ name: String) -> Int? {
+    static func int(_ arguments: [String: Any], _ name: String) -> Int? {
         if let value = arguments[name] as? Int { return value }
         if let text = arguments[name] as? String { return Int(text) }
         return nil
