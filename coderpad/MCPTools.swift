@@ -19,7 +19,7 @@ nonisolated enum MCPTools {
     }
 
     /// Tool descriptors for `tools/list`, as plain JSON objects. Computed (not stored) so
-    /// it needs no concurrency-safe shared state — a fresh array is built per call.
+    /// it needs no concurrency-safe shared state - a fresh array is built per call.
     static var all: [[String: Any]] {
         [
             tool("list_pads", "List the account's pads (most recent first). Optional page and sort.",

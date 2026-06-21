@@ -56,7 +56,7 @@ struct SettingsView: View {
     /// Whether the user has opted into the local MCP server integration. The server is a
     /// separate package (#393); this preference gates the in-app setup instructions and
     /// is what a future bundled helper would key off (#402).
-    @AppStorage("mcpServerEnabled") var mcpServerEnabled = false
+    @AppStorage(MCPServer.enabledDefaultsKey) var mcpServerEnabled = false
 
     // General preferences, backed by the keys in `GeneralSettings.Key`.
     @AppStorage(GeneralSettings.Key.appearance) var appearance: AppAppearance = .system

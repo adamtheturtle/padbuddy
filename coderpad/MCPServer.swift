@@ -3,13 +3,13 @@
 //  coderpad
 //
 //  A headless, in-app Model Context Protocol server (#402, #393). When the app is
-//  launched with the `--mcp` flag it does NOT start the UI — it speaks MCP over stdio
+//  launched with the `--mcp` flag it does NOT start the UI - it speaks MCP over stdio
 //  (newline-delimited JSON-RPC 2.0) and exposes read-only CoderPad tools backed by the
 //  user's saved account, reading the API key straight from the Keychain.
 //
 //  This is the App-Store-viable shape of the feature: the MCP client (e.g. Claude
 //  Desktop) launches the app's own executable as the server, so there's no separate
-//  binary to build, download, or sign — it ships and updates with the app, inside the
+//  binary to build, download, or sign - it ships and updates with the app, inside the
 //  sandbox, using the account the user already configured.
 //
 //  Only read endpoints are exposed deliberately: a server an assistant can drive should
@@ -26,8 +26,13 @@ nonisolated enum MCPServer {
     /// Presence of this argument switches the process into headless MCP mode.
     static let commandLineFlag = "--mcp"
 
+    /// UserDefaults key behind the "Enable the MCP server" toggle in Settings, which
+    /// reveals the setup instructions. (The `--mcp` server serves whenever it's launched;
+    /// the user controls it by adding or removing the MCP client configuration.)
+    static let enabledDefaultsKey = "mcpServerEnabled"
+
     /// Reads JSON-RPC requests line by line from stdin, writes responses to stdout, and
-    /// runs until stdin closes. Never returns — the process exists only to serve MCP. The
+    /// runs until stdin closes. Never returns - the process exists only to serve MCP. The
     /// credentials are resolved on the main actor by the caller (`Account` is main-actor
     /// isolated) and passed in as plain Sendable values.
     static func runUntilExit(credentials: MCPCredentials?) -> Never {

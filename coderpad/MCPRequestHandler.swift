@@ -10,7 +10,7 @@ import Foundation
 
 /// Handles one MCP JSON-RPC message at a time and returns the response line to write
 /// back (or `nil` for notifications, which take no reply). `nonisolated` so it runs off
-/// the main actor — see `MCPServer`.
+/// the main actor - see `MCPServer`.
 nonisolated struct MCPRequestHandler {
     /// The credentials the tools act as, or `nil` if no account is configured yet.
     let credentials: MCPCredentials?
@@ -26,7 +26,7 @@ nonisolated struct MCPRequestHandler {
         }
 
         let method = message["method"] as? String ?? ""
-        // Notifications (no `id`) never get a reply — that includes
+        // Notifications (no `id`) never get a reply - that includes
         // `notifications/initialized`, which the client sends after `initialize`.
         let id = message["id"]
         let isNotification = id == nil
