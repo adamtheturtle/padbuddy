@@ -110,42 +110,10 @@ extension SettingsView {
                     }
                 }
             }
-
-            // About + the trademark / unofficial-client disclaimer (#40, #491). Phrased
-            // as "This app" so it stays correct regardless of the app's display name.
-            Section {
-                LabeledContent("Version") {
-                    Text(Self.appVersionString)
-                        .foregroundStyle(.secondary)
-                        .textSelection(.enabled)
-                }
-            } header: {
-                Text("About")
-            } footer: {
-                // One multiline string literal (backslash-joined into a single line) so
-                // it stays a localizable LocalizedStringKey rather than the verbatim
-                // Text(String) overload, which wouldn't be extracted for translation.
-                Text("""
-                This app is an unofficial client for the CoderPad interview platform. \
-                It is not affiliated with, authorized, maintained, or endorsed by CoderPad, Inc. \
-                “CoderPad” is a trademark of CoderPad, Inc.
-                """)
-                .foregroundStyle(.secondary)
-            }
         }
         .formStyle(.grouped)
         // Re-sync with the system in case the login item changed outside the app.
         .onAppear { launchAtLogin = LoginItem.isEnabled }
-    }
-
-    /// The app's marketing version and build number for the About section, e.g.
-    /// "1.0.9 (42)". Falls back gracefully if either key is somehow missing.
-    static var appVersionString: String {
-        let info = Bundle.main.infoDictionary
-        let short = info?["CFBundleShortVersionString"] as? String ?? "—"
-        let build = info?["CFBundleVersion"] as? String
-        if let build, build != short { return "\(short) (\(build))" }
-        return short
     }
 
     /// Human-readable form of the auto-refresh interval, e.g. "90s" or "2m 30s".
