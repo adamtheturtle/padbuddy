@@ -232,11 +232,49 @@ private func advertisedTools() -> [Tool] {
 let server = Server(
     name: "coderpad",
     version: "0.1.0",
-    capabilities: .init(tools: .init(listChanged: false))
+    capabilities: .init(
+        prompts: .init(listChanged: false),
+        resources: .init(subscribe: false, listChanged: false),
+        tools: .init(listChanged: false)
+    )
 )
 
 await server.withMethodHandler(ListTools.self) { _ in
     ListTools.Result(tools: advertisedTools())
+}
+
+// MARK: - Prompts (#517)
+
+await server.withMethodHandler(ListPrompts.self) { _ in
+    ListPrompts.Result(prompts: interviewPrompts)
+}
+
+await server.withMethodHandler(GetPrompt.self) { params in
+    do {
+        return try renderPrompt(name: params.name, arguments: params.arguments)
+    } catch let PromptError.unknownPrompt(name) {
+        throw MCPError.invalidParams("Unknown prompt: \(name)")
+    } catch let PromptError.missingArgument(name) {
+        throw MCPError.invalidParams("Missing required argument: \(name)")
+    }
+}
+
+// MARK: - Resources (#517)
+
+await server.withMethodHandler(ListResources.self) { _ in
+    ListResources.Result(resources: staticResources)
+}
+
+await server.withMethodHandler(ListResourceTemplates.self) { _ in
+    ListResourceTemplates.Result(templates: resourceTemplates)
+}
+
+await server.withMethodHandler(ReadResource.self) { params in
+    guard let request = parseResourceURI(params.uri) else {
+        throw MCPError.invalidParams("Unknown resource URI: \(params.uri)")
+    }
+
+    return try await readResource(request, uri: params.uri)
 }
 
 await server.withMethodHandler(CallTool.self) { params in
@@ -352,16 +390,16 @@ await server.withMethodHandler(CallTool.self) { params in
 
 // MARK: - get_pad_code (#499)
 
-/// Fetches the pad and each of its environments, then hands the decoded JSON to the
-/// pure `padCodePayload` assembler in the core library.
-private func getPadCode(id: String, maxFileChars: Int?) async -> CallTool.Result {
+/// Fetches the pad and each of its environments and assembles the compact code JSON
+/// via the pure `padCodePayload` in the core library. Throws `MCPError` on an HTTP or
+/// parse failure so both the tool and the resource reader can surface it.
+private func padCodeJSON(id: String, maxFileChars: Int?) async throws -> String {
     let padResponse = await apiGet("/api/pads/\(id)")
-    guard padResponse.ok else { return toolResult(padResponse) }
+    guard padResponse.ok else {
+        throw MCPError.internalError("HTTP \(padResponse.status)\n\(padResponse.body)")
+    }
     guard let pad = jsonObject(padResponse.body) else {
-        return CallTool.Result(
-            content: [.text(text: "Could not parse the pad response as JSON.", annotations: nil, _meta: nil)],
-            isError: true
-        )
+        throw MCPError.internalError("Could not parse the pad response as JSON.")
     }
 
     var environments: [PadEnvironment] = []
@@ -372,7 +410,51 @@ private func getPadCode(id: String, maxFileChars: Int?) async -> CallTool.Result
         environments.append(PadEnvironment(id: environmentID, object: object))
     }
 
-    return jsonResult(padCodePayload(id: id, pad: pad, environments: environments, maxFileChars: maxFileChars))
+    let payload = padCodePayload(id: id, pad: pad, environments: environments, maxFileChars: maxFileChars)
+    guard let data = try? JSONSerialization.data(
+        withJSONObject: payload, options: [.prettyPrinted, .sortedKeys]
+    ) else {
+        throw MCPError.internalError("Could not encode the pad code.")
+    }
+
+    return String(decoding: data, as: UTF8.self)
+}
+
+private func getPadCode(id: String, maxFileChars: Int?) async -> CallTool.Result {
+    do {
+        let json = try await padCodeJSON(id: id, maxFileChars: maxFileChars)
+        return CallTool.Result(content: [.text(text: json, annotations: nil, _meta: nil)], isError: nil)
+    } catch {
+        return CallTool.Result(
+            content: [.text(text: error.localizedDescription, annotations: nil, _meta: nil)],
+            isError: true
+        )
+    }
+}
+
+// MARK: - Resource reads (#517)
+
+/// Fetches the JSON behind a parsed resource URI and returns it as the resource's
+/// contents. Throws `MCPError` on failure so the client gets a proper JSON-RPC error.
+private func readResource(_ request: ResourceRequest, uri: String) async throws -> ReadResource.Result {
+    func jsonResource(_ path: String) async throws -> ReadResource.Result {
+        let response = await apiGet(path)
+        guard response.ok else {
+            throw MCPError.internalError("HTTP \(response.status) reading \(uri)\n\(response.body)")
+        }
+
+        return ReadResource.Result(contents: [.text(response.body, uri: uri, mimeType: "application/json")])
+    }
+
+    switch request {
+    case .quota: return try await jsonResource("/api/quota")
+    case .organization: return try await jsonResource("/api/organization")
+    case let .pad(id): return try await jsonResource("/api/pads/\(id)")
+    case let .question(id): return try await jsonResource("/api/questions/\(id)")
+    case let .padCode(id):
+        let json = try await padCodeJSON(id: id, maxFileChars: nil)
+        return ReadResource.Result(contents: [.text(json, uri: uri, mimeType: "application/json")])
+    }
 }
 
 // MARK: - count_pads / aggregate_pads / list_pads_compact (#500)

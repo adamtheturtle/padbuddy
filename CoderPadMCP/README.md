@@ -53,6 +53,35 @@ deletion stays a human action in the app.
 | `create_question` | `title` (string, required); `language` / `description` / `solution` / `contents` (optional) | Creates a question |
 | `update_question` | `id` (int, required); `title` / `language` / `description` / `solution` / `contents` (optional) | Updates a question |
 
+## Prompts
+
+The server also offers a few reusable **prompts** (issue #517) — argument-driven
+instructions an MCP client can surface as slash-commands or quick actions, so the
+assistant knows how to drive the tools for a common task without being told from
+scratch each time:
+
+| Prompt | Arguments | Does |
+| --- | --- | --- |
+| `review_pad_code` | `pad_id` (required) | Reviews a pad's code for correctness, complexity, and clarity |
+| `summarize_pad` | `pad_id` (required) | Summarizes an interview pad's problem, approach, and outcome |
+| `compare_pads` | `pad_ids` (required, comma-separated) | Compares several pads to help rank candidates |
+| `draft_question` | `topic` (required), `language` / `difficulty` (optional) | Drafts a new interview question |
+
+## Resources
+
+Pads, questions, and the account singletons are also exposed as MCP **resources**
+(issue #517), addressable by a `coderpad://` URI. The quota and organization
+resources are listed directly; pads and questions are URI templates the client
+fills in. Each resolves to the same JSON the corresponding tool returns.
+
+| URI | Resource |
+| --- | --- |
+| `coderpad://quota` | The account's pad-quota usage |
+| `coderpad://organization` | The org directory (teams + members) |
+| `coderpad://pad/{id}` | One pad's full detail |
+| `coderpad://pad/{id}/code` | Just the pad's code (each file) |
+| `coderpad://question/{id}` | One question's full detail |
+
 ## Configuration
 
 Set via the environment:
