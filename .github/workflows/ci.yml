@@ -176,6 +176,16 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
 
+      # The standalone SwiftPM packages (the MCP server, the REST client) aren't
+      # part of the app's xcodebuild scheme, so their tests need a separate
+      # `swift test`. Runs in the same Xcode 26.5 toolchain selected above. Cheap
+      # (these packages compile in seconds), so it rides along on the nightly
+      # macOS job rather than warranting its own runner.
+      - name: Test Swift packages
+        run: |
+          set -o pipefail
+          swift test --package-path CoderPadMCP
+
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v7

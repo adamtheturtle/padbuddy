@@ -15,11 +15,24 @@ let package = Package(
         .package(url: "https://github.com/modelcontextprotocol/swift-sdk.git", from: "0.12.1")
     ],
     targets: [
-        .executableTarget(
-            name: "coderpad-mcp",
+        // The network-free core (argument coercion, tool schemas, and the pad
+        // code/count/aggregate transforms), split out so it can be unit-tested (#522).
+        .target(
+            name: "CoderPadMCPCore",
             dependencies: [
                 .product(name: "MCP", package: "swift-sdk")
             ]
+        ),
+        .executableTarget(
+            name: "coderpad-mcp",
+            dependencies: [
+                "CoderPadMCPCore",
+                .product(name: "MCP", package: "swift-sdk")
+            ]
+        ),
+        .testTarget(
+            name: "CoderPadMCPCoreTests",
+            dependencies: ["CoderPadMCPCore"]
         )
     ]
 )
