@@ -29,7 +29,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Run actionlint
         # Pin the version for reproducibility; the download script is fetched at
@@ -50,7 +50,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Run shellcheck
         run: shellcheck scripts/*.sh ci_scripts/*.sh
@@ -80,7 +80,7 @@ jobs:
         shell: bash
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       # The full Swift image ships git but not the unzip/curl this job uses to
       # fetch and unpack the pinned release binaries.
@@ -130,7 +130,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       # Pin an explicit Xcode rather than the image default, which drifts as
       # Apple ships updates. 26.5 is the newest stable on the macos-26 image.
@@ -198,7 +198,7 @@ jobs:
     timeout-minutes: 40
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       # Pin an explicit Xcode rather than the image default, which drifts as
       # Apple ships updates. 26.5 matches the other macOS jobs.
@@ -245,7 +245,7 @@ jobs:
     timeout-minutes: 25
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       # Pin an explicit Xcode rather than the image default, which drifts as
       # Apple ships updates. 26.5 matches the rest of the macOS jobs — Periphery
@@ -284,7 +284,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       # Pin an explicit Xcode rather than the image default, which drifts as Apple
       # ships updates. 26.5 is the newest stable on the macos-26 image — and the one
