@@ -290,6 +290,10 @@ struct CoderpadApp: App {
                 AppRouter.requestOpenPadByURL()
             }
             .keyboardShortcut("o", modifiers: [.command])
+            Button("Go to Anything…") {
+                AppRouter.requestCommandPalette()
+            }
+            .keyboardShortcut("k", modifiers: [.command])
             Divider()
             Button("Reload") {
                 AppRouter.requestReload()

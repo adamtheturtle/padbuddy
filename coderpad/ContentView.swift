@@ -44,6 +44,7 @@ struct ContentView: View {
     @State private var network = NetworkMonitor.shared
     @State private var openPadURLDraft: String = ""
     @State private var showOpenPadURL = false
+    @State private var showCommandPalette = false
     @State private var showWhatsNew = false
     @Environment(\.openWindow) private var openWindow
     @Environment(\.openSettings) private var openSettings
@@ -80,6 +81,11 @@ struct ContentView: View {
                 showOpenPadURL = true
             }
         }
+        .task {
+            for await _ in AppRouter.commandPaletteRequests {
+                showCommandPalette = true
+            }
+        }
         // The "Open Pad by ID" intent routes through durable AppNavigation state so a
         // cold-launch request isn't dropped: consume whatever is already pending on
         // appear, and react to any value set afterwards.
@@ -107,6 +113,9 @@ struct ContentView: View {
         // Mark the release seen on *any* dismissal (Continue, Esc, or closing the
         // window), so the sheet doesn't re-show every launch when dismissed without
         // the button. `onDismiss` is the single place this is recorded.
+        .sheet(isPresented: $showCommandPalette) {
+            CommandPaletteView()
+        }
         .sheet(
             isPresented: $showWhatsNew,
             onDismiss: { WhatsNew.markSeen() },

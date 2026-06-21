@@ -55,6 +55,15 @@ enum AppRouter {
         voidStream(.openPadByURLRequested)
     }
 
+    /// Ask the main window to present the command palette (Cmd-K, #526).
+    static func requestCommandPalette() {
+        center.post(name: .commandPaletteRequested, object: nil)
+    }
+
+    static var commandPaletteRequests: AsyncStream<Void> {
+        voidStream(.commandPaletteRequested)
+    }
+
     /// Ask the app to open `url` in a Pad Browser window.
     static func requestOpenPadInBrowser(_ url: URL) {
         center.post(name: .openPadInBrowserRequested, object: url)
@@ -150,6 +159,7 @@ enum AppRouter {
 private extension Notification.Name {
     static let reloadRequested = Notification.Name("coderpad.reloadRequested")
     static let openPadByURLRequested = Notification.Name("coderpad.openPadByURLRequested")
+    static let commandPaletteRequested = Notification.Name("coderpad.commandPaletteRequested")
     static let padUpdated = Notification.Name("coderpad.padUpdated")
     static let padDeleted = Notification.Name("coderpad.padDeleted")
     static let questionUpdated = Notification.Name("coderpad.questionUpdated")
