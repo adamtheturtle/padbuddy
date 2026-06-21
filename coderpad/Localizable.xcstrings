@@ -1071,6 +1071,9 @@
     "Add or manage accounts in Settings" : {
 
     },
+    "Add the configuration below to your MCP client (for Claude Desktop, that's its claude_desktop_config.json), replacing the package path with where you cloned the project." : {
+
+    },
     "Add to Favorites" : {
       "localizations" : {
         "en-GB" : {
@@ -1475,6 +1478,9 @@
         }
       }
     },
+    "Clone the project and build the server with “swift run --package-path CoderPadMCP coderpad-mcp”." : {
+
+    },
     "Code" : {
       "localizations" : {
         "es" : {
@@ -1703,6 +1709,9 @@
     "Completed %@" : {
 
     },
+    "Configuration" : {
+
+    },
     "Continue" : {
       "localizations" : {
         "es" : {
@@ -1776,6 +1785,9 @@
           }
         }
       }
+    },
+    "Copy configuration" : {
+
     },
     "Copy Link" : {
 
@@ -2732,6 +2744,9 @@
         }
       }
     },
+    "Enable the MCP server" : {
+
+    },
     "Enabled" : {
       "localizations" : {
         "es" : {
@@ -3037,6 +3052,9 @@
           }
         }
       }
+    },
+    "Get an API key" : {
+
     },
     "Get an API key from CoderPad" : {
       "localizations" : {
@@ -3550,6 +3568,9 @@
           }
         }
       }
+    },
+    "MCP Server" : {
+
     },
     "Me" : {
       "localizations" : {
@@ -4635,6 +4656,9 @@
         }
       }
     },
+    "Paste your CoderPad API key in place of the placeholder, then restart your MCP client." : {
+
+    },
     "Paste your Screen API key" : {
 
     },
@@ -5327,6 +5351,9 @@
         }
       }
     },
+    "Set it up" : {
+
+    },
     "Settings…" : {
       "localizations" : {
         "es" : {
@@ -5336,6 +5363,9 @@
           }
         }
       }
+    },
+    "Setup instructions" : {
+
     },
     "Share" : {
       "localizations" : {
@@ -5936,6 +5966,9 @@
         }
       }
     },
+    "The Model Context Protocol (MCP) lets AI assistants like Claude read your CoderPad data — your pads, questions, quota, and organization — so you can ask them about it in plain language. The server runs locally on your Mac and is read-only: it never changes or deletes anything in CoderPad." : {
+
+    },
     "The request failed (HTTP %lld)." : {
       "localizations" : {
         "es" : {
@@ -5968,6 +6001,9 @@
           }
         }
       }
+    },
+    "The server is part of this app's open-source project and runs as a separate command — enabling it here shows the setup steps below." : {
+
     },
     "The test session was created." : {
 
@@ -6639,6 +6675,9 @@
           }
         }
       }
+    },
+    "Your API key is kept out of this panel on purpose — paste it directly into your MCP client's config so it isn't shown here." : {
+
     },
     "Your Email" : {
       "localizations" : {
