@@ -100,9 +100,11 @@ extension SettingsView {
                 Label("Add to Claude Desktop", systemImage: "wand.and.stars")
             }
 
-            DisclosureGroup("Prefer to run it yourself?") {
-                commandBlock(Self.claudeCommand)
-                copyButton(Self.claudeCommand)
+            DisclosureGroup("Prefer to edit the file yourself?") {
+                manualFileInstructions(
+                    path: "~/Library/Application Support/Claude/claude_desktop_config.json",
+                    snippet: Self.claudeConfigSnippet
+                )
             }
             .font(.callout)
         } header: {
@@ -154,9 +156,8 @@ extension SettingsView {
                 Label("Add to Codex", systemImage: "wand.and.stars")
             }
 
-            DisclosureGroup("Prefer to run it yourself?") {
-                commandBlock(Self.codexCommand)
-                copyButton(Self.codexCommand)
+            DisclosureGroup("Prefer to edit the file yourself?") {
+                manualFileInstructions(path: "~/.codex/config.toml", snippet: Self.codexConfigSnippet)
             }
             .font(.callout)
         } header: {
@@ -210,30 +211,38 @@ extension SettingsView {
         }
     }
 
-    /// Terminal command that adds PadBuddy to Claude Desktop's JSON config, creating the
-    /// file if needed and merging into any existing "mcpServers" so other servers survive.
-    static var claudeCommand: String {
-        """
-        config="$HOME/Library/Application Support/Claude/claude_desktop_config.json"
-        mkdir -p "$(dirname "$config")"
-        python3 - "$config" <<'PY'
-        import json, os, sys
-        path = sys.argv[1]
-        config = {}
-        if os.path.exists(path):
-            try:
-                with open(path) as file:
-                    config = json.load(file)
-            except ValueError:
-                config = {}
-        config.setdefault("mcpServers", {})["coderpad"] = {
-            "command": "\(executablePath)",
-            "args": ["--mcp"],
+    /// The manual fallback shown under a one-click button: which file to edit and exactly
+    /// what to put in it (no shell script). The path is selectable and the snippet copyable.
+    @ViewBuilder
+    private func manualFileInstructions(path: String, snippet: String) -> some View {
+        Text("Add the `coderpad` server to this file — create it with the text below if it "
+            + "doesn't exist, otherwise add just the `coderpad` block to what's already there:")
+            .font(.callout)
+            .foregroundStyle(.secondary)
+        Text(path)
+            .font(.system(.caption, design: .monospaced))
+            .textSelection(.enabled)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        commandBlock(snippet)
+        Button {
+            Clipboard.copy(snippet)
+        } label: {
+            Label("Copy", systemImage: "doc.on.doc")
         }
-        with open(path, "w") as file:
-            json.dump(config, file, indent=2)
-        print("Updated", path)
-        PY
+    }
+
+    /// The Claude Desktop config entry to add by hand under `mcpServers` (or the whole file
+    /// to create if it doesn't exist yet).
+    static var claudeConfigSnippet: String {
+        """
+        {
+          "mcpServers": {
+            "coderpad": {
+              "command": "\(executablePath)",
+              "args": ["--mcp"]
+            }
+          }
+        }
         """
     }
 
@@ -244,17 +253,12 @@ extension SettingsView {
         "claude mcp add coderpad -s user -- \(executablePath) --mcp"
     }
 
-    /// Terminal command that appends the PadBuddy entry to the Codex CLI's TOML config.
-    /// Guarded by grep so running it twice doesn't add a duplicate table.
-    static var codexCommand: String {
+    /// The Codex config table to add by hand to `~/.codex/config.toml`.
+    static var codexConfigSnippet: String {
         """
-        mkdir -p "$HOME/.codex"
-        grep -qsF '[mcp_servers.coderpad]' "$HOME/.codex/config.toml" || cat >> "$HOME/.codex/config.toml" <<'EOF'
-
         [mcp_servers.coderpad]
         command = "\(executablePath)"
         args = ["--mcp"]
-        EOF
         """
     }
 
