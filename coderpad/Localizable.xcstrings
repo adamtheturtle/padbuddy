@@ -1071,9 +1071,6 @@
     "Add or manage accounts in Settings" : {
 
     },
-    "Add the configuration below to your MCP client. For Claude Desktop that's its claude_desktop_config.json (Settings, Developer, Edit Config)." : {
-
-    },
     "Add to Favorites" : {
       "localizations" : {
         "en-GB" : {
@@ -1408,6 +1405,9 @@
     "Choose what the exported PDF report includes." : {
 
     },
+    "Claude Desktop" : {
+
+    },
     "Clear" : {
       "localizations" : {
         "es" : {
@@ -1661,6 +1661,9 @@
         }
       }
     },
+    "Codex" : {
+
+    },
     "Collapsed" : {
       "localizations" : {
         "es" : {
@@ -1704,9 +1707,6 @@
 
     },
     "Completed %@" : {
-
-    },
-    "Configuration" : {
 
     },
     "Continue" : {
@@ -3010,6 +3010,12 @@
         }
       }
     },
+    "Find your assistant below and copy its configuration." : {
+
+    },
+    "For the Codex CLI, open ~/.codex/config.toml (create it if it doesn't exist) and add the entry below." : {
+
+    },
     "Forward" : {
       "localizations" : {
         "es" : {
@@ -3219,6 +3225,9 @@
           }
         }
       }
+    },
+    "In Claude Desktop, open Settings (Command-comma), select the Developer tab, and click Edit Config. That opens claude_desktop_config.json (in ~/Library/Application Support/Claude/). Paste the JSON below, merging it in if the file already has an \"mcpServers\" entry." : {
+
     },
     "In Progress" : {
 
@@ -4630,6 +4639,9 @@
         }
       }
     },
+    "Paste it into that assistant's MCP configuration, then restart the assistant. It uses the account selected in PadBuddy." : {
+
+    },
     "Paste your API key" : {
       "localizations" : {
         "es" : {
@@ -5089,9 +5101,6 @@
           }
         }
       }
-    },
-    "Restart your MCP client. It will use the account selected in PadBuddy." : {
-
     },
     "Result notifications (optional)" : {
 
