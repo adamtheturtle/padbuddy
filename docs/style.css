@@ -69,3 +69,86 @@ footer {
   color: var(--muted);
 }
 footer a { color: var(--muted); }
+
+/* --- Hero buttons --------------------------------------------------------- */
+
+.cta { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+
+.button-secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+.button-secondary:hover { background: var(--panel); opacity: 1; }
+
+/* --- MCP band (headline feature) ----------------------------------------- */
+
+.band { padding: 56px 0; }
+
+.band-mcp {
+  background: linear-gradient(180deg, #141b2c, var(--bg));
+  border-bottom: 1px solid var(--line);
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin: 0 0 .4em;
+}
+
+.band-title { font-size: 2rem; margin: 0 0 .3em; letter-spacing: -0.02em; }
+
+.lead { font-size: 1.15rem; color: var(--muted); max-width: 40em; margin: 0 0 1.8em; }
+
+.mcp-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin: 0 0 28px;
+}
+.mcp-point {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px;
+}
+.mcp-point h3 { font-size: 1.05rem; margin: 0 0 .4em; }
+.mcp-point p { margin: 0; color: var(--muted); }
+
+.code-label, .media { margin: 0 0 .6em; }
+.code-label { color: var(--muted); font-size: .9rem; }
+
+.code {
+  background: #0b0e13;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px 18px;
+  overflow-x: auto;
+  margin: 0 0 .8em;
+}
+.code code {
+  font: 14px/1.55 "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  color: var(--text);
+}
+code {
+  font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  font-size: .9em;
+  background: rgba(255, 255, 255, 0.06);
+  padding: .1em .35em;
+  border-radius: 5px;
+}
+.code code { background: none; padding: 0; }
+
+.media img { max-width: 100%; border-radius: 12px; border: 1px solid var(--line); }
+
+/* --- Two-column feature grid --------------------------------------------- */
+
+ul.features-2col { grid-template-columns: repeat(2, 1fr); }
+
+@media (max-width: 720px) {
+  .mcp-grid { grid-template-columns: 1fr; }
+  ul.features-2col { grid-template-columns: 1fr; }
+}

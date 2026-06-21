@@ -3,71 +3,135 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Pads for CoderPad — a native macOS client</title>
+  <title>PadBuddy — a native macOS client for CoderPad, with a built-in MCP server</title>
   <meta name="description"
-        content="Pads for CoderPad is a fast, native macOS client for browsing, searching, and managing your CoderPad pads and questions from the menu bar or a full window." />
+        content="PadBuddy is a fast, native macOS app for your CoderPad pads and questions — with a built-in MCP server so you can ask AI assistants about your interviews in plain language. Unofficial, third-party client." />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header class="hero">
     <div class="wrap">
-      <h1>Pads for CoderPad</h1>
-      <p class="tagline">A fast, native macOS client for your CoderPad pads and questions —
-        from the menu bar or a full window, without opening a browser tab.</p>
+      <h1>PadBuddy</h1>
+      <p class="tagline">A fast, native macOS app for your CoderPad pads and questions —
+        from the menu bar or a full window, without opening a browser tab. And it talks to your AI assistant.</p>
       <p class="cta">
-        <a class="button" href="https://github.com/adamtheturtle/coderpad-macos">View on GitHub</a>
+        <a class="button" href="https://github.com/adamtheturtle/coderpad-macos-releases/releases/latest">Download for macOS</a>
+        <a class="button button-secondary" href="https://github.com/adamtheturtle/coderpad-macos">View on GitHub</a>
       </p>
-      <p class="note">Free to download. Requires an existing CoderPad account and your own API key.
+      <p class="note">Free. Requires macOS 15 or later, an existing CoderPad account, and your own API key.
         Not affiliated with, or endorsed by, CoderPad, Inc.</p>
     </div>
   </header>
 
-  <main class="wrap">
-    <section>
-      <h2>Features</h2>
-      <ul class="features">
-        <li><strong>Pads at a glance.</strong> Browse every pad with fast search and filters for
-          state, language, owner, team, type, and date. Your pads stay cached so the app opens instantly.</li>
-        <li><strong>Pad detail.</strong> Read the code with syntax highlighting (single- and multi-file),
-          step through the session event timeline, and see the whiteboard, notes, and participants.</li>
-        <li><strong>Create and manage.</strong> Start a new pad, seed it from a question, edit details,
-          end an interview, or delete a pad — all from the app.</li>
-        <li><strong>Questions.</strong> Browse and search your question bank, star favorites for one-click
-          new pads, and create or edit questions.</li>
-        <li><strong>Organization &amp; quota.</strong> See your organization's members and pad-usage stats,
-          and keep an eye on your plan's pad quota.</li>
-        <li><strong>Built-in pad browser.</strong> Open a pad in an in-app browser window instead of leaving the app.</li>
-        <li><strong>Menu bar quick access.</strong> Create a new pad, jump to recent pads, or start one from a
-          favorite question straight from the menu bar.</li>
-        <li><strong>Multiple accounts.</strong> Switch between CoderPad accounts, including self-hosted or
-          regional deployments.</li>
-      </ul>
+  <main>
+    <!-- Headline feature: the built-in MCP server. -->
+    <section class="band band-mcp">
+      <div class="wrap">
+        <p class="eyebrow">Built-in MCP server</p>
+        <h2 class="band-title">Talk to your interviews</h2>
+        <p class="lead">Ask AI assistants — Claude Desktop, Claude Code, Codex, or any MCP client — about your
+          CoderPad pads, questions, quota, and organization in plain language. No copy-pasting JSON between tabs.</p>
+
+        <div class="mcp-grid">
+          <div class="mcp-point">
+            <h3>The app <em>is</em> the server</h3>
+            <p>Nothing extra to build, download, or run. PadBuddy serves the Model Context Protocol itself
+              with <code>PadBuddy&nbsp;--mcp</code>, reading your API key straight from the macOS Keychain.</p>
+          </div>
+          <div class="mcp-point">
+            <h3>Read-only by design</h3>
+            <p>The server only reads your selected account. It can browse and summarize your pads and
+              questions; it never creates, edits, or deletes interview content.</p>
+          </div>
+          <div class="mcp-point">
+            <h3>Copy-paste setup</h3>
+            <p>The app's <strong>MCP Server</strong> settings pane gives you the exact configuration for your
+              client — copy it, paste it, done.</p>
+          </div>
+        </div>
+
+        <p class="code-label">Example client configuration</p>
+        <pre class="code"><code>{
+  "mcpServers": {
+    "padbuddy": {
+      "command": "/Applications/PadBuddy.app/Contents/MacOS/PadBuddy",
+      "args": ["--mcp"]
+    }
+  }
+}</code></pre>
+        <p class="note">The exact command for your client is copy-pasteable from the app's MCP Server settings pane.</p>
+
+        <!--
+          TODO (owner): drop a short demo here — a GIF/video of an assistant answering a
+          question about real pads. Place the asset in docs/ and reference it, e.g.:
+          <p class="media"><img src="mcp-demo.gif" alt="An assistant answering a question about your CoderPad pads" /></p>
+        -->
+      </div>
     </section>
 
-    <section>
-      <h2>Requirements</h2>
-      <ul>
-        <li>macOS 15 or later.</li>
-        <li>An existing CoderPad account and a CoderPad API key
-          (<a href="https://app.coderpad.io/dashboard/settings">get one here</a>).</li>
-      </ul>
-    </section>
+    <div class="wrap">
+      <section>
+        <h2>Everything else, native</h2>
+        <ul class="features features-2col">
+          <li><strong>Pads at a glance.</strong> Browse every pad with fast search and filters for
+            state, language, owner, team, type, and date — cached so the app opens instantly.</li>
+          <li><strong>Pad detail.</strong> Read the code with syntax highlighting (single- and multi-file),
+            step through the session event timeline, and see the whiteboard, notes, and participants.</li>
+          <li><strong>Questions.</strong> Browse and search your question bank, star favorites for one-click
+            new pads, and create or edit questions inline.</li>
+          <li><strong>Create &amp; manage.</strong> Start a new pad, seed it from a question, edit details,
+            end an interview, or delete a pad — all from the app.</li>
+          <li><strong>Menu bar &amp; Spotlight.</strong> Create a pad or jump to a recent one from the menu
+            bar, and find your pads from Spotlight.</li>
+          <li><strong>Widgets &amp; Control Center.</strong> Recent pads on your desktop, and a New Pad
+            button in Control Center.</li>
+          <li><strong>Notifications &amp; Dock badge.</strong> Know when a pad changes without keeping the
+            window open.</li>
+          <li><strong>Multiple accounts.</strong> Switch between CoderPad accounts, including self-hosted or
+            regional deployments.</li>
+          <li><strong>Screen support.</strong> Browse your CoderPad Screen campaigns and test sessions
+            alongside your interview pads.</li>
+          <li><strong>Liquid Glass design.</strong> A modern Mac app that feels at home on macOS Tahoe,
+            with a clean Mail-style sidebar.</li>
+        </ul>
+      </section>
 
-    <section>
-      <h2>Privacy</h2>
-      <p>Your API key is stored only in the local macOS Keychain and is used solely to talk to
-        CoderPad's own API. The app collects no analytics, shows no ads, and has no developer-operated
-        server. See the <a href="privacy-policy.html">privacy policy</a> for details.</p>
-    </section>
+      <section>
+        <h2>How updates work</h2>
+        <p>PadBuddy updates itself in place. The Mac App Store build aside, the direct download is a
+          signed, notarized <code>.dmg</code> that checks for new versions and installs them with one
+          click — no reinstalling by hand.</p>
+      </section>
+
+      <section>
+        <h2>Requirements</h2>
+        <ul>
+          <li>macOS 15 or later.</li>
+          <li>An existing CoderPad account and a CoderPad API key
+            (<a href="https://app.coderpad.io/dashboard/settings">get one here</a>).</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Privacy</h2>
+        <p>Your API key is stored only in the local macOS Keychain and is used solely to talk to
+          CoderPad's own API. The app collects no analytics, shows no ads, and has no developer-operated
+          server. Pad code and transcripts stay on your Mac — and when you connect the MCP server, they're
+          shared only with the AI assistant you point at it. See the
+          <a href="privacy-policy.html">privacy policy</a> for details.</p>
+      </section>
+    </div>
   </main>
 
   <footer class="wrap">
     <p>
+      <a href="https://github.com/adamtheturtle/coderpad-macos-releases/releases/latest">Download</a> ·
       <a href="https://github.com/adamtheturtle/coderpad-macos">GitHub</a> ·
       <a href="https://github.com/adamtheturtle/coderpad-macos/issues">Support</a> ·
       <a href="privacy-policy.html">Privacy</a>
     </p>
-    <p class="small">An unofficial, third-party client. &ldquo;CoderPad&rdquo; is a trademark of CoderPad, Inc.</p>
+    <p class="small">An unofficial, third-party client. &ldquo;CoderPad&rdquo; is a trademark of CoderPad, Inc.
+      PadBuddy is not affiliated with, endorsed by, or sponsored by CoderPad, Inc.</p>
   </footer>
 </body>
 </html>

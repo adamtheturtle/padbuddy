@@ -2,7 +2,7 @@
 
 _Last updated: 2026-06-12_
 
-This privacy policy describes how the **Pads for CoderPad** macOS app
+This privacy policy describes how the **PadBuddy** macOS app
 ("the app") handles your information. The app is an unofficial, third-party
 client for [CoderPad](https://coderpad.io); it is not affiliated with,
 endorsed by, or operated by CoderPad, Inc.
