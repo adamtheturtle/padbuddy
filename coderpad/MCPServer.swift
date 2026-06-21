@@ -141,9 +141,13 @@ enum MCPAccountLoader {
             return MCPAccountDirectory(accounts: [], currentID: nil)
         }
 
-        // Drop accounts without a usable key (e.g. an in-progress draft); each remaining
-        // account becomes one selectable identity.
+        // Drop accounts without a usable key (e.g. an in-progress draft), and the demo
+        // account: its mock key only works against the in-process mock server the headless
+        // process doesn't run, so serving it would send a fake key to the real API and 401
+        // ("Invalid API key"). Each remaining account becomes one selectable identity.
         let credentials: [MCPCredentials] = accounts.compactMap { account in
+            guard !account.isMock else { return nil }
+
             let key = account.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !key.isEmpty else { return nil }
 
