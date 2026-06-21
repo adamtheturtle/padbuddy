@@ -5,6 +5,29 @@
   --muted: #9aa3b2;
   --accent: #4b8bff;
   --line: rgba(255, 255, 255, 0.08);
+  --hero-top: #1a2030;
+  --band-top: #141b2c;
+  --code-bg: #0b0e13;
+  --code-text: #e7e9ee;
+  --inline-code-bg: rgba(255, 255, 255, 0.06);
+}
+
+/* Honour the visitor's system appearance, the way the app honours macOS. */
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #ffffff;
+    --panel: #f5f6f8;
+    --text: #1b1e26;
+    --muted: #5b6472;
+    --accent: #2f55d4;
+    --line: rgba(0, 0, 0, 0.10);
+    --hero-top: #eef1fb;
+    --band-top: #e9edfc;
+    /* Code blocks stay dark in both themes (reads cleanly, matches editors). */
+    --code-bg: #0b0e13;
+    --code-text: #e7e9ee;
+    --inline-code-bg: rgba(0, 0, 0, 0.06);
+  }
 }
 
 * { box-sizing: border-box; }
@@ -25,14 +48,26 @@ a:hover { text-decoration: underline; }
 
 .hero {
   padding: 72px 0 56px;
-  background: linear-gradient(180deg, #1a2030, var(--bg));
+  background: linear-gradient(180deg, var(--hero-top), var(--bg));
   border-bottom: 1px solid var(--line);
   text-align: center;
 }
 
+.hero-icon {
+  display: block;
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 1.1rem;
+  border-radius: 27px;
+  box-shadow: 0 10px 30px rgba(105, 104, 252, 0.35);
+}
+
 .hero h1 { font-size: 2.6rem; margin: 0 0 .25em; letter-spacing: -0.02em; }
 
-.tagline { font-size: 1.2rem; color: var(--muted); margin: 0 auto 1.5em; max-width: 36em; }
+.tagline { font-size: 1.2rem; color: var(--muted); margin: 0 auto 1em; max-width: 36em; }
+
+.hero-integrations { color: var(--text); margin: 0 auto 1.5em; max-width: 36em; }
+.hero-integrations strong { color: var(--accent); font-weight: 600; }
 
 .cta { margin: 0 0 1em; }
 
@@ -86,7 +121,7 @@ footer a { color: var(--muted); }
 .band { padding: 56px 0; }
 
 .band-mcp {
-  background: linear-gradient(180deg, #141b2c, var(--bg));
+  background: linear-gradient(180deg, var(--band-top), var(--bg));
   border-bottom: 1px solid var(--line);
 }
 
@@ -122,7 +157,7 @@ footer a { color: var(--muted); }
 .code-label { color: var(--muted); font-size: .9rem; }
 
 .code {
-  background: #0b0e13;
+  background: var(--code-bg);
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 16px 18px;
@@ -131,12 +166,12 @@ footer a { color: var(--muted); }
 }
 .code code {
   font: 14px/1.55 "SF Mono", ui-monospace, Menlo, Consolas, monospace;
-  color: var(--text);
+  color: var(--code-text);
 }
 code {
   font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
   font-size: .9em;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--inline-code-bg);
   padding: .1em .35em;
   border-radius: 5px;
 }
@@ -147,6 +182,39 @@ code {
 /* --- Two-column feature grid --------------------------------------------- */
 
 ul.features-2col { grid-template-columns: repeat(2, 1fr); }
+
+/* --- Download CTAs (direct + Mac App Store) ------------------------------ */
+
+.cta { align-items: stretch; }
+
+/* Primary direct-download button carries a two-line label. */
+.button .button-title { display: block; font-weight: 600; line-height: 1.2; }
+.button .button-sub {
+  display: block;
+  font-size: .78rem;
+  font-weight: 400;
+  opacity: .85;
+  margin-top: 2px;
+}
+
+/* Mac App Store badge — Apple-style black pill. Disabled placeholder for now;
+   swap for the official artwork + product-page link once the listing is live. */
+.mas-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: .55em 1.1em;
+  background: #000;
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 10px;
+  text-align: left;
+  line-height: 1.1;
+}
+.mas-badge__logo { width: 24px; height: 24px; flex: 0 0 auto; }
+.mas-badge__top { display: block; font-size: .7rem; opacity: .85; }
+.mas-badge__bottom { display: block; font-size: 1.15rem; font-weight: 600; letter-spacing: -0.01em; }
+.mas-badge--disabled { opacity: .55; cursor: default; }
 
 @media (max-width: 720px) {
   .mcp-grid { grid-template-columns: 1fr; }

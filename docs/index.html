@@ -6,16 +6,70 @@
   <title>PadBuddy — a native macOS client for CoderPad, with a built-in MCP server</title>
   <meta name="description"
         content="PadBuddy is a fast, native macOS app for your CoderPad pads and questions — with a built-in MCP server so you can ask AI assistants about your interviews in plain language. Unofficial, third-party client." />
+  <link rel="canonical" href="https://adamtheturtle.github.io/coderpad-macos/" />
+
+  <!-- Icons -->
+  <link rel="icon" href="assets/app-icon.svg" type="image/svg+xml" />
+  <link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png" />
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+  <link rel="manifest" href="site.webmanifest" />
+  <meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+  <meta name="color-scheme" content="dark light" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="PadBuddy" />
+  <meta property="og:title" content="PadBuddy — a native macOS client for CoderPad" />
+  <meta property="og:description"
+        content="A fast, native macOS app for your CoderPad pads and questions, with a built-in MCP server so you can ask AI assistants about your interviews in plain language." />
+  <meta property="og:url" content="https://adamtheturtle.github.io/coderpad-macos/" />
+  <meta property="og:image" content="https://adamtheturtle.github.io/coderpad-macos/assets/og-image.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="PadBuddy app icon and name, with the tagline: a native macOS app for CoderPad that talks to your AI assistant." />
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="PadBuddy — a native macOS client for CoderPad" />
+  <meta name="twitter:description"
+        content="A fast, native macOS app for your CoderPad pads and questions, with a built-in MCP server for your AI assistant." />
+  <meta name="twitter:image" content="https://adamtheturtle.github.io/coderpad-macos/assets/og-image.png" />
+
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header class="hero">
     <div class="wrap">
+      <img class="hero-icon" src="assets/app-icon.svg" width="120" height="120"
+           alt="PadBuddy app icon: a white code glyph on an indigo-to-purple tile." />
       <h1>PadBuddy</h1>
       <p class="tagline">A fast, native macOS app for your CoderPad pads and questions —
         from the menu bar or a full window, without opening a browser tab. And it talks to your AI assistant.</p>
+      <p class="hero-integrations">Lives in your <strong>menu bar</strong>, on your desktop as a
+        <strong>widget</strong>, and in <strong>Control Center</strong>.</p>
       <p class="cta">
-        <a class="button" href="https://github.com/adamtheturtle/coderpad-macos-releases/releases/latest">Download for macOS</a>
+        <a class="button" href="https://github.com/adamtheturtle/coderpad-macos-releases/releases/latest">
+          <span class="button-title">Direct download</span>
+          <span class="button-sub">.dmg, auto-updates via Sparkle</span>
+        </a>
+        <!--
+          Mac App Store call to action. This is a disabled placeholder until the
+          listing is live (App Store epic #189, listing #489). When it ships,
+          replace this <span> with Apple's official "Download on the Mac App Store"
+          badge artwork wrapped in an <a> to the App Store product page, keeping
+          Apple's required clear space. See issue #504.
+        -->
+        <span class="mas-badge mas-badge--disabled" role="note"
+              aria-label="Coming soon to the Mac App Store">
+          <svg class="mas-badge__logo" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path fill="currentColor" d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.12 0-.23-.02-.3-.03-.01-.06-.04-.22-.04-.39 0-1.15.572-2.27 1.206-2.98.804-.94 2.142-1.64 3.248-1.68.03.13.05.28.05.43zm4.565 15.71c-.03.07-.463 1.58-1.518 3.12-.945 1.34-1.94 2.71-3.43 2.71-1.517 0-1.9-.88-3.63-.88-1.698 0-2.302.91-3.67.91-1.377 0-2.332-1.26-3.428-2.8-1.287-1.82-2.323-4.63-2.323-7.28 0-4.28 2.797-6.55 5.552-6.55 1.448 0 2.675.95 3.6.95.865 0 2.222-1.01 3.902-1.01.613 0 2.886.06 4.374 2.19-.13.09-2.383 1.37-2.383 4.19 0 3.26 2.854 4.42 2.955 4.45z"/>
+          </svg>
+          <span class="mas-badge__text">
+            <span class="mas-badge__top">Coming soon to the</span>
+            <span class="mas-badge__bottom">Mac App Store</span>
+          </span>
+        </span>
         <a class="button button-secondary" href="https://github.com/adamtheturtle/coderpad-macos">View on GitHub</a>
       </p>
       <p class="note">Free. Requires macOS 15 or later, an existing CoderPad account, and your own API key.
@@ -81,10 +135,12 @@
             new pads, and create or edit questions inline.</li>
           <li><strong>Create &amp; manage.</strong> Start a new pad, seed it from a question, edit details,
             end an interview, or delete a pad — all from the app.</li>
-          <li><strong>Menu bar &amp; Spotlight.</strong> Create a pad or jump to a recent one from the menu
+          <li><strong>Menu bar app.</strong> Create a pad or jump to a recent one straight from the menu
             bar, and find your pads from Spotlight.</li>
-          <li><strong>Widgets &amp; Control Center.</strong> Recent pads on your desktop, and a New Pad
-            button in Control Center.</li>
+          <li><strong>Widget.</strong> Keep your recent pads on the desktop or in Notification Center,
+            one click from opening them.</li>
+          <li><strong>Control Center.</strong> A New Pad button right in Control Center, so a fresh
+            interview is always a click away.</li>
           <li><strong>Notifications &amp; Dock badge.</strong> Know when a pad changes without keeping the
             window open.</li>
           <li><strong>Multiple accounts.</strong> Switch between CoderPad accounts, including self-hosted or

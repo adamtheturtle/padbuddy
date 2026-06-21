@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Social share card source. Authored on a 1200x1200 square (QuickLook renders
+     SVGs square) with all content inside the centre 1200x630 band; rasterised
+     then centre-cropped to og-image.png (1200x630). -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200">
+  <defs>
+    <linearGradient id="page" x1="0" y1="0" x2="1200" y2="1200" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#141b2c"/>
+      <stop offset="1" stop-color="#0f1115"/>
+    </linearGradient>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1" gradientUnits="objectBoundingBox">
+      <stop offset="0" stop-color="#6968FC"/>
+      <stop offset="1" stop-color="#9643F4"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="1200" fill="url(#page)"/>
+
+  <!-- centre band runs y=285..915; vertical centre = 600 -->
+  <!-- app icon tile, 280x280, vertically centred -->
+  <g transform="translate(96, 460)">
+    <rect width="280" height="280" rx="63" ry="63" fill="url(#tile)"/>
+    <g transform="scale(0.2734)" fill="none" stroke="#FFFFFF"
+       stroke-linecap="round" stroke-linejoin="round">
+      <path d="M300 331 L219 511 L300 691" stroke-width="74"/>
+      <path d="M455 700 L569 322" stroke-width="58"/>
+      <path d="M724 331 L805 511 L724 691" stroke-width="74"/>
+    </g>
+  </g>
+
+  <g font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif">
+    <text x="448" y="515" font-size="40" font-weight="700" letter-spacing="3" fill="#7aa2ff">BUILT-IN MCP SERVER</text>
+    <text x="446" y="620" font-size="100" font-weight="700" fill="#e7e9ee" letter-spacing="-2">PadBuddy</text>
+    <text x="448" y="695" font-size="38" font-weight="400" fill="#9aa3b2">A native macOS app for CoderPad</text>
+    <text x="448" y="745" font-size="38" font-weight="400" fill="#9aa3b2">that talks to your AI assistant.</text>
+  </g>
+</svg>

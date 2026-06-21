@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- PadBuddy app icon, web form: the white </> code glyph on the app's
+     indigo-to-purple gradient, in a rounded-square (squircle-ish) tile.
+     Colours and glyph geometry mirror coderpad/AppIcon.icon. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1024" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6968FC"/>
+      <stop offset="1" stop-color="#9643F4"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="1024" height="1024" rx="230" ry="230" fill="url(#bg)"/>
+  <g fill="none" stroke="#FFFFFF" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M300 331 L219 511 L300 691" stroke-width="74"/>
+    <path d="M455 700 L569 322" stroke-width="58"/>
+    <path d="M724 331 L805 511 L724 691" stroke-width="74"/>
+  </g>
+</svg>
