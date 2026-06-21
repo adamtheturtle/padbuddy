@@ -88,6 +88,11 @@ nonisolated struct MCPRequestHandler {
         }
 
         let outcome = await MCPTools.run(name: name, arguments: arguments, directory: directory)
+        // Record the call (tool name + served account + ok/error only — never arguments) so
+        // the app's MCP status view can show recent activity (#523).
+        let served = directory.resolve(arguments[MCPTools.account] as? String)?.accountName
+            ?? directory.current?.accountName
+        MCPActivityLog.recordCall(tool: name, account: served, succeeded: !outcome.isError)
         return Self.toolResultResponse(id: id, text: outcome.text, isError: outcome.isError)
     }
 

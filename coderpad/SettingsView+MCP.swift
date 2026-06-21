@@ -41,9 +41,11 @@ extension SettingsView {
                 mcpClaudeCodeSection
                 mcpCodexSection
                 mcpVerifySection
+                mcpActivitySection
             }
         }
         .formStyle(.grouped)
+        .task { await mcpActivity.poll() }
     }
 
     /// The separate, explicit write opt-in (#502). Distinct from enabling the server: read

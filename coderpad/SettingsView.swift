@@ -63,6 +63,9 @@ struct SettingsView: View {
     /// only advertised and usable when it's on. Off by default.
     @AppStorage(MCPServer.writeEnabledDefaultsKey) var mcpServerAllowWrites = false
 
+    /// Tails the headless server's activity log for the MCP pane's status area (#523).
+    @State var mcpActivity = MCPActivityStore()
+
     // General preferences, backed by the keys in `GeneralSettings.Key`.
     @AppStorage(GeneralSettings.Key.appearance) var appearance: AppAppearance = .system
     @AppStorage(GeneralSettings.Key.presence) var presence: AppPresence = .dockAndMenuBar

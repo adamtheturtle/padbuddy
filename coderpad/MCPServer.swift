@@ -44,6 +44,9 @@ nonisolated enum MCPServer {
     /// credentials are resolved on the main actor by the caller (`Account` is main-actor
     /// isolated) and passed in as plain Sendable values.
     static func runUntilExit(directory: MCPAccountDirectory) -> Never {
+        // Record that a server process started serving (which account), so the app's MCP
+        // status view can show it's working (#523).
+        MCPActivityLog.recordLaunch(account: directory.current?.accountName)
         let handler = MCPRequestHandler(directory: directory)
         while let line = readLine(strippingNewline: true) {
             let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
