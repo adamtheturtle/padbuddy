@@ -116,6 +116,22 @@ nonisolated enum WidgetSharedStore {
         try? data.write(to: url, options: .atomic)
     }
 
+    /// Records a New Pad request for the app to pick up on its next activation, written
+    /// as a file (not `UserDefaults`) so it's seen immediately across the App Group with
+    /// no suite-cache delay. Idempotent — `takePendingNewPad` is the single consumer and
+    /// deletes the file, so re-recording the same request before consumption is harmless.
+    /// A no-op when the container is unavailable. Mirrors the widget target's copy
+    /// (`RecentPadsWidget/WidgetSharedSnapshot.swift`); it lives here too so the app-target
+    /// twin of `CreatePadIntent` — the one that lets the Control Center button open the
+    /// app (#485) — compiles against it.
+    static func requestNewPad(account: String?, question: Int?) {
+        guard let url = fileURL(newPadRequestFile),
+              let data = try? JSONEncoder().encode(WidgetNewPadRequest(account: account, question: question))
+        else { return }
+
+        try? data.write(to: url, options: .atomic)
+    }
+
     /// Returns and clears any pending New Pad request the widget/Control Center button
     /// recorded, so the app performs it once on activation. Nil when none is pending.
     static func takePendingNewPad() -> WidgetNewPadRequest? {

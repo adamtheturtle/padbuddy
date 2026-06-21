@@ -16,7 +16,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "66F543F12FE5EECD000214AA"
-               BuildableName = "CoderPad.app"
+               BuildableName = "PadBuddy.app"
                BlueprintName = "CoderPad-AppStore"
                ReferencedContainer = "container:coderpad.xcodeproj">
             </BuildableReference>
@@ -46,7 +46,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "66F543F12FE5EECD000214AA"
-            BuildableName = "CoderPad.app"
+            BuildableName = "PadBuddy.app"
             BlueprintName = "CoderPad-AppStore"
             ReferencedContainer = "container:coderpad.xcodeproj">
          </BuildableReference>
@@ -63,7 +63,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "66F543F12FE5EECD000214AA"
-            BuildableName = "CoderPad.app"
+            BuildableName = "PadBuddy.app"
             BlueprintName = "CoderPad-AppStore"
             ReferencedContainer = "container:coderpad.xcodeproj">
          </BuildableReference>

@@ -2019,6 +2019,9 @@
         }
       }
     },
+    "Create a new CoderPad pad." : {
+
+    },
     "Create a new interview pad from this question" : {
       "localizations" : {
         "es" : {

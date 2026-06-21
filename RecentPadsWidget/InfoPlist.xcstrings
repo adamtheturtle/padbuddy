@@ -8,13 +8,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "RecentPadsWidget"
+            "value" : "PadBuddy"
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Widget de Pads Recientes"
+            "state" : "translated",
+            "value" : "PadBuddy"
           }
         }
       }
