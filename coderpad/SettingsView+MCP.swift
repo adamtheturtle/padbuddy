@@ -139,17 +139,31 @@ extension SettingsView {
         }
     }
 
-    /// The Codex CLI uses a TOML config; append the entry (guarded so re-running is safe).
+    /// The Codex CLI uses a TOML config. The button appends the entry straight into it
+    /// (after a one-time folder grant, since the app is sandboxed); the manual command is
+    /// kept as a fallback. See `MCPClientInstall`.
     private var mcpCodexSection: some View {
         Section {
             Text("Adds PadBuddy to the Codex CLI's config at ~/.codex/config.toml.")
                 .font(.callout)
                 .foregroundStyle(.secondary)
 
-            commandBlock(Self.codexCommand)
-            copyButton(Self.codexCommand)
+            Button {
+                MCPClientInstall.addToCodex(executablePath: Self.executablePath)
+            } label: {
+                Label("Add to Codex", systemImage: "wand.and.stars")
+            }
+
+            DisclosureGroup("Prefer to run it yourself?") {
+                commandBlock(Self.codexCommand)
+                copyButton(Self.codexCommand)
+            }
+            .font(.callout)
         } header: {
             Text("Codex")
+        } footer: {
+            Text("The button asks for access to the .codex folder the first time.")
+                .foregroundStyle(.secondary)
         }
     }
 
