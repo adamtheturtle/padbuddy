@@ -94,15 +94,29 @@ final class CoderpadUITests: XCTestCase {
             add(attachment)
         }
 
+        // Click a row by title, re-querying right before the click so a transient
+        // relayout (e.g. the one-shot window resize) can't leave us with a stale
+        // element reference.
+        func clickRow(_ title: String) {
+            let element = row(title, in: app)
+            _ = element.waitForExistence(timeout: Self.listLoadTimeout)
+            // Wait until the layout has settled enough for the row to be hittable;
+            // the one-shot window resize can otherwise stale the element snapshot
+            // mid-click.
+            let deadline = Date().addingTimeInterval(5)
+            while !element.isHittable, Date() < deadline { usleep(100_000) }
+            element.click()
+        }
+
         // Pads paint on launch; wait for them, then give the window a beat to grow
         // to full size (`applicationDidBecomeActive` resizes it under `-uiTesting`).
         XCTAssertTrue(row("Onsite: Jane Doe", in: app).waitForExistence(timeout: Self.listLoadTimeout),
                       "A seeded demo pad should appear once the list loads")
-        usleep(1_000_000)
+        usleep(3_000_000)
 
         // Pads with a pad selected: the Mail-style three-column layout (sidebar +
         // list + populated detail) — the hero shot for #505.
-        row("Onsite: Jane Doe", in: app).click()
+        clickRow("Onsite: Jane Doe")
         usleep(1_500_000) // let the detail pane settle
         capture("pads-detail")
 
@@ -110,7 +124,7 @@ final class CoderpadUITests: XCTestCase {
         app.typeKey("2", modifierFlags: .command) // View ▸ Questions
         XCTAssertTrue(row("FizzBuzz", in: app).waitForExistence(timeout: Self.listLoadTimeout),
                       "A seeded demo question should appear after switching to Questions")
-        row("FizzBuzz", in: app).click()
+        clickRow("FizzBuzz")
         usleep(1_500_000)
         capture("questions-detail")
     }

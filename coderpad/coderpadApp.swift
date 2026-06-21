@@ -49,15 +49,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Expand the main window to the screen's visible frame under `-uiTesting`.
-    /// Idempotent and cheap, so running it on every activation is fine.
+    /// Runs once: re-sizing on every activation churns the layout and makes the
+    /// screenshot test's clicks flaky.
     private func sizeWindowForUITestingIfNeeded() {
-        guard AccountsStore.isUITesting, let screen = NSScreen.main else { return }
+        guard AccountsStore.isUITesting, !Self.didSizeWindowForUITesting,
+              let screen = NSScreen.main else { return }
 
         let target = screen.visibleFrame
         for window in NSApp.windows where window.isVisible && window.styleMask.contains(.titled) {
+            // Pin the minimum size too: otherwise a later SwiftUI layout pass (e.g.
+            // when a section changes or the command palette opens) springs the
+            // window back to its content size, shrinking it mid-capture.
+            window.minSize = target.size
             window.setFrame(target, display: true)
         }
+        Self.didSizeWindowForUITesting = true
     }
+
+    private static var didSizeWindowForUITesting = false
 
     /// The menu shown when right-clicking the Dock icon. Offers the same quick
     /// actions as the app's New menu, routed through the app's own `coderpad://`
