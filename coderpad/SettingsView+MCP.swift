@@ -3,7 +3,7 @@
 //  coderpad
 //
 //  The "MCP Server" settings pane: explains what the local Model Context Protocol
-//  server is and why you'd use it, lets the user opt in, and — once enabled — shows
+//  server is and why you'd use it, lets the user opt in, and, once enabled, shows
 //  the ready-to-paste MCP-client configuration (#402). The server itself ships as a
 //  separate package in the open-source project (#393), so this pane is the in-app
 //  explanation and setup helper rather than a live process control.
@@ -17,9 +17,11 @@ extension SettingsView {
             Section {
                 Text("""
                 The Model Context Protocol (MCP) lets AI assistants like Claude read your \
-                CoderPad data — your pads, questions, quota, and organization — so you can \
+                CoderPad data (your pads, questions, quota, and organization) so you can \
                 ask them about it in plain language. The server runs locally on your Mac \
-                and is read-only: it never changes or deletes anything in CoderPad.
+                and is read-only: it never changes or deletes anything in CoderPad. It's \
+                part of this app's open-source project and runs as a separate command; \
+                enable it below to see the setup steps.
                 """)
                 .foregroundStyle(.secondary)
             } header: {
@@ -28,12 +30,6 @@ extension SettingsView {
 
             Section {
                 Toggle("Enable the MCP server", isOn: $mcpServerEnabled)
-            } footer: {
-                Text("""
-                The server is part of this app's open-source project and runs as a \
-                separate command — enabling it here shows the setup steps below.
-                """)
-                .foregroundStyle(.secondary)
             }
 
             if mcpServerEnabled {
@@ -71,7 +67,7 @@ extension SettingsView {
             Text("Set it up")
         } footer: {
             Text("""
-            Your API key is kept out of this panel on purpose — paste it directly into \
+            Your API key is kept out of this panel on purpose. Paste it directly into \
             your MCP client's config so it isn't shown here.
             """)
             .foregroundStyle(.secondary)
@@ -80,7 +76,7 @@ extension SettingsView {
 
     /// The copyable MCP-client config. The API key is left as a placeholder rather than
     /// filled from the saved account, so the key never appears in (or is copied out of)
-    /// the Settings window — consistent with the Touch-ID reveal gate on stored keys.
+    /// the Settings window, consistent with the Touch-ID reveal gate on stored keys.
     private var mcpConfigSection: some View {
         Section {
             Text(Self.mcpClientConfig)

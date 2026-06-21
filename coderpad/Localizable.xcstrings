@@ -5966,7 +5966,7 @@
         }
       }
     },
-    "The Model Context Protocol (MCP) lets AI assistants like Claude read your CoderPad data — your pads, questions, quota, and organization — so you can ask them about it in plain language. The server runs locally on your Mac and is read-only: it never changes or deletes anything in CoderPad." : {
+    "The Model Context Protocol (MCP) lets AI assistants like Claude read your CoderPad data (your pads, questions, quota, and organization) so you can ask them about it in plain language. The server runs locally on your Mac and is read-only: it never changes or deletes anything in CoderPad. It's part of this app's open-source project and runs as a separate command; enable it below to see the setup steps." : {
 
     },
     "The request failed (HTTP %lld)." : {
@@ -6001,9 +6001,6 @@
           }
         }
       }
-    },
-    "The server is part of this app's open-source project and runs as a separate command — enabling it here shows the setup steps below." : {
-
     },
     "The test session was created." : {
 
@@ -6676,7 +6673,7 @@
         }
       }
     },
-    "Your API key is kept out of this panel on purpose — paste it directly into your MCP client's config so it isn't shown here." : {
+    "Your API key is kept out of this panel on purpose. Paste it directly into your MCP client's config so it isn't shown here." : {
 
     },
     "Your Email" : {
