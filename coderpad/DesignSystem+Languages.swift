@@ -88,11 +88,6 @@ enum CoderPadLinks {
     static let apiSettings = URL.staticURL("https://app.coderpad.io/dashboard/settings")
     static let apiDocs = URL.staticURL("https://coderpad.io/resources/docs/coderpad-interview/api/")
 
-    /// The app's open-source project, where the local MCP server (a separate package)
-    /// and its setup instructions live (#402, #393).
-    static let projectRepo = URL.staticURL("https://github.com/adamtheturtle/coderpad-macos")
-    static let mcpSetup = URL.staticURL("https://github.com/adamtheturtle/coderpad-macos/tree/main/CoderPadMCP")
-
     /// Where "Send Feedback…" delivers. This is an unofficial client, so reports go
     /// to the developer rather than CoderPad.
     static let feedbackEmail = "hello@adamdangoor.com"

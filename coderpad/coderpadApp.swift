@@ -76,7 +76,22 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 }
 
+/// Process entry point. Before the SwiftUI app starts, check for the `--mcp` flag: in
+/// that mode the process is a headless Model Context Protocol server (#402), driven over
+/// stdio by an MCP client, and never shows any UI. Otherwise it launches the app as
+/// usual by calling ``CoderpadApp/main()``.
 @main
+enum AppEntryPoint {
+    static func main() {
+        if CommandLine.arguments.contains(MCPServer.commandLineFlag) {
+            // Resolve the account here, on the main actor, since `Account` is main-actor
+            // isolated; the server itself then runs nonisolated over stdio.
+            MCPServer.runUntilExit(credentials: MCPAccountLoader.currentCredentials())
+        }
+        CoderpadApp.main()
+    }
+}
+
 struct CoderpadApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 

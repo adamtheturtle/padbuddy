@@ -2,11 +2,12 @@
 //  SettingsView+MCP.swift
 //  coderpad
 //
-//  The "MCP Server" settings pane: explains what the local Model Context Protocol
-//  server is and why you'd use it, lets the user opt in, and, once enabled, shows
-//  the ready-to-paste MCP-client configuration (#402). The server itself ships as a
-//  separate package in the open-source project (#393), so this pane is the in-app
-//  explanation and setup helper rather than a live process control.
+//  The "MCP Server" settings pane: explains what the built-in Model Context Protocol
+//  server is and why you'd use it, lets the user opt in, and, once enabled, shows the
+//  ready-to-paste MCP-client configuration (#402). The app itself is the server (run
+//  with the --mcp flag, see MCPServer.swift), so there is nothing to build or download
+//  and no API key to paste: the config points an MCP client at the app's own executable,
+//  which serves the currently selected account using the key already in the Keychain.
 //
 
 import SwiftUI
@@ -18,10 +19,9 @@ extension SettingsView {
                 Text("""
                 The Model Context Protocol (MCP) lets AI assistants like Claude read your \
                 CoderPad data (your pads, questions, quota, and organization) so you can \
-                ask them about it in plain language. The server runs locally on your Mac \
-                and is read-only: it never changes or deletes anything in CoderPad. It's \
-                part of this app's open-source project and runs as a separate command; \
-                enable it below to see the setup steps.
+                ask them about it in plain language. PadBuddy has the server built in and \
+                serves your selected account, so there's nothing to install. It's \
+                read-only: it never changes or deletes anything in CoderPad.
                 """)
                 .foregroundStyle(.secondary)
             } header: {
@@ -40,43 +40,29 @@ extension SettingsView {
         .formStyle(.grouped)
     }
 
-    /// Step-by-step setup, kept terse: the heavy lifting (building the server) lives in
-    /// the project's README, linked here, since the binary isn't bundled with the app.
+    /// Setup is two steps because the app is the server: point the client at the app's
+    /// own executable, then restart the client. No build, download, or API key needed.
     private var mcpSetupSection: some View {
         Section {
             Label("""
-            Clone the project and build the server with \
-            “swift run --package-path CoderPadMCP coderpad-mcp”.
+            Add the configuration below to your MCP client. For Claude Desktop that's its \
+            claude_desktop_config.json (Settings, Developer, Edit Config).
             """, systemImage: "1.circle")
-            Label("""
-            Add the configuration below to your MCP client (for Claude Desktop, that's \
-            its claude_desktop_config.json), replacing the package path with where you \
-            cloned the project.
-            """, systemImage: "2.circle")
-            Label("""
-            Paste your CoderPad API key in place of the placeholder, then restart your \
-            MCP client.
-            """, systemImage: "3.circle")
-
-            HStack(spacing: 16) {
-                Link("Setup instructions", destination: CoderPadLinks.mcpSetup)
-                Link("Get an API key", destination: CoderPadLinks.apiSettings)
-            }
-            .font(.callout)
+            Label("Restart your MCP client. It will use the account selected in PadBuddy.",
+                  systemImage: "2.circle")
         } header: {
             Text("Set it up")
         } footer: {
             Text("""
-            Your API key is kept out of this panel on purpose. Paste it directly into \
-            your MCP client's config so it isn't shown here.
+            The server reads the selected account's key straight from the Keychain, so \
+            your API key never appears in the configuration.
             """)
             .foregroundStyle(.secondary)
         }
     }
 
-    /// The copyable MCP-client config. The API key is left as a placeholder rather than
-    /// filled from the saved account, so the key never appears in (or is copied out of)
-    /// the Settings window, consistent with the Touch-ID reveal gate on stored keys.
+    /// The copyable MCP-client config. Points at the app's own executable with the --mcp
+    /// flag; no key is included because the server reads it from the Keychain at runtime.
     private var mcpConfigSection: some View {
         Section {
             Text(Self.mcpClientConfig)
@@ -97,23 +83,16 @@ extension SettingsView {
         }
     }
 
-    /// The MCP-client config snippet. Uses a placeholder for the API key and a sample
-    /// package path the user replaces with their checkout.
+    /// The MCP-client config snippet, built around the app's live executable path so it's
+    /// correct wherever PadBuddy is installed.
     static var mcpClientConfig: String {
-        """
+        let executable = Bundle.main.executablePath ?? "/Applications/PadBuddy.app/Contents/MacOS/PadBuddy"
+        return """
         {
           "mcpServers": {
             "coderpad": {
-              "command": "swift",
-              "args": [
-                "run",
-                "--package-path",
-                "/path/to/coderpad-macos/CoderPadMCP",
-                "coderpad-mcp"
-              ],
-              "env": {
-                "CODERPAD_API_KEY": "<YOUR_CODERPAD_API_KEY>"
-              }
+              "command": "\(executable)",
+              "args": ["--mcp"]
             }
           }
         }
