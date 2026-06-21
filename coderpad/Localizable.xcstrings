@@ -1087,6 +1087,12 @@
         }
       }
     },
+    "Adds PadBuddy to Claude Desktop, keeping any servers you already have. Takes effect after a restart." : {
+
+    },
+    "Adds PadBuddy to the Codex CLI's config at ~/.codex/config.toml." : {
+
+    },
     "Alerts when pads gain activity while PadBuddy is in the background." : {
       "localizations" : {
         "es" : {
@@ -1783,7 +1789,7 @@
         }
       }
     },
-    "Copy configuration" : {
+    "Copy command" : {
 
     },
     "Copy Link" : {
@@ -1851,6 +1857,9 @@
           }
         }
       }
+    },
+    "Copy the command for your assistant and run it in Terminal." : {
+
     },
     "Copy Title" : {
       "localizations" : {
@@ -3010,12 +3019,6 @@
         }
       }
     },
-    "Find your assistant below and copy its configuration." : {
-
-    },
-    "For the Codex CLI, open ~/.codex/config.toml (create it if it doesn't exist) and add the entry below." : {
-
-    },
     "Forward" : {
       "localizations" : {
         "es" : {
@@ -3225,9 +3228,6 @@
           }
         }
       }
-    },
-    "In Claude Desktop, open Settings (⌘,), select the Developer tab, and click Edit Config. That opens claude_desktop_config.json (in ~/Library/Application Support/Claude/). Paste the JSON below, merging it in if the file already has an \"mcpServers\" entry." : {
-
     },
     "In Progress" : {
 
@@ -4639,9 +4639,6 @@
         }
       }
     },
-    "Paste it into that assistant's MCP configuration, then restart the assistant. It uses the account selected in PadBuddy." : {
-
-    },
     "Paste your API key" : {
       "localizations" : {
         "es" : {
@@ -5101,6 +5098,9 @@
           }
         }
       }
+    },
+    "Restart the assistant. It uses the account selected in PadBuddy." : {
+
     },
     "Result notifications (optional)" : {
 
@@ -6002,7 +6002,7 @@
         }
       }
     },
-    "The server reads the selected account's key straight from the Keychain, so your API key never appears in the configuration." : {
+    "The server reads the selected account's key straight from the Keychain, so your API key is never written to a config file." : {
 
     },
     "The test session was created." : {

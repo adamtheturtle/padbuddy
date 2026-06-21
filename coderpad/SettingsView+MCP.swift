@@ -63,9 +63,12 @@ extension SettingsView {
     /// already configured are preserved.
     private var mcpClaudeSection: some View {
         Section {
-            Text("Adds PadBuddy to Claude Desktop, keeping any servers you already have, then takes effect after a restart.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
+            Text("""
+            Adds PadBuddy to Claude Desktop, keeping any servers you already have. \
+            Takes effect after a restart.
+            """)
+            .font(.callout)
+            .foregroundStyle(.secondary)
 
             commandBlock(Self.claudeCommand)
             copyButton(Self.claudeCommand)
