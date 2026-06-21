@@ -11,38 +11,48 @@ respected. All copy reflects the app as it actually behaves.
 > directly.
 
 ## App name — #55 (≤30)
+
 **Pads for CoderPad** _(17 chars)_
 
 Alternatives if you prefer: "PadPilot for CoderPad" (21), "Pad Companion for CoderPad" (26).
 
 ## Subtitle — #56 (≤30)
+
 **Manage your interview pads** _(26 chars)_
 
 ## Promotional text — #57 (≤170)
+
 **A fast, native macOS client for browsing, searching, and managing your CoderPad pads and questions, with a built-in pad browser and quick menu bar access.** _(155 chars)_
 
 ## Keywords — #59 (≤100, comma separated)
+
 `coderpad,interview,pads,coding,developer,questions,technical,hiring,recruiter,client,interviews` _(95 chars)_
 
 ## Primary / secondary category — #64
+
 - **Primary:** Developer Tools
 - **Secondary:** Productivity
 
 ## Age rating — #65
+
 **4+** — no objectionable content.
 
 ## Support URL — #60
+
 <https://github.com/adamtheturtle/coderpad-macos/issues>
 
 ## Marketing URL — #61 (optional)
+
 <https://github.com/adamtheturtle/coderpad-macos>
 
 ## Privacy policy URL — #46
+
 Host `docs/privacy-policy.md` (e.g. via GitHub Pages) and use that URL. Until
 Pages is enabled, the rendered source works:
 <https://github.com/adamtheturtle/coderpad-macos/blob/main/docs/privacy-policy.md>
 
 ## Localizations — #67
+
 **en-US** at launch. Additional languages can be added later (tracked separately in #111).
 
 ## Description — #58 (≤4000)

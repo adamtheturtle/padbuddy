@@ -15,7 +15,7 @@
 /* Honour the visitor's system appearance, the way the app honours macOS. */
 @media (prefers-color-scheme: light) {
   :root {
-    --bg: #ffffff;
+    --bg: #fff;
     --panel: #f5f6f8;
     --text: #1b1e26;
     --muted: #5b6472;
@@ -23,6 +23,7 @@
     --line: rgba(0, 0, 0, 0.10);
     --hero-top: #eef1fb;
     --band-top: #e9edfc;
+
     /* Code blocks stay dark in both themes (reads cleanly, matches editors). */
     --code-bg: #0b0e13;
     --code-text: #e7e9ee;
@@ -42,6 +43,9 @@ body {
 }
 
 .wrap { width: min(820px, 92vw); margin: 0 auto; }
+
+/* Standalone document pages (e.g. the privacy policy) want vertical breathing room. */
+.doc-page { padding: 56px 0; }
 
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
@@ -69,7 +73,14 @@ a:hover { text-decoration: underline; }
 .hero-integrations { color: var(--text); margin: 0 auto 1.5em; max-width: 36em; }
 .hero-integrations strong { color: var(--accent); font-weight: 600; }
 
-.cta { margin: 0 0 1em; }
+.cta {
+  margin: 0 0 1em;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  align-items: stretch;
+}
 
 .button {
   display: inline-block;
@@ -106,8 +117,6 @@ footer {
 footer a { color: var(--muted); }
 
 /* --- Hero buttons --------------------------------------------------------- */
-
-.cta { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
 
 .button-secondary {
   background: transparent;
@@ -167,6 +176,11 @@ footer a { color: var(--muted); }
 .code code {
   font: 14px/1.55 "SF Mono", ui-monospace, Menlo, Consolas, monospace;
   color: var(--code-text);
+
+  /* Reset the inline-code chrome (below) for code inside a fenced block;
+     the higher specificity wins regardless of source order. */
+  background: none;
+  padding: 0;
 }
 code {
   font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
@@ -175,7 +189,6 @@ code {
   padding: .1em .35em;
   border-radius: 5px;
 }
-.code code { background: none; padding: 0; }
 
 .media img { max-width: 100%; border-radius: 12px; border: 1px solid var(--line); }
 
@@ -184,8 +197,6 @@ code {
 ul.features-2col { grid-template-columns: repeat(2, 1fr); }
 
 /* --- Download CTAs (direct + Mac App Store) ------------------------------ */
-
-.cta { align-items: stretch; }
 
 /* Primary direct-download button carries a two-line label. */
 .button .button-title { display: block; font-weight: 600; line-height: 1.2; }
@@ -197,7 +208,7 @@ ul.features-2col { grid-template-columns: repeat(2, 1fr); }
   margin-top: 2px;
 }
 
-/* Mac App Store badge — Apple-style black pill. Disabled placeholder for now;
+/* Mac App Store badge: Apple-style black pill. Disabled placeholder for now;
    swap for the official artwork + product-page link once the listing is live. */
 .mas-badge {
   display: inline-flex;

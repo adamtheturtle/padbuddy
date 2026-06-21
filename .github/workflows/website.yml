@@ -1,0 +1,85 @@
+name: Website
+
+# Cheap Linux checks for the landing page and docs (docs/). These are separate
+# from ci.yml so they can be path-gated: GitHub only supports `paths:` filters at
+# the workflow level, and ci.yml deliberately runs on every push. Keeping the
+# website checks here means a Swift-only change never spins these up, and a
+# docs-only change never pays for the macOS build.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.htmlvalidate.json'
+      - '.stylelintrc.json'
+      - '.markdownlint.jsonc'
+      - 'lychee.toml'
+      - '.github/workflows/website.yml'
+  pull_request:
+    paths:
+      - 'docs/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.htmlvalidate.json'
+      - '.stylelintrc.json'
+      - '.markdownlint.jsonc'
+      - 'lychee.toml'
+      - '.github/workflows/website.yml'
+  workflow_dispatch:
+
+# Cancel an in-progress run when a newer run starts on the same ref.
+concurrency:
+  group: website-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Validate the site's HTML, lint the stylesheet, and lint the Markdown docs.
+  # Tools and their pinned versions live in package.json; `npm ci` restores them
+  # from the committed lockfile so CI matches a local `npm ci && npm run lint`.
+  lint:
+    name: Lint docs (HTML/CSS/Markdown)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install tooling
+        run: npm ci
+
+      - name: Validate HTML (html-validate)
+        run: npm run lint:html
+
+      - name: Lint CSS (stylelint)
+        run: npm run lint:css
+
+      - name: Lint Markdown (markdownlint)
+        run: npm run lint:md
+
+  # Check that every link on the live pages resolves. The main app repo is
+  # private, so anonymous requests 404; GITHUB_TOKEN lets lychee resolve
+  # github.com links via the API (it has read access to this repo). The public
+  # releases repo and the Pages site need no token. Config: lychee.toml.
+  links:
+    name: Check links (lychee)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Check links
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: '--config lychee.toml --no-progress "docs/**/*.html"'
+          fail: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

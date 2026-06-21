@@ -12,3 +12,6 @@ build_release/
 # a direct `swift build`. The app's own Package.resolved is authoritative for the
 # real build, so this would just drift. (The CoderPadMCP executable keeps its own.)
 CoderPadDesignSystem/Package.resolved
+
+# Node tooling for the website lint jobs (docs/) — deps are restored via `npm ci`.
+node_modules/

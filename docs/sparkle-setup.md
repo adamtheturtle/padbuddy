@@ -23,7 +23,7 @@ background update checks.
   public releases repo.
 - `scripts/package-and-notarize.sh` re-signs Sparkle's nested code (the
   `XPCServices/*.xpc`, `Updater.app`, and the `Autoupdate` helper) with Developer ID
-  + Hardened Runtime + a secure timestamp — **verified** by the notarized v0.1.0 /
+  - Hardened Runtime + a secure timestamp — **verified** by the notarized v0.1.0 /
   v0.1.1 releases.
 
 ## Public releases repo (source stays private)

@@ -187,6 +187,11 @@ struct PadDetailView: View {
                                            displayName: directory.display),
                           jobTitle: pad.title.isEmpty ? pad.id : pad.title)
         })
+        // Publish a Markdown export action so File ▸ Export as Markdown… can write the
+        // pad's summary and code to a .md file (#524).
+        .focusedSceneValue(\.exportMarkdownAction, PrintAction(id: "pad-\(pad.id)") {
+            exportMarkdown()
+        })
         // Publish whether there's anything to save so File ▸ Save Code… can disable
         // until the pad's code (environments or legacy inline contents) has loaded.
         .focusedSceneValue(\.padHasSavableCode, hasSavableCode)
@@ -299,24 +304,6 @@ extension PadDetailView {
 
         nav.deletePadID = nil
         showDeleteConfirm = true
-    }
-
-    /// The pad's code as printable sections — one per file, titled by its path,
-    /// namespaced by environment so identically-named files across environments
-    /// don't collide. Falls back to the legacy inline `contents` when no
-    /// environment carries files, mirroring Save Code.
-    private func printFiles() -> [PadPrintFile] {
-        var result: [PadPrintFile] = []
-        for (index, env) in environments.enumerated() {
-            for file in displayFiles(for: env) {
-                let title = file.path.flatMap { $0.isEmpty ? nil : $0 } ?? "Code"
-                result.append(PadPrintFile(id: "\(index)-\(file.id)", title: title, code: file.contents))
-            }
-        }
-        if result.isEmpty, let contents = pad.contents, !contents.isEmpty {
-            result.append(PadPrintFile(id: "contents", title: "Code", code: contents))
-        }
-        return result
     }
 
     private func endInterview() async {

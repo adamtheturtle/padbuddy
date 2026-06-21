@@ -71,7 +71,7 @@ close, and the dependency is dormant. Reject.
 
 ## Pull-to-refresh (relates to #285)
 
-#285 already concluded the `NSScrollView` bridge must stay until a public
+Issue #285 already concluded the `NSScrollView` bridge must stay until a public
 pull-to-refresh API ships (none exists through macOS 27; `.refreshable` compiles
 on macOS but never fires from a gesture). Both library options are worse than the
 small tailored bridge we already own:

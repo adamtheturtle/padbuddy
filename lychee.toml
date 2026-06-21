@@ -1,0 +1,19 @@
+# Broken-link checker config for the PadBuddy website (docs/). See issue #528.
+
+# A dead Download link is the worst failure mode, so we fail on real 4xx/5xx.
+# Treat any 2xx as success and tolerate 429: GitHub release URLs (and other
+# popular hosts) rate-limit anonymous HEAD/GET requests and answer 429, which
+# is not a broken link.
+accept = ["200..=299", "429"]
+
+# Be patient with slow/rate-limited hosts rather than flapping the build.
+max_retries = 3
+retry_wait_time = 2
+timeout = 20
+
+# Reduce 429s and bot-blocks by looking like a real browser.
+user_agent = "Mozilla/5.0 (compatible; lychee link checker)"
+
+# The main app repo is private, so anonymous requests 404. In CI lychee is given
+# GITHUB_TOKEN and resolves github.com links via the API instead, so these are
+# left in scope (the public releases repo and the Pages site need no token).

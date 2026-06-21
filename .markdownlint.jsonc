@@ -1,0 +1,10 @@
+{
+  // Line length is not meaningful for prose docs that wrap in the editor.
+  "MD013": false,
+  // These docs intentionally embed HTML and bare URLs.
+  "MD033": false,
+  "MD034": false,
+  // Allow a standalone emphasised metadata line (e.g. "_Last updated: ..._")
+  // as a subtitle rather than forcing it into a heading.
+  "MD036": false
+}

@@ -59,6 +59,50 @@ extension PadDetailView {
         return result
     }
 
+    /// The pad's code as printable sections — one per file, titled by its path,
+    /// namespaced by environment so identically-named files across environments
+    /// don't collide. Falls back to the legacy inline `contents` when no
+    /// environment carries files, mirroring Save Code. Shared by File ▸ Print and
+    /// the Markdown export (#524).
+    func printFiles() -> [PadPrintFile] {
+        var result: [PadPrintFile] = []
+        for (index, env) in environments.enumerated() {
+            for file in displayFiles(for: env) {
+                let title = file.path.flatMap { $0.isEmpty ? nil : $0 } ?? "Code"
+                result.append(PadPrintFile(id: "\(index)-\(file.id)", title: title,
+                                           code: file.contents, language: file.language ?? env.language))
+            }
+        }
+        if result.isEmpty, let contents = pad.contents, !contents.isEmpty {
+            result.append(PadPrintFile(id: "contents", title: "Code", code: contents, language: pad.language))
+        }
+        return result
+    }
+
+    /// Prompts for a destination and writes the pad as a single Markdown document — its
+    /// summary plus each code file in a fenced block (#524). The PDF half of "export" is
+    /// already covered by File ▸ Print's "Save as PDF".
+    func exportMarkdown() {
+        let name = pad.title.isEmpty ? pad.id : pad.title
+        let document = padMarkdownDocument(
+            title: name,
+            summary: padSummaryRows(pad, displayName: directory.display),
+            files: printFiles()
+        )
+
+        let panel = NSSavePanel()
+        panel.canCreateDirectories = true
+        panel.nameFieldStringValue = "\(name).md"
+        panel.message = "Export \"\(name)\" as Markdown"
+        guard panel.runModal() == .OK, let url = panel.url else { return }
+
+        do {
+            try document.write(to: url, atomically: true, encoding: .utf8)
+        } catch {
+            mutateError = error.localizedDescription
+        }
+    }
+
     /// Prompts for a destination and writes the pad's code there. A single file
     /// uses a save panel (the user names the file); multiple files use a folder
     /// chooser, then write into a subfolder named after the pad with their

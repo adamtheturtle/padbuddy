@@ -144,11 +144,44 @@ struct QuestionPrintDocument: View {
 
 // MARK: - Pad
 
-/// One code file in a printed pad, paired with the heading to label it.
+/// One code file in a printed pad, paired with the heading to label it. The optional
+/// language tags the Markdown export's code fence (it's unused by the print rendering).
 struct PadPrintFile: Identifiable {
     let id: String
     let title: String
     let code: String
+    var language: String?
+
+    init(id: String, title: String, code: String, language: String? = nil) {
+        self.id = id
+        self.title = title
+        self.code = code
+        self.language = language
+    }
+}
+
+/// The summary rows shown for a pad — its type, state, owner, and dates — shared by the
+/// print rendering and the Markdown export (#524) so both describe a pad the same way.
+/// `displayName` resolves an owner/participant email to a name when known.
+func padSummaryRows(_ pad: Pad, displayName: (String) -> String = \.self) -> [(String, String)] {
+    var rows: [(String, String)] = [
+        ("Type", pad.interviewType?.label ?? "None"),
+        ("State", pad.status.label),
+        ("Owner", displayName(pad.ownerEmail))
+    ]
+    if let language = pad.language, !language.isEmpty {
+        rows.append(("Language", language.languageDisplayName))
+    }
+    if !pad.participants.isEmpty {
+        rows.append(("Participants", pad.participants.map(displayName).joined(separator: ", ")))
+    }
+    if let createdAt = pad.createdAt {
+        rows.append(("Created", createdAt.formatted(date: .long, time: .shortened)))
+    }
+    if let endedAt = pad.endedAt {
+        rows.append(("Ended", endedAt.formatted(date: .long, time: .shortened)))
+    }
+    return rows
 }
 
 /// A print-friendly rendering of a pad: a summary header (type, state, owner,
@@ -160,24 +193,7 @@ struct PadPrintDocument: View {
     var displayName: (String) -> String = \.self
 
     private var summaryRows: [(String, String)] {
-        var rows: [(String, String)] = [
-            ("Type", pad.interviewType?.label ?? "None"),
-            ("State", pad.status.label),
-            ("Owner", displayName(pad.ownerEmail))
-        ]
-        if let language = pad.language, !language.isEmpty {
-            rows.append(("Language", language.languageDisplayName))
-        }
-        if !pad.participants.isEmpty {
-            rows.append(("Participants", pad.participants.map(displayName).joined(separator: ", ")))
-        }
-        if let createdAt = pad.createdAt {
-            rows.append(("Created", createdAt.formatted(date: .long, time: .shortened)))
-        }
-        if let endedAt = pad.endedAt {
-            rows.append(("Ended", endedAt.formatted(date: .long, time: .shortened)))
-        }
-        return rows
+        padSummaryRows(pad, displayName: displayName)
     }
 
     var body: some View {

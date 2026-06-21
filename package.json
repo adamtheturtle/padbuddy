@@ -1,0 +1,18 @@
+{
+  "name": "padbuddy-website-tooling",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Lint/validation tooling for the PadBuddy website and docs (docs/). Not part of the macOS app build.",
+  "scripts": {
+    "lint:html": "html-validate \"docs/**/*.html\"",
+    "lint:css": "stylelint \"docs/**/*.css\"",
+    "lint:md": "markdownlint-cli2 \"docs/**/*.md\"",
+    "lint": "npm run lint:html && npm run lint:css && npm run lint:md"
+  },
+  "devDependencies": {
+    "html-validate": "^9.7.1",
+    "markdownlint-cli2": "^0.18.1",
+    "stylelint": "^16.19.1",
+    "stylelint-config-standard": "^39.0.0"
+  }
+}

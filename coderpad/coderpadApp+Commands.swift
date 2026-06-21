@@ -27,12 +27,19 @@ struct FindCommands: Commands {
 /// printable. "Save as PDF" comes free from the print panel it opens.
 struct PrintCommands: Commands {
     @FocusedValue(\.printAction) private var printAction
+    @FocusedValue(\.exportMarkdownAction) private var exportMarkdownAction
 
     var body: some Commands {
         CommandGroup(replacing: .printItem) {
             Button("Print…") { printAction?.perform() }
                 .keyboardShortcut("p", modifiers: [.command])
                 .disabled(printAction == nil)
+
+            // "Save as PDF" comes free from the print panel; this adds the Markdown half
+            // of #524. ⇧⌘E, the common "export" shortcut, with no system conflict here.
+            Button("Export as Markdown…") { exportMarkdownAction?.perform() }
+                .keyboardShortcut("e", modifiers: [.command, .shift])
+                .disabled(exportMarkdownAction == nil)
         }
     }
 }
