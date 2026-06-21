@@ -16,6 +16,7 @@ API's JSON verbatim.
 
 | Tool | Arguments | Returns |
 | --- | --- | --- |
+| `whoami` | — | Which account/org this server acts as: org name, base URL, and whether Screen/writes are enabled (never the API key) |
 | `list_pads` | `page` (int, optional), `sort` (string, optional) | A page of pads (≤50), with `next_page` / `total` |
 | `get_pad` | `id` (string, required) | One pad's full detail |
 | `get_pad_code` | `id` (string, required), `max_file_chars` (int, optional) | Just the pad's code — each file's `filename`, `language`, and `contents` (single-file and multi-file) |

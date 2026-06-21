@@ -22,6 +22,11 @@ nonisolated enum MCPTools {
     /// it needs no concurrency-safe shared state - a fresh array is built per call.
     static var all: [[String: Any]] {
         [
+            tool("whoami",
+                 "Report which CoderPad account this server is acting as: the account's display name, "
+                     + "the user email it resolves to, the organization name, and the server base URL. "
+                     + "Never returns the API key. Use this to confirm identity before answering "
+                     + "organization-wide questions."),
             tool("list_pads", "List the account's pads (most recent first). Optional page and sort.",
                  properties: ["page": intSchema("1-based page number."),
                               "sort": stringSchema("Sort order, e.g. \"created_at\" or \"-created_at\".")]),
@@ -45,6 +50,9 @@ nonisolated enum MCPTools {
         let base = credentials.baseURL
 
         switch name {
+        case "whoami":
+            return await whoami(credentials: credentials)
+
         case "list_pads":
             return await get("/api/pads/", key: key, base: base, query: paging(arguments))
 
@@ -70,6 +78,39 @@ nonisolated enum MCPTools {
         default:
             return Outcome(text: "Unknown tool: \(name)", isError: true)
         }
+    }
+
+    // MARK: - whoami (#518)
+
+    /// Reports the acting account's identity as JSON: its display name and resolved user
+    /// email (known locally, since the CoderPad API doesn't expose the key's owner), the
+    /// server base URL, and the organization name (fetched from `/api/organization`). The
+    /// API key is deliberately never included. If the org fetch fails, the local fields
+    /// are still returned with a note, so `whoami` stays useful offline.
+    private static func whoami(credentials: MCPCredentials) async -> Outcome {
+        var info: [String: Any] = [
+            "account_name": credentials.accountName,
+            "user_email": credentials.userEmail,
+            "base_url": credentials.baseURL.absoluteString
+        ]
+
+        let org = await get("/api/organization", key: credentials.apiKey, base: credentials.baseURL)
+        if !org.isError,
+           let data = org.text.data(using: .utf8),
+           let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let name = object["organization_name"] as? String {
+            info["organization_name"] = name
+        } else {
+            info["organization_note"] = "Could not fetch the organization name from the API."
+        }
+
+        guard let data = try? JSONSerialization.data(
+            withJSONObject: info, options: [.prettyPrinted, .sortedKeys]
+        ), let text = String(bytes: data, encoding: .utf8) else {
+            return Outcome(text: "Could not encode the account info.", isError: true)
+        }
+
+        return Outcome(text: text, isError: false)
     }
 
     // MARK: - HTTP

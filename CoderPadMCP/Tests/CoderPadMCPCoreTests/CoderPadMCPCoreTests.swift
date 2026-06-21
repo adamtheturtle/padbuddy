@@ -58,6 +58,7 @@ struct ToolCatalogTests {
     func `read tools only by default`() {
         let names = availableTools(screenEnabled: false, writesEnabled: false).map(\.name)
         #expect(names == readTools.map(\.name))
+        #expect(names.contains("whoami"))
         #expect(!names.contains("screen_list_campaigns"))
         #expect(!names.contains("create_pad"))
     }

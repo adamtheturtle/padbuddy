@@ -69,12 +69,16 @@ nonisolated enum MCPServer {
     }
 }
 
-/// The minimal, Sendable credentials the MCP tools need: an API key and the resolved
-/// base URL. Extracted from the saved `Account` on the main actor so the rest of the
-/// server can stay `nonisolated`.
+/// The minimal, Sendable credentials the MCP tools need: an API key, the resolved base
+/// URL, and the account's identity (its display name and the user email it resolves to)
+/// for the `whoami` tool (#518). Extracted from the saved `Account` on the main actor so
+/// the rest of the server can stay `nonisolated`. The display name / email are NOT
+/// secrets; the API key is the only sensitive field and `whoami` never returns it.
 struct MCPCredentials {
     let apiKey: String
     let baseURL: URL
+    let accountName: String
+    let userEmail: String
 }
 
 /// Loads the account the MCP server should act as, without spinning up the full
@@ -104,6 +108,11 @@ enum MCPAccountLoader {
         let key = chosen.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !key.isEmpty else { return nil }
 
-        return MCPCredentials(apiKey: key, baseURL: chosen.resolvedBaseURL)
+        return MCPCredentials(
+            apiKey: key,
+            baseURL: chosen.resolvedBaseURL,
+            accountName: chosen.name,
+            userEmail: chosen.userEmail
+        )
     }
 }

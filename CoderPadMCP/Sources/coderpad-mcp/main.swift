@@ -279,6 +279,9 @@ await server.withMethodHandler(ReadResource.self) { params in
 
 await server.withMethodHandler(CallTool.self) { params in
     switch params.name {
+    case "whoami":
+        return await whoami()
+
     case "list_pads":
         return await toolResult(apiGet("/api/pads/", query: pagingQuery(params.arguments)))
 
@@ -386,6 +389,29 @@ await server.withMethodHandler(CallTool.self) { params in
             isError: true
         )
     }
+}
+
+// MARK: - whoami (#518)
+
+/// Reports which account/org this server acts as, without the API key: the org name
+/// (fetched from `/api/organization`), the base URL, and whether Screen and writes are
+/// enabled. The standalone server is single-key by env var, so it has no account name
+/// or resolved user email to report (unlike the in-app server).
+private func whoami() async -> CallTool.Result {
+    var info: [String: Any] = [
+        "base_url": baseURL.absoluteString,
+        "screen_configured": screenAPIKey != nil,
+        "writes_enabled": allowWrites
+    ]
+
+    let org = await apiGet("/api/organization")
+    if org.ok, let object = jsonObject(org.body), let name = object["organization_name"] as? String {
+        info["organization_name"] = name
+    } else {
+        info["organization_note"] = "Could not fetch the organization name from the API."
+    }
+
+    return jsonResult(info)
 }
 
 // MARK: - get_pad_code (#499)

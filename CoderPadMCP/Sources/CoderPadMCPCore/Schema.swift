@@ -39,6 +39,11 @@ public let padFilterProperties: [String: Value] = [
 /// The always-available read tools.
 public let readTools: [Tool] = [
     Tool(
+        name: "whoami",
+        description: "Report which CoderPad account this server is acting as: the organization name, the server base URL, and whether Screen and write tools are enabled. Never returns the API key. Use this to confirm identity before answering organization-wide questions.",
+        inputSchema: objectSchema()
+    ),
+    Tool(
         name: "list_pads",
         description: "List the organization's pads (interview sessions), paginated. Returns the raw CoderPad API JSON, including next_page and total.",
         inputSchema: objectSchema(pagingProperties)
