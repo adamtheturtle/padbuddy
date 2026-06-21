@@ -131,7 +131,7 @@ enum MCPClientInstall {
     /// container instead of the actual client config (the whole reason the button looked
     /// like it did nothing). `getpwuid` returns the true home regardless of the sandbox.
     private static var realHomeDirectory: URL {
-        if let pw = getpwuid(getuid()), let home = pw.pointee.pw_dir {
+        if let passwd = getpwuid(getuid()), let home = passwd.pointee.pw_dir {
             return URL(fileURLWithPath: String(cString: home), isDirectory: true)
         }
         return FileManager.default.homeDirectoryForCurrentUser
