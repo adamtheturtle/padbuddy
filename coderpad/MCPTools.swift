@@ -18,9 +18,15 @@ nonisolated enum MCPTools {
         let isError: Bool
     }
 
-    /// Tool descriptors for `tools/list`, as plain JSON objects. Computed (not stored) so
-    /// it needs no concurrency-safe shared state - a fresh array is built per call.
-    static var all: [[String: Any]] {
+    /// Tool descriptors for `tools/list`, as plain JSON objects. A fresh array is built
+    /// per call (no shared state). The write tools (#502) are appended only when the user
+    /// has opted in, so an assistant never even sees them otherwise.
+    static func all(allowWrites: Bool) -> [[String: Any]] {
+        readTools + (allowWrites ? writeTools : [])
+    }
+
+    /// The read-only tools, always available.
+    private static var readTools: [[String: Any]] {
         [
             tool("list_accounts",
                  "List the CoderPad accounts this server can act as (name, id, user email, base URL, "
@@ -79,11 +85,17 @@ nonisolated enum MCPTools {
         ]
     }
 
+    /// The names of the write tools (#502), gated on the opt-in. Kept as one set so the
+    /// `run` gate and the `tools/list` filter can't drift apart.
+    static let writeToolNames: Set<String> = [
+        "create_pad", "update_pad", "create_question", "update_question"
+    ]
+
     /// The name of the optional account-selector argument shared by the per-account tools.
-    private static let account = "account"
+    static let account = "account"
 
     /// Schema for the `account` argument: which configured account to target.
-    private static var accountSchema: [String: Any] {
+    static var accountSchema: [String: Any] {
         stringSchema(
             "Optional. Which account to use, by its name or id (see list_accounts). "
                 + "Defaults to the account selected in the app."
@@ -108,6 +120,17 @@ nonisolated enum MCPTools {
             return listAccounts(directory: directory)
         }
 
+        // Write tools are gated on the explicit opt-in. Reject before resolving an account
+        // so a disabled server gives the same clear message regardless of arguments (#502).
+        if writeToolNames.contains(name), !directory.allowWrites {
+            return Outcome(
+                text: "Writing is turned off for this MCP server. To let it create or edit "
+                    + "CoderPad content, turn on \"Allow the MCP server to make changes\" in "
+                    + "PadBuddy's MCP settings, then restart your assistant.",
+                isError: true
+            )
+        }
+
         guard let credentials = directory.resolve(string(arguments, account)) else {
             let available = directory.accounts.map(\.accountName).joined(separator: ", ")
             return Outcome(
@@ -117,6 +140,9 @@ nonisolated enum MCPTools {
             )
         }
 
+        if writeToolNames.contains(name) {
+            return await dispatchWrite(name: name, arguments: arguments, credentials: credentials)
+        }
         return await dispatch(name: name, arguments: arguments, credentials: credentials)
     }
 
@@ -240,7 +266,7 @@ nonisolated enum MCPTools {
         return query
     }
 
-    private static func missing(_ name: String) -> Outcome {
+    static func missing(_ name: String) -> Outcome {
         Outcome(text: "Missing required argument: \(name)", isError: true)
     }
 
@@ -260,22 +286,35 @@ nonisolated enum MCPTools {
         return nil
     }
 
-    // MARK: - Tool / schema builders
-
-    private static func tool(_ name: String,
-                             _ description: String,
-                             properties: [String: [String: Any]] = [:],
-                             required: [String] = []) -> [String: Any] {
-        var schema: [String: Any] = ["type": "object", "properties": properties]
-        if !required.isEmpty { schema["required"] = required }
-        return ["name": name, "description": description, "inputSchema": schema]
+    /// Reads a boolean argument, tolerating the JSON strings "true"/"false".
+    static func bool(_ arguments: [String: Any], _ name: String) -> Bool? {
+        if let value = arguments[name] as? Bool { return value }
+        if let text = arguments[name] as? String {
+            if text == "true" { return true }
+            if text == "false" { return false }
+        }
+        return nil
     }
 
-    private static func intSchema(_ description: String) -> [String: Any] {
+    // MARK: - Tool / schema builders
+
+    static func tool(_ name: String,
+                     _ description: String,
+                     properties: [String: [String: Any]] = [:],
+                     required: [String] = [],
+                     annotations: [String: Any] = [:]) -> [String: Any] {
+        var schema: [String: Any] = ["type": "object", "properties": properties]
+        if !required.isEmpty { schema["required"] = required }
+        var descriptor: [String: Any] = ["name": name, "description": description, "inputSchema": schema]
+        if !annotations.isEmpty { descriptor["annotations"] = annotations }
+        return descriptor
+    }
+
+    static func intSchema(_ description: String) -> [String: Any] {
         ["type": "integer", "description": description]
     }
 
-    private static func stringSchema(_ description: String) -> [String: Any] {
+    static func stringSchema(_ description: String) -> [String: Any] {
         ["type": "string", "description": description]
     }
 }

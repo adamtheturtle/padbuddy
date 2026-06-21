@@ -21,8 +21,9 @@ extension SettingsView {
                 The Model Context Protocol (MCP) lets AI assistants like Claude read your \
                 CoderPad data (your pads, questions, quota, and organization) so you can \
                 ask them about it in plain language. PadBuddy has the server built in and \
-                serves your selected account, so there's nothing to install. It's \
-                read-only: it never changes or deletes anything in CoderPad.
+                serves your selected account, so there's nothing to install. By default \
+                it's read-only: it never changes or deletes anything in CoderPad unless \
+                you turn on changes below.
                 """)
                 .foregroundStyle(.secondary)
             } header: {
@@ -34,6 +35,7 @@ extension SettingsView {
             }
 
             if mcpServerEnabled {
+                mcpWritesSection
                 mcpSetupSection
                 mcpClaudeSection
                 mcpClaudeCodeSection
@@ -42,6 +44,22 @@ extension SettingsView {
             }
         }
         .formStyle(.grouped)
+    }
+
+    /// The separate, explicit write opt-in (#502). Distinct from enabling the server: read
+    /// tools work without it; only with this on does the server advertise and allow the
+    /// create/edit tools. Deletion is never offered over MCP.
+    private var mcpWritesSection: some View {
+        Section {
+            Toggle("Allow the MCP server to make changes", isOn: $mcpServerAllowWrites)
+        } footer: {
+            Text("""
+            Off by default. When on, the assistant can create and edit pads and questions \
+            (never delete them). Changes take effect after you restart the assistant. Only \
+            turn this on if you trust the assistant with your live interview content.
+            """)
+            .foregroundStyle(.secondary)
+        }
     }
 
     /// The shared flow: run the command for your assistant, then restart it.

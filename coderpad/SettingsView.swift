@@ -58,6 +58,11 @@ struct SettingsView: View {
     /// is what a future bundled helper would key off (#402).
     @AppStorage(MCPServer.enabledDefaultsKey) var mcpServerEnabled = false
 
+    /// Whether the MCP server may create/edit CoderPad content (#502). A separate, explicit
+    /// opt-in from enabling the server at all: read tools work without it; write tools are
+    /// only advertised and usable when it's on. Off by default.
+    @AppStorage(MCPServer.writeEnabledDefaultsKey) var mcpServerAllowWrites = false
+
     // General preferences, backed by the keys in `GeneralSettings.Key`.
     @AppStorage(GeneralSettings.Key.appearance) var appearance: AppAppearance = .system
     @AppStorage(GeneralSettings.Key.presence) var presence: AppPresence = .dockAndMenuBar

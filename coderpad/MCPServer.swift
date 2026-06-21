@@ -31,6 +31,14 @@ nonisolated enum MCPServer {
     /// the user controls it by adding or removing the MCP client configuration.)
     static let enabledDefaultsKey = "mcpServerEnabled"
 
+    /// UserDefaults key behind the separate "Allow the MCP server to make changes" opt-in
+    /// (#502). Off by default: the write tools are only advertised and usable when this is
+    /// on, so an assistant can never create or edit interview content unless the user has
+    /// deliberately enabled it. Read in `MCPAccountLoader.directory()` on the main actor
+    /// (alongside the accounts), not as the first thing in the launch path - reading
+    /// `UserDefaults.standard` too early hung the sandboxed direct-exec binary (#402).
+    static let writeEnabledDefaultsKey = "mcpServerAllowWrites"
+
     /// Reads JSON-RPC requests line by line from stdin, writes responses to stdout, and
     /// runs until stdin closes. Never returns - the process exists only to serve MCP. The
     /// credentials are resolved on the main actor by the caller (`Account` is main-actor
@@ -91,6 +99,9 @@ nonisolated struct MCPAccountDirectory {
     let accounts: [MCPCredentials]
     /// The id of the account selected in the app, used when no `account` argument is given.
     let currentID: String?
+    /// Whether the write tools (#502) are advertised and permitted. Off unless the user
+    /// has turned on the explicit "Allow the MCP server to make changes" setting.
+    var allowWrites = false
 
     /// The default account: the app-selected one, or the first configured if that id is
     /// missing, or nil when nothing is configured.
@@ -144,6 +155,7 @@ enum MCPAccountLoader {
 
         let currentID = UserDefaults.standard.string(forKey: "currentAccountID")
             .flatMap { UUID(uuidString: $0) }?.uuidString
-        return MCPAccountDirectory(accounts: credentials, currentID: currentID)
+        let allowWrites = UserDefaults.standard.bool(forKey: MCPServer.writeEnabledDefaultsKey)
+        return MCPAccountDirectory(accounts: credentials, currentID: currentID, allowWrites: allowWrites)
     }
 }
