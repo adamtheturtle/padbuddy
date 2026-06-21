@@ -192,7 +192,11 @@ struct CommandPaletteView: View {
                     } else {
                         ForEach(Array(results.enumerated()), id: \.element.id) { index, result in
                             PaletteRow(result: result, isSelected: index == selectedIndex)
-                                .id(index)
+                                // Identify the row by the result's stable id (matching the
+                                // ForEach identity), not its position: a bare `.id(index)`
+                                // keeps ids 0,1,2… fixed while a search re-orders the content
+                                // under them, so the highlight and scroll target drift (#535).
+                                .id(result.id)
                                 .contentShape(Rectangle())
                                 .onTapGesture { activate(result) }
                                 // One combined element per row so VoiceOver reads it as a
@@ -207,7 +211,12 @@ struct CommandPaletteView: View {
                 .padding(8)
             }
             .onChange(of: selectedIndex) { _, new in
-                withAnimation(.easeOut(duration: 0.1)) { proxy.scrollTo(new, anchor: .center) }
+                // Scroll by the selected result's stable id, and only enough to keep it
+                // visible (no forced centering, which lurches a short filtered list).
+                guard results.indices.contains(new) else { return }
+
+                let id = results[new].id
+                withAnimation(.easeOut(duration: 0.1)) { proxy.scrollTo(id) }
             }
         }
     }
