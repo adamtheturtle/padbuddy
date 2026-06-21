@@ -22,30 +22,73 @@ nonisolated enum MCPTools {
     /// it needs no concurrency-safe shared state - a fresh array is built per call.
     static var all: [[String: Any]] {
         [
+            tool("list_accounts",
+                 "List the CoderPad accounts this server can act as (name, id, user email, base URL, "
+                     + "and which is the default). No API keys are returned. Use the name or id with the "
+                     + "`account` argument on any other tool to target a specific account (#519)."),
             tool("whoami",
                  "Report which CoderPad account this server is acting as: the account's display name, "
                      + "the user email it resolves to, the organization name, and the server base URL. "
                      + "Never returns the API key. Use this to confirm identity before answering "
-                     + "organization-wide questions."),
+                     + "organization-wide questions.",
+                 properties: [account: accountSchema]),
             tool("list_pads", "List the account's pads (most recent first). Optional page and sort.",
                  properties: ["page": intSchema("1-based page number."),
-                              "sort": stringSchema("Sort order, e.g. \"created_at\" or \"-created_at\".")]),
+                              "sort": stringSchema("Sort order, e.g. \"created_at\" or \"-created_at\"."),
+                              account: accountSchema]),
             tool("get_pad", "Get a single pad by its slug/id.",
-                 properties: ["pad": stringSchema("The pad's slug or id.")],
+                 properties: ["pad": stringSchema("The pad's slug or id."), account: accountSchema],
                  required: ["pad"]),
             tool("list_questions", "List the account's question bank. Optional page and sort.",
                  properties: ["page": intSchema("1-based page number."),
-                              "sort": stringSchema("Sort order.")]),
+                              "sort": stringSchema("Sort order."),
+                              account: accountSchema]),
             tool("get_question", "Get a single question by its numeric id.",
-                 properties: ["question": intSchema("The question's numeric id.")],
+                 properties: ["question": intSchema("The question's numeric id."), account: accountSchema],
                  required: ["question"]),
-            tool("get_quota", "Get the organization's pad usage quota."),
-            tool("get_organization", "Get the organization's teams and members.")
+            tool("get_quota", "Get the organization's pad usage quota.",
+                 properties: [account: accountSchema]),
+            tool("get_organization", "Get the organization's teams and members.",
+                 properties: [account: accountSchema])
         ]
     }
 
-    /// Dispatches a tool call to its CoderPad endpoint.
-    static func run(name: String, arguments: [String: Any], credentials: MCPCredentials) async -> Outcome {
+    /// The name of the optional account-selector argument shared by the per-account tools.
+    private static let account = "account"
+
+    /// Schema for the `account` argument: which configured account to target.
+    private static var accountSchema: [String: Any] {
+        stringSchema(
+            "Optional. Which account to use, by its name or id (see list_accounts). "
+                + "Defaults to the account selected in the app."
+        )
+    }
+
+    /// Dispatches a tool call to its CoderPad endpoint, against the account selected by the
+    /// optional `account` argument (defaulting to the app's current account, #519).
+    static func run(name: String, arguments: [String: Any], directory: MCPAccountDirectory) async -> Outcome {
+        // list_accounts is a directory-level query — it isn't scoped to one account.
+        if name == "list_accounts" {
+            return listAccounts(directory: directory)
+        }
+
+        guard let credentials = directory.resolve(string(arguments, account)) else {
+            let available = directory.accounts.map(\.accountName).joined(separator: ", ")
+            return Outcome(
+                text: "No account matches \"\(string(arguments, account) ?? "")\". "
+                    + "Available accounts: \(available). Use list_accounts to see their ids.",
+                isError: true
+            )
+        }
+
+        return await dispatch(name: name, arguments: arguments, credentials: credentials)
+    }
+
+    /// Runs one account-scoped tool against the resolved credentials. Split out of `run`
+    /// so each stays within the cyclomatic-complexity budget.
+    private static func dispatch(
+        name: String, arguments: [String: Any], credentials: MCPCredentials
+    ) async -> Outcome {
         let key = credentials.apiKey
         let base = credentials.baseURL
 
@@ -78,6 +121,32 @@ nonisolated enum MCPTools {
         default:
             return Outcome(text: "Unknown tool: \(name)", isError: true)
         }
+    }
+
+    // MARK: - list_accounts (#519)
+
+    /// Lists every configured account the server can act as — id, display name, resolved
+    /// user email, base URL, and whether it's the current default — as JSON. API keys are
+    /// deliberately never included.
+    private static func listAccounts(directory: MCPAccountDirectory) -> Outcome {
+        let currentID = directory.current?.id
+        let list: [[String: Any]] = directory.accounts.map { account in
+            [
+                "id": account.id,
+                "name": account.accountName,
+                "user_email": account.userEmail,
+                "base_url": account.baseURL.absoluteString,
+                "is_current": account.id == currentID
+            ]
+        }
+
+        guard let data = try? JSONSerialization.data(
+            withJSONObject: ["accounts": list], options: [.prettyPrinted, .sortedKeys]
+        ), let text = String(bytes: data, encoding: .utf8) else {
+            return Outcome(text: "Could not encode the account list.", isError: true)
+        }
+
+        return Outcome(text: text, isError: false)
     }
 
     // MARK: - whoami (#518)

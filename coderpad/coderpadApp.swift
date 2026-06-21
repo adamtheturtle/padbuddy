@@ -84,9 +84,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 enum AppEntryPoint {
     static func main() {
         if CommandLine.arguments.contains(MCPServer.commandLineFlag) {
-            // Resolve the account here, on the main actor, since `Account` is main-actor
+            // Resolve the accounts here, on the main actor, since `Account` is main-actor
             // isolated; the server itself then runs nonisolated over stdio.
-            MCPServer.runUntilExit(credentials: MCPAccountLoader.currentCredentials())
+            MCPServer.runUntilExit(directory: MCPAccountLoader.directory())
         }
         CoderpadApp.main()
     }

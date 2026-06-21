@@ -35,8 +35,8 @@ nonisolated enum MCPServer {
     /// runs until stdin closes. Never returns - the process exists only to serve MCP. The
     /// credentials are resolved on the main actor by the caller (`Account` is main-actor
     /// isolated) and passed in as plain Sendable values.
-    static func runUntilExit(credentials: MCPCredentials?) -> Never {
-        let handler = MCPRequestHandler(credentials: credentials)
+    static func runUntilExit(directory: MCPAccountDirectory) -> Never {
+        let handler = MCPRequestHandler(directory: directory)
         while let line = readLine(strippingNewline: true) {
             let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else { continue }
@@ -70,49 +70,80 @@ nonisolated enum MCPServer {
 }
 
 /// The minimal, Sendable credentials the MCP tools need: an API key, the resolved base
-/// URL, and the account's identity (its display name and the user email it resolves to)
-/// for the `whoami` tool (#518). Extracted from the saved `Account` on the main actor so
-/// the rest of the server can stay `nonisolated`. The display name / email are NOT
-/// secrets; the API key is the only sensitive field and `whoami` never returns it.
-struct MCPCredentials {
+/// URL, and the account's identity (its id, display name, and the user email it resolves
+/// to) for the `whoami` / `list_accounts` tools (#518, #519). Extracted from the saved
+/// `Account` on the main actor so the rest of the server can stay `nonisolated`. The id /
+/// name / email are NOT secrets; the API key is the only sensitive field and the tools
+/// never return it.
+nonisolated struct MCPCredentials {
+    let id: String
     let apiKey: String
     let baseURL: URL
     let accountName: String
     let userEmail: String
 }
 
-/// Loads the account the MCP server should act as, without spinning up the full
+/// All the accounts the in-app MCP server can act as, plus which one is the default
+/// (the account selected in the app). Lets the server serve any configured account, not
+/// just the selected one (#519): tools take an optional `account` argument, and
+/// `list_accounts` enumerates what's available.
+nonisolated struct MCPAccountDirectory {
+    let accounts: [MCPCredentials]
+    /// The id of the account selected in the app, used when no `account` argument is given.
+    let currentID: String?
+
+    /// The default account: the app-selected one, or the first configured if that id is
+    /// missing, or nil when nothing is configured.
+    var current: MCPCredentials? {
+        if let currentID, let match = accounts.first(where: { $0.id == currentID }) { return match }
+        return accounts.first
+    }
+
+    /// Resolves a tool's `account` argument to one account. A nil/empty selector picks the
+    /// default; otherwise it matches by id (UUID string) first, then case-insensitively by
+    /// display name. Returns nil when a non-empty selector matches nothing.
+    func resolve(_ selector: String?) -> MCPCredentials? {
+        guard let selector = selector?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !selector.isEmpty
+        else { return current }
+
+        if let byID = accounts.first(where: { $0.id == selector }) { return byID }
+        return accounts.first { $0.accountName.caseInsensitiveCompare(selector) == .orderedSame }
+    }
+}
+
+/// Loads the accounts the MCP server can act as, without spinning up the full
 /// `AccountsStore` (and its monitors/caches). Mirrors `AccountsStore.loadAccounts` +
 /// the `currentAccountID` default, reading the same Keychain blob and UserDefaults key.
 /// Main-actor isolated because decoding `Account` (and reading its properties) is.
 enum MCPAccountLoader {
     @MainActor
-    static func currentCredentials() -> MCPCredentials? {
+    static func directory() -> MCPAccountDirectory {
         guard let data = Keychain.readData(account: Keychain.accountsAccount),
               let accounts = try? JSONDecoder()
               .decode([LenientElement<Account>].self, from: data)
-              .compactMap(\.value),
-              !accounts.isEmpty
+              .compactMap(\.value)
         else {
-            return nil
+            return MCPAccountDirectory(accounts: [], currentID: nil)
         }
 
-        let chosen: Account = if let storedID = UserDefaults.standard.string(forKey: "currentAccountID"),
-                                 let uuid = UUID(uuidString: storedID),
-                                 let match = accounts.first(where: { $0.id == uuid }) {
-            match
-        } else {
-            accounts[0]
+        // Drop accounts without a usable key (e.g. an in-progress draft); each remaining
+        // account becomes one selectable identity.
+        let credentials: [MCPCredentials] = accounts.compactMap { account in
+            let key = account.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !key.isEmpty else { return nil }
+
+            return MCPCredentials(
+                id: account.id.uuidString,
+                apiKey: key,
+                baseURL: account.resolvedBaseURL,
+                accountName: account.name,
+                userEmail: account.userEmail
+            )
         }
 
-        let key = chosen.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !key.isEmpty else { return nil }
-
-        return MCPCredentials(
-            apiKey: key,
-            baseURL: chosen.resolvedBaseURL,
-            accountName: chosen.name,
-            userEmail: chosen.userEmail
-        )
+        let currentID = UserDefaults.standard.string(forKey: "currentAccountID")
+            .flatMap { UUID(uuidString: $0) }?.uuidString
+        return MCPAccountDirectory(accounts: credentials, currentID: currentID)
     }
 }

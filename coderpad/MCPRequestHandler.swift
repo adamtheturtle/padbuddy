@@ -12,8 +12,8 @@ import Foundation
 /// back (or `nil` for notifications, which take no reply). `nonisolated` so it runs off
 /// the main actor - see `MCPServer`.
 nonisolated struct MCPRequestHandler {
-    /// The credentials the tools act as, or `nil` if no account is configured yet.
-    let credentials: MCPCredentials?
+    /// The accounts the tools can act as. Empty when no account is configured yet.
+    let directory: MCPAccountDirectory
 
     /// MCP protocol version this server implements; echoed back to the client unless the
     /// client requests a specific one during `initialize`.
@@ -76,7 +76,7 @@ nonisolated struct MCPRequestHandler {
 
         let arguments = params?["arguments"] as? [String: Any] ?? [:]
 
-        guard let credentials else {
+        guard !directory.accounts.isEmpty else {
             return Self.toolResultResponse(
                 id: id,
                 text: """
@@ -87,7 +87,7 @@ nonisolated struct MCPRequestHandler {
             )
         }
 
-        let outcome = await MCPTools.run(name: name, arguments: arguments, credentials: credentials)
+        let outcome = await MCPTools.run(name: name, arguments: arguments, directory: directory)
         return Self.toolResultResponse(id: id, text: outcome.text, isError: outcome.isError)
     }
 
