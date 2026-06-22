@@ -54,6 +54,16 @@ nonisolated extension MCPTools {
         return array
     }
 
+    /// Cached questions as API-shaped dictionaries (snake_case keys, ISO8601 dates) so they
+    /// feed the question aggregation pipeline exactly like freshly-paged API records.
+    static func cachedQuestionDicts(accountID: String, requireFresh: Bool) -> [[String: Any]]? {
+        guard let questions = cachedQuestions(accountID: accountID, requireFresh: requireFresh),
+              let data = try? apiShapedEncoder.encode(questions),
+              let array = try? JSONSerialization.jsonObject(with: data) as? [[String: Any]] else { return nil }
+
+        return array
+    }
+
     /// get_pad backed by the cache: the live single GET first (it's one fast call and the
     /// detail record is the richest), then the cached snapshot if the request fails so a
     /// known pad still answers offline.

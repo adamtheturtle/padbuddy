@@ -85,7 +85,7 @@ nonisolated enum MCPTools {
                  properties: [account: accountSchema]),
             tool("get_organization", "Get the organization's teams and members.",
                  properties: [account: accountSchema])
-        ]
+        ] + questionReadTools
     }
 
     /// The names of the write tools (#502), gated on the opt-in. Kept as one set so the
@@ -206,12 +206,13 @@ nonisolated enum MCPTools {
             return await listPadsCompact(arguments: arguments, key: key, base: base)
 
         default:
-            return await listOrSummary(name: name, arguments: arguments, key: key, base: base)
+            return await questionQuery(name: name, arguments: arguments, credentials: credentials)
         }
     }
 
-    /// The plain list/summary GET tools, which take no required argument.
-    private static func listOrSummary(
+    /// The plain list/summary GET tools, which take no required argument. Internal (not
+    /// private) so the question-query router in MCPTools+QuestionQuery can fall through to it.
+    static func listOrSummary(
         name: String, arguments: [String: Any], key: String, base: URL
     ) async -> Outcome {
         switch name {
