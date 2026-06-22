@@ -7,109 +7,34 @@
 
 import Foundation
 import os
-import SwiftUI
 
 nonisolated let persistenceLogger = Logger(subsystem: "com.coderpad.app", category: "persistence")
 
-@Observable
-final class AccountsStore {
-    static let shared = AccountsStore()
+/// True under the app's UI-testing launch (`-uiTesting`): the store seeds a single
+/// in-memory demo account and skips all persistence. Read in a couple of places besides
+/// the store (e.g. window sizing), so it's a shared global.
+let coderpadIsUITesting = ProcessInfo.processInfo.arguments.contains("-uiTesting")
 
-    var accounts: [Account] {
-        didSet {
-            persistAccounts()
-            // Keep the widget's configuration picker in step with adds, removes, and
-            // renames. Pass `accounts` directly — never `AccountsStore.shared` — since
-            // the Observation macro fires this observer during init too, where touching
-            // the still-initializing singleton would deadlock.
-            WidgetSync.syncAccounts(accounts)
-        }
+/// The app's account store is the generic ``KeychainAccountStore`` (BuddyAppKit, #513)
+/// specialised to ``Account``; the typealias + a `shared` accessor keep every call site
+/// unchanged while the storage mechanics live in the shared package.
+typealias AccountsStore = KeychainAccountStore<Account>
+
+/// The single shared store, configured with the coderpad-specific keys and side-effects.
+private let coderpadAccountStore = KeychainAccountStore<Account>(config: makeCoderpadConfig())
+
+extension KeychainAccountStore where Account == CoderPad.Account {
+    static var shared: KeychainAccountStore<Account> {
+        coderpadAccountStore
     }
 
-    var currentAccountID: UUID? {
-        didSet {
-            persistCurrentID()
-            // Repaint the unconfigured Recent Pads widget for the newly selected
-            // account from whatever pads are already cached. Uses `self` (via
-            // `currentAccount`), not `AccountsStore.shared`, so it's safe when the
-            // Observation macro routes this through the observer during init.
-            if let account = currentAccount {
-                WidgetSync.refresh(pads: PadsCacheStore.shared.get(account.id),
-                                   account: account.id, isCurrent: true)
-            } else {
-                WidgetSync.clearCurrent()
-            }
-        }
+    /// Preserved for the few non-store call sites (e.g. the UI-testing window sizing).
+    static var isUITesting: Bool {
+        coderpadIsUITesting
     }
 
-    var currentAccount: Account? {
-        guard let id = currentAccountID else { return accounts.first }
-
-        return accounts.first(where: { $0.id == id }) ?? accounts.first
-    }
-
-    /// Whether the user has opted into the combined "All Accounts" view, which
-    /// merges pads and questions across every account into one list. Persisted like
-    /// `currentAccountID`. The opt-in is only *honored* when it makes sense (two or
-    /// more accounts) — see `isMergedView` — so a single-account user who once
-    /// enabled it, then removed an account, silently falls back to that account.
-    var showAllAccounts: Bool = false {
-        didSet { persistShowAllAccounts() }
-    }
-
-    /// The accounts eligible to be merged: every configured account, including the
-    /// mock/demo ones. Demo accounts are kept in so the combined view is reachable
-    /// for evaluation without two real keys (e.g. "Demo" plus "Demo (bad key)",
-    /// which also exercises the per-account error handling).
-    var mergeableAccounts: [Account] {
-        accounts
-    }
-
-    /// Whether the combined view is actually active: opted in *and* there are at
-    /// least two accounts to merge. Everywhere that branches on merged mode reads
-    /// this rather than `showAllAccounts`, so the merge can't engage with nothing
-    /// (or only one account) to combine.
-    var isMergedView: Bool {
-        showAllAccounts && mergeableAccounts.count >= 2
-    }
-
-    private static let currentIDDefaultsKey = "currentAccountID"
-    private static let showAllAccountsDefaultsKey = "showAllAccounts"
-
-    /// True when launched by the UI test suite (`-uiTesting`). In this mode the store
-    /// starts from a single in-memory demo account (which talks to the in-process mock
-    /// server, so no network) and skips all Keychain/UserDefaults persistence — so the
-    /// tests run from a deterministic state and never touch the developer's real
-    /// accounts or the login keychain.
-    static let isUITesting = ProcessInfo.processInfo.arguments.contains("-uiTesting")
-
-    private init() {
-        if Self.isUITesting {
-            accounts = [.demo()]
-            currentAccountID = accounts.first?.id
-            return
-        }
-        let loaded: [Account] = Self.loadAccounts() ?? []
-        accounts = loaded
-        if let storedID = UserDefaults.standard.string(forKey: Self.currentIDDefaultsKey),
-           let uuid = UUID(uuidString: storedID),
-           loaded.contains(where: { $0.id == uuid }) {
-            currentAccountID = uuid
-        } else {
-            currentAccountID = loaded.first?.id
-        }
-
-        if loaded.isEmpty {
-            migrateLegacyIfNeeded()
-        }
-        showAllAccounts = UserDefaults.standard.bool(forKey: Self.showAllAccountsDefaultsKey)
-    }
-
-    func add(_ account: Account) {
-        accounts.append(account)
-        if currentAccountID == nil { currentAccountID = account.id }
-    }
-
+    /// Adds the demo account if it isn't present, then selects it. Demo accounts are
+    /// app-specific sentinels, so this stays out of the generic store.
     func addDemoIfMissing() {
         if !accounts.contains(where: { $0.isMock && !$0.isBadKeyDemo }) {
             add(.demo())
@@ -127,130 +52,90 @@ final class AccountsStore {
             currentAccountID = demo.id
         }
     }
+}
 
-    func update(_ account: Account) {
-        guard let index = accounts.firstIndex(where: { $0.id == account.id }) else { return }
-
-        let previous = accounts[index]
-        accounts[index] = account
-        // A changed key or server points at potentially different data (even a
-        // different org), so the caches keyed by this id — and any stale
-        // unauthorized verdict — no longer apply. Invalidate them the way
-        // `remove` does, but keep the account itself; the next reload refills it.
-        if previous.apiKey != account.apiKey || previous.baseURL != account.baseURL {
-            PadsCacheStore.shared.remove(account.id)
-            QuestionsCacheStore.shared.remove(account.id)
-            OrganizationCacheStore.shared.remove(account.id)
-            QuotaCacheStore.shared.remove(account.id)
-            SpotlightIndexer.removeAccount(account.id)
-            AccountHealthMonitor.shared.clearUnauthorized(account.id)
-            // Re-keying may point at a different org, so the per-account favorites,
-            // saved searches, and pad-open history no longer apply (a leftover
-            // per-org favorite id could even re-attach to an unrelated question). #379
-            clearPersonalData(for: account.id)
-        }
+extension Account: StorableAccount {
+    nonisolated var accountID: UUID {
+        id
     }
 
-    func remove(id: UUID) {
-        accounts.removeAll { $0.id == id }
-        if currentAccountID == id {
-            currentAccountID = accounts.first?.id
-        }
-        // Drop the account's cached pads/questions so a removed key leaves nothing
-        // behind on disk and a re-added account starts clean.
-        PadsCacheStore.shared.remove(id)
-        QuestionsCacheStore.shared.remove(id)
-        OrganizationCacheStore.shared.remove(id)
-        QuotaCacheStore.shared.remove(id)
-        SpotlightIndexer.removeAccount(id)
-        AccountHealthMonitor.shared.clearUnauthorized(id)
-        clearPersonalData(for: id)
+    /// A changed API key or server points at a potentially different backend (even a
+    /// different org), so the store invalidates this account's caches on update.
+    nonisolated func pointsAtDifferentBackend(than other: Account) -> Bool {
+        apiKey != other.apiKey || baseURL != other.baseURL
     }
+}
 
-    /// Clears the per-account UserDefaults stores that aren't part of the network
-    /// caches above — favorites, saved searches, and pad-open history — so removing
-    /// or re-keying an account leaves nothing behind (a storage leak and, for the
-    /// stored question titles, a mild privacy concern). #379
-    private func clearPersonalData(for id: UUID) {
-        FavoritePadsStore.shared.remove(account: id)
-        FavoriteQuestionsStore.shared.remove(account: id)
-        SavedSearchStore.shared.remove(account: id)
-        PadOpenedStore.shared.remove(account: id)
-        InterviewTemplatesStore.shared.remove(account: id)
-    }
-
-    private func migrateLegacyIfNeeded() {
-        if let data = Keychain.readData(account: Keychain.legacySingleKeyAccount),
-           let key = String(data: data, encoding: .utf8),
-           !key.isEmpty {
-            let account = Account(name: "Default", apiKey: key)
-            accounts = [account]
-            currentAccountID = account.id
-            Keychain.delete(account: Keychain.legacySingleKeyAccount)
-            return
-        }
-        if let legacy = UserDefaults.standard.string(forKey: "coderPadAPIKey"), !legacy.isEmpty {
-            let account = Account(name: "Default", apiKey: legacy)
-            accounts = [account]
-            currentAccountID = account.id
-            UserDefaults.standard.removeObject(forKey: "coderPadAPIKey")
-        }
-    }
-
-    private static func loadAccounts() -> [Account]? {
-        guard let data = Keychain.readData(account: Keychain.accountsAccount) else { return nil }
-
-        do {
-            // Decode element-by-element so a single invalid account (e.g. one persisted
-            // without a user email) is dropped rather than failing the whole store and
-            // taking every valid account down with it.
-            return try JSONDecoder().decode([LenientElement<Account>].self, from: data)
-                .compactMap(\.value)
-        } catch {
-            let reason = error.localizedDescription
-            persistenceLogger.error(
-                "Failed to decode accounts from Keychain, saved keys may be unreadable: \(reason, privacy: .public)"
-            )
-            return nil
-        }
-    }
-
-    private let writeQueue = SerialWriteQueue()
-
-    private func persistAccounts() {
-        guard !Self.isUITesting else { return }
-
-        let snapshot = accounts
-        // Move Keychain I/O off the main thread to keep the UI responsive, but keep
-        // writes ordered so a slower earlier write can't overwrite a newer snapshot.
-        writeQueue.enqueue(priority: .userInitiated) {
-            if snapshot.isEmpty {
-                Keychain.delete(account: Keychain.accountsAccount)
-                return
+/// Builds the coderpad-specific store configuration: the `com.coderpad.app` Keychain
+/// service and cache keys, the UI-testing seed, the legacy migration, and the
+/// widget/cache side-effects the generic store fires.
+@MainActor private func makeCoderpadConfig() -> KeychainAccountStore<Account>.Config {
+    KeychainAccountStore<Account>.Config(
+        keychain: KeychainStore(service: Keychain.service, logger: persistenceLogger),
+        accountsKey: Keychain.accountsAccount,
+        currentIDDefaultsKey: "currentAccountID",
+        showAllAccountsDefaultsKey: "showAllAccounts",
+        encode: { try? JSONEncoder().encode($0) },
+        // Decode element-by-element so a single invalid account (e.g. one persisted
+        // without a user email) is dropped rather than failing the whole store.
+        decode: { (try? JSONDecoder().decode([LenientElement<Account>].self, from: $0))?.compactMap(\.value) ?? [] },
+        isTestingMode: coderpadIsUITesting,
+        seedForTesting: { [.demo()] },
+        migrateIfEmpty: migrateLegacyAccounts,
+        onAccountsChanged: { accounts in
+            // Keep the widget's configuration picker in step with adds, removes, and
+            // renames. Takes the array directly — the Observation macro fires this during
+            // the store's init, where reaching back into the singleton would deadlock.
+            WidgetSync.syncAccounts(accounts)
+        },
+        onCurrentChanged: { account in
+            // Repaint the unconfigured Recent Pads widget for the newly selected account
+            // from whatever pads are already cached.
+            if let account {
+                WidgetSync.refresh(pads: PadsCacheStore.shared.get(account.id),
+                                   account: account.id, isCurrent: true)
+            } else {
+                WidgetSync.clearCurrent()
             }
-            do {
-                let data = try JSONEncoder().encode(snapshot)
-                Keychain.write(data, account: Keychain.accountsAccount)
-            } catch {
-                let reason = error.localizedDescription
-                persistenceLogger.error("Failed to encode accounts snapshot: \(reason, privacy: .public)")
-            }
-        }
+        },
+        onRemoved: tearDownAccountData,
+        onRekeyed: tearDownAccountData,
+        logger: persistenceLogger
+    )
+}
+
+/// One-time migration from the app's older single-key storage (a lone Keychain key,
+/// then before that a UserDefaults key) into the multi-account store. Returns the
+/// migrated account and clears the legacy storage, or nil when there's nothing to do.
+@MainActor private func migrateLegacyAccounts() -> [Account]? {
+    if let data = Keychain.readData(account: Keychain.legacySingleKeyAccount),
+       let key = String(data: data, encoding: .utf8),
+       !key.isEmpty {
+        Keychain.delete(account: Keychain.legacySingleKeyAccount)
+        return [Account(name: "Default", apiKey: key)]
     }
-
-    private func persistCurrentID() {
-        guard !Self.isUITesting else { return }
-
-        if let id = currentAccountID {
-            UserDefaults.standard.set(id.uuidString, forKey: Self.currentIDDefaultsKey)
-        } else {
-            UserDefaults.standard.removeObject(forKey: Self.currentIDDefaultsKey)
-        }
+    if let legacy = UserDefaults.standard.string(forKey: "coderPadAPIKey"), !legacy.isEmpty {
+        UserDefaults.standard.removeObject(forKey: "coderPadAPIKey")
+        return [Account(name: "Default", apiKey: legacy)]
     }
+    return nil
+}
 
-    private func persistShowAllAccounts() {
-        guard !Self.isUITesting else { return }
-
-        UserDefaults.standard.set(showAllAccounts, forKey: Self.showAllAccountsDefaultsKey)
-    }
+/// Drops everything keyed by a removed or re-keyed account: the network caches, the
+/// Spotlight index, the cached unauthorized verdict, and the personal data (favorites,
+/// saved searches, pad-open history, templates) — so a removed key leaves nothing behind
+/// and a re-keyed account (possibly a different org) can't re-attach stale per-org data
+/// (a leftover favorite id could even reattach to an unrelated question). #379
+@MainActor private func tearDownAccountData(_ id: UUID) {
+    PadsCacheStore.shared.remove(id)
+    QuestionsCacheStore.shared.remove(id)
+    OrganizationCacheStore.shared.remove(id)
+    QuotaCacheStore.shared.remove(id)
+    SpotlightIndexer.removeAccount(id)
+    AccountHealthMonitor.shared.clearUnauthorized(id)
+    FavoritePadsStore.shared.remove(account: id)
+    FavoriteQuestionsStore.shared.remove(account: id)
+    SavedSearchStore.shared.remove(account: id)
+    PadOpenedStore.shared.remove(account: id)
+    InterviewTemplatesStore.shared.remove(account: id)
 }
