@@ -1,6 +1,6 @@
 //
 //  PadCode.swift
-//  CoderPadMCPCore
+//  CoderPadToolCore
 //
 //  The get_pad_code transform (#499): turn a fetched pad (and its environments) into
 //  a compact { pad_id, title, files: [{ filename, language, contents }] }. Kept pure

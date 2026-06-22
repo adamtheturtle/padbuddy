@@ -1,6 +1,6 @@
 //
 //  PadAggregation.swift
-//  CoderPadMCPCore
+//  CoderPadToolCore
 //
 //  The count / aggregate / compact transforms (#500). The executable pages the whole
 //  pad list over the network; these pure functions do the filtering and tallying, so

@@ -12,15 +12,20 @@ let package = Package(
     name: "CoderPadMCP",
     platforms: [.macOS(.v13)],
     dependencies: [
-        .package(url: "https://github.com/modelcontextprotocol/swift-sdk.git", from: "0.12.1")
+        .package(url: "https://github.com/modelcontextprotocol/swift-sdk.git", from: "0.12.1"),
+        // The plumbing-neutral pad/question transforms now live in a shared package the
+        // in-app server depends on too (#521), so the data shaping is defined once.
+        .package(path: "../CoderPadToolCore")
     ],
     targets: [
-        // The network-free core (argument coercion, tool schemas, and the pad
-        // code/count/aggregate transforms), split out so it can be unit-tested (#522).
+        // The MCP-bound core (argument coercion, tool schemas, prompts/resources), split
+        // out so it can be unit-tested (#522). Re-exports CoderPadToolCore so the
+        // executable and tests keep calling the transforms unqualified.
         .target(
             name: "CoderPadMCPCore",
             dependencies: [
-                .product(name: "MCP", package: "swift-sdk")
+                .product(name: "MCP", package: "swift-sdk"),
+                "CoderPadToolCore"
             ]
         ),
         .executableTarget(

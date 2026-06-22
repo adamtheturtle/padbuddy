@@ -1,6 +1,6 @@
 //
 //  QuestionAggregation.swift
-//  CoderPadMCPCore
+//  CoderPadToolCore
 //
 //  The count / aggregate / compact transforms for the QUESTION bank (#500), mirroring
 //  PadAggregation. The executable pages the whole question list over the network; these
