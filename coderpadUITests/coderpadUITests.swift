@@ -53,9 +53,9 @@ final class CoderpadUITests: XCTestCase {
         let app = launchDemoApp()
 
         // Pads paint on launch.
-        XCTAssertTrue(row("Onsite: Jane Doe", in: app).waitForExistence(timeout: Self.listLoadTimeout),
+        XCTAssertTrue(row("Onsite: Senior Backend Engineer", in: app).waitForExistence(timeout: Self.listLoadTimeout),
                       "A seeded demo pad should appear once the list loads")
-        XCTAssertTrue(row("Phone screen: Sam Lee", in: app).exists,
+        XCTAssertTrue(row("Phone screen: Frontend Engineer", in: app).exists,
                       "Other seeded demo pads should be listed too")
 
         // ⌘2 → Questions, and the seeded questions load there.
@@ -65,7 +65,7 @@ final class CoderpadUITests: XCTestCase {
 
         // ⌘1 → back to Pads restores the list.
         app.typeKey("1", modifierFlags: .command) // back to Pads
-        XCTAssertTrue(row("Onsite: Jane Doe", in: app).waitForExistence(timeout: Self.listLoadTimeout),
+        XCTAssertTrue(row("Onsite: Senior Backend Engineer", in: app).waitForExistence(timeout: Self.listLoadTimeout),
                       "Returning to Pads should show the pad list again")
     }
 
@@ -112,13 +112,13 @@ final class CoderpadUITests: XCTestCase {
 
         // Pads paint on launch; wait for them, then give the window a beat to grow
         // to full size (`applicationDidBecomeActive` resizes it under `-uiTesting`).
-        XCTAssertTrue(row("Onsite: Jane Doe", in: app).waitForExistence(timeout: Self.listLoadTimeout),
+        XCTAssertTrue(row("Onsite: Senior Backend Engineer", in: app).waitForExistence(timeout: Self.listLoadTimeout),
                       "A seeded demo pad should appear once the list loads")
         usleep(3_000_000)
 
         // Pads with a pad selected: the Mail-style three-column layout (sidebar +
         // list + populated detail) — the hero shot for #505.
-        clickRow("Onsite: Jane Doe")
+        clickRow("Onsite: Senior Backend Engineer")
         usleep(1_500_000) // let the detail pane settle
         capture("pads-detail")
 
@@ -144,7 +144,7 @@ final class CoderpadUITests: XCTestCase {
 
         let app = launchDemoApp()
 
-        let firstPad = row("Onsite: Jane Doe", in: app)
+        let firstPad = row("Onsite: Senior Backend Engineer", in: app)
         XCTAssertTrue(firstPad.waitForExistence(timeout: Self.listLoadTimeout),
                       "Pads should load before opening the palette")
         let deadline = Date().addingTimeInterval(5)

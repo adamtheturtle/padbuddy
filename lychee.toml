@@ -17,3 +17,9 @@ user_agent = "Mozilla/5.0 (compatible; lychee link checker)"
 # The main app repo is private, so anonymous requests 404. In CI lychee is given
 # GITHUB_TOKEN and resolves github.com links via the API instead, so these are
 # left in scope (the public releases repo and the Pages site need no token).
+
+# The stable-named direct-download asset (PadBuddy.dmg) only starts existing once
+# the next release is cut (the workflow attaches it alongside the versioned DMG).
+# Until then the "latest/download/PadBuddy.dmg" URL 404s, so exclude it from the
+# link check rather than failing the build on an asset that ships with the release.
+exclude = ["releases/latest/download/PadBuddy\\.dmg"]

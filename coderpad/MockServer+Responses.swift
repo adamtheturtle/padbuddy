@@ -130,7 +130,7 @@ nonisolated enum MockResponses {
             id: id,
             title: create.title ?? "Demo Pad \(id)",
             language: create.language ?? "python3",
-            ownerEmail: create.ownerEmail ?? "demo@example.com",
+            ownerEmail: create.ownerEmail ?? MockFixtures.demoUserEmail,
             state: "started",
             isPrivate: create.isPrivate ?? false,
             executionEnabled: create.executionEnabled ?? true
@@ -189,7 +189,7 @@ nonisolated enum MockResponses {
         var question: [String: Any] = [
             "id": newID,
             "title": bodyDict["title"] as? String ?? "Untitled",
-            "owner_email": "demo@example.com",
+            "owner_email": MockFixtures.demoUserEmail,
             "language": bodyDict["language"] ?? NSNull(),
             "description": bodyDict["description"] ?? NSNull(),
             "candidate_instructions": bodyDict["candidate_instructions"] ?? [],
@@ -197,7 +197,7 @@ nonisolated enum MockResponses {
             "test_cases_enabled": false, "solution": bodyDict["solution"] ?? "",
             "pad_type": bodyDict["pad_type"] as? String ?? "live", "is_draft": true,
             "contents": bodyDict["contents"] ?? NSNull(), "custom_files": [],
-            "author_name": "Demo User", "organization_name": "Demo Org",
+            "author_name": MockFixtures.demoUserName, "organization_name": MockFixtures.orgName,
             "created_at": Date.now.formatted(.iso8601),
             "updated_at": Date.now.formatted(.iso8601)
         ]

@@ -126,6 +126,10 @@ jobs:
           ./scripts/package-and-notarize.sh \
             "${{ steps.app.outputs.path }}" \
             "padbuddy-${GITHUB_REF_NAME}.dmg"
+          # Also attach a stable-named copy so the website can link straight to the
+          # DMG at a durable URL (releases/latest/download/PadBuddy.dmg) that doesn't
+          # carry the version. Sparkle still uses the versioned name via the appcast.
+          cp "padbuddy-${GITHUB_REF_NAME}.dmg" "PadBuddy.dmg"
 
       # --- Fallback path: ad-hoc/unsigned .zip (when secrets absent) ---------
 
@@ -162,7 +166,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           ASSETS=()
-          for f in "padbuddy-${GITHUB_REF_NAME}.dmg" "padbuddy-${GITHUB_REF_NAME}.zip" "appcast.xml"; do
+          for f in "padbuddy-${GITHUB_REF_NAME}.dmg" "PadBuddy.dmg" "padbuddy-${GITHUB_REF_NAME}.zip" "appcast.xml"; do
             [ -f "$f" ] && ASSETS+=("$f")
           done
           if [ -n "$RELEASES_REPO_TOKEN" ]; then

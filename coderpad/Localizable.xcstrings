@@ -91,6 +91,16 @@
         }
       }
     },
+    "%@ · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ · %2$@"
+          }
+        }
+      }
+    },
     "%@ (bad key)" : {
       "localizations" : {
         "es" : {
@@ -992,6 +1002,9 @@
         }
       }
     },
+    "Activity" : {
+
+    },
     "Add %@ to Favorites" : {
       "localizations" : {
         "en-GB" : {
@@ -1071,6 +1084,12 @@
     "Add or manage accounts in Settings" : {
 
     },
+    "Add Template" : {
+
+    },
+    "Add to %@" : {
+
+    },
     "Add to Favorites" : {
       "localizations" : {
         "en-GB" : {
@@ -1087,10 +1106,7 @@
         }
       }
     },
-    "Adds PadBuddy to Claude Desktop, keeping any servers you already have. Takes effect after a restart." : {
-
-    },
-    "Adds PadBuddy to the Codex CLI's config at ~/.codex/config.toml." : {
+    "Add to your assistant" : {
 
     },
     "Alerts when pads gain activity while PadBuddy is in the background." : {
@@ -1137,6 +1153,9 @@
 
     },
     "All time" : {
+
+    },
+    "Allow the MCP server to make changes" : {
 
     },
     "Anonymized" : {
@@ -1214,6 +1233,9 @@
           }
         }
       }
+    },
+    "Assistant" : {
+
     },
     "Authentication error" : {
       "localizations" : {
@@ -1409,6 +1431,9 @@
       }
     },
     "Choose what the exported PDF report includes." : {
+
+    },
+    "Claude Code" : {
 
     },
     "Claude Desktop" : {
@@ -1715,6 +1740,9 @@
     "Completed %@" : {
 
     },
+    "Connect an assistant to the server and its tool calls show up here." : {
+
+    },
     "Continue" : {
       "localizations" : {
         "es" : {
@@ -1724,6 +1752,9 @@
           }
         }
       }
+    },
+    "Copy" : {
+
     },
     "Copy %lld Pad Links" : {
       "localizations" : {
@@ -1788,9 +1819,6 @@
           }
         }
       }
-    },
-    "Copy command" : {
-
     },
     "Copy Link" : {
 
@@ -1857,9 +1885,6 @@
           }
         }
       }
-    },
-    "Copy the command for your assistant and run it in Terminal." : {
-
     },
     "Copy Title" : {
       "localizations" : {
@@ -2667,6 +2692,9 @@
     "Duration" : {
 
     },
+    "e.g. \"Backend phone screen\"" : {
+
+    },
     "e.g. active Python pads from my team" : {
       "localizations" : {
         "es" : {
@@ -2727,6 +2755,9 @@
         }
       }
     },
+    "Edit Template" : {
+
+    },
     "Edit title" : {
       "localizations" : {
         "es" : {
@@ -2736,6 +2767,9 @@
           }
         }
       }
+    },
+    "Edit…" : {
+
     },
     "Email the candidate an invitation" : {
 
@@ -2888,6 +2922,9 @@
           }
         }
       }
+    },
+    "Export as Markdown…" : {
+
     },
     "Faster section switching" : {
       "localizations" : {
@@ -3099,6 +3136,9 @@
         }
       }
     },
+    "Go to Anything…" : {
+
+    },
     "Help" : {
       "localizations" : {
         "es" : {
@@ -3251,12 +3291,12 @@
     "Include rank" : {
 
     },
-    "Indexed on this Mac only. Pad titles can include candidate names." : {
+    "Indexed on this Mac only. Pad and question titles can include candidate names." : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "Indexado solo en este Mac. Los títulos de los pads pueden incluir nombres de candidatos."
+            "value" : "Indexado solo en este Mac. Los títulos de los pads y las preguntas pueden incluir nombres de candidatos."
           }
         }
       }
@@ -3270,6 +3310,9 @@
           }
         }
       }
+    },
+    "Interview Templates" : {
+
     },
     "Interviewer" : {
       "localizations" : {
@@ -3304,6 +3347,9 @@
 
     },
     "Invited" : {
+
+    },
+    "Jump to a pad, question, section, account, or command…" : {
 
     },
     "Key not authorized" : {
@@ -3542,12 +3588,12 @@
         }
       }
     },
-    "Make pads searchable in Spotlight" : {
+    "Make pads and questions searchable in Spotlight" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "Hacer que los pads se puedan buscar en Spotlight"
+            "value" : "Hacer que los pads y las preguntas se puedan buscar en Spotlight"
           }
         }
       }
@@ -3561,6 +3607,9 @@
     "Manage Accounts…" : {
 
     },
+    "Manage Templates…" : {
+
+    },
     "Mark All as Seen" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -3571,6 +3620,9 @@
           }
         }
       }
+    },
+    "MCP Activity" : {
+
     },
     "MCP Server" : {
 
@@ -3775,6 +3827,9 @@
         }
       }
     },
+    "New Template" : {
+
+    },
     "Newest First" : {
       "localizations" : {
         "es" : {
@@ -3894,6 +3949,9 @@
         }
       }
     },
+    "No matches." : {
+
+    },
     "No Matching Pads" : {
       "localizations" : {
         "es" : {
@@ -3913,6 +3971,9 @@
           }
         }
       }
+    },
+    "No MCP activity yet" : {
+
     },
     "No members match “%@”" : {
       "localizations" : {
@@ -4000,6 +4061,9 @@
     "No report yet" : {
 
     },
+    "No templates yet" : {
+
+    },
     "No test session matches your filters." : {
 
     },
@@ -4048,6 +4112,9 @@
           }
         }
       }
+    },
+    "Off by default. When on, the assistant can create and edit pads and questions (never delete them). Changes take effect after you restart the assistant. Only turn this on if you trust the assistant with your live interview content." : {
+
     },
     "Offline — read-only" : {
       "extractionState" : "stale",
@@ -4345,6 +4412,9 @@
         }
       }
     },
+    "Open the activity window" : {
+
+    },
     "Open the current page in your default browser" : {
       "localizations" : {
         "es" : {
@@ -4404,6 +4474,9 @@
           }
         }
       }
+    },
+    "Optional, defaults to the question's title" : {
+
     },
     "Optional, e.g. \"Onsite: Jane Doe\"" : {
       "localizations" : {
@@ -4566,6 +4639,9 @@
         }
       }
     },
+    "Pad title" : {
+
+    },
     "Pad Unavailable" : {
       "localizations" : {
         "es" : {
@@ -4706,6 +4782,9 @@
       }
     },
     "Points" : {
+
+    },
+    "Prefer to edit the file yourself?" : {
 
     },
     "Previous Section" : {
@@ -4923,6 +5002,9 @@
         }
       }
     },
+    "Recent tool calls" : {
+
+    },
     "Recheck" : {
       "localizations" : {
         "es" : {
@@ -5099,9 +5181,6 @@
         }
       }
     },
-    "Restart the assistant. It uses the account selected in PadBuddy." : {
-
-    },
     "Result notifications (optional)" : {
 
     },
@@ -5136,6 +5215,9 @@
       }
     },
     "Save PDF" : {
+
+    },
+    "Save Question as Template…" : {
 
     },
     "Save Search" : {
@@ -5285,6 +5367,12 @@
         }
       }
     },
+    "See when the server last ran and its recent tool calls, in a separate window." : {
+
+    },
+    "Seeing it in your assistant" : {
+
+    },
     "Select a campaign" : {
 
     },
@@ -5353,9 +5441,6 @@
           }
         }
       }
-    },
-    "Set it up" : {
-
     },
     "Settings…" : {
       "localizations" : {
@@ -5731,6 +5816,9 @@
         }
       }
     },
+    "Start typing to search." : {
+
+    },
     "Started" : {
 
     },
@@ -5897,6 +5985,9 @@
         }
       }
     },
+    "Template actions" : {
+
+    },
     "Test cases" : {
       "localizations" : {
         "es" : {
@@ -5966,7 +6057,7 @@
         }
       }
     },
-    "The Model Context Protocol (MCP) lets AI assistants like Claude read your CoderPad data (your pads, questions, quota, and organization) so you can ask them about it in plain language. PadBuddy has the server built in and serves your selected account, so there's nothing to install. It's read-only: it never changes or deletes anything in CoderPad." : {
+    "The Model Context Protocol (MCP) lets AI assistants like Claude read your CoderPad data (your pads, questions, quota, and organization) so you can ask them about it in plain language. PadBuddy has the server built in and serves your selected account, so there's nothing to install. By default it's read-only: it never changes or deletes anything in CoderPad unless you turn on changes below." : {
 
     },
     "The request failed (HTTP %lld)." : {
@@ -6001,9 +6092,6 @@
           }
         }
       }
-    },
-    "The server reads the selected account's key straight from the Keychain, so your API key is never written to a config file." : {
-
     },
     "The test session was created." : {
 
@@ -6210,6 +6298,9 @@
         }
       }
     },
+    "To confirm Claude Code connected, run `claude mcp list` or `claude mcp get coderpad`. Claude Desktop writes logs to ~/Library/Logs/Claude/." : {
+
+    },
     "Today" : {
       "localizations" : {
         "es" : {
@@ -6407,6 +6498,9 @@
         }
       }
     },
+    "Use" : {
+
+    },
     "Use “%@”" : {
       "localizations" : {
         "es" : {
@@ -6474,6 +6568,9 @@
           }
         }
       }
+    },
+    "Used as the title of each pad created from this template." : {
+
     },
     "Users" : {
       "localizations" : {
@@ -6639,6 +6736,9 @@
           }
         }
       }
+    },
+    "You usually have to fully restart the assistant before it picks up the server: quit Claude Desktop with ⌘Q and reopen it; start a new session in Claude Code (or run `/mcp` to reconnect)." : {
+
     },
     "You'll have a few seconds to undo before it's permanently deleted." : {
       "localizations" : {

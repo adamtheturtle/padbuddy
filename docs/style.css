@@ -5,8 +5,8 @@
   --muted: #9aa3b2;
   --accent: #4b8bff;
   --line: rgba(255, 255, 255, 0.08);
-  --hero-top: #1a2030;
-  --band-top: #141b2c;
+  --hero-bg: #161b27;
+  --band-bg: #141a28;
   --code-bg: #0b0e13;
   --code-text: #e7e9ee;
   --inline-code-bg: rgba(255, 255, 255, 0.06);
@@ -21,8 +21,8 @@
     --muted: #5b6472;
     --accent: #2f55d4;
     --line: rgba(0, 0, 0, 0.10);
-    --hero-top: #eef1fb;
-    --band-top: #e9edfc;
+    --hero-bg: #f1f3fb;
+    --band-bg: #eef1fb;
 
     /* Code blocks stay dark in both themes (reads cleanly, matches editors). */
     --code-bg: #0b0e13;
@@ -50,9 +50,11 @@ body {
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 
+/* --- Hero ----------------------------------------------------------------- */
+
 .hero {
   padding: 72px 0 56px;
-  background: linear-gradient(180deg, var(--hero-top), var(--bg));
+  background: var(--hero-bg);
   border-bottom: 1px solid var(--line);
   text-align: center;
 }
@@ -63,15 +65,12 @@ a:hover { text-decoration: underline; }
   height: 120px;
   margin: 0 auto 1.1rem;
   border-radius: 27px;
-  box-shadow: 0 10px 30px rgba(105, 104, 252, 0.35);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.30);
 }
 
 .hero h1 { font-size: 2.6rem; margin: 0 0 .25em; letter-spacing: -0.02em; }
 
-.tagline { font-size: 1.2rem; color: var(--muted); margin: 0 auto 1em; max-width: 36em; }
-
-.hero-integrations { color: var(--text); margin: 0 auto 1.5em; max-width: 36em; }
-.hero-integrations strong { color: var(--accent); font-weight: 600; }
+.tagline { font-size: 1.2rem; color: var(--muted); margin: 0 auto 1.5em; max-width: 34em; }
 
 .cta {
   margin: 0 0 1em;
@@ -81,16 +80,6 @@ a:hover { text-decoration: underline; }
   justify-content: center;
   align-items: stretch;
 }
-
-.button {
-  display: inline-block;
-  padding: .7em 1.4em;
-  background: var(--accent);
-  color: #fff;
-  border-radius: 10px;
-  font-weight: 600;
-}
-.button:hover { text-decoration: none; opacity: .92; }
 
 .note, .small { color: var(--muted); font-size: .9rem; }
 
@@ -109,112 +98,18 @@ a:hover { text-decoration: underline; }
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
 }
 
-main { padding: 40px 0; }
+/* --- Buttons -------------------------------------------------------------- */
 
-section { margin: 0 0 40px; }
-
-h2 { font-size: 1.4rem; margin: 0 0 .6em; }
-
-ul { padding-left: 1.2em; }
-ul.features { list-style: none; padding: 0; display: grid; gap: 14px; }
-ul.features li {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 14px 16px;
+.button {
+  display: inline-block;
+  padding: .7em 1.4em;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 10px;
+  font-weight: 600;
+  line-height: 1.2;
 }
-
-footer {
-  border-top: 1px solid var(--line);
-  padding: 28px 0 56px;
-  color: var(--muted);
-}
-footer a { color: var(--muted); }
-
-/* --- Hero buttons --------------------------------------------------------- */
-
-.button-secondary {
-  background: transparent;
-  color: var(--text);
-  border: 1px solid var(--line);
-}
-.button-secondary:hover { background: var(--panel); opacity: 1; }
-
-/* --- MCP band (headline feature) ----------------------------------------- */
-
-.band { padding: 56px 0; }
-
-.band-mcp {
-  background: linear-gradient(180deg, var(--band-top), var(--bg));
-  border-bottom: 1px solid var(--line);
-}
-
-.eyebrow {
-  text-transform: uppercase;
-  letter-spacing: .08em;
-  font-size: .8rem;
-  font-weight: 700;
-  color: var(--accent);
-  margin: 0 0 .4em;
-}
-
-.band-title { font-size: 2rem; margin: 0 0 .3em; letter-spacing: -0.02em; }
-
-.lead { font-size: 1.15rem; color: var(--muted); max-width: 40em; margin: 0 0 1.8em; }
-
-.mcp-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin: 0 0 28px;
-}
-.mcp-point {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 18px;
-}
-.mcp-point h3 { font-size: 1.05rem; margin: 0 0 .4em; }
-.mcp-point p { margin: 0; color: var(--muted); }
-
-.code-label, .media { margin: 0 0 .6em; }
-.code-label { color: var(--muted); font-size: .9rem; }
-
-.code {
-  background: var(--code-bg);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 16px 18px;
-  overflow-x: auto;
-  margin: 0 0 .8em;
-}
-.code code {
-  font: 14px/1.55 "SF Mono", ui-monospace, Menlo, Consolas, monospace;
-  color: var(--code-text);
-
-  /* Reset the inline-code chrome (below) for code inside a fenced block;
-     the higher specificity wins regardless of source order. */
-  background: none;
-  padding: 0;
-}
-code {
-  font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
-  font-size: .9em;
-  background: var(--inline-code-bg);
-  padding: .1em .35em;
-  border-radius: 5px;
-}
-
-.media img { max-width: 100%; border-radius: 12px; border: 1px solid var(--line); }
-
-/* --- Two-column feature grid --------------------------------------------- */
-
-ul.features-2col { grid-template-columns: repeat(2, 1fr); }
-
-/* --- Download CTAs (direct + Mac App Store) ------------------------------ */
-
-/* Primary direct-download button carries a two-line label. */
-.button .button-title { display: block; font-weight: 600; line-height: 1.2; }
+.button:hover { text-decoration: none; opacity: .92; }
 .button .button-sub {
   display: block;
   font-size: .78rem;
@@ -242,7 +137,82 @@ ul.features-2col { grid-template-columns: repeat(2, 1fr); }
 .mas-badge__bottom { display: block; font-size: 1.15rem; font-weight: 600; letter-spacing: -0.01em; }
 .mas-badge--disabled { opacity: .55; cursor: default; }
 
+/* --- Main content --------------------------------------------------------- */
+
+main { padding: 40px 0; }
+
+section { margin: 0 0 40px; }
+
+h2 { font-size: 1.4rem; margin: 0 0 .6em; }
+
+ul { padding-left: 1.2em; }
+ul.features { list-style: none; padding: 0; display: grid; gap: 14px; }
+ul.features li {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+ul.features-2col { grid-template-columns: repeat(2, 1fr); }
+
+/* --- MCP band (headline feature) ----------------------------------------- */
+
+.band { padding: 56px 0; }
+
+.band-mcp {
+  background: var(--band-bg);
+  border-bottom: 1px solid var(--line);
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  font-size: .8rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin: 0 0 .4em;
+}
+
+.band-title { font-size: 2rem; margin: 0 0 .3em; letter-spacing: -0.02em; }
+
+.lead { font-size: 1.15rem; color: var(--muted); max-width: 42em; margin: 0 0 1.6em; }
+
+/* --- Code ----------------------------------------------------------------- */
+
+.code {
+  background: var(--code-bg);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px 18px;
+  overflow-x: auto;
+  margin: 0;
+}
+.code code {
+  font: 14px/1.55 "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  color: var(--code-text);
+
+  /* Reset the inline-code chrome (below) for code inside a fenced block;
+     the higher specificity wins regardless of source order. */
+  background: none;
+  padding: 0;
+}
+code {
+  font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  font-size: .9em;
+  background: var(--inline-code-bg);
+  padding: .1em .35em;
+  border-radius: 5px;
+}
+
+/* --- Footer --------------------------------------------------------------- */
+
+footer {
+  border-top: 1px solid var(--line);
+  padding: 28px 0 56px;
+  color: var(--muted);
+}
+footer a { color: var(--muted); }
+
 @media (max-width: 720px) {
-  .mcp-grid { grid-template-columns: 1fr; }
   ul.features-2col { grid-template-columns: 1fr; }
 }

@@ -184,10 +184,11 @@ struct Account: Identifiable, Codable, Hashable {
         !userEmail.isEmpty && ownerEmail.canonicalOwnerEmail == userEmail.canonicalOwnerEmail
     }
 
-    /// Email of the mock data's "Demo User", who owns several of the mock pads and
+    /// Email of the signed-in demo user, who owns several of the mock pads and
     /// questions — so the demo account's "My Pads"/"My Questions" defaults return
-    /// real results, and the account satisfies the required-email rule.
-    static let demoUserEmail = "demo@example.com"
+    /// real results, and the account satisfies the required-email rule. Sourced
+    /// from `MockFixtures` so the account and the fake API agree on who "you" are.
+    static let demoUserEmail = MockFixtures.demoUserEmail
 
     static func demo() -> Self {
         Self(name: "Demo (mock data)", apiKey: "demo", isMock: true, userEmail: demoUserEmail)

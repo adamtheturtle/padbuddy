@@ -10,7 +10,49 @@ import Foundation
 
 nonisolated extension MockFixtures {
     static func questions() -> [[String: Any]] {
-        [fizzBuzzQuestion(), urlShortenerQuestion(), concurrencyDraftQuestion()]
+        [
+            fizzBuzzQuestion(),
+            urlShortenerQuestion(),
+            concurrencyDraftQuestion(),
+            question(id: 104, title: "Two Sum", ownerEmail: "sybil@fawltytowers.co.uk",
+                     author: "Sybil Fawlty", language: "python3", used: 67,
+                     description: "Return the indices of the two numbers that add up to a target.",
+                     createdAt: "2025-08-14T10:00:00Z", updatedAt: "2026-06-07T12:00:00Z"),
+            question(id: 105, title: "LRU Cache", ownerEmail: "basil@fawltytowers.co.uk",
+                     author: "Basil Fawlty", language: "java", used: 23,
+                     description: "Implement an LRU cache with O(1) get and put.",
+                     createdAt: "2025-10-02T10:00:00Z", updatedAt: "2026-05-21T09:00:00Z"),
+            question(id: 106, title: "Rate limiter (take-home)", ownerEmail: "manuel@fawltytowers.co.uk",
+                     author: "Manuel", language: "go", used: 9, takeHome: true,
+                     description: "Design a token-bucket rate limiter and justify the tradeoffs.",
+                     createdAt: "2025-12-01T10:00:00Z", updatedAt: "2026-06-02T09:00:00Z"),
+            question(id: 107, title: "Merge intervals", ownerEmail: demoUserEmail,
+                     author: demoUserName, language: "typescript", used: 31,
+                     description: "Merge all overlapping intervals and return the result.",
+                     createdAt: "2025-09-19T10:00:00Z", updatedAt: "2026-06-06T09:00:00Z")
+        ]
+    }
+
+    /// A compact, fully-formed question for the extra seed entries. The three
+    /// richer questions below stay hand-written so the demo still shows multi-part
+    /// instructions, test cases, custom files, and Markdown rendering.
+    private static func question(id: Int, title: String, ownerEmail: String, author: String,
+                                 language: String, used: Int, takeHome: Bool = false,
+                                 description: String, createdAt: String, updatedAt: String) -> [String: Any] {
+        [
+            "id": id,
+            "title": title,
+            "owner_email": ownerEmail,
+            "language": language,
+            "description": description,
+            "candidate_instructions": [["instructions": description, "default_visible": true]],
+            "shared": true, "used": used, "take_home": takeHome,
+            "test_cases_enabled": false, "solution": "",
+            "pad_type": takeHome ? "take-home" : "live", "is_draft": false,
+            "contents": NSNull(), "custom_files": [],
+            "author_name": author, "organization_name": MockFixtures.orgName,
+            "created_at": createdAt, "updated_at": updatedAt
+        ]
     }
 
     private static func fizzBuzzQuestion() -> [String: Any] {
@@ -18,7 +60,7 @@ nonisolated extension MockFixtures {
         return [
             "id": 101,
             "title": "FizzBuzz",
-            "owner_email": "alex@demo.co",
+            "owner_email": "basil@fawltytowers.co.uk",
             "language": "python3",
             "description": "Classic warm-up problem.",
             "candidate_instructions": [["instructions": instructions, "default_visible": true]],
@@ -38,7 +80,7 @@ nonisolated extension MockFixtures {
                 ["id": "cf2", "title": "Fixtures", "description": "Sample inputs for manual testing",
                  "filename": "cases.csv", "filesize": "640 B"]
             ],
-            "author_name": "Alex Park", "organization_name": "Demo Org",
+            "author_name": "Basil Fawlty", "organization_name": MockFixtures.orgName,
             "created_at": "2025-09-01T10:00:00Z", "updated_at": "2026-06-08T10:00:00Z"
         ]
     }
@@ -47,7 +89,7 @@ nonisolated extension MockFixtures {
         [
             "id": 102,
             "title": "URL shortener (take-home)",
-            "owner_email": "morgan@demo.co",
+            "owner_email": "manuel@fawltytowers.co.uk",
             "language": "go",
             "description": urlShortenerDescription(),
             "candidate_instructions": [
@@ -59,7 +101,7 @@ nonisolated extension MockFixtures {
             "pad_type": "take-home", "is_draft": false,
             "public_take_home_setting_id": 7421,
             "contents": urlShortenerContents(), "custom_files": [],
-            "author_name": "Morgan Lin", "organization_name": "Demo Org",
+            "author_name": "Manuel", "organization_name": MockFixtures.orgName,
             "created_at": "2025-11-12T14:00:00Z", "updated_at": "2026-05-30T09:00:00Z"
         ]
     }
@@ -178,7 +220,7 @@ nonisolated extension MockFixtures {
         [
             "id": 103,
             "title": "[DRAFT] Concurrency primitives",
-            "owner_email": "alex@demo.co",
+            "owner_email": "terry@fawltytowers.co.uk",
             "language": "rust",
             "description": NSNull(),
             "candidate_instructions": [["instructions": "", "default_visible": true]],
@@ -186,7 +228,7 @@ nonisolated extension MockFixtures {
             "test_cases_enabled": false, "solution": "",
             "pad_type": "live", "is_draft": true,
             "contents": NSNull(), "custom_files": [],
-            "author_name": "Alex Park", "organization_name": "Demo Org",
+            "author_name": "Terry Hughes", "organization_name": MockFixtures.orgName,
             "created_at": "2026-06-05T11:00:00Z", "updated_at": "2026-06-05T11:00:00Z"
         ]
     }

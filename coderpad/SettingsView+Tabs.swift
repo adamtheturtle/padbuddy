@@ -69,7 +69,7 @@ extension SettingsView {
             }
 
             Section {
-                Toggle("Make pads searchable in Spotlight", isOn: $spotlightIndexing)
+                Toggle("Make pads and questions searchable in Spotlight", isOn: $spotlightIndexing)
                     .onChange(of: spotlightIndexing) { _, isOn in
                         if isOn {
                             // Index what's already cached so results appear without a refresh.
@@ -82,7 +82,7 @@ extension SettingsView {
                         }
                     }
             } footer: {
-                Text("Indexed on this Mac only. Pad titles can include candidate names.")
+                Text("Indexed on this Mac only. Pad and question titles can include candidate names.")
                     .foregroundStyle(.secondary)
             }
 

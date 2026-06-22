@@ -41,9 +41,9 @@ struct MockServerTests {
     @Test
     func `getPad returns a specific pad`() async throws {
         let pad = try await client.getPad(id: "DEMOABC1")
-        #expect(pad.title == "Onsite: Jane Doe")
-        #expect(pad.ownerEmail == "alex@demo.co")
-        #expect(pad.participants == ["Jane Doe", "Alex Park"])
+        #expect(pad.title == "Onsite: Senior Backend Engineer")
+        #expect(pad.ownerEmail == "basil@fawltytowers.co.uk")
+        #expect(pad.participants == ["Lord Melbury", "Basil Fawlty"])
     }
 
     @Test
@@ -90,7 +90,7 @@ struct MockServerTests {
     @Test
     func `listQuestions returns the seeded questions`() async throws {
         let questions = try await client.listQuestions()
-        #expect(questions.count == 3)
+        #expect(questions.count == 7)
         #expect(questions.contains(where: { $0.title == "FizzBuzz" }))
     }
 
@@ -109,34 +109,34 @@ struct MockServerTests {
     @Test
     func `organization returns the demo org with users`() async throws {
         let org = try await client.organization()
-        #expect(org.organizationName == "Demo Org")
+        #expect(org.organizationName == "Fawlty Towers")
         #expect(org.users.count >= 5)
-        #expect(org.users.contains(where: { $0.email == "alex@demo.co" }))
+        #expect(org.users.contains(where: { $0.email == "basil@fawltytowers.co.uk" }))
         // Backs the org-default language pre-selection in the create sheets.
         #expect(org.organizationDefaultLanguage == "go")
         // Backs the Organization view's single sign-on row and portal action.
         #expect(org.singleSignOnSupported == true)
-        #expect(org.singleSignInURL == "https://app.coderpad.io/sso/demo-org")
+        #expect(org.singleSignInURL == "https://app.coderpad.io/sso/fawlty-towers")
     }
 
     @Test
     func `quota returns the demo plan`() async throws {
         let quota = try await client.quota()
-        #expect(quota.padsUsed == 24)
+        #expect(quota.padsUsed == 187)
         #expect(quota.unlimited == false)
         #expect(quota.overagesEnabled == true)
         #expect(quota.quotaReset != nil)
-        #expect(quota.padsRemaining == 96)
-        #expect(quota.billingCyclePadLimit == 120)
+        #expect(quota.padsRemaining == 313)
+        #expect(quota.billingCyclePadLimit == 500)
     }
 
     @Test
     func `organizationUsers filters by email when provided`() async throws {
         let all = try await client.organizationUsers()
         #expect(all.count >= 5)
-        let one = try await client.organizationUsers(email: "alex@demo.co")
+        let one = try await client.organizationUsers(email: "basil@fawltytowers.co.uk")
         #expect(one.count == 1)
-        #expect(one.first?.email == "alex@demo.co")
+        #expect(one.first?.email == "basil@fawltytowers.co.uk")
     }
 
     @Test
