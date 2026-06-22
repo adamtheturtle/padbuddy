@@ -36,6 +36,15 @@ public let padFilterProperties: [String: Value] = [
     "language": property("string", "Only pads in this language (e.g. \"python\").")
 ]
 
+/// The owner/author/language/type filters for the question count/aggregate tools, applied
+/// in-process while paging the bank (the question list API has no server-side filters).
+public let questionFilterProperties: [String: Value] = [
+    "owner": property("string", "Only questions whose owner_email matches this, case-insensitively."),
+    "author": property("string", "Only questions whose author_name matches this, case-insensitively."),
+    "language": property("string", "Only questions in this language (e.g. \"python\")."),
+    "type": property("string", "Only questions of this pad_type (e.g. \"sandbox\", \"take_home\").")
+]
+
 /// The always-available read tools.
 public let readTools: [Tool] = [
     Tool(
@@ -96,6 +105,29 @@ public let readTools: [Tool] = [
         name: "get_question",
         description: "Fetch a single question by its numeric id, with its full detail.",
         inputSchema: objectSchema(["id": property("integer", "The numeric question id.")], required: ["id"])
+    ),
+    Tool(
+        name: "count_questions",
+        description: "Count questions in the bank, optionally filtered, WITHOUT returning the records. Pages the whole bank internally and returns just the matched total — so \"how many questions match X\" is one cheap call instead of pulling every page of verbose JSON through the model.",
+        inputSchema: objectSchema(questionFilterProperties)
+    ),
+    Tool(
+        name: "aggregate_questions",
+        description: "Group questions by a field and return only the counts (not the records). Pages the whole bank internally and tallies in this process. Use this for questions like \"how many questions per language or author?\" over a large bank without blowing the assistant's context.",
+        inputSchema: objectSchema(
+            questionFilterProperties.merging([
+                "group_by": property(
+                    "string",
+                    "Field to group by: \"owner\" (owner_email), \"author\" (author_name), \"language\", \"type\" (pad_type), or \"month\" (created_at year-month)."
+                )
+            ]) { _, new in new },
+            required: ["group_by"]
+        )
+    ),
+    Tool(
+        name: "list_questions_compact",
+        description: "Like list_questions but returns only id, title, owner_email, author_name, language, pad_type, is_draft, and created_at per question (dropping the verbose blob), so far more rows fit per response. Includes next_page and total for driving pagination.",
+        inputSchema: objectSchema(pagingProperties)
     ),
     Tool(
         name: "get_quota",

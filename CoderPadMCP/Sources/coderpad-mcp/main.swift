@@ -322,6 +322,19 @@ await server.withMethodHandler(CallTool.self) { params in
 
         return await toolResult(apiGet("/api/questions/\(id)"))
 
+    case "count_questions":
+        return await countQuestions(arguments: params.arguments)
+
+    case "aggregate_questions":
+        guard let groupBy = stringArgument(params.arguments, "group_by"), !groupBy.isEmpty else {
+            return missingArgument("group_by")
+        }
+
+        return await aggregateQuestionsTool(groupBy: groupBy, arguments: params.arguments)
+
+    case "list_questions_compact":
+        return await listQuestionsCompact(arguments: params.arguments)
+
     case "get_quota":
         return await toolResult(apiGet("/api/quota"))
 
@@ -608,6 +621,134 @@ private func listPadsCompact(arguments: [String: Value]?) async -> CallTool.Resu
     let compact = compactPads(pads)
 
     var result: [String: Any] = ["pads": compact, "count": compact.count]
+    if let next = object["next_page"], !(next is NSNull) { result["next_page"] = next }
+    if let total = object["total"], !(total is NSNull) { result["total"] = total }
+
+    return jsonResult(result)
+}
+
+// MARK: - count_questions / aggregate_questions / list_questions_compact (#500)
+
+/// The accumulated result of paging the whole question bank internally.
+private struct QuestionPageScan {
+    var questions: [[String: Any]] = []
+    var totalReported: Int?
+    var pagesFetched = 0
+    var truncated = false
+    var error: APIResponse?
+}
+
+/// Pages `/api/questions/` from the first page following `next_page`, accumulating every
+/// question, so the count/aggregate tools can tally in-process and return a small answer
+/// instead of streaming thousands of records through the model.
+private func fetchAllQuestions() async -> QuestionPageScan {
+    var scan = QuestionPageScan()
+    var page: String?
+    while scan.pagesFetched < maxPadPagesToFetch {
+        var query: [URLQueryItem] = []
+        if let page { query.append(URLQueryItem(name: "page", value: page)) }
+        let response = await apiGet("/api/questions/", query: query)
+        guard response.ok, let object = jsonObject(response.body) else {
+            scan.error = response
+            return scan
+        }
+
+        if scan.totalReported == nil { scan.totalReported = object["total"] as? Int }
+        if let questions = object["questions"] as? [[String: Any]] { scan.questions.append(contentsOf: questions) }
+        scan.pagesFetched += 1
+        guard let next = nextPageToken(object["next_page"]) else { return scan }
+
+        page = next
+    }
+
+    scan.truncated = true
+    return scan
+}
+
+private func countQuestions(arguments: [String: Value]?) async -> CallTool.Result {
+    let owner = stringArgument(arguments, "owner")
+    let author = stringArgument(arguments, "author")
+    let language = stringArgument(arguments, "language")
+    let type = stringArgument(arguments, "type")
+
+    let scan = await fetchAllQuestions()
+    if let error = scan.error { return toolResult(error) }
+
+    let matched = scan.questions.filter {
+        questionMatches($0, owner: owner, author: author, language: language, type: type)
+    }
+    var result: [String: Any] = [
+        "matched": matched.count,
+        "scanned": scan.questions.count,
+        "pages_fetched": scan.pagesFetched,
+        "truncated": scan.truncated
+    ]
+    if let total = scan.totalReported { result["total_reported_by_api"] = total }
+    let filters = questionFiltersEcho(owner: owner, author: author, language: language, type: type)
+    if !filters.isEmpty { result["filters"] = filters }
+    if scan.truncated {
+        result["note"] = "Hit the internal page cap (\(maxPadPagesToFetch) pages); the count covers only the questions scanned."
+    }
+
+    return jsonResult(result)
+}
+
+private func aggregateQuestionsTool(groupBy: String, arguments: [String: Value]?) async -> CallTool.Result {
+    guard let field = questionAggregateField(for: groupBy) else {
+        return CallTool.Result(
+            content: [.text(
+                text: "Unsupported group_by \"\(groupBy)\". Use owner, author, language, type, or month.",
+                annotations: nil, _meta: nil
+            )],
+            isError: true
+        )
+    }
+
+    let owner = stringArgument(arguments, "owner")
+    let author = stringArgument(arguments, "author")
+    let language = stringArgument(arguments, "language")
+    let type = stringArgument(arguments, "type")
+
+    let scan = await fetchAllQuestions()
+    if let error = scan.error { return toolResult(error) }
+
+    let matched = scan.questions.filter {
+        questionMatches($0, owner: owner, author: author, language: language, type: type)
+    }
+    let counts = aggregateCounts(pads: matched, field: field)
+    let capped = topGroups(counts, limit: maxAggregateGroups)
+    let groups: [[String: Any]] = capped.map { ["value": $0.value, "count": $0.count] }
+
+    var result: [String: Any] = [
+        "group_by": field,
+        "matched": matched.count,
+        "scanned": scan.questions.count,
+        "distinct_groups": counts.count,
+        "groups": groups,
+        "pages_fetched": scan.pagesFetched,
+        "truncated": scan.truncated
+    ]
+    let filters = questionFiltersEcho(owner: owner, author: author, language: language, type: type)
+    if !filters.isEmpty { result["filters"] = filters }
+    if counts.count > capped.count {
+        result["groups_truncated"] = true
+        result["note"] = "Showing the top \(capped.count) of \(counts.count) groups by count."
+    }
+    if scan.truncated {
+        result["page_cap_note"] = "Hit the internal page cap (\(maxPadPagesToFetch) pages); the aggregation covers only the questions scanned."
+    }
+
+    return jsonResult(result)
+}
+
+private func listQuestionsCompact(arguments: [String: Value]?) async -> CallTool.Result {
+    let response = await apiGet("/api/questions/", query: pagingQuery(arguments))
+    guard response.ok, let object = jsonObject(response.body) else { return toolResult(response) }
+
+    let questions = (object["questions"] as? [[String: Any]]) ?? []
+    let compact = compactQuestions(questions)
+
+    var result: [String: Any] = ["questions": compact, "count": compact.count]
     if let next = object["next_page"], !(next is NSNull) { result["next_page"] = next }
     if let total = object["total"], !(total is NSNull) { result["total"] = total }
 

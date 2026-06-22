@@ -245,6 +245,76 @@ struct AggregationTests {
     }
 }
 
+// MARK: - Question filtering and aggregation
+
+@Suite("Question filtering and aggregation")
+struct QuestionAggregationTests {
+    private let questions: [[String: Any]] = [
+        ["owner_email": "a@x.com", "author_name": "Ada", "language": "python",
+         "pad_type": "sandbox", "created_at": "2026-01-04T00:00:00Z"],
+        ["owner_email": "A@x.com", "author_name": "Ada", "language": "Python",
+         "pad_type": "take_home", "created_at": "2026-01-20T00:00:00Z"],
+        ["owner_email": "b@x.com", "author_name": "Bo", "language": "ruby",
+         "pad_type": "sandbox", "created_at": "2026-02-02T00:00:00Z"],
+        ["language": "ruby"] // no owner / author / created_at
+    ]
+
+    @Test
+    func `questionMatches filters by owner, author, language and type, case-insensitively`() {
+        #expect(questionMatches(questions[0], owner: "A@X.COM", author: nil, language: nil, type: nil))
+        #expect(questionMatches(questions[0], owner: nil, author: "ada", language: "PYTHON", type: nil))
+        #expect(questionMatches(questions[1], owner: nil, author: nil, language: nil, type: "TAKE_HOME"))
+        #expect(!questionMatches(questions[0], owner: nil, author: "Bo", language: nil, type: nil))
+        #expect(questionMatches(questions[0], owner: "", author: "", language: "", type: ""))
+        #expect(!questionMatches(questions[3], owner: "a@x.com", author: nil, language: nil, type: nil))
+    }
+
+    @Test
+    func `questionFiltersEcho includes only non-empty filters`() {
+        let echo = questionFiltersEcho(owner: "a@x.com", author: nil, language: "", type: "sandbox")
+        #expect(echo["owner"] as? String == "a@x.com")
+        #expect(echo["type"] as? String == "sandbox")
+        #expect(echo["author"] == nil)
+        #expect(echo["language"] == nil)
+    }
+
+    @Test
+    func `questionAggregateField normalizes synonyms and rejects unknown`() {
+        #expect(questionAggregateField(for: "owner") == "owner_email")
+        #expect(questionAggregateField(for: "Author") == "author_name")
+        #expect(questionAggregateField(for: "type") == "pad_type")
+        #expect(questionAggregateField(for: "created_at") == "month")
+        #expect(questionAggregateField(for: "state") == nil)
+    }
+
+    @Test
+    func `aggregateCounts groups questions by author and month, missing -> unknown`() {
+        let authors = aggregateCounts(pads: questions, field: "author_name")
+        #expect(authors["Ada"] == 2)
+        #expect(authors["Bo"] == 1)
+        #expect(authors["unknown"] == 1)
+
+        let months = aggregateCounts(pads: questions, field: "month")
+        #expect(months["2026-01"] == 2)
+        #expect(months["2026-02"] == 1)
+        #expect(months["unknown"] == 1)
+    }
+
+    @Test
+    func `compactQuestions keeps only the compact keys`() {
+        let rich: [[String: Any]] = [[
+            "id": 7, "title": "T", "owner_email": "a@x.com", "author_name": "Ada",
+            "language": "python", "pad_type": "sandbox", "is_draft": false,
+            "created_at": "2026-01-01", "solution": "secret", "contents": "blob"
+        ]]
+        let compact = compactQuestions(rich)
+        #expect(compact.count == 1)
+        #expect(Set(compact[0].keys) == Set(compactQuestionKeys))
+        #expect(compact[0]["solution"] == nil)
+        #expect(compact[0]["contents"] == nil)
+    }
+}
+
 // MARK: - Pad code assembly
 
 @Suite("Pad code")
