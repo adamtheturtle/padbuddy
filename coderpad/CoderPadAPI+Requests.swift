@@ -62,7 +62,7 @@ struct QuestionCreate: Encodable {
         case title, language
     }
 
-    func encode(to encoder: any Encoder) throws {
+    nonisolated func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encodeIfPresent(description, forKey: .description)
         try container.encodeIfPresent(solution, forKey: .solution)
@@ -102,7 +102,7 @@ struct QuestionUpdate: Encodable {
         case title, language
     }
 
-    func encode(to encoder: any Encoder) throws {
+    nonisolated func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encodeIfPresent(description, forKey: .description)
