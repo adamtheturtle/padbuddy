@@ -205,6 +205,14 @@ struct CommandPaletteView: View {
                                 .id(result.id)
                                 .contentShape(Rectangle())
                                 .onTapGesture { activate(result) }
+                                // Hovering a row makes it the selection, so the mouse and
+                                // keyboard share one highlight (#538) and a click always
+                                // activates the row under the cursor. The hovered row is by
+                                // definition visible, so the selection's scroll handler can't
+                                // lurch the list.
+                                .onHover { hovering in
+                                    if hovering { selectedIndex = index }
+                                }
                                 // One combined element per row so VoiceOver reads it as a
                                 // single button, and the selected one announces (and exposes
                                 // for tests, #532) the `.isSelected` trait.
