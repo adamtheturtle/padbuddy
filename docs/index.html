@@ -6,7 +6,7 @@
   <title>PadBuddy, a native macOS app for CoderPad</title>
   <meta name="description"
         content="PadBuddy is a fast, native macOS app for your CoderPad pads and questions, with a built-in MCP server so AI assistants can answer questions about your interviews. Unofficial, third-party client." />
-  <link rel="canonical" href="https://adamtheturtle.github.io/coderpad-macos/" />
+  <link rel="canonical" href="https://padbuddy.app/" />
 
   <!-- Icons -->
   <link rel="icon" href="assets/app-icon.svg" type="image/svg+xml" />
@@ -23,8 +23,8 @@
   <meta property="og:title" content="PadBuddy, a native macOS app for CoderPad" />
   <meta property="og:description"
         content="A fast, native macOS app for your CoderPad pads and questions, with a built-in MCP server for your AI assistant." />
-  <meta property="og:url" content="https://adamtheturtle.github.io/coderpad-macos/" />
-  <meta property="og:image" content="https://adamtheturtle.github.io/coderpad-macos/assets/og-image.png" />
+  <meta property="og:url" content="https://padbuddy.app/" />
+  <meta property="og:image" content="https://padbuddy.app/assets/og-image.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:image:alt" content="PadBuddy app icon and name, with the tagline: a native macOS app for CoderPad that talks to your AI assistant." />
@@ -34,19 +34,19 @@
   <meta name="twitter:title" content="PadBuddy, a native macOS app for CoderPad" />
   <meta name="twitter:description"
         content="A fast, native macOS app for your CoderPad pads and questions, with a built-in MCP server for your AI assistant." />
-  <meta name="twitter:image" content="https://adamtheturtle.github.io/coderpad-macos/assets/og-image.png" />
+  <meta name="twitter:image" content="https://padbuddy.app/assets/og-image.png" />
 
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header class="hero">
     <div class="wrap">
-      <img class="hero-icon" src="assets/app-icon.svg" width="120" height="120"
+      <img class="hero-icon reveal" src="assets/app-icon.svg" width="120" height="120"
            alt="PadBuddy app icon: a white code glyph on an indigo tile." />
-      <h1>PadBuddy</h1>
-      <p class="tagline">Your CoderPad pads and questions in a fast, native Mac app.</p>
-      <p class="cta">
-        <a class="button" href="https://github.com/adamtheturtle/coderpad-macos-releases/releases/latest/download/PadBuddy.dmg">
+      <h1 class="reveal" data-delay="1">PadBuddy</h1>
+      <p class="tagline reveal" data-delay="2">Your CoderPad pads and questions in a fast, native Mac app.</p>
+      <p class="cta reveal" data-delay="3">
+        <a class="button" href="https://github.com/adamtheturtle/coderpad-macos-releases/releases/latest">
           Download for macOS
           <span class="button-sub">macOS 15+</span>
         </a>
@@ -67,38 +67,114 @@
           </span>
         </span>
       </p>
-      <figure class="hero-shot">
-        <img src="assets/screenshot-pads@2x.png"
-             srcset="assets/screenshot-pads.png 1100w, assets/screenshot-pads@2x.png 2200w"
-             sizes="(min-width: 1106px) 1040px, 94vw"
-             width="1100" height="707" loading="eager" decoding="async"
-             alt="The PadBuddy window: a sidebar of sections, a filterable list of interview
-                  pads, and a detail pane with participants and syntax-highlighted code." />
-      </figure>
     </div>
+    <figure class="hero-shot reveal" data-delay="3">
+      <img src="assets/screenshot-pads@2x.png"
+           srcset="assets/screenshot-pads.png 1100w, assets/screenshot-pads@2x.png 2200w"
+           sizes="(min-width: 1106px) 1040px, 94vw"
+           width="1100" height="707" loading="eager" decoding="async"
+           alt="The PadBuddy window: a sidebar of sections, a filterable list of interview
+                pads, and a detail pane with participants and syntax-highlighted code." />
+    </figure>
   </header>
 
   <main>
-    <div class="wrap">
-      <section>
-        <ul class="features features-2col">
-          <li><strong>Menu bar, widget, Control Center, Spotlight.</strong></li>
-          <li><strong>Notifications.</strong> Dock badge and alerts when a pad changes.</li>
-          <li><strong>Built-in MCP server.</strong> Ask Claude, Codex, or any MCP client about your pads.</li>
-          <li><strong>Private by design.</strong></li>
+    <!-- Bento feature grid: tinted accent cards, each revealing on scroll. -->
+    <section class="bento wrap-wide">
+      <article class="bento__card bento__card--blue reveal">
+        <h2>Menu bar</h2>
+        <p>Live in the menu bar instead of a window. Start a new pad or jump to a recent one without
+          breaking your flow.</p>
+        <img class="bento__shot" src="assets/surface-menubar.png" loading="lazy" decoding="async"
+             alt="The PadBuddy menu bar item open, showing recent pads and a New Pad action." />
+      </article>
+
+      <article class="bento__card bento__card--violet reveal" data-delay="1">
+        <h2>Built-in MCP server</h2>
+        <p>Ask Claude, Codex, or any MCP client about your pads, questions, and quota. The app
+          <em>is</em> the server, read-only and keyed from your Keychain.</p>
+        <img class="bento__shot" src="assets/surface-mcp.png" loading="lazy" decoding="async"
+             alt="PadBuddy's MCP server answering an AI assistant about a pad." />
+      </article>
+
+      <article class="bento__card bento__card--green reveal" data-delay="2">
+        <h2>Native everywhere</h2>
+        <p>A pad is always a click away. Hover any surface to see it.</p>
+        <ul class="chips">
+          <li tabindex="0">Menu bar
+            <img class="chip-shot" src="assets/surface-menubar.png" alt="PadBuddy in the macOS menu bar" loading="lazy" />
+          </li>
+          <li tabindex="0">Widget
+            <img class="chip-shot" src="assets/surface-widget.png" alt="The PadBuddy recent-pads widget" loading="lazy" />
+          </li>
+          <li tabindex="0">Control Center
+            <img class="chip-shot" src="assets/surface-control-center.png" alt="PadBuddy in Control Center" loading="lazy" />
+          </li>
+          <li tabindex="0">Spotlight
+            <img class="chip-shot" src="assets/surface-spotlight.png" alt="A PadBuddy pad in Spotlight" loading="lazy" />
+          </li>
+          <li tabindex="0">Shortcuts
+            <img class="chip-shot" src="assets/surface-shortcuts.png" alt="A PadBuddy action in the Shortcuts app" loading="lazy" />
+          </li>
+          <li tabindex="0">Notifications
+            <img class="chip-shot" src="assets/surface-notifications.png" alt="A PadBuddy notification" loading="lazy" />
+          </li>
+          <li tabindex="0">MCP server
+            <img class="chip-shot" src="assets/surface-mcp.png" alt="PadBuddy's MCP server answering an AI assistant" loading="lazy" />
+          </li>
         </ul>
-      </section>
-    </div>
+      </article>
+
+      <article class="bento__card bento__card--orange reveal" data-delay="3">
+        <h2>Private by design</h2>
+        <p>Your API key lives only in the macOS Keychain and talks only to CoderPad's own API. No
+          analytics, no ads, no server of ours.</p>
+        <p><a href="privacy-policy.html">Privacy policy &rarr;</a></p>
+      </article>
+    </section>
+
+    <section class="closer wrap reveal">
+      <h2>Your pads, in a native Mac app.</h2>
+      <p class="cta cta--center">
+        <a class="button" href="https://github.com/adamtheturtle/coderpad-macos-releases/releases/latest">
+          Download for macOS
+          <span class="button-sub">macOS 15+</span>
+        </a>
+      </p>
+    </section>
   </main>
 
   <footer class="wrap">
     <p>
-      <a href="https://github.com/adamtheturtle/coderpad-macos-releases/releases/latest/download/PadBuddy.dmg">Download</a> ·
+      <a href="https://github.com/adamtheturtle/coderpad-macos-releases/releases/latest">Download</a> ·
       <a href="privacy-policy.html">Privacy</a> ·
       <a href="mailto:hello@adamdangoor.com">Support</a>
     </p>
     <p class="small">An unofficial, third-party client. &ldquo;CoderPad&rdquo; is a trademark of CoderPad, Inc.
       PadBuddy is not affiliated with, endorsed by, or sponsored by CoderPad, Inc.</p>
   </footer>
+
+  <!-- Scroll-reveal: fade/slide elements in as they enter the viewport.
+       Falls back to fully visible when reduced motion is requested or there's
+       no IntersectionObserver, so nothing is ever hidden without animation. -->
+  <script>
+    (function () {
+      var els = document.querySelectorAll('.reveal');
+      var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (reduce || !('IntersectionObserver' in window)) {
+        els.forEach(function (el) { el.classList.add('is-visible'); });
+        return;
+      }
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            io.unobserve(entry.target);
+          }
+        });
+      }, { rootMargin: '0px 0px -10% 0px', threshold: 0.12 });
+      els.forEach(function (el) { io.observe(el); });
+    })();
+  </script>
 </body>
 </html>

@@ -22,4 +22,12 @@ user_agent = "Mozilla/5.0 (compatible; lychee link checker)"
 # the next release is cut (the workflow attaches it alongside the versioned DMG).
 # Until then the "latest/download/PadBuddy.dmg" URL 404s, so exclude it from the
 # link check rather than failing the build on an asset that ships with the release.
-exclude = ["releases/latest/download/PadBuddy\\.dmg"]
+#
+# The site's own canonical/OG URLs point at the custom domain padbuddy.app
+# (#510). Exclude it from the link check until DNS + the Pages TLS cert have
+# fully propagated, otherwise the build fails fetching a domain that isn't live
+# yet. Remove this line once https://padbuddy.app/ resolves.
+exclude = [
+    "releases/latest/download/PadBuddy\\.dmg",
+    "^https?://(www\\.)?padbuddy\\.app",
+]
