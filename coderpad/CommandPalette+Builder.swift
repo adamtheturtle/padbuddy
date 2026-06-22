@@ -25,10 +25,10 @@ enum CommandPaletteBuilder {
         return results
     }
 
-    /// "New Pad from <Question>" entries for the account's favourite questions - the
-    /// one-click pad the menu-bar extra offers, surfaced in the palette too (#534).
-    /// Limited to favourites so the empty-query list stays short; any question can still
-    /// be opened (then "New Pad") from its own row.
+    /// "New Pad from <Question>" entries - the one-click pad the menu-bar extra offers,
+    /// surfaced in the palette too (#534). Every cached question gets one, so a pad can be
+    /// started from any question, not just favourites (#537); the non-favourite ones are
+    /// marked `onlyWhenSearching` so the empty-query list stays short and favourites-first.
     private static func newPadFromQuestions() -> [PaletteResult] {
         let store = AccountsStore.shared
         let accounts = store.isMergedView ? store.mergeableAccounts : [store.currentAccount].compactMap(\.self)
@@ -37,9 +37,8 @@ enum CommandPaletteBuilder {
         var results: [PaletteResult] = []
         for account in accounts {
             let favoriteIDs = Set(FavoriteQuestionsStore.shared.favorites(account: account.id))
-            guard !favoriteIDs.isEmpty else { continue }
 
-            for question in QuestionsCacheStore.shared.get(account.id) where favoriteIDs.contains(question.id) {
+            for question in QuestionsCacheStore.shared.get(account.id) {
                 results.append(PaletteResult(
                     id: "new-pad-from-question.\(account.id.uuidString).\(question.id)",
                     kind: .command,
@@ -47,7 +46,8 @@ enum CommandPaletteBuilder {
                     subtitle: subtitle(account: showAccount ? account.name : nil,
                                        detail: "Create a pad from this question"),
                     systemImage: "plus.rectangle.on.folder",
-                    searchText: "New Pad from question \(question.displayTitle)"
+                    searchText: "New Pad from question \(question.displayTitle)",
+                    onlyWhenSearching: !favoriteIDs.contains(question.id)
                 ) { InterviewTemplateRunner.createAndOpen(question: question, account: account) })
             }
         }

@@ -36,6 +36,10 @@ struct PaletteResult: Identifiable {
     /// The text the query is scored against (usually the title, sometimes with extra
     /// keywords folded in so a command like "Reload" can also be found by "refresh").
     let searchText: String
+    /// When `true` the row is hidden until the user types a query, so a large category
+    /// (e.g. "New Pad from <Question>" for every cached question) doesn't flood the
+    /// empty-query list yet is still reachable by searching (#537).
+    var onlyWhenSearching = false
     let perform: @MainActor () -> Void
 }
 
@@ -107,7 +111,9 @@ struct CommandPaletteView: View {
     private let resultLimit = 40
 
     private var results: [PaletteResult] {
+        let searching = !query.trimmingCharacters(in: .whitespaces).isEmpty
         let scored = candidates.compactMap { result -> (PaletteResult, Int)? in
+            guard searching || !result.onlyWhenSearching else { return nil }
             guard let score = paletteFuzzyScore(query, result.searchText) else { return nil }
 
             return (result, score)
