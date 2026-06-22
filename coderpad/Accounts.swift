@@ -11,25 +11,6 @@ import SwiftUI
 
 nonisolated let persistenceLogger = Logger(subsystem: "com.coderpad.app", category: "persistence")
 
-/// Serializes detached persistence writes in submission order. Without this, two
-/// `Task.detached` writes issued in quick succession can finish out of order and
-/// leave a stale snapshot (or an orphaned file) on disk. Each enqueued unit awaits
-/// the previous one, so writes apply in the order they were submitted regardless of
-/// the caller's isolation.
-final class SerialWriteQueue: Sendable {
-    private let tail = OSAllocatedUnfairLock<Task<Void, Never>?>(initialState: nil)
-
-    func enqueue(priority: TaskPriority = .utility, _ work: @Sendable @escaping () -> Void) {
-        tail.withLock { current in
-            let previous = current
-            current = Task.detached(priority: priority) {
-                await previous?.value
-                work()
-            }
-        }
-    }
-}
-
 @Observable
 final class AccountsStore {
     static let shared = AccountsStore()
@@ -271,16 +252,5 @@ final class AccountsStore {
         guard !Self.isUITesting else { return }
 
         UserDefaults.standard.set(showAllAccounts, forKey: Self.showAllAccountsDefaultsKey)
-    }
-}
-
-/// Wraps a decodable element so a per-element decode failure yields `nil` instead of
-/// aborting the whole array — letting `loadAccounts` drop an individual invalid account
-/// while keeping the rest.
-struct LenientElement<Wrapped: Decodable>: Decodable {
-    let value: Wrapped?
-
-    init(from decoder: any Decoder) {
-        value = try? decoder.singleValueContainer().decode(Wrapped.self)
     }
 }

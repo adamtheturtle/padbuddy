@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		668E402A2FE2F7DC00AA8228 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 668E40292FE2F7DC00AA8228 /* Sparkle */; };
+		6693DA3D2FE945BF005CA3CE /* BuddyAppKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6693DA3C2FE945BF005CA3CE /* BuddyAppKit */; };
 		66E3CC582FDA31CC00FE87A9 /* Highlightr in Frameworks */ = {isa = PBXBuildFile; productRef = 66E3CC572FDA31CC00FE87A9 /* Highlightr */; };
 		66E3CDBE2FDD6D1C00FE87A9 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 66E3CD092FDD5BA300FE87A9 /* WidgetKit.framework */; };
 		66E3CDBF2FDD6D1C00FE87A9 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 66E3CD0B2FDD5BA300FE87A9 /* SwiftUI.framework */; };
@@ -156,6 +157,7 @@
 				66F543E82FE5885B000214AA /* CoderPadDesignSystem in Frameworks */,
 				66F0576B2FE0BDB5000FA68C /* PaginatedRESTClient in Frameworks */,
 				66E3CC582FDA31CC00FE87A9 /* Highlightr in Frameworks */,
+				6693DA3D2FE945BF005CA3CE /* BuddyAppKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -259,6 +261,7 @@
 				668E40292FE2F7DC00AA8228 /* Sparkle */,
 				66F543E42FE57AB9000214AA /* Flow */,
 				66F543E72FE5885B000214AA /* CoderPadDesignSystem */,
+				6693DA3C2FE945BF005CA3CE /* BuddyAppKit */,
 			);
 			productName = coderpad;
 			productReference = 66C8C50B2FA73AB0009B720C /* PadBuddy.app */;
@@ -405,6 +408,7 @@
 				668E40282FE2F7DC00AA8228 /* XCRemoteSwiftPackageReference "Sparkle" */,
 				66F543E32FE57AB9000214AA /* XCRemoteSwiftPackageReference "SwiftUI-Flow" */,
 				66F543E62FE5885B000214AA /* XCLocalSwiftPackageReference "CoderPadDesignSystem" */,
+				6693DA3B2FE945BF005CA3CE /* XCLocalSwiftPackageReference "BuddyAppKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 66C8C50C2FA73AB0009B720C /* Products */;
@@ -1066,6 +1070,10 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
+		6693DA3B2FE945BF005CA3CE /* XCLocalSwiftPackageReference "BuddyAppKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = BuddyAppKit;
+		};
 		66F057692FE0BDB5000FA68C /* XCLocalSwiftPackageReference "PaginatedRESTClient" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = PaginatedRESTClient;
@@ -1140,6 +1148,10 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 668E40282FE2F7DC00AA8228 /* XCRemoteSwiftPackageReference "Sparkle" */;
 			productName = Sparkle;
+		};
+		6693DA3C2FE945BF005CA3CE /* BuddyAppKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = BuddyAppKit;
 		};
 		66E3CC572FDA31CC00FE87A9 /* Highlightr */ = {
 			isa = XCSwiftPackageProductDependency;
