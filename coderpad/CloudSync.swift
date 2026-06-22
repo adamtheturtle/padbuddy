@@ -215,6 +215,27 @@ final class CloudSyncStore {
         return store.data(forKey: key)
     }
 
+    /// Mirrors a plist-type preference value (`String`/`Int`/`Bool`/`Data`/…) to iCloud,
+    /// or clears it when `value` is nil. Used by ``PreferenceCloudSync`` for the plain
+    /// app-global settings the Settings window writes (#536). No-op when unavailable.
+    func mirrorObject(_ value: Any?, forKey key: String) {
+        guard isAvailable else { return }
+
+        if let value {
+            store.set(value, forKey: key)
+        } else {
+            store.removeObject(forKey: key)
+        }
+    }
+
+    /// The cloud copy of a plist-type preference value, or `nil` when absent or iCloud
+    /// is unavailable.
+    func object(forKey key: String) -> Any? {
+        guard isAvailable else { return nil }
+
+        return store.object(forKey: key)
+    }
+
     private func broadcast(changedKeys: [String]) {
         for key in changedKeys {
             NotificationCenter.default.post(

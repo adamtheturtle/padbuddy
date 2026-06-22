@@ -171,4 +171,28 @@ struct CloudSyncTests {
         #expect(merged[local]?["pads"] == [Item(id: 2, label: "local"), Item(id: 9, label: "cloud-only")])
         #expect(merged[local]?["questions"] == [Item(id: 1, label: "q-cloud")])
     }
+
+    // MARK: app-global preference sync
+
+    @Test
+    func `preference value comparison drives convergence and treats absent as equal`() {
+        // Equal values stop a push/pull, which is what makes the sync converge.
+        #expect(PreferenceCloudSync.plistValuesEqual("dark", "dark"))
+        #expect(PreferenceCloudSync.plistValuesEqual(30, 30))
+        #expect(PreferenceCloudSync.plistValuesEqual(true, true))
+        #expect(PreferenceCloudSync.plistValuesEqual(nil, nil))
+        // Differences trigger a sync.
+        #expect(!PreferenceCloudSync.plistValuesEqual("dark", "light"))
+        #expect(!PreferenceCloudSync.plistValuesEqual(30, 60))
+        #expect(!PreferenceCloudSync.plistValuesEqual("dark", nil))
+        #expect(!PreferenceCloudSync.plistValuesEqual(nil, "dark"))
+    }
+
+    @Test
+    func `device-local and sensitive preferences are excluded from sync`() {
+        // The biometric reveal gate is a per-device security choice and must never sync;
+        // a representative continuity preference must.
+        #expect(!PreferenceCloudSync.syncedKeys.contains("general.requireBiometricsToRevealKey"))
+        #expect(PreferenceCloudSync.syncedKeys.contains("general.appearance"))
+    }
 }
