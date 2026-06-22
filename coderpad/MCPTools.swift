@@ -19,113 +19,19 @@ nonisolated enum MCPTools {
         let isError: Bool
     }
 
-    /// Tool descriptors for `tools/list`, as plain JSON objects. A fresh array is built
-    /// per call (no shared state). The write tools (#502) are appended only when the user
-    /// has opted in, so an assistant never even sees them otherwise.
+    /// Tool descriptors for `tools/list`, built from the shared catalog in CoderPadToolCore
+    /// (#521) so each tool is defined once and appears identically here and in the standalone
+    /// CLI. Screen tools appear only when configured; write tools (#502) only when opted in.
     static func all(allowWrites: Bool, screenEnabled: Bool) -> [[String: Any]] {
-        readTools
-            + (screenEnabled ? screenTools : [])
-            + (allowWrites ? writeTools : [])
+        coderPadToolDescriptors(screenEnabled: screenEnabled, writesEnabled: allowWrites)
     }
 
-    /// The read-only tools, always available.
-    private static var readTools: [[String: Any]] {
-        [
-            tool("list_accounts",
-                 "List the CoderPad accounts this server can act as (name, id, user email, base URL, "
-                     + "and which is the default). No API keys are returned. Use the name or id with the "
-                     + "`account` argument on any other tool to target a specific account (#519)."),
-            tool("whoami",
-                 "Report which CoderPad account this server is acting as: the account's display name, "
-                     + "the user email it resolves to, the organization name, and the server base URL. "
-                     + "Never returns the API key. Use this to confirm identity before answering "
-                     + "organization-wide questions.",
-                 properties: [account: accountSchema]),
-            tool("list_pads", "List the account's pads (most recent first). Optional page and sort.",
-                 properties: ["page": intSchema("1-based page number."),
-                              "sort": stringSchema("Sort order, e.g. \"created_at\" or \"-created_at\"."),
-                              account: accountSchema]),
-            tool("get_pad", "Get a single pad by its slug/id.",
-                 properties: ["pad": stringSchema("The pad's slug or id."), account: accountSchema],
-                 required: ["pad"]),
-            tool("get_pad_code",
-                 "Return just the code in a pad: each file with its filename, language, and "
-                     + "contents (handles both legacy single-file pads and multi-file environments). "
-                     + "Use this to read a candidate's code without the whole pad object.",
-                 properties: ["pad": stringSchema("The pad's slug or id."),
-                              "max_file_chars": intSchema("Optional. Truncate each file to this many characters."),
-                              account: accountSchema],
-                 required: ["pad"]),
-            tool("count_pads",
-                 "Count pads, optionally filtered, WITHOUT returning the records — one cheap "
-                     + "call instead of paging every verbose record through the model. Served "
-                     + "from PadBuddy's local cache when it's fresh (and offline), else paged "
-                     + "live; the response's `source` field says which.",
-                 properties: filterProperties.merging([account: accountSchema]) { _, new in new }),
-            tool("aggregate_pads",
-                 "Group pads by a field and return only the counts (not the records) — e.g. how "
-                     + "many pads each owner has, over a large org, without blowing context. Uses "
-                     + "PadBuddy's local cache when fresh (see the `source` field).",
-                 properties: filterProperties.merging([
-                     "group_by": stringSchema("Field to group by: owner, language, state, or month."),
-                     account: accountSchema
-                 ]) { _, new in new },
-                 required: ["group_by"]),
-            tool("list_pads_compact",
-                 "Like list_pads but returns only id, title, owner_email, state, language, and "
-                     + "created_at per pad, so far more rows fit per response.",
-                 properties: ["page": intSchema("1-based page number."),
-                              "sort": stringSchema("Sort order."),
-                              account: accountSchema]),
-            tool("list_questions", "List the account's question bank. Optional page and sort.",
-                 properties: ["page": intSchema("1-based page number."),
-                              "sort": stringSchema("Sort order."),
-                              account: accountSchema]),
-            tool("get_question", "Get a single question by its numeric id.",
-                 properties: ["question": intSchema("The question's numeric id."), account: accountSchema],
-                 required: ["question"]),
-            tool("get_quota", "Get the organization's pad usage quota.",
-                 properties: [account: accountSchema]),
-            tool("get_organization", "Get the organization's teams and members.",
-                 properties: [account: accountSchema])
-        ] + questionReadTools
-    }
-
-    /// The names of the write tools (#502), gated on the opt-in. Kept as one set so the
-    /// `run` gate and the `tools/list` filter can't drift apart.
-    static let writeToolNames: Set<String> = [
-        "create_pad", "update_pad", "create_question", "update_question"
-    ]
+    /// The names of the write tools (#502), gated on the opt-in. From the shared catalog so
+    /// the `run` gate and the `tools/list` filter can't drift apart.
+    static let writeToolNames = coderPadWriteToolNames
 
     /// The name of the optional account-selector argument shared by the per-account tools.
-    static let account = "account"
-
-    /// Schema for the `account` argument: which configured account to target.
-    static var accountSchema: [String: Any] {
-        stringSchema(
-            "Optional. Which account to use, by its name or id (see list_accounts). "
-                + "Defaults to the account selected in the app."
-        )
-    }
-
-    /// The owner/state/language filters shared by count_pads and aggregate_pads. The list
-    /// API has no server-side filters, so these are applied in-process while paging.
-    private static var filterProperties: [String: [String: Any]] {
-        [
-            "owner": stringSchema("Only pads whose owner_email matches this, case-insensitively."),
-            "state": stringSchema("Only pads in this state (e.g. \"active\", \"ended\")."),
-            "language": stringSchema("Only pads in this language (e.g. \"python\")."),
-            "created_after": stringSchema(dateBoundDescription(bound: "on or after")),
-            "created_before": stringSchema(dateBoundDescription(bound: "on or before"))
-        ]
-    }
-
-    /// Description for a created_at date-range bound argument, shared by the pad and
-    /// question filter schemas.
-    static func dateBoundDescription(bound: String) -> String {
-        "Only records created \(bound) this date. Accepts a month (\"2026-03\"), a date "
-            + "(\"2026-03-01\"), or a full ISO8601 timestamp; inclusive at the given granularity."
-    }
+    static let account = mcpAccountArgument
 
     /// Dispatches a tool call to its CoderPad endpoint, against the account selected by the
     /// optional `account` argument (defaulting to the app's current account, #519).
@@ -318,27 +224,5 @@ nonisolated enum MCPTools {
             if text == "false" { return false }
         }
         return nil
-    }
-
-    // MARK: - Tool / schema builders
-
-    static func tool(_ name: String,
-                     _ description: String,
-                     properties: [String: [String: Any]] = [:],
-                     required: [String] = [],
-                     annotations: [String: Any] = [:]) -> [String: Any] {
-        var schema: [String: Any] = ["type": "object", "properties": properties]
-        if !required.isEmpty { schema["required"] = required }
-        var descriptor: [String: Any] = ["name": name, "description": description, "inputSchema": schema]
-        if !annotations.isEmpty { descriptor["annotations"] = annotations }
-        return descriptor
-    }
-
-    static func intSchema(_ description: String) -> [String: Any] {
-        ["type": "integer", "description": description]
-    }
-
-    static func stringSchema(_ description: String) -> [String: Any] {
-        ["type": "string", "description": description]
     }
 }

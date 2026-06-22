@@ -18,70 +18,6 @@ import BuddyMCP
 import Foundation
 
 nonisolated extension MCPTools {
-    /// Descriptors for the write tools, appended to `tools/list` only when writing is on.
-    static var writeTools: [[String: Any]] {
-        [
-            tool("create_pad",
-                 "Create a new pad (optionally seeded from a question), mirroring the app's "
-                     + "New Pad. Returns the new pad, including its slug/id and URL.",
-                 properties: [
-                     "title": stringSchema("Optional pad title."),
-                     "language": stringSchema("Optional language, e.g. \"python3\"."),
-                     "question_id": intSchema("Optional question id to seed the pad from."),
-                     "owner_email": stringSchema("Optional owner email; defaults to the account's user."),
-                     "notes": stringSchema("Optional private interviewer notes."),
-                     account: accountSchema
-                 ],
-                 annotations: writeAnnotations(title: "Create pad", destructive: false)),
-            tool("update_pad",
-                 "Edit a pad's title, notes, owner, or language — the fields the app edits "
-                     + "inline. Does not change or reset the pad's code, and cannot delete it.",
-                 properties: [
-                     "pad": stringSchema("The pad's slug or id."),
-                     "title": stringSchema("New title."),
-                     "notes": stringSchema("New private interviewer notes."),
-                     "owner_email": stringSchema("New owner email."),
-                     "language": stringSchema("New language, e.g. \"python3\"."),
-                     account: accountSchema
-                 ],
-                 required: ["pad"],
-                 annotations: writeAnnotations(title: "Update pad", destructive: true)),
-            tool("create_question",
-                 "Create a question in the account's question bank. Returns the new question.",
-                 properties: [
-                     "title": stringSchema("The question title (required)."),
-                     "language": stringSchema("Optional language, e.g. \"python3\"."),
-                     "description": stringSchema("Optional Markdown prompt shown to the interviewer."),
-                     "solution": stringSchema("Optional reference solution."),
-                     "contents": stringSchema("Optional starter code inserted into the session."),
-                     account: accountSchema
-                 ],
-                 required: ["title"],
-                 annotations: writeAnnotations(title: "Create question", destructive: false)),
-            tool("update_question",
-                 "Edit an existing question's title, language, description, solution, or "
-                     + "starter code. Cannot delete the question.",
-                 properties: [
-                     "question": intSchema("The question's numeric id."),
-                     "title": stringSchema("New title."),
-                     "language": stringSchema("New language, e.g. \"python3\"."),
-                     "description": stringSchema("New Markdown prompt."),
-                     "solution": stringSchema("New reference solution."),
-                     "contents": stringSchema("New starter code."),
-                     account: accountSchema
-                 ],
-                 required: ["question"],
-                 annotations: writeAnnotations(title: "Update question", destructive: true))
-        ]
-    }
-
-    /// Standard MCP annotations for a write tool: not read-only, not open-world, and
-    /// `destructiveHint` set for edits that overwrite existing content so clients can warn
-    /// more strongly than for a plain create.
-    private static func writeAnnotations(title: String, destructive: Bool) -> [String: Any] {
-        ["title": title, "readOnlyHint": false, "destructiveHint": destructive, "openWorldHint": false]
-    }
-
     /// Routes a write tool to its CoderPad endpoint. Reached only after `run` has confirmed
     /// the opt-in and resolved the account, so the gating lives in one place.
     static func dispatchWrite(
@@ -115,8 +51,12 @@ nonisolated extension MCPTools {
         body.title = string(arguments, "title")
         body.language = string(arguments, "language")
         body.questionID = int(arguments, "question_id")
+        // `contents` and `team_id` are part of the shared catalog (#521); the API treats
+        // contents and question_id as mutually exclusive seeds.
+        body.contents = string(arguments, "contents")
         body.ownerEmail = string(arguments, "owner_email")
         body.notes = string(arguments, "notes")
+        body.teamID = string(arguments, "team_id")
         return await send("POST", "/api/pads/", key: key, base: base, body: body)
     }
 

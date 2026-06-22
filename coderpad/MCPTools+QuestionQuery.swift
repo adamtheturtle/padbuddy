@@ -14,51 +14,6 @@ import BuddyMCP
 import Foundation
 
 nonisolated extension MCPTools {
-    /// The question count/aggregate/compact tool descriptors (#500), appended to the read
-    /// tools by `MCPTools.readTools`. Kept here (not in the main type body) so MCPTools
-    /// stays within its type-body length budget.
-    static var questionReadTools: [[String: Any]] {
-        [
-            tool("count_questions",
-                 "Count questions in the bank, optionally filtered, WITHOUT returning the "
-                     + "records — one cheap call instead of paging every verbose record. Served "
-                     + "from PadBuddy's local cache when it's fresh (and offline), else paged "
-                     + "live; the response's `source` field says which.",
-                 properties: questionFilterProperties.merging([account: accountSchema]) { _, new in new }),
-            tool("aggregate_questions",
-                 "Group questions by a field and return only the counts (not the records) — "
-                     + "e.g. how many questions per language or author, over a large bank, "
-                     + "without blowing context. Uses PadBuddy's local cache when fresh (see "
-                     + "the `source` field).",
-                 properties: questionFilterProperties.merging([
-                     "group_by": stringSchema("Field to group by: owner, author, language, type, or month."),
-                     account: accountSchema
-                 ]) { _, new in new },
-                 required: ["group_by"]),
-            tool("list_questions_compact",
-                 "Like list_questions but returns only id, title, owner_email, author_name, "
-                     + "language, pad_type, is_draft, and created_at per question, so far more "
-                     + "rows fit per response.",
-                 properties: ["page": intSchema("1-based page number."),
-                              "sort": stringSchema("Sort order."),
-                              account: accountSchema])
-        ]
-    }
-
-    /// The owner/author/language/type filters shared by count_questions and
-    /// aggregate_questions. The bank API has no server-side filters, so these are applied
-    /// in-process while paging.
-    private static var questionFilterProperties: [String: [String: Any]] {
-        [
-            "owner": stringSchema("Only questions whose owner_email matches this, case-insensitively."),
-            "author": stringSchema("Only questions whose author_name matches this, case-insensitively."),
-            "language": stringSchema("Only questions in this language (e.g. \"python\")."),
-            "type": stringSchema("Only questions of this pad_type (e.g. \"sandbox\", \"take_home\")."),
-            "created_after": stringSchema(dateBoundDescription(bound: "on or after")),
-            "created_before": stringSchema(dateBoundDescription(bound: "on or before"))
-        ]
-    }
-
     /// Routes a question count/aggregate/compact tool, falling through to `listOrSummary`
     /// for the plain GETs. Takes the whole `credentials` because the count/aggregate tools
     /// also read the account's on-disk cache (#520), keyed by account id.

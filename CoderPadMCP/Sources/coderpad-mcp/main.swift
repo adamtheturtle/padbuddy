@@ -322,14 +322,14 @@ private func dispatch(name: String, arguments: [String: Value]?, account: MCPAcc
         return await toolResult(apiGet("/api/pads/", account: account, query: pagingQuery(arguments)))
 
     case "get_pad":
-        guard let id = stringArgument(arguments, "id"), !id.isEmpty else { return missingArgument("id") }
+        guard let pad = stringArgument(arguments, "pad"), !pad.isEmpty else { return missingArgument("pad") }
 
-        return await toolResult(apiGet("/api/pads/\(id)", account: account))
+        return await toolResult(apiGet("/api/pads/\(pad)", account: account))
 
     case "get_pad_code":
-        guard let id = stringArgument(arguments, "id"), !id.isEmpty else { return missingArgument("id") }
+        guard let pad = stringArgument(arguments, "pad"), !pad.isEmpty else { return missingArgument("pad") }
 
-        return await getPadCode(id: id, maxFileChars: intArgument(arguments, "max_file_chars"), account: account)
+        return await getPadCode(id: pad, maxFileChars: intArgument(arguments, "max_file_chars"), account: account)
 
     case "count_pads":
         return await countPads(arguments: arguments, account: account)
@@ -348,9 +348,9 @@ private func dispatch(name: String, arguments: [String: Value]?, account: MCPAcc
         return await toolResult(apiGet("/api/questions/", account: account, query: pagingQuery(arguments)))
 
     case "get_question":
-        guard let id = intArgument(arguments, "id") else { return missingArgument("id (integer)") }
+        guard let question = intArgument(arguments, "question") else { return missingArgument("question (integer)") }
 
-        return await toolResult(apiGet("/api/questions/\(id)", account: account))
+        return await toolResult(apiGet("/api/questions/\(question)", account: account))
 
     case "count_questions":
         return await countQuestions(arguments: arguments, account: account)
@@ -389,17 +389,17 @@ private func dispatchScreenOrWrite(
         return await toolResult(screenGet("/tests", account: account, query: screenTestQuery(arguments)))
 
     case "screen_get_test":
-        guard let id = intArgument(arguments, "id") else { return missingArgument("id (integer)") }
+        guard let test = intArgument(arguments, "test") else { return missingArgument("test (integer)") }
 
-        return await toolResult(screenGet("/tests/\(id)", account: account))
+        return await toolResult(screenGet("/tests/\(test)", account: account))
 
     case "create_pad":
         return await createPad(arguments: arguments, account: account)
 
     case "update_pad":
-        guard let id = stringArgument(arguments, "id"), !id.isEmpty else { return missingArgument("id") }
+        guard let pad = stringArgument(arguments, "pad"), !pad.isEmpty else { return missingArgument("pad") }
 
-        return await updatePad(id: id, arguments: arguments, account: account)
+        return await updatePad(id: pad, arguments: arguments, account: account)
 
     case "create_question":
         guard let title = optionalString(arguments, "title") else { return missingArgument("title") }
@@ -407,9 +407,9 @@ private func dispatchScreenOrWrite(
         return await createQuestion(title: title, arguments: arguments, account: account)
 
     case "update_question":
-        guard let id = intArgument(arguments, "id") else { return missingArgument("id (integer)") }
+        guard let question = intArgument(arguments, "question") else { return missingArgument("question (integer)") }
 
-        return await updateQuestion(id: id, arguments: arguments, account: account)
+        return await updateQuestion(id: question, arguments: arguments, account: account)
 
     default:
         return CallTool.Result(

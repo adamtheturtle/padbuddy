@@ -14,35 +14,10 @@ import BuddyMCP
 import Foundation
 
 nonisolated extension MCPTools {
-    /// The Screen tool names (#499). Read-only, so they are not gated on the write opt-in;
-    /// they are advertised only when an account carries a Screen key.
-    static let screenToolNames: Set<String> = [
-        "screen_list_campaigns", "screen_list_tests", "screen_get_test"
-    ]
-
-    /// Descriptors for the Screen tools, appended to the read tools when `screenAvailable`.
-    static var screenTools: [[String: Any]] {
-        [
-            tool("screen_list_campaigns",
-                 "List the account's CoderPad Screen assessment campaigns. Screen is the "
-                     + "automated-assessment product, separate from the interview pads.",
-                 properties: [account: accountSchema]),
-            tool("screen_list_tests",
-                 "List Screen test sessions (candidate assessments), optionally filtered by "
-                     + "campaign or candidate email. Offset-paginated via start/limit.",
-                 properties: [
-                     "campaignId": intSchema("Optional. Only sessions in this campaign."),
-                     "candidateEmail": stringSchema("Optional. Only sessions for this candidate email."),
-                     "start": intSchema("Optional. Offset of the first session to return."),
-                     "limit": intSchema("Optional. Maximum number of sessions to return."),
-                     account: accountSchema
-                 ]),
-            tool("screen_get_test",
-                 "Get a single Screen test session by its numeric id, including its report.",
-                 properties: ["test": intSchema("The session's numeric id."), account: accountSchema],
-                 required: ["test"])
-        ]
-    }
+    /// The Screen tool names (#499), from the shared catalog. Read-only, so they are not
+    /// gated on the write opt-in; they are advertised only when an account carries a Screen
+    /// key. The descriptors themselves live in CoderPadToolCore (#521).
+    static let screenToolNames = coderPadScreenToolNames
 
     /// Routes a Screen tool to its endpoint against the resolved account's Screen
     /// credentials, erroring clearly when that account has no Screen key configured.

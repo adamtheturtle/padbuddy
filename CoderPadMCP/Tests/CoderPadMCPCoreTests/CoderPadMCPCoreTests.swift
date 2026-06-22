@@ -57,7 +57,7 @@ struct ToolCatalogTests {
     @Test
     func `read tools only by default`() {
         let names = availableTools(screenEnabled: false, writesEnabled: false).map(\.name)
-        #expect(names == readTools.map(\.name))
+        #expect(names == coderPadReadToolDescriptors.compactMap { $0["name"] as? String })
         #expect(names.contains("whoami"))
         #expect(!names.contains("screen_list_campaigns"))
         #expect(!names.contains("create_pad"))
@@ -85,23 +85,24 @@ struct ToolCatalogTests {
     @Test
     func `both flags advertise the full set with no duplicates`() {
         let names = availableTools(screenEnabled: true, writesEnabled: true).map(\.name)
-        #expect(names.count == readTools.count + screenTools.count + writeTools.count)
+        #expect(names.count == coderPadReadToolDescriptors.count
+            + coderPadScreenToolDescriptors.count + coderPadWriteToolDescriptors.count)
         #expect(Set(names).count == names.count)
     }
 
     @Test
     func `write tools carry non-read-only annotations; updates are destructive`() {
-        let create = writeTools.first { $0.name == "create_pad" }
-        let update = writeTools.first { $0.name == "update_pad" }
-        #expect(create?.annotations.readOnlyHint == false)
-        #expect(create?.annotations.destructiveHint == false)
-        #expect(update?.annotations.destructiveHint == true)
+        let create = tool("create_pad")
+        let update = tool("update_pad")
+        #expect(create.annotations.readOnlyHint == false)
+        #expect(create.annotations.destructiveHint == false)
+        #expect(update.annotations.destructiveHint == true)
     }
 
     @Test
     func `required fields are declared in the right schemas`() {
-        #expect(requiredKeys(of: tool("get_pad")) == ["id"])
-        #expect(requiredKeys(of: tool("get_question")) == ["id"])
+        #expect(requiredKeys(of: tool("get_pad")) == ["pad"])
+        #expect(requiredKeys(of: tool("get_question")) == ["question"])
         #expect(requiredKeys(of: tool("aggregate_pads")) == ["group_by"])
         #expect(requiredKeys(of: tool("create_question")) == ["title"])
         #expect(requiredKeys(of: tool("list_pads")).isEmpty)
@@ -121,7 +122,7 @@ struct ToolCatalogTests {
         let schema = try #require(object["inputSchema"] as? [String: Any])
         #expect(schema["type"] as? String == "object")
         #expect(schema["properties"] is [String: Any])
-        #expect(schema["required"] as? [String] == ["id"])
+        #expect(schema["required"] as? [String] == ["pad"])
     }
 
     @Test
