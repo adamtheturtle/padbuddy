@@ -172,6 +172,44 @@ struct CloudSyncTests {
         #expect(merged[local]?["questions"] == [Item(id: 1, label: "q-cloud")])
     }
 
+    // MARK: timestamp union (pad open history)
+
+    @Test
+    func `timestamp merge keeps the most recent open per pad across devices`() {
+        let local = UUID()
+        let identity = "host|jane@acme.com"
+        let earlier = Date(timeIntervalSince1970: 1000)
+        let later = Date(timeIntervalSince1970: 2000)
+
+        let merged = AccountSyncMerge.mergeTimestamps(
+            cloud: [identity: ["pad-1": later, "pad-2": earlier, "pad-3": later]],
+            into: [local: ["pad-1": earlier, "pad-2": later]]
+        ) { $0 == identity ? local : nil }
+
+        // pad-1 advances to the newer cloud time, pad-2 keeps the newer local time, and
+        // the cloud-only pad-3 is adopted — never an older time winning.
+        #expect(merged[local] == ["pad-1": later, "pad-2": later, "pad-3": later])
+    }
+
+    @Test
+    func `timestamp merge adopts cloud history for an account empty locally and ignores unknown accounts`() {
+        let local = UUID()
+        let identity = "host|jane@acme.com"
+        let opened = Date(timeIntervalSince1970: 5000)
+
+        let adopted = AccountSyncMerge.mergeTimestamps(
+            cloud: [identity: ["pad-9": opened]],
+            into: [:]
+        ) { $0 == identity ? local : nil }
+        #expect(adopted[local] == ["pad-9": opened])
+
+        let unchanged = AccountSyncMerge.mergeTimestamps(
+            cloud: ["host|other@acme.com": ["pad-7": opened]],
+            into: [local: ["pad-1": opened]]
+        ) { _ in nil }
+        #expect(unchanged == [local: ["pad-1": opened]])
+    }
+
     // MARK: app-global preference sync
 
     @Test

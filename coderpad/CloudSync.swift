@@ -140,6 +140,29 @@ enum AccountSyncMerge {
         }
         return merged
     }
+
+    /// Merges a cloud "last opened" blob (sync id -> pad id -> date) into the local
+    /// per-`UUID` one, keeping the MOST RECENT timestamp per pad so opening a pad on any
+    /// device clears its activity dot everywhere. Unlike the array merges this is a
+    /// last-writer-by-recency union: monotonic, so no recorded open is ever lost, and an
+    /// older cloud copy never resurrects a cleared dot (#536).
+    static func mergeTimestamps(
+        cloud: [String: [String: Date]],
+        into local: [UUID: [String: Date]],
+        uuidForSyncID: (String) -> UUID?
+    ) -> [UUID: [String: Date]] {
+        var merged = local
+        for (identity, cloudDates) in cloud {
+            guard let uuid = uuidForSyncID(identity) else { continue }
+
+            var dates = merged[uuid] ?? [:]
+            for (padID, date) in cloudDates where date > (dates[padID] ?? .distantPast) {
+                dates[padID] = date
+            }
+            merged[uuid] = dates
+        }
+        return merged
+    }
 }
 
 // MARK: - Best-effort iCloud mirror

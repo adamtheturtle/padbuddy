@@ -163,11 +163,30 @@ final class PadOpenedStore {
     static let shared = PadOpenedStore()
     private var byAccount: [UUID: [String: Date]] = [:]
     private static let key = "padLastOpened.v1"
+    /// The iCloud mirror is keyed by each account's stable sync id, like the favourites
+    /// mirror, so the activity-dot "last looked at" state follows the user across their
+    /// Macs (#536).
+    private static let cloudKey = "padLastOpened.cloud.v1"
+    /// Held so the external-change observer isn't discarded; the store is a singleton
+    /// that lives for the whole process, so it's never explicitly removed.
+    private var cloudObserver: (any NSObjectProtocol)?
 
     private init() {
         if let data = UserDefaults.standard.data(forKey: Self.key),
            let decoded = try? JSONDecoder().decode([UUID: [String: Date]].self, from: data) {
             byAccount = decoded
+        }
+        // Re-pull and merge whenever iCloud reports an external change to our mirror.
+        cloudObserver = NotificationCenter.default.addObserver(
+            forName: CloudSyncStore.didChangeExternally, object: nil, queue: .main
+        ) { note in
+            let key = note.userInfo?["key"] as? String
+            // Delivered on the main queue, so we're already on the main actor.
+            MainActor.assumeIsolated {
+                guard key == Self.cloudKey else { return }
+
+                Self.shared.syncFromCloud()
+            }
         }
     }
 
@@ -202,5 +221,35 @@ final class PadOpenedStore {
             let reason = error.localizedDescription
             persistenceLogger.error("Failed to encode pad open times: \(reason, privacy: .public)")
         }
+        mirrorToCloud()
+    }
+
+    /// Pushes the current open-history up to iCloud, keyed by each account's stable sync
+    /// id. No-op when iCloud is unavailable (#536).
+    private func mirrorToCloud() {
+        guard CloudSyncStore.shared.isAvailable else { return }
+
+        let cloud = AccountSyncMerge.toCloud(byAccount) { uuid in
+            AccountsStore.shared.accounts.first { $0.id == uuid }?.syncID
+        }
+        if let data = try? JSONEncoder().encode(cloud) {
+            CloudSyncStore.shared.mirror(data, forKey: Self.cloudKey)
+        }
+    }
+
+    /// Pulls the iCloud open-history and merges it into the local set, keeping the most
+    /// recent open per pad, then persists. Called once accounts have loaded and on every
+    /// external iCloud change. No-op when iCloud is unavailable (#536).
+    func syncFromCloud() {
+        guard let data = CloudSyncStore.shared.data(forKey: Self.cloudKey),
+              let cloud = try? JSONDecoder().decode([String: [String: Date]].self, from: data) else { return }
+
+        let merged = AccountSyncMerge.mergeTimestamps(cloud: cloud, into: byAccount) { identity in
+            AccountsStore.shared.accounts.first { $0.syncID == identity }?.id
+        }
+        guard merged != byAccount else { return }
+
+        byAccount = merged
+        save()
     }
 }
