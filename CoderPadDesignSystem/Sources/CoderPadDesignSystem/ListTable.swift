@@ -1,24 +1,29 @@
 //
 //  ListTable.swift
-//  coderpad
+//  CoderPadDesignSystem
+//
+//  An NSTableView-backed list, lifted out of the app (#515/#439) so both apps share
+//  it. The app-specific favorite-drag coupling (`UTType.coderpadFavorite` /
+//  `FavoriteDragMonitor`) is replaced by injected `onDragSessionBegan` /
+//  `onDragSessionEnded` hooks, so the host inspects the dragging session itself and
+//  the design-system table stays free of any domain pasteboard types.
 //
 
 import AppKit
 import SwiftUI
-import UniformTypeIdentifiers
 
 /// One entry in a row's right-click menu, built by the caller and rendered as an
 /// `NSMenuItem` (the hosted SwiftUI content is hit-transparent, so the menu can't be a
 /// SwiftUI `.contextMenu`).
-enum RowMenuItem {
+public enum RowMenuItem {
     case button(title: String, isDestructive: Bool = false, isEnabled: Bool = true, perform: () -> Void)
     case separator
 }
 
 /// One swipe action on a row edge, rendered as an `NSTableViewRowAction`.
-struct RowSwipeAction {
+public struct RowSwipeAction {
     var title: String
-    var isDestructive: Bool = false
+    var isDestructive: Bool
     /// Background colour for the revealed button (e.g. yellow for favorite). `nil`
     /// uses the system default (grey for regular, red for destructive).
     var tint: NSColor?
@@ -29,6 +34,20 @@ struct RowSwipeAction {
     /// expressible with the native API.)
     var systemImage: String?
     var perform: () -> Void
+
+    public init(
+        title: String,
+        isDestructive: Bool = false,
+        tint: NSColor? = nil,
+        systemImage: String? = nil,
+        perform: @escaping () -> Void
+    ) {
+        self.title = title
+        self.isDestructive = isDestructive
+        self.tint = tint
+        self.systemImage = systemImage
+        self.perform = perform
+    }
 }
 
 /// Carries a menu item's closure as an `NSMenuItem.representedObject`, so a single
@@ -51,7 +70,7 @@ private final class MenuActionBox {
 /// `.allowsHitTesting(false)` to the non-interactive parts — so left-clicks fall
 /// through to the table for native selection. Selection, double-click, swipe, keyboard
 /// nav, drag, and the right-click menu are native table behaviors driven by closures.
-struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: Hashable {
+public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: Hashable {
     /// The rows to show, already filtered and sorted by the caller.
     var items: [Item]
     /// The selected ids, two-way bound to the owning view's selection set.
@@ -79,15 +98,53 @@ struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: Hashabl
     var menuItems: (Item) -> [RowMenuItem]
     /// Reports the id of the row at the top of the viewport when the user finishes a
     /// scroll, so the caller can persist and restore the free-scroll position across
-    /// launches (#273). `nil` when the list is empty. Omitted = not tracked (the
-    /// synthesized memberwise init defaults this optional to nil).
+    /// launches (#273). `nil` when the list is empty.
     var onTopRowChange: ((Item.ID?) -> Void)?
+    /// Called when a row drag begins, with the dragging session, so the host can react
+    /// to an in-flight drag (e.g. reveal a sidebar drop zone when the session carries a
+    /// favorite payload, #444). The host inspects the session, keeping app pasteboard
+    /// types out of the design system. Default: no-op.
+    var onDragSessionBegan: (NSDraggingSession) -> Void
+    /// Called when a row drag ends (drop or cancel). Default: no-op.
+    var onDragSessionEnded: () -> Void
 
-    func makeCoordinator() -> Coordinator {
+    public init(
+        items: [Item],
+        selection: Binding<Set<Item.ID>>,
+        scrollToID: Item.ID? = nil,
+        onScrolledToID: @escaping () -> Void,
+        rowContent: @escaping (Item) -> AnyView,
+        onDoubleClick: @escaping (Item) -> Void,
+        onReturn: @escaping (Item) -> Void,
+        leadingActions: @escaping (Item) -> [RowSwipeAction],
+        trailingActions: @escaping (Item) -> [RowSwipeAction],
+        pasteboardItem: @escaping (Item) -> NSPasteboardItem?,
+        menuItems: @escaping (Item) -> [RowMenuItem],
+        onTopRowChange: ((Item.ID?) -> Void)? = nil,
+        onDragSessionBegan: @escaping (NSDraggingSession) -> Void = { _ in },
+        onDragSessionEnded: @escaping () -> Void = {}
+    ) {
+        self.items = items
+        _selection = selection
+        self.scrollToID = scrollToID
+        self.onScrolledToID = onScrolledToID
+        self.rowContent = rowContent
+        self.onDoubleClick = onDoubleClick
+        self.onReturn = onReturn
+        self.leadingActions = leadingActions
+        self.trailingActions = trailingActions
+        self.pasteboardItem = pasteboardItem
+        self.menuItems = menuItems
+        self.onTopRowChange = onTopRowChange
+        self.onDragSessionBegan = onDragSessionBegan
+        self.onDragSessionEnded = onDragSessionEnded
+    }
+
+    public func makeCoordinator() -> Coordinator {
         Coordinator(self)
     }
 
-    func makeNSView(context: Context) -> NSScrollView {
+    public func makeNSView(context: Context) -> NSScrollView {
         let table = KeyHandlingTableView()
         table.headerView = nil
         table.style = .inset
@@ -136,7 +193,7 @@ struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: Hashabl
         return scroll
     }
 
-    func updateNSView(_: NSScrollView, context: Context) {
+    public func updateNSView(_: NSScrollView, context: Context) {
         let coordinator = context.coordinator
         coordinator.parent = self
         guard let table = coordinator.tableView else { return }
@@ -152,8 +209,8 @@ struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: Hashabl
         }
     }
 
-    @MainActor
-    final class Coordinator: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSMenuDelegate {
+    @preconcurrency @MainActor
+    public final class Coordinator: NSObject, NSTableViewDataSource, NSTableViewDelegate, NSMenuDelegate {
         var parent: ListTable
         weak var tableView: NSTableView?
         private var items: [Item] = []
@@ -189,37 +246,35 @@ struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: Hashabl
             indexByID[id]
         }
 
-        func numberOfRows(in _: NSTableView) -> Int {
+        public func numberOfRows(in _: NSTableView) -> Int {
             items.count
         }
 
-        func tableView(_ tableView: NSTableView, viewFor _: NSTableColumn?, row: Int) -> NSView? {
+        public func tableView(_ tableView: NSTableView, viewFor _: NSTableColumn?, row: Int) -> NSView? {
             let cell = tableView.makeView(withIdentifier: .listCell, owner: self) as? HostingCellView
                 ?? HostingCellView(identifier: .listCell)
             cell.host(parent.rowContent(items[row]))
             return cell
         }
 
-        func tableView(_: NSTableView, pasteboardWriterForRow row: Int) -> (any NSPasteboardWriting)? {
+        public func tableView(_: NSTableView, pasteboardWriterForRow row: Int) -> (any NSPasteboardWriting)? {
             guard items.indices.contains(row) else { return nil }
 
             return parent.pasteboardItem(items[row])
         }
 
-        /// Flag a favorite drag as in progress so the sidebar reveals its empty-state
-        /// drop zone (#444) — but only when the dragged rows actually carry a favorite
-        /// payload, so a plain link-out drag doesn't reveal a target nothing can drop on.
-        func tableView(_: NSTableView, draggingSession session: NSDraggingSession,
-                       willBeginAt _: NSPoint, forRowIndexes _: IndexSet) {
-            let canFavorite = session.draggingPasteboard
-                .canReadItem(withDataConformingToTypes: [UTType.coderpadFavorite.identifier])
-            if canFavorite { FavoriteDragMonitor.shared.isDragging = true }
+        /// Forward the drag's start to the host so it can react to an in-flight drag
+        /// (e.g. reveal the sidebar's empty-state favorite drop zone, #444). The host
+        /// inspects the session's pasteboard for its own payload types.
+        public func tableView(_: NSTableView, draggingSession session: NSDraggingSession,
+                              willBeginAt _: NSPoint, forRowIndexes _: IndexSet) {
+            parent.onDragSessionBegan(session)
         }
 
-        /// Drop or cancel — collapse the revealed drop zone again (#444).
-        func tableView(_: NSTableView, draggingSession _: NSDraggingSession,
-                       endedAt _: NSPoint, operation _: NSDragOperation) {
-            FavoriteDragMonitor.shared.isDragging = false
+        /// Drop or cancel — let the host collapse anything it revealed (#444).
+        public func tableView(_: NSTableView, draggingSession _: NSDraggingSession,
+                              endedAt _: NSPoint, operation _: NSDragOperation) {
+            parent.onDragSessionEnded()
         }
 
         // MARK: Selection
@@ -236,7 +291,7 @@ struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: Hashabl
             isApplyingSelection = false
         }
 
-        func tableViewSelectionDidChange(_ notification: Notification) {
+        public func tableViewSelectionDidChange(_ notification: Notification) {
             guard !isApplyingSelection, let tableView = notification.object as? NSTableView else { return }
 
             let ids = Set(tableView.selectedRowIndexes.compactMap { items.indices.contains($0) ? items[$0].id : nil })
@@ -271,8 +326,8 @@ struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: Hashabl
 
         // MARK: Swipe actions
 
-        func tableView(_: NSTableView, rowActionsForRow row: Int,
-                       edge: NSTableView.RowActionEdge) -> [NSTableViewRowAction] {
+        public func tableView(_: NSTableView, rowActionsForRow row: Int,
+                              edge: NSTableView.RowActionEdge) -> [NSTableViewRowAction] {
             guard items.indices.contains(row) else { return [] }
 
             let item = items[row]
@@ -303,7 +358,7 @@ struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: Hashabl
         /// menu — lets AppKit's native contextual-menu machinery run, which draws the
         /// focus-ring outline around a right-clicked row that isn't selected (#450).
         /// `clickedRow` is set by NSTableView before the menu opens.
-        func menuNeedsUpdate(_ menu: NSMenu) {
+        public func menuNeedsUpdate(_ menu: NSMenu) {
             menu.removeAllItems()
             let row = tableView?.clickedRow ?? -1
             guard items.indices.contains(row) else { return }
@@ -327,71 +382,4 @@ struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: Hashabl
             (sender.representedObject as? MenuActionBox)?.perform()
         }
     }
-}
-
-/// `NSTableView` subclass: forwards Return/Enter to a handler (open the selected row).
-/// The per-row right-click menu is the table's own `menu` property, populated lazily by
-/// the coordinator's `menuNeedsUpdate(_:)` — see #450. Arrow keys keep the table's
-/// native row-to-row navigation.
-private final class KeyHandlingTableView: NSTableView {
-    var onReturn: (() -> Void)?
-
-    override func keyDown(with event: NSEvent) {
-        // 36 = Return, 76 = keypad Enter.
-        if event.keyCode == 36 || event.keyCode == 76 {
-            onReturn?()
-        } else {
-            super.keyDown(with: event)
-        }
-    }
-
-    override func menu(for event: NSEvent) -> NSMenu? {
-        // Only show the menu — and let AppKit run its native right-clicked-row
-        // highlight (#450) — when the click lands on a row, not the empty area below
-        // the list. `super` sets `clickedRow`, draws the outline, and returns `menu`,
-        // whose items the coordinator fills in via `menuNeedsUpdate(_:)`.
-        let point = convert(event.locationInWindow, from: nil)
-        guard row(at: point) >= 0 else { return nil }
-
-        return super.menu(for: event)
-    }
-}
-
-/// A table cell that hosts a row's SwiftUI content in an `NSHostingView`, sized to the
-/// content's intrinsic height so `usesAutomaticRowHeights` lays the row out correctly.
-private final class HostingCellView: NSTableCellView {
-    private var hosting: NSHostingView<AnyView>?
-
-    init(identifier: NSUserInterfaceItemIdentifier) {
-        super.init(frame: .zero)
-        self.identifier = identifier
-    }
-
-    @available(*, unavailable)
-    required init?(coder _: NSCoder) {
-        nil
-    }
-
-    func host(_ view: AnyView) {
-        if let hosting {
-            hosting.rootView = view
-            return
-        }
-        let hostingView = NSHostingView(rootView: view)
-        hostingView.sizingOptions = .intrinsicContentSize
-        hostingView.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(hostingView)
-        NSLayoutConstraint.activate([
-            hostingView.leadingAnchor.constraint(equalTo: leadingAnchor),
-            hostingView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            hostingView.topAnchor.constraint(equalTo: topAnchor),
-            hostingView.bottomAnchor.constraint(equalTo: bottomAnchor)
-        ])
-        hosting = hostingView
-    }
-}
-
-private extension NSUserInterfaceItemIdentifier {
-    static let listCell = NSUserInterfaceItemIdentifier("ListTableHostingCell")
-    static let listColumn = NSUserInterfaceItemIdentifier("ListTableColumn")
 }

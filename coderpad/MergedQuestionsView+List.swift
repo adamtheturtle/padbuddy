@@ -262,7 +262,9 @@ extension MergedQuestionsView {
             },
             pasteboardItem: { questionPasteboardItem($0) },
             menuItems: { questionTableMenuItems($0) },
-            onTopRowChange: { persistTopRow($0) }
+            onTopRowChange: { persistTopRow($0) },
+            onDragSessionBegan: FavoriteDragLifecycle.onBegan,
+            onDragSessionEnded: FavoriteDragLifecycle.onEnded
         )
         .overlay { questionsOverlay }
         .macPullToRefresh { await reload() }

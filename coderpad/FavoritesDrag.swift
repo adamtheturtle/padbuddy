@@ -11,6 +11,7 @@
 //  layer (see `padPasteboardItem`), carrying the URL plus the `FavoriteDrop` JSON.
 //
 
+import AppKit
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -52,6 +53,26 @@ final class FavoriteDragMonitor {
 
     /// True while a pad/question carrying a `coderpadFavorite` payload is in flight.
     var isDragging = false
+}
+
+/// The favorite-drag lifecycle hooks the list columns share, passed into the
+/// design-system ``ListTable``'s injected drag callbacks (#515). Keeping the
+/// favorite-payload inspection here means the reusable table never references the
+/// app's `coderpadFavorite` type or `FavoriteDragMonitor`. While a row carrying a
+/// favorite payload is dragged, reveal the sidebar's empty-state drop zone (#444).
+@MainActor
+enum FavoriteDragLifecycle {
+    /// A row drag began: reveal the drop zone only when the session actually carries a
+    /// favorite payload, so a plain link-out drag doesn't reveal a target nothing can
+    /// drop on.
+    static let onBegan: (NSDraggingSession) -> Void = { session in
+        let canFavorite = session.draggingPasteboard
+            .canReadItem(withDataConformingToTypes: [UTType.coderpadFavorite.identifier])
+        if canFavorite { FavoriteDragMonitor.shared.isDragging = true }
+    }
+
+    /// The drag dropped or was cancelled: collapse the revealed drop zone again.
+    static let onEnded: () -> Void = { FavoriteDragMonitor.shared.isDragging = false }
 }
 
 /// Identifies a favorite being dragged to reorder it within the sidebar (#299).

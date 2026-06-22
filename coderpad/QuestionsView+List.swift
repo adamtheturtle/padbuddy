@@ -53,6 +53,7 @@ extension QuestionsView {
             error: error,
             loadingMessage: "Loading questions…",
             onReload: { await reload() },
+            errorView: { error, retry in APIErrorView(error: error, onRetry: retry) },
             savedSearches: { savedSearchesBar },
             filters: { filterBar },
             list: { questionsList }
@@ -142,7 +143,9 @@ extension QuestionsView {
             },
             pasteboardItem: { questionPasteboardItem($0) },
             menuItems: { questionTableMenuItems($0) },
-            onTopRowChange: { persistTopRow($0) }
+            onTopRowChange: { persistTopRow($0) },
+            onDragSessionBegan: FavoriteDragLifecycle.onBegan,
+            onDragSessionEnded: FavoriteDragLifecycle.onEnded
         )
         // Scene-scoped, mirroring PadsView: the Question menu commands stay enabled
         // whenever this window is frontmost and a question is selected.

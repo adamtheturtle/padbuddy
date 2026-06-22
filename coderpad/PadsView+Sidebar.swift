@@ -92,6 +92,7 @@ extension PadsView {
             error: error,
             loadingMessage: "Loading pads…",
             onReload: { await reload() },
+            errorView: { error, retry in APIErrorView(error: error, onRetry: retry) },
             savedSearches: { savedSearchesBar },
             filters: { filterBar },
             list: { padCollection }
@@ -227,7 +228,9 @@ extension PadsView {
             },
             pasteboardItem: { padPasteboardItem($0) },
             menuItems: { padTableMenuItems($0) },
-            onTopRowChange: { persistTopRow($0) }
+            onTopRowChange: { persistTopRow($0) },
+            onDragSessionBegan: FavoriteDragLifecycle.onBegan,
+            onDragSessionEnded: FavoriteDragLifecycle.onEnded
         )
         #if DEBUG
             // Still prints the per-selection stall; row evals should now be ~0 since
