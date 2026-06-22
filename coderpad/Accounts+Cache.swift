@@ -9,66 +9,34 @@
 import Foundation
 import os
 
-/// On-disk backing for the per-account list caches. Lets pads and questions a
-/// returning user already loaded appear instantly on the next cold launch, with
-/// the network fetch refreshing them in the background (stale-while-revalidate).
-///
-/// Snapshots live in Application Support, one JSON file per account+kind. The
-/// encoder/decoder pair is symmetric (default strategies), so it round-trips the
-/// API models faithfully without depending on the API's date format.
+/// App-side facade over ``DiskCache`` (in BuddyAppKit), pinning the cache directory
+/// and logger. The implementation lives in the package so a sibling app can reuse it
+/// with its own location; this layer keeps the call sites unchanged. Snapshots live in
+/// Application Support, one JSON file per account+kind, so pads and questions a
+/// returning user already loaded appear instantly on the next cold launch while the
+/// network fetch refreshes them in the background (stale-while-revalidate). The static
+/// methods stay `nonisolated` so reads/writes genuinely run off the main actor when
+/// invoked from a detached task.
 enum CacheDisk {
-    /// nonisolated so reads/writes genuinely run off the main actor when invoked
-    /// from a detached task, rather than hopping back to the main thread.
-    private nonisolated static let logger = Logger(subsystem: "com.coderpad.app", category: "cache")
+    private nonisolated static let cache = DiskCache(
+        directoryName: "com.coderpad.app/DataCache",
+        logger: Logger(subsystem: "com.coderpad.app", category: "cache")
+    )
 
-    private nonisolated static func url(kind: String, account: UUID) -> URL? {
-        guard let base = FileManager.default.urls(for: .applicationSupportDirectory,
-                                                  in: .userDomainMask).first else { return nil }
-
-        let dir = base.appending(path: "com.coderpad.app/DataCache", directoryHint: .isDirectory)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir.appending(path: "\(kind)-\(account.uuidString).json")
-    }
-
-    nonisolated static func load<T: Decodable>(_: T.Type, kind: String, account: UUID) -> T? {
-        guard let url = url(kind: kind, account: account),
-              let data = try? Data(contentsOf: url) else { return nil }
-
-        do {
-            return try JSONDecoder().decode(T.self, from: data)
-        } catch {
-            let reason = error.localizedDescription
-            logger.error("Failed to decode \(kind, privacy: .public) cache: \(reason, privacy: .public)")
-            return nil
-        }
+    nonisolated static func load<T: Decodable>(_ type: T.Type, kind: String, account: UUID) -> T? {
+        cache.load(type, kind: kind, account: account)
     }
 
     nonisolated static func save(_ value: some Encodable, kind: String, account: UUID) {
-        guard let url = url(kind: kind, account: account) else { return }
-
-        do {
-            let data = try JSONEncoder().encode(value)
-            try data.write(to: url, options: .atomic)
-        } catch {
-            let reason = error.localizedDescription
-            logger.error("Failed to write \(kind, privacy: .public) cache: \(reason, privacy: .public)")
-        }
+        cache.save(value, kind: kind, account: account)
     }
 
     nonisolated static func delete(kind: String, account: UUID) {
-        guard let url = url(kind: kind, account: account) else { return }
-
-        try? FileManager.default.removeItem(at: url)
+        cache.delete(kind: kind, account: account)
     }
 
-    /// When the snapshot for `kind`+`account` was last written, or nil if there's no file.
-    /// Lets a reader (e.g. the headless MCP server, #520) judge freshness without loading
-    /// and decoding the whole snapshot.
     nonisolated static func modificationDate(kind: String, account: UUID) -> Date? {
-        guard let url = url(kind: kind, account: account),
-              let attributes = try? FileManager.default.attributesOfItem(atPath: url.path) else { return nil }
-
-        return attributes[.modificationDate] as? Date
+        cache.modificationDate(kind: kind, account: account)
     }
 }
 
