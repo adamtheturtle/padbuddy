@@ -20,11 +20,30 @@ final class FavoritePadsStore {
     static let shared = FavoritePadsStore()
     private var byAccount: [UUID: [String]] = [:]
     private static let key = "favoritePads.v1"
+    /// The iCloud mirror is keyed by each account's stable sync id (a `String`), not
+    /// the per-device `UUID` the local blob uses, so it lives under its own key with
+    /// its own schema (#536).
+    private static let cloudKey = "favoritePads.cloud.v1"
+    /// Held so the external-change observer isn't discarded; the store is a singleton
+    /// that lives for the whole process, so it's never explicitly removed.
+    private var cloudObserver: (any NSObjectProtocol)?
 
     private init() {
         if let data = UserDefaults.standard.data(forKey: Self.key),
            let decoded = try? JSONDecoder().decode([UUID: [String]].self, from: data) {
             byAccount = decoded
+        }
+        // Re-pull and merge whenever iCloud reports an external change to our mirror.
+        cloudObserver = NotificationCenter.default.addObserver(
+            forName: CloudSyncStore.didChangeExternally, object: nil, queue: .main
+        ) { note in
+            let key = note.userInfo?["key"] as? String
+            // Delivered on the main queue, so we're already on the main actor.
+            MainActor.assumeIsolated {
+                guard key == Self.cloudKey else { return }
+
+                Self.shared.syncFromCloud()
+            }
         }
     }
 
@@ -101,6 +120,36 @@ final class FavoritePadsStore {
             let reason = error.localizedDescription
             persistenceLogger.error("Failed to encode favorite pads: \(reason, privacy: .public)")
         }
+        mirrorToCloud()
+    }
+
+    /// Pushes the current favourites up to iCloud, keyed by each account's stable sync
+    /// id. No-op when iCloud is unavailable (#536).
+    private func mirrorToCloud() {
+        guard CloudSyncStore.shared.isAvailable else { return }
+
+        let cloud = AccountSyncMerge.toCloud(byAccount) { uuid in
+            AccountsStore.shared.accounts.first { $0.id == uuid }?.syncID
+        }
+        if let data = try? JSONEncoder().encode(cloud) {
+            CloudSyncStore.shared.mirror(data, forKey: Self.cloudKey)
+        }
+    }
+
+    /// Pulls the iCloud favourites and merges them into the local set (additive union
+    /// per account), then persists. Called once accounts have loaded and on every
+    /// external iCloud change. No-op when iCloud is unavailable (#536).
+    func syncFromCloud() {
+        guard let data = CloudSyncStore.shared.data(forKey: Self.cloudKey),
+              let cloud = try? JSONDecoder().decode([String: [String]].self, from: data) else { return }
+
+        let merged = AccountSyncMerge.mergeArrays(cloud: cloud, into: byAccount) { identity in
+            AccountsStore.shared.accounts.first { $0.syncID == identity }?.id
+        }
+        guard merged != byAccount else { return }
+
+        byAccount = merged
+        save()
     }
 }
 

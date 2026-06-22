@@ -1,0 +1,153 @@
+//
+//  CloudSync.swift
+//  coderpad
+//
+//  iCloud sync foundation (#536): a stable cross-device account identity, the pure
+//  merge helpers that move per-account collections between their local (UUID-keyed)
+//  and cloud (sync-id-keyed) forms, and a thin best-effort mirror over iCloud's
+//  key-value store.
+//
+//  Design notes:
+//  - UserDefaults stays the source of truth for the running app. `CloudSyncStore`
+//    only pushes a copy up and pulls external changes down, so when iCloud is
+//    unavailable every method is a no-op and behaviour is exactly as before.
+//  - iCloud's key-value store needs the profile-gated `ubiquity-kvstore-identifier`
+//    entitlement, which the unprovisioned Developer ID build can't carry (the same
+//    family of entitlement that broke launch as keychain-access-groups did). So on
+//    the Developer ID build `isAvailable` is false and none of this runs; the App
+//    Store target is where it lights up, once its iCloud container is registered.
+//  - Credentials NEVER pass through here. The accounts array stays in the Keychain,
+//    which has its own opt-in iCloud Keychain sync.
+//
+
+import Foundation
+
+// MARK: - Stable cross-device identity
+
+extension Account {
+    /// A stable identity that is identical across a user's devices, for keying
+    /// iCloud-synced data (#536). The local ``id`` is a per-device random `UUID`, so
+    /// it can't line up between Macs; the resolved server host plus the owner email
+    /// do - both are the same wherever the same org key is configured. Case-folded so
+    /// trivial differences don't fork the key. Empty for an in-progress draft with no
+    /// owner email yet, which the sync layer skips.
+    var syncID: String {
+        let email = userEmail.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !email.isEmpty else { return "" }
+
+        let host = resolvedBaseURL.host?.lowercased() ?? ""
+        return "\(host)|\(email)"
+    }
+}
+
+// MARK: - Pure merge helpers
+
+/// Cross-device merge helpers for the per-account favourite / saved-search / template
+/// blobs (#536). Kept as pure functions so the merge semantics are unit-testable
+/// without iCloud; ``CloudSyncStore`` only orchestrates I/O around them.
+enum AccountSyncMerge {
+    /// Projects a local, per-`UUID` blob into its cloud form keyed by stable sync id,
+    /// dropping accounts whose sync id is empty (drafts) or that `syncID` can't
+    /// resolve. When two local accounts share a sync id (shouldn't happen for a real
+    /// org key) the last one wins, which is harmless for a mirror.
+    static func toCloud<Value>(_ local: [UUID: Value], syncID: (UUID) -> String?) -> [String: Value] {
+        var cloud: [String: Value] = [:]
+        for (uuid, value) in local {
+            guard let identity = syncID(uuid), !identity.isEmpty else { continue }
+
+            cloud[identity] = value
+        }
+        return cloud
+    }
+
+    /// Merges a cloud blob (keyed by sync id) back into a local one (keyed by `UUID`),
+    /// additively per account: each array is unioned with local order preserved and
+    /// cloud-only elements appended, so neither device's pins are lost. Deletions do
+    /// NOT propagate in v1 - a safe-by-default choice while element-level merge is out
+    /// of scope (a removal on one Mac won't wipe the pin on another). `uuidForSyncID`
+    /// resolves a stable id back to a configured local account; cloud entries for
+    /// accounts not present on this device are ignored.
+    static func mergeArrays<Element: Equatable>(
+        cloud: [String: [Element]],
+        into local: [UUID: [Element]],
+        uuidForSyncID: (String) -> UUID?
+    ) -> [UUID: [Element]] {
+        var merged = local
+        for (identity, cloudList) in cloud {
+            guard let uuid = uuidForSyncID(identity) else { continue }
+
+            var list = merged[uuid] ?? []
+            for element in cloudList where !list.contains(element) {
+                list.append(element)
+            }
+            merged[uuid] = list
+        }
+        return merged
+    }
+}
+
+// MARK: - Best-effort iCloud mirror
+
+/// A thin, best-effort mirror of small per-account collections into iCloud's
+/// key-value store (#536). A no-op whenever iCloud is unavailable, so the call sites
+/// stay oblivious to iCloud and the Developer ID build is unaffected.
+@MainActor
+final class CloudSyncStore {
+    static let shared = CloudSyncStore()
+
+    /// Posted after an external iCloud change has arrived, with the changed cloud key
+    /// in `userInfo["key"]`, so the owning store can re-pull and merge.
+    static let didChangeExternally = Notification.Name("CloudSyncStore.didChangeExternally")
+
+    private let store = NSUbiquitousKeyValueStore.default
+    private var observer: (any NSObjectProtocol)?
+
+    private init() {}
+
+    /// True only when iCloud is genuinely usable: the app carries the ubiquity
+    /// entitlement AND the user is signed into iCloud. `ubiquityIdentityToken` is nil
+    /// without either, so this is correctly false on the unprovisioned Developer ID
+    /// build and the store is never touched there.
+    var isAvailable: Bool {
+        FileManager.default.ubiquityIdentityToken != nil
+    }
+
+    /// Begins observing external iCloud changes and pulls the current cloud state.
+    /// Idempotent; a no-op when iCloud is unavailable.
+    func start() {
+        guard isAvailable, observer == nil else { return }
+
+        observer = NotificationCenter.default.addObserver(
+            forName: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
+            object: store,
+            queue: .main
+        ) { note in
+            let keys = (note.userInfo?[NSUbiquitousKeyValueStoreChangedKeysKey] as? [String]) ?? []
+            // Delivered on the main queue, so we're already on the main actor.
+            MainActor.assumeIsolated { Self.shared.broadcast(changedKeys: keys) }
+        }
+        store.synchronize()
+    }
+
+    /// Mirrors `data` to iCloud under `key`. No-op when iCloud is unavailable.
+    func mirror(_ data: Data, forKey key: String) {
+        guard isAvailable else { return }
+
+        store.set(data, forKey: key)
+    }
+
+    /// The cloud copy of `key`, or `nil` when absent or iCloud is unavailable.
+    func data(forKey key: String) -> Data? {
+        guard isAvailable else { return nil }
+
+        return store.data(forKey: key)
+    }
+
+    private func broadcast(changedKeys: [String]) {
+        for key in changedKeys {
+            NotificationCenter.default.post(
+                name: Self.didChangeExternally, object: nil, userInfo: ["key": key]
+            )
+        }
+    }
+}

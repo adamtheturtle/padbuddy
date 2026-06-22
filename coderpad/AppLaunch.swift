@@ -36,6 +36,12 @@ enum AppLaunch {
         // Questions section has been opened this session (#411). The per-account sync
         // otherwise only fires when an account's questions load or a favourite toggles.
         WidgetSync.syncAllFavorites(AccountsStore.shared.accounts)
+        // Start mirroring favourites through iCloud's key-value store and pull any
+        // cloud state now that accounts are loaded (the sync id maps cloud entries
+        // back to local accounts). A no-op on the Developer ID build, which can't
+        // carry the profile-gated iCloud entitlement (#536).
+        CloudSyncStore.shared.start()
+        FavoritePadsStore.shared.syncFromCloud()
         // Keep the current account's pads fresh on a timer even when no window is open
         // and the menu is never clicked — the one state where nothing else fetches.
         // Writing to PadsCacheStore cascades to the widget snapshot and Dock badge.
