@@ -24,9 +24,9 @@ final class FavoritePadsStore {
     /// the per-device `UUID` the local blob uses, so it lives under its own key with
     /// its own schema (#536).
     private static let cloudKey = "favoritePads.cloud.v1"
-    /// Held so the external-change observer isn't discarded; the store is a singleton
-    /// that lives for the whole process, so it's never explicitly removed.
-    private var cloudObserver: (any NSObjectProtocol)?
+    /// Held so the external-change observation task isn't cancelled; the store is a
+    /// singleton that lives for the whole process, so it's never explicitly stopped.
+    private var cloudObserverTask: Task<Void, Never>?
 
     private init() {
         if let data = UserDefaults.standard.data(forKey: Self.key),
@@ -34,13 +34,9 @@ final class FavoritePadsStore {
             byAccount = decoded
         }
         // Re-pull and merge whenever iCloud reports an external change to our mirror.
-        cloudObserver = NotificationCenter.default.addObserver(
-            forName: CloudSyncStore.didChangeExternally, object: nil, queue: .main
-        ) { note in
-            let key = note.userInfo?["key"] as? String
-            // Delivered on the main queue, so we're already on the main actor.
-            MainActor.assumeIsolated {
-                guard key == Self.cloudKey else { return }
+        cloudObserverTask = Task { @MainActor in
+            for await note in NotificationCenter.default.notifications(named: CloudSyncStore.didChangeExternally) {
+                guard note.userInfo?["key"] as? String == Self.cloudKey else { continue }
 
                 Self.shared.syncFromCloud()
             }
@@ -167,9 +163,9 @@ final class PadOpenedStore {
     /// mirror, so the activity-dot "last looked at" state follows the user across their
     /// Macs (#536).
     private static let cloudKey = "padLastOpened.cloud.v1"
-    /// Held so the external-change observer isn't discarded; the store is a singleton
-    /// that lives for the whole process, so it's never explicitly removed.
-    private var cloudObserver: (any NSObjectProtocol)?
+    /// Held so the external-change observation task isn't cancelled; the store is a
+    /// singleton that lives for the whole process, so it's never explicitly stopped.
+    private var cloudObserverTask: Task<Void, Never>?
 
     private init() {
         if let data = UserDefaults.standard.data(forKey: Self.key),
@@ -177,13 +173,9 @@ final class PadOpenedStore {
             byAccount = decoded
         }
         // Re-pull and merge whenever iCloud reports an external change to our mirror.
-        cloudObserver = NotificationCenter.default.addObserver(
-            forName: CloudSyncStore.didChangeExternally, object: nil, queue: .main
-        ) { note in
-            let key = note.userInfo?["key"] as? String
-            // Delivered on the main queue, so we're already on the main actor.
-            MainActor.assumeIsolated {
-                guard key == Self.cloudKey else { return }
+        cloudObserverTask = Task { @MainActor in
+            for await note in NotificationCenter.default.notifications(named: CloudSyncStore.didChangeExternally) {
+                guard note.userInfo?["key"] as? String == Self.cloudKey else { continue }
 
                 Self.shared.syncFromCloud()
             }

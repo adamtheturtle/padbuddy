@@ -178,7 +178,9 @@ final class CloudSyncStore {
     /// in `userInfo["key"]`, so the owning store can re-pull and merge.
     static let didChangeExternally = Notification.Name("CloudSyncStore.didChangeExternally")
 
-    private var observer: (any NSObjectProtocol)?
+    /// Held so the external-change observation task isn't cancelled; the store is a
+    /// singleton that lives for the whole process, so it's never explicitly stopped.
+    private var observerTask: Task<Void, Never>?
 
     private init() {}
 
@@ -210,16 +212,18 @@ final class CloudSyncStore {
     /// Begins observing external iCloud changes and pulls the current cloud state.
     /// Idempotent; a no-op when iCloud is unavailable.
     func start() {
-        guard isAvailable, observer == nil else { return }
+        guard isAvailable, observerTask == nil else { return }
 
-        observer = NotificationCenter.default.addObserver(
-            forName: NSUbiquitousKeyValueStore.didChangeExternallyNotification,
-            object: store,
-            queue: .main
-        ) { note in
-            let keys = (note.userInfo?[NSUbiquitousKeyValueStoreChangedKeysKey] as? [String]) ?? []
-            // Delivered on the main queue, so we're already on the main actor.
-            MainActor.assumeIsolated { Self.shared.broadcast(changedKeys: keys) }
+        // No object filter: the default KVS is the only poster of this notification, so
+        // the name alone is exact — and the async sequence's `object:` wants a Sendable,
+        // which `NSUbiquitousKeyValueStore` isn't.
+        observerTask = Task { @MainActor [weak self] in
+            for await note in NotificationCenter.default.notifications(
+                named: NSUbiquitousKeyValueStore.didChangeExternallyNotification
+            ) {
+                let keys = (note.userInfo?[NSUbiquitousKeyValueStoreChangedKeysKey] as? [String]) ?? []
+                self?.broadcast(changedKeys: keys)
+            }
         }
         store.synchronize()
     }
