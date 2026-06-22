@@ -111,8 +111,17 @@ nonisolated enum MCPTools {
         [
             "owner": stringSchema("Only pads whose owner_email matches this, case-insensitively."),
             "state": stringSchema("Only pads in this state (e.g. \"active\", \"ended\")."),
-            "language": stringSchema("Only pads in this language (e.g. \"python\").")
+            "language": stringSchema("Only pads in this language (e.g. \"python\")."),
+            "created_after": stringSchema(dateBoundDescription(bound: "on or after")),
+            "created_before": stringSchema(dateBoundDescription(bound: "on or before"))
         ]
+    }
+
+    /// Description for a created_at date-range bound argument, shared by the pad and
+    /// question filter schemas.
+    static func dateBoundDescription(bound: String) -> String {
+        "Only records created \(bound) this date. Accepts a month (\"2026-03\"), a date "
+            + "(\"2026-03-01\"), or a full ISO8601 timestamp; inclusive at the given granularity."
     }
 
     /// Dispatches a tool call to its CoderPad endpoint, against the account selected by the

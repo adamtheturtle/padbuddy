@@ -232,6 +232,20 @@ struct AggregationTests {
     }
 
     @Test
+    func `withinDateRange honors month, date and timestamp bounds, inclusively`() {
+        let pad = pads[0] // created_at 2026-01-04T00:00:00Z
+        #expect(withinDateRange(pad, after: nil, before: nil))
+        #expect(withinDateRange(pad, after: "", before: ""))
+        #expect(withinDateRange(pad, after: "2026-01", before: "2026-01"))
+        #expect(!withinDateRange(pad, after: "2026-02", before: nil))
+        #expect(!withinDateRange(pad, after: nil, before: "2025-12"))
+        #expect(withinDateRange(pad, after: "2026-01-04", before: "2026-01-04"))
+        #expect(!withinDateRange(pad, after: "2026-01-05", before: nil))
+        #expect(!withinDateRange(pads[3], after: "2026-01", before: nil)) // no created_at
+        #expect(withinDateRange(pads[3], after: nil, before: nil))
+    }
+
+    @Test
     func `compactPads keeps only the compact keys`() {
         let rich: [[String: Any]] = [[
             "id": "abc", "title": "T", "owner_email": "a@x.com", "state": "active",

@@ -547,11 +547,16 @@ private func countPads(arguments: [String: Value]?) async -> CallTool.Result {
     let owner = stringArgument(arguments, "owner")
     let state = stringArgument(arguments, "state")
     let language = stringArgument(arguments, "language")
+    let after = stringArgument(arguments, "created_after")
+    let before = stringArgument(arguments, "created_before")
 
     let scan = await fetchAllPads()
     if let error = scan.error { return toolResult(error) }
 
-    let matched = scan.pads.filter { padMatches($0, owner: owner, state: state, language: language) }
+    let matched = scan.pads.filter {
+        padMatches($0, owner: owner, state: state, language: language)
+            && withinDateRange($0, after: after, before: before)
+    }
     var result: [String: Any] = [
         "matched": matched.count,
         "scanned": scan.pads.count,
@@ -559,7 +564,8 @@ private func countPads(arguments: [String: Value]?) async -> CallTool.Result {
         "truncated": scan.truncated
     ]
     if let total = scan.totalReported { result["total_reported_by_api"] = total }
-    let filters = filtersEcho(owner: owner, state: state, language: language)
+    var filters = filtersEcho(owner: owner, state: state, language: language)
+    addDateFilters(&filters, after: after, before: before)
     if !filters.isEmpty { result["filters"] = filters }
     if scan.truncated {
         result["note"] = "Hit the internal page cap (\(maxPadPagesToFetch) pages); the count covers only the pads scanned."
@@ -582,11 +588,16 @@ private func aggregatePadsTool(groupBy: String, arguments: [String: Value]?) asy
     let owner = stringArgument(arguments, "owner")
     let state = stringArgument(arguments, "state")
     let language = stringArgument(arguments, "language")
+    let after = stringArgument(arguments, "created_after")
+    let before = stringArgument(arguments, "created_before")
 
     let scan = await fetchAllPads()
     if let error = scan.error { return toolResult(error) }
 
-    let matched = scan.pads.filter { padMatches($0, owner: owner, state: state, language: language) }
+    let matched = scan.pads.filter {
+        padMatches($0, owner: owner, state: state, language: language)
+            && withinDateRange($0, after: after, before: before)
+    }
     let counts = aggregateCounts(pads: matched, field: field)
     let capped = topGroups(counts, limit: maxAggregateGroups)
     let groups: [[String: Any]] = capped.map { ["value": $0.value, "count": $0.count] }
@@ -600,7 +611,8 @@ private func aggregatePadsTool(groupBy: String, arguments: [String: Value]?) asy
         "pages_fetched": scan.pagesFetched,
         "truncated": scan.truncated
     ]
-    let filters = filtersEcho(owner: owner, state: state, language: language)
+    var filters = filtersEcho(owner: owner, state: state, language: language)
+    addDateFilters(&filters, after: after, before: before)
     if !filters.isEmpty { result["filters"] = filters }
     if counts.count > capped.count {
         result["groups_truncated"] = true
@@ -670,12 +682,15 @@ private func countQuestions(arguments: [String: Value]?) async -> CallTool.Resul
     let author = stringArgument(arguments, "author")
     let language = stringArgument(arguments, "language")
     let type = stringArgument(arguments, "type")
+    let after = stringArgument(arguments, "created_after")
+    let before = stringArgument(arguments, "created_before")
 
     let scan = await fetchAllQuestions()
     if let error = scan.error { return toolResult(error) }
 
     let matched = scan.questions.filter {
         questionMatches($0, owner: owner, author: author, language: language, type: type)
+            && withinDateRange($0, after: after, before: before)
     }
     var result: [String: Any] = [
         "matched": matched.count,
@@ -684,7 +699,8 @@ private func countQuestions(arguments: [String: Value]?) async -> CallTool.Resul
         "truncated": scan.truncated
     ]
     if let total = scan.totalReported { result["total_reported_by_api"] = total }
-    let filters = questionFiltersEcho(owner: owner, author: author, language: language, type: type)
+    var filters = questionFiltersEcho(owner: owner, author: author, language: language, type: type)
+    addDateFilters(&filters, after: after, before: before)
     if !filters.isEmpty { result["filters"] = filters }
     if scan.truncated {
         result["note"] = "Hit the internal page cap (\(maxPadPagesToFetch) pages); the count covers only the questions scanned."
@@ -708,12 +724,15 @@ private func aggregateQuestionsTool(groupBy: String, arguments: [String: Value]?
     let author = stringArgument(arguments, "author")
     let language = stringArgument(arguments, "language")
     let type = stringArgument(arguments, "type")
+    let after = stringArgument(arguments, "created_after")
+    let before = stringArgument(arguments, "created_before")
 
     let scan = await fetchAllQuestions()
     if let error = scan.error { return toolResult(error) }
 
     let matched = scan.questions.filter {
         questionMatches($0, owner: owner, author: author, language: language, type: type)
+            && withinDateRange($0, after: after, before: before)
     }
     let counts = aggregateCounts(pads: matched, field: field)
     let capped = topGroups(counts, limit: maxAggregateGroups)
@@ -728,7 +747,8 @@ private func aggregateQuestionsTool(groupBy: String, arguments: [String: Value]?
         "pages_fetched": scan.pagesFetched,
         "truncated": scan.truncated
     ]
-    let filters = questionFiltersEcho(owner: owner, author: author, language: language, type: type)
+    var filters = questionFiltersEcho(owner: owner, author: author, language: language, type: type)
+    addDateFilters(&filters, after: after, before: before)
     if !filters.isEmpty { result["filters"] = filters }
     if counts.count > capped.count {
         result["groups_truncated"] = true

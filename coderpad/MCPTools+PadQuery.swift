@@ -86,11 +86,16 @@ nonisolated extension MCPTools {
         let owner = string(arguments, "owner")
         let state = string(arguments, "state")
         let language = string(arguments, "language")
+        let after = string(arguments, "created_after")
+        let before = string(arguments, "created_before")
 
         let scan = await fetchAllPads(accountID: credentials.id, key: credentials.apiKey, base: credentials.baseURL)
         if let error = scan.error { return error }
 
-        let matched = scan.pads.filter { MCPPadAggregation.matches($0, owner: owner, state: state, language: language) }
+        let matched = scan.pads.filter {
+            MCPPadAggregation.matches($0, owner: owner, state: state, language: language)
+                && MCPPadAggregation.withinDateRange($0, after: after, before: before)
+        }
         var result: [String: Any] = [
             "matched": matched.count,
             "scanned": scan.pads.count,
@@ -99,7 +104,8 @@ nonisolated extension MCPTools {
             "source": scan.fromCache ? "padbuddy_cache" : "coderpad_api"
         ]
         if let total = scan.totalReported { result["total_reported_by_api"] = total }
-        let filters = MCPPadAggregation.filtersEcho(owner: owner, state: state, language: language)
+        var filters = MCPPadAggregation.filtersEcho(owner: owner, state: state, language: language)
+        MCPPadAggregation.addDateFilters(&filters, after: after, before: before)
         if !filters.isEmpty { result["filters"] = filters }
         if scan.truncated {
             result["note"] = "Hit the internal page cap (\(maxPadPagesToFetch) pages); "
@@ -122,11 +128,16 @@ nonisolated extension MCPTools {
         let owner = string(arguments, "owner")
         let state = string(arguments, "state")
         let language = string(arguments, "language")
+        let after = string(arguments, "created_after")
+        let before = string(arguments, "created_before")
 
         let scan = await fetchAllPads(accountID: credentials.id, key: credentials.apiKey, base: credentials.baseURL)
         if let error = scan.error { return error }
 
-        let matched = scan.pads.filter { MCPPadAggregation.matches($0, owner: owner, state: state, language: language) }
+        let matched = scan.pads.filter {
+            MCPPadAggregation.matches($0, owner: owner, state: state, language: language)
+                && MCPPadAggregation.withinDateRange($0, after: after, before: before)
+        }
         let counts = MCPPadAggregation.counts(pads: matched, field: field)
         let capped = MCPPadAggregation.topGroups(counts, limit: maxAggregateGroups)
         let groups: [[String: Any]] = capped.map { ["value": $0.value, "count": $0.count] }
@@ -141,7 +152,8 @@ nonisolated extension MCPTools {
             "truncated": scan.truncated,
             "source": scan.fromCache ? "padbuddy_cache" : "coderpad_api"
         ]
-        let filters = MCPPadAggregation.filtersEcho(owner: owner, state: state, language: language)
+        var filters = MCPPadAggregation.filtersEcho(owner: owner, state: state, language: language)
+        MCPPadAggregation.addDateFilters(&filters, after: after, before: before)
         if !filters.isEmpty { result["filters"] = filters }
         if counts.count > capped.count {
             result["groups_truncated"] = true

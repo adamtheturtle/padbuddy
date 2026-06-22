@@ -52,7 +52,9 @@ nonisolated extension MCPTools {
             "owner": stringSchema("Only questions whose owner_email matches this, case-insensitively."),
             "author": stringSchema("Only questions whose author_name matches this, case-insensitively."),
             "language": stringSchema("Only questions in this language (e.g. \"python\")."),
-            "type": stringSchema("Only questions of this pad_type (e.g. \"sandbox\", \"take_home\").")
+            "type": stringSchema("Only questions of this pad_type (e.g. \"sandbox\", \"take_home\")."),
+            "created_after": stringSchema(dateBoundDescription(bound: "on or after")),
+            "created_before": stringSchema(dateBoundDescription(bound: "on or before"))
         ]
     }
 
@@ -146,6 +148,8 @@ nonisolated extension MCPTools {
         let author = string(arguments, "author")
         let language = string(arguments, "language")
         let type = string(arguments, "type")
+        let after = string(arguments, "created_after")
+        let before = string(arguments, "created_before")
 
         let scan = await fetchAllQuestions(
             accountID: credentials.id, key: credentials.apiKey, base: credentials.baseURL
@@ -154,6 +158,7 @@ nonisolated extension MCPTools {
 
         let matched = scan.questions.filter {
             MCPQuestionAggregation.matches($0, owner: owner, author: author, language: language, type: type)
+                && MCPPadAggregation.withinDateRange($0, after: after, before: before)
         }
         var result: [String: Any] = [
             "matched": matched.count,
@@ -163,7 +168,8 @@ nonisolated extension MCPTools {
             "source": scan.fromCache ? "padbuddy_cache" : "coderpad_api"
         ]
         if let total = scan.totalReported { result["total_reported_by_api"] = total }
-        let filters = MCPQuestionAggregation.filtersEcho(owner: owner, author: author, language: language, type: type)
+        var filters = MCPQuestionAggregation.filtersEcho(owner: owner, author: author, language: language, type: type)
+        MCPPadAggregation.addDateFilters(&filters, after: after, before: before)
         if !filters.isEmpty { result["filters"] = filters }
         if scan.truncated {
             result["note"] = "Hit the internal page cap (\(maxQuestionPagesToFetch) pages); "
@@ -187,6 +193,8 @@ nonisolated extension MCPTools {
         let author = string(arguments, "author")
         let language = string(arguments, "language")
         let type = string(arguments, "type")
+        let after = string(arguments, "created_after")
+        let before = string(arguments, "created_before")
 
         let scan = await fetchAllQuestions(
             accountID: credentials.id, key: credentials.apiKey, base: credentials.baseURL
@@ -195,6 +203,7 @@ nonisolated extension MCPTools {
 
         let matched = scan.questions.filter {
             MCPQuestionAggregation.matches($0, owner: owner, author: author, language: language, type: type)
+                && MCPPadAggregation.withinDateRange($0, after: after, before: before)
         }
         let counts = MCPPadAggregation.counts(pads: matched, field: field)
         let capped = MCPPadAggregation.topGroups(counts, limit: maxQuestionGroups)
@@ -210,7 +219,8 @@ nonisolated extension MCPTools {
             "truncated": scan.truncated,
             "source": scan.fromCache ? "padbuddy_cache" : "coderpad_api"
         ]
-        let filters = MCPQuestionAggregation.filtersEcho(owner: owner, author: author, language: language, type: type)
+        var filters = MCPQuestionAggregation.filtersEcho(owner: owner, author: author, language: language, type: type)
+        MCPPadAggregation.addDateFilters(&filters, after: after, before: before)
         if !filters.isEmpty { result["filters"] = filters }
         if counts.count > capped.count {
             result["groups_truncated"] = true

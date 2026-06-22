@@ -68,6 +68,24 @@ struct MCPPadAggregationTests {
     }
 
     @Test
+    func `withinDateRange honors month, date and timestamp bounds, inclusively`() {
+        let pad = pads[0] // created_at 2026-01-04T00:00:00Z
+        // Absent/empty bounds always pass.
+        #expect(MCPPadAggregation.withinDateRange(pad, after: nil, before: nil))
+        #expect(MCPPadAggregation.withinDateRange(pad, after: "", before: ""))
+        // Month-granularity bounds are inclusive.
+        #expect(MCPPadAggregation.withinDateRange(pad, after: "2026-01", before: "2026-01"))
+        #expect(!MCPPadAggregation.withinDateRange(pad, after: "2026-02", before: nil))
+        #expect(!MCPPadAggregation.withinDateRange(pad, after: nil, before: "2025-12"))
+        // Date-granularity bounds, inclusive on the day.
+        #expect(MCPPadAggregation.withinDateRange(pad, after: "2026-01-04", before: "2026-01-04"))
+        #expect(!MCPPadAggregation.withinDateRange(pad, after: "2026-01-05", before: nil))
+        // A record with no created_at fails any present bound.
+        #expect(!MCPPadAggregation.withinDateRange(pads[3], after: "2026-01", before: nil))
+        #expect(MCPPadAggregation.withinDateRange(pads[3], after: nil, before: nil))
+    }
+
+    @Test
     func `compact keeps only the compact keys`() {
         let rich: [[String: Any]] = [[
             "id": "abc", "title": "T", "owner_email": "a@x.com", "state": "active",

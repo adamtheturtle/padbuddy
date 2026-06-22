@@ -34,6 +34,25 @@ nonisolated enum MCPPadAggregation {
         return equals("owner_email", owner) && equals("state", state) && equals("language", language)
     }
 
+    /// Whether a record's `created_at` falls within an optional [after, before] range. Both
+    /// bounds are compared against the matching-length prefix of `created_at`, so a bound can
+    /// be a full ISO8601 timestamp, a date (`2026-03-01`), or a month (`2026-03`) — inclusive
+    /// at whatever granularity is given. A record with no `created_at` fails any present
+    /// bound; empty/absent bounds always pass. Shared by the pad and question count/aggregate
+    /// tools (both carry `created_at`).
+    static func withinDateRange(_ record: [String: Any], after: String?, before: String?) -> Bool {
+        let created = (record["created_at"] as? String) ?? ""
+        func passes(_ bound: String?, _ compare: (String) -> Bool) -> Bool {
+            guard let bound, !bound.isEmpty else { return true }
+            guard !created.isEmpty else { return false }
+
+            return compare(bound)
+        }
+
+        return passes(after) { String(created.prefix($0.count)) >= $0 }
+            && passes(before) { String(created.prefix($0.count)) <= $0 }
+    }
+
     /// Echoes the active filters back into a result, for clarity on what was counted.
     static func filtersEcho(owner: String?, state: String?, language: String?) -> [String: Any] {
         var filters: [String: Any] = [:]
@@ -41,6 +60,12 @@ nonisolated enum MCPPadAggregation {
         if let state, !state.isEmpty { filters["state"] = state }
         if let language, !language.isEmpty { filters["language"] = language }
         return filters
+    }
+
+    /// Adds active `created_after`/`created_before` bounds to a filters echo.
+    static func addDateFilters(_ filters: inout [String: Any], after: String?, before: String?) {
+        if let after, !after.isEmpty { filters["created_after"] = after }
+        if let before, !before.isEmpty { filters["created_before"] = before }
     }
 
     /// Normalizes a user-facing `group_by` to a pad field, or nil when unsupported.

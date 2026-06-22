@@ -33,7 +33,9 @@ public let pagingProperties: [String: Value] = [
 public let padFilterProperties: [String: Value] = [
     "owner": property("string", "Only pads whose owner_email matches this, case-insensitively."),
     "state": property("string", "Only pads in this state (e.g. \"active\", \"ended\")."),
-    "language": property("string", "Only pads in this language (e.g. \"python\").")
+    "language": property("string", "Only pads in this language (e.g. \"python\")."),
+    "created_after": property("string", dateBoundDescription(bound: "on or after")),
+    "created_before": property("string", dateBoundDescription(bound: "on or before"))
 ]
 
 /// The owner/author/language/type filters for the question count/aggregate tools, applied
@@ -42,8 +44,17 @@ public let questionFilterProperties: [String: Value] = [
     "owner": property("string", "Only questions whose owner_email matches this, case-insensitively."),
     "author": property("string", "Only questions whose author_name matches this, case-insensitively."),
     "language": property("string", "Only questions in this language (e.g. \"python\")."),
-    "type": property("string", "Only questions of this pad_type (e.g. \"sandbox\", \"take_home\").")
+    "type": property("string", "Only questions of this pad_type (e.g. \"sandbox\", \"take_home\")."),
+    "created_after": property("string", dateBoundDescription(bound: "on or after")),
+    "created_before": property("string", dateBoundDescription(bound: "on or before"))
 ]
+
+/// Description for a created_at date-range bound argument, shared by the pad and question
+/// filter schemas.
+public func dateBoundDescription(bound: String) -> String {
+    "Only records created \(bound) this date. Accepts a month (\"2026-03\"), a date "
+        + "(\"2026-03-01\"), or a full ISO8601 timestamp; inclusive at the given granularity."
+}
 
 /// The always-available read tools.
 public let readTools: [Tool] = [
