@@ -108,6 +108,13 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
     /// Called when a row drag ends (drop or cancel). Default: no-op.
     var onDragSessionEnded: () -> Void
 
+    /// The app's Dynamic Type size. Each row is hosted in an `NSHostingView`, which gets a
+    /// fresh SwiftUI environment that does NOT inherit the surrounding view's
+    /// `dynamicTypeSize` — so without re-injecting it the list rows ignored the macOS text-size
+    /// accessibility setting while the rest of the app scaled (#547). Captured here and pushed
+    /// back into every hosted row.
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     public init(
         items: [Item],
         selection: Binding<Set<Item.ID>>,
@@ -174,6 +181,7 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
         table.setDraggingSourceOperationMask(.copy, forLocal: false)
 
         context.coordinator.tableView = table
+        context.coordinator.lastDynamicTypeSize = dynamicTypeSize
         context.coordinator.reloadIfNeeded(items, force: true)
 
         let scroll = NSScrollView()
@@ -201,6 +209,7 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
         // Only reload when the row set actually changed (filter/sort/refresh) — never
         // on a bare selection change, which is the whole point of the rewrite.
         coordinator.reloadIfNeeded(items, force: false)
+        coordinator.applyDynamicTypeSizeIfChanged(dynamicTypeSize)
         coordinator.applySelection(selection)
 
         if let scrollToID, let row = coordinator.index(of: scrollToID) {
@@ -217,6 +226,9 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
         private var indexByID: [Item.ID: Int] = [:]
         /// Guards against the selection binding and the table's selection ping-ponging.
         private var isApplyingSelection = false
+        /// The Dynamic Type size the currently hosted rows were built with, so a change to
+        /// the system text size forces a re-host at the new size (#547).
+        var lastDynamicTypeSize: DynamicTypeSize?
 
         init(_ parent: ListTable) {
             self.parent = parent
@@ -242,6 +254,17 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
             applySelection(parent.selection)
         }
 
+        /// Re-host every visible row when the system text size changed, so the rows scale
+        /// with the accessibility setting (#547) and `usesAutomaticRowHeights` re-measures
+        /// their new heights. A no-op when the size is unchanged, which is the common case.
+        func applyDynamicTypeSizeIfChanged(_ size: DynamicTypeSize) {
+            guard lastDynamicTypeSize != size else { return }
+
+            lastDynamicTypeSize = size
+            tableView?.reloadData()
+            applySelection(parent.selection)
+        }
+
         func index(of id: Item.ID) -> Int? {
             indexByID[id]
         }
@@ -253,7 +276,7 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
         public func tableView(_ tableView: NSTableView, viewFor _: NSTableColumn?, row: Int) -> NSView? {
             let cell = tableView.makeView(withIdentifier: .listCell, owner: self) as? HostingCellView
                 ?? HostingCellView(identifier: .listCell)
-            cell.host(parent.rowContent(items[row]))
+            cell.host(AnyView(parent.rowContent(items[row]).dynamicTypeSize(parent.dynamicTypeSize)))
             return cell
         }
 
