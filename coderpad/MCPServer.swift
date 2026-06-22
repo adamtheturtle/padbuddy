@@ -92,6 +92,11 @@ nonisolated struct MCPCredentials {
     let baseURL: URL
     let accountName: String
     let userEmail: String
+    /// The account's CoderPad Screen API key and region base URL, when it has one
+    /// configured (#499). nil means the `screen_*` tools can't act as this account. Like
+    /// the interview key, never returned by a tool.
+    var screenApiKey: String?
+    var screenBaseURL: URL?
 }
 
 /// All the accounts the in-app MCP server can act as, plus which one is the default
@@ -105,6 +110,13 @@ nonisolated struct MCPAccountDirectory {
     /// Whether the write tools (#502) are advertised and permitted. Off unless the user
     /// has turned on the explicit "Allow the MCP server to make changes" setting.
     var allowWrites = false
+
+    /// Whether any configured account has a Screen API key, so the read-only `screen_*`
+    /// tools (#499) are worth advertising. A call still resolves the specific account's
+    /// Screen credentials, erroring clearly if that account has none.
+    var screenAvailable: Bool {
+        accounts.contains { $0.screenApiKey?.isEmpty == false }
+    }
 
     /// The default account: the app-selected one, or the first configured if that id is
     /// missing, or nil when nothing is configured.
@@ -151,12 +163,17 @@ enum MCPAccountLoader {
             let key = account.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !key.isEmpty else { return nil }
 
+            let screenKey = account.screenApiKey?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let hasScreen = !(screenKey ?? "").isEmpty
+
             return MCPCredentials(
                 id: account.id.uuidString,
                 apiKey: key,
                 baseURL: account.resolvedBaseURL,
                 accountName: account.name,
-                userEmail: account.userEmail
+                userEmail: account.userEmail,
+                screenApiKey: hasScreen ? screenKey : nil,
+                screenBaseURL: hasScreen ? account.screenRegion.baseURL : nil
             )
         }
 

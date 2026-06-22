@@ -21,8 +21,10 @@ nonisolated enum MCPTools {
     /// Tool descriptors for `tools/list`, as plain JSON objects. A fresh array is built
     /// per call (no shared state). The write tools (#502) are appended only when the user
     /// has opted in, so an assistant never even sees them otherwise.
-    static func all(allowWrites: Bool) -> [[String: Any]] {
-        readTools + (allowWrites ? writeTools : [])
+    static func all(allowWrites: Bool, screenEnabled: Bool) -> [[String: Any]] {
+        readTools
+            + (screenEnabled ? screenTools : [])
+            + (allowWrites ? writeTools : [])
     }
 
     /// The read-only tools, always available.
@@ -154,6 +156,9 @@ nonisolated enum MCPTools {
 
         if writeToolNames.contains(name) {
             return await dispatchWrite(name: name, arguments: arguments, credentials: credentials)
+        }
+        if screenToolNames.contains(name) {
+            return await dispatchScreen(name: name, arguments: arguments, credentials: credentials)
         }
         return await dispatch(name: name, arguments: arguments, credentials: credentials)
     }

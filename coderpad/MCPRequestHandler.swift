@@ -66,7 +66,9 @@ nonisolated struct MCPRequestHandler {
     }
 
     private func toolsListResponse(id: Any?) -> String {
-        Self.successResponse(id: id, result: ["tools": MCPTools.all(allowWrites: directory.allowWrites)])
+        Self.successResponse(id: id, result: [
+            "tools": MCPTools.all(allowWrites: directory.allowWrites, screenEnabled: directory.screenAvailable)
+        ])
     }
 
     private func toolsCallResponse(id: Any?, params: [String: Any]?) async -> String {
