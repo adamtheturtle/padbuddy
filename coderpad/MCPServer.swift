@@ -12,16 +12,16 @@
 //  binary to build, download, or sign - it ships and updates with the app, inside the
 //  sandbox, using the account the user already configured.
 //
-//  Only read endpoints are exposed deliberately: a server an assistant can drive should
-//  not be able to create, edit, or delete interview content.
+//  The reusable server core - the stdio loop, JSON-RPC dispatch, and account model -
+//  lives in the BuddyMCP package (#514). This file keeps the CoderPad-specific glue:
+//  the launch flag and settings keys, and the loader that turns saved accounts into the
+//  package's `MCPAccountDirectory`. The tool catalogue is supplied by `CoderPadToolProvider`.
 //
 
+import BuddyMCP
 import Foundation
 
-/// Entry point and stdio run loop for the `--mcp` headless mode. Marked `nonisolated`
-/// so its work runs off the main actor: the loop blocks the main thread on `readLine()`
-/// while each request is handled on a background task, which would deadlock against the
-/// app's default `MainActor` isolation if these types inherited it.
+/// CoderPad-specific entry glue for the `--mcp` headless mode.
 nonisolated enum MCPServer {
     /// Presence of this argument switches the process into headless MCP mode.
     static let commandLineFlag = "--mcp"
@@ -39,108 +39,23 @@ nonisolated enum MCPServer {
     /// `UserDefaults.standard` too early hung the sandboxed direct-exec binary (#402).
     static let writeEnabledDefaultsKey = "mcpServerAllowWrites"
 
-    /// Reads JSON-RPC requests line by line from stdin, writes responses to stdout, and
-    /// runs until stdin closes. Never returns - the process exists only to serve MCP. The
-    /// credentials are resolved on the main actor by the caller (`Account` is main-actor
-    /// isolated) and passed in as plain Sendable values.
+    /// Serves MCP over stdio until stdin closes, using the CoderPad tool catalogue. The
+    /// directory is resolved by the caller on the main actor (`Account` is main-actor
+    /// isolated); the BuddyMCP loop then runs nonisolated. Tool activity is forwarded to
+    /// `MCPActivityLog` so the app's status view can show it (#523). Never returns.
     static func runUntilExit(directory: MCPAccountDirectory) -> Never {
-        // Record that a server process started serving (which account), so the app's MCP
-        // status view can show it's working (#523).
-        MCPActivityLog.recordLaunch(account: directory.current?.accountName)
-        let handler = MCPRequestHandler(directory: directory)
-        while let line = readLine(strippingNewline: true) {
-            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else { continue }
-
-            if let reply = blockingHandle(handler, line: trimmed) {
-                FileHandle.standardOutput.write(Data((reply + "\n").utf8))
-            }
-        }
-        exit(0)
-    }
-
-    /// Bridges the async request handler to the synchronous read loop. The detached task
-    /// runs off-main (handler is `nonisolated`), so blocking the main thread here never
-    /// deadlocks; the semaphore also publishes the box's write to this thread.
-    private static func blockingHandle(_ handler: MCPRequestHandler, line: String) -> String? {
-        let semaphore = DispatchSemaphore(value: 0)
-        let box = ReplyBox()
-        Task.detached {
-            box.reply = await handler.handle(line)
-            semaphore.signal()
-        }
-        semaphore.wait()
-        return box.reply
-    }
-
-    /// Carries one reply across the detached-task boundary. Safe because the semaphore
-    /// orders the write (before `signal`) ahead of the read (after `wait`).
-    private final class ReplyBox: @unchecked Sendable {
-        var reply: String?
-    }
-}
-
-/// The minimal, Sendable credentials the MCP tools need: an API key, the resolved base
-/// URL, and the account's identity (its id, display name, and the user email it resolves
-/// to) for the `whoami` / `list_accounts` tools (#518, #519). Extracted from the saved
-/// `Account` on the main actor so the rest of the server can stay `nonisolated`. The id /
-/// name / email are NOT secrets; the API key is the only sensitive field and the tools
-/// never return it.
-nonisolated struct MCPCredentials {
-    let id: String
-    let apiKey: String
-    let baseURL: URL
-    let accountName: String
-    let userEmail: String
-    /// The account's CoderPad Screen API key and region base URL, when it has one
-    /// configured (#499). nil means the `screen_*` tools can't act as this account. Like
-    /// the interview key, never returned by a tool.
-    var screenApiKey: String?
-    var screenBaseURL: URL?
-}
-
-/// All the accounts the in-app MCP server can act as, plus which one is the default
-/// (the account selected in the app). Lets the server serve any configured account, not
-/// just the selected one (#519): tools take an optional `account` argument, and
-/// `list_accounts` enumerates what's available.
-nonisolated struct MCPAccountDirectory {
-    let accounts: [MCPCredentials]
-    /// The id of the account selected in the app, used when no `account` argument is given.
-    let currentID: String?
-    /// Whether the write tools (#502) are advertised and permitted. Off unless the user
-    /// has turned on the explicit "Allow the MCP server to make changes" setting.
-    var allowWrites = false
-
-    /// Whether any configured account has a Screen API key, so the read-only `screen_*`
-    /// tools (#499) are worth advertising. A call still resolves the specific account's
-    /// Screen credentials, erroring clearly if that account has none.
-    var screenAvailable: Bool {
-        accounts.contains { $0.screenApiKey?.isEmpty == false }
-    }
-
-    /// The default account: the app-selected one, or the first configured if that id is
-    /// missing, or nil when nothing is configured.
-    var current: MCPCredentials? {
-        if let currentID, let match = accounts.first(where: { $0.id == currentID }) { return match }
-        return accounts.first
-    }
-
-    /// Resolves a tool's `account` argument to one account. A nil/empty selector picks the
-    /// default; otherwise it matches by id (UUID string) first, then case-insensitively by
-    /// display name. Returns nil when a non-empty selector matches nothing.
-    func resolve(_ selector: String?) -> MCPCredentials? {
-        guard let selector = selector?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !selector.isEmpty
-        else { return current }
-
-        if let byID = accounts.first(where: { $0.id == selector }) { return byID }
-        return accounts.first { $0.accountName.caseInsensitiveCompare(selector) == .orderedSame }
+        BuddyMCP.MCPServer.runUntilExit(
+            provider: CoderPadToolProvider(),
+            directory: directory,
+            onLaunch: { MCPActivityLog.recordLaunch(account: $0) },
+            onCall: { MCPActivityLog.recordCall(tool: $0, account: $1, succeeded: $2) }
+        )
     }
 }
 
 /// Loads the accounts the MCP server can act as, without spinning up the full
-/// `AccountsStore` (and its monitors/caches). Mirrors `AccountsStore.loadAccounts` +
-/// the `currentAccountID` default, reading the same Keychain blob and UserDefaults key.
+/// `AccountsStore` (and its monitors/caches). Mirrors the account decode + the
+/// `currentAccountID` default, reading the same Keychain blob and UserDefaults key.
 /// Main-actor isolated because decoding `Account` (and reading its properties) is.
 enum MCPAccountLoader {
     @MainActor
@@ -156,7 +71,8 @@ enum MCPAccountLoader {
         // Drop accounts without a usable key (e.g. an in-progress draft), and the demo
         // account: its mock key only works against the in-process mock server the headless
         // process doesn't run, so serving it would send a fake key to the real API and 401
-        // ("Invalid API key"). Each remaining account becomes one selectable identity.
+        // ("Invalid API key"). Each remaining account becomes one selectable identity. The
+        // Screen key maps onto the package's generic "secondary" credentials slot.
         let credentials: [MCPCredentials] = accounts.compactMap { account in
             guard !account.isMock else { return nil }
 
@@ -172,8 +88,8 @@ enum MCPAccountLoader {
                 baseURL: account.resolvedBaseURL,
                 accountName: account.name,
                 userEmail: account.userEmail,
-                screenApiKey: hasScreen ? screenKey : nil,
-                screenBaseURL: hasScreen ? account.screenRegion.baseURL : nil
+                secondaryApiKey: hasScreen ? screenKey : nil,
+                secondaryBaseURL: hasScreen ? account.screenRegion.baseURL : nil
             )
         }
 

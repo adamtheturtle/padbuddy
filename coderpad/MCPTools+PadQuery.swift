@@ -9,6 +9,7 @@
 //  transforms live in MCPPadAggregation.
 //
 
+import BuddyMCP
 import Foundation
 
 nonisolated extension MCPTools {

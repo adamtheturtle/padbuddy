@@ -8,6 +8,7 @@
 //  additions and gives the assistant the richest representation.
 //
 
+import BuddyMCP
 import Foundation
 
 nonisolated enum MCPTools {

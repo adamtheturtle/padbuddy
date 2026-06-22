@@ -14,6 +14,7 @@
 //  clients can prompt before running them.
 //
 
+import BuddyMCP
 import Foundation
 
 nonisolated extension MCPTools {

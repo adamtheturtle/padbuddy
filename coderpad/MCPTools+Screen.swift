@@ -10,6 +10,7 @@
 //  and each call resolves the targeted account's own Screen credentials.
 //
 
+import BuddyMCP
 import Foundation
 
 nonisolated extension MCPTools {
@@ -48,7 +49,7 @@ nonisolated extension MCPTools {
     static func dispatchScreen(
         name: String, arguments: [String: Any], credentials: MCPCredentials
     ) async -> Outcome {
-        guard let key = credentials.screenApiKey, let base = credentials.screenBaseURL else {
+        guard let key = credentials.secondaryApiKey, let base = credentials.secondaryBaseURL else {
             return Outcome(
                 text: "Screen isn't configured for the \"\(credentials.accountName)\" account. "
                     + "Add a Screen API key to that account in PadBuddy to use the screen_* tools.",

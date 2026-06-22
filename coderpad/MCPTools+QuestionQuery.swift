@@ -10,6 +10,7 @@
 //  counts/topGroups/nextPageToken).
 //
 
+import BuddyMCP
 import Foundation
 
 nonisolated extension MCPTools {
