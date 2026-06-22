@@ -20,8 +20,7 @@ extension SettingsView {
                 Text("""
                 The Model Context Protocol (MCP) lets AI assistants like Claude read your \
                 CoderPad data (your pads, questions, quota, and organization) so you can \
-                ask them about it in plain language. PadBuddy has the server built in and \
-                serves your selected account, so there's nothing to install.
+                ask them about it in plain language.
                 """)
                 .foregroundStyle(.secondary)
             } header: {
