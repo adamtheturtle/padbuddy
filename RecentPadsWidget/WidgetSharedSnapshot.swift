@@ -64,6 +64,13 @@ enum WidgetSharedStore {
     private static let accountsFile = "widget-accounts.json"
     private static let newPadRequestFile = "pending-new-pad.json"
 
+    /// Darwin notification posted when a New Pad request is recorded, so a running app
+    /// drains it immediately — even while it's already frontmost, where a widget/control
+    /// tap triggers no activation and so `applicationDidBecomeActive` never fires (#485).
+    /// A global Darwin name, prefixed with the App Group id for uniqueness. Must match
+    /// the app target's copy (`coderpad/WidgetPadSnapshot.swift`).
+    static let newPadRequestNotification = "6L9H6Q8CUF.group.com.adamdangoor.coderpad.new-pad-requested"
+
     /// File holding `account`'s pads, or the default (current-account) snapshot when
     /// `account` is nil.
     private static func padsFileName(account: String?) -> String {
@@ -116,6 +123,20 @@ enum WidgetSharedStore {
         else { return }
 
         try? data.write(to: url, options: .atomic)
+        postNewPadRequestNotification()
+    }
+
+    /// Nudges a running app to drain the just-recorded request right away.
+    /// `applicationDidBecomeActive` covers cold launch and background→foreground, but
+    /// not the case where the app is already frontmost (a control/widget tap then causes
+    /// no activation transition), so post a Darwin notification the app observes to drain
+    /// regardless of its activation state (#485). Cross-process and payload-free by design.
+    private static func postNewPadRequestNotification() {
+        CFNotificationCenterPostNotification(
+            CFNotificationCenterGetDarwinNotifyCenter(),
+            CFNotificationName(newPadRequestNotification as CFString),
+            nil, nil, true
+        )
     }
 }
 

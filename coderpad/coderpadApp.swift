@@ -28,6 +28,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // up the delegate-retained `servicesProvider`.
         NSApp.servicesProvider = servicesProvider
         NSUpdateDynamicServices()
+        registerNewPadRequestObserver()
     }
 
     /// Perform any New Pad request the widget or Control Center button recorded. They
@@ -43,9 +44,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // sliver. Test-only: gated on `-uiTesting`, so it never affects real users.
         UITestingWindow.sizeToScreenIfNeeded()
 
-        guard let request = WidgetSharedStore.takePendingNewPad() else { return }
-
-        Self.createPadInBrowser(account: request.account, question: request.question)
+        Self.drainPendingNewPad()
     }
 
     /// The menu shown when right-clicking the Dock icon. Offers the same quick
