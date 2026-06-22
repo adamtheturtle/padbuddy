@@ -112,6 +112,7 @@ a:hover { text-decoration: underline; }
   display: block;
   width: 100%;
   height: auto;
+
   /* No border/radius/shadow: the screenshot carries its own window chrome on a
      page-matching background, so framing it just made it look like a card. */
 }
