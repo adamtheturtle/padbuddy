@@ -33,6 +33,12 @@ struct MCPInstallTabs: View {
             Label("Add to \(client.displayName)", systemImage: "wand.and.stars")
         }
 
+        if let verifyHint = client.verifyHint {
+            Text(LocalizedStringKey(verifyHint))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+        }
+
         DisclosureGroup("Prefer to edit the file yourself?") {
             manualInstructions
         }

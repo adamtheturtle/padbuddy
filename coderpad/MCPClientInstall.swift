@@ -56,6 +56,15 @@ enum MCPClientInstall {
             }
         }
 
+        /// An optional client-specific tip for confirming the server connected.
+        var verifyHint: String? {
+            switch self {
+            case .claudeDesktop: "If it doesn't show up, check Claude Desktop's logs in ~/Library/Logs/Claude/."
+            case .claudeCode: "Confirm it connected with `claude mcp list` or `claude mcp get coderpad`."
+            case .codex, .cursor: nil
+            }
+        }
+
         /// The config snippet to paste by hand, for the "edit the file yourself" fallback.
         func snippet(executablePath: String) -> String {
             switch self {
