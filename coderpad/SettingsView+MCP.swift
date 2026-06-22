@@ -42,9 +42,8 @@ extension SettingsView {
                 } header: {
                     Text("Add to your assistant")
                 } footer: {
-                    Text("The button asks for access to the assistant's config folder the first "
-                        + "time. Your API key is never written to the file - the server reads it "
-                        + "from the Keychain at runtime.")
+                    Text("Your API key is never written to the file - the server reads it from "
+                        + "the Keychain at runtime.")
                         .foregroundStyle(.secondary)
                 }
 
