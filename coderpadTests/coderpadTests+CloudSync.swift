@@ -104,4 +104,71 @@ struct CloudSyncTests {
 
         #expect(merged == [local: ["pad-1"]])
     }
+
+    // MARK: id-keyed union (favourite questions, templates)
+
+    private struct Item: Equatable {
+        let id: Int
+        var label: String
+    }
+
+    @Test
+    func `id-keyed merge unions by id and keeps the local entry when both have it`() {
+        let local = UUID()
+        let identity = "host|jane@acme.com"
+
+        let merged = AccountSyncMerge.mergeArrays(
+            cloud: [identity: [Item(id: 2, label: "cloud-renamed"), Item(id: 3, label: "from-cloud")]],
+            into: [local: [Item(id: 1, label: "local"), Item(id: 2, label: "local-2")]],
+            uuidForSyncID: { $0 == identity ? local : nil },
+            id: { $0.id }
+        )
+
+        // id 2 stays as the local copy (not overwritten by the cloud's renamed label),
+        // the cloud-only id 3 is appended, and local order holds.
+        #expect(merged[local] == [
+            Item(id: 1, label: "local"),
+            Item(id: 2, label: "local-2"),
+            Item(id: 3, label: "from-cloud")
+        ])
+    }
+
+    @Test
+    func `id-keyed merge adopts cloud items for an account empty locally`() {
+        let local = UUID()
+        let identity = "host|jane@acme.com"
+
+        let merged = AccountSyncMerge.mergeArrays(
+            cloud: [identity: [Item(id: 5, label: "x")]],
+            into: [:],
+            uuidForSyncID: { $0 == identity ? local : nil },
+            id: { $0.id }
+        )
+
+        #expect(merged[local] == [Item(id: 5, label: "x")])
+    }
+
+    // MARK: nested id-keyed union (saved searches, per kind)
+
+    @Test
+    func `nested merge unions each bucket by id independently`() {
+        let local = UUID()
+        let identity = "host|jane@acme.com"
+
+        let merged = AccountSyncMerge.mergeNestedArrays(
+            cloud: [identity: [
+                "pads": [Item(id: 2, label: "cloud"), Item(id: 9, label: "cloud-only")],
+                "questions": [Item(id: 1, label: "q-cloud")]
+            ]],
+            into: [local: [
+                "pads": [Item(id: 2, label: "local")]
+            ]],
+            uuidForSyncID: { $0 == identity ? local : nil },
+            id: { $0.id }
+        )
+
+        // pads: id 2 kept local, id 9 appended; questions bucket adopted wholesale.
+        #expect(merged[local]?["pads"] == [Item(id: 2, label: "local"), Item(id: 9, label: "cloud-only")])
+        #expect(merged[local]?["questions"] == [Item(id: 1, label: "q-cloud")])
+    }
 }

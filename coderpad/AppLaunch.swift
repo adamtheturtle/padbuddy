@@ -42,6 +42,9 @@ enum AppLaunch {
         // carry the profile-gated iCloud entitlement (#536).
         CloudSyncStore.shared.start()
         FavoritePadsStore.shared.syncFromCloud()
+        FavoriteQuestionsStore.shared.syncFromCloud()
+        SavedSearchStore.shared.syncFromCloud()
+        InterviewTemplatesStore.shared.syncFromCloud()
         // Keep the current account's pads fresh on a timer even when no window is open
         // and the menu is never clicked — the one state where nothing else fetches.
         // Writing to PadsCacheStore cascades to the widget snapshot and Dock badge.

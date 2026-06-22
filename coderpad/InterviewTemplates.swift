@@ -56,6 +56,10 @@ final class InterviewTemplatesStore {
 
     private var byAccount: [UUID: [InterviewTemplate]]
     private static let key = "interviewTemplates.v1"
+    /// The iCloud mirror, keyed by each account's stable sync id rather than the
+    /// per-device `UUID`, under its own key (#536).
+    private static let cloudKey = "interviewTemplates.cloud.v1"
+    private var cloudObserver: (any NSObjectProtocol)?
 
     private init() {
         if let data = UserDefaults.standard.data(forKey: Self.key),
@@ -63,6 +67,17 @@ final class InterviewTemplatesStore {
             byAccount = decoded
         } else {
             byAccount = [:]
+        }
+        cloudObserver = NotificationCenter.default.addObserver(
+            forName: CloudSyncStore.didChangeExternally, object: nil, queue: .main
+        ) { note in
+            let key = note.userInfo?["key"] as? String
+            // Delivered on the main queue, so we're already on the main actor.
+            MainActor.assumeIsolated {
+                guard key == Self.cloudKey else { return }
+
+                Self.shared.syncFromCloud()
+            }
         }
     }
 
@@ -106,6 +121,36 @@ final class InterviewTemplatesStore {
             let reason = error.localizedDescription
             persistenceLogger.error("Failed to encode interview templates: \(reason, privacy: .public)")
         }
+        mirrorToCloud()
+    }
+
+    /// Pushes the current templates up to iCloud, keyed by each account's stable sync
+    /// id. No-op when iCloud is unavailable (#536).
+    private func mirrorToCloud() {
+        guard CloudSyncStore.shared.isAvailable else { return }
+
+        let cloud = AccountSyncMerge.toCloud(byAccount) { uuid in
+            AccountsStore.shared.accounts.first { $0.id == uuid }?.syncID
+        }
+        if let data = try? JSONEncoder().encode(cloud) {
+            CloudSyncStore.shared.mirror(data, forKey: Self.cloudKey)
+        }
+    }
+
+    /// Pulls the iCloud templates and merges them in, unioning by template id so an edit
+    /// on one device never forks the entry. Called once accounts have loaded and on every
+    /// external iCloud change. No-op when iCloud is unavailable (#536).
+    func syncFromCloud() {
+        guard let data = CloudSyncStore.shared.data(forKey: Self.cloudKey),
+              let cloud = try? JSONDecoder().decode([String: [InterviewTemplate]].self, from: data) else { return }
+
+        let merged = AccountSyncMerge.mergeArrays(cloud: cloud, into: byAccount) { identity in
+            AccountsStore.shared.accounts.first { $0.syncID == identity }?.id
+        } id: { $0.id }
+        guard merged != byAccount else { return }
+
+        byAccount = merged
+        save()
     }
 }
 

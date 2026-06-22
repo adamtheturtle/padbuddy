@@ -85,6 +85,61 @@ enum AccountSyncMerge {
         }
         return merged
     }
+
+    /// Like ``mergeArrays`` but unions each account's array by a stable element `id`
+    /// rather than by full-value equality, so the same logical item is never
+    /// duplicated when a mutable field differs between devices — e.g. a favourite
+    /// question whose captured title was backfilled on one Mac but not the other, or a
+    /// saved search the user renamed. The local entry wins for ids present on both
+    /// sides (it isn't overwritten); cloud-only items are appended, preserving local
+    /// order. Deletions don't propagate in v1, matching ``mergeArrays`` (#536).
+    static func mergeArrays<Element>(
+        cloud: [String: [Element]],
+        into local: [UUID: [Element]],
+        uuidForSyncID: (String) -> UUID?,
+        id: (Element) -> AnyHashable
+    ) -> [UUID: [Element]] {
+        var merged = local
+        for (identity, cloudList) in cloud {
+            guard let uuid = uuidForSyncID(identity) else { continue }
+
+            var list = merged[uuid] ?? []
+            var present = Set(list.map(id))
+            for element in cloudList where present.insert(id(element)).inserted {
+                list.append(element)
+            }
+            merged[uuid] = list
+        }
+        return merged
+    }
+
+    /// The nested counterpart of the id-keyed ``mergeArrays``, for collections that are
+    /// partitioned by an inner string key before the array — saved searches, which are
+    /// kept per account *and* per list kind (`pads`/`questions`). Unions each
+    /// (account, kind) bucket by element `id` with the same v1 semantics (#536).
+    static func mergeNestedArrays<Element>(
+        cloud: [String: [String: [Element]]],
+        into local: [UUID: [String: [Element]]],
+        uuidForSyncID: (String) -> UUID?,
+        id: (Element) -> AnyHashable
+    ) -> [UUID: [String: [Element]]] {
+        var merged = local
+        for (identity, cloudBuckets) in cloud {
+            guard let uuid = uuidForSyncID(identity) else { continue }
+
+            var buckets = merged[uuid] ?? [:]
+            for (bucketKey, cloudList) in cloudBuckets {
+                var list = buckets[bucketKey] ?? []
+                var present = Set(list.map(id))
+                for element in cloudList where present.insert(id(element)).inserted {
+                    list.append(element)
+                }
+                buckets[bucketKey] = list
+            }
+            merged[uuid] = buckets
+        }
+        return merged
+    }
 }
 
 // MARK: - Best-effort iCloud mirror
