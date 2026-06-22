@@ -21,6 +21,7 @@
 //
 
 import Foundation
+import Security
 
 // MARK: - Stable cross-device identity
 
@@ -99,17 +100,33 @@ final class CloudSyncStore {
     /// in `userInfo["key"]`, so the owning store can re-pull and merge.
     static let didChangeExternally = Notification.Name("CloudSyncStore.didChangeExternally")
 
-    private let store = NSUbiquitousKeyValueStore.default
     private var observer: (any NSObjectProtocol)?
 
     private init() {}
 
-    /// True only when iCloud is genuinely usable: the app carries the ubiquity
-    /// entitlement AND the user is signed into iCloud. `ubiquityIdentityToken` is nil
-    /// without either, so this is correctly false on the unprovisioned Developer ID
-    /// build and the store is never touched there.
+    /// The shared iCloud KVS, accessed lazily and ONLY behind ``isAvailable`` — merely
+    /// referencing `NSUbiquitousKeyValueStore.default` without the ubiquity entitlement
+    /// logs "BUG IN CLIENT OF KVS: …", so it must never be touched on an unentitled build.
+    private var store: NSUbiquitousKeyValueStore {
+        .default
+    }
+
+    /// Whether the app actually carries the `ubiquity-kvstore-identifier` entitlement.
+    /// Checked once via the code signature: being signed into iCloud is NOT enough
+    /// (`ubiquityIdentityToken` is non-nil whenever iCloud is on, entitlement or not), so
+    /// this is the gate that keeps KVS untouched on the unprovisioned Developer ID build.
+    private static let hasUbiquityEntitlement: Bool = {
+        guard let task = SecTaskCreateFromSelf(nil) else { return false }
+
+        let key = "com.apple.developer.ubiquity-kvstore-identifier" as CFString
+        return SecTaskCopyValueForEntitlement(task, key, nil) != nil
+    }()
+
+    /// True only when iCloud is genuinely usable: the app is provisioned with the KVS
+    /// entitlement AND the user is signed into iCloud. Correctly false on the
+    /// unprovisioned Developer ID build, so the KVS is never initialized there.
     var isAvailable: Bool {
-        FileManager.default.ubiquityIdentityToken != nil
+        Self.hasUbiquityEntitlement && FileManager.default.ubiquityIdentityToken != nil
     }
 
     /// Begins observing external iCloud changes and pulls the current cloud state.
