@@ -193,6 +193,60 @@ jobs:
           name: TestResults
           path: TestResults.xcresult
 
+  test-macos15:
+    name: Build & Test (macOS 15)
+    # #185: the deployment target is macOS 15.0, but the Build & Test job above runs
+    # on the macOS 26 image. A runtime regression that only bites the OLDEST supported
+    # OS — an unguarded macOS-26-only API, a Sequoia layout difference — would pass
+    # there and still ship. This job builds and runs the full suite on a macOS 15
+    # (Sequoia) runner, with the same Swift-6.2 Xcode 26.5 (which runs on Sequoia), so
+    # the app is actually exercised on the floor it claims to support. Nightly/manual
+    # only (10x-billed minutes); continue-on-error so a Sequoia-only failure is
+    # surfaced for triage without reding the run until it's confirmed actionable —
+    # flip it to blocking once it's run clean a few times.
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    continue-on-error: true
+    needs: swift-lint
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # Pin the same Swift-6.2 Xcode the other macOS jobs use; 26.5 runs on Sequoia.
+      # If the macOS 15 image ever lacks it, this step fails — contained by
+      # continue-on-error — rather than silently compiling with an older toolchain
+      # that ignores SWIFT_DEFAULT_ACTOR_ISOLATION.
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_26.5.app
+          xcodebuild -version
+
+      # No DerivedData cache here on purpose: the Build & Test job's cache key is
+      # prefixed only by runner.os ("macOS" on both images), so sharing it would
+      # cross-pollinate macOS 26 and macOS 15 build artifacts. A clean nightly build
+      # on the older image is the safer choice.
+      - name: Build & test
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project coderpad.xcodeproj \
+            -scheme coderpad \
+            -testPlan Full \
+            -destination 'platform=macOS' \
+            -derivedDataPath DerivedData \
+            -resultBundlePath TestResults-macos15.xcresult \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: TestResults-macos15
+          path: TestResults-macos15.xcresult
+
   tsan:
     name: Thread Sanitizer
     # TSan is ~5-10x slower than a normal test run, so it's deliberately NOT on
