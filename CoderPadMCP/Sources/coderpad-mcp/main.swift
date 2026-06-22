@@ -230,7 +230,7 @@ private func advertisedTools() -> [Tool] {
 // MARK: - Server
 
 let server = Server(
-    name: "coderpad",
+    name: "PadBuddy",
     version: "0.1.0",
     capabilities: .init(
         prompts: .init(listChanged: false),

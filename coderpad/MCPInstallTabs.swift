@@ -48,8 +48,8 @@ struct MCPInstallTabs: View {
     @ViewBuilder
     private var manualInstructions: some View {
         let snippet = client.snippet(executablePath: executablePath)
-        Text("Add the `coderpad` server to this file - create it with the text below if it "
-            + "doesn't exist, otherwise add just the `coderpad` block to what's already there:")
+        Text("Add the `padbuddy` server to this file - create it with the text below if it "
+            + "doesn't exist, otherwise add just the `padbuddy` block to what's already there:")
             .font(.callout)
             .foregroundStyle(.secondary)
         Text(client.configPath)

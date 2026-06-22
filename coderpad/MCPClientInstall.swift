@@ -60,7 +60,7 @@ enum MCPClientInstall {
         var verifyHint: String? {
             switch self {
             case .claudeDesktop: "If it doesn't show up, check Claude Desktop's logs in ~/Library/Logs/Claude/."
-            case .claudeCode: "Confirm it connected with `claude mcp list` or `claude mcp get coderpad`."
+            case .claudeCode: "Confirm it connected with `claude mcp list` or `claude mcp get padbuddy`."
             case .codex, .cursor: nil
             }
         }
@@ -70,7 +70,7 @@ enum MCPClientInstall {
             switch self {
             case .codex:
                 """
-                [mcp_servers.coderpad]
+                [mcp_servers.padbuddy]
                 command = "\(executablePath)"
                 args = ["--mcp"]
                 """
@@ -79,7 +79,7 @@ enum MCPClientInstall {
                 """
                 {
                   "mcpServers": {
-                    "coderpad": {
+                    "padbuddy": {
                       "command": "\(executablePath)",
                       "args": ["--mcp"]
                     }
@@ -157,7 +157,7 @@ enum MCPClientInstall {
                     showAlert(.informational, "Added to \(client.displayName)", client.restartHint)
                 } else {
                     showAlert(.informational, "Already in \(client.displayName)",
-                              "\(client.displayName) already has a \u{201C}coderpad\u{201D} server. "
+                              "\(client.displayName) already has a \u{201C}padbuddy\u{201D} server. "
                                   + "Edit \(client.configPath) by hand if its path changed.")
                 }
             } else {
@@ -174,7 +174,7 @@ enum MCPClientInstall {
     private static func mergeJSONServer(into url: URL, executablePath: String) throws {
         var root = try existingJSON(at: url)
         var servers = root["mcpServers"] as? [String: Any] ?? [:]
-        servers["coderpad"] = ["command": executablePath, "args": ["--mcp"]]
+        servers["padbuddy"] = ["command": executablePath, "args": ["--mcp"]]
         root["mcpServers"] = servers
 
         let data = try JSONSerialization.data(withJSONObject: root, options: [.prettyPrinted, .sortedKeys])
@@ -197,7 +197,7 @@ enum MCPClientInstall {
 
     // MARK: - TOML config (Codex)
 
-    /// Appends a `[mcp_servers.coderpad]` table when one isn't already present, returning
+    /// Appends a `[mcp_servers.padbuddy]` table when one isn't already present, returning
     /// whether it added one (`false` = already configured). Append-only on purpose: it needs
     /// no TOML parser and can never produce a duplicate table (which would be invalid TOML).
     private static func appendCodexServer(into url: URL, executablePath: String) throws -> Bool {
@@ -205,10 +205,10 @@ enum MCPClientInstall {
         if FileManager.default.fileExists(atPath: url.path) {
             text = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
         }
-        guard !text.contains("[mcp_servers.coderpad]") else { return false }
+        guard !text.contains("[mcp_servers.padbuddy]") else { return false }
 
         let block = """
-        [mcp_servers.coderpad]
+        [mcp_servers.padbuddy]
         command = "\(executablePath)"
         args = ["--mcp"]
 

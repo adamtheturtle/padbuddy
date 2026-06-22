@@ -12,7 +12,7 @@ import BuddyMCP
 import Foundation
 
 nonisolated struct CoderPadToolProvider: MCPToolProvider {
-    let serverName = "padbuddy-coderpad"
+    let serverName = "PadBuddy"
 
     var serverVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
