@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		668E402A2FE2F7DC00AA8228 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 668E40292FE2F7DC00AA8228 /* Sparkle */; };
 		6693DA3D2FE945BF005CA3CE /* BuddyAppKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6693DA3C2FE945BF005CA3CE /* BuddyAppKit */; };
+		6693DA452FE95F45005CA3CE /* BuddyMCP in Frameworks */ = {isa = PBXBuildFile; productRef = 6693DA442FE95F45005CA3CE /* BuddyMCP */; };
 		66E3CC582FDA31CC00FE87A9 /* Highlightr in Frameworks */ = {isa = PBXBuildFile; productRef = 66E3CC572FDA31CC00FE87A9 /* Highlightr */; };
 		66E3CDBE2FDD6D1C00FE87A9 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 66E3CD092FDD5BA300FE87A9 /* WidgetKit.framework */; };
 		66E3CDBF2FDD6D1C00FE87A9 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 66E3CD0B2FDD5BA300FE87A9 /* SwiftUI.framework */; };
@@ -151,6 +152,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6693DA452FE95F45005CA3CE /* BuddyMCP in Frameworks */,
 				66F0566B2FE06F5A000FA68C /* Textual in Frameworks */,
 				66F543E52FE57AB9000214AA /* Flow in Frameworks */,
 				668E402A2FE2F7DC00AA8228 /* Sparkle in Frameworks */,
@@ -262,6 +264,7 @@
 				66F543E42FE57AB9000214AA /* Flow */,
 				66F543E72FE5885B000214AA /* CoderPadDesignSystem */,
 				6693DA3C2FE945BF005CA3CE /* BuddyAppKit */,
+				6693DA442FE95F45005CA3CE /* BuddyMCP */,
 			);
 			productName = coderpad;
 			productReference = 66C8C50B2FA73AB0009B720C /* PadBuddy.app */;
@@ -409,6 +412,7 @@
 				66F543E32FE57AB9000214AA /* XCRemoteSwiftPackageReference "SwiftUI-Flow" */,
 				66F543E62FE5885B000214AA /* XCLocalSwiftPackageReference "CoderPadDesignSystem" */,
 				6693DA3B2FE945BF005CA3CE /* XCLocalSwiftPackageReference "BuddyAppKit" */,
+				6693DA432FE95F45005CA3CE /* XCLocalSwiftPackageReference "BuddyMCP" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 66C8C50C2FA73AB0009B720C /* Products */;
@@ -1074,6 +1078,10 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = BuddyAppKit;
 		};
+		6693DA432FE95F45005CA3CE /* XCLocalSwiftPackageReference "BuddyMCP" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = BuddyMCP;
+		};
 		66F057692FE0BDB5000FA68C /* XCLocalSwiftPackageReference "PaginatedRESTClient" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = PaginatedRESTClient;
@@ -1152,6 +1160,10 @@
 		6693DA3C2FE945BF005CA3CE /* BuddyAppKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = BuddyAppKit;
+		};
+		6693DA442FE95F45005CA3CE /* BuddyMCP */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = BuddyMCP;
 		};
 		66E3CC572FDA31CC00FE87A9 /* Highlightr */ = {
 			isa = XCSwiftPackageProductDependency;
