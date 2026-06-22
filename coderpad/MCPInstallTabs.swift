@@ -22,8 +22,7 @@ struct MCPInstallTabs: View {
         .pickerStyle(.segmented)
         .labelsHidden()
 
-        Text("Adds PadBuddy to \(client.displayName), keeping anything you already have. "
-            + client.restartHint)
+        Text("Adds PadBuddy to \(client.displayName). " + client.restartHint)
             .font(.callout)
             .foregroundStyle(.secondary)
 
