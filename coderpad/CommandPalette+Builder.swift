@@ -25,7 +25,7 @@ enum CommandPaletteBuilder {
         return results
     }
 
-    /// "New Pad from <Question>" entries for the account's favourite questions — the
+    /// "New Pad from <Question>" entries for the account's favourite questions - the
     /// one-click pad the menu-bar extra offers, surfaced in the palette too (#534).
     /// Limited to favourites so the empty-query list stays short; any question can still
     /// be opened (then "New Pad") from its own row.
@@ -176,7 +176,7 @@ enum CommandPaletteBuilder {
         return results
     }
 
-    /// Switches to `account` (only if it isn't already current — per-org question ids
+    /// Switches to `account` (only if it isn't already current - per-org question ids
     /// collide, so the owning account must be selected first, exactly as the Spotlight
     /// result path does) and selects the pad once its list has it.
     private static func jump(toPad id: String, in account: UUID) {

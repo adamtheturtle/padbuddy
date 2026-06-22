@@ -6,7 +6,7 @@
 //  across pads, questions, sections, and accounts, plus a few common commands (New Pad,
 //  Reload, Open Pad by URL). Results come straight from the in-memory caches
 //  (`PadsCacheStore` / `QuestionsCacheStore`), so there's no network round-trip and no
-//  index to build — distinct from the system-wide Spotlight indexing. Selecting a result
+//  index to build - distinct from the system-wide Spotlight indexing. Selecting a result
 //  routes through the existing `AppNavigation` (switching account first when the item
 //  belongs to another one, mirroring the Spotlight-result path), so the palette adds no
 //  new navigation machinery of its own.
@@ -42,7 +42,7 @@ struct PaletteResult: Identifiable {
 /// Scores how well `query` matches `text`; higher is better, `nil` means no match. An
 /// empty query matches everything at a neutral score (so the full list shows). Exact and
 /// prefix matches rank highest, then substring (with a word-boundary bonus), then a
-/// fuzzy subsequence match that rewards consecutive runs — enough to feel smart without
+/// fuzzy subsequence match that rewards consecutive runs - enough to feel smart without
 /// pulling in a dependency.
 func paletteFuzzyScore(_ query: String, _ text: String) -> Int? {
     let trimmed = query.trimmingCharacters(in: .whitespaces)
@@ -98,7 +98,7 @@ struct CommandPaletteView: View {
     @FocusState private var queryFocused: Bool
     /// Local key-event monitor for the up/down arrows. The search field is focused so
     /// the user can type, but AppKit's field editor then swallows the arrow keys for
-    /// caret movement before SwiftUI's `.onKeyPress` ever sees them (#532) — so we watch
+    /// caret movement before SwiftUI's `.onKeyPress` ever sees them (#532) - so we watch
     /// for them at the event level and drive the selection ourselves.
     @State private var arrowKeyMonitor: Any?
 

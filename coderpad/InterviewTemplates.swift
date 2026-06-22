@@ -5,7 +5,7 @@
 //  Interview templates (#525): a saved "favorite question + language (+ optional pad
 //  title)" so the common case of running the same kind of interview repeatedly is a
 //  single action. Templates are small per-account user config, so they persist as
-//  UserDefaults JSON keyed by account id — the same pattern as `FavoriteQuestionsStore`.
+//  UserDefaults JSON keyed by account id - the same pattern as `FavoriteQuestionsStore`.
 //  Running a template creates a pad seeded from its question (overriding the language)
 //  and opens it, honoring the in-app/external browser preference, and falls back to the
 //  in-app create sheet when the API call can't complete (offline). Templates are listed
@@ -117,7 +117,7 @@ enum InterviewTemplateRunner {
     /// Creates a pad from `template` under `account` and opens it, honoring the
     /// in-app/external browser preference. On failure (offline, transient API error) it
     /// falls back to the in-app create sheet seeded with the template's question, so the
-    /// action is never silently lost — the same recovery `createPadInBrowser` uses.
+    /// action is never silently lost - the same recovery `createPadInBrowser` uses.
     static func createAndOpen(_ template: InterviewTemplate, account: Account) {
         var body = PadCreate()
         body.questionID = template.questionID
@@ -127,7 +127,7 @@ enum InterviewTemplateRunner {
         open(body, account: account, fallbackQuestionID: template.questionID)
     }
 
-    /// Creates a pad directly from `question` (its default language) and opens it — the
+    /// Creates a pad directly from `question` (its default language) and opens it - the
     /// same one-click "New Pad from Question" the menu-bar extra offers, surfaced in the
     /// main-window menu and the command palette too (#534).
     static func createAndOpen(question: Question, account: Account) {

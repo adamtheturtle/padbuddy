@@ -5,7 +5,7 @@
 //  Print / Save-as-PDF (⌘P) support. SwiftUI has no print pipeline of its own on
 //  macOS, so a focused detail's print-friendly rendering is rasterized with
 //  `ImageRenderer` and the image is handed to `NSPrintOperation`, which drives the
-//  standard print panel — and "Save as PDF" falls out of that panel for free.
+//  standard print panel - and "Save as PDF" falls out of that panel for free.
 //
 
 import AppKit
@@ -50,7 +50,7 @@ func printDocument(_ content: some View, jobTitle: String) {
 }
 
 /// A plain image-drawing view for printing. `NSPrintOperation` paginates it down the page
-/// via repeated `draw(_:)` calls — the standard view-drawing path, which (unlike a hosted
+/// via repeated `draw(_:)` calls - the standard view-drawing path, which (unlike a hosted
 /// SwiftUI view's layer) is captured into the print context. Flipped so the image's top
 /// lands on the first page.
 private final class PrintImageView: NSView {
@@ -77,7 +77,7 @@ private final class PrintImageView: NSView {
 
 // MARK: - Print layout primitives
 
-/// A titled block in a printed document — a small heading over its content, with
+/// A titled block in a printed document - a small heading over its content, with
 /// space below so sections don't run together across a page.
 private struct PrintSection<Content: View>: View {
     let title: String
@@ -111,8 +111,8 @@ private struct PrintCode: View {
 // MARK: - Question
 
 /// A print-friendly rendering of a question: its title, key metadata, and the
-/// prose an interviewer reads alongside a live interview — description, candidate
-/// instructions, solution — plus starter code.
+/// prose an interviewer reads alongside a live interview - description, candidate
+/// instructions, solution - plus starter code.
 struct QuestionPrintDocument: View {
     let question: Question
 
@@ -192,7 +192,7 @@ struct PadPrintFile: Identifiable {
     }
 }
 
-/// The summary rows shown for a pad — its type, state, owner, and dates — shared by the
+/// The summary rows shown for a pad - its type, state, owner, and dates - shared by the
 /// print rendering and the Markdown export (#524) so both describe a pad the same way.
 /// `displayName` resolves an owner/participant email to a name when known.
 func padSummaryRows(_ pad: Pad, displayName: (String) -> String = \.self) -> [(String, String)] {

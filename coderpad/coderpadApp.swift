@@ -50,7 +50,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     /// The menu shown when right-clicking the Dock icon. Offers the same quick
     /// actions as the app's New menu, routed through the app's own `coderpad://`
-    /// deep links so they work — and reopen the main window — whether or not a
+    /// deep links so they work - and reopen the main window - whether or not a
     /// window is currently open. macOS appends its standard items (Show All Windows,
     /// Quit, …) below these.
     func applicationDockMenu(_: NSApplication) -> NSMenu? {
@@ -115,15 +115,15 @@ struct CoderpadApp: App {
     init() {
         // Run the app-global launch seeding once at process launch. `init()` fires
         // before the delegate's `applicationDidFinishLaunching(_:)` and regardless of
-        // which scene opens — so this also runs in Dock-only / menu-bar-only modes
+        // which scene opens - so this also runs in Dock-only / menu-bar-only modes
         // where no window appears and a scene `.task` would never fire (#286).
         AppLaunch.run()
     }
 
     var body: some Scene {
         // A single, unique main window (`Window`, not `WindowGroup`): opening "main"
-        // again — from the menu bar's Add Account, the Dock icon, or "Open Main
-        // Window" — focuses the existing window instead of spawning a duplicate (#459).
+        // again - from the menu bar's Add Account, the Dock icon, or "Open Main
+        // Window" - focuses the existing window instead of spawning a duplicate (#459).
         // The app still survives closing it (windowless menu-bar mode) because
         // `applicationShouldTerminateAfterLastWindowClosed` returns false.
         Window("PadBuddy", id: "main") {
@@ -141,7 +141,7 @@ struct CoderpadApp: App {
                         AppNavigation.shared.openPad(id: padID)
                     } else if let ref = SpotlightIndexer.questionRef(fromItemIdentifier: id) {
                         // Switch to the owning account first so the right org's
-                        // question is selected — per-org ids collide across accounts (#378).
+                        // question is selected - per-org ids collide across accounts (#378).
                         // Only if it still exists; a removed account's items are cleared too.
                         if AccountsStore.shared.accounts.contains(where: { $0.id == ref.account }) {
                             AccountsStore.shared.currentAccountID = ref.account
@@ -177,6 +177,7 @@ struct CoderpadApp: App {
         questionScene
         padScene
         screenTestScene
+        mcpActivityScene
 
         Settings {
             SettingsView()
@@ -208,7 +209,7 @@ struct CoderpadApp: App {
         }
     }
 
-    /// Double-clicking a question row opens its detail here, in its own window —
+    /// Double-clicking a question row opens its detail here, in its own window -
     /// the native-detail counterpart to opening a pad in the `pad-browser` window
     /// (#292). Keyed by a lightweight id so it survives state restoration.
     private var questionScene: some Scene {
@@ -220,7 +221,7 @@ struct CoderpadApp: App {
         }
     }
 
-    /// Double-clicking a pad row opens its native detail here, in its own window —
+    /// Double-clicking a pad row opens its native detail here, in its own window -
     /// the pad counterpart to ``questionScene`` (#354). Keyed by a lightweight id
     /// so it survives state restoration.
     private var padScene: some Scene {
@@ -354,7 +355,7 @@ struct CoderpadApp: App {
             // Backs the Dock menu's New Pad item (the widget and Control Center buttons
             // now route through `CreatePadIntent`/`applicationDidBecomeActive` instead,
             // since they can't open this custom scheme). Switch to Pads and open the
-            // create sheet, the same flow as ⌘N — optionally pinning an account and
+            // create sheet, the same flow as ⌘N - optionally pinning an account and
             // seeding a favourite question, via the shared `routeNewPad`.
             let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
             let account = components?.queryItems?.first(where: { $0.name == "account" })?.value
@@ -372,8 +373,8 @@ struct CoderpadApp: App {
 
     /// Moves the visible section forward (`+1`) or back (`-1`) through the currently
     /// navigable section order, wrapping at the ends. Backs the Go menu's
-    /// Next/Previous items. Uses `AppSection.navigable` — the same source as the
-    /// sidebar — so Quota and Screen are included whenever they're shown (#481);
+    /// Next/Previous items. Uses `AppSection.navigable` - the same source as the
+    /// sidebar - so Quota and Screen are included whenever they're shown (#481);
     /// the old hardcoded `[.pads, .questions, .organization]` skipped them.
     private func cycleSection(by delta: Int) {
         let order = AppSection.navigable

@@ -12,7 +12,7 @@ import SwiftUI
 
 struct NewPadFromQuestionCommands: Commands {
     /// Observed so the submenu tracks the current account and its loaded questions, and
-    /// disables itself while offline — mirroring the menu-bar extra.
+    /// disables itself while offline - mirroring the menu-bar extra.
     @State private var accounts = AccountsStore.shared
     @State private var questionsCache = QuestionsCacheStore.shared
     @State private var network = NetworkMonitor.shared

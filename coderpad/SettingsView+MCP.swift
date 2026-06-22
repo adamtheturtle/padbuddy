@@ -3,12 +3,12 @@
 //  coderpad
 //
 //  The "MCP Server" settings pane: explains what the built-in Model Context Protocol
-//  server is and why you'd use it, lets the user opt in, and, once enabled, gives a
-//  copy-paste Terminal command per supported MCP client that writes the configuration
-//  (#402). The app itself is the server (run with the --mcp flag, see MCPServer.swift),
-//  so there is nothing to build or download and no API key to paste: the command points
-//  the client at the app's own executable, which serves the selected account using the
-//  key already in the Keychain.
+//  server is and why you'd use it, lets the user opt in, and, once enabled, offers a
+//  one-click "Add to <client>" button per supported MCP client as sub-tabs (#402, #501),
+//  with a manual file fallback. The app itself is the server (run with --mcp, see
+//  MCPServer.swift), so there's nothing to build or download and no API key to paste: the
+//  config points the client at the app's own executable, which serves the selected account
+//  using the key already in the Keychain.
 //
 
 import SwiftUI
@@ -36,16 +36,31 @@ extension SettingsView {
 
             if mcpServerEnabled {
                 mcpWritesSection
-                mcpSetupSection
-                mcpClaudeSection
-                mcpClaudeCodeSection
-                mcpCodexSection
+
+                Section {
+                    MCPInstallTabs(executablePath: Self.executablePath)
+                } header: {
+                    Text("Add to your assistant")
+                } footer: {
+                    Text("The button asks for access to the assistant's config folder the first "
+                        + "time. Your API key is never written to the file - the server reads it "
+                        + "from the Keychain at runtime.")
+                        .foregroundStyle(.secondary)
+                }
+
                 mcpVerifySection
-                mcpActivitySection
+
+                Section {
+                    OpenMCPActivityButton()
+                } header: {
+                    Text("Activity")
+                } footer: {
+                    Text("See when the server last ran and its recent tool calls, in a separate window.")
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .formStyle(.grouped)
-        .task { await mcpActivity.poll() }
     }
 
     /// The separate, explicit write opt-in (#502). Distinct from enabling the server: read
@@ -64,119 +79,13 @@ extension SettingsView {
         }
     }
 
-    /// The shared flow: run the command for your assistant, then restart it.
-    private var mcpSetupSection: some View {
-        Section {
-            Label("Copy the command for your assistant and run it in Terminal.", systemImage: "1.circle")
-            Label("Restart the assistant. It uses the account selected in PadBuddy.",
-                  systemImage: "2.circle")
-        } header: {
-            Text("Set it up")
-        } footer: {
-            Text("""
-            The server reads the selected account's key straight from the Keychain, so \
-            your API key is never written to a config file.
-            """)
-            .foregroundStyle(.secondary)
-        }
-    }
-
-    /// Claude Desktop uses a JSON config. The button merges PadBuddy straight into it
-    /// (preserving any servers already there); the manual command is kept as a fallback
-    /// for non-standard installs. The app is sandboxed, so the button asks for access to
-    /// the Claude folder once — see `MCPClientInstall`.
-    private var mcpClaudeSection: some View {
-        Section {
-            Text("""
-            Adds PadBuddy to Claude Desktop, keeping any servers you already have. \
-            Takes effect after a restart.
-            """)
-            .font(.callout)
-            .foregroundStyle(.secondary)
-
-            Button {
-                MCPClientInstall.addToClaudeDesktop(executablePath: Self.executablePath)
-            } label: {
-                Label("Add to Claude Desktop", systemImage: "wand.and.stars")
-            }
-
-            DisclosureGroup("Prefer to edit the file yourself?") {
-                manualFileInstructions(
-                    path: "~/Library/Application Support/Claude/claude_desktop_config.json",
-                    snippet: Self.claudeConfigSnippet
-                )
-            }
-            .font(.callout)
-        } header: {
-            Text("Claude Desktop")
-        } footer: {
-            Text("The button asks for access to Claude's configuration folder the first time.")
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    /// Claude Code (the `claude` CLI) is a different product from Claude Desktop with its
-    /// own MCP registry; it doesn't read claude_desktop_config.json, so it needs its own
-    /// `claude mcp add` command (#501).
-    private var mcpClaudeCodeSection: some View {
-        Section {
-            Text("""
-            Claude Code is the `claude` command-line tool, separate from Claude Desktop. \
-            It keeps its own list of MCP servers, so run this in Terminal.
-            """)
-            .font(.callout)
-            .foregroundStyle(.secondary)
-
-            commandBlock(Self.claudeCodeCommand)
-            copyButton(Self.claudeCodeCommand)
-        } header: {
-            Text("Claude Code")
-        } footer: {
-            Text("""
-            `-s user` makes PadBuddy available in every project, not just the current \
-            folder. Everything after `--` is passed to PadBuddy, so `--mcp` reaches the \
-            app instead of being read as an option of `claude mcp add`.
-            """)
-            .foregroundStyle(.secondary)
-        }
-    }
-
-    /// The Codex CLI uses a TOML config. The button appends the entry straight into it
-    /// (after a one-time folder grant, since the app is sandboxed); the manual command is
-    /// kept as a fallback. See `MCPClientInstall`.
-    private var mcpCodexSection: some View {
-        Section {
-            Text("Adds PadBuddy to the Codex CLI's config at ~/.codex/config.toml.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-
-            Button {
-                MCPClientInstall.addToCodex(executablePath: Self.executablePath)
-            } label: {
-                Label("Add to Codex", systemImage: "wand.and.stars")
-            }
-
-            DisclosureGroup("Prefer to edit the file yourself?") {
-                manualFileInstructions(path: "~/.codex/config.toml", snippet: Self.codexConfigSnippet)
-            }
-            .font(.callout)
-        } header: {
-            Text("Codex")
-        } footer: {
-            Text("The button asks for access to the .codex folder the first time.")
-                .foregroundStyle(.secondary)
-        }
-    }
-
-    /// After running a command you almost always have to restart the assistant before it
-    /// sees the server; this section says how to confirm it connected and where to look
-    /// when it didn't (#501).
+    /// How to make the assistant pick up the server, and how to confirm it connected (#501).
     private var mcpVerifySection: some View {
         Section {
             Text("""
             You usually have to fully restart the assistant before it picks up the server: \
-            quit Claude Desktop with Command-Q and reopen it; start a new session in Claude \
-            Code (or run `/mcp` to reconnect).
+            quit Claude Desktop with ⌘Q and reopen it; start a new session in Claude Code \
+            (or run `/mcp` to reconnect).
             """)
             .font(.callout)
             .foregroundStyle(.secondary)
@@ -192,79 +101,9 @@ extension SettingsView {
         }
     }
 
-    /// A monospaced, selectable block showing a shell command.
-    private func commandBlock(_ text: String) -> some View {
-        Text(text)
-            .font(.system(.callout, design: .monospaced))
-            .textSelection(.enabled)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(8)
-            .background(Color(nsColor: .textBackgroundColor),
-                        in: RoundedRectangle(cornerRadius: 6, style: .continuous))
-    }
-
-    private func copyButton(_ text: String) -> some View {
-        Button {
-            Clipboard.copy(text)
-        } label: {
-            Label("Copy command", systemImage: "doc.on.doc")
-        }
-    }
-
-    /// The manual fallback shown under a one-click button: which file to edit and exactly
-    /// what to put in it (no shell script). The path is selectable and the snippet copyable.
-    @ViewBuilder
-    private func manualFileInstructions(path: String, snippet: String) -> some View {
-        Text("Add the `coderpad` server to this file — create it with the text below if it "
-            + "doesn't exist, otherwise add just the `coderpad` block to what's already there:")
-            .font(.callout)
-            .foregroundStyle(.secondary)
-        Text(path)
-            .font(.system(.caption, design: .monospaced))
-            .textSelection(.enabled)
-            .frame(maxWidth: .infinity, alignment: .leading)
-        commandBlock(snippet)
-        Button {
-            Clipboard.copy(snippet)
-        } label: {
-            Label("Copy", systemImage: "doc.on.doc")
-        }
-    }
-
-    /// The Claude Desktop config entry to add by hand under `mcpServers` (or the whole file
-    /// to create if it doesn't exist yet).
-    static var claudeConfigSnippet: String {
-        """
-        {
-          "mcpServers": {
-            "coderpad": {
-              "command": "\(executablePath)",
-              "args": ["--mcp"]
-            }
-          }
-        }
-        """
-    }
-
-    /// Terminal command that registers PadBuddy with Claude Code. `-s user` makes it
-    /// available in every project; the `--` separator hands `--mcp` to PadBuddy rather
-    /// than letting `claude mcp add` parse it.
-    static var claudeCodeCommand: String {
-        "claude mcp add coderpad -s user -- \(executablePath) --mcp"
-    }
-
-    /// The Codex config table to add by hand to `~/.codex/config.toml`.
-    static var codexConfigSnippet: String {
-        """
-        [mcp_servers.coderpad]
-        command = "\(executablePath)"
-        args = ["--mcp"]
-        """
-    }
-
-    /// The app's live executable path, so the command is correct wherever PadBuddy is
+    /// The app's live executable path, so the config is correct wherever PadBuddy is
     /// installed; falls back to the conventional install location if it can't be read.
-    private static var executablePath: String {
+    static var executablePath: String {
         Bundle.main.executablePath ?? "/Applications/PadBuddy.app/Contents/MacOS/PadBuddy"
     }
 }
