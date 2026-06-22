@@ -116,6 +116,10 @@ final class CoderpadUITests: XCTestCase {
                       "A seeded demo pad should appear once the list loads")
         usleep(3_000_000)
 
+        // Pads list with nothing selected: the sidebar + populated list before the
+        // user picks anything — the "browse your pads" App Store shot (#62).
+        capture("pads-list")
+
         // Pads with a pad selected: the Mail-style three-column layout (sidebar +
         // list + populated detail) — the hero shot for #505.
         clickRow("Onsite: Senior Backend Engineer")
@@ -129,6 +133,15 @@ final class CoderpadUITests: XCTestCase {
         clickRow("FizzBuzz")
         usleep(1_500_000)
         capture("questions-detail")
+
+        // Organization directory: the seeded team/member data renders each person's
+        // name as static text, so wait on one before shooting — an org-overview App
+        // Store shot (#62).
+        app.typeKey("3", modifierFlags: .command) // View ▸ Organization
+        XCTAssertTrue(row("Basil Fawlty", in: app).waitForExistence(timeout: Self.listLoadTimeout),
+                      "A seeded demo org member should appear after switching to Organization")
+        usleep(1_500_000)
+        capture("organization")
     }
 
     /// The command palette's arrow keys move the selection (#532). The focused search
