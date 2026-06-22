@@ -6,8 +6,8 @@
 //  mirroring MCPTools+PadQuery for the question bank: page /api/questions/ internally and
 //  tally or project in-process, so "how many questions by language / author" returns a
 //  small answer instead of streaming every verbose record through the model. The pure
-//  transforms live in MCPQuestionAggregation (reusing MCPPadAggregation's field-agnostic
-//  counts/topGroups/nextPageToken).
+//  transforms live in the shared CoderPadToolCore package (#521); the question helpers
+//  reuse the pad ones' field-agnostic counts/topGroups/nextPageToken).
 //
 
 import BuddyMCP
@@ -135,7 +135,7 @@ nonisolated extension MCPTools {
             if scan.totalReported == nil { scan.totalReported = object["total"] as? Int }
             if let questions = object["questions"] as? [[String: Any]] { scan.questions.append(contentsOf: questions) }
             scan.pagesFetched += 1
-            guard let next = MCPPadAggregation.nextPageToken(object["next_page"]) else { return scan }
+            guard let next = nextPageToken(object["next_page"]) else { return scan }
 
             page = next
         }
@@ -158,8 +158,8 @@ nonisolated extension MCPTools {
         if let error = scan.error { return error }
 
         let matched = scan.questions.filter {
-            MCPQuestionAggregation.matches($0, owner: owner, author: author, language: language, type: type)
-                && MCPPadAggregation.withinDateRange($0, after: after, before: before)
+            questionMatches($0, owner: owner, author: author, language: language, type: type)
+                && withinDateRange($0, after: after, before: before)
         }
         var result: [String: Any] = [
             "matched": matched.count,
@@ -169,8 +169,8 @@ nonisolated extension MCPTools {
             "source": scan.fromCache ? "padbuddy_cache" : "coderpad_api"
         ]
         if let total = scan.totalReported { result["total_reported_by_api"] = total }
-        var filters = MCPQuestionAggregation.filtersEcho(owner: owner, author: author, language: language, type: type)
-        MCPPadAggregation.addDateFilters(&filters, after: after, before: before)
+        var filters = questionFiltersEcho(owner: owner, author: author, language: language, type: type)
+        addDateFilters(&filters, after: after, before: before)
         if !filters.isEmpty { result["filters"] = filters }
         if scan.truncated {
             result["note"] = "Hit the internal page cap (\(maxQuestionPagesToFetch) pages); "
@@ -183,7 +183,7 @@ nonisolated extension MCPTools {
     static func aggregateQuestions(
         groupBy: String, arguments: [String: Any], credentials: MCPCredentials
     ) async -> Outcome {
-        guard let field = MCPQuestionAggregation.aggregateField(for: groupBy) else {
+        guard let field = questionAggregateField(for: groupBy) else {
             return Outcome(
                 text: "Unsupported group_by \"\(groupBy)\". Use owner, author, language, type, or month.",
                 isError: true
@@ -203,11 +203,11 @@ nonisolated extension MCPTools {
         if let error = scan.error { return error }
 
         let matched = scan.questions.filter {
-            MCPQuestionAggregation.matches($0, owner: owner, author: author, language: language, type: type)
-                && MCPPadAggregation.withinDateRange($0, after: after, before: before)
+            questionMatches($0, owner: owner, author: author, language: language, type: type)
+                && withinDateRange($0, after: after, before: before)
         }
-        let counts = MCPPadAggregation.counts(pads: matched, field: field)
-        let capped = MCPPadAggregation.topGroups(counts, limit: maxQuestionGroups)
+        let counts = aggregateCounts(pads: matched, field: field)
+        let capped = topGroups(counts, limit: maxQuestionGroups)
         let groups: [[String: Any]] = capped.map { ["value": $0.value, "count": $0.count] }
 
         var result: [String: Any] = [
@@ -220,8 +220,8 @@ nonisolated extension MCPTools {
             "truncated": scan.truncated,
             "source": scan.fromCache ? "padbuddy_cache" : "coderpad_api"
         ]
-        var filters = MCPQuestionAggregation.filtersEcho(owner: owner, author: author, language: language, type: type)
-        MCPPadAggregation.addDateFilters(&filters, after: after, before: before)
+        var filters = questionFiltersEcho(owner: owner, author: author, language: language, type: type)
+        addDateFilters(&filters, after: after, before: before)
         if !filters.isEmpty { result["filters"] = filters }
         if counts.count > capped.count {
             result["groups_truncated"] = true
@@ -237,7 +237,7 @@ nonisolated extension MCPTools {
 
         let questions = (object["questions"] as? [[String: Any]]) ?? []
         var result: [String: Any] = [
-            "questions": MCPQuestionAggregation.compact(questions), "count": questions.count
+            "questions": compactQuestions(questions), "count": questions.count
         ]
         if let next = object["next_page"], !(next is NSNull) { result["next_page"] = next }
         if let total = object["total"], !(total is NSNull) { result["total"] = total }

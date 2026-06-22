@@ -6,7 +6,7 @@
 //  the pad list internally and tally/project in-process, so "how many pads match X"
 //  returns a small answer instead of streaming every verbose record through the model.
 //  Split out of MCPTools.swift to keep that file within its length budget. The pure
-//  transforms live in MCPPadAggregation.
+//  transforms live in the shared CoderPadToolCore package (#521).
 //
 
 import BuddyMCP
@@ -74,7 +74,7 @@ nonisolated extension MCPTools {
             if scan.totalReported == nil { scan.totalReported = object["total"] as? Int }
             if let pads = object["pads"] as? [[String: Any]] { scan.pads.append(contentsOf: pads) }
             scan.pagesFetched += 1
-            guard let next = MCPPadAggregation.nextPageToken(object["next_page"]) else { return scan }
+            guard let next = nextPageToken(object["next_page"]) else { return scan }
 
             page = next
         }
@@ -94,8 +94,8 @@ nonisolated extension MCPTools {
         if let error = scan.error { return error }
 
         let matched = scan.pads.filter {
-            MCPPadAggregation.matches($0, owner: owner, state: state, language: language)
-                && MCPPadAggregation.withinDateRange($0, after: after, before: before)
+            padMatches($0, owner: owner, state: state, language: language)
+                && withinDateRange($0, after: after, before: before)
         }
         var result: [String: Any] = [
             "matched": matched.count,
@@ -105,8 +105,8 @@ nonisolated extension MCPTools {
             "source": scan.fromCache ? "padbuddy_cache" : "coderpad_api"
         ]
         if let total = scan.totalReported { result["total_reported_by_api"] = total }
-        var filters = MCPPadAggregation.filtersEcho(owner: owner, state: state, language: language)
-        MCPPadAggregation.addDateFilters(&filters, after: after, before: before)
+        var filters = filtersEcho(owner: owner, state: state, language: language)
+        addDateFilters(&filters, after: after, before: before)
         if !filters.isEmpty { result["filters"] = filters }
         if scan.truncated {
             result["note"] = "Hit the internal page cap (\(maxPadPagesToFetch) pages); "
@@ -119,7 +119,7 @@ nonisolated extension MCPTools {
     static func aggregatePads(
         groupBy: String, arguments: [String: Any], credentials: MCPCredentials
     ) async -> Outcome {
-        guard let field = MCPPadAggregation.aggregateField(for: groupBy) else {
+        guard let field = aggregateField(for: groupBy) else {
             return Outcome(
                 text: "Unsupported group_by \"\(groupBy)\". Use owner, language, state, or month.",
                 isError: true
@@ -136,11 +136,11 @@ nonisolated extension MCPTools {
         if let error = scan.error { return error }
 
         let matched = scan.pads.filter {
-            MCPPadAggregation.matches($0, owner: owner, state: state, language: language)
-                && MCPPadAggregation.withinDateRange($0, after: after, before: before)
+            padMatches($0, owner: owner, state: state, language: language)
+                && withinDateRange($0, after: after, before: before)
         }
-        let counts = MCPPadAggregation.counts(pads: matched, field: field)
-        let capped = MCPPadAggregation.topGroups(counts, limit: maxAggregateGroups)
+        let counts = aggregateCounts(pads: matched, field: field)
+        let capped = topGroups(counts, limit: maxAggregateGroups)
         let groups: [[String: Any]] = capped.map { ["value": $0.value, "count": $0.count] }
 
         var result: [String: Any] = [
@@ -153,8 +153,8 @@ nonisolated extension MCPTools {
             "truncated": scan.truncated,
             "source": scan.fromCache ? "padbuddy_cache" : "coderpad_api"
         ]
-        var filters = MCPPadAggregation.filtersEcho(owner: owner, state: state, language: language)
-        MCPPadAggregation.addDateFilters(&filters, after: after, before: before)
+        var filters = filtersEcho(owner: owner, state: state, language: language)
+        addDateFilters(&filters, after: after, before: before)
         if !filters.isEmpty { result["filters"] = filters }
         if counts.count > capped.count {
             result["groups_truncated"] = true
@@ -169,7 +169,7 @@ nonisolated extension MCPTools {
         guard !response.isError, let object = jsonObject(response.text) else { return response }
 
         let pads = (object["pads"] as? [[String: Any]]) ?? []
-        var result: [String: Any] = ["pads": MCPPadAggregation.compact(pads), "count": pads.count]
+        var result: [String: Any] = ["pads": compactPads(pads), "count": pads.count]
         if let next = object["next_page"], !(next is NSNull) { result["next_page"] = next }
         if let total = object["total"], !(total is NSNull) { result["total"] = total }
 

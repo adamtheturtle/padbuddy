@@ -4,7 +4,7 @@
 //
 //  The in-app MCP server's directory/identity/code tools, split out of MCPTools.swift
 //  to keep that file within its length budget: list_accounts (#519), whoami (#518), and
-//  get_pad_code (#499). The pad-code assembly itself is the pure MCPPadCode helper.
+//  get_pad_code (#499). The pad-code assembly itself is the pure CoderPadToolCore helpers.
 //
 
 import BuddyMCP
@@ -40,7 +40,7 @@ nonisolated extension MCPTools {
     // MARK: - get_pad_code (#499)
 
     /// Fetches a pad and each of its environments, then assembles the compact code JSON
-    /// via the pure `MCPPadCode` helper.
+    /// via the pure `padCodePayload` helper.
     static func getPadCode(pad id: String, maxFileChars: Int?, key: String, base: URL) async -> Outcome {
         let padResponse = await get("/api/pads/\(id)", key: key, base: base)
         guard !padResponse.isError else { return padResponse }
@@ -48,15 +48,15 @@ nonisolated extension MCPTools {
             return Outcome(text: "Could not parse the pad response as JSON.", isError: true)
         }
 
-        var environments: [MCPPadCode.Environment] = []
-        for environmentID in MCPPadCode.environmentIDs(in: pad) {
+        var environments: [CoderPadToolCore.PadEnvironment] = []
+        for environmentID in environmentIDs(in: pad) {
             let response = await get("/api/pad_environments/\(environmentID)", key: key, base: base)
             guard !response.isError, let object = jsonObject(response.text) else { continue }
 
-            environments.append(MCPPadCode.Environment(id: environmentID, object: object))
+            environments.append(CoderPadToolCore.PadEnvironment(id: environmentID, object: object))
         }
 
-        let payload = MCPPadCode.payload(id: id, pad: pad, environments: environments, maxFileChars: maxFileChars)
+        let payload = padCodePayload(id: id, pad: pad, environments: environments, maxFileChars: maxFileChars)
         guard let data = try? JSONSerialization.data(
             withJSONObject: payload, options: [.prettyPrinted, .sortedKeys]
         ) else {

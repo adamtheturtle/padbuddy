@@ -15,39 +15,39 @@ import Testing
 struct MCPPadCodeTests {
     @Test
     func `synthesized filenames map known languages and fall back`() {
-        #expect(MCPPadCode.synthesizedFilename(language: "python") == "main.py")
-        #expect(MCPPadCode.synthesizedFilename(language: "C++") == "main.cpp")
-        #expect(MCPPadCode.synthesizedFilename(language: "ocaml") == "main.ocaml")
-        #expect(MCPPadCode.synthesizedFilename(language: nil) == "main.txt")
-        #expect(MCPPadCode.synthesizedFilename(language: "") == "main.txt")
+        #expect(synthesizedFilename(language: "python") == "main.py")
+        #expect(synthesizedFilename(language: "C++") == "main.cpp")
+        #expect(synthesizedFilename(language: "ocaml") == "main.ocaml")
+        #expect(synthesizedFilename(language: nil) == "main.txt")
+        #expect(synthesizedFilename(language: "") == "main.txt")
     }
 
     @Test
     func `truncate appends a marker only when over the limit`() {
-        #expect(MCPPadCode.truncate("hello", to: nil) == "hello")
-        #expect(MCPPadCode.truncate("hello", to: 10) == "hello")
-        let cut = MCPPadCode.truncate("hello", to: 3)
+        #expect(truncate("hello", to: nil) == "hello")
+        #expect(truncate("hello", to: 10) == "hello")
+        let cut = truncate("hello", to: 3)
         #expect(cut.hasPrefix("hel"))
         #expect(cut.contains("2 more characters"))
     }
 
     @Test
     func `environment ids coerce int and string forms`() {
-        #expect(MCPPadCode.environmentIDs(in: ["pad_environment_ids": [1, "2", 3]]) == [1, 2, 3])
-        #expect(MCPPadCode.environmentIDs(in: [:]).isEmpty)
+        #expect(environmentIDs(in: ["pad_environment_ids": [1, "2", 3]]) == [1, 2, 3])
+        #expect(environmentIDs(in: [:]).isEmpty)
     }
 
     @Test
     func `multi-file environments win and carry filenames, language, and id`() {
         let pad: [String: Any] = ["title": "Interview", "contents": "legacy", "language": "python"]
-        let env = MCPPadCode.Environment(id: 9, object: [
+        let env = CoderPadToolCore.PadEnvironment(id: 9, object: [
             "language": "javascript",
             "file_contents": [
                 ["path": "index.js", "contents": "console.log(1)"],
                 ["contents": "no path"]
             ]
         ])
-        let files = MCPPadCode.files(pad: pad, environments: [env], maxFileChars: nil)
+        let files = padCodeFiles(pad: pad, environments: [env], maxFileChars: nil)
         #expect(files.count == 2)
         #expect(files[0]["filename"] as? String == "index.js")
         #expect(files[0]["language"] as? String == "javascript")
@@ -59,7 +59,7 @@ struct MCPPadCodeTests {
     @Test
     func `legacy single-file pad is the fallback when no environment files exist`() {
         let pad: [String: Any] = ["title": "Legacy", "contents": "print('hi')", "language": "python"]
-        let files = MCPPadCode.files(pad: pad, environments: [], maxFileChars: nil)
+        let files = padCodeFiles(pad: pad, environments: [], maxFileChars: nil)
         #expect(files.count == 1)
         #expect(files[0]["filename"] as? String == "main.py")
         #expect(files[0]["contents"] as? String == "print('hi')")
@@ -68,7 +68,7 @@ struct MCPPadCodeTests {
     @Test
     func `payload wraps id, title, and files; truncation applies per file`() {
         let pad: [String: Any] = ["title": "T", "contents": "0123456789", "language": "python"]
-        let payload = MCPPadCode.payload(id: "abc", pad: pad, environments: [], maxFileChars: 4)
+        let payload = padCodePayload(id: "abc", pad: pad, environments: [], maxFileChars: 4)
         #expect(payload["pad_id"] as? String == "abc")
         #expect(payload["title"] as? String == "T")
         let files = payload["files"] as? [[String: Any]] ?? []
