@@ -9,7 +9,6 @@
 //  transforms live in the shared CoderPadToolCore package (#521).
 //
 
-import BuddyMCP
 import Foundation
 
 nonisolated extension MCPTools {

@@ -17,7 +17,6 @@
 //  the headless process can't read them and those tools stay API-only.
 //
 
-import BuddyMCP
 import Foundation
 
 nonisolated extension MCPTools {

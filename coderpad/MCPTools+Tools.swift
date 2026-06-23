@@ -7,7 +7,6 @@
 //  get_pad_code (#499). The pad-code assembly itself is the pure CoderPadToolCore helpers.
 //
 
-import BuddyMCP
 import Foundation
 
 nonisolated extension MCPTools {

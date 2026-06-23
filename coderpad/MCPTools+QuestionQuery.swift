@@ -10,7 +10,6 @@
 //  reuse the pad ones' field-agnostic counts/topGroups/nextPageToken).
 //
 
-import BuddyMCP
 import Foundation
 
 nonisolated extension MCPTools {

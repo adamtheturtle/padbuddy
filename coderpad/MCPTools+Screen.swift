@@ -10,7 +10,6 @@
 //  and each call resolves the targeted account's own Screen credentials.
 //
 
-import BuddyMCP
 import Foundation
 
 nonisolated extension MCPTools {

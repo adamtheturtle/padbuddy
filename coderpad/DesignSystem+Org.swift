@@ -68,6 +68,11 @@ struct OwnerPadsLink: View {
 
 @Observable
 final class OrgDirectory {
+    /// The stable default for `EnvironmentValues.orgDirectory`, so the `@Entry` value
+    /// isn't reallocated on every access (the real directory is injected at the window
+    /// root in `ContentView`). MainActor-isolated like the type, matching the env access.
+    static let placeholder = OrgDirectory()
+
     private(set) var nameByEmail: [String: String] = [:]
     /// The organization's default coding language, used to pre-select the picker
     /// in the New Pad / New Question sheets. `nil` until the org loads or when the
@@ -195,7 +200,7 @@ private enum DirectoryCache {
 }
 
 extension EnvironmentValues {
-    @Entry var orgDirectory = OrgDirectory()
+    @Entry var orgDirectory = OrgDirectory.placeholder
 
     /// True while the app is read-only (currently driven by `NetworkMonitor` going
     /// offline). Editing controls read this to disable themselves so a browse-only

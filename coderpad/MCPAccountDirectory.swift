@@ -1,10 +1,13 @@
 //
-//  MCPCredentials.swift
-//  BuddyMCP
+//  MCPAccountDirectory.swift
+//  coderpad
 //
-//  The account model the MCP server acts as. Lifted from the coderpad app (#514) so the
-//  server core is reusable; the values are plain Sendable data extracted from the app's
-//  account on the main actor, letting the rest of the server stay `nonisolated`.
+//  The account model the in-app MCP server acts as. These plain Sendable value types were
+//  extracted from the app's main-actor `Account` (the secrets are read on the main actor
+//  in `MCPAccountLoader`), letting the rest of the headless server stay `nonisolated`.
+//  They previously lived in the BuddyMCP package, which hand-rolled the JSON-RPC server;
+//  that server is now the official MCP Swift SDK (see `MCPServer.swift`), so the model
+//  lives here with the only code that uses it.
 //
 
 import Foundation
@@ -13,19 +16,19 @@ import Foundation
 /// and the account's identity (id, display name, resolved user email) for identity tools
 /// like `whoami` / `list_accounts`. The id / name / email are NOT secrets; the API key is
 /// the only sensitive field and tools never return it.
-public nonisolated struct MCPCredentials: Sendable {
-    public let id: String
-    public let apiKey: String
-    public let baseURL: URL
-    public let accountName: String
-    public let userEmail: String
+nonisolated struct MCPCredentials: Sendable {
+    let id: String
+    let apiKey: String
+    let baseURL: URL
+    let accountName: String
+    let userEmail: String
     /// An optional secondary API key + base URL (e.g. a companion product), when the
     /// account has one. nil means the tools that need it can't act as this account. Like
     /// the primary key, never returned by a tool.
-    public var secondaryApiKey: String?
-    public var secondaryBaseURL: URL?
+    var secondaryApiKey: String?
+    var secondaryBaseURL: URL?
 
-    public init(
+    init(
         id: String,
         apiKey: String,
         baseURL: URL,
@@ -47,14 +50,14 @@ public nonisolated struct MCPCredentials: Sendable {
 /// All the accounts the server can act as, plus which one is the default. Lets the server
 /// serve any configured account, not just the selected one: tools take an optional
 /// `account` argument and `resolve(_:)` maps it to one account.
-public nonisolated struct MCPAccountDirectory: Sendable {
-    public let accounts: [MCPCredentials]
+nonisolated struct MCPAccountDirectory: Sendable {
+    let accounts: [MCPCredentials]
     /// The id of the account selected in the app, used when no `account` argument is given.
-    public let currentID: String?
+    let currentID: String?
     /// Whether write tools are advertised and permitted. Off unless the host app opts in.
-    public var allowWrites: Bool
+    var allowWrites: Bool
 
-    public init(accounts: [MCPCredentials], currentID: String?, allowWrites: Bool = false) {
+    init(accounts: [MCPCredentials], currentID: String?, allowWrites: Bool = false) {
         self.accounts = accounts
         self.currentID = currentID
         self.allowWrites = allowWrites
@@ -62,13 +65,13 @@ public nonisolated struct MCPAccountDirectory: Sendable {
 
     /// Whether any configured account has a secondary key, so tool families that need one
     /// are worth advertising. A call still resolves the specific account's credentials.
-    public var secondaryAvailable: Bool {
+    var secondaryAvailable: Bool {
         accounts.contains { $0.secondaryApiKey?.isEmpty == false }
     }
 
     /// The default account: the app-selected one, or the first configured if that id is
     /// missing, or nil when nothing is configured.
-    public var current: MCPCredentials? {
+    var current: MCPCredentials? {
         if let currentID, let match = accounts.first(where: { $0.id == currentID }) { return match }
         return accounts.first
     }
@@ -76,7 +79,7 @@ public nonisolated struct MCPAccountDirectory: Sendable {
     /// Resolves a tool's `account` argument to one account. A nil/empty selector picks the
     /// default; otherwise it matches by id (UUID string) first, then case-insensitively by
     /// display name. Returns nil when a non-empty selector matches nothing.
-    public func resolve(_ selector: String?) -> MCPCredentials? {
+    func resolve(_ selector: String?) -> MCPCredentials? {
         guard let selector = selector?.trimmingCharacters(in: .whitespacesAndNewlines),
               !selector.isEmpty
         else { return current }
