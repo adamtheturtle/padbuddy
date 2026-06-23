@@ -26,6 +26,7 @@
 		66F544012FE5EECD000214AA /* Flow in Frameworks */ = {isa = PBXBuildFile; productRef = 66F543FB2FE5EECD000214AA /* Flow */; };
 		66F544052FE5EECD000214AA /* Highlightr in Frameworks */ = {isa = PBXBuildFile; productRef = 66F543F42FE5EECD000214AA /* Highlightr */; };
 		66F544082FE5EECD000214AA /* RecentPadsWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 66E3CDBD2FDD6D1C00FE87A9 /* RecentPadsWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		66FA9C362FEAB12400F1A795 /* FastList in Frameworks */ = {isa = PBXBuildFile; productRef = 66FA9C352FEAB12400F1A795 /* FastList */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -156,6 +157,7 @@
 			files = (
 				66C6A3472FEA890100731E7E /* BuddyAppKit in Frameworks */,
 				66C6A3392FEA84E300731E7E /* BuddyDesignSystem in Frameworks */,
+				66FA9C362FEAB12400F1A795 /* FastList in Frameworks */,
 				6693DA512FE9CFC4005CA3CE /* CoderPadToolCore in Frameworks */,
 				66F543E52FE57AB9000214AA /* Flow in Frameworks */,
 				668E402A2FE2F7DC00AA8228 /* Sparkle in Frameworks */,
@@ -269,6 +271,7 @@
 				66C6A3382FEA84E300731E7E /* BuddyDesignSystem */,
 				66C6A3442FEA88F300731E7E /* PaginatedRESTClient */,
 				66C6A3462FEA890100731E7E /* BuddyAppKit */,
+				66FA9C352FEAB12400F1A795 /* FastList */,
 			);
 			productName = coderpad;
 			productReference = 66C8C50B2FA73AB0009B720C /* PadBuddy.app */;
@@ -417,6 +420,7 @@
 				6693DA4F2FE9CFC4005CA3CE /* XCLocalSwiftPackageReference "CoderPadToolCore" */,
 				6693DA5A2FE9F08F005CA3CE /* XCRemoteSwiftPackageReference "swift-sdk" */,
 				66C6A3352FEA84E300731E7E /* XCRemoteSwiftPackageReference "buddy-kit" */,
+				66FA9C342FEAB12400F1A795 /* XCRemoteSwiftPackageReference "FastList" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 66C8C50C2FA73AB0009B720C /* Products */;
@@ -1106,7 +1110,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/buddy-kit";
 			requirement = {
 				kind = exactVersion;
-				version = 0.1.1;
+				version = 0.2.1;
 			};
 		};
 		66E3CC562FDA31CC00FE87A9 /* XCRemoteSwiftPackageReference "Highlightr" */ = {
@@ -1139,6 +1143,14 @@
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 3.4.0;
+			};
+		};
+		66FA9C342FEAB12400F1A795 /* XCRemoteSwiftPackageReference "FastList" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/adamtheturtle/FastList";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.1.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -1217,6 +1229,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 66F543FC2FE5EECD000214AA /* XCRemoteSwiftPackageReference "SwiftUI-Flow" */;
 			productName = Flow;
+		};
+		66FA9C352FEAB12400F1A795 /* FastList */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 66FA9C342FEAB12400F1A795 /* XCRemoteSwiftPackageReference "FastList" */;
+			productName = FastList;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

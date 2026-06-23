@@ -99,54 +99,48 @@ extension QuestionsView {
 
     private var questionsList: some View {
         // NSTableView-backed (#439): recycles only visible rows, so selection is
-        // instant on large lists — see `ListTable` and the pads list.
-        ListTable(
-            items: sorted,
-            selection: $selectedQuestionIDs,
-            scrollToID: pendingScrollToID,
-            onScrolledToID: { pendingScrollToID = nil },
-            rowContent: { question in
-                AnyView(QuestionRowHostableContent(
-                    question: question,
-                    account: accounts.currentAccountID,
-                    favorites: favorites,
-                    onToggleFavorite: { toggleFavorite(question) }
-                ))
-            },
-            onDoubleClick: { openQuestionWindow($0) },
-            onReturn: { openQuestionWindow($0) },
-            leadingActions: { question in
-                let starred = favoriteIDSet.contains(question.id)
-                return [RowSwipeAction(
-                    title: starred ? String(localized: "Unfavorite") : String(localized: "Favorite"),
-                    tint: .systemYellow,
-                    systemImage: starred ? "star.slash" : "star.fill"
-                ) { toggleFavorite(question) }]
-            },
-            trailingActions: { question in
-                guard !isReadOnly else { return [] }
+        // instant on large lists — see `FastList` and the pads list.
+        FastList(sorted, selection: $selectedQuestionIDs) { question in
+            QuestionRowHostableContent(
+                question: question,
+                account: accounts.currentAccountID,
+                favorites: favorites,
+                onToggleFavorite: { toggleFavorite(question) }
+            )
+        }
+        .onDoubleClick { openQuestionWindow($0) }
+        .onReturnKey { openQuestionWindow($0) }
+        .swipeActions(edge: .leading) { question in
+            let starred = favoriteIDSet.contains(question.id)
+            return [SwipeAction(
+                title: starred ? String(localized: "Unfavorite") : String(localized: "Favorite"),
+                tint: Color(nsColor: .systemYellow),
+                systemImage: starred ? "star.slash" : "star.fill"
+            ) { toggleFavorite(question) }]
+        }
+        .swipeActions(edge: .trailing) { question in
+            guard !isReadOnly else { return [] }
 
-                return [
-                    // Same path as the context-menu "Delete Question…": select the row,
-                    // then let its detail pane run the undoable delete.
-                    RowSwipeAction(title: String(localized: "Delete"), isDestructive: true,
-                                   systemImage: "trash") {
-                        selectedQuestionIDs = [question.id]
-                        nav.deleteQuestionID = question.id
-                    },
-                    RowSwipeAction(title: String(localized: "New Pad"), tint: .controlAccentColor,
-                                   systemImage: "plus.rectangle.on.rectangle") {
-                        selectedQuestionIDs = [question.id]
-                        nav.createPadForQuestionID = question.id
-                    }
-                ]
-            },
-            pasteboardItem: { questionPasteboardItem($0) },
-            menuItems: { questionTableMenuItems($0) },
-            onTopRowChange: { persistTopRow($0) },
-            onDragSessionBegan: FavoriteDragLifecycle.onBegan,
-            onDragSessionEnded: FavoriteDragLifecycle.onEnded
-        )
+            return [
+                // Same path as the context-menu "Delete Question…": select the row,
+                // then let its detail pane run the undoable delete.
+                SwipeAction(title: String(localized: "Delete"), role: .destructive,
+                            systemImage: "trash") {
+                    selectedQuestionIDs = [question.id]
+                    nav.deleteQuestionID = question.id
+                },
+                SwipeAction(title: String(localized: "New Pad"), tint: Color(nsColor: .controlAccentColor),
+                            systemImage: "plus.rectangle.on.rectangle") {
+                    selectedQuestionIDs = [question.id]
+                    nav.createPadForQuestionID = question.id
+                }
+            ]
+        }
+        .onRowDrag { questionPasteboardItem($0) }
+        .rowContextMenu { questionTableMenuItems($0) }
+        .onTopRowChange { persistTopRow($0) }
+        .scrollToRow(id: pendingScrollToID) { pendingScrollToID = nil }
+        .onDragSession(began: FavoriteDragLifecycle.onBegan, ended: FavoriteDragLifecycle.onEnded)
         // Scene-scoped, mirroring PadsView: the Question menu commands stay enabled
         // whenever this window is frontmost and a question is selected.
         .focusedSceneValue(\.focusedQuestion, selection)
@@ -205,12 +199,12 @@ extension QuestionsView {
     }
 
     /// The right-click menu for a question row in the `NSTableView`-backed list, built
-    /// as AppKit `RowMenuItem`s (the hosted content is hit-transparent, so a SwiftUI
+    /// as AppKit `MenuItem`s (the hosted content is hit-transparent, so a SwiftUI
     /// `.contextMenu` can't be used). A multi-row selection copies/deletes the whole
     /// selection, Finder-style; a single row keeps its full menu. Actions needing the
     /// detail pane's machinery select the question first, then route through
     /// `AppNavigation`. (Share is reachable from the detail pane.)
-    func questionTableMenuItems(_ question: Question) -> [RowMenuItem] {
+    func questionTableMenuItems(_ question: Question) -> [MenuItem] {
         if selectedQuestionIDs.count > 1, selectedQuestionIDs.contains(question.id) {
             let questions = selectedQuestionsInOrder
             return [
@@ -220,13 +214,13 @@ extension QuestionsView {
                 },
                 .separator,
                 .button(title: String(localized: "Delete \(questions.count) Questions…"),
-                        isDestructive: true, isEnabled: !isReadOnly) {
+                        isEnabled: !isReadOnly) {
                     questionsPendingBulkDelete = questions
                 }
             ]
         }
         let starred = favoriteIDSet.contains(question.id)
-        var items: [RowMenuItem] = [
+        var items: [MenuItem] = [
             .button(title: String(localized: "New Pad from Question"), isEnabled: !isReadOnly) {
                 selectedQuestionIDs = [question.id]
                 nav.createPadForQuestionID = question.id
@@ -251,7 +245,7 @@ extension QuestionsView {
         }
         items.append(.separator)
         items.append(.button(title: String(localized: "Delete Question…"),
-                             isDestructive: true, isEnabled: !isReadOnly) {
+                             isEnabled: !isReadOnly) {
                 selectedQuestionIDs = [question.id]
                 nav.deleteQuestionID = question.id
             })

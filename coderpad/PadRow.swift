@@ -8,7 +8,7 @@ import SwiftUI
 #if DEBUG
     /// Per-selection render profiler (#439). Counts how many memoized row-content bodies
     /// (`PadRowInfo` / `QuestionRowInfo`) evaluate per selection change, plus the rough
-    /// main-thread stall. With the `NSTableView`-backed `ListTable` the table doesn't
+    /// main-thread stall. With the `NSTableView`-backed `FastList` the table doesn't
     /// re-host rows on a selection change, so this should stay near zero — what's left of
     /// the stall is the detail-pane/selection cascade, not the list. Wired up from a
     /// list's selection `onChange`; DEBUG-only so it never ships in release.
@@ -177,7 +177,7 @@ struct FavoriteStarButton: View {
     }
 }
 
-/// The pad row as hosted inside the `NSTableView`-backed `PadListTable` (#439). The
+/// The pad row as hosted inside the `NSTableView`-backed `FastList` (#439). The
 /// title/metadata block is `.allowsHitTesting(false)` so left-clicks pass straight
 /// through the `NSHostingView` to the table for native selection; only the favorite
 /// star stays hittable so it can be toggled. Selection, double-click, swipe, drag, and

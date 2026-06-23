@@ -14,6 +14,12 @@ import SwiftUI
 // top of them stay below.
 @_exported import BuddyDesignSystem
 
+// The NSTableView-backed list (`FastList`, `SwipeAction`, `MenuItem`) was lifted out
+// of `BuddyDesignSystem` into the standalone `FastList` package (#548). Re-exported here
+// so the four list columns keep using it unqualified, the same way the rest of the
+// design system is shared.
+@_exported import FastList
+
 /// A pad's lifecycle state. A live pad is the one status that genuinely benefits
 /// from standing out, so it keeps a subtle green capsule; every other state reads
 /// as restrained secondary metadata (an SF Symbol + text, see ``MetaLabel``) so the

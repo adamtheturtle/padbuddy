@@ -222,50 +222,44 @@ extension MergedQuestionsView {
 
     private var questionsList: some View {
         // NSTableView-backed (#439): recycles only visible rows, so selection is
-        // instant on large combined lists — see `ListTable`.
-        ListTable(
-            items: sorted,
-            selection: $selectedRowIDs,
-            scrollToID: pendingScrollToRowID,
-            onScrolledToID: { pendingScrollToRowID = nil },
-            rowContent: { row in
-                AnyView(QuestionRowHostableContent(
-                    question: row.item,
-                    accountName: row.account.name,
-                    account: row.account.id,
-                    favorites: favorites,
-                    onToggleFavorite: { toggleFavorite(row) }
-                ))
-            },
-            // Double-click / Return open the question in its own window with the
-            // originating account (the first click selects it).
-            onDoubleClick: { openQuestionWindow($0) },
-            onReturn: { openQuestionWindow($0) },
-            leadingActions: { row in
-                let starred = isFavorite(row)
-                return [RowSwipeAction(
-                    title: starred ? String(localized: "Unfavorite") : String(localized: "Favorite"),
-                    tint: .systemYellow,
-                    systemImage: starred ? "star.slash" : "star.fill"
-                ) { toggleFavorite(row) }]
-            },
-            trailingActions: { row in
-                guard !isReadOnly else { return [] }
+        // instant on large combined lists — see `FastList`.
+        FastList(sorted, selection: $selectedRowIDs) { row in
+            QuestionRowHostableContent(
+                question: row.item,
+                accountName: row.account.name,
+                account: row.account.id,
+                favorites: favorites,
+                onToggleFavorite: { toggleFavorite(row) }
+            )
+        }
+        // Double-click / Return open the question in its own window with the
+        // originating account (the first click selects it).
+        .onDoubleClick { openQuestionWindow($0) }
+        .onReturnKey { openQuestionWindow($0) }
+        .swipeActions(edge: .leading) { row in
+            let starred = isFavorite(row)
+            return [SwipeAction(
+                title: starred ? String(localized: "Unfavorite") : String(localized: "Favorite"),
+                tint: Color(nsColor: .systemYellow),
+                systemImage: starred ? "star.slash" : "star.fill"
+            ) { toggleFavorite(row) }]
+        }
+        .swipeActions(edge: .trailing) { row in
+            guard !isReadOnly else { return [] }
 
-                // Same path as the context-menu "Delete Question…": select the row,
-                // then let its detail pane run the undoable delete.
-                return [RowSwipeAction(title: String(localized: "Delete"), isDestructive: true,
-                                       systemImage: "trash") {
-                        select(row)
-                        nav.deleteQuestionID = row.item.id
-                    }]
-            },
-            pasteboardItem: { questionPasteboardItem($0) },
-            menuItems: { questionTableMenuItems($0) },
-            onTopRowChange: { persistTopRow($0) },
-            onDragSessionBegan: FavoriteDragLifecycle.onBegan,
-            onDragSessionEnded: FavoriteDragLifecycle.onEnded
-        )
+            // Same path as the context-menu "Delete Question…": select the row,
+            // then let its detail pane run the undoable delete.
+            return [SwipeAction(title: String(localized: "Delete"), role: .destructive,
+                                systemImage: "trash") {
+                    select(row)
+                    nav.deleteQuestionID = row.item.id
+                }]
+        }
+        .onRowDrag { questionPasteboardItem($0) }
+        .rowContextMenu { questionTableMenuItems($0) }
+        .onTopRowChange { persistTopRow($0) }
+        .scrollToRow(id: pendingScrollToRowID) { pendingScrollToRowID = nil }
+        .onDragSession(began: FavoriteDragLifecycle.onBegan, ended: FavoriteDragLifecycle.onEnded)
         .overlay { questionsOverlay }
         .macPullToRefresh { await reload() }
         .focusedSceneValue(\.focusedQuestion, selection)

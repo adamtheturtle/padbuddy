@@ -3,7 +3,7 @@
 //  coderpad
 //
 //  The per-row right-click menu and drag payload for the combined questions list's
-//  `NSTableView`-backed `ListTable`. Split out of MergedQuestionsView+List.swift to
+//  `NSTableView`-backed `FastList`. Split out of MergedQuestionsView+List.swift to
 //  keep it under the line cap.
 //
 
@@ -13,12 +13,12 @@ import UniformTypeIdentifiers
 
 extension MergedQuestionsView {
     /// The right-click menu for a combined-questions row, built as AppKit
-    /// `RowMenuItem`s (the hosted content is hit-transparent, so a SwiftUI
+    /// `MenuItem`s (the hosted content is hit-transparent, so a SwiftUI
     /// `.contextMenu` can't be used). A multi-row selection acts on the whole
     /// selection, Finder-style; otherwise it's the single-row menu. Actions needing the
     /// detail pane select the row first, then route through `AppNavigation`. (Share is
     /// reachable from the detail pane.)
-    func questionTableMenuItems(_ row: AccountScoped<Question>) -> [RowMenuItem] {
+    func questionTableMenuItems(_ row: AccountScoped<Question>) -> [MenuItem] {
         if selectedRowIDs.count > 1, selectedRowIDs.contains(row.id) {
             let rows = selectedRowsInOrder
             return [
@@ -29,7 +29,7 @@ extension MergedQuestionsView {
                 },
                 .separator,
                 .button(title: String(localized: "Delete \(rows.count) Questions…"),
-                        isDestructive: true, isEnabled: !isReadOnly) {
+                        isEnabled: !isReadOnly) {
                     rowsPendingBulkDelete = rows
                 }
             ]
@@ -53,7 +53,7 @@ extension MergedQuestionsView {
                 accountFilter = row.account.id
             },
             .separator,
-            .button(title: String(localized: "Delete Question…"), isDestructive: true, isEnabled: !isReadOnly) {
+            .button(title: String(localized: "Delete Question…"), isEnabled: !isReadOnly) {
                 select(row)
                 nav.deleteQuestionID = row.item.id
             }

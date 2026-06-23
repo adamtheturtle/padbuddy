@@ -82,7 +82,7 @@ struct DesignSystemRenderTests {
     }
 
     @Test func `pad row renders`() throws {
-        // The pad row is now hosted inside the NSTableView-backed `ListTable` as
+        // The pad row is now hosted inside the NSTableView-backed `FastList` as
         // `PadRowHostableContent` (#439) — dragging and selection are the table's
         // job, so the row renders the same whether or not the pad has a URL. A pad
         // with a title and one falling back to its id must both still rasterize.

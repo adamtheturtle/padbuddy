@@ -3,7 +3,7 @@
 //  coderpad
 //
 //  The per-row right-click menu and drag payload for the combined pads list's
-//  `NSTableView`-backed `ListTable`. Split out of MergedPadsView+List.swift to keep
+//  `NSTableView`-backed `FastList`. Split out of MergedPadsView+List.swift to keep
 //  that file under the line-length cap.
 //
 
@@ -12,11 +12,11 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 extension MergedPadsView {
-    /// The right-click menu for a combined-pads row, built as AppKit `RowMenuItem`s
+    /// The right-click menu for a combined-pads row, built as AppKit `MenuItem`s
     /// (the hosted content is hit-transparent, so a SwiftUI `.contextMenu` can't be
     /// used). A multi-row selection acts on the whole selection, Finder-style;
     /// otherwise it's the single-row menu. (Share is reachable from the detail pane.)
-    func padTableMenuItems(_ row: AccountScoped<Pad>) -> [RowMenuItem] {
+    func padTableMenuItems(_ row: AccountScoped<Pad>) -> [MenuItem] {
         if selectedIDs.count > 1, selectedIDs.contains(row.item.id) {
             let pads = selectedPadsInOrder
             return [
@@ -25,7 +25,7 @@ extension MergedPadsView {
                 },
                 .separator,
                 .button(title: String(localized: "Delete \(pads.count) Pads…"),
-                        isDestructive: true, isEnabled: !isReadOnly) {
+                        isEnabled: !isReadOnly) {
                     padsPendingBulkDelete = pads
                 }
             ]
@@ -51,7 +51,7 @@ extension MergedPadsView {
                 ownerFilter = row.item.ownerEmail
             },
             .separator,
-            .button(title: String(localized: "Delete…"), isDestructive: true, isEnabled: !isReadOnly) {
+            .button(title: String(localized: "Delete…"), isEnabled: !isReadOnly) {
                 padPendingDelete = row.item
             }
         ]

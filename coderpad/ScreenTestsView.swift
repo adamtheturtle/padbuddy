@@ -34,7 +34,7 @@ struct ScreenTestsView: View {
     /// Server-side date filter (#443): narrows the `GET /tests` fetch by a lower-bound
     /// date so large campaigns don't pull every historical session. Re-fetches on change.
     @State private var dateRange: ScreenTestDateRange = .all
-    /// The selected row ids. An `NSTableView`-backed `ListTable` (#439/#474) drives this
+    /// The selected row ids. An `NSTableView`-backed `FastList` (#439/#474) drives this
     /// as a set; a single selection drives the detail column's report.
     @State private var selectedIDs: Set<Int> = []
     @State private var showInvite = false
@@ -64,19 +64,12 @@ struct ScreenTestsView: View {
     private var coreList: some View {
         // NSTableView-backed (#439/#474): instant selection on large lists, and a native
         // double-click (and Return) opens the session in its own window.
-        ListTable(
-            items: filtered,
-            selection: $selectedIDs,
-            scrollToID: nil,
-            onScrolledToID: {},
-            rowContent: { test in AnyView(ScreenTestRow(test: test).allowsHitTesting(false)) },
-            onDoubleClick: { openTestWindow($0) },
-            onReturn: { openTestWindow($0) },
-            leadingActions: { _ in [] },
-            trailingActions: { _ in [] },
-            pasteboardItem: { _ in nil },
-            menuItems: { testTableMenuItems($0) }
-        )
+        FastList(filtered, selection: $selectedIDs) { test in
+            ScreenTestRow(test: test).allowsHitTesting(false)
+        }
+        .onDoubleClick { openTestWindow($0) }
+        .onReturnKey { openTestWindow($0) }
+        .rowContextMenu { testTableMenuItems($0) }
         .overlay { statusOverlay }
         .task(id: campaign.id) { await load() }
         // The date range is a server-side filter, so changing it re-fetches (onChange,
@@ -215,8 +208,8 @@ struct ScreenTestsView: View {
     /// The right-click menu for a row, gated by status: resend and cancel apply only to
     /// an invitation the candidate hasn't started yet ("waiting"); delete is always
     /// available behind a confirmation. "Open in New Window" mirrors the double-click.
-    private func testTableMenuItems(_ test: ScreenTestSession) -> [RowMenuItem] {
-        var items: [RowMenuItem] = [
+    private func testTableMenuItems(_ test: ScreenTestSession) -> [MenuItem] {
+        var items: [MenuItem] = [
             .button(title: String(localized: "Open in New Window")) { openTestWindow(test) },
             .separator
         ]
@@ -225,8 +218,7 @@ struct ScreenTestsView: View {
             items.append(.button(title: String(localized: "Cancel Invitation")) { Task { await cancel(test) } })
             items.append(.separator)
         }
-        items.append(.button(title: String(localized: "Delete Test Session"),
-                             isDestructive: true) { testPendingDelete = test })
+        items.append(.button(title: String(localized: "Delete Test Session")) { testPendingDelete = test })
         return items
     }
 

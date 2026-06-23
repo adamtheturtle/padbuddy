@@ -99,7 +99,7 @@ private struct QuestionRowInfo: View, Equatable {
     }
 }
 
-/// The question row as hosted inside the `NSTableView`-backed `ListTable` (#439). The
+/// The question row as hosted inside the `NSTableView`-backed `FastList` (#439). The
 /// title/metadata block is `.allowsHitTesting(false)` so left-clicks pass through the
 /// `NSHostingView` to the table for native selection; only the favorite star stays
 /// hittable. Mirrors ``PadRowHostableContent``. Selection, double-click, swipe, drag,

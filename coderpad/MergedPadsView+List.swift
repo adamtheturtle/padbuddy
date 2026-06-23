@@ -313,49 +313,43 @@ extension MergedPadsView {
 
     private var padList: some View {
         // NSTableView-backed (#439): recycles only visible rows, so selection is
-        // instant on large combined lists — see `ListTable` and the pads list.
-        ListTable(
-            items: filtered,
-            selection: $selectedIDs,
-            scrollToID: pendingScrollToID,
-            onScrolledToID: { pendingScrollToID = nil },
-            rowContent: { row in
-                AnyView(PadRowHostableContent(
-                    pad: row.item,
-                    isChanged: PadListLogic.hasNewActivitySinceOpen(
-                        row.item, lastOpened: openedStore.lastOpened(row.item.id, account: row.account.id)
-                    ),
-                    accountName: row.account.name,
-                    ownerDisplay: directory.display(row.item.ownerEmail),
-                    account: row.account.id,
-                    favoritePads: favoritePads
-                ))
-            },
-            // Double-click opens the pad's native detail in its own window with the
-            // originating account (#354); Return opens its live URL in the browser.
-            onDoubleClick: { row in
-                openWindow(id: "pad", value: PadWindowID(account: row.account.id, id: row.item.id))
-            },
-            onReturn: { openPad($0.item) },
-            leadingActions: { row in
-                let starred = favoritePads.isFavorite(row.item.id, account: row.account.id)
-                return [RowSwipeAction(
-                    title: starred ? String(localized: "Unfavorite") : String(localized: "Favorite"),
-                    tint: .systemYellow,
-                    systemImage: starred ? "star.slash" : "star.fill"
-                ) { favoritePads.toggle(row.item.id, account: row.account.id) }]
-            },
-            trailingActions: { row in
-                isReadOnly ? [] : [RowSwipeAction(title: String(localized: "Delete"), isDestructive: true,
-                                                  systemImage: "trash") {
-                        padPendingDelete = row.item
-                    }]
-            },
-            pasteboardItem: { padPasteboardItem($0) },
-            menuItems: { padTableMenuItems($0) },
-            onTopRowChange: { persistTopRow($0) },
-            onDragSessionBegan: FavoriteDragLifecycle.onBegan,
-            onDragSessionEnded: FavoriteDragLifecycle.onEnded
-        )
+        // instant on large combined lists — see `FastList` and the pads list.
+        FastList(filtered, selection: $selectedIDs) { row in
+            PadRowHostableContent(
+                pad: row.item,
+                isChanged: PadListLogic.hasNewActivitySinceOpen(
+                    row.item, lastOpened: openedStore.lastOpened(row.item.id, account: row.account.id)
+                ),
+                accountName: row.account.name,
+                ownerDisplay: directory.display(row.item.ownerEmail),
+                account: row.account.id,
+                favoritePads: favoritePads
+            )
+        }
+        // Double-click opens the pad's native detail in its own window with the
+        // originating account (#354); Return opens its live URL in the browser.
+        .onDoubleClick { row in
+            openWindow(id: "pad", value: PadWindowID(account: row.account.id, id: row.item.id))
+        }
+        .onReturnKey { openPad($0.item) }
+        .swipeActions(edge: .leading) { row in
+            let starred = favoritePads.isFavorite(row.item.id, account: row.account.id)
+            return [SwipeAction(
+                title: starred ? String(localized: "Unfavorite") : String(localized: "Favorite"),
+                tint: Color(nsColor: .systemYellow),
+                systemImage: starred ? "star.slash" : "star.fill"
+            ) { favoritePads.toggle(row.item.id, account: row.account.id) }]
+        }
+        .swipeActions(edge: .trailing) { row in
+            isReadOnly ? [] : [SwipeAction(title: String(localized: "Delete"), role: .destructive,
+                                           systemImage: "trash") {
+                    padPendingDelete = row.item
+                }]
+        }
+        .onRowDrag { padPasteboardItem($0) }
+        .rowContextMenu { padTableMenuItems($0) }
+        .onTopRowChange { persistTopRow($0) }
+        .scrollToRow(id: pendingScrollToID) { pendingScrollToID = nil }
+        .onDragSession(began: FavoriteDragLifecycle.onBegan, ended: FavoriteDragLifecycle.onEnded)
     }
 }

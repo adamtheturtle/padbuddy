@@ -44,7 +44,7 @@ enum FavoriteDrop: Codable, Transferable {
 /// App-level signal that a favorite-able pad or question is currently being dragged,
 /// so the sidebar can reveal its empty-Favourites drop zone *only* while a drop is
 /// possible and keep no resting gap otherwise (#444). The NSTableView row drag has
-/// clean begin/end callbacks, so `ListTable` sets this true when such a drag begins
+/// clean begin/end callbacks, so `FastList` sets this true when such a drag begins
 /// and false when it ends — no timeout or `NSDraggingSession` observer needed.
 @MainActor @Observable
 final class FavoriteDragMonitor {
@@ -56,7 +56,7 @@ final class FavoriteDragMonitor {
 }
 
 /// The favorite-drag lifecycle hooks the list columns share, passed into the
-/// design-system ``ListTable``'s injected drag callbacks (#515). Keeping the
+/// design-system ``FastList``'s injected drag callbacks (#515). Keeping the
 /// favorite-payload inspection here means the reusable table never references the
 /// app's `coderpadFavorite` type or `FavoriteDragMonitor`. While a row carrying a
 /// favorite payload is dragged, reveal the sidebar's empty-state drop zone (#444).

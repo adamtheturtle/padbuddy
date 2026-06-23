@@ -190,48 +190,42 @@ extension PadsView {
         // both lazy and click-safe. An `NSTableView` recycles only visible rows — like
         // Mail — so the list does ~0 work on selection regardless of length, while each
         // row still hosts the SwiftUI content (favorite star, drag, context menu).
-        ListTable(
-            items: filtered,
-            selection: $selectedIDs,
-            scrollToID: pendingScrollToID,
-            onScrolledToID: { pendingScrollToID = nil },
-            rowContent: { pad in
-                AnyView(PadRowHostableContent(
-                    pad: pad,
-                    isChanged: PadListLogic.hasNewActivitySinceOpen(
-                        pad, lastOpened: openedStore.lastOpened(pad.id, account: accounts.currentAccountID)
-                    ),
-                    ownerDisplay: directory.display(pad.ownerEmail),
-                    account: accounts.currentAccountID,
-                    favoritePads: favoritePads
-                ))
-            },
-            onDoubleClick: { openPadDetailWindow($0) },
-            onReturn: { openPad($0) },
-            leadingActions: { pad in
-                let starred = favoritePads.isFavorite(pad.id, account: accounts.currentAccountID)
-                return [RowSwipeAction(
-                    title: starred ? String(localized: "Unfavorite") : String(localized: "Favorite"),
-                    tint: .systemYellow,
-                    systemImage: starred ? "star.slash" : "star.fill"
-                ) {
-                    guard let account = accounts.currentAccountID else { return }
+        FastList(filtered, selection: $selectedIDs) { pad in
+            PadRowHostableContent(
+                pad: pad,
+                isChanged: PadListLogic.hasNewActivitySinceOpen(
+                    pad, lastOpened: openedStore.lastOpened(pad.id, account: accounts.currentAccountID)
+                ),
+                ownerDisplay: directory.display(pad.ownerEmail),
+                account: accounts.currentAccountID,
+                favoritePads: favoritePads
+            )
+        }
+        .onDoubleClick { openPadDetailWindow($0) }
+        .onReturnKey { openPad($0) }
+        .swipeActions(edge: .leading) { pad in
+            let starred = favoritePads.isFavorite(pad.id, account: accounts.currentAccountID)
+            return [SwipeAction(
+                title: starred ? String(localized: "Unfavorite") : String(localized: "Favorite"),
+                tint: Color(nsColor: .systemYellow),
+                systemImage: starred ? "star.slash" : "star.fill"
+            ) {
+                guard let account = accounts.currentAccountID else { return }
 
-                    favoritePads.toggle(pad.id, account: account)
+                favoritePads.toggle(pad.id, account: account)
+            }]
+        }
+        .swipeActions(edge: .trailing) { pad in
+            isReadOnly ? [] : [SwipeAction(title: String(localized: "Delete"), role: .destructive,
+                                           systemImage: "trash") {
+                    padPendingDelete = pad
                 }]
-            },
-            trailingActions: { pad in
-                isReadOnly ? [] : [RowSwipeAction(title: String(localized: "Delete"), isDestructive: true,
-                                                  systemImage: "trash") {
-                        padPendingDelete = pad
-                    }]
-            },
-            pasteboardItem: { padPasteboardItem($0) },
-            menuItems: { padTableMenuItems($0) },
-            onTopRowChange: { persistTopRow($0) },
-            onDragSessionBegan: FavoriteDragLifecycle.onBegan,
-            onDragSessionEnded: FavoriteDragLifecycle.onEnded
-        )
+        }
+        .onRowDrag { padPasteboardItem($0) }
+        .rowContextMenu { padTableMenuItems($0) }
+        .onTopRowChange { persistTopRow($0) }
+        .scrollToRow(id: pendingScrollToID) { pendingScrollToID = nil }
+        .onDragSession(began: FavoriteDragLifecycle.onBegan, ended: FavoriteDragLifecycle.onEnded)
         #if DEBUG
             // Still prints the per-selection stall; row evals should now be ~0 since
             // NSTableView doesn't re-host rows on a selection change (#439).
@@ -260,11 +254,11 @@ extension PadsView {
     }
 
     /// The right-click menu for a pad row in the `NSTableView`-backed list, built as
-    /// AppKit `RowMenuItem`s (the hosted SwiftUI content is hit-transparent, so a
+    /// AppKit `MenuItem`s (the hosted SwiftUI content is hit-transparent, so a
     /// SwiftUI `.contextMenu` can't be used). A multi-row selection acts on the whole
     /// selection, the way Finder does; otherwise it's the single-row menu. (Share is
     /// reachable from the detail pane.)
-    func padTableMenuItems(_ pad: Pad) -> [RowMenuItem] {
+    func padTableMenuItems(_ pad: Pad) -> [MenuItem] {
         if selectedIDs.count > 1, selectedIDs.contains(pad.id) {
             let pads = selectedPadsInOrder
             return [
@@ -273,7 +267,7 @@ extension PadsView {
                 },
                 .separator,
                 .button(title: String(localized: "Delete \(pads.count) Pads…"),
-                        isDestructive: true, isEnabled: !isReadOnly) {
+                        isEnabled: !isReadOnly) {
                     padsPendingBulkDelete = pads
                 }
             ]
@@ -298,7 +292,7 @@ extension PadsView {
                 ownerFilter = pad.ownerEmail
             },
             .separator,
-            .button(title: String(localized: "Delete…"), isDestructive: true, isEnabled: !isReadOnly) {
+            .button(title: String(localized: "Delete…"), isEnabled: !isReadOnly) {
                 padPendingDelete = pad
             }
         ]
