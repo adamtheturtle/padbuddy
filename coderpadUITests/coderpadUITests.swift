@@ -23,9 +23,14 @@ final class CoderpadUITests: XCTestCase {
     }
 
     @MainActor
-    private func launchDemoApp() -> XCUIApplication {
+    private func launchDemoApp(textSize: String? = nil) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments += ["-uiTesting"]
+        // Pin a larger Dynamic Type size for the marketing capture so the UI text
+        // reads clearly on the website/App Store, without cropping or zooming.
+        if let textSize {
+            app.launchArguments += ["-uiTestingTextSize", textSize]
+        }
         app.launch()
         app.activate()
         return app
@@ -142,6 +147,28 @@ final class CoderpadUITests: XCTestCase {
                       "A seeded demo org member should appear after switching to Organization")
         usleep(1_500_000)
         capture("organization")
+
+        // The website hero again, but with a larger Dynamic Type size so the UI text
+        // is legible at the on-page size (replaces docs/assets/screenshot-pads). A
+        // fresh launch is needed because Dynamic Type is fixed at the window's launch.
+        app.terminate()
+        let large = launchDemoApp(textSize: "accessibility1")
+        XCTAssertTrue(row("Onsite: Senior Backend Engineer", in: large).waitForExistence(timeout: Self.listLoadTimeout),
+                      "The seeded pads should reload in the large-text launch")
+        usleep(3_000_000)
+        let largeRow = row("Onsite: Senior Backend Engineer", in: large)
+        let largeDeadline = Date().addingTimeInterval(5)
+        while !largeRow.isHittable, Date() < largeDeadline {
+            usleep(100_000)
+        }
+        largeRow.click()
+        usleep(1_500_000)
+        let window = large.windows.firstMatch
+        let shot = window.exists ? window.screenshot() : large.screenshot()
+        let attachment = XCTAttachment(screenshot: shot)
+        attachment.name = "pads-detail-large"
+        attachment.lifetime = .keepAlways
+        add(attachment)
     }
 
     /// The command palette's arrow keys move the selection (#532). The focused search

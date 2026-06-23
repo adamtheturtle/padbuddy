@@ -72,7 +72,7 @@ a:hover { text-decoration: underline; }
 /* --- Hero ----------------------------------------------------------------- */
 
 .hero {
-  padding: 72px 0 56px;
+  padding: 72px 0 28px;
   background: var(--hero-bg);
   border-bottom: 1px solid var(--line);
   text-align: center;

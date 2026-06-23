@@ -131,6 +131,10 @@ struct CoderpadApp: App {
                 // minimums (and enforced via the sidebar's auto-collapse) rather
                 // than a hardcoded number here.
                 .frame(minHeight: 540)
+                // Screenshot-only Dynamic Type override (`-uiTestingTextSize <name>`):
+                // captures the marketing shots with larger, more legible UI text. Nil
+                // for real users, so their own accessibility text size is honored.
+                .modifier(ScreenshotTextSize(size: Self.screenshotTextSize))
                 .preferredColorScheme(appearance.colorScheme)
                 // Open the pad/question behind a tapped Spotlight result.
                 .onContinueUserActivity(CSSearchableItemActionType) { activity in
@@ -388,5 +392,39 @@ struct CoderpadApp: App {
 
     private func showAbout() {
         showAboutPanel()
+    }
+
+    /// The Dynamic Type size to pin for marketing-screenshot capture, read from
+    /// `-uiTestingTextSize <name>` (e.g. `accessibility1`). Returns nil outside that
+    /// mode so real users' system text size is always honored.
+    static var screenshotTextSize: DynamicTypeSize? {
+        let args = ProcessInfo.processInfo.arguments
+        guard let index = args.firstIndex(of: "-uiTestingTextSize"), index + 1 < args.count else {
+            return nil
+        }
+        switch args[index + 1] {
+        case "large": return .large
+        case "xLarge": return .xLarge
+        case "xxLarge": return .xxLarge
+        case "xxxLarge": return .xxxLarge
+        case "accessibility1": return .accessibility1
+        case "accessibility2": return .accessibility2
+        case "accessibility3": return .accessibility3
+        default: return nil
+        }
+    }
+}
+
+/// Applies a Dynamic Type override only when one is set; without this, pinning a
+/// non-optional size would stop honoring a real user's accessibility text setting.
+private struct ScreenshotTextSize: ViewModifier {
+    let size: DynamicTypeSize?
+
+    func body(content: Content) -> some View {
+        if let size {
+            content.dynamicTypeSize(size)
+        } else {
+            content
+        }
     }
 }
