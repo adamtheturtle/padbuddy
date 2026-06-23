@@ -28,7 +28,7 @@ struct RecentPadsWidgetBundle: WidgetBundle {
 /// (#485).
 @available(macOS 26.0, *)
 struct NewPadControl: ControlWidget {
-    static let kind = "com.adamdangoor.coderpad.NewPadControl"
+    static let kind = "com.adamdangoor.padbuddy.NewPadControl"
 
     var body: some ControlWidgetConfiguration {
         StaticControlConfiguration(kind: Self.kind) {

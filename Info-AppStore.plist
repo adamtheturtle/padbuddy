@@ -16,7 +16,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>com.adamdangoor.coderpad</string>
+			<string>com.adamdangoor.padbuddy</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>coderpad</string>

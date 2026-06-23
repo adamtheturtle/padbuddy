@@ -12,7 +12,7 @@
 	     authorizes it by matching the team-ID prefix to the signing identity. -->
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>6L9H6Q8CUF.group.com.adamdangoor.coderpad</string>
+		<string>6L9H6Q8CUF.group.com.adamdangoor.padbuddy</string>
 	</array>
 	<key>com.apple.security.files.user-selected.read-write</key>
 	<true/>

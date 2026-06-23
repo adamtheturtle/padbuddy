@@ -55,7 +55,7 @@ enum WidgetSharedStore {
     /// Must match the app's `WidgetSharedStore.appGroupID`. Team-ID-prefixed so
     /// notarized Developer-ID builds are authorized for the App Group without the
     /// per-launch "access data from other apps" prompt (#451).
-    static let appGroupID = "6L9H6Q8CUF.group.com.adamdangoor.coderpad"
+    static let appGroupID = "6L9H6Q8CUF.group.com.adamdangoor.padbuddy"
 
     /// The widget's kind, shared with the app's reload logic.
     static let widgetKind = "RecentPadsWidget"
@@ -69,7 +69,7 @@ enum WidgetSharedStore {
     /// tap triggers no activation and so `applicationDidBecomeActive` never fires (#485).
     /// A global Darwin name, prefixed with the App Group id for uniqueness. Must match
     /// the app target's copy (`coderpad/WidgetPadSnapshot.swift`).
-    static let newPadRequestNotification = "6L9H6Q8CUF.group.com.adamdangoor.coderpad.new-pad-requested"
+    static let newPadRequestNotification = "6L9H6Q8CUF.group.com.adamdangoor.padbuddy.new-pad-requested"
 
     /// File holding `account`'s pads, or the default (current-account) snapshot when
     /// `account` is nil.

@@ -8,7 +8,7 @@
 	     bare "group." form triggers a per-launch access prompt on notarized builds (#451). -->
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>6L9H6Q8CUF.group.com.adamdangoor.coderpad</string>
+		<string>6L9H6Q8CUF.group.com.adamdangoor.padbuddy</string>
 	</array>
 </dict>
 </plist>
