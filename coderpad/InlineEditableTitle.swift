@@ -97,13 +97,12 @@ struct InlineEditableTitle: View {
             // on itself.
             Spacer(minLength: 0)
         }
-        .background(
-            GeometryReader { proxy in
-                Color.clear
-                    .onAppear { availableWidth = proxy.size.width }
-                    .onChange(of: proxy.size.width) { _, width in availableWidth = width }
-            }
-        )
+        // `onGeometryChange` coalesces the width write into a single update per
+        // frame; the older GeometryReader-in-background + onAppear + onChange combo
+        // wrote `availableWidth` twice in a frame, re-laying out the title text and
+        // tripping SwiftUI's "onChange(of: AnyTextLayoutCollection) … multiple times
+        // per frame" fault.
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { availableWidth = $0 }
         .contentShape(Rectangle())
         .onHover { hovered = $0 }
         .animation(.easeInOut(duration: 0.12), value: showsPencil)
@@ -138,13 +137,9 @@ struct InlineEditableTitle: View {
             .lineLimit(1)
             .fixedSize()
             .hidden()
-            .background(
-                GeometryReader { proxy in
-                    Color.clear
-                        .onAppear { naturalWidth = proxy.size.width }
-                        .onChange(of: proxy.size.width) { _, width in naturalWidth = width }
-                }
-            )
+            // Coalesced single-update geometry read, matching the available-width
+            // reader above and avoiding the per-frame text-relayout fault.
+            .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { naturalWidth = $0 }
     }
 }
 
