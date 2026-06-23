@@ -1,13 +1,13 @@
 {
-  "originHash" : "7d754d462ce66804216139d01a7c04472a97d708945ca0b9680ed55a94ed084b",
+  "originHash" : "887882bf6c038e04b214346e7385748421a1af9bd715d5b3467ee8e8438e10d9",
   "pins" : [
     {
       "identity" : "buddy-kit",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/buddy-kit",
       "state" : {
-        "revision" : "1617e1939d1eda35bd7edbc847c02d0235e14024",
-        "version" : "0.1.0"
+        "revision" : "c1697d4e0c117c0848296cc2754b2ca64c437381",
+        "version" : "0.1.1"
       }
     },
     {
@@ -123,8 +123,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/textual",
       "state" : {
-        "revision" : "bd1425540075bd5e3d00f37abb0849eaad2c38ec",
-        "version" : "0.3.1-coderpad.2"
+        "revision" : "d7e8e12f84e8b7eefd38996a663331f9ee9d8792",
+        "version" : "0.5.1"
       }
     }
   ],
