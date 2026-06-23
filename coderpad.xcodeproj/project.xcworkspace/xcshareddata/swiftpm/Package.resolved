@@ -1,6 +1,15 @@
 {
-  "originHash" : "3f64c693589315f324503a20e4ec5e4b82fa835c05c8746f96fc9e2e697de6a3",
+  "originHash" : "7d754d462ce66804216139d01a7c04472a97d708945ca0b9680ed55a94ed084b",
   "pins" : [
+    {
+      "identity" : "buddy-kit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/adamtheturtle/buddy-kit",
+      "state" : {
+        "revision" : "1617e1939d1eda35bd7edbc847c02d0235e14024",
+        "version" : "0.1.0"
+      }
+    },
     {
       "identity" : "eventsource",
       "kind" : "remoteSourceControl",

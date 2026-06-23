@@ -8,10 +8,11 @@ import SwiftUI
 // The generic, domain-free design-system primitives — colour tokens, `Spacing`,
 // `ChipContrast`, `Card`, `DetailSection`, `SectionHeader`, `LabeledRow`, `StatTile`,
 // `Chip`, `MetaLabel`, `AvatarCircle`, `ReloadToolbarButton` — now live in the
-// `CoderPadDesignSystem` package (#377) so they can be shared with the HackerRank app.
-// Re-exported here so the rest of the app keeps using them unqualified, with no
-// per-file import. The app-coupled helpers built on top of them stay below.
-@_exported import CoderPadDesignSystem
+// `BuddyDesignSystem` product of the shared `buddy-kit` package (#377, #516) so they
+// can be shared with the HackerRank app. Re-exported here so the rest of the app keeps
+// using them unqualified, with no per-file import. The app-coupled helpers built on
+// top of them stay below.
+@_exported import BuddyDesignSystem
 
 /// A pad's lifecycle state. A live pad is the one status that genuinely benefits
 /// from standing out, so it keeps a subtle green capsule; every other state reads
