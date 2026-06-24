@@ -23,13 +23,20 @@ final class CoderpadUITests: XCTestCase {
     }
 
     @MainActor
-    private func launchDemoApp(textSize: String? = nil) -> XCUIApplication {
+    private func launchDemoApp(textSize: String? = nil, appearance: String? = nil) -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments += ["-uiTesting"]
         // Pin a larger Dynamic Type size for the marketing capture so the UI text
         // reads clearly on the website/App Store, without cropping or zooming.
         if let textSize {
             app.launchArguments += ["-uiTestingTextSize", textSize]
+        }
+        // Force the app-wide appearance for the App Store light/dark shots. The app
+        // reads this preference (`@AppStorage(GeneralSettings.Key.appearance)`) once
+        // at launch, and the NSArgumentDomain default `-general.appearance <value>`
+        // overrides it for this process only — no production code path is involved.
+        if let appearance {
+            app.launchArguments += ["-general.appearance", appearance]
         }
         app.launch()
         app.activate()
@@ -169,6 +176,81 @@ final class CoderpadUITests: XCTestCase {
         attachment.name = "pads-detail-large"
         attachment.lifetime = .keepAlways
         add(attachment)
+    }
+
+    /// App Store appearance shots (#62): the seeded pads-detail hero captured in both
+    /// dark and light mode. Each appearance needs its own cold launch because the app
+    /// reads the appearance preference once at startup; `launchDemoApp(appearance:)`
+    /// drives it via the `-general.appearance` argument-domain default. Kept separate
+    /// from the menu-bar capture so a flaky status-item open can't lose these shots.
+    /// Skipped on CI like the other capture tests.
+    @MainActor
+    func testCaptureAppStoreLightDark() throws {
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["GITHUB_ACTIONS"] == nil,
+                          "Screenshot capture is for local asset generation, not CI.")
+
+        for (appearance, name) in [("dark", "appstore-dark"), ("light", "appstore-light")] {
+            let app = launchDemoApp(appearance: appearance)
+
+            // Pads paint on launch; wait for them, then let the one-shot window resize
+            // (`applicationDidBecomeActive`) settle before selecting a row.
+            XCTAssertTrue(row("Onsite: Senior Backend Engineer", in: app).waitForExistence(timeout: Self.listLoadTimeout),
+                          "A seeded demo pad should appear once the list loads (\(appearance))")
+            usleep(3_000_000)
+
+            // Re-query right before clicking so the resize relayout can't leave a stale
+            // element snapshot mid-click.
+            let padRow = row("Onsite: Senior Backend Engineer", in: app)
+            let deadline = Date().addingTimeInterval(5)
+            while !padRow.isHittable, Date() < deadline {
+                usleep(100_000)
+            }
+            padRow.click()
+            usleep(1_500_000) // let the detail pane settle
+
+            let window = app.windows.firstMatch
+            let shot = window.exists ? window.screenshot() : app.screenshot()
+            let attachment = XCTAttachment(screenshot: shot)
+            attachment.name = name
+            attachment.lifetime = .keepAlways
+            add(attachment)
+
+            app.terminate()
+        }
+    }
+
+    /// App Store menu-bar shot (#62): the menu-bar extra's quick-access dropdown open
+    /// over the seeded main window. The dropdown is a native `.menu`-style status item
+    /// rather than an in-window view, so the capture is the whole display (via
+    /// `XCUIScreen`) rather than a single window. Isolated in its own test because
+    /// opening a status-item menu is the flakiest step here. Skipped on CI.
+    @MainActor
+    func testCaptureAppStoreMenuBar() throws {
+        try XCTSkipUnless(ProcessInfo.processInfo.environment["GITHUB_ACTIONS"] == nil,
+                          "Screenshot capture is for local asset generation, not CI.")
+
+        let app = launchDemoApp(appearance: "dark")
+        XCTAssertTrue(row("Onsite: Senior Backend Engineer", in: app).waitForExistence(timeout: Self.listLoadTimeout),
+                      "Pads should load before opening the menu bar extra")
+        usleep(3_000_000)
+
+        // The MenuBarExtra label carries the "CoderPad" accessibility label (see
+        // `MenuBarLabel`). Open it, give the dropdown a beat to draw, then capture the
+        // full display so the menu shows over the main window.
+        let statusItem = app.statusItems["CoderPad"]
+        XCTAssertTrue(statusItem.waitForExistence(timeout: Self.listLoadTimeout),
+                      "The menu bar extra icon should be present")
+        statusItem.click()
+        usleep(1_500_000)
+
+        let shot = XCUIScreen.main.screenshot()
+        let attachment = XCTAttachment(screenshot: shot)
+        attachment.name = "appstore-menubar"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+
+        // Dismiss the menu so the app can terminate cleanly.
+        app.typeKey(.escape, modifierFlags: [])
     }
 
     /// The command palette's arrow keys move the selection (#532). The focused search
