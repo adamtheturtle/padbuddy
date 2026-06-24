@@ -13,9 +13,9 @@ import SwiftUI
 struct GetAPIKeyLink: View {
     var prominent: Bool = false
 
-    // Drive the open explicitly through the environment action rather than a bare
-    // `Link`. On iPad a `Link` to an external URL can silently no-op (#552); calling
-    // `openURL` from a `Button` opens the browser reliably on both macOS and iPadOS.
+    /// Drive the open explicitly through the environment action rather than a bare
+    /// `Link`. On iPad a `Link` to an external URL can silently no-op (#552); calling
+    /// `openURL` from a `Button` opens the browser reliably on both macOS and iPadOS.
     @Environment(\.openURL) private var openURL
 
     var body: some View {

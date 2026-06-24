@@ -87,9 +87,9 @@ struct ContentView: View {
         // hairline separator under the unified toolbar is dropped, for the seamless
         // look — the title itself stays visible.
         #if os(macOS)
-        content.toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
+            content.toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
         #else
-        content
+            content
         #endif
     }
 

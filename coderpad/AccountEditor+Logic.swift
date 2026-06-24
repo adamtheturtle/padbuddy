@@ -10,12 +10,12 @@ extension AccountEditor {
     /// ("Description") so every field starts at the same x — the Mail look.
     var labelColumnWidth: CGFloat {
         #if os(macOS)
-        84
+            84
         #else
-        // iPadOS draws the label at the larger system body size (17pt vs macOS's
-        // 13pt), where "Description" overflows the 84pt column and wraps to two
-        // lines (#553). Widen the column so the longest label fits on one line.
-        112
+            // iPadOS draws the label at the larger system body size (17pt vs macOS's
+            // 13pt), where "Description" overflows the 84pt column and wraps to two
+            // lines (#553). Widen the column so the longest label fits on one line.
+            112
         #endif
     }
 
