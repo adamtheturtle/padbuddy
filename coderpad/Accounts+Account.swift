@@ -191,7 +191,7 @@ struct Account: Identifiable, Codable, Hashable {
     static let demoUserEmail = MockFixtures.demoUserEmail
 
     static func demo() -> Self {
-        Self(name: "Demo (mock data)", apiKey: "demo", isMock: true, userEmail: demoUserEmail)
+        Self(name: MockFixtures.orgName, apiKey: "demo", isMock: true, userEmail: demoUserEmail)
     }
 
     /// Sentinel key marking the "bad key" demo: a mock account whose in-process

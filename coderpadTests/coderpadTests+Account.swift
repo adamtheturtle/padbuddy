@@ -30,7 +30,7 @@ struct AccountRoundTripTests {
         let data = try JSONEncoder().encode(demo)
         let decoded = try JSONDecoder().decode(Account.self, from: data)
         #expect(decoded.isMock == true)
-        #expect(decoded.name == "Demo (mock data)")
+        #expect(decoded.name == MockFixtures.orgName)
     }
 
     @Test
