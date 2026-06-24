@@ -1,10 +1,14 @@
 #!/usr/bin/env bash
 #
 # Regenerate the App Store screenshots (#62): the seeded, PII-free `-uiTesting`
-# demo account captured as a light-mode window, a dark-mode window, and the
-# menu-bar quick-access dropdown. It drives two UI tests, exports the captured
-# PNGs, and letterboxes each onto a 2880x1800 canvas (a valid macOS App Store
-# screenshot size).
+# demo account's main window captured in light mode and in dark mode. It drives
+# the testCaptureAppStoreLightDark UI test, exports the captured PNGs, and
+# letterboxes each onto a 2880x1800 canvas (a valid macOS App Store screenshot
+# size).
+#
+# (The menu-bar quick-access dropdown is a native `.menu`-style NSMenu, which
+# XCUITest cannot screenshot — the captured frame never contains the open menu —
+# so it is not produced here.)
 #
 # Why a script: capturing these by hand is a fiddly multi-step dance (documented
 # the hard way across #505/#506/#62) —
@@ -27,9 +31,6 @@
 #     fails with "Failed to activate application" / "Image creation failed" — so
 #     this script pre-kills stray PadBuddy instances and you should not be using
 #     the screen while it runs.
-#   * The menu-bar shot opens a native status-item dropdown, the flakiest step;
-#     it is captured by a separate test so a failure there can't lose the
-#     light/dark window shots.
 #   * Uses the stable Xcode (DEVELOPER_DIR below) rather than the Xcode-beta the
 #     bare `xcodebuild`/`xcrun` resolve to.
 
@@ -43,8 +44,9 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCHEME="coderpad"
 TEST_PLAN="Full"
 TEST_PLAN_FILE="${REPO_ROOT}/${TEST_PLAN}.xctestplan"
-LIGHTDARK_TEST="coderpadUITests/coderpadUITests/testCaptureAppStoreLightDark"
-MENUBAR_TEST="coderpadUITests/coderpadUITests/testCaptureAppStoreMenuBar"
+# Target/Class/Method. The class is `CoderpadUITests` (capital C) — a lowercase
+# class component silently selects 0 tests ("Executed 0 tests").
+LIGHTDARK_TEST="coderpadUITests/CoderpadUITests/testCaptureAppStoreLightDark"
 SHOTS_DIR="${REPO_ROOT}/app-store/submission/en-US/screenshots"
 
 # Target App Store canvas (valid macOS size).
@@ -56,7 +58,6 @@ CANVAS_H=1800
 declare -a SHOTS=(
   "appstore-light:02-main-window-light"
   "appstore-dark:03-main-window-dark"
-  "appstore-menubar:04-menu-bar"
 )
 
 # --- Args -------------------------------------------------------------------
@@ -145,10 +146,9 @@ else
     -scheme "${SCHEME}" \
     -testPlan "${TEST_PLAN}" \
     -only-testing:"${LIGHTDARK_TEST}" \
-    -only-testing:"${MENUBAR_TEST}" \
     -destination 'platform=macOS,arch=arm64' \
     -resultBundlePath "${RESULT_BUNDLE}" \
-    || echo "WARNING: xcodebuild reported a failure (the menu-bar test can be flaky); continuing to export whatever was captured." >&2
+    || echo "WARNING: xcodebuild reported a test failure; continuing to export whatever was captured." >&2
 
   restore_state
   trap - EXIT
@@ -164,14 +164,18 @@ xcrun xcresulttool export attachments \
 MANIFEST="${EXPORT_DIR}/manifest.json"
 [ -f "${MANIFEST}" ] || { echo "No manifest.json produced — nothing to export." >&2; exit 1; }
 
-# Resolve an attachment name to the exported file on disk. Match the human name
-# with its extension stripped, by equality (a prefix match would cross-grab).
+# Resolve an attachment name to the exported file on disk. XCTest mangles the
+# `attachment.name` we set into `<name>_<index>_<UUID>.<ext>` in the manifest's
+# suggestedHumanReadableName, so strip that trailing `_<idx>_<UUID>` (and the
+# extension) before comparing by equality — a plain extension-strip equality
+# never matches, and a bare prefix match would let "x" grab "x-large".
 resolve_export() {
   local want="$1"
   jq -r --arg want "${want}" '
     [ .. | objects
       | select(has("exportedFileName"))
-      | select(((.suggestedHumanReadableName // "") | sub("\\.[^.]*$"; "")) == $want) ]
+      | select(((.suggestedHumanReadableName // "")
+          | sub("(_[0-9]+_[0-9A-Fa-f-]+)?\\.[^.]*$"; "")) == $want) ]
     | (.[0].exportedFileName // empty)
   ' "${MANIFEST}"
 }

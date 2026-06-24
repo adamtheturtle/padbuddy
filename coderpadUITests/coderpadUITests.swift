@@ -181,9 +181,14 @@ final class CoderpadUITests: XCTestCase {
     /// App Store appearance shots (#62): the seeded pads-detail hero captured in both
     /// dark and light mode. Each appearance needs its own cold launch because the app
     /// reads the appearance preference once at startup; `launchDemoApp(appearance:)`
-    /// drives it via the `-general.appearance` argument-domain default. Kept separate
-    /// from the menu-bar capture so a flaky status-item open can't lose these shots.
-    /// Skipped on CI like the other capture tests.
+    /// drives it via the `-general.appearance` argument-domain default. Skipped on CI
+    /// like the other capture tests.
+    ///
+    /// Captures the populated Pads list (sidebar + list, nothing selected) rather than
+    /// clicking into a pad's detail: the window capture itself is reliable even with
+    /// other app instances running, but an interactive row *click* needs the test app
+    /// frontmost and is focus-flaky in a shared GUI session. The detail layout is
+    /// already covered by the existing dark detail shot.
     @MainActor
     func testCaptureAppStoreLightDark() throws {
         try XCTSkipUnless(ProcessInfo.processInfo.environment["GITHUB_ACTIONS"] == nil,
@@ -193,20 +198,10 @@ final class CoderpadUITests: XCTestCase {
             let app = launchDemoApp(appearance: appearance)
 
             // Pads paint on launch; wait for them, then let the one-shot window resize
-            // (`applicationDidBecomeActive`) settle before selecting a row.
+            // (`applicationDidBecomeActive`) settle before capturing.
             XCTAssertTrue(row("Onsite: Senior Backend Engineer", in: app).waitForExistence(timeout: Self.listLoadTimeout),
                           "A seeded demo pad should appear once the list loads (\(appearance))")
             usleep(3_000_000)
-
-            // Re-query right before clicking so the resize relayout can't leave a stale
-            // element snapshot mid-click.
-            let padRow = row("Onsite: Senior Backend Engineer", in: app)
-            let deadline = Date().addingTimeInterval(5)
-            while !padRow.isHittable, Date() < deadline {
-                usleep(100_000)
-            }
-            padRow.click()
-            usleep(1_500_000) // let the detail pane settle
 
             let window = app.windows.firstMatch
             let shot = window.exists ? window.screenshot() : app.screenshot()
@@ -217,40 +212,6 @@ final class CoderpadUITests: XCTestCase {
 
             app.terminate()
         }
-    }
-
-    /// App Store menu-bar shot (#62): the menu-bar extra's quick-access dropdown open
-    /// over the seeded main window. The dropdown is a native `.menu`-style status item
-    /// rather than an in-window view, so the capture is the whole display (via
-    /// `XCUIScreen`) rather than a single window. Isolated in its own test because
-    /// opening a status-item menu is the flakiest step here. Skipped on CI.
-    @MainActor
-    func testCaptureAppStoreMenuBar() throws {
-        try XCTSkipUnless(ProcessInfo.processInfo.environment["GITHUB_ACTIONS"] == nil,
-                          "Screenshot capture is for local asset generation, not CI.")
-
-        let app = launchDemoApp(appearance: "dark")
-        XCTAssertTrue(row("Onsite: Senior Backend Engineer", in: app).waitForExistence(timeout: Self.listLoadTimeout),
-                      "Pads should load before opening the menu bar extra")
-        usleep(3_000_000)
-
-        // The MenuBarExtra label carries the "CoderPad" accessibility label (see
-        // `MenuBarLabel`). Open it, give the dropdown a beat to draw, then capture the
-        // full display so the menu shows over the main window.
-        let statusItem = app.statusItems["CoderPad"]
-        XCTAssertTrue(statusItem.waitForExistence(timeout: Self.listLoadTimeout),
-                      "The menu bar extra icon should be present")
-        statusItem.click()
-        usleep(1_500_000)
-
-        let shot = XCUIScreen.main.screenshot()
-        let attachment = XCTAttachment(screenshot: shot)
-        attachment.name = "appstore-menubar"
-        attachment.lifetime = .keepAlways
-        add(attachment)
-
-        // Dismiss the menu so the app can terminate cleanly.
-        app.typeKey(.escape, modifierFlags: [])
     }
 
     /// The command palette's arrow keys move the selection (#532). The focused search
