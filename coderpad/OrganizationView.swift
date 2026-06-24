@@ -66,76 +66,86 @@ struct OrganizationView: View {
     }
 
     var body: some View {
-        Group {
-            if let error, organization == nil {
-                APIErrorView(error: error) { Task { await reload() } }
-            } else {
-                // No blocking spinner on first load (#362): show the layout straight
-                // away with the stat tiles' own "…" placeholders, and let the
-                // toolbar's reload button carry the loading state instead.
-                VStack(spacing: 0) {
-                    if period == .custom { customRangeHeader }
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 18) {
-                            statTiles
-                            if let supported = organization?.singleSignOnSupported {
-                                singleSignOnSection(supported)
-                            }
-                            if let organization { usersSection(organization) }
-                        }
-                        .padding(.horizontal, Spacing.paneH)
-                        .padding(.top, Spacing.paneV)
-                        .padding(.bottom, Spacing.paneV)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    .macPullToRefresh { await reload() }
+        content
+            .task(id: client.apiKey) {
+                // Show the last-loaded org/quota immediately so re-entering the
+                // section doesn't flash a spinner; reload refreshes them in place.
+                // Stats are period-dependent, so they reload rather than restore.
+                if let id = accounts.currentAccountID {
+                    if organization == nil { organization = orgCache.get(id) }
+                    if quota == nil { quota = quotaCache.get(id) }
                 }
-            }
-        }
-        .task(id: client.apiKey) {
-            // Show the last-loaded org/quota immediately so re-entering the
-            // section doesn't flash a spinner; reload refreshes them in place.
-            // Stats are period-dependent, so they reload rather than restore.
-            if let id = accounts.currentAccountID {
-                if organization == nil { organization = orgCache.get(id) }
-                if quota == nil { quota = quotaCache.get(id) }
-            }
-            await reload()
-        }
-        .onChange(of: period) { _, _ in
-            scheduleStatsReload()
-        }
-        .onChange(of: customStart) { _, _ in
-            guard period == .custom else { return }
-
-            scheduleStatsReload()
-        }
-        .onChange(of: customEnd) { _, _ in
-            guard period == .custom else { return }
-
-            scheduleStatsReload()
-        }
-        .focusedSceneValue(\.findAction, FindAction(id: "organization") { userSearchFocused = true })
-        .task {
-            for await _ in AppRouter.reloads {
                 await reload()
             }
-        }
-        .toolbar(id: "organization") {
-            ToolbarItem(id: "period", placement: .automatic) {
-                Picker("Period", selection: $period) {
-                    ForEach(StatsPeriod.allCases) { Text($0.rawValue).tag($0) }
+            .onChange(of: period) { _, _ in
+                scheduleStatsReload()
+            }
+            .onChange(of: customStart) { _, _ in
+                guard period == .custom else { return }
+
+                scheduleStatsReload()
+            }
+            .onChange(of: customEnd) { _, _ in
+                guard period == .custom else { return }
+
+                scheduleStatsReload()
+            }
+            .focusedSceneValue(\.findAction, FindAction(id: "organization") { userSearchFocused = true })
+            .task {
+                for await _ in AppRouter.reloads {
+                    await reload()
                 }
-                .pickerStyle(.menu)
-                .help("Stats period")
             }
-            // Hidden by default — reachable via View ▸ Customize Toolbar… or the
-            // File ▸ Reload command (⌘R) (#413).
-            ToolbarItem(id: "reload", placement: .automatic) {
-                ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
-            }
-            .defaultCustomization(.hidden)
+            .toolbar(id: "organization") { organizationToolbar }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if let error, organization == nil {
+            APIErrorView(error: error) { Task { await reload() } }
+        } else {
+            loadedContent
         }
+    }
+
+    private var loadedContent: some View {
+        // No blocking spinner on first load (#362): show the layout straight
+        // away with the stat tiles' own "…" placeholders, and let the
+        // toolbar's reload button carry the loading state instead.
+        VStack(spacing: 0) {
+            if period == .custom { customRangeHeader }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    statTiles
+                    if let supported = organization?.singleSignOnSupported {
+                        singleSignOnSection(supported)
+                    }
+                    if let organization { usersSection(organization) }
+                }
+                .padding(.horizontal, Spacing.paneH)
+                .padding(.top, Spacing.paneV)
+                .padding(.bottom, Spacing.paneV)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .macPullToRefresh { await reload() }
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var organizationToolbar: some CustomizableToolbarContent {
+        ToolbarItem(id: "period", placement: .automatic) {
+            Picker("Period", selection: $period) {
+                ForEach(StatsPeriod.allCases) { Text($0.rawValue).tag($0) }
+            }
+            .pickerStyle(.menu)
+            .help("Stats period")
+        }
+        // Hidden by default — reachable via View ▸ Customize Toolbar… or the
+        // File ▸ Reload command (⌘R) (#413).
+        ToolbarItem(id: "reload", placement: .automatic) {
+            ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
+        }
+        .defaultCustomization(.hidden)
     }
 
     /// The custom From/To range, pinned above the ScrollView (only when the
