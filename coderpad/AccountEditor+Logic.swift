@@ -205,6 +205,19 @@ extension AccountEditor {
     }
 
     func validate() async {
+        // Magic demo keys: typing `demo` or `baddemo` into the key field creates a
+        // sandbox demo account (mock data, or one whose mock server 401s) instead of
+        // validating against CoderPad. This is the discoverable replacement for the old
+        // wand menu (#549): the store helpers dedupe an existing demo and make it the active
+        // account, so there's nothing to save here; just dismiss the editor.
+        if let demo = Account.DemoMagicKey(typedKey: draft.apiKey) {
+            switch demo {
+            case .mockData: AccountsStore.shared.addDemoIfMissing()
+            case .badKey: AccountsStore.shared.addDemoBadKeyIfMissing()
+            }
+            onCancel()
+            return
+        }
         // Reject a key that's already saved before hitting the network, so the user
         // gets immediate feedback rather than adding a duplicate organization.
         if let message = duplicateAccountMessage() {

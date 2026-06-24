@@ -199,26 +199,11 @@ extension SettingsView {
 
             Spacer()
 
-            // The "Mock data" demo ships in every build so first-run users — and App
-            // Review, which runs a Release build with no API key — can explore the app
-            // with sample data instead of landing on the empty "add a key" state
-            // (#68, #76). The backing mock server is already Release-safe; only this
-            // entry point was gated. "Bad API key" stays DEBUG-only: it's a testing
-            // affordance for exercising the revoked-key UI, not something to surface to
-            // real users.
-            Menu {
-                Button("Mock data") { store.addDemoIfMissing() }
-                    .disabled(store.accounts.contains(where: { $0.isMock && !$0.isBadKeyDemo }))
-                #if DEBUG
-                    Button("Bad API key") { store.addDemoBadKeyIfMissing() }
-                        .disabled(store.accounts.contains(where: \.isBadKeyDemo))
-                #endif
-            } label: {
-                Image(systemName: "wand.and.stars")
-            }
-            .menuStyle(.borderlessButton)
-            .fixedSize()
-            .help("Add a sandbox account backed by mock data to explore the app without an API key.")
+            // The demo accounts now live behind magic API keys rather than a button:
+            // typing `demo` (mock data) or `baddemo` (revoked key) into a new account's
+            // key field summons them (#549). This keeps demo creation Release-safe for
+            // first-run users and App Review (see the App Review notes) without a
+            // bespoke control in the toolbar.
         }
     }
 

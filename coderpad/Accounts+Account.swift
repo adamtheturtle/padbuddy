@@ -208,6 +208,25 @@ struct Account: Identifiable, Codable, Hashable {
         isMock && apiKey == Self.badKeyMockKey
     }
 
+    /// A sandbox demo the user can summon by typing a magic word into the account
+    /// editor's API-key field, the discoverable replacement for the old
+    /// `wand.and.stars` menu (#549): `demo` adds the mock-data demo, `baddemo` the
+    /// revoked-key demo. Mapping the typed word here (rather than reusing each
+    /// account's own sentinel key) keeps the user-facing magic words independent of
+    /// the internal `badKeyMockKey`.
+    enum DemoMagicKey {
+        case mockData
+        case badKey
+
+        init?(typedKey: String) {
+            switch typedKey.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+            case "demo": self = .mockData
+            case "baddemo": self = .badKey
+            default: return nil
+            }
+        }
+    }
+
     /// The API client this account talks to: the in-process mock for demo accounts
     /// (answering 401 for the bad-key demo), otherwise the live hosted client.
     func makeClient() -> CoderPadClient {

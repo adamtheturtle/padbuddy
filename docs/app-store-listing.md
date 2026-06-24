@@ -96,11 +96,14 @@ Pages is enabled, the rendered source works:
 > data, which is included in this Release build:
 >
 >     1. Open Settings (⌘,) and go to the Accounts tab.
->     2. Click the wand button (a wand-and-sparkles icon) next to the account
->        list and choose "Mock data".
+>     2. Click "Add Account", type the word demo (without quotes) into the API
+>        Key field, and press Return (the "Validate" button).
 >     3. A "Demo" account is added and selected. It talks to an in-process mock
 >        server (no network), populating pads, questions, the organization view,
 >        quota, and the Screen section with realistic sample content.
+>
+> (The word "demo" is a built-in shortcut for the sample account, not a real
+> credential, so no key or login is needed.)
 >
 > The demo account requires no credentials and sends no data anywhere, so it is
 > the reliable way to exercise the full app during review.
