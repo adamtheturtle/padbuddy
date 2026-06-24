@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		66153CF62FEB609C00272AF3 /* FastList in Frameworks */ = {isa = PBXBuildFile; productRef = 66153CF52FEB609C00272AF3 /* FastList */; };
 		668E402A2FE2F7DC00AA8228 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 668E40292FE2F7DC00AA8228 /* Sparkle */; };
-		6693DA512FE9CFC4005CA3CE /* CoderPadToolCore in Frameworks */ = {isa = PBXBuildFile; productRef = 6693DA502FE9CFC4005CA3CE /* CoderPadToolCore */; };
 		6693DA532FE9D021005CA3CE /* CoderPadToolCore in Frameworks */ = {isa = PBXBuildFile; productRef = 6693DA522FE9D021005CA3CE /* CoderPadToolCore */; };
 		6693DA5C2FE9F08F005CA3CE /* MCP in Frameworks */ = {isa = PBXBuildFile; productRef = 6693DA5B2FE9F08F005CA3CE /* MCP */; };
 		66C6A3392FEA84E300731E7E /* BuddyDesignSystem in Frameworks */ = {isa = PBXBuildFile; productRef = 66C6A3382FEA84E300731E7E /* BuddyDesignSystem */; };
@@ -24,9 +23,10 @@
 		66E3CDBF2FDD6D1C00FE87A9 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 66E3CD0B2FDD5BA300FE87A9 /* SwiftUI.framework */; };
 		66E3CDCC2FDD6D1D00FE87A9 /* RecentPadsWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 66E3CDBD2FDD6D1C00FE87A9 /* RecentPadsWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		66F543E52FE57AB9000214AA /* Flow in Frameworks */ = {isa = PBXBuildFile; productRef = 66F543E42FE57AB9000214AA /* Flow */; };
-		66F544012FE5EECD000214AA /* Flow in Frameworks */ = {isa = PBXBuildFile; productRef = 66F543FB2FE5EECD000214AA /* Flow */; };
-		66F544052FE5EECD000214AA /* Highlightr in Frameworks */ = {isa = PBXBuildFile; productRef = 66F543F42FE5EECD000214AA /* Highlightr */; };
+		66F544012FE5EECD000214AA /* Flow in Frameworks */ = {isa = PBXBuildFile; productRef = 66F543E42FE57AB9000214AA /* Flow */; };
+		66F544052FE5EECD000214AA /* Highlightr in Frameworks */ = {isa = PBXBuildFile; productRef = 66E3CC572FDA31CC00FE87A9 /* Highlightr */; };
 		66F544082FE5EECD000214AA /* RecentPadsWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 66E3CDBD2FDD6D1C00FE87A9 /* RecentPadsWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		66F5F54A2FEC1C5400D064BD /* CoderPadToolCore in Frameworks */ = {isa = PBXBuildFile; productRef = 66F5F5492FEC1C5400D064BD /* CoderPadToolCore */; };
 		66FA9C362FEAB12400F1A795 /* FastList in Frameworks */ = {isa = PBXBuildFile; productRef = 66FA9C352FEAB12400F1A795 /* FastList */; };
 /* End PBXBuildFile section */
 
@@ -158,8 +158,8 @@
 			files = (
 				66C6A3472FEA890100731E7E /* BuddyAppKit in Frameworks */,
 				66C6A3392FEA84E300731E7E /* BuddyDesignSystem in Frameworks */,
+				66F5F54A2FEC1C5400D064BD /* CoderPadToolCore in Frameworks */,
 				66FA9C362FEAB12400F1A795 /* FastList in Frameworks */,
-				6693DA512FE9CFC4005CA3CE /* CoderPadToolCore in Frameworks */,
 				66F543E52FE57AB9000214AA /* Flow in Frameworks */,
 				668E402A2FE2F7DC00AA8228 /* Sparkle in Frameworks */,
 				66C6A3452FEA88F300731E7E /* PaginatedRESTClient in Frameworks */,
@@ -268,12 +268,12 @@
 				66E3CC572FDA31CC00FE87A9 /* Highlightr */,
 				668E40292FE2F7DC00AA8228 /* Sparkle */,
 				66F543E42FE57AB9000214AA /* Flow */,
-				6693DA502FE9CFC4005CA3CE /* CoderPadToolCore */,
 				6693DA5B2FE9F08F005CA3CE /* MCP */,
 				66C6A3382FEA84E300731E7E /* BuddyDesignSystem */,
 				66C6A3442FEA88F300731E7E /* PaginatedRESTClient */,
 				66C6A3462FEA890100731E7E /* BuddyAppKit */,
 				66FA9C352FEAB12400F1A795 /* FastList */,
+				66F5F5492FEC1C5400D064BD /* CoderPadToolCore */,
 			);
 			productName = coderpad;
 			productReference = 66C8C50B2FA73AB0009B720C /* PadBuddy.app */;
@@ -366,8 +366,8 @@
 			);
 			name = "CoderPad-AppStore";
 			packageProductDependencies = (
-				66F543F42FE5EECD000214AA /* Highlightr */,
-				66F543FB2FE5EECD000214AA /* Flow */,
+				66E3CC572FDA31CC00FE87A9 /* Highlightr */,
+				66F543E42FE57AB9000214AA /* Flow */,
 				6693DA522FE9D021005CA3CE /* CoderPadToolCore */,
 				66C6A33C2FEA883500731E7E /* MCP */,
 				66C6A33E2FEA883500731E7E /* BuddyAppKit */,
@@ -420,10 +420,10 @@
 				66E3CC562FDA31CC00FE87A9 /* XCRemoteSwiftPackageReference "Highlightr" */,
 				668E40282FE2F7DC00AA8228 /* XCRemoteSwiftPackageReference "Sparkle" */,
 				66F543E32FE57AB9000214AA /* XCRemoteSwiftPackageReference "SwiftUI-Flow" */,
-				6693DA4F2FE9CFC4005CA3CE /* XCLocalSwiftPackageReference "CoderPadToolCore" */,
 				6693DA5A2FE9F08F005CA3CE /* XCRemoteSwiftPackageReference "swift-sdk" */,
 				66C6A3352FEA84E300731E7E /* XCRemoteSwiftPackageReference "buddy-kit" */,
 				66FA9C342FEAB12400F1A795 /* XCRemoteSwiftPackageReference "FastList" */,
+				66F5F5482FEC1C5400D064BD /* XCLocalSwiftPackageReference "CoderPadToolCore" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 66C8C50C2FA73AB0009B720C /* Products */;
@@ -1089,7 +1089,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		6693DA4F2FE9CFC4005CA3CE /* XCLocalSwiftPackageReference "CoderPadToolCore" */ = {
+		66F5F5482FEC1C5400D064BD /* XCLocalSwiftPackageReference "CoderPadToolCore" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = CoderPadToolCore;
 		};
@@ -1136,22 +1136,6 @@
 				minimumVersion = 3.4.0;
 			};
 		};
-		66F543F52FE5EECD000214AA /* XCRemoteSwiftPackageReference "Highlightr" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/raspu/Highlightr";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.3.0;
-			};
-		};
-		66F543FC2FE5EECD000214AA /* XCRemoteSwiftPackageReference "SwiftUI-Flow" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/tevelee/SwiftUI-Flow";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 3.4.0;
-			};
-		};
 		66FA9C342FEAB12400F1A795 /* XCRemoteSwiftPackageReference "FastList" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/adamtheturtle/FastList";
@@ -1173,13 +1157,9 @@
 			package = 668E40282FE2F7DC00AA8228 /* XCRemoteSwiftPackageReference "Sparkle" */;
 			productName = Sparkle;
 		};
-		6693DA502FE9CFC4005CA3CE /* CoderPadToolCore */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = CoderPadToolCore;
-		};
 		6693DA522FE9D021005CA3CE /* CoderPadToolCore */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 6693DA4F2FE9CFC4005CA3CE /* XCLocalSwiftPackageReference "CoderPadToolCore" */;
+			package = 66F5F5482FEC1C5400D064BD /* XCLocalSwiftPackageReference "CoderPadToolCore" */;
 			productName = CoderPadToolCore;
 		};
 		6693DA5B2FE9F08F005CA3CE /* MCP */ = {
@@ -1232,15 +1212,10 @@
 			package = 66F543E32FE57AB9000214AA /* XCRemoteSwiftPackageReference "SwiftUI-Flow" */;
 			productName = Flow;
 		};
-		66F543F42FE5EECD000214AA /* Highlightr */ = {
+		66F5F5492FEC1C5400D064BD /* CoderPadToolCore */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 66F543F52FE5EECD000214AA /* XCRemoteSwiftPackageReference "Highlightr" */;
-			productName = Highlightr;
-		};
-		66F543FB2FE5EECD000214AA /* Flow */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 66F543FC2FE5EECD000214AA /* XCRemoteSwiftPackageReference "SwiftUI-Flow" */;
-			productName = Flow;
+			package = 66F5F5482FEC1C5400D064BD /* XCLocalSwiftPackageReference "CoderPadToolCore" */;
+			productName = CoderPadToolCore;
 		};
 		66FA9C352FEAB12400F1A795 /* FastList */ = {
 			isa = XCSwiftPackageProductDependency;
