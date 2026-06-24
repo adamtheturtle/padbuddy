@@ -202,52 +202,73 @@ struct CommandPaletteView: View {
     private var resultsList: some View {
         ScrollViewReader { proxy in
             ScrollView {
-                LazyVStack(spacing: 2) {
-                    if results.isEmpty {
-                        Text(query.trimmingCharacters(in: .whitespaces).isEmpty
-                            ? "Start typing to search."
-                            : "No matches.")
-                            .foregroundStyle(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .center)
-                            .padding(.top, 40)
-                    } else {
-                        ForEach(Array(results.enumerated()), id: \.element.id) { index, result in
-                            PaletteRow(result: result, isSelected: index == selectedIndex)
-                                // Identify the row by the result's stable id (matching the
-                                // ForEach identity), not its position: a bare `.id(index)`
-                                // keeps ids 0,1,2… fixed while a search re-orders the content
-                                // under them, so the highlight and scroll target drift (#535).
-                                .id(result.id)
-                                .contentShape(Rectangle())
-                                .onTapGesture { activate(result) }
-                                // Hovering a row makes it the selection, so the mouse and
-                                // keyboard share one highlight (#538) and a click always
-                                // activates the row under the cursor. The hovered row is by
-                                // definition visible, so the selection's scroll handler can't
-                                // lurch the list.
-                                .onHover { hovering in
-                                    if hovering { selectedIndex = index }
-                                }
-                                // One combined element per row so VoiceOver reads it as a
-                                // single button, and the selected one announces (and exposes
-                                // for tests, #532) the `.isSelected` trait.
-                                .accessibilityElement(children: .combine)
-                                .accessibilityAddTraits(.isButton)
-                                .accessibilityAddTraits(index == selectedIndex ? .isSelected : [])
-                        }
-                    }
-                }
-                .padding(8)
+                resultsContent
+                    .padding(8)
             }
             .onChange(of: selectedIndex) { _, new in
-                // Scroll by the selected result's stable id, and only enough to keep it
-                // visible (no forced centering, which lurches a short filtered list).
-                guard results.indices.contains(new) else { return }
-
-                let id = results[new].id
-                withAnimation(.easeOut(duration: 0.1)) { proxy.scrollTo(id) }
+                scrollSelection(new, proxy: proxy)
             }
         }
+    }
+
+    @ViewBuilder
+    private var resultsContent: some View {
+        LazyVStack(spacing: 2) {
+            if results.isEmpty {
+                emptyResultsMessage
+            } else {
+                resultRows
+            }
+        }
+    }
+
+    private var emptyResultsMessage: some View {
+        Text(query.trimmingCharacters(in: .whitespaces).isEmpty
+            ? "Start typing to search."
+            : "No matches.")
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.top, 40)
+    }
+
+    private var resultRows: some View {
+        ForEach(Array(results.enumerated()), id: \.element.id) { index, result in
+            resultRow(result, index: index)
+        }
+    }
+
+    private func resultRow(_ result: PaletteResult, index: Int) -> some View {
+        PaletteRow(result: result, isSelected: index == selectedIndex)
+            // Identify the row by the result's stable id (matching the
+            // ForEach identity), not its position: a bare `.id(index)`
+            // keeps ids 0,1,2… fixed while a search re-orders the content
+            // under them, so the highlight and scroll target drift (#535).
+            .id(result.id)
+            .contentShape(Rectangle())
+            .onTapGesture { activate(result) }
+            // Hovering a row makes it the selection, so the mouse and
+            // keyboard share one highlight (#538) and a click always
+            // activates the row under the cursor. The hovered row is by
+            // definition visible, so the selection's scroll handler can't
+            // lurch the list.
+            .onHover { hovering in
+                if hovering { selectedIndex = index }
+            }
+            // One combined element per row so VoiceOver reads it as a
+            // single button, and the selected one announces (and exposes
+            // for tests, #532) the `.isSelected` trait.
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAddTraits(index == selectedIndex ? .isSelected : [])
+    }
+
+    private func scrollSelection(_ new: Int, proxy: ScrollViewProxy) {
+        // Scroll by the selected result's stable id, and only enough to keep it
+        // visible (no forced centering, which lurches a short filtered list).
+        guard results.indices.contains(new) else { return }
+
+        let id = results[new].id
+        withAnimation(.easeOut(duration: 0.1)) { proxy.scrollTo(id) }
     }
 
     #if os(macOS)
