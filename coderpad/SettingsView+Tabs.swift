@@ -8,6 +8,8 @@ import SwiftUI
 extension SettingsView {
     var generalTab: some View {
         Form {
+            // Launch-at-login is macOS-only (SMAppService); no iPad equivalent.
+            #if os(macOS)
             Section {
                 Toggle("Launch at login", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { _, enabled in
@@ -26,6 +28,7 @@ extension SettingsView {
                     Text(loginItemError).foregroundStyle(.red)
                 }
             }
+            #endif
 
             Section {
                 LabeledContent("Appearance") {
@@ -33,6 +36,8 @@ extension SettingsView {
                 }
             }
 
+            // Dock / menu-bar presence and the Dock-icon badge are macOS-only surfaces.
+            #if os(macOS)
             Section {
                 Picker("Show PadBuddy in", selection: $presence) {
                     ForEach(AppPresence.allCases) { mode in
@@ -63,9 +68,16 @@ extension SettingsView {
                 }
                 .disabled(!presence.showsDockIcon)
             }
+            #endif
 
             Section {
-                Toggle("Require Touch ID to reveal API keys", isOn: biometricGateBinding)
+                // macOS has Touch ID; iPads may use Face ID or Touch ID, so keep the
+                // iPad label inclusive of both.
+                #if os(macOS)
+                    Toggle("Require Touch ID to reveal API keys", isOn: biometricGateBinding)
+                #else
+                    Toggle("Require Face ID or Touch ID to reveal API keys", isOn: biometricGateBinding)
+                #endif
             }
 
             Section {
@@ -82,7 +94,7 @@ extension SettingsView {
                         }
                     }
             } footer: {
-                Text("Indexed on this Mac only. Pad and question titles can include candidate names.")
+                Text("Indexed on this device only. Pad and question titles can include candidate names.")
                     .foregroundStyle(.secondary)
             }
 
@@ -130,13 +142,28 @@ extension SettingsView {
     /// Mail-style master-detail layout: a sidebar listing the accounts with `+`/`−`
     /// controls at its foot, and a detail pane showing the selected account's settings
     /// inline rather than in a modal sheet.
+    /// The master-detail container: `HSplitView` on macOS; a plain `HStack` on iPad, which
+    /// has no `HSplitView` (the settings sheet is a fixed width, so no draggable divider).
+    @ViewBuilder private var accountsSplit: some View {
+        #if os(macOS)
+            HSplitView {
+                accountsSidebar
+                    .frame(minWidth: 200, idealWidth: 220, maxWidth: 320)
+                accountDetail
+                    .frame(minWidth: 380, maxWidth: .infinity, maxHeight: .infinity)
+            }
+        #else
+            HStack(spacing: 0) {
+                accountsSidebar
+                    .frame(minWidth: 200, idealWidth: 220, maxWidth: 320)
+                accountDetail
+                    .frame(minWidth: 380, maxWidth: .infinity, maxHeight: .infinity)
+            }
+        #endif
+    }
+
     var accountsTab: some View {
-        HSplitView {
-            accountsSidebar
-                .frame(minWidth: 200, idealWidth: 220, maxWidth: 320)
-            accountDetail
-                .frame(minWidth: 380, maxWidth: .infinity, maxHeight: .infinity)
-        }
+        accountsSplit
         // Land on the active account so its settings are visible on open.
         .onAppear {
             if selectedAccountID == nil {
@@ -280,6 +307,9 @@ extension SettingsView {
                     }
                 }
             }
+            // Choosing a specific external browser app and opening it in the background
+            // are macOS-only; on iPad external links always go to the system default.
+            #if os(macOS)
             Section {
                 Picker("Default browser", selection: $defaultBrowserBundleID) {
                     Text("Use system default (\(BrowserSettings.systemDefaultBrowserName()))")
@@ -295,6 +325,7 @@ extension SettingsView {
                 Text("Some third-party browsers don't support this.")
                     .foregroundStyle(.secondary)
             }
+            #endif
         }
         .formStyle(.grouped)
     }

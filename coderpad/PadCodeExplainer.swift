@@ -32,7 +32,7 @@ enum PadCodeExplainer {
     /// ``PadSummarizer/isAvailable`` for the conditions.
     static var isAvailable: Bool {
         #if canImport(FoundationModels)
-            if #available(macOS 26, *) {
+            if #available(macOS 26, iOS 26, *) {
                 return SystemLanguageModel.default.availability == .available
             }
         #endif
@@ -43,7 +43,7 @@ enum PadCodeExplainer {
     /// nil if the model is unavailable, the file is empty, or generation fails.
     static func explain(file: CodeFile) async -> CodeExplanation? {
         #if canImport(FoundationModels)
-            if #available(macOS 26, *) {
+            if #available(macOS 26, iOS 26, *) {
                 return await generate(file: file)
             }
         #endif
@@ -52,7 +52,7 @@ enum PadCodeExplainer {
 }
 
 #if canImport(FoundationModels)
-    @available(macOS 26, *)
+    @available(macOS 26, iOS 26, *)
     private extension PadCodeExplainer {
         @Generable
         struct Explanation {

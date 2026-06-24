@@ -92,19 +92,25 @@ struct SettingsView: View {
             browserTab
                 .tabItem { Label("Browser", systemImage: "safari") }
                 .tag(SettingsTab.browser)
-            // The Menu Bar pane only configures the menu-bar extra, so it's hidden when
-            // the app runs Dock-only and shows no menu-bar icon — nothing it sets would
-            // be visible (#453).
-            if presence.showsMenuBarIcon {
-                menuBarTab
-                    .tabItem { Label("Menu Bar", systemImage: "menubar.rectangle") }
-                    .tag(SettingsTab.menuBar)
-            }
-            mcpTab
-                .tabItem { Label("MCP Server", systemImage: "terminal") }
-                .tag(SettingsTab.mcp)
+            // The Menu Bar pane configures the macOS menu-bar extra, and the MCP Server
+            // pane configures the macOS headless `--mcp` server / desktop-client install -
+            // both are macOS-only, so neither tab appears on iPad. (Menu Bar is further
+            // hidden in Dock-only mode where its icon never shows, #453.)
+            #if os(macOS)
+                if presence.showsMenuBarIcon {
+                    menuBarTab
+                        .tabItem { Label("Menu Bar", systemImage: "menubar.rectangle") }
+                        .tag(SettingsTab.menuBar)
+                }
+                mcpTab
+                    .tabItem { Label("MCP Server", systemImage: "terminal") }
+                    .tag(SettingsTab.mcp)
+            #endif
         }
-        .frame(minWidth: 620, minHeight: 440)
+        // macOS window sizing only; the iPad Settings sheet sizes itself.
+        #if os(macOS)
+            .frame(minWidth: 620, minHeight: 440)
+        #endif
         // If the Menu Bar tab is hidden while it's the active selection (presence just
         // switched to Dock-only), fall back to General so the window isn't left on a
         // tab that no longer exists.

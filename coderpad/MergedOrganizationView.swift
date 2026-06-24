@@ -18,7 +18,7 @@
 import SwiftUI
 
 struct MergedOrganizationView: View {
-    @Environment(\.openSettings) private var openSettings
+    @Environment(\.openAppSettings) private var openSettings
     @State private var accounts = AccountsStore.shared
     @State private var orgCache = OrganizationCacheStore.shared
     @State private var quotaCache = QuotaCacheStore.shared
@@ -100,9 +100,17 @@ struct MergedOrganizationView: View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
                 DatePicker("From", selection: $customStart, in: ...customEnd, displayedComponents: .date)
+                #if os(macOS)
                     .datePickerStyle(.field)
+                #else
+                    .datePickerStyle(.compact)
+                #endif
                 DatePicker("To", selection: $customEnd, in: customStart..., displayedComponents: .date)
+                #if os(macOS)
                     .datePickerStyle(.field)
+                #else
+                    .datePickerStyle(.compact)
+                #endif
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, Spacing.paneH)
@@ -161,7 +169,7 @@ struct MergedOrganizationView: View {
                         Label(error, systemImage: "exclamationmark.triangle")
                             .font(.callout).foregroundStyle(.secondary)
                         Button("Open Account Settings") { openAccountSettings(account) }
-                            .buttonStyle(.link)
+                            .linkButtonStyle()
                     }
                 } else if account.apiKey.isEmpty {
                     Text("No API key for this account.")

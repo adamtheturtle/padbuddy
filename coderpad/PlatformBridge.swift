@@ -39,6 +39,36 @@ extension PlatformFont {
 }
 
 extension Color {
+    /// A neutral text-field background, matching macOS `NSColor.textBackgroundColor` and
+    /// iOS `UIColor.secondarySystemBackground`, for code/snippet panels.
+    static var platformTextBackground: Color {
+        #if os(macOS)
+            Color(nsColor: .textBackgroundColor)
+        #else
+            Color(uiColor: .secondarySystemBackground)
+        #endif
+    }
+
+    /// A neutral control/well background, matching macOS `NSColor.controlBackgroundColor`
+    /// and iOS `UIColor.systemGroupedBackground`.
+    static var platformControlBackground: Color {
+        #if os(macOS)
+            Color(nsColor: .controlBackgroundColor)
+        #else
+            Color(uiColor: .systemGroupedBackground)
+        #endif
+    }
+
+    /// The system accent, matching macOS `NSColor.controlAccentColor` and the SwiftUI
+    /// `Color.accentColor` on iOS.
+    static var platformAccent: Color {
+        #if os(macOS)
+            Color(nsColor: .controlAccentColor)
+        #else
+            Color.accentColor
+        #endif
+    }
+
     /// Builds a SwiftUI `Color` from the platform's native colour type, hiding the
     /// `nsColor:`/`uiColor:` initializer-label difference from call sites. `nonisolated`
     /// so it can be called from nonisolated contexts (e.g. syntax highlighting's
@@ -48,6 +78,18 @@ extension Color {
             self.init(nsColor: platformColor)
         #else
             self.init(uiColor: platformColor)
+        #endif
+    }
+}
+
+extension View {
+    /// The macOS `.link` button style, which has no iOS counterpart; on iOS this falls
+    /// back to `.borderless` so the same call sites compile and read as a text action.
+    @ViewBuilder func linkButtonStyle() -> some View {
+        #if os(macOS)
+            buttonStyle(.link)
+        #else
+            buttonStyle(.borderless)
         #endif
     }
 }

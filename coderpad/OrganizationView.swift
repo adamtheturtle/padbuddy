@@ -146,9 +146,17 @@ struct OrganizationView: View {
         VStack(spacing: 0) {
             HStack(spacing: 8) {
                 DatePicker("From", selection: $customStart, in: ...customEnd, displayedComponents: .date)
+                #if os(macOS)
                     .datePickerStyle(.field)
+                #else
+                    .datePickerStyle(.compact)
+                #endif
                 DatePicker("To", selection: $customEnd, in: customStart..., displayedComponents: .date)
+                #if os(macOS)
                     .datePickerStyle(.field)
+                #else
+                    .datePickerStyle(.compact)
+                #endif
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, Spacing.paneH)
@@ -181,7 +189,9 @@ struct OrganizationView: View {
                         Label("Open sign-in portal", systemImage: "arrow.up.forward.app")
                             .font(.callout)
                     }
-                    .buttonStyle(.link)
+                    #if os(macOS)
+                    .linkButtonStyle()
+                    #endif
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

@@ -3,52 +3,101 @@
 //  coderpad
 //
 
-import AppKit
+#if os(macOS)
+    import AppKit
+#else
+    import UIKit
+#endif
 import SwiftUI
 import WebKit
 
-struct WebViewRepresentable: NSViewRepresentable {
-    let url: URL
-    let controller: WebController
+#if os(macOS)
+    struct WebViewRepresentable: NSViewRepresentable {
+        let url: URL
+        let controller: WebController
 
-    func makeCoordinator() -> Coordinator {
-        Coordinator()
-    }
+        func makeCoordinator() -> Coordinator {
+            Coordinator()
+        }
 
-    func makeNSView(context: Context) -> WKWebView {
-        let configuration = WKWebViewConfiguration()
-        // Identify as Safari so Google serves its OAuth screen and password
-        // managers offer autofill. See `safariUserAgentSuffix` for the rationale;
-        // the same value is re-applied to sign-in popups in the UI delegate.
-        configuration.applicationNameForUserAgent = safariUserAgentSuffix
+        func makeNSView(context: Context) -> WKWebView {
+            let configuration = WKWebViewConfiguration()
+            // Identify as Safari so Google serves its OAuth screen and password
+            // managers offer autofill. See `safariUserAgentSuffix` for the rationale;
+            // the same value is re-applied to sign-in popups in the UI delegate.
+            configuration.applicationNameForUserAgent = safariUserAgentSuffix
 
-        let webView = WKWebView(frame: .zero, configuration: configuration)
-        webView.uiDelegate = controller
-        webView.navigationDelegate = controller
-        controller.attach(webView)
-        controller.load(url)
-        context.coordinator.loadedURL = url
-        return webView
-    }
-
-    func updateNSView(_ webView: WKWebView, context: Context) {
-        controller.attach(webView)
-        // SwiftUI reuses this web view when the bound `url` changes — e.g. opening a
-        // second pad into the existing "pad-browser" window, or switching the
-        // selected pad while the in-app browser is open. `makeNSView` only loads the
-        // first URL, so without this the view keeps showing the original (now blank
-        // or stale) page. Reload only on an actual change so we don't clobber the
-        // user's in-page navigation on every SwiftUI update.
-        if context.coordinator.loadedURL != url {
-            context.coordinator.loadedURL = url
+            let webView = WKWebView(frame: .zero, configuration: configuration)
+            webView.uiDelegate = controller
+            webView.navigationDelegate = controller
+            controller.attach(webView)
             controller.load(url)
+            context.coordinator.loadedURL = url
+            return webView
+        }
+
+        func updateNSView(_ webView: WKWebView, context: Context) {
+            controller.attach(webView)
+            // SwiftUI reuses this web view when the bound `url` changes — e.g. opening a
+            // second pad into the existing "pad-browser" window, or switching the
+            // selected pad while the in-app browser is open. `makeNSView` only loads the
+            // first URL, so without this the view keeps showing the original (now blank
+            // or stale) page. Reload only on an actual change so we don't clobber the
+            // user's in-page navigation on every SwiftUI update.
+            if context.coordinator.loadedURL != url {
+                context.coordinator.loadedURL = url
+                controller.load(url)
+            }
+        }
+
+        final class Coordinator {
+            var loadedURL: URL?
         }
     }
+#else
+    struct WebViewRepresentable: UIViewRepresentable {
+        let url: URL
+        let controller: WebController
 
-    final class Coordinator {
-        var loadedURL: URL?
+        func makeCoordinator() -> Coordinator {
+            Coordinator()
+        }
+
+        func makeUIView(context: Context) -> WKWebView {
+            let configuration = WKWebViewConfiguration()
+            // Identify as Safari so Google serves its OAuth screen and password
+            // managers offer autofill. See `safariUserAgentSuffix` for the rationale;
+            // the same value is re-applied to sign-in popups in the UI delegate.
+            configuration.applicationNameForUserAgent = safariUserAgentSuffix
+
+            let webView = WKWebView(frame: .zero, configuration: configuration)
+            webView.uiDelegate = controller
+            webView.navigationDelegate = controller
+            controller.attach(webView)
+            controller.load(url)
+            context.coordinator.loadedURL = url
+            return webView
+        }
+
+        func updateUIView(_ webView: WKWebView, context: Context) {
+            controller.attach(webView)
+            // SwiftUI reuses this web view when the bound `url` changes — e.g. opening a
+            // second pad into the existing "pad-browser" window, or switching the
+            // selected pad while the in-app browser is open. `makeUIView` only loads the
+            // first URL, so without this the view keeps showing the original (now blank
+            // or stale) page. Reload only on an actual change so we don't clobber the
+            // user's in-page navigation on every SwiftUI update.
+            if context.coordinator.loadedURL != url {
+                context.coordinator.loadedURL = url
+                controller.load(url)
+            }
+        }
+
+        final class Coordinator {
+            var loadedURL: URL?
+        }
     }
-}
+#endif
 
 struct PadBrowserView: View {
     let url: URL
@@ -136,11 +185,18 @@ struct PadBrowserView: View {
                 // A right-click menu and the ⇧⌘R shortcut below expose the same options
                 // for discoverability.
                 Button {
-                    if NSEvent.modifierFlags.contains(.option) {
-                        controller.hardReload()
-                    } else {
+                    #if os(macOS)
+                        // Option-click escalates to a no-cache hard refresh. There is no
+                        // iOS equivalent for reading the modifier on tap, so iPad gets the
+                        // plain reload (the context menu still exposes a hard refresh).
+                        if NSEvent.modifierFlags.contains(.option) {
+                            controller.hardReload()
+                        } else {
+                            controller.reload()
+                        }
+                    #else
                         controller.reload()
-                    }
+                    #endif
                 } label: {
                     Image(systemName: "arrow.clockwise")
                 }

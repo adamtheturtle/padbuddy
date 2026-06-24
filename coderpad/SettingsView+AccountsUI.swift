@@ -23,7 +23,7 @@ struct AddRemoveControl: View {
                 .disabled(!canRemove)
         }
         .frame(height: 22)
-        .background(Color(nsColor: .controlBackgroundColor),
+        .background(Color.platformControlBackground,
                     in: RoundedRectangle(cornerRadius: 6, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 6, style: .continuous)

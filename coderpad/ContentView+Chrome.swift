@@ -7,7 +7,7 @@ import SwiftUI
 
 struct UnauthorizedBanner: View {
     let monitor: AccountHealthMonitor
-    @Environment(\.openSettings) private var openSettings
+    @Environment(\.openAppSettings) private var openSettings
 
     var body: some View {
         HStack(spacing: 10) {

@@ -94,7 +94,11 @@ extension MainSplit {
         )
         .toolbar { sidebarToggle }
         .navigationTitle(sectionTitle)
+        // `navigationSubtitle` is macOS (and iOS 26+) only; on iPad 18 the section
+        // subtitle is simply omitted from the navigation bar.
+        #if os(macOS)
         .navigationSubtitle(displaySubtitle)
+        #endif
     }
 
     var twoColumnSplit: some View {
@@ -136,7 +140,11 @@ extension MainSplit {
         )
         .toolbar { sidebarToggle }
         .navigationTitle(sectionTitle)
+        // `navigationSubtitle` is macOS (and iOS 26+) only; on iPad 18 the section
+        // subtitle is simply omitted from the navigation bar.
+        #if os(macOS)
         .navigationSubtitle(displaySubtitle)
+        #endif
     }
 
     /// Attaches the same window-toolbar search field `threeColumnSplit` carries, but

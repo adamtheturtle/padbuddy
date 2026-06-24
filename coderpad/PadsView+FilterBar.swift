@@ -145,7 +145,7 @@ extension PadsView {
                     Label("Smart Filter…", systemImage: "sparkles")
                         .labelStyle(.titleAndIcon)
                 }
-                .buttonStyle(.link)
+                .linkButtonStyle()
                 .controlSize(.small)
             }
             if activeFilterCount > 0 || !search.isEmpty {
@@ -158,7 +158,7 @@ extension PadsView {
                 }
                 // A link-styled action so it reads as a verb, not another
                 // neutral capsule filter chip sitting in the same bar.
-                .buttonStyle(.link)
+                .linkButtonStyle()
                 .controlSize(.small)
             }
             if activeFilterCount > 0 {

@@ -13,7 +13,7 @@ enum SavedSearchNamer {
     /// still downloading. Callers use this to decide whether to show the affordance.
     static var isAvailable: Bool {
         #if canImport(FoundationModels)
-            if #available(macOS 26, *) {
+            if #available(macOS 26, iOS 26, *) {
                 return SystemLanguageModel.default.availability == .available
             }
         #endif
@@ -25,7 +25,7 @@ enum SavedSearchNamer {
     /// fails. Callers keep the manual field untouched on nil.
     static func suggestName(for search: NamedSearch) async -> String? {
         #if canImport(FoundationModels)
-            if #available(macOS 26, *) {
+            if #available(macOS 26, iOS 26, *) {
                 return await generate(for: search)
             }
         #endif
@@ -34,7 +34,7 @@ enum SavedSearchNamer {
 }
 
 #if canImport(FoundationModels)
-    @available(macOS 26, *)
+    @available(macOS 26, iOS 26, *)
     private extension SavedSearchNamer {
         /// A single field so guided generation hands back a clean label rather than
         /// prose we'd have to strip quotes and punctuation out of.

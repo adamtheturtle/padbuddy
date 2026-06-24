@@ -3,7 +3,11 @@
 //  coderpad
 //
 
-import AppKit
+#if os(macOS)
+    import AppKit
+#else
+    import UIKit
+#endif
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -97,6 +101,17 @@ extension QuestionsView {
         }
     }
 
+    /// The "New Pad" swipe action's tint. macOS uses the AppKit control-accent colour
+    /// (unchanged from before); iOS, which has no `controlAccentColor`, uses SwiftUI's
+    /// accent colour, which resolves to the same system accent.
+    private var newPadSwipeTint: Color {
+        #if os(macOS)
+            Color.platformAccent
+        #else
+            Color.accentColor
+        #endif
+    }
+
     private var questionsList: some View {
         // NSTableView-backed (#439): recycles only visible rows, so selection is
         // instant on large lists — see `FastList` and the pads list.
@@ -114,7 +129,7 @@ extension QuestionsView {
             let starred = favoriteIDSet.contains(question.id)
             return [SwipeAction(
                 title: starred ? String(localized: "Unfavorite") : String(localized: "Favorite"),
-                tint: Color(nsColor: .systemYellow),
+                tint: Color(platformColor: .systemYellow),
                 systemImage: starred ? "star.slash" : "star.fill"
             ) { toggleFavorite(question) }]
         }
@@ -129,25 +144,34 @@ extension QuestionsView {
                     selectedQuestionIDs = [question.id]
                     nav.deleteQuestionID = question.id
                 },
-                SwipeAction(title: String(localized: "New Pad"), tint: Color(nsColor: .controlAccentColor),
+                SwipeAction(title: String(localized: "New Pad"), tint: newPadSwipeTint,
                             systemImage: "plus.rectangle.on.rectangle") {
                     selectedQuestionIDs = [question.id]
                     nav.createPadForQuestionID = question.id
                 }
             ]
         }
+        #if os(macOS)
         .onRowDrag { questionPasteboardItem($0) }
+        #endif
+        // iPad: drag a question's URL into Safari, Notes, or a Split View.
+        .onRowDragURL { $0.webURL(baseURL: client.baseURL) }
         .rowContextMenu { questionTableMenuItems($0) }
         .onTopRowChange { persistTopRow($0) }
         .scrollToRow(id: pendingScrollToID) { pendingScrollToID = nil }
+        #if os(macOS)
         .onDragSession(began: FavoriteDragLifecycle.onBegan, ended: FavoriteDragLifecycle.onEnded)
+        #endif
         // Scene-scoped, mirroring PadsView: the Question menu commands stay enabled
         // whenever this window is frontmost and a question is selected.
         .focusedSceneValue(\.focusedQuestion, selection)
         // Edit ▸ Copy / ⌘C copies the selected questions' web URLs (one per line).
+        // `onCopyCommand` is macOS-only (Edit-menu driven); iPad has no equivalent here.
+        #if os(macOS)
         .onCopyCommand(perform: copyLinkCommand(hasSelection: !selectedQuestionIDs.isEmpty) {
             selectedQuestionURLsInOrder.joined(separator: "\n")
         })
+        #endif
         .macPullToRefresh { await reload() }
     }
 
@@ -159,6 +183,7 @@ extension QuestionsView {
 
     /// The drag payload for a question row: its web URL (external link drops) plus the
     /// internal `FavoriteDrop` JSON (so it drops onto the sidebar Favorites, #297).
+    #if os(macOS)
     private func questionPasteboardItem(_ question: Question) -> NSPasteboardItem? {
         let url = question.webURL(baseURL: client.baseURL)
         let item = NSPasteboardItem()
@@ -172,6 +197,7 @@ extension QuestionsView {
         }
         return item
     }
+    #endif
 
     /// The selected questions' web URLs in the order they appear in the list (not
     /// the selection set's arbitrary order), so a multi-row Copy reads top to bottom.

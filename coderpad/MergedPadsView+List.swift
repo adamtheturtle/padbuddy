@@ -6,7 +6,9 @@
 //  pads list. Kept out of the primary struct so its body-length stays small.
 //
 
-import AppKit
+#if os(macOS)
+    import AppKit
+#endif
 import SwiftUI
 
 extension MergedPadsView {
@@ -299,9 +301,11 @@ extension MergedPadsView {
             // and extending it to a multi-row selection. The O(N) `selectedPadsInOrder`
             // scan is built lazily (only on an actual copy); the per-render gate is the
             // O(1) empty-selection check, so it stays off the click path.
+            #if os(macOS)
             .onCopyCommand(perform: copyLinkCommand(hasSelection: !selectedIDs.isEmpty) {
                 selectedPadsInOrder.map(\.url).joined(separator: "\n")
             })
+            #endif
     }
 
     /// The selected pads in the order they appear in the list (rather than the
@@ -336,7 +340,7 @@ extension MergedPadsView {
             let starred = favoritePads.isFavorite(row.item.id, account: row.account.id)
             return [SwipeAction(
                 title: starred ? String(localized: "Unfavorite") : String(localized: "Favorite"),
-                tint: Color(nsColor: .systemYellow),
+                tint: Color(platformColor: .systemYellow),
                 systemImage: starred ? "star.slash" : "star.fill"
             ) { favoritePads.toggle(row.item.id, account: row.account.id) }]
         }
@@ -346,10 +350,16 @@ extension MergedPadsView {
                     padPendingDelete = row.item
                 }]
         }
+        #if os(macOS)
         .onRowDrag { padPasteboardItem($0) }
+        #endif
+        // iPad: drag a pad's URL into Safari, Notes, or a Split View.
+        .onRowDragURL { $0.item.webURL }
         .rowContextMenu { padTableMenuItems($0) }
         .onTopRowChange { persistTopRow($0) }
         .scrollToRow(id: pendingScrollToID) { pendingScrollToID = nil }
+        #if os(macOS)
         .onDragSession(began: FavoriteDragLifecycle.onBegan, ended: FavoriteDragLifecycle.onEnded)
+        #endif
     }
 }

@@ -9,7 +9,9 @@
 //  extensions to keep this declaration within the `type_body_length` budget.
 //
 
-import AppKit
+#if os(macOS)
+    import AppKit
+#endif
 import SwiftUI
 
 struct MergedQuestionsView: View {

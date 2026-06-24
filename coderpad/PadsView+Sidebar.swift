@@ -3,7 +3,11 @@
 //  coderpad
 //
 
-import AppKit
+#if os(macOS)
+    import AppKit
+#else
+    import UIKit
+#endif
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -173,9 +177,11 @@ extension PadsView {
             // extending it to a multi-row selection. The O(N) `selectedPadsInOrder` scan
             // is built lazily (only on an actual copy); the per-render gate is the O(1)
             // empty-selection check, so it stays off the click path.
+            #if os(macOS)
             .onCopyCommand(perform: copyLinkCommand(hasSelection: !selectedIDs.isEmpty) {
                 selectedPadsInOrder.map(\.url).joined(separator: "\n")
             })
+            #endif
     }
 
     /// The selected pads in the order they appear in the list (not the selection
@@ -207,7 +213,7 @@ extension PadsView {
             let starred = favoritePads.isFavorite(pad.id, account: accounts.currentAccountID)
             return [SwipeAction(
                 title: starred ? String(localized: "Unfavorite") : String(localized: "Favorite"),
-                tint: Color(nsColor: .systemYellow),
+                tint: Color(platformColor: .systemYellow),
                 systemImage: starred ? "star.slash" : "star.fill"
             ) {
                 guard let account = accounts.currentAccountID else { return }
@@ -221,11 +227,17 @@ extension PadsView {
                     padPendingDelete = pad
                 }]
         }
+        #if os(macOS)
         .onRowDrag { padPasteboardItem($0) }
+        #endif
+        // iPad: drag a pad's URL into Safari, Notes, or a Split View.
+        .onRowDragURL { $0.webURL }
         .rowContextMenu { padTableMenuItems($0) }
         .onTopRowChange { persistTopRow($0) }
         .scrollToRow(id: pendingScrollToID) { pendingScrollToID = nil }
+        #if os(macOS)
         .onDragSession(began: FavoriteDragLifecycle.onBegan, ended: FavoriteDragLifecycle.onEnded)
+        #endif
         #if DEBUG
             // Still prints the per-selection stall; row evals should now be ~0 since
             // NSTableView doesn't re-host rows on a selection change (#439).
@@ -238,6 +250,7 @@ extension PadsView {
     /// it can be dropped on the sidebar Favorites to pin it, #297). Built at the AppKit
     /// layer because the hosted SwiftUI content is hit-transparent — a SwiftUI
     /// `.draggable` there would never grab.
+    #if os(macOS)
     private func padPasteboardItem(_ pad: Pad) -> NSPasteboardItem? {
         guard let url = pad.webURL else { return nil }
 
@@ -252,6 +265,7 @@ extension PadsView {
         }
         return item
     }
+    #endif
 
     /// The right-click menu for a pad row in the `NSTableView`-backed list, built as
     /// AppKit `MenuItem`s (the hosted SwiftUI content is hit-transparent, so a

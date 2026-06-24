@@ -91,7 +91,9 @@ extension PadDetailView {
                             .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                     }
                     .buttonStyle(.plain)
+                    #if os(macOS)
                     .pointerStyle(.link)
+                    #endif
                     .help("Show pads from \(name)")
                 } else {
                     participantRow(name: name, tint: tint)

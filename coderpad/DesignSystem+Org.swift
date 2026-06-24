@@ -44,7 +44,7 @@ struct OwnerPadsLink: View {
             } label: {
                 Text(name)
             }
-            .buttonStyle(.link)
+            .linkButtonStyle()
             .help("Show pads from \(name)")
             .contextMenu {
                 Button {
@@ -354,7 +354,7 @@ extension FocusedValues {
 struct APIErrorView: View {
     let error: any Error
     var onRetry: (() -> Void)?
-    @Environment(\.openSettings) private var openSettings
+    @Environment(\.openAppSettings) private var openSettings
 
     var body: some View {
         if let api = error as? CoderPadError, api.isUnauthorized {

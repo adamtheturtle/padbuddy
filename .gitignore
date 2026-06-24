@@ -23,3 +23,7 @@ CoderPadDesignSystem/Package.resolved
 
 # Node tooling for the website lint jobs (docs/) — deps are restored via `npm ci`.
 node_modules/
+
+# Generated iPad verification project — throwaway, regenerate with
+# `xcodegen generate --spec project-ipad.yml`. The durable source is project-ipad.yml.
+PadBuddyiPad.xcodeproj/

@@ -11,7 +11,9 @@ struct Sidebar: View {
     @Environment(\.colorScheme) private var colorScheme
     // Native sidebar rows desaturate when their window stops being the active one;
     // the custom unlimited-quota row has to read this state to dim in step (#347).
+    #if os(macOS)
     @Environment(\.controlActiveState) private var controlActiveState
+    #endif
     @State var accounts = AccountsStore.shared
     @State var savedSearches = SavedSearchStore.shared
     @State var favorites = FavoriteQuestionsStore.shared
@@ -102,6 +104,18 @@ struct Sidebar: View {
         accounts.currentAccountID
     }
 
+    /// The framework dims native sidebar rows when the window stops being the active
+    /// one; the hand-built rows mirror that by reading `controlActiveState`. That env
+    /// value is macOS-only, so on iOS (no active/inactive window state) there's no
+    /// inactive dimming and the rows stay at full opacity.
+    private var inactiveDimming: Double {
+        #if os(macOS)
+            controlActiveState == .inactive ? 0.5 : 1
+        #else
+            1
+        #endif
+    }
+
     /// Whether the current account's plan is unlimited, read synchronously from the
     /// quota cache (warmed on session load). Only in the single-account view — the
     /// combined view spans accounts that may differ, so it keeps the normal Quota row.
@@ -149,7 +163,7 @@ struct Sidebar: View {
         // this hand-built row paints its own `.secondary` colors that wouldn't follow,
         // so it would stay fully prominent while every neighbour greyed out (#347).
         // Matching the native inactive treatment keeps the sidebar reading as one piece.
-        .opacity(controlActiveState == .inactive ? 0.5 : 1)
+        .opacity(inactiveDimming)
         .help("Your plan has unlimited pads.")
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Quota, unlimited plan")
@@ -199,7 +213,7 @@ struct Sidebar: View {
             // colours that don't follow, so they'd stay fully bright while the section
             // rows above them dimmed — the inconsistency #352 flags. Dim in step with the
             // native treatment, matching the unlimited-quota row's fix (#347).
-            .opacity(controlActiveState == .inactive ? 0.5 : 1)
+            .opacity(inactiveDimming)
         }
         .buttonStyle(.plain)
         .accessibilityAddTraits(isSelected ? .isSelected : [])

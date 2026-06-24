@@ -151,6 +151,7 @@ struct CoderpadApp: App {
                 // minimums (and enforced via the sidebar's auto-collapse) rather
                 // than a hardcoded number here.
                 .frame(minHeight: 540)
+                .provideAppSettingsAction()
                 // Screenshot-only Dynamic Type override (`-uiTestingTextSize <name>`):
                 // captures the marketing shots with larger, more legible UI text. Nil
                 // for real users, so their own accessibility text size is honored.
@@ -237,6 +238,30 @@ struct CoderpadApp: App {
                 }
                 .onOpenURL { url in
                     handleDeepLink(url)
+                }
+                .provideAppSettingsAction()
+                .sheet(isPresented: Binding(
+                    get: { SettingsPresentation.shared.isPresented },
+                    set: { SettingsPresentation.shared.isPresented = $0 }
+                )) {
+                    iPadSettingsSheet
+                }
+        }
+        .commands {
+            IPadCommands()
+        }
+    }
+
+    /// The iPad in-app Settings sheet (there is no macOS-style `Settings` scene on iOS).
+    /// Reached via the shared `\.openAppSettings` action, which raises
+    /// `SettingsPresentation.shared.isPresented`.
+    private var iPadSettingsSheet: some View {
+        NavigationStack {
+            SettingsView()
+                .toolbar {
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Done") { SettingsPresentation.shared.isPresented = false }
+                    }
                 }
         }
     }

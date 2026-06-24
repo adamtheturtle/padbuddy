@@ -28,8 +28,9 @@ extension View {
         #if os(macOS)
             return modifier(MacPullToRefresh(action: action))
         #else
-            _ = action
-            return self
+            // iPadOS has a native pull-to-refresh on the underlying `List`/`ScrollView`,
+            // so the AppKit bridge isn't needed here - wire the same action to it.
+            return refreshable { await action() }
         #endif
     }
 }

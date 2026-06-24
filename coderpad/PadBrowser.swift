@@ -3,7 +3,11 @@
 //  coderpad
 //
 
-import AppKit
+#if os(macOS)
+    import AppKit
+#else
+    import UIKit
+#endif
 import SwiftUI
 import WebKit
 
@@ -34,11 +38,13 @@ final class WebController: NSObject {
 
     private var observers: [NSKeyValueObservation] = []
 
-    /// Windows hosting JavaScript-opened popups (e.g. the "Sign in with Google"
-    /// OAuth window). A bare `WKWebView` ignores `window.open`, so without this the
-    /// popup silently never appears. We retain each popup's window here so we can
-    /// close it when the page calls `window.close()` or the user closes it.
-    private var popupWindows: [ObjectIdentifier: NSWindow] = [:]
+    #if os(macOS)
+        /// Windows hosting JavaScript-opened popups (e.g. the "Sign in with Google"
+        /// OAuth window). A bare `WKWebView` ignores `window.open`, so without this the
+        /// popup silently never appears. We retain each popup's window here so we can
+        /// close it when the page calls `window.close()` or the user closes it.
+        private var popupWindows: [ObjectIdentifier: NSWindow] = [:]
+    #endif
 
     /// The URL we asked the web view to show. WebKit occasionally drops the very
     /// first navigation (e.g. the content process wasn't ready) or hits a transient
@@ -146,98 +152,118 @@ final class WebController: NSObject {
 
 // MARK: - Popups & JavaScript dialogs
 
-extension WebController: WKUIDelegate, NSWindowDelegate {
-    /// Handle `window.open(...)` requests. Sign-in flows like "Sign in with Google"
-    /// open their consent screen in a popup; with no UI delegate WebKit drops the
-    /// request entirely and nothing appears. We create a real popup web view sharing
-    /// the opener's configuration (so the `window.opener` postMessage handshake that
-    /// completes the sign-in keeps working) and host it in its own window.
-    func webView(_: WKWebView,
-                 createWebViewWith configuration: WKWebViewConfiguration,
-                 for _: WKNavigationAction,
-                 windowFeatures: WKWindowFeatures) -> WKWebView? {
-        MainActor.assumeIsolated {
-            // WebKit hands us a fresh configuration for the popup that does not
-            // inherit the opener's `applicationNameForUserAgent`. Re-apply the
-            // Safari suffix so Google doesn't reject the OAuth window and so
-            // Accessibility-based password managers recognize it as a browser
-            // field. (The system Passwords app still won't fill an embedded
-            // WKWebView — see `safariUserAgentSuffix`.)
-            configuration.applicationNameForUserAgent = safariUserAgentSuffix
+#if os(macOS)
+    extension WebController: WKUIDelegate, NSWindowDelegate {
+        /// Handle `window.open(...)` requests. Sign-in flows like "Sign in with Google"
+        /// open their consent screen in a popup; with no UI delegate WebKit drops the
+        /// request entirely and nothing appears. We create a real popup web view sharing
+        /// the opener's configuration (so the `window.opener` postMessage handshake that
+        /// completes the sign-in keeps working) and host it in its own window.
+        //
+        // This popup-to-NSWindow orchestration is deliberately macOS-only: it preserves
+        // the Google login popup flow. On iOS there is no NSWindow analog, so the
+        // platform-default behavior (return nil, which loads the request in the main
+        // web view in place) is used instead — see the `#else` conformance below.
+        func webView(_: WKWebView,
+                     createWebViewWith configuration: WKWebViewConfiguration,
+                     for _: WKNavigationAction,
+                     windowFeatures: WKWindowFeatures) -> WKWebView? {
+            MainActor.assumeIsolated {
+                // WebKit hands us a fresh configuration for the popup that does not
+                // inherit the opener's `applicationNameForUserAgent`. Re-apply the
+                // Safari suffix so Google doesn't reject the OAuth window and so
+                // Accessibility-based password managers recognize it as a browser
+                // field. (The system Passwords app still won't fill an embedded
+                // WKWebView — see `safariUserAgentSuffix`.)
+                configuration.applicationNameForUserAgent = safariUserAgentSuffix
 
-            let popup = WKWebView(frame: .zero, configuration: configuration)
-            popup.uiDelegate = self
+                let popup = WKWebView(frame: .zero, configuration: configuration)
+                popup.uiDelegate = self
 
-            let width = windowFeatures.width?.doubleValue ?? 600
-            let height = windowFeatures.height?.doubleValue ?? 720
-            let window = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: width, height: height),
-                styleMask: [.titled, .closable, .resizable],
-                backing: .buffered,
-                defer: false
-            )
-            window.isReleasedWhenClosed = false
-            window.title = "Sign In"
-            window.contentView = popup
-            window.delegate = self
-            window.center()
-            window.makeKeyAndOrderFront(nil)
-            // Put the popup web view in the responder chain immediately so the
-            // sign-in field is focusable and the autofill affordance engages
-            // without the user first having to click into the window.
-            window.makeFirstResponder(popup)
+                let width = windowFeatures.width?.doubleValue ?? 600
+                let height = windowFeatures.height?.doubleValue ?? 720
+                let window = NSWindow(
+                    contentRect: NSRect(x: 0, y: 0, width: width, height: height),
+                    styleMask: [.titled, .closable, .resizable],
+                    backing: .buffered,
+                    defer: false
+                )
+                window.isReleasedWhenClosed = false
+                window.title = "Sign In"
+                window.contentView = popup
+                window.delegate = self
+                window.center()
+                window.makeKeyAndOrderFront(nil)
+                // Put the popup web view in the responder chain immediately so the
+                // sign-in field is focusable and the autofill affordance engages
+                // without the user first having to click into the window.
+                window.makeFirstResponder(popup)
 
-            popupWindows[ObjectIdentifier(popup)] = window
-            return popup
+                popupWindows[ObjectIdentifier(popup)] = window
+                return popup
+            }
+        }
+
+        /// The page asked to close its popup (the OAuth window does this once it has
+        /// handed the credential back to the opener).
+        func webViewDidClose(_ webView: WKWebView) {
+            MainActor.assumeIsolated {
+                let key = ObjectIdentifier(webView)
+                popupWindows[key]?.close()
+                popupWindows[key] = nil
+            }
+        }
+
+        /// Drop our reference when the user closes a popup manually.
+        func windowWillClose(_ notification: Notification) {
+            guard let window = notification.object as? NSWindow else { return }
+
+            popupWindows = popupWindows.filter { $0.value !== window }
+        }
+
+        // Surface JavaScript dialogs natively so pages that rely on them (some sign-in
+        // flows show confirm/alert prompts) behave instead of silently no-opping.
+
+        func webView(_: WKWebView,
+                     runJavaScriptAlertPanelWithMessage message: String,
+                     initiatedByFrame _: WKFrameInfo,
+                     completionHandler: @escaping @MainActor @Sendable () -> Void) {
+            MainActor.assumeIsolated {
+                let alert = NSAlert()
+                alert.messageText = message
+                alert.addButton(withTitle: "OK")
+                alert.runModal()
+                completionHandler()
+            }
+        }
+
+        func webView(_: WKWebView,
+                     runJavaScriptConfirmPanelWithMessage message: String,
+                     initiatedByFrame _: WKFrameInfo,
+                     completionHandler: @escaping @MainActor @Sendable (Bool) -> Void) {
+            MainActor.assumeIsolated {
+                let alert = NSAlert()
+                alert.messageText = message
+                alert.addButton(withTitle: "OK")
+                alert.addButton(withTitle: "Cancel")
+                completionHandler(alert.runModal() == .alertFirstButtonReturn)
+            }
         }
     }
-
-    /// The page asked to close its popup (the OAuth window does this once it has
-    /// handed the credential back to the opener).
-    func webViewDidClose(_ webView: WKWebView) {
-        MainActor.assumeIsolated {
-            let key = ObjectIdentifier(webView)
-            popupWindows[key]?.close()
-            popupWindows[key] = nil
+#else
+    extension WebController: WKUIDelegate {
+        // On iOS there is no NSWindow to host a `window.open` popup. Returning nil is
+        // the platform-standard behavior: WebKit then loads the request in the main
+        // web view in place, so sign-in flows still proceed (just without a separate
+        // popup window). The macOS popup orchestration above is preserved unchanged.
+        func webView(_: WKWebView,
+                     createWebViewWith _: WKWebViewConfiguration,
+                     for _: WKNavigationAction,
+                     windowFeatures _: WKWindowFeatures) -> WKWebView? {
+            nil
         }
     }
-
-    /// Drop our reference when the user closes a popup manually.
-    func windowWillClose(_ notification: Notification) {
-        guard let window = notification.object as? NSWindow else { return }
-
-        popupWindows = popupWindows.filter { $0.value !== window }
-    }
-
-    // Surface JavaScript dialogs natively so pages that rely on them (some sign-in
-    // flows show confirm/alert prompts) behave instead of silently no-opping.
-
-    func webView(_: WKWebView,
-                 runJavaScriptAlertPanelWithMessage message: String,
-                 initiatedByFrame _: WKFrameInfo,
-                 completionHandler: @escaping @MainActor @Sendable () -> Void) {
-        MainActor.assumeIsolated {
-            let alert = NSAlert()
-            alert.messageText = message
-            alert.addButton(withTitle: "OK")
-            alert.runModal()
-            completionHandler()
-        }
-    }
-
-    func webView(_: WKWebView,
-                 runJavaScriptConfirmPanelWithMessage message: String,
-                 initiatedByFrame _: WKFrameInfo,
-                 completionHandler: @escaping @MainActor @Sendable (Bool) -> Void) {
-        MainActor.assumeIsolated {
-            let alert = NSAlert()
-            alert.messageText = message
-            alert.addButton(withTitle: "OK")
-            alert.addButton(withTitle: "Cancel")
-            completionHandler(alert.runModal() == .alertFirstButtonReturn)
-        }
-    }
-}
+#endif
 
 // MARK: - Navigation failures
 

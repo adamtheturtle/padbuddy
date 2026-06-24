@@ -3,7 +3,11 @@
 //  coderpad
 //
 
-import AppKit
+#if os(macOS)
+    import AppKit
+#else
+    import UIKit
+#endif
 import SwiftUI
 
 extension PadDetailView {
@@ -83,24 +87,28 @@ extension PadDetailView {
     /// summary plus each code file in a fenced block (#524). The PDF half of "export" is
     /// already covered by File ▸ Print's "Save as PDF".
     func exportMarkdown() {
-        let name = pad.title.isEmpty ? pad.id : pad.title
-        let document = padMarkdownDocument(
-            title: name,
-            summary: padSummaryRows(pad, displayName: directory.display),
-            files: printFiles()
-        )
+        #if os(macOS)
+            let name = pad.title.isEmpty ? pad.id : pad.title
+            let document = padMarkdownDocument(
+                title: name,
+                summary: padSummaryRows(pad, displayName: directory.display),
+                files: printFiles()
+            )
 
-        let panel = NSSavePanel()
-        panel.canCreateDirectories = true
-        panel.nameFieldStringValue = "\(name).md"
-        panel.message = "Export \"\(name)\" as Markdown"
-        guard panel.runModal() == .OK, let url = panel.url else { return }
+            let panel = NSSavePanel()
+            panel.canCreateDirectories = true
+            panel.nameFieldStringValue = "\(name).md"
+            panel.message = "Export \"\(name)\" as Markdown"
+            guard panel.runModal() == .OK, let url = panel.url else { return }
 
-        do {
-            try document.write(to: url, atomically: true, encoding: .utf8)
-        } catch {
-            mutateError = error.localizedDescription
-        }
+            do {
+                try document.write(to: url, atomically: true, encoding: .utf8)
+            } catch {
+                mutateError = error.localizedDescription
+            }
+        #else
+            // TODO: iPad via .fileExporter/.fileImporter
+        #endif
     }
 
     /// Prompts for a destination and writes the pad's code there. A single file
@@ -108,43 +116,47 @@ extension PadDetailView {
     /// chooser, then write into a subfolder named after the pad with their
     /// project structure intact.
     func saveCodeLocally() {
-        let files = savableFiles()
-        guard !files.isEmpty else {
-            mutateError = "This pad has no code to save."
-            return
-        }
-
-        do {
-            if files.count == 1 {
-                let panel = NSSavePanel()
-                panel.canCreateDirectories = true
-                panel.nameFieldStringValue = URL(fileURLWithPath: files[0].relativePath).lastPathComponent
-                panel.message = "Save the code from \"\(suggestedBaseName)\""
-                guard panel.runModal() == .OK, let url = panel.url else { return }
-
-                try files[0].contents.write(to: url, atomically: true, encoding: .utf8)
-            } else {
-                let panel = NSOpenPanel()
-                panel.canChooseFiles = false
-                panel.canChooseDirectories = true
-                panel.canCreateDirectories = true
-                panel.allowsMultipleSelection = false
-                panel.prompt = "Save"
-                panel.message = "Choose where to save the \(files.count) files from \"\(suggestedBaseName)\""
-                guard panel.runModal() == .OK, let directory = panel.url else { return }
-
-                let root = directory.appending(path: Self.sanitizeComponent(suggestedBaseName))
-                let fileManager = FileManager.default
-                for file in files {
-                    let destination = root.appending(path: file.relativePath)
-                    try fileManager.createDirectory(at: destination.deletingLastPathComponent(),
-                                                    withIntermediateDirectories: true)
-                    try file.contents.write(to: destination, atomically: true, encoding: .utf8)
-                }
+        #if os(macOS)
+            let files = savableFiles()
+            guard !files.isEmpty else {
+                mutateError = "This pad has no code to save."
+                return
             }
-        } catch {
-            mutateError = error.localizedDescription
-        }
+
+            do {
+                if files.count == 1 {
+                    let panel = NSSavePanel()
+                    panel.canCreateDirectories = true
+                    panel.nameFieldStringValue = URL(fileURLWithPath: files[0].relativePath).lastPathComponent
+                    panel.message = "Save the code from \"\(suggestedBaseName)\""
+                    guard panel.runModal() == .OK, let url = panel.url else { return }
+
+                    try files[0].contents.write(to: url, atomically: true, encoding: .utf8)
+                } else {
+                    let panel = NSOpenPanel()
+                    panel.canChooseFiles = false
+                    panel.canChooseDirectories = true
+                    panel.canCreateDirectories = true
+                    panel.allowsMultipleSelection = false
+                    panel.prompt = "Save"
+                    panel.message = "Choose where to save the \(files.count) files from \"\(suggestedBaseName)\""
+                    guard panel.runModal() == .OK, let directory = panel.url else { return }
+
+                    let root = directory.appending(path: Self.sanitizeComponent(suggestedBaseName))
+                    let fileManager = FileManager.default
+                    for file in files {
+                        let destination = root.appending(path: file.relativePath)
+                        try fileManager.createDirectory(at: destination.deletingLastPathComponent(),
+                                                        withIntermediateDirectories: true)
+                        try file.contents.write(to: destination, atomically: true, encoding: .utf8)
+                    }
+                }
+            } catch {
+                mutateError = error.localizedDescription
+            }
+        #else
+            // TODO: iPad via .fileExporter/.fileImporter
+        #endif
     }
 
     /// A file's path with each component made filesystem-safe, preserving the

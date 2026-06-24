@@ -41,7 +41,9 @@ extension QuestionsView {
                     Label("Smart Filter…", systemImage: "sparkles")
                         .labelStyle(.titleAndIcon)
                 }
-                .buttonStyle(.link)
+                #if os(macOS)
+                .linkButtonStyle()
+                #endif
                 .controlSize(.small)
             }
             if activeFilterCount > 0 || !search.isEmpty {
@@ -54,7 +56,9 @@ extension QuestionsView {
                 }
                 // A link-styled action so it reads as a verb, not another
                 // neutral capsule filter chip sitting in the same bar.
-                .buttonStyle(.link)
+                #if os(macOS)
+                .linkButtonStyle()
+                #endif
                 .controlSize(.small)
             }
             if activeFilterCount > 0 {

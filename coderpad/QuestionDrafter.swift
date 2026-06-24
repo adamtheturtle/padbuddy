@@ -22,7 +22,7 @@ enum QuestionDrafter {
     /// ``PadSummarizer/isAvailable`` for the conditions.
     static var isAvailable: Bool {
         #if canImport(FoundationModels)
-            if #available(macOS 26, *) {
+            if #available(macOS 26, iOS 26, *) {
                 return SystemLanguageModel.default.availability == .available
             }
         #endif
@@ -33,7 +33,7 @@ enum QuestionDrafter {
     /// unavailable, the prompt is empty, or generation fails.
     static func draft(prompt: String, language: String) async -> Draft? {
         #if canImport(FoundationModels)
-            if #available(macOS 26, *) {
+            if #available(macOS 26, iOS 26, *) {
                 return await generate(prompt: prompt, language: language)
             }
         #endif
@@ -42,7 +42,7 @@ enum QuestionDrafter {
 }
 
 #if canImport(FoundationModels)
-    @available(macOS 26, *)
+    @available(macOS 26, iOS 26, *)
     private extension QuestionDrafter {
         @Generable
         struct RawDraft {

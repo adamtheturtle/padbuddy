@@ -192,7 +192,11 @@ struct CommandPaletteView: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
+        // Escape-to-dismiss is a macOS hardware-key affordance; iPad dismisses via the
+        // sheet's own swipe-down / background tap.
+        #if os(macOS)
         .onExitCommand { dismiss() }
+        #endif
     }
 
     private var resultsList: some View {

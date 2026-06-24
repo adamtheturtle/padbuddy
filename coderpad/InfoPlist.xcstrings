@@ -3,7 +3,7 @@
   "strings" : {
     "CFBundleDisplayName" : {
       "comment" : "Bundle display name",
-      "extractionState" : "extracted_with_value",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -26,12 +26,12 @@
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "PadBuddy"
+            "value" : "PadBuddyiPad"
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "machine_translated",
+            "state" : "needs_review",
             "value" : "PadBuddy"
           }
         }
@@ -65,18 +65,6 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Reordenar favoritos de CoderPad"
-          }
-        }
-      }
-    },
-    "NSHumanReadableCopyright" : {
-      "comment" : "Copyright (human-readable)",
-      "extractionState" : "extracted_with_value",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : ""
           }
         }
       }

@@ -23,7 +23,7 @@ enum SearchInterpreter {
     /// ``PadSummarizer/isAvailable`` for the conditions.
     static var isAvailable: Bool {
         #if canImport(FoundationModels)
-            if #available(macOS 26, *) {
+            if #available(macOS 26, iOS 26, *) {
                 return SystemLanguageModel.default.availability == .available
             }
         #endif
@@ -36,7 +36,7 @@ enum SearchInterpreter {
     static func interpretPads(_ text: String, languages: [String], owners: [OwnerOption],
                               teams: [String]) async -> NamedSearch? {
         #if canImport(FoundationModels)
-            if #available(macOS 26, *) {
+            if #available(macOS 26, iOS 26, *) {
                 return await generatePads(text, languages: languages, owners: owners, teams: teams)
             }
         #endif
@@ -47,7 +47,7 @@ enum SearchInterpreter {
     /// as ``interpretPads(_:languages:owners:teams:)``.
     static func interpretQuestions(_ text: String, languages: [String], owners: [OwnerOption]) async -> NamedSearch? {
         #if canImport(FoundationModels)
-            if #available(macOS 26, *) {
+            if #available(macOS 26, iOS 26, *) {
                 return await generateQuestions(text, languages: languages, owners: owners)
             }
         #endif

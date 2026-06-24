@@ -49,7 +49,7 @@ struct ContentView: View {
     @State private var templateSeed: TemplateSeed?
     @State private var showWhatsNew = false
     @Environment(\.openWindow) private var openWindow
-    @Environment(\.openSettings) private var openSettings
+    @Environment(\.openAppSettings) private var openSettings
 
     var body: some View {
         Group {
@@ -71,7 +71,9 @@ struct ContentView: View {
         // ("Pads", "Questions", "All accounts") like Mail's mailbox title. Only the
         // hairline separator under the unified toolbar is dropped, for the seamless
         // look — the title itself stays visible.
+        #if os(macOS)
         .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
+        #endif
         .environment(\.orgDirectory, directory)
         // While offline the whole window goes read-only: editing controls read this
         // to disable themselves, and the menu commands read the focused-scene mirror

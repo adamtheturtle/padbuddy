@@ -111,9 +111,12 @@ extension EnvironmentCodeCard {
                 Color.clear
                     .frame(width: 10)
                     .contentShape(Rectangle())
-                    // Declarative, cross-platform cursor for a horizontal divider drag,
-                    // replacing manual NSCursor push/pop on hover (#287).
+                    // Declarative cursor for a horizontal divider drag, replacing manual
+                    // NSCursor push/pop on hover (#287). macOS-only: iPadOS has no
+                    // equivalent pointer-shape API here.
+                    #if os(macOS)
                     .pointerStyle(.columnResize)
+                    #endif
                     .gesture(
                         DragGesture()
                             .onChanged { value in

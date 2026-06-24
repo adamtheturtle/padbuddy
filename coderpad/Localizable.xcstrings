@@ -1,10 +1,11 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "" : {
+    "…%@ more" : {
 
     },
     "…%lld more" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -75,6 +76,9 @@
         }
       }
     },
+    "%@" : {
+
+    },
     "%@ - %@" : {
       "localizations" : {
         "en" : {
@@ -102,6 +106,7 @@
       }
     },
     "%@ (bad key)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -113,6 +118,7 @@
     },
     "%@ (Me)" : {
       "comment" : "Owner-picker label for the signed-in user, e.g. \"Ada Lovelace (Me)\"",
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -123,6 +129,7 @@
       }
     },
     "%@ filter" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -132,8 +139,19 @@
         }
       }
     },
+    "%@ of %@ pads used" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ of %2$@ pads used"
+          }
+        }
+      }
+    },
     "%@ Project" : {
       "comment" : "A multi-file project environment for a language, e.g. \"Python Project\"",
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -145,6 +163,7 @@
     },
     "%@ to %@" : {
       "comment" : "A custom date range, e.g. \"March 1 to March 8\"",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -161,6 +180,7 @@
       }
     },
     "%@, %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -194,6 +214,7 @@
       }
     },
     "%lld" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -204,6 +225,7 @@
       }
     },
     "%lld accounts combined" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "variations" : {
@@ -225,19 +247,8 @@
         }
       }
     },
-    "%lld campaign" : {
-
-    },
-    "%lld campaigns" : {
-
-    },
-    "%lld candidate" : {
-
-    },
-    "%lld candidates" : {
-
-    },
     "%lld interviews ended" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "variations" : {
@@ -260,6 +271,7 @@
       }
     },
     "%lld new pads" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "variations" : {
@@ -282,6 +294,7 @@
       }
     },
     "%lld of %lld pads across %lld accounts" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -385,6 +398,7 @@
       }
     },
     "%lld of %lld pads used" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -429,6 +443,7 @@
       }
     },
     "%lld of %lld pads used, %lld%% through the cycle. %@." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -473,6 +488,7 @@
       }
     },
     "%lld of %lld questions across %lld accounts" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -531,6 +547,7 @@
       }
     },
     "%lld pad" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -541,6 +558,7 @@
       }
     },
     "%lld pad across %lld accounts" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -579,6 +597,7 @@
       }
     },
     "%lld pads" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -589,6 +608,7 @@
       }
     },
     "%lld pads across %lld accounts" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -627,6 +647,7 @@
       }
     },
     "%lld pads gained a participant" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "variations" : {
@@ -649,6 +670,7 @@
       }
     },
     "%lld pads have new activity" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "variations" : {
@@ -717,6 +739,7 @@
       }
     },
     "%lld question" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -727,6 +750,7 @@
       }
     },
     "%lld question across %lld accounts" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -765,6 +789,7 @@
       }
     },
     "%lld questions" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -775,6 +800,7 @@
       }
     },
     "%lld questions across %lld accounts" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -836,6 +862,7 @@
       }
     },
     "%lldm" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -846,6 +873,7 @@
       }
     },
     "%lldm %llds" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -862,6 +890,7 @@
       }
     },
     "%llds" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -875,6 +904,7 @@
 
     },
     "⌘⇧N New Question, ⌘⌥C Copy Pad URL, ⌘↩ Open Pad in Browser." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -885,6 +915,7 @@
       }
     },
     "A network error occurred. Check your connection and try again." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -895,6 +926,7 @@
       }
     },
     "A to Z" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -904,10 +936,8 @@
         }
       }
     },
-    "Aborted" : {
-
-    },
     "About CoderPad" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -917,10 +947,8 @@
         }
       }
     },
-    "About PadBuddy" : {
-
-    },
     "Account" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -931,6 +959,7 @@
       }
     },
     "Accounts" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -941,6 +970,7 @@
       }
     },
     "Accounts like Mail" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -951,6 +981,7 @@
       }
     },
     "Action failed" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -961,6 +992,7 @@
       }
     },
     "Active" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -971,6 +1003,7 @@
       }
     },
     "Active · %lld accounts" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "variations" : {
@@ -993,6 +1026,7 @@
       }
     },
     "Active account" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1006,6 +1040,7 @@
 
     },
     "Add %@ to Favorites" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en-GB" : {
           "stringUnit" : {
@@ -1022,6 +1057,7 @@
       }
     },
     "Add a sandbox account backed by mock data to explore the app without an API key." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1042,6 +1078,7 @@
       }
     },
     "Add Account" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1052,6 +1089,7 @@
       }
     },
     "Add Account…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1081,16 +1119,8 @@
         }
       }
     },
-    "Add or manage accounts in Settings" : {
-
-    },
-    "Add Template" : {
-
-    },
-    "Add to %@" : {
-
-    },
     "Add to Favorites" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en-GB" : {
           "stringUnit" : {
@@ -1120,6 +1150,7 @@
       }
     },
     "All" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1130,6 +1161,7 @@
       }
     },
     "All accounts" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1152,15 +1184,6 @@
     "All Statuses" : {
 
     },
-    "All time" : {
-
-    },
-    "Allow the MCP server to make changes" : {
-
-    },
-    "Anonymized" : {
-
-    },
     "Any time" : {
       "localizations" : {
         "es" : {
@@ -1172,6 +1195,7 @@
       }
     },
     "API Key" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1182,6 +1206,7 @@
       }
     },
     "API key invalid" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1192,6 +1217,7 @@
       }
     },
     "Appearance" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1212,6 +1238,7 @@
       }
     },
     "Apply saved search %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1221,10 +1248,8 @@
         }
       }
     },
-    "Archived" : {
-
-    },
     "as spectator" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1234,10 +1259,8 @@
         }
       }
     },
-    "Assistant" : {
-
-    },
     "Authentication error" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1274,6 +1297,7 @@
       }
     },
     "Back" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1284,6 +1308,7 @@
       }
     },
     "Back to Details" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1294,6 +1319,7 @@
       }
     },
     "Back to Question" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1314,6 +1340,7 @@
       }
     },
     "Browser" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1336,13 +1363,11 @@
     "By technology" : {
 
     },
-    "Campaigns" : {
-
-    },
     "Campaigns and test sessions will appear here." : {
 
     },
     "Cancel" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1352,13 +1377,8 @@
         }
       }
     },
-    "Cancel Invitation" : {
-
-    },
-    "Cancelled" : {
-
-    },
     "Candidate" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1368,10 +1388,8 @@
         }
       }
     },
-    "Candidate email" : {
-
-    },
     "Candidate instructions" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1382,6 +1400,7 @@
       }
     },
     "Candidate Instructions" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1394,13 +1413,11 @@
     "Candidate link" : {
 
     },
-    "Candidate name" : {
-
-    },
     "candidate@example.com" : {
 
     },
     "Candidates" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1411,6 +1428,7 @@
       }
     },
     "Check for Updates…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1430,16 +1448,8 @@
         }
       }
     },
-    "Choose what the exported PDF report includes." : {
-
-    },
-    "Claude Code" : {
-
-    },
-    "Claude Desktop" : {
-
-    },
     "Clear" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1450,6 +1460,7 @@
       }
     },
     "Clear %@ date filter" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1460,6 +1471,7 @@
       }
     },
     "Clear %@ filter" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1470,6 +1482,7 @@
       }
     },
     "Clear Filters" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1480,6 +1493,7 @@
       }
     },
     "Clear Session (Log Out)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1490,6 +1504,7 @@
       }
     },
     "Clear session and log out" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1500,6 +1515,7 @@
       }
     },
     "Clear session: log out of the Pad by clearing cookies and storage" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1510,6 +1526,7 @@
       }
     },
     "Code" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1520,6 +1537,7 @@
       }
     },
     "Code panel width" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1530,6 +1548,7 @@
       }
     },
     "Code preview of %@ in %@ in pad %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1546,6 +1565,7 @@
       }
     },
     "Code preview of %@ in pad %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1562,6 +1582,7 @@
       }
     },
     "Code preview of pad %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1572,6 +1593,7 @@
       }
     },
     "CoderPad" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1582,6 +1604,7 @@
       }
     },
     "CoderPad API Documentation" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1592,6 +1615,7 @@
       }
     },
     "CoderPad couldn't verify the key right now. Try again in a moment." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1602,6 +1626,7 @@
       }
     },
     "CoderPad had a server error. Please try again shortly." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1612,6 +1637,7 @@
       }
     },
     "CoderPad is rate-limiting requests right now. Try again in a moment." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1632,6 +1658,7 @@
       }
     },
     "CoderPad rejected this key. Double-check that it's the right one and hasn't been revoked." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1642,6 +1669,7 @@
       }
     },
     "CoderPad returned something unexpected. Try again, and if it keeps happening, regenerate the key." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1692,10 +1720,8 @@
         }
       }
     },
-    "Codex" : {
-
-    },
     "Collapsed" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1706,6 +1732,7 @@
       }
     },
     "Collapses the folder" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1716,6 +1743,7 @@
       }
     },
     "Color" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en-GB" : {
           "stringUnit" : {
@@ -1734,16 +1762,11 @@
     "Comma-separated (optional)" : {
 
     },
-    "Completed" : {
-
-    },
-    "Completed %@" : {
-
-    },
     "Connect an assistant to the server and its tool calls show up here." : {
 
     },
     "Continue" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1753,10 +1776,8 @@
         }
       }
     },
-    "Copy" : {
-
-    },
     "Copy %lld Pad Links" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "variations" : {
@@ -1779,6 +1800,7 @@
       }
     },
     "Copy %lld Question Links" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "variations" : {
@@ -1801,6 +1823,7 @@
       }
     },
     "Copy as Markdown" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1811,6 +1834,7 @@
       }
     },
     "Copy code" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1820,13 +1844,8 @@
         }
       }
     },
-    "Copy Link" : {
-
-    },
-    "Copy Name" : {
-
-    },
     "Copy Pad ID" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1837,6 +1856,7 @@
       }
     },
     "Copy Pad Title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1847,6 +1867,7 @@
       }
     },
     "Copy Pad URL" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1857,6 +1878,7 @@
       }
     },
     "Copy Question ID" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1867,6 +1889,7 @@
       }
     },
     "Copy Question Title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1877,6 +1900,7 @@
       }
     },
     "Copy Question URL" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1887,6 +1911,7 @@
       }
     },
     "Copy Title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1897,6 +1922,7 @@
       }
     },
     "Copy URL" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1906,10 +1932,8 @@
         }
       }
     },
-    "Couldn't complete that action" : {
-
-    },
     "Couldn’t create pad" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1920,6 +1944,7 @@
       }
     },
     "Couldn't delete pad" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1930,6 +1955,7 @@
       }
     },
     "Couldn't delete question" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1940,6 +1966,7 @@
       }
     },
     "Couldn’t delete question" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1948,12 +1975,6 @@
           }
         }
       }
-    },
-    "Couldn't load campaigns" : {
-
-    },
-    "Couldn't load test sessions" : {
-
     },
     "Couldn’t load this pad" : {
       "localizations" : {
@@ -1966,6 +1987,7 @@
       }
     },
     "Couldn’t load whiteboard" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1975,10 +1997,8 @@
         }
       }
     },
-    "Couldn't open the report" : {
-
-    },
     "Couldn't reach CoderPad. Check your connection and try again." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1989,6 +2009,7 @@
       }
     },
     "Couldn't reach CoderPad. Check your internet connection and try again." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1999,6 +2020,7 @@
       }
     },
     "Couldn't read response: %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2009,6 +2031,7 @@
       }
     },
     "Couldn’t save question" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2019,6 +2042,7 @@
       }
     },
     "Couldn't turn that into filters. Try naming a language, owner, state, or date." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2029,6 +2053,7 @@
       }
     },
     "Couldn't validate this key. Try again." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2059,10 +2084,8 @@
         }
       }
     },
-    "Create a new CoderPad pad." : {
-
-    },
     "Create a new interview pad from this question" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2073,6 +2096,7 @@
       }
     },
     "Create a new pad (⌘N)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2083,6 +2107,7 @@
       }
     },
     "Create a new pad in one of your accounts" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2093,6 +2118,7 @@
       }
     },
     "Create a new question (⇧⌘N)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2103,6 +2129,7 @@
       }
     },
     "Create a new question in one of your accounts" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2113,6 +2140,7 @@
       }
     },
     "Created" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2133,6 +2161,7 @@
       }
     },
     "Current account" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2163,6 +2192,7 @@
       }
     },
     "Dark" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2173,6 +2203,7 @@
       }
     },
     "Date Created" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2181,9 +2212,6 @@
           }
         }
       }
-    },
-    "Date Range" : {
-
     },
     "Default" : {
       "localizations" : {
@@ -2196,6 +2224,7 @@
       }
     },
     "Default browser" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2206,6 +2235,7 @@
       }
     },
     "Delete" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2216,6 +2246,7 @@
       }
     },
     "Delete %@?" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2226,6 +2257,7 @@
       }
     },
     "Delete %lld Pads" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "variations" : {
@@ -2248,6 +2280,7 @@
       }
     },
     "Delete %lld pads?" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "variations" : {
@@ -2270,6 +2303,7 @@
       }
     },
     "Delete %lld Pads…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "variations" : {
@@ -2292,6 +2326,7 @@
       }
     },
     "Delete %lld Questions" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "variations" : {
@@ -2314,6 +2349,7 @@
       }
     },
     "Delete %lld questions?" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "variations" : {
@@ -2336,6 +2372,7 @@
       }
     },
     "Delete %lld Questions…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "variations" : {
@@ -2358,6 +2395,7 @@
       }
     },
     "Delete Account" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2368,6 +2406,7 @@
       }
     },
     "Delete Pad" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2378,6 +2417,7 @@
       }
     },
     "Delete Pad…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2388,6 +2428,7 @@
       }
     },
     "Delete question" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2398,6 +2439,7 @@
       }
     },
     "Delete Question…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2408,6 +2450,7 @@
       }
     },
     "Delete Saved Search" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2418,6 +2461,7 @@
       }
     },
     "Delete saved search %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2427,10 +2471,8 @@
         }
       }
     },
-    "Delete Test Session" : {
-
-    },
     "Delete this account?" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2441,6 +2483,7 @@
       }
     },
     "Delete this pad" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2451,6 +2494,7 @@
       }
     },
     "Delete this pad?" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2460,10 +2504,8 @@
         }
       }
     },
-    "Delete this test session?" : {
-
-    },
     "Delete…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2474,6 +2516,7 @@
       }
     },
     "Deleted" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2524,6 +2567,7 @@
       }
     },
     "Description" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2534,6 +2578,7 @@
       }
     },
     "Details" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2544,6 +2589,7 @@
       }
     },
     "Disabled" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2554,6 +2600,7 @@
       }
     },
     "Dock and menu bar" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2564,6 +2611,7 @@
       }
     },
     "Dock only" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2573,10 +2621,8 @@
         }
       }
     },
-    "Done" : {
-
-    },
     "Download all files as a folder" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2587,6 +2633,7 @@
       }
     },
     "Download code" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2597,6 +2644,7 @@
       }
     },
     "Draft" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2607,6 +2655,7 @@
       }
     },
     "Draft fields" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2617,6 +2666,7 @@
       }
     },
     "Draft the title, description, instructions, and solution" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2627,6 +2677,7 @@
       }
     },
     "Draft with AI" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2647,6 +2698,7 @@
       }
     },
     "Drafts" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2689,13 +2741,11 @@
         }
       }
     },
-    "Duration" : {
-
-    },
     "e.g. \"Backend phone screen\"" : {
 
     },
     "e.g. active Python pads from my team" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2716,6 +2766,7 @@
       }
     },
     "e.g. my draft SQL questions" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2736,6 +2787,7 @@
       }
     },
     "Edit %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2746,6 +2798,7 @@
       }
     },
     "Edit Pad…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2755,10 +2808,8 @@
         }
       }
     },
-    "Edit Template" : {
-
-    },
     "Edit title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2768,13 +2819,8 @@
         }
       }
     },
-    "Edit…" : {
-
-    },
-    "Email the candidate an invitation" : {
-
-    },
     "Empty" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2784,10 +2830,8 @@
         }
       }
     },
-    "Enable the MCP server" : {
-
-    },
     "Enabled" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2798,6 +2842,7 @@
       }
     },
     "End Interview" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2808,6 +2853,7 @@
       }
     },
     "End Interview…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2818,6 +2864,7 @@
       }
     },
     "End the live interview session" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2828,6 +2875,7 @@
       }
     },
     "End this interview?" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2838,6 +2886,7 @@
       }
     },
     "Ended" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2857,13 +2906,11 @@
         }
       }
     },
-    "Enter a valid https:// URL." : {
-
-    },
     "Europe" : {
 
     },
     "Events" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2874,6 +2921,7 @@
       }
     },
     "Execution enabled" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2884,6 +2932,7 @@
       }
     },
     "Expanded" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2894,6 +2943,7 @@
       }
     },
     "Expands the folder" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2904,6 +2954,7 @@
       }
     },
     "Explain this file" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2914,6 +2965,7 @@
       }
     },
     "Explanation" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2923,10 +2975,8 @@
         }
       }
     },
-    "Export as Markdown…" : {
-
-    },
     "Faster section switching" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2937,6 +2987,7 @@
       }
     },
     "Favorite" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en-GB" : {
           "stringUnit" : {
@@ -2953,6 +3004,7 @@
       }
     },
     "Favorite Pads" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en-GB" : {
           "stringUnit" : {
@@ -2969,6 +3021,7 @@
       }
     },
     "Favorite Questions" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en-GB" : {
           "stringUnit" : {
@@ -2985,6 +3038,7 @@
       }
     },
     "Favorited" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en-GB" : {
           "stringUnit" : {
@@ -3017,10 +3071,8 @@
         }
       }
     },
-    "Fetch the candidate's report as a PDF." : {
-
-    },
     "Files" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3031,6 +3083,7 @@
       }
     },
     "Filter applied: %@. Activate to change." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3040,13 +3093,8 @@
         }
       }
     },
-    "Filter by Status" : {
-
-    },
-    "Filter test sessions by status." : {
-
-    },
     "Find" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3057,6 +3105,7 @@
       }
     },
     "Forward" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3067,6 +3116,7 @@
       }
     },
     "From" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3077,6 +3127,7 @@
       }
     },
     "From example: %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3087,6 +3138,7 @@
       }
     },
     "General" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3097,6 +3149,7 @@
       }
     },
     "Get an API key from CoderPad" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3107,6 +3160,7 @@
       }
     },
     "Get API Key" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3117,6 +3171,7 @@
       }
     },
     "Go" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3127,6 +3182,7 @@
       }
     },
     "Go to" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3136,10 +3192,8 @@
         }
       }
     },
-    "Go to Anything…" : {
-
-    },
     "Help" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3150,6 +3204,7 @@
       }
     },
     "Hidden" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3160,6 +3215,7 @@
       }
     },
     "Hidden by default" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3170,6 +3226,7 @@
       }
     },
     "Hide API key" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3180,6 +3237,7 @@
       }
     },
     "Hide Detail Pane" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3189,10 +3247,8 @@
         }
       }
     },
-    "Hide Screen API key" : {
-
-    },
     "Hide Sidebar" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3203,6 +3259,7 @@
       }
     },
     "Hide the API key." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3213,6 +3270,7 @@
       }
     },
     "Hide the detail pane" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3221,9 +3279,6 @@
           }
         }
       }
-    },
-    "Hide the Screen API key." : {
-
     },
     "How often pads and questions reload in the background." : {
       "extractionState" : "stale",
@@ -3237,6 +3292,7 @@
       }
     },
     "https://app.coderpad.io/…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3250,6 +3306,7 @@
 
     },
     "Icon" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3260,6 +3317,7 @@
       }
     },
     "Identifies you for the My Pads and My Questions filters and the menu bar. Required to save." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3269,10 +3327,8 @@
         }
       }
     },
-    "In Progress" : {
-
-    },
     "In-app browser" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3282,16 +3338,11 @@
         }
       }
     },
-    "Include archived campaigns in the list." : {
-
-    },
-    "Include comparative score" : {
-
-    },
-    "Include rank" : {
+    "Indexed on this device only. Pad and question titles can include candidate names." : {
 
     },
     "Indexed on this Mac only. Pad and question titles can include candidate names." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3302,6 +3353,7 @@
       }
     },
     "Interview ended" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3315,6 +3367,7 @@
 
     },
     "Interviewer" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3325,6 +3378,7 @@
       }
     },
     "Interviewers" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3334,25 +3388,8 @@
         }
       }
     },
-    "Invitation resent" : {
-
-    },
-    "Invitation Sent" : {
-
-    },
-    "Invite a candidate to this campaign." : {
-
-    },
-    "Invite Candidate" : {
-
-    },
-    "Invited" : {
-
-    },
-    "Jump to a pad, question, section, account, or command…" : {
-
-    },
     "Key not authorized" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en-GB" : {
           "stringUnit" : {
@@ -3369,6 +3406,7 @@
       }
     },
     "Language" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3379,6 +3417,7 @@
       }
     },
     "Last 7 days" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3389,6 +3428,7 @@
       }
     },
     "Last 24 hours" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3399,6 +3439,7 @@
       }
     },
     "Last 30 days" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3409,6 +3450,7 @@
       }
     },
     "Last 90 days" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3418,10 +3460,8 @@
         }
       }
     },
-    "Last activity" : {
-
-    },
     "Last Updated" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3432,6 +3472,7 @@
       }
     },
     "Last Used" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3442,6 +3483,7 @@
       }
     },
     "Last used (newest first)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3452,6 +3494,7 @@
       }
     },
     "Last used (oldest first)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3462,6 +3505,7 @@
       }
     },
     "Last used %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3472,6 +3516,7 @@
       }
     },
     "Launch at login" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3482,6 +3527,7 @@
       }
     },
     "Least used" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3492,6 +3538,7 @@
       }
     },
     "Least Used" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3502,6 +3549,7 @@
       }
     },
     "Light" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3512,6 +3560,7 @@
       }
     },
     "Live" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3549,6 +3598,7 @@
       }
     },
     "Loading pads…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3559,6 +3609,7 @@
       }
     },
     "Loading questions…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3569,6 +3620,7 @@
       }
     },
     "Loading quota…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3589,6 +3641,7 @@
       }
     },
     "Make pads and questions searchable in Spotlight" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3597,18 +3650,6 @@
           }
         }
       }
-    },
-    "Manage accounts" : {
-
-    },
-    "Manage Accounts" : {
-
-    },
-    "Manage Accounts…" : {
-
-    },
-    "Manage Templates…" : {
-
     },
     "Mark All as Seen" : {
       "extractionState" : "stale",
@@ -3621,13 +3662,8 @@
         }
       }
     },
-    "MCP Activity" : {
-
-    },
-    "MCP Server" : {
-
-    },
     "Me" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3638,6 +3674,7 @@
       }
     },
     "Menu Bar" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3648,6 +3685,7 @@
       }
     },
     "Menu bar only" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3658,6 +3696,7 @@
       }
     },
     "Missing API key. Open Settings to add an account." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3668,6 +3707,7 @@
       }
     },
     "Mock data" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3678,6 +3718,7 @@
       }
     },
     "More shortcuts" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3688,6 +3729,7 @@
       }
     },
     "Most used" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3698,6 +3740,7 @@
       }
     },
     "Most Used" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3708,6 +3751,7 @@
       }
     },
     "My Pads" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3728,6 +3772,7 @@
       }
     },
     "My Questions" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3738,6 +3783,7 @@
       }
     },
     "Name" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3758,6 +3804,7 @@
       }
     },
     "New activity" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3768,6 +3815,7 @@
       }
     },
     "New pad" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3788,6 +3836,7 @@
       }
     },
     "New Pad from Question" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3798,6 +3847,7 @@
       }
     },
     "New Pad…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3818,6 +3868,7 @@
       }
     },
     "New Question…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3827,10 +3878,8 @@
         }
       }
     },
-    "New Template" : {
-
-    },
     "Newest First" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3841,6 +3890,7 @@
       }
     },
     "Next Section" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3851,6 +3901,7 @@
       }
     },
     "No %@ filter. Activate to choose one." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3871,6 +3922,7 @@
       }
     },
     "No account selected" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3881,6 +3933,7 @@
       }
     },
     "No Account Selected" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3891,6 +3944,7 @@
       }
     },
     "No accounts" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3901,6 +3955,7 @@
       }
     },
     "No API key" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3919,12 +3974,6 @@
           }
         }
       }
-    },
-    "No campaign matches your search." : {
-
-    },
-    "No campaigns" : {
-
     },
     "No candidate link was returned. The candidate was emailed their invitation." : {
 
@@ -3949,10 +3998,8 @@
         }
       }
     },
-    "No matches." : {
-
-    },
     "No Matching Pads" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3963,6 +4010,7 @@
       }
     },
     "No Matching Questions" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3971,9 +4019,6 @@
           }
         }
       }
-    },
-    "No MCP activity yet" : {
-
     },
     "No members match “%@”" : {
       "localizations" : {
@@ -3985,10 +4030,8 @@
         }
       }
     },
-    "No one has been invited to this campaign yet." : {
-
-    },
     "No Pad" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4009,6 +4052,7 @@
       }
     },
     "No Pads" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4029,6 +4073,7 @@
       }
     },
     "No Questions" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4058,19 +4103,8 @@
         }
       }
     },
-    "No report yet" : {
-
-    },
-    "No templates yet" : {
-
-    },
-    "No test session matches your filters." : {
-
-    },
-    "No test sessions" : {
-
-    },
     "None" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4084,6 +4118,7 @@
 
     },
     "Nothing selected" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4094,6 +4129,7 @@
       }
     },
     "Notify me when pads update" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4104,6 +4140,7 @@
       }
     },
     "Off" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4128,6 +4165,7 @@
 
     },
     "OK" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4138,6 +4176,7 @@
       }
     },
     "Oldest First" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4148,6 +4187,7 @@
       }
     },
     "On track to exceed your limit" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4158,6 +4198,7 @@
       }
     },
     "On track to stay within your limit" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4167,10 +4208,8 @@
         }
       }
     },
-    "Only fetch test sessions active within a recent window." : {
-
-    },
     "Open" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4191,6 +4230,7 @@
       }
     },
     "Open a specific CoderPad pad in the in-app browser." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4201,6 +4241,7 @@
       }
     },
     "Open Account Settings" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4211,6 +4252,7 @@
       }
     },
     "Open in Browser" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4220,10 +4262,8 @@
         }
       }
     },
-    "Open in New Window" : {
-
-    },
     "Open in separate window" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4233,10 +4273,8 @@
         }
       }
     },
-    "Open Link" : {
-
-    },
     "Open links" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4247,6 +4285,7 @@
       }
     },
     "Open links in background" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4257,6 +4296,7 @@
       }
     },
     "Open Main Window" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4267,6 +4307,7 @@
       }
     },
     "Open pad" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4277,6 +4318,7 @@
       }
     },
     "Open Pad" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4287,6 +4329,7 @@
       }
     },
     "Open Pad by ID" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4307,6 +4350,7 @@
       }
     },
     "Open Pad by URL…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4317,6 +4361,7 @@
       }
     },
     "Open Pad in Browser" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4327,6 +4372,7 @@
       }
     },
     "Open Pad in New Window" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4337,6 +4383,7 @@
       }
     },
     "Open PadBuddy and search pads matching a query." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4347,6 +4394,7 @@
       }
     },
     "Open PadBuddy and start creating a new pad." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4357,6 +4405,7 @@
       }
     },
     "Open Pads" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4367,6 +4416,7 @@
       }
     },
     "Open Passwords" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4376,10 +4426,8 @@
         }
       }
     },
-    "Open PDF" : {
-
-    },
     "Open Settings" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4400,6 +4448,7 @@
       }
     },
     "Open sign-in portal" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4409,10 +4458,8 @@
         }
       }
     },
-    "Open the activity window" : {
-
-    },
     "Open the current page in your default browser" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4423,6 +4470,7 @@
       }
     },
     "Open the pad" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4433,6 +4481,7 @@
       }
     },
     "Open the Pads list in PadBuddy." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4443,6 +4492,7 @@
       }
     },
     "Open the Passwords app to look up and copy a login" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4453,6 +4503,7 @@
       }
     },
     "Open the whiteboard full size" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4485,13 +4536,11 @@
         }
       }
     },
-    "Optional: connect this account to CoderPad Screen (assessments)." : {
-
-    },
     "Optional: connect this account to Screen assessments." : {
 
     },
     "Order" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4502,6 +4551,7 @@
       }
     },
     "Organization" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en-GB" : {
           "stringUnit" : {
@@ -4518,6 +4568,7 @@
       }
     },
     "Organizations" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en-GB" : {
           "stringUnit" : {
@@ -4534,6 +4585,7 @@
       }
     },
     "Over your limit for this cycle" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4544,6 +4596,7 @@
       }
     },
     "Overages" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4553,10 +4606,8 @@
         }
       }
     },
-    "Overall score" : {
-
-    },
     "Override only for self-hosted or regional CoderPad deployments. Leave blank to use the default." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4567,6 +4618,7 @@
       }
     },
     "Owned by your account (the API key owner)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4577,6 +4629,7 @@
       }
     },
     "Owner" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4587,6 +4640,7 @@
       }
     },
     "Owner %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4597,6 +4651,7 @@
       }
     },
     "Pace" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4607,6 +4662,7 @@
       }
     },
     "Pad" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4617,6 +4673,7 @@
       }
     },
     "Pad Browser" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4627,6 +4684,7 @@
       }
     },
     "Pad ID" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4636,10 +4694,8 @@
         }
       }
     },
-    "Pad title" : {
-
-    },
     "Pad Unavailable" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4649,10 +4705,8 @@
         }
       }
     },
-    "PadBuddy" : {
-
-    },
     "Pads" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4663,6 +4717,7 @@
       }
     },
     "Pads and Questions are cached per account, so switching sections shows your last data instantly while a background reload runs." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4673,6 +4728,7 @@
       }
     },
     "Pads used" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4682,7 +4738,11 @@
         }
       }
     },
+    "Part %@" : {
+
+    },
     "Part %lld" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4693,6 +4753,7 @@
       }
     },
     "Participants" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4723,6 +4784,7 @@
       }
     },
     "Paste your CoderPad API key above." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4736,6 +4798,7 @@
 
     },
     "Pending" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4746,6 +4809,7 @@
       }
     },
     "Period" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4755,10 +4819,8 @@
         }
       }
     },
-    "Pinned" : {
-
-    },
     "Plain text" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4769,6 +4831,7 @@
       }
     },
     "Plan" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4778,13 +4841,8 @@
         }
       }
     },
-    "Points" : {
-
-    },
-    "Prefer to edit the file yourself?" : {
-
-    },
     "Previous Section" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4795,6 +4853,7 @@
       }
     },
     "Print…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4805,6 +4864,7 @@
       }
     },
     "Private" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4814,10 +4874,8 @@
         }
       }
     },
-    "Proctoring warnings" : {
-
-    },
     "Project" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4827,7 +4885,11 @@
         }
       }
     },
+    "Projected ~%@ by reset" : {
+
+    },
     "Projected ~%lld by reset" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4838,6 +4900,7 @@
       }
     },
     "Properties" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4848,6 +4911,7 @@
       }
     },
     "Public link" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4858,6 +4922,7 @@
       }
     },
     "Public take-home link configured" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4868,6 +4933,7 @@
       }
     },
     "Published" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4878,6 +4944,7 @@
       }
     },
     "Quality & readability" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4888,6 +4955,7 @@
       }
     },
     "Query" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4898,6 +4966,7 @@
       }
     },
     "Question" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4908,6 +4977,7 @@
       }
     },
     "Question prompt" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4918,6 +4988,7 @@
       }
     },
     "Question Unavailable" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4928,6 +4999,7 @@
       }
     },
     "Questions" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4938,6 +5010,7 @@
       }
     },
     "Quit" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4958,6 +5031,7 @@
       }
     },
     "Quota, unlimited plan" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4999,10 +5073,8 @@
         }
       }
     },
-    "Recent tool calls" : {
-
-    },
     "Recheck" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5012,13 +5084,8 @@
         }
       }
     },
-    "Recruiter email" : {
-
-    },
-    "Region" : {
-
-    },
     "Reload" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5029,6 +5096,7 @@
       }
     },
     "Reload (hold ⌥ to reload without cache)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5038,10 +5106,8 @@
         }
       }
     },
-    "Reload campaigns." : {
-
-    },
     "Reload page" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5051,10 +5117,8 @@
         }
       }
     },
-    "Reload test sessions." : {
-
-    },
     "Reload Without Cache" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5065,6 +5129,7 @@
       }
     },
     "Remaining" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5074,10 +5139,8 @@
         }
       }
     },
-    "Remove" : {
-
-    },
     "Remove %@ from Favorites" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en-GB" : {
           "stringUnit" : {
@@ -5094,6 +5157,7 @@
       }
     },
     "Remove from Favorites" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en-GB" : {
           "stringUnit" : {
@@ -5109,10 +5173,8 @@
         }
       }
     },
-    "Remove the webhook?" : {
-
-    },
     "Remove this account and its stored API key from this Mac." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5122,16 +5184,8 @@
         }
       }
     },
-    "Remove Webhook" : {
-
-    },
-    "Report" : {
-
-    },
-    "Report Options" : {
-
-    },
     "Require Touch ID to reveal API keys" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5155,10 +5209,8 @@
     "Required: pick which member you are to finish." : {
 
     },
-    "Resend Invitation" : {
-
-    },
     "Reset" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5169,6 +5221,7 @@
       }
     },
     "Resets" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5182,6 +5235,7 @@
 
     },
     "Retry" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5202,6 +5256,7 @@
       }
     },
     "Save Code…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5210,12 +5265,6 @@
           }
         }
       }
-    },
-    "Save PDF" : {
-
-    },
-    "Save Question as Template…" : {
-
     },
     "Save Search" : {
       "localizations" : {
@@ -5228,6 +5277,7 @@
       }
     },
     "Save…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5238,6 +5288,7 @@
       }
     },
     "Saved Searches" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5247,21 +5298,6 @@
         }
       }
     },
-    "Score" : {
-
-    },
-    "Screen" : {
-
-    },
-    "Screen API Key" : {
-
-    },
-    "Screen Key" : {
-
-    },
-    "Screen key works." : {
-
-    },
     "Screen Webhook" : {
 
     },
@@ -5269,6 +5305,7 @@
 
     },
     "Search %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5279,6 +5316,7 @@
       }
     },
     "Search across the sidebar" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5295,6 +5333,7 @@
 
     },
     "Search members" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5305,6 +5344,7 @@
       }
     },
     "Search members or enter email" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5325,6 +5365,7 @@
       }
     },
     "Search Pads" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5345,6 +5386,7 @@
       }
     },
     "Search users…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5355,6 +5397,7 @@
       }
     },
     "Sections" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5364,10 +5407,8 @@
         }
       }
     },
-    "Select a campaign" : {
-
-    },
     "Select a pad" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5378,6 +5419,7 @@
       }
     },
     "Select a question" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5388,6 +5430,7 @@
       }
     },
     "Selected" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5401,6 +5444,7 @@
 
     },
     "Send Email" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5411,6 +5455,7 @@
       }
     },
     "Send Feedback…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5420,10 +5465,8 @@
         }
       }
     },
-    "Sent %@" : {
-
-    },
     "Server URL" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5434,6 +5477,7 @@
       }
     },
     "Settings…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5444,6 +5488,7 @@
       }
     },
     "Share" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5454,6 +5499,7 @@
       }
     },
     "Share a link to this question" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5464,6 +5510,7 @@
       }
     },
     "Share pad" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5474,6 +5521,7 @@
       }
     },
     "Share Pad…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5484,6 +5532,7 @@
       }
     },
     "Share Question…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5505,6 +5554,7 @@
       }
     },
     "Shared" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5515,6 +5565,7 @@
       }
     },
     "Show %@ Questions" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5525,6 +5576,7 @@
       }
     },
     "Show API key" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5534,10 +5586,8 @@
         }
       }
     },
-    "Show Archived" : {
-
-    },
     "Show Detail Pane" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5548,6 +5598,7 @@
       }
     },
     "Show my active pads on the Dock icon" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5558,6 +5609,7 @@
       }
     },
     "Show Only %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5568,6 +5620,7 @@
       }
     },
     "Show only active pads" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5589,6 +5642,7 @@
       }
     },
     "Show or hide the sidebar" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5599,6 +5653,7 @@
       }
     },
     "Show PadBuddy in" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5609,6 +5664,7 @@
       }
     },
     "Show pads from %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5619,6 +5675,7 @@
       }
     },
     "Show Pads from %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5629,6 +5686,7 @@
       }
     },
     "Show pads owned by %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5639,6 +5697,7 @@
       }
     },
     "Show Questions from %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5648,10 +5707,8 @@
         }
       }
     },
-    "Show Screen API key" : {
-
-    },
     "Show Sidebar" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5661,10 +5718,8 @@
         }
       }
     },
-    "Show Test Sessions" : {
-
-    },
     "Show the API key." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5675,6 +5730,7 @@
       }
     },
     "Show the detail pane" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5684,10 +5740,8 @@
         }
       }
     },
-    "Show the Screen API key." : {
-
-    },
     "Shows pads from %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5698,6 +5752,7 @@
       }
     },
     "Single sign-on" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5708,6 +5763,7 @@
       }
     },
     "Smart Filter" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5718,6 +5774,7 @@
       }
     },
     "Smart Filter…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5728,6 +5785,7 @@
       }
     },
     "Solution" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5748,6 +5806,7 @@
       }
     },
     "Someone joined" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5758,6 +5817,7 @@
       }
     },
     "Something went wrong" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5768,6 +5828,7 @@
       }
     },
     "Sort" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5778,6 +5839,7 @@
       }
     },
     "Sort By" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5788,6 +5850,7 @@
       }
     },
     "Sort pads" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5798,6 +5861,7 @@
       }
     },
     "Sort questions" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5807,13 +5871,8 @@
         }
       }
     },
-    "Start typing to search." : {
-
-    },
-    "Started" : {
-
-    },
     "Starter Code" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5824,6 +5883,7 @@
       }
     },
     "Starter Code (Test Cases)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5834,6 +5894,7 @@
       }
     },
     "State" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5844,6 +5905,7 @@
       }
     },
     "Stats period" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5854,6 +5916,7 @@
       }
     },
     "Stats Period" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5864,6 +5927,7 @@
       }
     },
     "Status" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5874,6 +5938,7 @@
       }
     },
     "Suggest a name" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5884,6 +5949,7 @@
       }
     },
     "Suggest a name from the current filters" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5894,6 +5960,7 @@
       }
     },
     "Suggested" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5904,6 +5971,7 @@
       }
     },
     "Switch account" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5914,6 +5982,7 @@
       }
     },
     "Switch Account" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5924,6 +5993,7 @@
       }
     },
     "Switch the app to this account." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5934,6 +6004,7 @@
       }
     },
     "System" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5943,10 +6014,8 @@
         }
       }
     },
-    "Tags" : {
-
-    },
     "Take-home" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5957,6 +6026,7 @@
       }
     },
     "Team" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5967,6 +6037,7 @@
       }
     },
     "Teams" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5976,10 +6047,8 @@
         }
       }
     },
-    "Template actions" : {
-
-    },
     "Test cases" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5990,6 +6059,7 @@
       }
     },
     "Test Cases" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5999,13 +6069,8 @@
         }
       }
     },
-    "Test Session" : {
-
-    },
-    "Test Session Unavailable" : {
-
-    },
     "Text to search pad titles, owners, and participants for." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6016,6 +6081,7 @@
       }
     },
     "The 8-character pad identifier." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6026,6 +6092,7 @@
       }
     },
     "The Add Account flow auto-fills the name from your org and uses the +/− button set." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6039,6 +6106,7 @@
 
     },
     "The marker shows where your usage would be if it tracked the billing cycle evenly." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6052,6 +6120,7 @@
 
     },
     "The request failed (HTTP %lld)." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6062,6 +6131,7 @@
       }
     },
     "The request timed out. Check your connection and try again." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6075,6 +6145,7 @@
 
     },
     "The server couldn't find that. It may have already been deleted." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6087,10 +6158,14 @@
     "The server is read-only by default. When on, the assistant can also create and edit pads and questions (never delete them). Changes take effect after you restart the assistant. Only turn this on if you trust the assistant with your live interview content." : {
 
     },
-    "The test session was created." : {
+    "These %@ pads will be permanently deleted. This can't be undone." : {
+
+    },
+    "These %@ questions will be permanently deleted. This can't be undone." : {
 
     },
     "These %lld pads will be permanently deleted. This can't be undone." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "variations" : {
@@ -6113,6 +6188,7 @@
       }
     },
     "These %lld questions will be permanently deleted. This can't be undone." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "variations" : {
@@ -6134,10 +6210,8 @@
         }
       }
     },
-    "This account has no Screen campaigns yet." : {
-
-    },
     "This account's API key is invalid" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6148,6 +6222,7 @@
       }
     },
     "This API key is already added as another account. Each account must use a unique key." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6167,10 +6242,8 @@
         }
       }
     },
-    "This app is an unofficial client for the CoderPad interview platform. It is not affiliated with, authorized, maintained, or endorsed by CoderPad, Inc. “CoderPad” is a trademark of CoderPad, Inc." : {
-
-    },
     "This key works, but isn't authorized for: %@. Those sections may be empty." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en-GB" : {
           "stringUnit" : {
@@ -6223,6 +6296,7 @@
 
     },
     "Time & space complexity" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6233,6 +6307,7 @@
       }
     },
     "Times used" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6243,6 +6318,7 @@
       }
     },
     "Times Used" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6253,6 +6329,7 @@
       }
     },
     "Title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6263,6 +6340,7 @@
       }
     },
     "Title (A-Z)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6273,6 +6351,7 @@
       }
     },
     "Title (Z-A)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6283,6 +6362,7 @@
       }
     },
     "To" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6293,6 +6373,7 @@
       }
     },
     "Today" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6303,6 +6384,7 @@
       }
     },
     "Toggle Sidebar" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6313,6 +6395,7 @@
       }
     },
     "Trial" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6321,9 +6404,6 @@
           }
         }
       }
-    },
-    "Try Again" : {
-
     },
     "Turning this off also requires Touch ID, so it can't be bypassed." : {
       "extractionState" : "stale",
@@ -6337,6 +6417,7 @@
       }
     },
     "Type" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6347,6 +6428,7 @@
       }
     },
     "Type in the new sidebar search to jump straight into Pads or Questions." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6357,6 +6439,7 @@
       }
     },
     "Undo" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6367,6 +6450,7 @@
       }
     },
     "Unfavorite" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en-GB" : {
           "stringUnit" : {
@@ -6383,9 +6467,6 @@
       }
     },
     "United States" : {
-
-    },
-    "Unknown candidate" : {
 
     },
     "Unlimited" : {
@@ -6410,6 +6491,7 @@
       }
     },
     "Unset" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6420,6 +6502,7 @@
       }
     },
     "Untitled account" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6430,6 +6513,7 @@
       }
     },
     "Untitled file" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6440,6 +6524,7 @@
       }
     },
     "Untitled Pad" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6450,6 +6535,7 @@
       }
     },
     "Untitled Question" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6460,6 +6546,7 @@
       }
     },
     "Updated" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6470,6 +6557,7 @@
       }
     },
     "Updated %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6480,6 +6568,7 @@
       }
     },
     "Updated since last refresh" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6489,10 +6578,8 @@
         }
       }
     },
-    "Use" : {
-
-    },
     "Use “%@”" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6513,6 +6600,7 @@
       }
     },
     "Use the default initials and color." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en-GB" : {
           "stringUnit" : {
@@ -6529,6 +6617,7 @@
       }
     },
     "Use This Account" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6539,6 +6628,7 @@
       }
     },
     "Used %lld×" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "variations" : {
@@ -6564,6 +6654,7 @@
 
     },
     "Users" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6574,6 +6665,7 @@
       }
     },
     "Validate" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6582,9 +6674,6 @@
           }
         }
       }
-    },
-    "Validate Screen Key" : {
-
     },
     "Validate to choose a different member." : {
       "extractionState" : "stale",
@@ -6620,16 +6709,8 @@
         }
       }
     },
-    "View or configure the Screen event webhook." : {
-
-    },
-    "vs. community" : {
-
-    },
-    "Waiting" : {
-
-    },
     "Watch" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6640,6 +6721,7 @@
       }
     },
     "Watch playback" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6650,6 +6732,7 @@
       }
     },
     "Watch Playback" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6660,6 +6743,7 @@
       }
     },
     "Watch the session playback" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6669,13 +6753,8 @@
         }
       }
     },
-    "Webhook" : {
-
-    },
-    "Webhook URL" : {
-
-    },
     "Welcome to PadBuddy" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6705,10 +6784,8 @@
         }
       }
     },
-    "Which CoderPad Screen region your key belongs to." : {
-
-    },
     "Whiteboard" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6719,6 +6796,7 @@
       }
     },
     "You appear to be offline. Check your internet connection and try again." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6739,6 +6817,7 @@
       }
     },
     "You're not authorized. Check this account's API key in Settings." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en-GB" : {
           "stringUnit" : {
@@ -6765,6 +6844,7 @@
       }
     },
     "Your Email" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6775,6 +6855,7 @@
       }
     },
     "Your plan has unlimited pads." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6783,9 +6864,6 @@
           }
         }
       }
-    },
-    "Your Screen accounts have no campaigns yet." : {
-
     },
     "Your trial expires %@." : {
       "localizations" : {
@@ -6798,6 +6876,7 @@
       }
     },
     "Z to A" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {

@@ -14,7 +14,9 @@
 //  `type_body_length` under `--strict`).
 //
 
-import AppKit
+#if os(macOS)
+    import AppKit
+#endif
 import SwiftUI
 
 struct MergedPadsView: View {

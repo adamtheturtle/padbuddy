@@ -196,10 +196,17 @@ final class CloudSyncStore {
     /// (`ubiquityIdentityToken` is non-nil whenever iCloud is on, entitlement or not), so
     /// this is the gate that keeps KVS untouched on the unprovisioned Developer ID build.
     private static let hasUbiquityEntitlement: Bool = {
-        guard let task = SecTaskCreateFromSelf(nil) else { return false }
+        #if os(macOS)
+            guard let task = SecTaskCreateFromSelf(nil) else { return false }
 
-        let key = "com.apple.developer.ubiquity-kvstore-identifier" as CFString
-        return SecTaskCopyValueForEntitlement(task, key, nil) != nil
+            let key = "com.apple.developer.ubiquity-kvstore-identifier" as CFString
+            return SecTaskCopyValueForEntitlement(task, key, nil) != nil
+        #else
+            // iOS/iPadOS has no `SecTask` self-entitlement read. Keep iCloud KVS dormant
+            // here until iPad CloudSync is set up with its own provisioned entitlement
+            // check; `isAvailable` stays false so the KVS is never touched unprovisioned.
+            return false
+        #endif
     }()
 
     /// True only when iCloud is genuinely usable: the app is provisioned with the KVS

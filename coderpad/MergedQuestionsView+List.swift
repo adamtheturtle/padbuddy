@@ -6,7 +6,9 @@
 //  list. Kept out of the primary struct so its body-length stays small.
 //
 
-import AppKit
+#if os(macOS)
+    import AppKit
+#endif
 import SwiftUI
 
 extension MergedQuestionsView {
@@ -240,7 +242,7 @@ extension MergedQuestionsView {
             let starred = isFavorite(row)
             return [SwipeAction(
                 title: starred ? String(localized: "Unfavorite") : String(localized: "Favorite"),
-                tint: Color(nsColor: .systemYellow),
+                tint: Color(platformColor: .systemYellow),
                 systemImage: starred ? "star.slash" : "star.fill"
             ) { toggleFavorite(row) }]
         }
@@ -255,11 +257,17 @@ extension MergedQuestionsView {
                     nav.deleteQuestionID = row.item.id
                 }]
         }
+        #if os(macOS)
         .onRowDrag { questionPasteboardItem($0) }
+        #endif
+        // iPad: drag a question's URL into Safari, Notes, or a Split View.
+        .onRowDragURL { $0.item.webURL(baseURL: $0.account.resolvedBaseURL) }
         .rowContextMenu { questionTableMenuItems($0) }
         .onTopRowChange { persistTopRow($0) }
         .scrollToRow(id: pendingScrollToRowID) { pendingScrollToRowID = nil }
+        #if os(macOS)
         .onDragSession(began: FavoriteDragLifecycle.onBegan, ended: FavoriteDragLifecycle.onEnded)
+        #endif
         .overlay { questionsOverlay }
         .macPullToRefresh { await reload() }
         .focusedSceneValue(\.focusedQuestion, selection)
@@ -269,9 +277,11 @@ extension MergedQuestionsView {
         // originating account's server URL, so a merged-list copy honors custom domains.
         // The O(N) `selectedQuestionURLsInOrder` scan is built lazily (only on an actual
         // copy); the per-render gate is the O(1) empty-selection check, off the click path.
+        #if os(macOS)
         .onCopyCommand(perform: copyLinkCommand(hasSelection: !selectedRowIDs.isEmpty) {
             selectedQuestionURLsInOrder.joined(separator: "\n")
         })
+        #endif
     }
 
     /// Opens a combined-list question in its own window with its originating account.

@@ -3,7 +3,9 @@
 //  coderpad
 //
 
-import AppKit
+#if os(macOS)
+    import AppKit
+#endif
 import SwiftUI
 
 struct QuestionsView: View {

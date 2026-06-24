@@ -7,7 +7,9 @@
 //  that file under the line-length cap.
 //
 
-import AppKit
+#if os(macOS)
+    import AppKit
+#endif
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -60,6 +62,7 @@ extension MergedPadsView {
     /// The drag payload for a combined-pads row: the pad's web URL (external link
     /// drops) plus the internal `FavoriteDrop` JSON carrying the *originating* account
     /// (so it drops onto the sidebar Favorites and pins to the right account, #297).
+    #if os(macOS)
     func padPasteboardItem(_ row: AccountScoped<Pad>) -> NSPasteboardItem? {
         guard let url = row.item.webURL else { return nil }
 
@@ -75,4 +78,5 @@ extension MergedPadsView {
         }
         return item
     }
+    #endif
 }

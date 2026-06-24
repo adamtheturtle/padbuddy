@@ -170,7 +170,13 @@ struct FavoriteStarButton: View {
                 .contentTransition(.symbolEffect(.replace))
         }
         .buttonStyle(.plain)
-        .opacity(isFavorite || hovered ? 1 : 0)
+        // macOS reveals the star on row hover to keep rows clean; iPad has no hover on
+        // touch, so a non-favorite star would be invisible and un-tappable - always show it.
+        #if os(macOS)
+            .opacity(isFavorite || hovered ? 1 : 0)
+        #else
+            .opacity(1)
+        #endif
         .help(isFavorite ? "Remove from Favorites" : "Add to Favorites")
         .accessibilityLabel(isFavorite ? "Remove \(title) from Favorites"
             : "Add \(title) to Favorites")

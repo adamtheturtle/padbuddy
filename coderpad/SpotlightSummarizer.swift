@@ -15,7 +15,7 @@ enum SpotlightSummarizer {
     /// ``PadSummarizer/isAvailable`` for the conditions.
     static var isAvailable: Bool {
         #if canImport(FoundationModels)
-            if #available(macOS 26, *) {
+            if #available(macOS 26, iOS 26, *) {
                 return SystemLanguageModel.default.availability == .available
             }
         #endif
@@ -27,7 +27,7 @@ enum SpotlightSummarizer {
     /// generation fails.
     static func keywords(title: String, language: String?, description: String) async -> [String]? {
         #if canImport(FoundationModels)
-            if #available(macOS 26, *) {
+            if #available(macOS 26, iOS 26, *) {
                 return await generate(title: title, language: language, description: description)
             }
         #endif
@@ -36,7 +36,7 @@ enum SpotlightSummarizer {
 }
 
 #if canImport(FoundationModels)
-    @available(macOS 26, *)
+    @available(macOS 26, iOS 26, *)
     private extension SpotlightSummarizer {
         @Generable
         struct Keywords {

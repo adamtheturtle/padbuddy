@@ -4,7 +4,7 @@ import Foundation
 #endif
 
 #if canImport(FoundationModels)
-    @available(macOS 26, *)
+    @available(macOS 26, iOS 26, *)
     extension SearchInterpreter {
         /// Every field is optional so the model can — and is told to — omit anything
         /// the request doesn't name. The small on-device model fills non-optional

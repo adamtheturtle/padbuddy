@@ -46,7 +46,7 @@ struct QuestionDetailView: View {
     /// sibling of "New Question".
     @ToolbarContentBuilder
     private var detailToolbar: some CustomizableToolbarContent {
-        if #available(macOS 26, *) {
+        if #available(macOS 26, iOS 26, *) {
             ToolbarSpacer(.fixed)
         }
         ToolbarItem(id: "favorite", placement: .primaryAction) {

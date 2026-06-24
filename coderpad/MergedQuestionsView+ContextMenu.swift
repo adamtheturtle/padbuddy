@@ -7,7 +7,9 @@
 //  keep it under the line cap.
 //
 
-import AppKit
+#if os(macOS)
+    import AppKit
+#endif
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -64,6 +66,7 @@ extension MergedQuestionsView {
     /// originating account's server, external link drops) plus the internal
     /// `FavoriteDrop` JSON carrying that account (so it drops onto the sidebar
     /// Favorites and pins to the right account, #297).
+    #if os(macOS)
     func questionPasteboardItem(_ row: AccountScoped<Question>) -> NSPasteboardItem? {
         let url = row.item.webURL(baseURL: row.account.resolvedBaseURL)
         let item = NSPasteboardItem()
@@ -78,4 +81,5 @@ extension MergedQuestionsView {
         }
         return item
     }
+    #endif
 }

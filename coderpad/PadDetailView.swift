@@ -3,7 +3,11 @@
 //  coderpad
 //
 
-import AppKit
+#if os(macOS)
+    import AppKit
+#else
+    import UIKit
+#endif
 import SwiftUI
 
 struct PadDetailView: View {
@@ -74,7 +78,7 @@ struct PadDetailView: View {
     /// menu.
     @ToolbarContentBuilder
     private var detailToolbar: some CustomizableToolbarContent {
-        if #available(macOS 26, *) {
+        if #available(macOS 26, iOS 26, *) {
             ToolbarSpacer(.fixed)
         }
         if let url = pad.webURL {
@@ -117,7 +121,7 @@ struct PadDetailView: View {
                 .accessibilityLabel("Watch playback")
             }
         }
-        if #available(macOS 26, *) {
+        if #available(macOS 26, iOS 26, *) {
             ToolbarSpacer(.fixed)
         }
         ToolbarItem(id: "delete", placement: .primaryAction) {

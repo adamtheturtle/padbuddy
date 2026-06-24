@@ -13,7 +13,7 @@ import SwiftUI
 struct AccountFooter: View {
     @State private var store = AccountsStore.shared
     @State private var monitor = AccountHealthMonitor.shared
-    @Environment(\.openSettings) private var openSettings
+    @Environment(\.openAppSettings) private var openSettings
     /// Size of the combined-view glyph, paired with (and roughly matching) the 30pt
     /// avatar shown in the single-account branch. Scales with the user's text size so
     /// it honors accessibility sizing; the two branches are mutually exclusive, so this

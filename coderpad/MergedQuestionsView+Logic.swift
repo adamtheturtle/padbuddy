@@ -6,7 +6,9 @@
 //  combined "All Accounts" questions list.
 //
 
-import AppKit
+#if os(macOS)
+    import AppKit
+#endif
 import SwiftUI
 
 extension MergedQuestionsView {

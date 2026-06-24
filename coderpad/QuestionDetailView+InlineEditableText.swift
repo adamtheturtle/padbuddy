@@ -62,7 +62,12 @@ struct InlineEditableText: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .opacity(hovered ? 1 : 0)
+                // No hover on touch: keep the inline-edit affordance visible on iPad.
+                #if os(macOS)
+                    .opacity(hovered ? 1 : 0)
+                #else
+                    .opacity(1)
+                #endif
                 .help("Edit \(label)")
                 .accessibilityLabel("Edit \(label)")
             }
@@ -79,7 +84,7 @@ struct InlineEditableText: View {
                 .focused($focused)
                 .scrollContentBackground(.hidden)
                 .padding(8)
-                .background(Color(nsColor: .textBackgroundColor),
+                .background(Color.platformTextBackground,
                             in: RoundedRectangle(cornerRadius: 8, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous)
                     .stroke(Color.subtleStroke, lineWidth: 1))
