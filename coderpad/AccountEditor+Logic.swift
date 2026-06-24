@@ -9,7 +9,14 @@ extension AccountEditor {
     /// Width of the right-aligned label column, sized to hold the longest label
     /// ("Description") so every field starts at the same x — the Mail look.
     var labelColumnWidth: CGFloat {
+        #if os(macOS)
         84
+        #else
+        // iPadOS draws the label at the larger system body size (17pt vs macOS's
+        // 13pt), where "Description" overflows the 84pt column and wraps to two
+        // lines (#553). Widen the column so the longest label fits on one line.
+        112
+        #endif
     }
 
     /// One Mail-style row: a right-aligned label paired with a left-aligned field.
@@ -21,6 +28,7 @@ extension AccountEditor {
                   @ViewBuilder content: () -> some View) -> some View {
         HStack(alignment: alignment, spacing: 10) {
             Text(label)
+                .lineLimit(1)
                 .frame(width: labelColumnWidth, alignment: .trailing)
                 .foregroundStyle(.secondary)
             content()
