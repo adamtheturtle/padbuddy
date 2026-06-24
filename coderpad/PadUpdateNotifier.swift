@@ -11,7 +11,11 @@
 //  `coderpad://` routing.
 //
 
-import AppKit
+#if os(macOS)
+    import AppKit
+#else
+    import UIKit
+#endif
 import UserNotifications
 
 /// A single pad's change since the last sweep, classified into the most
@@ -77,7 +81,11 @@ final class PadUpdateNotifier: NSObject {
     /// once and otherwise just returns the standing decision, so it's safe to call on
     /// every launch and whenever the Dock-badge scope is switched on.
     func requestBadgeAuthorization() {
-        Task { _ = try? await center.requestAuthorization(options: [.badge]) }
+        // The Dock badge is macOS-only (iOS has no Dock and the badge logic is a no-op
+        // there), so there's nothing to authorize on iOS.
+        #if os(macOS)
+            Task { _ = try? await center.requestAuthorization(options: [.badge]) }
+        #endif
     }
 
     /// Post an alert summarizing pads that just gained activity. A no-op unless the
@@ -87,9 +95,19 @@ final class PadUpdateNotifier: NSObject {
     func notify(changes: [PadChange]) {
         guard GeneralSettings.notifyOnPadUpdates,
               !changes.isEmpty,
-              !NSApp.isActive else { return }
+              !appIsActive else { return }
 
         Task { await post(changes: changes) }
+    }
+
+    /// Whether the app is frontmost, used to suppress alerts you'd already see. Spelled
+    /// per platform: `NSApp.isActive` on macOS, the foreground-active scene phase on iOS.
+    private var appIsActive: Bool {
+        #if os(macOS)
+            NSApp.isActive
+        #else
+            UIApplication.shared.applicationState == .active
+        #endif
     }
 
     private func post(changes: [PadChange]) async {

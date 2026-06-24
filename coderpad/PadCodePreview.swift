@@ -3,7 +3,6 @@
 //  coderpad
 //
 
-import AppKit
 import SwiftUI
 
 /// One displayable file in an environment's code preview, carrying the

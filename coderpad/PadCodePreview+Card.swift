@@ -3,7 +3,9 @@
 //  coderpad
 //
 
-import AppKit
+#if os(macOS)
+    import AppKit
+#endif
 import SwiftUI
 
 extension EnvironmentCodeCard {
@@ -264,13 +266,18 @@ extension EnvironmentCodeCard {
     /// grants the sandboxed app write access to the picked URL, so no extra
     /// entitlement beyond user-selected read-write is needed.
     private func download(_ file: CodeFile) {
-        let panel = NSSavePanel()
-        panel.nameFieldStringValue = file.name
-        panel.canCreateDirectories = true
-        panel.isExtensionHidden = false
-        guard panel.runModal() == .OK, let url = panel.url else { return }
+        #if os(macOS)
+            let panel = NSSavePanel()
+            panel.nameFieldStringValue = file.name
+            panel.canCreateDirectories = true
+            panel.isExtensionHidden = false
+            guard panel.runModal() == .OK, let url = panel.url else { return }
 
-        try? file.contents.write(to: url, atomically: true, encoding: .utf8)
+            try? file.contents.write(to: url, atomically: true, encoding: .utf8)
+        #else
+            // iPad export (a document picker / share sheet) can be added later; for now
+            // this is a no-op so the download button stays present but inert on iOS.
+        #endif
     }
 
     /// Saves every file in the environment into a folder chosen via a save panel
@@ -279,14 +286,20 @@ extension EnvironmentCodeCard {
     /// grants write access to the picked location, so the folder can be created
     /// there with no extra entitlement beyond user-selected read-write.
     private func downloadAll(_ files: [CodeFile]) {
-        let panel = NSSavePanel()
-        panel.nameFieldStringValue = "pad-\(padID)"
-        panel.canCreateDirectories = true
-        guard panel.runModal() == .OK, let destination = panel.url else { return }
+        #if os(macOS)
+            let panel = NSSavePanel()
+            panel.nameFieldStringValue = "pad-\(padID)"
+            panel.canCreateDirectories = true
+            guard panel.runModal() == .OK, let destination = panel.url else { return }
 
-        try? writeFolder(of: files, to: destination)
+            try? writeFolder(of: files, to: destination)
+        #else
+            // iPad export (a document picker / share sheet) can be added later; for now
+            // this is a no-op so the download button stays present but inert on iOS.
+        #endif
     }
 
+    #if os(macOS)
     /// Writes the files into a fresh folder at `destination`, recreating each
     /// file's relative path beneath it.
     private func writeFolder(of files: [CodeFile], to destination: URL) throws {
@@ -309,4 +322,5 @@ extension EnvironmentCodeCard {
             try file.contents.write(to: fileURL, atomically: true, encoding: .utf8)
         }
     }
+    #endif
 }

@@ -197,7 +197,7 @@ enum InterviewTemplateRunner {
                     AppRouter.requestOpenPadInBrowser(url)
                 }
             } catch {
-                AppDelegate.routeNewPad(account: accountID.uuidString, question: fallbackQuestionID)
+                AppNavigation.shared.routeNewPad(account: accountID.uuidString, seedQuestionID: fallbackQuestionID)
             }
         }
     }

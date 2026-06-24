@@ -1,3 +1,4 @@
+#if os(macOS)
 //
 //  MenuBarView+Logic.swift
 //  coderpad
@@ -104,3 +105,4 @@ extension MenuBarView {
         }
     }
 }
+#endif

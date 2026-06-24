@@ -3,7 +3,11 @@
 //  coderpad
 //
 
-import AppKit
+#if os(macOS)
+    import AppKit
+#else
+    import UIKit
+#endif
 import Highlightr
 import SwiftUI
 
@@ -294,7 +298,7 @@ actor HighlightrEngine {
 
         let mutable = NSMutableAttributedString(attributedString: rendered)
         let full = NSRange(location: 0, length: mutable.length)
-        mutable.addAttribute(.font, value: NSFont.monospacedSystemFont(ofSize: 12, weight: .regular), range: full)
+        mutable.addAttribute(.font, value: PlatformFont.monospaced(ofSize: 12, weight: .regular), range: full)
         return try? mutable.data(from: full,
                                  documentAttributes: [.documentType: NSAttributedString.DocumentType.rtf])
     }
@@ -317,8 +321,8 @@ actor HighlightrEngine {
         let fullRange = NSRange(location: 0, length: attributed.length)
         attributed.enumerateAttribute(.foregroundColor, in: fullRange) { value, range, _ in
             var piece = AttributedString(attributed.attributedSubstring(from: range).string)
-            if let color = value as? NSColor {
-                piece.foregroundColor = Color(nsColor: color)
+            if let color = value as? PlatformColor {
+                piece.foregroundColor = Color(platformColor: color)
             }
             out.append(piece)
         }

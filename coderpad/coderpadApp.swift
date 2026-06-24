@@ -3,10 +3,13 @@
 //  coderpad
 //
 
-import AppKit
 import CoreSpotlight
 import SwiftUI
+#if os(macOS)
+import AppKit
+#endif
 
+#if os(macOS)
 final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Backs the "Open Pad in CoderPad" macOS Service; retained for the app's
     /// lifetime so `NSApp.servicesProvider` keeps a live target.
@@ -80,6 +83,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         URLOpener.open(url)
     }
 }
+#endif
 
 /// Process entry point. Before the SwiftUI app starts, check for the `--mcp` flag: in
 /// that mode the process is a headless Model Context Protocol server (#402), driven over
@@ -88,17 +92,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 @main
 enum AppEntryPoint {
     static func main() {
-        if CommandLine.arguments.contains(MCPServer.commandLineFlag) {
-            // Resolve the accounts here, on the main actor, since `Account` is main-actor
-            // isolated; the server itself then runs nonisolated over stdio.
-            MCPServer.runUntilExit(directory: MCPAccountLoader.directory())
-        }
+        #if os(macOS)
+            // The stdio MCP server mode (#402) is inherently a macOS command-line entry
+            // point; iPadOS apps are never launched with a `--mcp` flag over stdio, so
+            // this branch compiles out there.
+            if CommandLine.arguments.contains(MCPServer.commandLineFlag) {
+                // Resolve the accounts here, on the main actor, since `Account` is main-actor
+                // isolated; the server itself then runs nonisolated over stdio.
+                MCPServer.runUntilExit(directory: MCPAccountLoader.directory())
+            }
+        #endif
         CoderpadApp.main()
     }
 }
 
 struct CoderpadApp: App {
-    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    #if os(macOS)
+        @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    #endif
 
     /// Observed so the File ▸ New commands disable while the app is offline (#321),
     /// matching the in-window New buttons and the menu-bar extra.
@@ -120,6 +131,15 @@ struct CoderpadApp: App {
     }
 
     var body: some Scene {
+        #if os(macOS)
+            macOSScenes
+        #else
+            iOSScenes
+        #endif
+    }
+
+    #if os(macOS)
+    @SceneBuilder private var macOSScenes: some Scene {
         // A single, unique main window (`Window`, not `WindowGroup`): opening "main"
         // again - from the menu bar's Add Account, the Dock icon, or "Open Main
         // Window" - focuses the existing window instead of spawning a duplicate (#459).
@@ -189,7 +209,40 @@ struct CoderpadApp: App {
 
         menuBarScene
     }
+    #endif
 
+    #if !os(macOS)
+    /// The iPad scene graph. A single primary `WindowGroup` hosting the same
+    /// three-column `ContentView`; the macOS-only menu-bar extra, Dock menu,
+    /// per-window `Window`/`WindowGroup` scenes, and `Settings` scene have no iPad
+    /// analog, so iPad reaches Settings in-app and opens pads/questions inline. The
+    /// Spotlight continuation and `coderpad://` deep-link handling are shared with
+    /// macOS so widget taps and search results route the same way.
+    @SceneBuilder private var iOSScenes: some Scene {
+        WindowGroup {
+            ContentView()
+                .modifier(ScreenshotTextSize(size: Self.screenshotTextSize))
+                .preferredColorScheme(appearance.colorScheme)
+                .onContinueUserActivity(CSSearchableItemActionType) { activity in
+                    guard let id = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String else { return }
+
+                    if let padID = SpotlightIndexer.padID(fromItemIdentifier: id) {
+                        AppNavigation.shared.openPad(id: padID)
+                    } else if let ref = SpotlightIndexer.questionRef(fromItemIdentifier: id) {
+                        if AccountsStore.shared.accounts.contains(where: { $0.id == ref.account }) {
+                            AccountsStore.shared.currentAccountID = ref.account
+                        }
+                        AppNavigation.shared.showFavoriteQuestion(id: ref.id)
+                    }
+                }
+                .onOpenURL { url in
+                    handleDeepLink(url)
+                }
+        }
+    }
+    #endif
+
+    #if os(macOS)
     /// A pad opened in its own window (`coderpad://pad/<id>` or the Open action).
     /// Split out of `body` so each scene type-checks independently and the main
     /// scene builder stays under the long-body diagnostic budget.
@@ -332,6 +385,7 @@ struct CoderpadApp: App {
             Link("Send Feedback…", destination: CoderPadLinks.feedbackMailto)
         }
     }
+    #endif
 
     private func post(_ section: AppSection) {
         AppNavigation.shared.show(section)
@@ -364,7 +418,7 @@ struct CoderpadApp: App {
             let account = components?.queryItems?.first(where: { $0.name == "account" })?.value
             let seedQuestionID = components?.queryItems?
                 .first(where: { $0.name == "question" })?.value.flatMap(Int.init)
-            AppDelegate.routeNewPad(account: account, question: seedQuestionID)
+            AppNavigation.shared.routeNewPad(account: account, seedQuestionID: seedQuestionID)
 
         case "new-question":
             AppNavigation.shared.showQuestions(QuestionsRequest(startCreating: true))
@@ -390,9 +444,11 @@ struct CoderpadApp: App {
         AppNavigation.shared.show(next)
     }
 
+    #if os(macOS)
     private func showAbout() {
         showAboutPanel()
     }
+    #endif
 
     /// The Dynamic Type size to pin for marketing-screenshot capture, read from
     /// `-uiTestingTextSize <name>` (e.g. `accessibility1`). Returns nil outside that

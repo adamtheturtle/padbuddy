@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		66153CF62FEB609C00272AF3 /* FastList in Frameworks */ = {isa = PBXBuildFile; productRef = 66153CF52FEB609C00272AF3 /* FastList */; };
 		668E402A2FE2F7DC00AA8228 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 668E40292FE2F7DC00AA8228 /* Sparkle */; };
 		6693DA512FE9CFC4005CA3CE /* CoderPadToolCore in Frameworks */ = {isa = PBXBuildFile; productRef = 6693DA502FE9CFC4005CA3CE /* CoderPadToolCore */; };
 		6693DA532FE9D021005CA3CE /* CoderPadToolCore in Frameworks */ = {isa = PBXBuildFile; productRef = 6693DA522FE9D021005CA3CE /* CoderPadToolCore */; };
@@ -196,6 +197,7 @@
 			files = (
 				66F544012FE5EECD000214AA /* Flow in Frameworks */,
 				66F544052FE5EECD000214AA /* Highlightr in Frameworks */,
+				66153CF62FEB609C00272AF3 /* FastList in Frameworks */,
 				6693DA532FE9D021005CA3CE /* CoderPadToolCore in Frameworks */,
 				66C6A33F2FEA883500731E7E /* BuddyAppKit in Frameworks */,
 				66C6A3432FEA883500731E7E /* PaginatedRESTClient in Frameworks */,
@@ -371,6 +373,7 @@
 				66C6A33E2FEA883500731E7E /* BuddyAppKit */,
 				66C6A3402FEA883500731E7E /* BuddyDesignSystem */,
 				66C6A3422FEA883500731E7E /* PaginatedRESTClient */,
+				66153CF52FEB609C00272AF3 /* FastList */,
 			);
 			productName = coderpad;
 			productReference = 66F5440C2FE5EECD000214AA /* PadBuddy.app */;
@@ -926,7 +929,7 @@
 				CODE_SIGN_ENTITLEMENTS = "coderpad-AppStore.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 6L9H6Q8CUF;
 				ENABLE_APP_SANDBOX = YES;
@@ -978,7 +981,7 @@
 				CODE_SIGN_ENTITLEMENTS = "coderpad-AppStore.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 6L9H6Q8CUF;
 				ENABLE_APP_SANDBOX = YES;
@@ -1156,6 +1159,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		66153CF52FEB609C00272AF3 /* FastList */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 66FA9C342FEAB12400F1A795 /* XCRemoteSwiftPackageReference "FastList" */;
+			productName = FastList;
+		};
 		668E40292FE2F7DC00AA8228 /* Sparkle */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 668E40282FE2F7DC00AA8228 /* XCRemoteSwiftPackageReference "Sparkle" */;

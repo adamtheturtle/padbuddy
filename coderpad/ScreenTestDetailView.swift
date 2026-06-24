@@ -9,7 +9,9 @@
 //  community stats.
 //
 
-import AppKit
+#if os(macOS)
+    import AppKit
+#endif
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -248,10 +250,15 @@ struct ScreenTestDetailView: View {
             if save {
                 saveReport(data)
             } else {
-                let url = FileManager.default.temporaryDirectory
-                    .appendingPathComponent("ScreenReport-\(test.id).pdf")
-                try data.write(to: url)
-                NSWorkspace.shared.open(url)
+                #if os(macOS)
+                    let url = FileManager.default.temporaryDirectory
+                        .appendingPathComponent("ScreenReport-\(test.id).pdf")
+                    try data.write(to: url)
+                    NSWorkspace.shared.open(url)
+                #else
+                    // Opening the PDF (a document preview / share sheet) can be added
+                    // later on iPad; for now this is a no-op so the button stays inert.
+                #endif
             }
         } catch {
             reportError = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
@@ -261,16 +268,22 @@ struct ScreenTestDetailView: View {
     /// Offers a save panel (sandbox-safe: the user grants write access to the chosen
     /// location) and writes the fetched PDF there.
     private func saveReport(_ data: Data) {
-        let panel = NSSavePanel()
-        panel.allowedContentTypes = [.pdf]
-        panel.nameFieldStringValue = "ScreenReport-\(test.id).pdf"
-        guard panel.runModal() == .OK, let url = panel.url else { return }
+        #if os(macOS)
+            let panel = NSSavePanel()
+            panel.allowedContentTypes = [.pdf]
+            panel.nameFieldStringValue = "ScreenReport-\(test.id).pdf"
+            guard panel.runModal() == .OK, let url = panel.url else { return }
 
-        do {
-            try data.write(to: url)
-        } catch {
-            reportError = error.localizedDescription
-        }
+            do {
+                try data.write(to: url)
+            } catch {
+                reportError = error.localizedDescription
+            }
+        #else
+            // Saving the PDF (a document picker / share sheet) can be added later on
+            // iPad; for now this is a no-op so the button stays inert.
+            _ = data
+        #endif
     }
 }
 

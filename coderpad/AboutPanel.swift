@@ -1,3 +1,4 @@
+#if os(macOS)
 //
 //  AboutPanel.swift
 //  coderpad
@@ -45,3 +46,4 @@ private var aboutCreditsDisclaimer: NSAttributedString {
         ]
     )
 }
+#endif

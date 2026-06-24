@@ -10,12 +10,17 @@
 //  future iOS build can make this a no-op without touching the call sites.
 //
 
-import AppKit
+#if os(macOS)
+    import AppKit
+#endif
 
 enum AppActivator {
     /// Bring the app to the foreground, e.g. before delivering a deep link so the
-    /// activated window comes forward with it.
+    /// activated window comes forward with it. A no-op on iOS, where an app cannot
+    /// activate itself — exactly as this seam was designed to allow.
     static func bringToFront() {
-        NSApp.activate(ignoringOtherApps: true)
+        #if os(macOS)
+            NSApp.activate(ignoringOtherApps: true)
+        #endif
     }
 }

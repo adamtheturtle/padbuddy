@@ -1,3 +1,4 @@
+#if os(macOS)
 //
 //  ServicesProvider.swift
 //  coderpad
@@ -78,3 +79,4 @@ final class ServicesProvider: NSObject {
         return trimmed
     }
 }
+#endif

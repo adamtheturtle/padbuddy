@@ -1,3 +1,4 @@
+#if os(macOS)
 //
 //  coderpadApp+Commands.swift
 //  coderpad
@@ -349,3 +350,4 @@ struct WindowCommands: Commands {
         }
     }
 }
+#endif

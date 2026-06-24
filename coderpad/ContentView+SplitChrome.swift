@@ -3,7 +3,9 @@
 //  coderpad
 //
 
-import AppKit
+#if os(macOS)
+    import AppKit
+#endif
 import SwiftUI
 
 /// Restart key for the per-session load task: the chosen account plus whether the
@@ -13,6 +15,11 @@ struct SessionKey: Hashable {
     let merged: Bool
 }
 
+// These three customize the macOS window/toolbar/sidebar chrome via AppKit. iPad has
+// no analog, so on iOS each is a no-op `View` (returns `EmptyView`) with the same name
+// and initializer so the cross-platform `MainSplit` `.background(...)` call sites keep
+// compiling unchanged.
+#if os(macOS)
 /// Pins the host window's minimum content width and reports the window's *true*
 /// content width back to SwiftUI. SwiftUI's `.frame(minWidth:)` doesn't reliably
 /// propagate from inside a `NavigationSplitView` to the window's `contentMinSize`,
@@ -359,3 +366,35 @@ struct SidebarSeparatorHider: NSViewRepresentable {
         }
     }
 }
+#else
+// iPad has no window/toolbar/sidebar chrome to customize, so each of these is a no-op
+// `View` returning `EmptyView`. The names and initializers mirror the macOS versions so
+// the cross-platform `MainSplit` `.background(...)` call sites compile without change.
+
+/// No-op on iOS: there is no host window minimum to pin, and no live window width to
+/// report. The width callback never fires.
+struct WindowMinWidth: View {
+    let width: CGFloat
+    let onContentWidth: (CGFloat) -> Void
+
+    var body: some View {
+        EmptyView()
+    }
+}
+
+/// No-op on iOS: there is no `NSToolbar` to enable customization on.
+struct ToolbarCustomizationEnabler: View {
+    var body: some View {
+        EmptyView()
+    }
+}
+
+/// No-op on iOS: there is no AppKit tracking separator to suppress.
+struct SidebarSeparatorHider: View {
+    let collapsed: Bool
+
+    var body: some View {
+        EmptyView()
+    }
+}
+#endif

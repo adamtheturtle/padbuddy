@@ -3,7 +3,6 @@
 //  coderpad
 //
 
-import AppKit
 import ImageIO
 import SwiftUI
 
@@ -24,7 +23,7 @@ struct WhiteboardImage: View {
 
     private enum Phase {
         case loading
-        case success(NSImage)
+        case success(PlatformImage)
         case failure
     }
 
@@ -46,7 +45,7 @@ struct WhiteboardImage: View {
         case let .success(image):
             // The enclosing Button carries the "Open the whiteboard full size"
             // label, so the image itself is decorative for VoiceOver.
-            Image(nsImage: image)
+            Image(platformImage: image)
                 .resizable()
                 .scaledToFit()
                 .accessibilityHidden(true)
@@ -68,7 +67,7 @@ struct WhiteboardImage: View {
         // The whiteboard renders into the detail pane (a few hundred points wide)
         // and opens full size on tap, so cap the inline copy at a generous pane
         // width in pixels rather than decoding the source at full resolution.
-        let scale = NSScreen.main?.backingScaleFactor ?? 2
+        let scale = PlatformScreen.backingScaleFactor
         let maxPixelSize = Int(600 * scale)
         let key = "\(url.absoluteString)|\(maxPixelSize)"
 
@@ -108,9 +107,9 @@ final class WhiteboardImageCache {
     // (#422, a cause of #418). NSCache bounds it by count and also evicts automatically
     // under memory pressure — the idiomatic fit for a decoded-image cache.
     // swiftlint:disable:next legacy_objc_type
-    private let memory: NSCache<NSString, NSImage> = {
+    private let memory: NSCache<NSString, PlatformImage> = {
         // swiftlint:disable:next legacy_objc_type
-        let cache = NSCache<NSString, NSImage>()
+        let cache = NSCache<NSString, PlatformImage>()
         cache.countLimit = 32
         return cache
     }()
@@ -129,12 +128,12 @@ final class WhiteboardImageCache {
         session = URLSession(configuration: config)
     }
 
-    func image(forKey key: String) -> NSImage? {
+    func image(forKey key: String) -> PlatformImage? {
         // swiftlint:disable:next legacy_objc_type
         memory.object(forKey: key as NSString)
     }
 
-    func store(_ image: NSImage, forKey key: String) {
+    func store(_ image: PlatformImage, forKey key: String) {
         // swiftlint:disable:next legacy_objc_type
         memory.setObject(image, forKey: key as NSString)
     }
@@ -142,7 +141,7 @@ final class WhiteboardImageCache {
     /// A box so the immutable, freshly decoded image can cross the actor boundary
     /// out of the detached downsample task under strict concurrency.
     struct DownsampledImage: @unchecked Sendable {
-        let image: NSImage
+        let image: PlatformImage
     }
 
     /// Decode `data` to an image no larger than `maxPixelSize` on its longest edge
@@ -166,8 +165,7 @@ final class WhiteboardImageCache {
             return nil
         }
 
-        let image = NSImage(cgImage: cgImage,
-                            size: NSSize(width: cgImage.width, height: cgImage.height))
+        let image = PlatformImage.fromCGImage(cgImage)
         return DownsampledImage(image: image)
     }
 }

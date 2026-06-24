@@ -1,3 +1,4 @@
+#if os(macOS)
 //
 //  MenuBarView.swift
 //  coderpad
@@ -281,3 +282,4 @@ final class MenuBarListCache {
     var pads: [Pad] = []
     var questions: [Question] = []
 }
+#endif

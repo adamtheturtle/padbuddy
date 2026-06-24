@@ -11,7 +11,9 @@
 //  layer (see `padPasteboardItem`), carrying the URL plus the `FavoriteDrop` JSON.
 //
 
-import AppKit
+#if os(macOS)
+    import AppKit
+#endif
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -55,25 +57,30 @@ final class FavoriteDragMonitor {
     var isDragging = false
 }
 
-/// The favorite-drag lifecycle hooks the list columns share, passed into the
-/// design-system ``FastList``'s injected drag callbacks (#515). Keeping the
-/// favorite-payload inspection here means the reusable table never references the
-/// app's `coderpadFavorite` type or `FavoriteDragMonitor`. While a row carrying a
-/// favorite payload is dragged, reveal the sidebar's empty-state drop zone (#444).
-@MainActor
-enum FavoriteDragLifecycle {
-    /// A row drag began: reveal the drop zone only when the session actually carries a
-    /// favorite payload, so a plain link-out drag doesn't reveal a target nothing can
-    /// drop on.
-    static let onBegan: (NSDraggingSession) -> Void = { session in
-        let canFavorite = session.draggingPasteboard
-            .canReadItem(withDataConformingToTypes: [UTType.coderpadFavorite.identifier])
-        if canFavorite { FavoriteDragMonitor.shared.isDragging = true }
-    }
+#if os(macOS)
+    /// The favorite-drag lifecycle hooks the list columns share, passed into the
+    /// design-system ``FastList``'s injected drag callbacks (#515). Keeping the
+    /// favorite-payload inspection here means the reusable table never references the
+    /// app's `coderpadFavorite` type or `FavoriteDragMonitor`. While a row carrying a
+    /// favorite payload is dragged, reveal the sidebar's empty-state drop zone (#444).
+    ///
+    /// iOS: these hooks plug into the AppKit `NSTableView`-backed `FastList`, which has
+    /// no iOS counterpart, so the whole lifecycle is macOS-only.
+    @MainActor
+    enum FavoriteDragLifecycle {
+        /// A row drag began: reveal the drop zone only when the session actually carries a
+        /// favorite payload, so a plain link-out drag doesn't reveal a target nothing can
+        /// drop on.
+        static let onBegan: (NSDraggingSession) -> Void = { session in
+            let canFavorite = session.draggingPasteboard
+                .canReadItem(withDataConformingToTypes: [UTType.coderpadFavorite.identifier])
+            if canFavorite { FavoriteDragMonitor.shared.isDragging = true }
+        }
 
-    /// The drag dropped or was cancelled: collapse the revealed drop zone again.
-    static let onEnded: () -> Void = { FavoriteDragMonitor.shared.isDragging = false }
-}
+        /// The drag dropped or was cancelled: collapse the revealed drop zone again.
+        static let onEnded: () -> Void = { FavoriteDragMonitor.shared.isDragging = false }
+    }
+#endif
 
 /// Identifies a favorite being dragged to reorder it within the sidebar (#299).
 /// Separate from ``FavoriteDrop`` so reorder and add-to-favorites never cross-fire.

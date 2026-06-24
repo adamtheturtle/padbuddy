@@ -8,7 +8,9 @@
 //  app already maintains.
 //
 
-import AppKit
+#if os(macOS)
+    import AppKit
+#endif
 import SwiftUI
 
 /// What the Dock badge counts: nothing, the current account's started pads, or
@@ -74,50 +76,54 @@ enum DockBadge {
     /// so "nothing to show" (or the badge being off) leaves a clean icon rather than a "0".
     @MainActor
     static func apply() {
-        let store = AccountsStore.shared
-        // The accounts whose started pads the badge counts, per the chosen scope.
-        let countedAccounts: [Account]
-        switch scope {
-        case .off:
-            NSApp.dockTile.badgeLabel = nil
-            return
-
-        case .currentAccount:
-            // No single current account (e.g. the combined "All Accounts" view) means
-            // there's nothing to scope to, so clear the badge rather than guess.
-            guard let current = store.currentAccount else {
+        // iOS has no Dock, so there's nothing to render. The scope/preference logic
+        // above still compiles and works; only the tile rendering is macOS-only.
+        #if os(macOS)
+            let store = AccountsStore.shared
+            // The accounts whose started pads the badge counts, per the chosen scope.
+            let countedAccounts: [Account]
+            switch scope {
+            case .off:
                 NSApp.dockTile.badgeLabel = nil
                 return
+
+            case .currentAccount:
+                // No single current account (e.g. the combined "All Accounts" view) means
+                // there's nothing to scope to, so clear the badge rather than guess.
+                guard let current = store.currentAccount else {
+                    NSApp.dockTile.badgeLabel = nil
+                    return
+                }
+
+                countedAccounts = [current]
+
+            case .allAccounts:
+                countedAccounts = store.accounts
             }
 
-            countedAccounts = [current]
+            // Only the user's own started pads, scoped per account: ownership is compared
+            // against each account's configured email (matching `MergedPadsView.isMine`),
+            // so other interviewers' live pads don't count. Emails are canonicalized once
+            // per account (case- and plus-addressing-folded; see `String.canonicalOwnerEmail`)
+            // so a pad owned via a sub-address alias still counts as the account user's.
+            let canonicalEmails = Dictionary(
+                countedAccounts
+                    .filter { !$0.userEmail.isEmpty }
+                    .map { ($0.id, $0.userEmail.canonicalOwnerEmail) },
+                uniquingKeysWith: { first, _ in first }
+            )
+            let count = PadsCacheStore.shared.padsByAccount.reduce(0) { running, entry in
+                let (accountID, pads) = entry
+                guard let email = canonicalEmails[accountID] else { return running }
 
-        case .allAccounts:
-            countedAccounts = store.accounts
-        }
-
-        // Only the user's own started pads, scoped per account: ownership is compared
-        // against each account's configured email (matching `MergedPadsView.isMine`),
-        // so other interviewers' live pads don't count. Emails are canonicalized once
-        // per account (case- and plus-addressing-folded; see `String.canonicalOwnerEmail`)
-        // so a pad owned via a sub-address alias still counts as the account user's.
-        let canonicalEmails = Dictionary(
-            countedAccounts
-                .filter { !$0.userEmail.isEmpty }
-                .map { ($0.id, $0.userEmail.canonicalOwnerEmail) },
-            uniquingKeysWith: { first, _ in first }
-        )
-        let count = PadsCacheStore.shared.padsByAccount.reduce(0) { running, entry in
-            let (accountID, pads) = entry
-            guard let email = canonicalEmails[accountID] else { return running }
-
-            return running + pads.count(where: {
-                $0.status == .active && $0.ownerEmail.canonicalOwnerEmail == email
-            })
-        }
-        NSApp.dockTile.badgeLabel = count > 0 ? "\(count)" : nil
-        // Force the tile to redraw. Setting `badgeLabel` alone doesn't always refresh a
-        // tile that's already on screen, so the new count can otherwise go unshown.
-        NSApp.dockTile.display()
+                return running + pads.count(where: {
+                    $0.status == .active && $0.ownerEmail.canonicalOwnerEmail == email
+                })
+            }
+            NSApp.dockTile.badgeLabel = count > 0 ? "\(count)" : nil
+            // Force the tile to redraw. Setting `badgeLabel` alone doesn't always refresh a
+            // tile that's already on screen, so the new count can otherwise go unshown.
+            NSApp.dockTile.display()
+        #endif
     }
 }

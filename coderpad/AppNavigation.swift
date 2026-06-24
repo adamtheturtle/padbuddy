@@ -198,4 +198,20 @@ final class AppNavigation {
     func openPad(id: String) {
         openPadID = id
     }
+
+    /// Switches to the requested account (if any) and opens the Pads create sheet —
+    /// the shared destination of the `coderpad://new-pad` deep link, the macOS
+    /// widget/Control Center/Dock New Pad paths, and the iPad deep-link handler. An
+    /// account is honoured only when it still exists; the seeded question id is only
+    /// unique within its owning org, so the account switch must happen first. Lives
+    /// here (pure navigation, no AppKit) so it is callable on every platform.
+    @MainActor
+    func routeNewPad(account: String?, seedQuestionID: Int?) {
+        if let account, let uuid = UUID(uuidString: account),
+           AccountsStore.shared.accounts.contains(where: { $0.id == uuid }) {
+            AccountsStore.shared.showAllAccounts = false
+            AccountsStore.shared.currentAccountID = uuid
+        }
+        showPads(PadsRequest(startCreating: true, seedQuestionID: seedQuestionID))
+    }
 }

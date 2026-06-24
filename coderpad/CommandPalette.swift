@@ -12,7 +12,9 @@
 //  new navigation machinery of its own.
 //
 
-import AppKit
+#if os(macOS)
+    import AppKit
+#endif
 import SwiftUI
 
 /// One row in the command palette: enough to render it and a closure that performs its
@@ -100,11 +102,13 @@ struct CommandPaletteView: View {
     @State private var candidates: [PaletteResult] = []
     @State private var selectedIndex = 0
     @FocusState private var queryFocused: Bool
-    /// Local key-event monitor for the up/down arrows. The search field is focused so
-    /// the user can type, but AppKit's field editor then swallows the arrow keys for
-    /// caret movement before SwiftUI's `.onKeyPress` ever sees them (#532) - so we watch
-    /// for them at the event level and drive the selection ourselves.
-    @State private var arrowKeyMonitor: Any?
+    #if os(macOS)
+        /// Local key-event monitor for the up/down arrows. The search field is focused so
+        /// the user can type, but AppKit's field editor then swallows the arrow keys for
+        /// caret movement before SwiftUI's `.onKeyPress` ever sees them (#532) - so we watch
+        /// for them at the event level and drive the selection ourselves.
+        @State private var arrowKeyMonitor: Any?
+    #endif
 
     /// At most this many results are shown, so a huge org doesn't render thousands of
     /// rows; the highest-scoring ones win.
@@ -139,32 +143,39 @@ struct CommandPaletteView: View {
         .onAppear {
             candidates = CommandPaletteBuilder.build()
             queryFocused = true
-            installArrowKeyMonitor()
+            #if os(macOS)
+                installArrowKeyMonitor()
+            #endif
         }
+        #if os(macOS)
         .onDisappear(perform: removeArrowKeyMonitor)
+        #endif
     }
 
-    /// Watches key-down events while the palette is open and moves the selection on the
-    /// up/down arrows, consuming them so the focused field doesn't also move its caret.
-    /// `keyCode` 125 is the down arrow, 126 the up arrow.
-    private func installArrowKeyMonitor() {
-        guard arrowKeyMonitor == nil else { return }
+    #if os(macOS)
+        /// Watches key-down events while the palette is open and moves the selection on the
+        /// up/down arrows, consuming them so the focused field doesn't also move its caret.
+        /// `keyCode` 125 is the down arrow, 126 the up arrow. Keyboard navigation on iPad
+        /// can be layered on later; for now this monitor is macOS-only.
+        private func installArrowKeyMonitor() {
+            guard arrowKeyMonitor == nil else { return }
 
-        arrowKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            switch event.keyCode {
-            case 125: move(by: 1); return nil
-            case 126: move(by: -1); return nil
-            default: return event
+            arrowKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
+                switch event.keyCode {
+                case 125: move(by: 1); return nil
+                case 126: move(by: -1); return nil
+                default: return event
+                }
             }
         }
-    }
 
-    private func removeArrowKeyMonitor() {
-        if let monitor = arrowKeyMonitor {
-            NSEvent.removeMonitor(monitor)
-            arrowKeyMonitor = nil
+        private func removeArrowKeyMonitor() {
+            if let monitor = arrowKeyMonitor {
+                NSEvent.removeMonitor(monitor)
+                arrowKeyMonitor = nil
+            }
         }
-    }
+    #endif
 
     private var searchField: some View {
         HStack(spacing: 10) {
@@ -235,13 +246,17 @@ struct CommandPaletteView: View {
         }
     }
 
-    /// Moves the selection by `delta`, clamped to the result bounds.
-    private func move(by delta: Int) {
-        let count = results.count
-        guard count > 0 else { return }
+    #if os(macOS)
+        /// Moves the selection by `delta`, clamped to the result bounds. Only the
+        /// macOS arrow-key monitor drives this today; iPad keyboard navigation can be
+        /// added later.
+        private func move(by delta: Int) {
+            let count = results.count
+            guard count > 0 else { return }
 
-        selectedIndex = min(max(selectedIndex + delta, 0), count - 1)
-    }
+            selectedIndex = min(max(selectedIndex + delta, 0), count - 1)
+        }
+    #endif
 
     private func activateSelection() {
         let current = results

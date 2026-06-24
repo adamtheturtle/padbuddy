@@ -1,3 +1,4 @@
+#if os(macOS)
 //
 //  UITestingWindow.swift
 //  coderpad
@@ -28,3 +29,4 @@ enum UITestingWindow {
         didSize = true
     }
 }
+#endif

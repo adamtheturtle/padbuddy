@@ -8,6 +8,7 @@
 //  so it stays under the file-length budget.
 //
 
+#if os(macOS)
 import AppKit
 
 extension AppDelegate {
@@ -107,19 +108,5 @@ extension AppDelegate {
         AppActivator.bringToFront()
         URLOpener.open(components.url ?? URL.staticURL("coderpad://new-pad"))
     }
-
-    /// Switches to the requested account (if any) and opens the Pads create sheet — the
-    /// shared destination of the `coderpad://new-pad` deep link and the widget/Control
-    /// Center New Pad button. An account is honoured only when it still exists; the
-    /// seeded question id is only unique within its owning org, so the account switch
-    /// must happen first.
-    @MainActor
-    static func routeNewPad(account: String?, question: Int?) {
-        if let account, let uuid = UUID(uuidString: account),
-           AccountsStore.shared.accounts.contains(where: { $0.id == uuid }) {
-            AccountsStore.shared.showAllAccounts = false
-            AccountsStore.shared.currentAccountID = uuid
-        }
-        AppNavigation.shared.showPads(PadsRequest(startCreating: true, seedQuestionID: question))
-    }
 }
+#endif

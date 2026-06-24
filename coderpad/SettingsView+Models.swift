@@ -3,8 +3,14 @@
 //  coderpad
 //
 
-import AppKit
-import ServiceManagement
+#if os(macOS)
+    import AppKit
+#else
+    import UIKit
+#endif
+#if os(macOS)
+    import ServiceManagement
+#endif
 import SwiftUI
 
 /// Where a pad link opens when you activate it.
@@ -62,16 +68,23 @@ enum BrowserSettings {
     /// Open a link in the user's chosen browser, honoring the background preference.
     @MainActor
     static func openExternally(_ url: URL) {
-        let config = NSWorkspace.OpenConfiguration()
-        config.activates = !openInBackground
-        let appURL = defaultBrowserBundleID.flatMap {
-            NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0)
-        } ?? NSWorkspace.shared.urlForApplication(toOpen: probeURL)
-        if let appURL {
-            NSWorkspace.shared.open([url], withApplicationAt: appURL, configuration: config)
-        } else {
-            NSWorkspace.shared.open(url)
-        }
+        #if os(macOS)
+            let config = NSWorkspace.OpenConfiguration()
+            config.activates = !openInBackground
+            let appURL = defaultBrowserBundleID.flatMap {
+                NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0)
+            } ?? NSWorkspace.shared.urlForApplication(toOpen: probeURL)
+            if let appURL {
+                NSWorkspace.shared.open([url], withApplicationAt: appURL, configuration: config)
+            } else {
+                NSWorkspace.shared.open(url)
+            }
+        #else
+            // iOS: no app-picking or background-open; the system routes http(s) to the
+            // user's default browser. The browser-choice/background preferences are
+            // macOS-only affordances and don't apply here.
+            UIApplication.shared.open(url)
+        #endif
     }
 
     /// Bundle identifier of the standalone Passwords app that ships with macOS 15+.
@@ -82,36 +95,55 @@ enum BrowserSettings {
     /// the Passwords pane in System Settings on systems without the standalone app.
     @MainActor
     static func openPasswordsApp() {
-        if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: passwordsAppBundleID) {
-            NSWorkspace.shared.openApplication(at: appURL, configuration: NSWorkspace.OpenConfiguration())
-        } else if let settingsURL = URL(string: "x-apple.systempreferences:com.apple.Passwords-Settings.extension") {
-            NSWorkspace.shared.open(settingsURL)
-        }
+        #if os(macOS)
+            if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: passwordsAppBundleID) {
+                NSWorkspace.shared.openApplication(at: appURL, configuration: NSWorkspace.OpenConfiguration())
+            } else if let settingsURL = URL(string: "x-apple.systempreferences:com.apple.Passwords-Settings.extension") {
+                NSWorkspace.shared.open(settingsURL)
+            }
+        #else
+            // iOS: there's no way to launch the Passwords app by bundle id, and the
+            // in-app browser gets native AutoFill anyway, so this affordance is unneeded.
+            _ = passwordsAppBundleID
+        #endif
     }
 
     /// http(s)-capable apps installed on this Mac, de-duplicated and sorted by name.
     static func installedBrowsers() -> [InstalledBrowser] {
-        let urls = NSWorkspace.shared.urlsForApplications(toOpen: probeURL)
-        var seen = Set<String>()
-        return urls.compactMap { appURL -> InstalledBrowser? in
-            guard let id = Bundle(url: appURL)?.bundleIdentifier, seen.insert(id).inserted else { return nil }
+        #if os(macOS)
+            let urls = NSWorkspace.shared.urlsForApplications(toOpen: probeURL)
+            var seen = Set<String>()
+            return urls.compactMap { appURL -> InstalledBrowser? in
+                guard let id = Bundle(url: appURL)?.bundleIdentifier, seen.insert(id).inserted else { return nil }
 
-            return InstalledBrowser(bundleID: id, name: displayName(for: appURL))
-        }
-        .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+                return InstalledBrowser(bundleID: id, name: displayName(for: appURL))
+            }
+            .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        #else
+            // iOS: apps can't enumerate other installed apps, and the system owns the
+            // default-browser choice, so there's nothing to pick from here.
+            return []
+        #endif
     }
 
     /// The name of the system's current default browser, e.g. "Safari".
     static func systemDefaultBrowserName() -> String {
-        guard let appURL = NSWorkspace.shared.urlForApplication(toOpen: probeURL) else { return "Safari" }
+        #if os(macOS)
+            guard let appURL = NSWorkspace.shared.urlForApplication(toOpen: probeURL) else { return "Safari" }
 
-        return displayName(for: appURL)
+            return displayName(for: appURL)
+        #else
+            // iOS: the default browser isn't queryable; Safari is the safe label.
+            return "Safari"
+        #endif
     }
 
-    private static func displayName(for appURL: URL) -> String {
-        FileManager.default.displayName(atPath: appURL.path)
-            .replacingOccurrences(of: ".app", with: "")
-    }
+    #if os(macOS)
+        private static func displayName(for appURL: URL) -> String {
+            FileManager.default.displayName(atPath: appURL.path)
+                .replacingOccurrences(of: ".app", with: "")
+        }
+    #endif
 }
 
 /// How the app follows the system appearance, or forces light/dark regardless.
@@ -365,7 +397,11 @@ enum GeneralSettings {
     /// `.regular` shows a Dock icon, `.accessory` runs menu-bar-only (no Dock icon).
     @MainActor
     static func applyDockVisibility() {
-        NSApp.setActivationPolicy(presence.showsDockIcon ? .regular : .accessory)
+        #if os(macOS)
+            NSApp.setActivationPolicy(presence.showsDockIcon ? .regular : .accessory)
+        #else
+            // iOS: no Dock or activation policy, so presence has no effect here.
+        #endif
     }
 }
 
@@ -374,14 +410,24 @@ enum GeneralSettings {
 /// than to `UserDefaults`.
 enum LoginItem {
     static var isEnabled: Bool {
-        SMAppService.mainApp.status == .enabled
+        #if os(macOS)
+            SMAppService.mainApp.status == .enabled
+        #else
+            // iOS: there's no launch-at-login concept, so the toggle reads off and
+            // setting it is a no-op (keeps the settings UI call sites compiling).
+            false
+        #endif
     }
 
     static func setEnabled(_ enabled: Bool) throws {
-        if enabled {
-            try SMAppService.mainApp.register()
-        } else {
-            try SMAppService.mainApp.unregister()
-        }
+        #if os(macOS)
+            if enabled {
+                try SMAppService.mainApp.register()
+            } else {
+                try SMAppService.mainApp.unregister()
+            }
+        #else
+            _ = enabled
+        #endif
     }
 }

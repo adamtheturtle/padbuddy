@@ -3,7 +3,9 @@
 //  coderpad
 //
 
-import AppKit
+#if os(macOS)
+    import AppKit
+#endif
 import SwiftUI
 
 // MARK: - Pull to refresh (macOS)
@@ -17,10 +19,22 @@ extension View {
     /// content rubber-bands past its top edge and, when the user releases beyond a
     /// threshold, runs `action`. A circular indicator fades in as the user pulls
     /// and spins while the refresh is in flight.
+    ///
+    /// iOS: this whole bridge exists only to make up for AppKit lacking a system
+    /// pull-to-refresh. UIKit/SwiftUI on iOS have a native one, so call sites should
+    /// use `.refreshable` directly there; this modifier is a no-op so they still
+    /// compile if they apply it unconditionally.
     func macPullToRefresh(_ action: @escaping () async -> Void) -> some View {
-        modifier(MacPullToRefresh(action: action))
+        #if os(macOS)
+            return modifier(MacPullToRefresh(action: action))
+        #else
+            _ = action
+            return self
+        #endif
     }
 }
+
+#if os(macOS)
 
 private struct MacPullToRefresh: ViewModifier {
     let action: () async -> Void
@@ -242,3 +256,4 @@ private struct PullToRefreshScrollBridge: NSViewRepresentable {
         deinit { NotificationCenter.default.removeObserver(self) }
     }
 }
+#endif

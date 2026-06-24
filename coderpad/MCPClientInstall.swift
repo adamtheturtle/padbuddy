@@ -13,7 +13,11 @@
 //  no extra entitlement.
 //
 
-import AppKit
+#if os(macOS)
+    import AppKit
+#else
+    import Foundation
+#endif
 
 enum MCPClientInstall {
     /// An MCP client PadBuddy can install itself into.
@@ -90,6 +94,20 @@ enum MCPClientInstall {
         }
     }
 
+    // The actual config-writing machinery is macOS-only: it drives an `NSOpenPanel`
+    // to grant sandboxed access to a desktop client's config folder and reports the
+    // outcome with an `NSAlert`. None of those (nor the notion of installing into a
+    // local Mac MCP client) has an iOS counterpart, so the install side is gated to
+    // macOS. The `Client` data model above stays cross-platform.
+
+    #if !os(macOS)
+        /// iOS: no desktop MCP client to install into, and no open-panel/sandbox-grant
+        /// flow, so this is a no-op that keeps the call site (`MCPInstallTabs`) compiling.
+        @MainActor
+        static func install(_: Client, executablePath _: String) {}
+    #endif
+
+    #if os(macOS)
     /// The folder to ask the user to grant, the config file inside it, the format, and the
     /// message explaining why. Claude Code's config sits directly in the home folder, so
     /// that's what gets granted.
@@ -259,4 +277,5 @@ enum MCPClientInstall {
         alert.informativeText = message
         alert.runModal()
     }
+    #endif
 }
