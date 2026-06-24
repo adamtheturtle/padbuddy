@@ -153,72 +153,86 @@ struct PadDetailView: View {
     }
 
     private var core: some View {
-        Group {
-            if let url = browserURL {
-                VStack(spacing: 0) {
-                    HStack(spacing: 8) {
-                        Button {
-                            browserURL = nil
-                        } label: {
-                            Label("Back to Details", systemImage: "chevron.left")
-                        }
-                        .buttonStyle(.borderless)
-                        Spacer()
-                        Button {
-                            openWindow(id: "pad-browser", value: url)
-                        } label: {
-                            Image(systemName: "macwindow.badge.plus")
-                        }
-                        .help("Open in separate window")
-                        .buttonStyle(.borderless)
-                        .accessibilityLabel("Open in separate window")
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 8)
-                    .floatingGlass(in: Rectangle(), fallback: .thinMaterial)
-                    Divider()
-                    PadBrowserView(url: url)
-                }
-            } else {
-                detailScroll
+        presentationState(coreContent.toolbar(id: "pad-detail") { detailToolbar })
+    }
+
+    @ViewBuilder
+    private var coreContent: some View {
+        if let url = browserURL {
+            browserContent(url)
+        } else {
+            detailScroll
+        }
+    }
+
+    private func browserContent(_ url: URL) -> some View {
+        VStack(spacing: 0) {
+            browserHeader(url)
+            Divider()
+            PadBrowserView(url: url)
+        }
+    }
+
+    private func browserHeader(_ url: URL) -> some View {
+        HStack(spacing: 8) {
+            Button {
+                browserURL = nil
+            } label: {
+                Label("Back to Details", systemImage: "chevron.left")
             }
+            .buttonStyle(.borderless)
+            Spacer()
+            Button {
+                openWindow(id: "pad-browser", value: url)
+            } label: {
+                Image(systemName: "macwindow.badge.plus")
+            }
+            .help("Open in separate window")
+            .buttonStyle(.borderless)
+            .accessibilityLabel("Open in separate window")
         }
-        .toolbar(id: "pad-detail") { detailToolbar }
-        // Publish a print rendering so File ▸ Print (⌘P) can produce a hard copy
-        // or PDF of the pad's summary and code (whatever has loaded so far).
-        .focusedSceneValue(\.printAction, PrintAction(id: "pad-\(pad.id)") {
-            printDocument(PadPrintDocument(pad: pad, files: printFiles(),
-                                           displayName: directory.display),
-                          jobTitle: pad.title.isEmpty ? pad.id : pad.title)
-        })
-        // Publish a Markdown export action so File ▸ Export as Markdown… can write the
-        // pad's summary and code to a .md file (#524).
-        .focusedSceneValue(\.exportMarkdownAction, PrintAction(id: "pad-\(pad.id)") {
-            exportMarkdown()
-        })
-        // Publish whether there's anything to save so File ▸ Save Code… can disable
-        // until the pad's code (environments or legacy inline contents) has loaded.
-        .focusedSceneValue(\.padHasSavableCode, hasSavableCode)
-        .task(id: pad.id) { await load() }
-        .confirmationDialog("End this interview?", isPresented: $showEndConfirm, titleVisibility: .visible) {
-            Button("End Interview", role: .destructive) { Task { await endInterview() } }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Ending the interview stops the live session for all participants.")
-        }
-        .confirmationDialog("Delete this pad?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
-            Button("Delete Pad", role: .destructive) { Task { await deletePad() } }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Deleting the pad is permanent and cannot be undone.")
-        }
-        .alert("Action failed",
-               isPresented: .init(get: { mutateError != nil },
-                                  set: { if !$0 { mutateError = nil } })) {
-            Button("OK", role: .cancel) { mutateError = nil }
-        } message: {
-            Text(mutateError ?? "")
-        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .floatingGlass(in: Rectangle(), fallback: .thinMaterial)
+    }
+
+    private func presentationState(_ content: some View) -> some View {
+        content
+            // Publish a print rendering so File ▸ Print (⌘P) can produce a hard copy
+            // or PDF of the pad's summary and code (whatever has loaded so far).
+            .focusedSceneValue(\.printAction, PrintAction(id: "pad-\(pad.id)") {
+                printDocument(PadPrintDocument(pad: pad, files: printFiles(),
+                                               displayName: directory.display),
+                              jobTitle: pad.title.isEmpty ? pad.id : pad.title)
+            })
+            // Publish a Markdown export action so File ▸ Export as Markdown… can write the
+            // pad's summary and code to a .md file (#524).
+            .focusedSceneValue(\.exportMarkdownAction, PrintAction(id: "pad-\(pad.id)") {
+                exportMarkdown()
+            })
+            // Publish whether there's anything to save so File ▸ Save Code… can disable
+            // until the pad's code (environments or legacy inline contents) has loaded.
+            .focusedSceneValue(\.padHasSavableCode, hasSavableCode)
+            .task(id: pad.id) { await load() }
+            .confirmationDialog("End this interview?", isPresented: $showEndConfirm, titleVisibility: .visible) {
+                Button("End Interview", role: .destructive) { Task { await endInterview() } }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Ending the interview stops the live session for all participants.")
+            }
+            .confirmationDialog("Delete this pad?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+                Button("Delete Pad", role: .destructive) { Task { await deletePad() } }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Deleting the pad is permanent and cannot be undone.")
+            }
+            .alert("Action failed",
+                   isPresented: .init(get: { mutateError != nil },
+                                      set: { if !$0 { mutateError = nil } })) {
+                Button("OK", role: .cancel) { mutateError = nil }
+            } message: {
+                Text(mutateError ?? "")
+            }
     }
 
     /// Wires the Pad menu commands (Edit, End, Delete, Watch, Save Code), which
