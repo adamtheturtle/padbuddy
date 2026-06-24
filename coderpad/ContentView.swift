@@ -38,7 +38,6 @@ extension AppSection {
 struct ContentView: View {
     @State private var store = AccountsStore.shared
     @State private var nav = AppNavigation.shared
-    @State private var addingAccount: Account?
     @State private var directory = OrgDirectory()
     @State private var monitor = AccountHealthMonitor.shared
     @State private var network = NetworkMonitor.shared
@@ -178,14 +177,6 @@ struct ContentView: View {
                     WhatsNewSheet(release: WhatsNew.current, onDismiss: { showWhatsNew = false })
                 }
             )
-            .sheet(item: $addingAccount) { account in
-                AccountEditor(initial: account) { saved in
-                    store.add(saved)
-                    addingAccount = nil
-                } onCancel: {
-                    addingAccount = nil
-                }
-            }
     }
 
     /// Opens any pad id queued by the "Open Pad by ID" intent, then clears it so it
@@ -199,14 +190,34 @@ struct ContentView: View {
         }
     }
 
+    /// Starts account setup on the canonical Settings > Accounts inline editor, the
+    /// same route the menu bar's "Add Account" uses (#556). Setting the tab and the
+    /// add flag before Settings opens lets the editor land on a fresh draft rather
+    /// than a generic tab.
+    private func startAddingAccount() {
+        SettingsNavigation.shared.selectedTab = .accounts
+        SettingsNavigation.shared.startAddingAccount = true
+        openSettings()
+    }
+
     @ViewBuilder
     private var noAccountView: some View {
         if store.accounts.isEmpty {
+            // First run: a small onboarding surface rather than a bare empty state.
+            // Explains what PadBuddy needs, sends the primary action into the same
+            // Settings > Accounts editor the rest of the app uses, and offers the
+            // "Get an API key" link so users can find the key before setup (#556).
             ContentUnavailableView {
                 Label("Welcome to PadBuddy", systemImage: "doc.text.magnifyingglass")
+            } description: {
+                Text("""
+                PadBuddy connects to your CoderPad account with an API key, then keeps \
+                your pads and questions a click away. Add an account to get started.
+                """)
             } actions: {
-                Button("Add Account") { addingAccount = Account(name: "", apiKey: "") }
+                Button("Add Account") { startAddingAccount() }
                     .prominentGlassButtonStyle()
+                GetAPIKeyLink()
             }
         } else {
             ContentUnavailableView {
