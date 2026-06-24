@@ -160,6 +160,16 @@ extension MergedPadsView {
                     creatingSeedQuestionID = nil
                 }
             }
+            .sheet(isPresented: $showSmartFilter) {
+                SmartFilterSheet(
+                    text: $smartFilterText,
+                    isInterpreting: isInterpreting,
+                    failed: smartFilterFailed,
+                    placeholder: "e.g. active Python pads",
+                    onSubmit: { Task { await applySmartFilter() } },
+                    onCancel: { showSmartFilter = false }
+                )
+            }
             .confirmationDialog(
                 "Delete this pad?",
                 isPresented: .init(get: { padPendingDelete != nil },

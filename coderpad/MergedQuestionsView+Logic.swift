@@ -242,6 +242,29 @@ extension MergedQuestionsView {
         accountFilter = nil; mineOnly = false; favoritesOnly = false
     }
 
+    /// Interprets the typed query on device and, when it maps to a real filter set,
+    /// applies it and closes the sheet. Mirrors `QuestionsView.applySmartFilter`.
+    func applySmartFilter() async {
+        let query = smartFilterText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return }
+
+        isInterpreting = true
+        smartFilterFailed = false
+        defer { isInterpreting = false }
+        let owners = availableOwners.map {
+            SearchInterpreter.OwnerOption(email: $0, name: directory.display($0))
+        }
+        let result = await SearchInterpreter.interpretQuestions(
+            query, languages: availableLanguages, owners: owners
+        )
+        if let result {
+            apply(result)
+            showSmartFilter = false
+        } else {
+            smartFilterFailed = true
+        }
+    }
+
     var filterSignature: String {
         [search, languageFilter, ownerFilter, typeFilter, draftFilter,
          accountFilter?.uuidString, mineOnly ? "mine" : nil]

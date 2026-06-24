@@ -138,6 +138,16 @@ extension MergedQuestionsView {
                     creatingForAccount = nil
                 }
             }
+            .sheet(isPresented: $showSmartFilter) {
+                SmartFilterSheet(
+                    text: $smartFilterText,
+                    isInterpreting: isInterpreting,
+                    failed: smartFilterFailed,
+                    placeholder: "e.g. my draft SQL questions",
+                    onSubmit: { Task { await applySmartFilter() } },
+                    onCancel: { showSmartFilter = false }
+                )
+            }
             .confirmationDialog(
                 "Delete \(rowsPendingBulkDelete?.count ?? 0) questions?",
                 isPresented: .init(get: { rowsPendingBulkDelete != nil },

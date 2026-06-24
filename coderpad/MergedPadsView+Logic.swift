@@ -166,6 +166,30 @@ extension MergedPadsView {
         updatedWindow = PadDateWindow(); createdWindow = PadDateWindow()
     }
 
+    /// Interprets the typed query on device and, when it maps to a real filter set,
+    /// applies it and closes the sheet. Mirrors `PadsView.applySmartFilter`; the
+    /// merged list has no team chip, so no teams are offered to the interpreter.
+    func applySmartFilter() async {
+        let query = smartFilterText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return }
+
+        isInterpreting = true
+        smartFilterFailed = false
+        defer { isInterpreting = false }
+        let owners = availableOwners.map {
+            SearchInterpreter.OwnerOption(email: $0, name: directory.display($0))
+        }
+        let result = await SearchInterpreter.interpretPads(
+            query, languages: availableLanguages, owners: owners, teams: []
+        )
+        if let result {
+            apply(result)
+            showSmartFilter = false
+        } else {
+            smartFilterFailed = true
+        }
+    }
+
     /// Applies a request queued by `AppNavigation`, matching the single-account Pads
     /// pane so person links work the same way in the combined "All Accounts" list.
     func applyPendingRequest() {

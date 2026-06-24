@@ -62,6 +62,12 @@ struct MergedQuestionsView: View {
     @State var accountFilter: UUID?
     @State var mineOnly = false
     @State var favoritesOnly = false
+    /// Natural-language filter entry: the sheet's visibility, the typed query, and
+    /// whether the on-device interpreter is running. Mirrors `QuestionsView`.
+    @State var showSmartFilter = false
+    @State var smartFilterText = ""
+    @State var isInterpreting = false
+    @State var smartFilterFailed = false
     @AppStorage(QuestionSort.storageKey) var sort: QuestionSort = .lastUsedDesc
     @State var creatingForAccount: Account?
 
