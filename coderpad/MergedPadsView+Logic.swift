@@ -166,6 +166,25 @@ extension MergedPadsView {
         updatedWindow = PadDateWindow(); createdWindow = PadDateWindow()
     }
 
+    /// Applies a request queued by `AppNavigation`, matching the single-account Pads
+    /// pane so person links work the same way in the combined "All Accounts" list.
+    func applyPendingRequest() {
+        guard let request = nav.padsRequest else { return }
+
+        nav.padsRequest = nil
+        if let saved = request.applySearch { apply(saved) }
+        if let owner = request.ownerEmail { ownerFilter = owner }
+        if let query = request.search { search = query }
+        if request.startCreating, !isReadOnly {
+            creatingSeedQuestionID = request.seedQuestionID
+            creatingForAccount = newPadDefaultAccount
+        }
+        if let id = request.selectPadID {
+            selectedIDs = [id]
+            pendingScrollToID = id
+        }
+    }
+
     /// A change token so the `List` re-identifies (fast fresh render) whenever the
     /// filter shape changes, matching `PadsView`.
     var filterSignature: String {
