@@ -147,7 +147,7 @@ struct ContentView: View {
                 )
             }
             .sheet(isPresented: $showCommandPalette) {
-                CommandPaletteView()
+                CoderPadCommandPalette()
             }
             .sheet(isPresented: $showManageTemplates) {
                 ManageTemplatesSheet()

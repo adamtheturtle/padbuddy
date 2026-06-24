@@ -7,6 +7,7 @@
 //  of CommandPalette.swift to keep each file focused.
 //
 
+import CommandPaletteKit
 import SwiftUI
 
 /// Assembles the palette's candidate list from the shared stores. Ordered Commands,

@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		66153CF62FEB609C00272AF3 /* FastList in Frameworks */ = {isa = PBXBuildFile; productRef = 66153CF52FEB609C00272AF3 /* FastList */; };
+		668CA7E82FEC782F00420E24 /* CommandPaletteKit in Frameworks */ = {isa = PBXBuildFile; productRef = 668CA7E72FEC782F00420E24 /* CommandPaletteKit */; };
 		668E402A2FE2F7DC00AA8228 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 668E40292FE2F7DC00AA8228 /* Sparkle */; };
 		6693DA532FE9D021005CA3CE /* CoderPadToolCore in Frameworks */ = {isa = PBXBuildFile; productRef = 6693DA522FE9D021005CA3CE /* CoderPadToolCore */; };
 		6693DA5C2FE9F08F005CA3CE /* MCP in Frameworks */ = {isa = PBXBuildFile; productRef = 6693DA5B2FE9F08F005CA3CE /* MCP */; };
@@ -157,6 +158,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				66C6A3472FEA890100731E7E /* BuddyAppKit in Frameworks */,
+				668CA7E82FEC782F00420E24 /* CommandPaletteKit in Frameworks */,
 				66C6A3392FEA84E300731E7E /* BuddyDesignSystem in Frameworks */,
 				66F5F54A2FEC1C5400D064BD /* CoderPadToolCore in Frameworks */,
 				66FA9C362FEAB12400F1A795 /* FastList in Frameworks */,
@@ -274,6 +276,7 @@
 				66C6A3462FEA890100731E7E /* BuddyAppKit */,
 				66FA9C352FEAB12400F1A795 /* FastList */,
 				66F5F5492FEC1C5400D064BD /* CoderPadToolCore */,
+				668CA7E72FEC782F00420E24 /* CommandPaletteKit */,
 			);
 			productName = coderpad;
 			productReference = 66C8C50B2FA73AB0009B720C /* PadBuddy.app */;
@@ -424,6 +427,7 @@
 				66C6A3352FEA84E300731E7E /* XCRemoteSwiftPackageReference "buddy-kit" */,
 				66FA9C342FEAB12400F1A795 /* XCRemoteSwiftPackageReference "FastList" */,
 				66F5F5482FEC1C5400D064BD /* XCLocalSwiftPackageReference "CoderPadToolCore" */,
+				668CA7E62FEC782F00420E24 /* XCRemoteSwiftPackageReference "CommandPaletteKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 66C8C50C2FA73AB0009B720C /* Products */;
@@ -1096,6 +1100,14 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		668CA7E62FEC782F00420E24 /* XCRemoteSwiftPackageReference "CommandPaletteKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/adamtheturtle/CommandPaletteKit";
+			requirement = {
+				kind = exactVersion;
+				version = 0.1.0;
+			};
+		};
 		668E40282FE2F7DC00AA8228 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/sparkle-project/Sparkle";
@@ -1151,6 +1163,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 66FA9C342FEAB12400F1A795 /* XCRemoteSwiftPackageReference "FastList" */;
 			productName = FastList;
+		};
+		668CA7E72FEC782F00420E24 /* CommandPaletteKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 668CA7E62FEC782F00420E24 /* XCRemoteSwiftPackageReference "CommandPaletteKit" */;
+			productName = CommandPaletteKit;
 		};
 		668E40292FE2F7DC00AA8228 /* Sparkle */ = {
 			isa = XCSwiftPackageProductDependency;
