@@ -52,19 +52,35 @@ struct ContentView: View {
     @Environment(\.openAppSettings) private var openSettings
 
     var body: some View {
-        Group {
-            if store.currentAccount == nil {
-                noAccountView
-                    .frame(minWidth: 520, minHeight: 380)
-            } else {
-                MainSplit(
-                    section: $nav.section,
-                    directory: directory,
-                    monitor: monitor
-                )
-            }
-        }
+        presentedSheets(routing(windowContent))
+    }
 
+    private var windowContent: some View {
+        platformChrome(rootContent)
+            .environment(\.orgDirectory, directory)
+            // While offline the whole window goes read-only: editing controls read this
+            // to disable themselves, and the menu commands read the focused-scene mirror
+            // below so they match (#321).
+            .environment(\.isReadOnly, network.isOffline)
+            .focusedSceneValue(\.isReadOnly, network.isOffline)
+    }
+
+    @ViewBuilder
+    private var rootContent: some View {
+        if store.currentAccount == nil {
+            noAccountView
+                .frame(minWidth: 520, minHeight: 380)
+        } else {
+            MainSplit(
+                section: $nav.section,
+                directory: directory,
+                monitor: monitor
+            )
+        }
+    }
+
+    @ViewBuilder
+    private func platformChrome(_ content: some View) -> some View {
         // Keep the title bar standard so the system's own sidebar toggle and
         // View ▸ Show/Hide Sidebar command are present, and let MainSplit's
         // `.navigationTitle`/`.navigationSubtitle` read out the current section
@@ -72,100 +88,104 @@ struct ContentView: View {
         // hairline separator under the unified toolbar is dropped, for the seamless
         // look — the title itself stays visible.
         #if os(macOS)
-        .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
+        content.toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
+        #else
+        content
         #endif
-        .environment(\.orgDirectory, directory)
-        // While offline the whole window goes read-only: editing controls read this
-        // to disable themselves, and the menu commands read the focused-scene mirror
-        // below so they match (#321).
-        .environment(\.isReadOnly, network.isOffline)
-        .focusedSceneValue(\.isReadOnly, network.isOffline)
-        .task {
-            for await _ in AppRouter.openPadByURLRequests {
-                showOpenPadURL = true
-            }
-        }
-        .task {
-            for await _ in AppRouter.commandPaletteRequests {
-                showCommandPalette = true
-            }
-        }
-        .task {
-            for await _ in AppRouter.manageTemplatesRequests {
-                showManageTemplates = true
-            }
-        }
-        .task {
-            for await seed in AppRouter.saveTemplateRequests {
-                templateSeed = seed
-            }
-        }
-        // The "Open Pad by ID" intent routes through durable AppNavigation state so a
-        // cold-launch request isn't dropped: consume whatever is already pending on
-        // appear, and react to any value set afterwards.
-        .task { consumeOpenPadID() }
-        .onChange(of: nav.openPadID) { _, _ in consumeOpenPadID() }
-        .task {
-            for await url in AppRouter.openPadInBrowserRequests {
-                openWindow(id: "pad-browser", value: url)
-            }
-        }
-        .sheet(isPresented: $showOpenPadURL) {
-            OpenPadURLSheet(
-                urlString: $openPadURLDraft,
-                onSubmit: { url in
-                    openWindow(id: "pad-browser", value: url)
-                    openPadURLDraft = ""
-                    showOpenPadURL = false
-                },
-                onCancel: {
-                    openPadURLDraft = ""
-                    showOpenPadURL = false
+    }
+
+    private func routing(_ content: some View) -> some View {
+        content
+            .task {
+                for await _ in AppRouter.openPadByURLRequests {
+                    showOpenPadURL = true
                 }
-            )
-        }
-        // Mark the release seen on *any* dismissal (Continue, Esc, or closing the
-        // window), so the sheet doesn't re-show every launch when dismissed without
-        // the button. `onDismiss` is the single place this is recorded.
-        .sheet(isPresented: $showCommandPalette) {
-            CommandPaletteView()
-        }
-        .sheet(isPresented: $showManageTemplates) {
-            ManageTemplatesSheet()
-        }
-        .sheet(item: $templateSeed) { seed in
-            if let account = store.currentAccount {
-                TemplateEditorSheet(
-                    account: account,
-                    seedQuestionID: seed.questionID,
-                    seedName: seed.name,
-                    seedLanguage: seed.language,
-                    onSave: { saved in
-                        InterviewTemplatesStore.shared.add(saved, account: account.id)
-                        templateSeed = nil
+            }
+            .task {
+                for await _ in AppRouter.commandPaletteRequests {
+                    showCommandPalette = true
+                }
+            }
+            .task {
+                for await _ in AppRouter.manageTemplatesRequests {
+                    showManageTemplates = true
+                }
+            }
+            .task {
+                for await seed in AppRouter.saveTemplateRequests {
+                    templateSeed = seed
+                }
+            }
+            // The "Open Pad by ID" intent routes through durable AppNavigation state so a
+            // cold-launch request isn't dropped: consume whatever is already pending on
+            // appear, and react to any value set afterwards.
+            .task { consumeOpenPadID() }
+            .onChange(of: nav.openPadID) { _, _ in consumeOpenPadID() }
+            .task {
+                for await url in AppRouter.openPadInBrowserRequests {
+                    openWindow(id: "pad-browser", value: url)
+                }
+            }
+            .task {
+                if WhatsNew.shouldShow() { showWhatsNew = true }
+            }
+    }
+
+    private func presentedSheets(_ content: some View) -> some View {
+        content
+            .sheet(isPresented: $showOpenPadURL) {
+                OpenPadURLSheet(
+                    urlString: $openPadURLDraft,
+                    onSubmit: { url in
+                        openWindow(id: "pad-browser", value: url)
+                        openPadURLDraft = ""
+                        showOpenPadURL = false
                     },
-                    onCancel: { templateSeed = nil }
+                    onCancel: {
+                        openPadURLDraft = ""
+                        showOpenPadURL = false
+                    }
                 )
             }
-        }
-        .sheet(
-            isPresented: $showWhatsNew,
-            onDismiss: { WhatsNew.markSeen() },
-            content: {
-                WhatsNewSheet(release: WhatsNew.current, onDismiss: { showWhatsNew = false })
+            .sheet(isPresented: $showCommandPalette) {
+                CommandPaletteView()
             }
-        )
-        .sheet(item: $addingAccount) { account in
-            AccountEditor(initial: account) { saved in
-                store.add(saved)
-                addingAccount = nil
-            } onCancel: {
-                addingAccount = nil
+            .sheet(isPresented: $showManageTemplates) {
+                ManageTemplatesSheet()
             }
-        }
-        .task {
-            if WhatsNew.shouldShow() { showWhatsNew = true }
-        }
+            .sheet(item: $templateSeed) { seed in
+                if let account = store.currentAccount {
+                    TemplateEditorSheet(
+                        account: account,
+                        seedQuestionID: seed.questionID,
+                        seedName: seed.name,
+                        seedLanguage: seed.language,
+                        onSave: { saved in
+                            InterviewTemplatesStore.shared.add(saved, account: account.id)
+                            templateSeed = nil
+                        },
+                        onCancel: { templateSeed = nil }
+                    )
+                }
+            }
+            // Mark the release seen on *any* dismissal (Continue, Esc, or closing the
+            // window), so the sheet doesn't re-show every launch when dismissed without
+            // the button. `onDismiss` is the single place this is recorded.
+            .sheet(
+                isPresented: $showWhatsNew,
+                onDismiss: { WhatsNew.markSeen() },
+                content: {
+                    WhatsNewSheet(release: WhatsNew.current, onDismiss: { showWhatsNew = false })
+                }
+            )
+            .sheet(item: $addingAccount) { account in
+                AccountEditor(initial: account) { saved in
+                    store.add(saved)
+                    addingAccount = nil
+                } onCancel: {
+                    addingAccount = nil
+                }
+            }
     }
 
     /// Opens any pad id queued by the "Open Pad by ID" intent, then clears it so it
