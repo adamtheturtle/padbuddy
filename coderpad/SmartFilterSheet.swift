@@ -20,34 +20,64 @@ struct SmartFilterSheet: View {
     let onCancel: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label("Smart Filter", systemImage: "sparkles").font(.title3.bold())
-            TextField("", text: $text, prompt: Text(placeholder), axis: .vertical)
-                .textFieldStyle(.roundedBorder)
-                .lineLimit(2 ... 4)
-                .onSubmit(onSubmit)
-            if failed {
-                Label("Couldn't turn that into filters. Try naming a language, owner, state, or date.",
-                      systemImage: "exclamationmark.triangle")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
-            }
-            HStack {
-                Spacer()
-                Button("Cancel", role: .cancel, action: onCancel)
-                Button(action: onSubmit) {
-                    if isInterpreting {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Text("Apply")
-                    }
+        VStack(alignment: .leading, spacing: 16) {
+            header
+            VStack(alignment: .leading, spacing: 6) {
+                TextField("", text: $text, prompt: Text(placeholder), axis: .vertical)
+                    .textFieldStyle(.roundedBorder)
+                    .lineLimit(2 ... 4)
+                    .font(.body)
+                    .onSubmit(onSubmit)
+                if failed {
+                    Label("Couldn't turn that into filters. Try naming a language, owner, state, or date.",
+                          systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                } else {
+                    Label("Mention a language, owner, state, or date.", systemImage: "lightbulb")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
-                .keyboardShortcut(.defaultAction)
-                .buttonStyle(.borderedProminent)
-                .disabled(isInterpreting || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            footer
+        }
+        .padding(20)
+        .frame(minWidth: 440)
+    }
+
+    /// A tinted sparkles glyph beside the title and a one-line explanation, so the
+    /// sheet reads as a labelled feature rather than a bare text box.
+    private var header: some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "sparkles")
+                .font(.title2)
+                .foregroundStyle(.tint)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Smart Filter")
+                    .font(.headline)
+                Text("Describe what you want in plain language and it becomes filters.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding()
-        .frame(minWidth: 420)
+    }
+
+    private var footer: some View {
+        HStack {
+            Spacer()
+            Button("Cancel", role: .cancel, action: onCancel)
+            Button(action: onSubmit) {
+                if isInterpreting {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Text("Apply")
+                }
+            }
+            .keyboardShortcut(.defaultAction)
+            .buttonStyle(.borderedProminent)
+            .disabled(isInterpreting || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
     }
 }
