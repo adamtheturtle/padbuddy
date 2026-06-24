@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		66153CF62FEB609C00272AF3 /* FastList in Frameworks */ = {isa = PBXBuildFile; productRef = 66153CF52FEB609C00272AF3 /* FastList */; };
 		668CA7E82FEC782F00420E24 /* CommandPaletteKit in Frameworks */ = {isa = PBXBuildFile; productRef = 668CA7E72FEC782F00420E24 /* CommandPaletteKit */; };
+		668CA7EF2FEC83C100420E24 /* CommandPaletteKit in Frameworks */ = {isa = PBXBuildFile; productRef = 668CA7EE2FEC83C100420E24 /* CommandPaletteKit */; };
 		668E402A2FE2F7DC00AA8228 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 668E40292FE2F7DC00AA8228 /* Sparkle */; };
 		6693DA532FE9D021005CA3CE /* CoderPadToolCore in Frameworks */ = {isa = PBXBuildFile; productRef = 6693DA522FE9D021005CA3CE /* CoderPadToolCore */; };
 		6693DA5C2FE9F08F005CA3CE /* MCP in Frameworks */ = {isa = PBXBuildFile; productRef = 6693DA5B2FE9F08F005CA3CE /* MCP */; };
@@ -199,6 +200,7 @@
 			files = (
 				66F544012FE5EECD000214AA /* Flow in Frameworks */,
 				66F544052FE5EECD000214AA /* Highlightr in Frameworks */,
+				668CA7EF2FEC83C100420E24 /* CommandPaletteKit in Frameworks */,
 				66153CF62FEB609C00272AF3 /* FastList in Frameworks */,
 				6693DA532FE9D021005CA3CE /* CoderPadToolCore in Frameworks */,
 				66C6A33F2FEA883500731E7E /* BuddyAppKit in Frameworks */,
@@ -377,6 +379,7 @@
 				66C6A3402FEA883500731E7E /* BuddyDesignSystem */,
 				66C6A3422FEA883500731E7E /* PaginatedRESTClient */,
 				66153CF52FEB609C00272AF3 /* FastList */,
+				668CA7EE2FEC83C100420E24 /* CommandPaletteKit */,
 			);
 			productName = coderpad;
 			productReference = 66F5440C2FE5EECD000214AA /* PadBuddy.app */;
@@ -1165,6 +1168,11 @@
 			productName = FastList;
 		};
 		668CA7E72FEC782F00420E24 /* CommandPaletteKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 668CA7E62FEC782F00420E24 /* XCRemoteSwiftPackageReference "CommandPaletteKit" */;
+			productName = CommandPaletteKit;
+		};
+		668CA7EE2FEC83C100420E24 /* CommandPaletteKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 668CA7E62FEC782F00420E24 /* XCRemoteSwiftPackageReference "CommandPaletteKit" */;
 			productName = CommandPaletteKit;
