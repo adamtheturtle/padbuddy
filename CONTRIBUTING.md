@@ -40,3 +40,44 @@ thing in a fraction of the time, and point here.
 
 Use the [Swift Testing](https://developer.apple.com/documentation/testing/)
 framework for unit and render tests, and `XCUIAutomation` for the UI smoke tier.
+
+## Demo accounts: the `demo` and `baddemo` magic keys
+
+The app ships with two sandbox accounts backed by an in-process mock server, so
+you can explore the full UI with no CoderPad API key and no network. They are
+summoned by typing a magic word into a new account's **API Key** field rather
+than by any visible button:
+
+| Type this key | You get | Use it for |
+| --- | --- | --- |
+| `demo` | A mock-data account (pads, questions, organization, quota, Screen) | Exploring the app, screenshots, first-run UX |
+| `baddemo` | An account whose mock server answers 401 to every request | Exercising the revoked-key / unauthorized banner and error states |
+
+To add one: Settings (⌘,) ▸ Accounts ▸ **Add Account**, type the word in the API
+Key field, and press Return (Validate). Both keys are recognized in **every**
+build (Debug and Release), require no credentials, and send no data anywhere.
+
+### How it works
+
+- `Account.DemoMagicKey(typedKey:)` (`Accounts+Account.swift`) maps the typed
+  word to a kind. The user-facing words are kept independent of each account's
+  internal sentinel key (`Account.demo()` uses `"demo"`, `Account.demoBadKey()`
+  uses `badKeyMockKey`), so the magic words can change without a stored-account
+  migration.
+- `AccountEditor.validate()` (`AccountEditor+Logic.swift`) intercepts a magic key
+  before hitting the network: it calls `addDemoIfMissing()` /
+  `addDemoBadKeyIfMissing()` (which dedupe an existing demo and make it active),
+  then dismisses the editor.
+- `Account.makeClient()` routes any `isMock` account to the in-process mock
+  client, returning 401s for the bad-key demo.
+
+### Why a magic key instead of a button
+
+This replaced an earlier `wand.and.stars` menu whose "Bad API key" entry was
+`#if DEBUG`-gated (#549). Folding demo creation into the normal key field keeps
+it Release-safe for first-run users and for **App Review**, which runs a Release
+build with no key and would otherwise land on the empty "add a key" state. The
+App Review notes in [`docs/app-store-listing.md`](docs/app-store-listing.md)
+direct the reviewer to type `demo`. Because `baddemo` is now an undocumented
+magic key rather than a visible control, the bad-key demo is reachable in any
+build for testing without being surfaced to real users.
