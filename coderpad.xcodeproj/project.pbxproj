@@ -690,6 +690,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = coderpad/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = PadBuddy;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -742,6 +743,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = coderpad/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = PadBuddy;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -950,6 +952,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Info-AppStore.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = PadBuddy;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1002,6 +1005,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Info-AppStore.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = PadBuddy;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
