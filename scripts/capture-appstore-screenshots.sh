@@ -135,6 +135,11 @@ else
 
   echo "Running App Store capture tests (this builds the app and drives the demo account)..."
   set -o pipefail
+  # Let the project's automatic signing sign the app and the XCTRunner. Do NOT
+  # disable signing (CODE_SIGNING_ALLOWED=NO): on Apple Silicon an unsigned
+  # binary cannot launch, and the runner is rejected at launch with the Gatekeeper
+  # "coderpadUITests-Runner is damaged and can't be opened" dialog — which
+  # surfaces as the runner being killed "before establishing connection".
   /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild test \
     -project "${REPO_ROOT}/coderpad.xcodeproj" \
     -scheme "${SCHEME}" \
@@ -143,9 +148,7 @@ else
     -only-testing:"${MENUBAR_TEST}" \
     -destination 'platform=macOS,arch=arm64' \
     -resultBundlePath "${RESULT_BUNDLE}" \
-    CODE_SIGN_IDENTITY="-" \
-    CODE_SIGNING_REQUIRED=NO \
-    CODE_SIGNING_ALLOWED=NO || echo "WARNING: xcodebuild reported a failure (the menu-bar test can be flaky); continuing to export whatever was captured." >&2
+    || echo "WARNING: xcodebuild reported a failure (the menu-bar test can be flaky); continuing to export whatever was captured." >&2
 
   restore_state
   trap - EXIT
