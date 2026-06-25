@@ -1,0 +1,25 @@
+Pads for CoderPad is a thin, unofficial client over CoderPad's public REST API
+(https://app.coderpad.io). The user supplies their own CoderPad API key; the
+app stores it only in the local macOS Keychain and uses it only to call
+CoderPad's API on the user's behalf. There is no developer-operated backend,
+no account sign-up, and no data collection.
+
+SEEING DATA DURING REVIEW
+
+The app needs a valid CoderPad API key to show real content; without one it
+correctly shows an empty / "add an account" state. To review the full
+functionality WITHOUT any account or network access, use the built-in demo
+data, which is included in this Release build:
+
+1. Open Settings (Command-,) and go to the Accounts tab.
+2. Click "Add Account", type the word demo into the API Key field, and press Return.
+3. A "Demo" account is added and selected. It talks to an in-process mock server
+   with no network access, populating pads, questions, organization, quota, and
+   screen data with realistic sample content.
+
+The word "demo" is a built-in shortcut for the sample account, not a real
+credential, so no key or login is needed. The demo account sends no data anywhere.
+
+Optional live review: add an account in Settings and paste a read-only CoderPad
+API key; leave Server URL blank to use https://app.coderpad.io, then pick the
+matching member after the key validates.

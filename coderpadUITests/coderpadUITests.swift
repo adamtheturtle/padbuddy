@@ -203,6 +203,12 @@ final class CoderpadUITests: XCTestCase {
                           "A seeded demo pad should appear once the list loads (\(appearance))")
             usleep(3_000_000)
 
+            // The shot is a whole-display grab, so the test app must be frontmost or
+            // another window bleeds in. Re-activate right before capturing (a sibling
+            // app may have raised a window during the settle above).
+            app.activate()
+            usleep(750_000)
+
             let window = app.windows.firstMatch
             let shot = window.exists ? window.screenshot() : app.screenshot()
             let attachment = XCTAttachment(screenshot: shot)
