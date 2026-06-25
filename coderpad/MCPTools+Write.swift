@@ -46,6 +46,14 @@ nonisolated extension MCPTools {
     // MARK: - Implementations
 
     private static func createPad(arguments: [String: Any], key: String, base: URL) async -> Outcome {
+        let body = padCreateBody(from: arguments)
+        return await send("POST", "/api/pads/", key: key, base: base, body: body)
+    }
+
+    /// Builds the create-pad request body from the tool arguments. Split out from
+    /// `createPad` so each function stays small enough to type-check within the
+    /// compiler's per-body limit (warnings-as-errors turns an overrun into a build failure).
+    private static func padCreateBody(from arguments: [String: Any]) -> PadCreate {
         var body = PadCreate()
         body.title = string(arguments, "title")
         body.language = string(arguments, "language")
@@ -56,7 +64,7 @@ nonisolated extension MCPTools {
         body.ownerEmail = string(arguments, "owner_email")
         body.notes = string(arguments, "notes")
         body.teamID = string(arguments, "team_id")
-        return await send("POST", "/api/pads/", key: key, base: base, body: body)
+        return body
     }
 
     private static func updatePad(arguments: [String: Any], key: String, base: URL) async -> Outcome {
