@@ -137,5 +137,8 @@ struct ScreenWebhookSheet: View {
 }
 
 #Preview("Webhook sheet") {
-    ScreenWebhookSheet(client: .live(apiKey: "preview"))
+    // Resolve the client in its own statement so the preview expression stays
+    // under the 250ms type-check budget (warnings-as-errors makes it fatal).
+    let client = ScreenClient.live(apiKey: "preview")
+    ScreenWebhookSheet(client: client)
 }
