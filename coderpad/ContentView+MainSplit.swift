@@ -395,4 +395,14 @@ struct MainSplit: View {
     }
 }
 
-#Preview { ContentView() }
+// Construct `ContentView` inside a dedicated host rather than directly in the
+// `#Preview` closure. As one expression, `#Preview { ContentView() }` sits right on
+// the 250ms `-warn-long-expression-type-checking` budget under the Release build's
+// whole-module type-checking and flakily trips warnings-as-errors. Splitting it lets
+// the `#Preview` closure type-check a bare `init` while `ContentView()` is checked in
+// this view's own `body` in isolation, keeping both well under budget. (#427)
+private struct ContentViewPreviewHost: View {
+    var body: some View { ContentView() }
+}
+
+#Preview { ContentViewPreviewHost() }
