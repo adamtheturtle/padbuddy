@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import WhatsNewKit
 
 enum AppSection: String, Hashable {
     case pads, questions, organization, quota, screen
@@ -46,12 +47,23 @@ struct ContentView: View {
     @State private var showCommandPalette = false
     @State private var showManageTemplates = false
     @State private var templateSeed: TemplateSeed?
-    @State private var showWhatsNew = false
     @Environment(\.openWindow) private var openWindow
     @Environment(\.openAppSettings) private var openSettings
 
     var body: some View {
         presentedSheets(routing(windowContent))
+            // WhatsNewKit auto-presents the current release's sheet once per version,
+            // gating on the bundle version and recording it in the local store. The
+            // store is plain UserDefaults so it persists on both the App Store and
+            // Developer ID builds (the latter can't carry the iCloud KVS entitlement).
+            .whatsNewSheet()
+            .environment(
+                \.whatsNew,
+                WhatsNewEnvironment(
+                    versionStore: UserDefaultsWhatsNewVersionStore(),
+                    whatsNewCollection: [WhatsNewContent.current]
+                )
+            )
     }
 
     private var windowContent: some View {
@@ -125,9 +137,6 @@ struct ContentView: View {
                     openWindow(id: "pad-browser", value: url)
                 }
             }
-            .task {
-                if WhatsNew.shouldShow() { showWhatsNew = true }
-            }
     }
 
     private func presentedSheets(_ content: some View) -> some View {
@@ -167,16 +176,6 @@ struct ContentView: View {
                     )
                 }
             }
-            // Mark the release seen on *any* dismissal (Continue, Esc, or closing the
-            // window), so the sheet doesn't re-show every launch when dismissed without
-            // the button. `onDismiss` is the single place this is recorded.
-            .sheet(
-                isPresented: $showWhatsNew,
-                onDismiss: { WhatsNew.markSeen() },
-                content: {
-                    WhatsNewSheet(release: WhatsNew.current, onDismiss: { showWhatsNew = false })
-                }
-            )
     }
 
     /// Opens any pad id queued by the "Open Pad by ID" intent, then clears it so it

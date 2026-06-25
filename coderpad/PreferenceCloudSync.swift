@@ -44,8 +44,7 @@ final class PreferenceCloudSync {
         "general.notifyOnPadUpdates",
         "browser.openLinksIn",
         "browser.defaultBrowserBundleID",
-        "browser.openInBackground",
-        "lastSeenWhatsNewVersion"
+        "browser.openInBackground"
     ]
 
     private var defaultsObserver: (any NSObjectProtocol)?

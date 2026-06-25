@@ -1,5 +1,5 @@
 {
-  "originHash" : "7db08d4ec247754e83ec112fdb054897e63f40603826cbe5cb22e1f08906655b",
+  "originHash" : "bbdb74094b3d9e08631aec79b118baec17a4b022f2bce841c9ef94acc3bb1921",
   "pins" : [
     {
       "identity" : "buddy-kit",
@@ -143,6 +143,15 @@
       "state" : {
         "revision" : "d7e8e12f84e8b7eefd38996a663331f9ee9d8792",
         "version" : "0.5.1"
+      }
+    },
+    {
+      "identity" : "whatsnewkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/SvenTiigi/WhatsNewKit.git",
+      "state" : {
+        "revision" : "6157c77e8be9b3d2310bc680681b61a8d9e290ac",
+        "version" : "2.2.1"
       }
     }
   ],

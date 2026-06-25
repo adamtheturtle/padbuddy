@@ -8,64 +8,6 @@ import Foundation
 import SwiftUI
 import Testing
 
-@Suite("What's New gating", .serialized)
-struct WhatsNewTests {
-    private static let key = "lastSeenWhatsNewVersion"
-
-    private func withCleanDefault<T>(_ block: () throws -> T) rethrows -> T {
-        let saved = UserDefaults.standard.string(forKey: Self.key)
-        UserDefaults.standard.removeObject(forKey: Self.key)
-        defer {
-            if let saved {
-                UserDefaults.standard.set(saved, forKey: Self.key)
-            } else {
-                UserDefaults.standard.removeObject(forKey: Self.key)
-            }
-        }
-        return try block()
-    }
-
-    @Test
-    func `shouldShow returns true on clean install`() {
-        withCleanDefault {
-            #expect(WhatsNew.shouldShow() == true)
-        }
-    }
-
-    @Test
-    func `markSeen suppresses future prompts for the same version`() {
-        withCleanDefault {
-            WhatsNew.markSeen()
-            #expect(WhatsNew.shouldShow() == false)
-        }
-    }
-
-    @Test
-    func `an older recorded version still triggers the prompt`() {
-        withCleanDefault {
-            UserDefaults.standard.set("0.1", forKey: Self.key)
-            #expect(WhatsNew.shouldShow() == true)
-        }
-    }
-
-    @Test
-    func `the gate is keyed on the live app version, not a hardcoded constant`() {
-        withCleanDefault {
-            // markSeen must record exactly the version the gate compares against, so
-            // a MARKETING_VERSION bump (which changes WhatsNew.version) re-shows the
-            // sheet without anyone editing a second constant.
-            #expect(!WhatsNew.version.isEmpty)
-            #expect(WhatsNew.current.version == WhatsNew.version)
-            WhatsNew.markSeen()
-            #expect(UserDefaults.standard.string(forKey: Self.key) == WhatsNew.version)
-
-            // Recording any other version re-arms the prompt.
-            UserDefaults.standard.set(WhatsNew.version + "-old", forKey: Self.key)
-            #expect(WhatsNew.shouldShow() == true)
-        }
-    }
-}
-
 @Suite("App appearance")
 struct AppAppearanceTests {
     @Test(arguments: [
