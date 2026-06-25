@@ -48,7 +48,7 @@
       <h1 class="reveal" data-delay="1">PadBuddy</h1>
       <p class="tagline reveal" data-delay="2">Your CoderPad pads and questions in a fast, native, unofficial Mac app.</p>
       <p class="cta reveal" data-delay="3">
-        <a class="button" href="https://github.com/adamtheturtle/coderpad-macos-releases/releases/latest/download/PadBuddy.dmg">
+        <a class="button js-download-link" href="https://github.com/adamtheturtle/coderpad-macos-releases/releases/latest">
           Download for macOS
           <span class="button-sub">macOS 15+</span>
         </a>
@@ -147,7 +147,7 @@
 
   <footer class="wrap">
     <p>
-      <a href="https://github.com/adamtheturtle/coderpad-macos-releases/releases/latest/download/PadBuddy.dmg">Download</a> ·
+      <a class="js-download-link" href="https://github.com/adamtheturtle/coderpad-macos-releases/releases/latest">Download</a> ·
       <a href="privacy-policy.html">Privacy</a> ·
       <a href="mailto:hello@adamdangoor.com">Support</a>
     </p>
@@ -155,11 +155,35 @@
       PadBuddy is not affiliated with, endorsed by, or sponsored by CoderPad, Inc.</p>
   </footer>
 
-  <!-- Scroll-reveal: fade/slide elements in as they enter the viewport.
-       Falls back to fully visible when reduced motion is requested or there's
-       no IntersectionObserver, so nothing is ever hidden without animation. -->
+  <!-- Page enhancement: resolve the current DMG URL, then fade/slide elements in
+       as they enter the viewport. Falls back to the latest release page and
+       fully visible content when browser support is missing. -->
   <script>
     (function () {
+      var downloadLinks = document.querySelectorAll('.js-download-link');
+      fetch('https://api.github.com/repos/adamtheturtle/coderpad-macos-releases/releases/latest')
+        .then(function (response) {
+          if (!response.ok) {
+            throw new Error('Latest release lookup failed');
+          }
+          return response.json();
+        })
+        .then(function (release) {
+          var assets = Array.isArray(release.assets) ? release.assets : [];
+          var dmg = assets.find(function (asset) {
+            return asset && /\.dmg$/i.test(asset.name || '');
+          });
+          if (!dmg || !dmg.browser_download_url) {
+            return;
+          }
+          downloadLinks.forEach(function (link) {
+            link.href = dmg.browser_download_url;
+          });
+        })
+        .catch(function () {
+          // Keep the non-JS fallback: the latest release page always lists assets.
+        });
+
       var els = document.querySelectorAll('.reveal');
       var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       if (reduce || !('IntersectionObserver' in window)) {
