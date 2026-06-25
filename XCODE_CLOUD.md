@@ -23,24 +23,27 @@ Developer account. Steps:
 
 2. **Create the app record in App Store Connect**
    - App Store Connect → Apps → **+** → New App.
-   - Platform: macOS. Set the bundle ID (must match the `coderpad` target's
-     `PRODUCT_BUNDLE_IDENTIFIER`). Register the bundle ID under
-     Certificates, Identifiers & Profiles first if it doesn't exist.
+   - Platform: macOS. Set the bundle ID (must match the `CoderPad-AppStore`
+     target's `PRODUCT_BUNDLE_IDENTIFIER`, currently `com.adamdangoor.padbuddy`
+     — shared with the `coderpad` Developer ID target). Register the bundle ID
+     under Certificates, Identifiers & Profiles first if it doesn't exist.
 
-3. **Share the `coderpad` scheme** ⚠️ required, not yet done
-   - The scheme is currently *not* shared (it lives in `xcuserdata`, which is
-     gitignored, so it isn't in the repo). GitHub Actions works anyway because
-     `xcodebuild` autocreates a scheme on a fresh clone, but **Xcode Cloud
-     needs a shared scheme committed to the repo.**
-   - In Xcode: **Product → Scheme → Manage Schemes…** → tick **Shared** next to
-     `coderpad`, then commit the new file at
-     `coderpad.xcodeproj/xcshareddata/xcschemes/coderpad.xcscheme`.
+3. **Use the shared `CoderPad-AppStore` scheme** ✅ already shared
+   - Mac App Store builds go through the dedicated **`CoderPad-AppStore`**
+     target, *not* `coderpad`. The `coderpad` target links Sparkle (for direct
+     Developer ID auto-updates), which the App Store rejects; `CoderPad-AppStore`
+     is the Sparkle-free target whose archive ASC will accept.
+   - Both `CoderPad-AppStore.xcscheme` and `coderpad.xcscheme` are already shared
+     and committed under `coderpad.xcodeproj/xcshareddata/xcschemes/`, so Xcode
+     Cloud can see them.
 
 4. **Create the Xcode Cloud workflow** (in Xcode)
    - Open the project → **Report navigator** (⌘9) → **Cloud** tab, or menu
      **Integrate → Create Workflow**.
    - Grant Xcode access to the GitHub repo when prompted.
-   - **Scheme:** `coderpad` (the shared scheme from step 3).
+   - **Scheme:** `CoderPad-AppStore` (the Sparkle-free Mac App Store target).
+     Do **not** pick `coderpad` — that archives the Sparkle build and will fail
+     App Store review.
 
 5. **Configure the workflow**
    - **Start condition:** Tag changes matching `v*` (so a `git tag v1.0.0 &&
