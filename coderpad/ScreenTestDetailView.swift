@@ -288,28 +288,27 @@ struct ScreenTestDetailView: View {
 }
 
 #Preview("Completed report") {
-    ScreenTestDetailView(
-        client: .live(apiKey: "preview"),
-        test: ScreenTestSession(
-            id: 1, status: "completed",
-            report: ScreenReport(
-                score: 78, points: 78, duration: 3120, warnings: ["Left full screen twice"],
-                totalPoints: 100, comparativeScore: 64
-            ),
-            candidateName: "Ada Lovelace", candidateEmail: "ada@example.com",
-            tags: ["referral"], sendTime: 1_699_000_000_000, endTime: 1_700_000_000_000
-        )
+    // Build the sample session in its own statements to keep the view
+    // expression under the 250ms type-check budget (warnings-as-errors).
+    let report = ScreenReport(
+        score: 78, points: 78, duration: 3120, warnings: ["Left full screen twice"],
+        totalPoints: 100, comparativeScore: 64
     )
-    .frame(width: 460, height: 600)
+    let session = ScreenTestSession(
+        id: 1, status: "completed",
+        report: report,
+        candidateName: "Ada Lovelace", candidateEmail: "ada@example.com",
+        tags: ["referral"], sendTime: 1_699_000_000_000, endTime: 1_700_000_000_000
+    )
+    ScreenTestDetailView(client: .live(apiKey: "preview"), test: session)
+        .frame(width: 460, height: 600)
 }
 
 #Preview("Not completed") {
-    ScreenTestDetailView(
-        client: .live(apiKey: "preview"),
-        test: ScreenTestSession(
-            id: 2, status: "waiting",
-            candidateName: "Alan Turing", sendTime: 1_700_000_000_000
-        )
+    let session = ScreenTestSession(
+        id: 2, status: "waiting",
+        candidateName: "Alan Turing", sendTime: 1_700_000_000_000
     )
-    .frame(width: 460, height: 600)
+    ScreenTestDetailView(client: .live(apiKey: "preview"), test: session)
+        .frame(width: 460, height: 600)
 }

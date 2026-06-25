@@ -259,15 +259,20 @@ struct MergedScreenCampaignRow: View {
 }
 
 #Preview("Merged campaign rows") {
+    // Build the sample data in its own statements so the List ViewBuilder
+    // expression stays under the 250ms type-check budget (warnings-as-errors
+    // makes an overrun a fatal build error).
+    let backend = ScopedScreenCampaign(
+        accountID: UUID(), accountName: "Acme",
+        campaign: ScreenCampaign(id: 1, name: "Backend Engineer", languages: ["python"], pinned: true)
+    )
+    let frontend = ScopedScreenCampaign(
+        accountID: UUID(), accountName: "Globex",
+        campaign: ScreenCampaign(id: 2, name: "Frontend Engineer", languages: ["javascript"])
+    )
     List {
-        MergedScreenCampaignRow(scoped: ScopedScreenCampaign(
-            accountID: UUID(), accountName: "Acme",
-            campaign: ScreenCampaign(id: 1, name: "Backend Engineer", languages: ["python"], pinned: true)
-        ))
-        MergedScreenCampaignRow(scoped: ScopedScreenCampaign(
-            accountID: UUID(), accountName: "Globex",
-            campaign: ScreenCampaign(id: 2, name: "Frontend Engineer", languages: ["javascript"])
-        ))
+        MergedScreenCampaignRow(scoped: backend)
+        MergedScreenCampaignRow(scoped: frontend)
     }
     .frame(width: 460, height: 200)
 }

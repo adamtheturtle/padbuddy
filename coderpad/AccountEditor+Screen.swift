@@ -164,11 +164,12 @@ extension AccountEditor {
 }
 
 #Preview("Account editor — Screen section") {
+    let account = Account(
+        name: "Acme", apiKey: "live-key", userEmail: "me@acme.com",
+        screenApiKey: "screen-key", screenRegion: .europe
+    )
     AccountEditor(
-        initial: Account(
-            name: "Acme", apiKey: "live-key", userEmail: "me@acme.com",
-            screenApiKey: "screen-key", screenRegion: .europe
-        ),
+        initial: account,
         embedded: true,
         onSave: { _ in },
         onCancel: {},

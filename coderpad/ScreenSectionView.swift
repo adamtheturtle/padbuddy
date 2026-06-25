@@ -218,13 +218,15 @@ struct ScreenSectionPlaceholder: View {
 }
 
 #Preview("Campaign row") {
+    // Build the sample campaigns in their own statements to keep the List
+    // ViewBuilder expression under the 250ms type-check budget.
+    let backend = ScreenCampaign(id: 1, name: "Backend Engineer", languages: ["python", "go"], pinned: true)
+    let frontend = ScreenCampaign(id: 2, name: "Frontend Engineer", languages: ["javascript"], archived: true)
+    let dataScience = ScreenCampaign(id: 3, name: "Data Science", languages: ["python", "sql"])
     List {
-        ScreenCampaignRow(campaign: ScreenCampaign(id: 1, name: "Backend Engineer",
-                                                   languages: ["python", "go"], pinned: true))
-        ScreenCampaignRow(campaign: ScreenCampaign(id: 2, name: "Frontend Engineer",
-                                                   languages: ["javascript"], archived: true))
-        ScreenCampaignRow(campaign: ScreenCampaign(id: 3, name: "Data Science",
-                                                   languages: ["python", "sql"]))
+        ScreenCampaignRow(campaign: backend)
+        ScreenCampaignRow(campaign: frontend)
+        ScreenCampaignRow(campaign: dataScience)
     }
     .frame(width: 420, height: 240)
 }

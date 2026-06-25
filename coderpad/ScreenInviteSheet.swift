@@ -155,9 +155,6 @@ struct ScreenInviteSheet: View {
 }
 
 #Preview("Invite form") {
-    ScreenInviteSheet(
-        client: .live(apiKey: "preview"),
-        campaign: ScreenCampaign(id: 1, name: "Backend Engineer"),
-        onSent: {}
-    )
+    let campaign = ScreenCampaign(id: 1, name: "Backend Engineer")
+    ScreenInviteSheet(client: .live(apiKey: "preview"), campaign: campaign, onSent: {})
 }
