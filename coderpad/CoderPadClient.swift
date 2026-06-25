@@ -144,11 +144,11 @@ struct CoderPadClient {
         rest = PaginatedRESTClient(
             apiKey: apiKey,
             baseURL: baseURL,
-            session: session,
+            transport: URLSessionTransport(session: session),
             decoderFactory: Self.makeDecoder,
             encoderFactory: Self.makeEncoder,
             errors: CoderPadErrorMapping(),
-            logger: apiLogger
+            log: { apiLogger.debug("\($0, privacy: .public)") }
         )
     }
 
@@ -338,10 +338,11 @@ struct CoderPadClient {
     func deleteQuestion(id: Int) async throws {
         guard !apiKey.isEmpty else { throw CoderPadError.missingAPIKey }
 
-        var request = URLRequest(url: baseURL.appending(path: "/api/questions/\(id)"))
-        request.httpMethod = "DELETE"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        let request = RESTRequest(
+            url: baseURL.appending(path: "/api/questions/\(id)"),
+            method: "DELETE",
+            headers: ["Authorization": "Bearer \(apiKey)", "Accept": "application/json"]
+        )
         _ = try await rest.perform(Empty.self, request: request)
     }
 

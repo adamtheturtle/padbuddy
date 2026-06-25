@@ -8,6 +8,8 @@
 
 /* Begin PBXBuildFile section */
 		66153CF62FEB609C00272AF3 /* FastList in Frameworks */ = {isa = PBXBuildFile; productRef = 66153CF52FEB609C00272AF3 /* FastList */; };
+		66769DA52FED3F3A0023907A /* PaginatedRESTClient in Frameworks */ = {isa = PBXBuildFile; productRef = 66769DA42FED3F3A0023907A /* PaginatedRESTClient */; };
+		66769DA72FED3F490023907A /* PaginatedRESTClient in Frameworks */ = {isa = PBXBuildFile; productRef = 66769DA62FED3F490023907A /* PaginatedRESTClient */; };
 		668CA7E82FEC782F00420E24 /* CommandPaletteKit in Frameworks */ = {isa = PBXBuildFile; productRef = 668CA7E72FEC782F00420E24 /* CommandPaletteKit */; };
 		668CA7EF2FEC83C100420E24 /* CommandPaletteKit in Frameworks */ = {isa = PBXBuildFile; productRef = 668CA7EE2FEC83C100420E24 /* CommandPaletteKit */; };
 		668CA8002FECBCA200420E24 /* WhatsNewKit in Frameworks */ = {isa = PBXBuildFile; productRef = 668CA7FF2FECBCA200420E24 /* WhatsNewKit */; };
@@ -19,8 +21,6 @@
 		66C6A33D2FEA883500731E7E /* MCP in Frameworks */ = {isa = PBXBuildFile; productRef = 66C6A33C2FEA883500731E7E /* MCP */; };
 		66C6A33F2FEA883500731E7E /* BuddyAppKit in Frameworks */ = {isa = PBXBuildFile; productRef = 66C6A33E2FEA883500731E7E /* BuddyAppKit */; };
 		66C6A3412FEA883500731E7E /* BuddyDesignSystem in Frameworks */ = {isa = PBXBuildFile; productRef = 66C6A3402FEA883500731E7E /* BuddyDesignSystem */; };
-		66C6A3432FEA883500731E7E /* PaginatedRESTClient in Frameworks */ = {isa = PBXBuildFile; productRef = 66C6A3422FEA883500731E7E /* PaginatedRESTClient */; };
-		66C6A3452FEA88F300731E7E /* PaginatedRESTClient in Frameworks */ = {isa = PBXBuildFile; productRef = 66C6A3442FEA88F300731E7E /* PaginatedRESTClient */; };
 		66C6A3472FEA890100731E7E /* BuddyAppKit in Frameworks */ = {isa = PBXBuildFile; productRef = 66C6A3462FEA890100731E7E /* BuddyAppKit */; };
 		66E3CC582FDA31CC00FE87A9 /* Highlightr in Frameworks */ = {isa = PBXBuildFile; productRef = 66E3CC572FDA31CC00FE87A9 /* Highlightr */; };
 		66E3CDBE2FDD6D1C00FE87A9 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 66E3CD092FDD5BA300FE87A9 /* WidgetKit.framework */; };
@@ -160,6 +160,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				66769DA72FED3F490023907A /* PaginatedRESTClient in Frameworks */,
 				66C6A3472FEA890100731E7E /* BuddyAppKit in Frameworks */,
 				668CA7E82FEC782F00420E24 /* CommandPaletteKit in Frameworks */,
 				66C6A3392FEA84E300731E7E /* BuddyDesignSystem in Frameworks */,
@@ -168,7 +169,6 @@
 				66FA9C362FEAB12400F1A795 /* FastList in Frameworks */,
 				66F543E52FE57AB9000214AA /* Flow in Frameworks */,
 				668E402A2FE2F7DC00AA8228 /* Sparkle in Frameworks */,
-				66C6A3452FEA88F300731E7E /* PaginatedRESTClient in Frameworks */,
 				66E3CC582FDA31CC00FE87A9 /* Highlightr in Frameworks */,
 				6693DA5C2FE9F08F005CA3CE /* MCP in Frameworks */,
 			);
@@ -208,7 +208,7 @@
 				66153CF62FEB609C00272AF3 /* FastList in Frameworks */,
 				6693DA532FE9D021005CA3CE /* CoderPadToolCore in Frameworks */,
 				66C6A33F2FEA883500731E7E /* BuddyAppKit in Frameworks */,
-				66C6A3432FEA883500731E7E /* PaginatedRESTClient in Frameworks */,
+				66769DA52FED3F3A0023907A /* PaginatedRESTClient in Frameworks */,
 				66C6A33D2FEA883500731E7E /* MCP in Frameworks */,
 				66C6A3412FEA883500731E7E /* BuddyDesignSystem in Frameworks */,
 			);
@@ -278,12 +278,12 @@
 				66F543E42FE57AB9000214AA /* Flow */,
 				6693DA5B2FE9F08F005CA3CE /* MCP */,
 				66C6A3382FEA84E300731E7E /* BuddyDesignSystem */,
-				66C6A3442FEA88F300731E7E /* PaginatedRESTClient */,
 				66C6A3462FEA890100731E7E /* BuddyAppKit */,
 				66FA9C352FEAB12400F1A795 /* FastList */,
 				66F5F5492FEC1C5400D064BD /* CoderPadToolCore */,
 				668CA7E72FEC782F00420E24 /* CommandPaletteKit */,
 				668CA7FF2FECBCA200420E24 /* WhatsNewKit */,
+				66769DA62FED3F490023907A /* PaginatedRESTClient */,
 			);
 			productName = coderpad;
 			productReference = 66C8C50B2FA73AB0009B720C /* PadBuddy.app */;
@@ -382,10 +382,10 @@
 				66C6A33C2FEA883500731E7E /* MCP */,
 				66C6A33E2FEA883500731E7E /* BuddyAppKit */,
 				66C6A3402FEA883500731E7E /* BuddyDesignSystem */,
-				66C6A3422FEA883500731E7E /* PaginatedRESTClient */,
 				66153CF52FEB609C00272AF3 /* FastList */,
 				668CA7EE2FEC83C100420E24 /* CommandPaletteKit */,
 				668CA8012FECBCBA00420E24 /* WhatsNewKit */,
+				66769DA42FED3F3A0023907A /* PaginatedRESTClient */,
 			);
 			productName = coderpad;
 			productReference = 66F5440C2FE5EECD000214AA /* PadBuddy.app */;
@@ -438,6 +438,7 @@
 				66F5F5482FEC1C5400D064BD /* XCLocalSwiftPackageReference "CoderPadToolCore" */,
 				668CA7E62FEC782F00420E24 /* XCRemoteSwiftPackageReference "CommandPaletteKit" */,
 				668CA7FE2FECBCA200420E24 /* XCRemoteSwiftPackageReference "WhatsNewKit" */,
+				66769DA12FED3E730023907A /* XCRemoteSwiftPackageReference "PaginatedRESTClient" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 66C8C50C2FA73AB0009B720C /* Products */;
@@ -1110,6 +1111,14 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		66769DA12FED3E730023907A /* XCRemoteSwiftPackageReference "PaginatedRESTClient" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/adamtheturtle/PaginatedRESTClient.git";
+			requirement = {
+				kind = exactVersion;
+				version = 0.1.0;
+			};
+		};
 		668CA7E62FEC782F00420E24 /* XCRemoteSwiftPackageReference "CommandPaletteKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/adamtheturtle/CommandPaletteKit";
@@ -1147,7 +1156,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/buddy-kit";
 			requirement = {
 				kind = exactVersion;
-				version = 0.2.3;
+				version = 0.3.0;
 			};
 		};
 		66E3CC562FDA31CC00FE87A9 /* XCRemoteSwiftPackageReference "Highlightr" */ = {
@@ -1181,6 +1190,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 66FA9C342FEAB12400F1A795 /* XCRemoteSwiftPackageReference "FastList" */;
 			productName = FastList;
+		};
+		66769DA42FED3F3A0023907A /* PaginatedRESTClient */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 66769DA12FED3E730023907A /* XCRemoteSwiftPackageReference "PaginatedRESTClient" */;
+			productName = PaginatedRESTClient;
+		};
+		66769DA62FED3F490023907A /* PaginatedRESTClient */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 66769DA12FED3E730023907A /* XCRemoteSwiftPackageReference "PaginatedRESTClient" */;
+			productName = PaginatedRESTClient;
 		};
 		668CA7E72FEC782F00420E24 /* CommandPaletteKit */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -1236,16 +1255,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 66C6A3352FEA84E300731E7E /* XCRemoteSwiftPackageReference "buddy-kit" */;
 			productName = BuddyDesignSystem;
-		};
-		66C6A3422FEA883500731E7E /* PaginatedRESTClient */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 66C6A3352FEA84E300731E7E /* XCRemoteSwiftPackageReference "buddy-kit" */;
-			productName = PaginatedRESTClient;
-		};
-		66C6A3442FEA88F300731E7E /* PaginatedRESTClient */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 66C6A3352FEA84E300731E7E /* XCRemoteSwiftPackageReference "buddy-kit" */;
-			productName = PaginatedRESTClient;
 		};
 		66C6A3462FEA890100731E7E /* BuddyAppKit */ = {
 			isa = XCSwiftPackageProductDependency;
