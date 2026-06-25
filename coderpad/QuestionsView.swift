@@ -183,8 +183,13 @@ struct QuestionsView: View {
             }
     }
 
-    /// The bulk-delete confirmation and error alert, plus the question update/deletion streams.
-    private var decoratedStreams: some View {
+    // The bulk-delete confirmation, error alert, and update/deletion streams are
+    // each applied in their own `some View` getter. As a single chain the getter
+    // type-checked in 402ms, over the 250ms budget that warnings-as-errors makes
+    // fatal; splitting it stops any one getter from resolving the whole chain.
+
+    /// The bulk-delete confirmation dialog.
+    private var decoratedConfirm: some View {
         decoratedSheets
             .confirmationDialog(
                 "Delete \(questionsPendingBulkDelete?.count ?? 0) questions?",
@@ -200,6 +205,11 @@ struct QuestionsView: View {
             } message: { questions in
                 Text("These \(questions.count) questions will be permanently deleted. This can't be undone.")
             }
+    }
+
+    /// The bulk-delete error alert layered on the confirmation dialog.
+    private var decoratedAlerts: some View {
+        decoratedConfirm
             .alert("Couldn't delete question",
                    isPresented: .init(get: { bulkDeleteError != nil },
                                       set: { if !$0 { bulkDeleteError = nil } })) {
@@ -207,6 +217,11 @@ struct QuestionsView: View {
             } message: {
                 Text(bulkDeleteError ?? "")
             }
+    }
+
+    /// The live question-update stream layered on the alerts.
+    private var decoratedUpdateStream: some View {
+        decoratedAlerts
             .task {
                 for await update in AppRouter.questionUpdates {
                     // Per-org ids collide across accounts, so ignore a mutation the
@@ -221,6 +236,11 @@ struct QuestionsView: View {
                     }
                 }
             }
+    }
+
+    /// The live question-deletion stream layered on the update stream.
+    private var decoratedStreams: some View {
+        decoratedUpdateStream
             .task {
                 for await deletion in AppRouter.questionDeletions {
                     guard scopedToThisAccount(deletion.account) else { continue }
