@@ -171,37 +171,45 @@ extension QuestionDetailView {
                     // Each part is edited independently (#334): committing one part
                     // resends the whole list with only that part's text changed.
                     ForEach(Array(instructions.enumerated()), id: \.offset) { index, item in
-                        VStack(alignment: .leading, spacing: 6) {
-                            // When a question has several instruction parts, label each so
-                            // they read as distinct sections rather than one run-on block.
-                            if instructions.count > 1 {
-                                Text("Part \(index + 1)")
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(.secondary)
-                            }
-                            // Mirror the test-case "Hidden" badge: an instruction the
-                            // candidate doesn't see by default is meaningful review context.
-                            if !item.defaultVisible {
-                                Chip(text: String(localized: "Hidden by default"),
-                                     systemImage: "eye.slash", tint: .gray)
-                            }
-                            InlineEditableText(
-                                text: item.instructions, placeholder: "Empty",
-                                label: instructions.count > 1 ? "part \(index + 1)" : "candidate instructions"
-                            ) {
-                                await commitInstruction(at: index, text: $0)
-                            }
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        // A hairline between parts, like the Test Cases card, so multiple
-                        // instructions are visually separated instead of blurring together.
-                        if index != instructions.count - 1 {
-                            Divider()
-                        }
+                        instructionPartRow(index: index, item: item, total: instructions.count)
                     }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    // One candidate-instruction part. Extracted from `instructionsCard` so neither
+    // view's getter type-checks the whole nested ForEach at once and trips the
+    // 250ms budget (warnings-as-errors makes an overrun fatal).
+    @ViewBuilder
+    private func instructionPartRow(index: Int, item: CandidateInstruction, total: Int) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            // When a question has several instruction parts, label each so
+            // they read as distinct sections rather than one run-on block.
+            if total > 1 {
+                Text("Part \(index + 1)")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+            }
+            // Mirror the test-case "Hidden" badge: an instruction the
+            // candidate doesn't see by default is meaningful review context.
+            if !item.defaultVisible {
+                Chip(text: String(localized: "Hidden by default"),
+                     systemImage: "eye.slash", tint: .gray)
+            }
+            InlineEditableText(
+                text: item.instructions, placeholder: "Empty",
+                label: total > 1 ? "part \(index + 1)" : "candidate instructions"
+            ) {
+                await commitInstruction(at: index, text: $0)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        // A hairline between parts, like the Test Cases card, so multiple
+        // instructions are visually separated instead of blurring together.
+        if index != total - 1 {
+            Divider()
         }
     }
 
