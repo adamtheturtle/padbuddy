@@ -9,14 +9,9 @@
 //  it is unit-tested without a server.
 //
 
+import BuddyMCP
 import Foundation
 import MCP
-
-/// Raised when a prompt can't be rendered. Surfaced to the client as a JSON-RPC error.
-public enum PromptError: Swift.Error, Equatable {
-    case unknownPrompt(String)
-    case missingArgument(String)
-}
 
 /// The prompt catalog advertised by `prompts/list`.
 public let interviewPrompts: [Prompt] = [
@@ -64,35 +59,16 @@ public let interviewPrompts: [Prompt] = [
     )
 ]
 
-/// A trimmed, non-empty value for `key`, or nil.
-private func value(_ arguments: [String: String]?, _ key: String) -> String? {
-    guard let raw = arguments?[key]?.trimmingCharacters(in: .whitespacesAndNewlines), !raw.isEmpty
-    else { return nil }
-
-    return raw
-}
-
-/// A single required argument, throwing `.missingArgument` when absent.
-private func required(_ arguments: [String: String]?, _ key: String) throws -> String {
-    guard let value = value(arguments, key) else { throw PromptError.missingArgument(key) }
-
-    return value
-}
-
-private func userText(_ text: String) -> Prompt.Message {
-    .user(.text(text: text))
-}
-
 /// Renders a prompt's messages from its arguments, ready to return from `prompts/get`.
 /// Throws `.unknownPrompt` for an unrecognized name and `.missingArgument` when a
 /// required argument is absent.
 public func renderPrompt(name: String, arguments: [String: String]?) throws -> GetPrompt.Result {
     switch name {
     case "review_pad_code":
-        let padID = try required(arguments, "pad_id")
+        let padID = try requiredPromptArgument(arguments, "pad_id")
         return GetPrompt.Result(
             description: "Review the code in pad \(padID).",
-            messages: [userText("""
+            messages: [userPromptMessage("""
             Review the code in CoderPad pad "\(padID)".
 
             First call the get_pad_code tool with id "\(padID)" to read every file, and \
@@ -109,10 +85,10 @@ public func renderPrompt(name: String, arguments: [String: String]?) throws -> G
         )
 
     case "summarize_pad":
-        let padID = try required(arguments, "pad_id")
+        let padID = try requiredPromptArgument(arguments, "pad_id")
         return GetPrompt.Result(
             description: "Summarize pad \(padID).",
-            messages: [userText("""
+            messages: [userPromptMessage("""
             Summarize the CoderPad interview pad "\(padID)".
 
             Call get_pad with id "\(padID)" (and get_pad_code for the code) and then give a short \
@@ -122,7 +98,7 @@ public func renderPrompt(name: String, arguments: [String: String]?) throws -> G
         )
 
     case "compare_pads":
-        let ids = try required(arguments, "pad_ids")
+        let ids = try requiredPromptArgument(arguments, "pad_ids")
         let list = ids.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
         guard !list.isEmpty else { throw PromptError.missingArgument("pad_ids") }
@@ -130,7 +106,7 @@ public func renderPrompt(name: String, arguments: [String: String]?) throws -> G
         let quoted = list.map { "\"\($0)\"" }.joined(separator: ", ")
         return GetPrompt.Result(
             description: "Compare pads \(list.joined(separator: ", ")).",
-            messages: [userText("""
+            messages: [userPromptMessage("""
             Compare these CoderPad pads to help rank the candidates: \(quoted).
 
             For each pad, call get_pad and get_pad_code to read its code and context. Then compare \
@@ -140,15 +116,15 @@ public func renderPrompt(name: String, arguments: [String: String]?) throws -> G
         )
 
     case "draft_question":
-        let topic = try required(arguments, "topic")
-        let language = value(arguments, "language")
-        let difficulty = value(arguments, "difficulty")
+        let topic = try requiredPromptArgument(arguments, "topic")
+        let language = promptArgument(arguments, "language")
+        let difficulty = promptArgument(arguments, "difficulty")
         var constraints = ""
         if let language { constraints += "\nTarget language: \(language)." }
         if let difficulty { constraints += "\nDifficulty: \(difficulty)." }
         return GetPrompt.Result(
             description: "Draft a question about \(topic).",
-            messages: [userText("""
+            messages: [userPromptMessage("""
             Draft a CoderPad interview question on: \(topic).\(constraints)
 
             Produce: a clear problem statement, 2-3 worked examples (input -> output), any \

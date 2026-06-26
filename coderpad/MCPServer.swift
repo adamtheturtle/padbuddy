@@ -20,6 +20,7 @@
 //  CoderPad `MCPTools` over the SDK.
 //
 
+import BuddyMCP
 import Foundation
 import MCP
 
@@ -35,12 +36,6 @@ nonisolated enum MCPServer {
     private static var serverVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
     }
-
-    /// Returned (as an error result) when a tool is called but no account is configured.
-    private static let noAccountMessage = """
-    No CoderPad account is configured in PadBuddy. Open the app, add an account with an \
-    API key, then try again.
-    """
 
     /// UserDefaults key behind the "Enable the MCP server" toggle in Settings, which
     /// reveals the setup instructions. (The `--mcp` server serves whenever it's launched;
@@ -73,93 +68,65 @@ nonisolated enum MCPServer {
         exit(0)
     }
 
-    /// Builds the SDK `Server`, registers the tools/list and tools/call handlers backed by
-    /// `MCPTools`, and serves over stdio until the transport closes.
+    /// Serves the CoderPad tool provider over the official MCP Swift SDK via buddy-kit's
+    /// `BuddyMCPServer`, over stdio until the transport closes. The in-app server is
+    /// tools-only, so the provider supplies just the catalogue and dispatch and the shared
+    /// bootstrap wires it to the SDK - the same bootstrap the standalone CLI uses.
     private static func serve(directory: MCPAccountDirectory) async {
-        let server = Server(
+        let server = BuddyMCPServer(
             name: serverName,
             version: serverVersion,
-            capabilities: .init(tools: .init(listChanged: false))
+            capabilities: .init(tools: .init(listChanged: false)),
+            provider: CoderPadToolProvider(directory: directory)
         )
 
-        await server.withMethodHandler(ListTools.self) { _ in
-            // Screen tools appear only when some account has a Screen key; write tools only
-            // when writes are opted in (mirrors the standalone CLI's advertised set).
-            let descriptors = MCPTools.all(
-                allowWrites: directory.allowWrites,
-                screenEnabled: directory.secondaryAvailable
-            )
-            return ListTools.Result(tools: descriptors.map(tool(from:)))
-        }
-
-        await server.withMethodHandler(CallTool.self) { params in
-            // With nothing configured, give the friendly setup message rather than a raw
-            // account-resolution error (matches the prior hand-rolled behaviour).
-            guard !directory.accounts.isEmpty else {
-                return CallTool.Result(
-                    content: [.text(text: noAccountMessage, annotations: nil, _meta: nil)],
-                    isError: true
-                )
-            }
-
-            let arguments = nativeArguments(params.arguments)
-            let outcome = await MCPTools.run(name: params.name, arguments: arguments, directory: directory)
-            // Report the call (tool name + served account + ok/error only - never arguments)
-            // so the app's MCP status view can show recent activity (#523).
-            let served = directory.resolve(arguments[MCPTools.account] as? String)?.accountName
-                ?? directory.current?.accountName
-            MCPActivityLog.recordCall(tool: params.name, account: served, succeeded: !outcome.isError)
-            return CallTool.Result(
-                content: [.text(text: outcome.text, annotations: nil, _meta: nil)],
-                isError: outcome.isError ? true : nil
-            )
-        }
-
         do {
-            try await server.start(transport: StdioTransport())
-            await server.waitUntilCompleted()
+            try await server.run(transport: StdioTransport())
         } catch {
             FileHandle.standardError.write(Data("PadBuddy MCP server failed to start: \(error)\n".utf8))
         }
     }
+}
 
-    // MARK: - Catalogue and argument adapters
+/// The CoderPad in-app MCP tool provider for buddy-kit's `BuddyMCPServer`. It advertises
+/// the CoderPad catalogue (gated on the configured accounts' Screen / writes settings) and
+/// runs `MCPTools` against them. Tools-only - the in-app server exposes no prompts or
+/// resources - so it relies on the `MCPToolProvider` defaults for those. `nonisolated`
+/// (the app defaults to MainActor isolation) so its `Sendable` conformance holds and the
+/// SDK's nonisolated server can drive it; it carries only the plain Sendable directory.
+private nonisolated struct CoderPadToolProvider: MCPToolProvider {
+    let directory: MCPAccountDirectory
 
-    /// Turns one shared catalogue descriptor (`{ name, description, inputSchema,
-    /// annotations? }`, plumbing-neutral JSON) into the SDK's `Tool`. The catalogue is
-    /// defined once in CoderPadToolCore; each server builds its own tool objects from it,
-    /// the same conversion the standalone CLI does.
-    private static func tool(from descriptor: [String: Any]) -> Tool {
-        let name = descriptor["name"] as? String ?? ""
-        let description = descriptor["description"] as? String ?? ""
-        let inputSchema = mcpValue(descriptor["inputSchema"] ?? [String: Any]())
-        let annotations = (descriptor["annotations"] as? [String: Any]).map(annotations(from:))
-            ?? Tool.Annotations()
-        return Tool(name: name, description: description, inputSchema: inputSchema, annotations: annotations)
+    /// Returned (as an error result) when a tool is called but no account is configured.
+    private static let noAccountMessage = """
+    No CoderPad account is configured in PadBuddy. Open the app, add an account with an \
+    API key, then try again.
+    """
+
+    /// Screen tools appear only when some account has a Screen key; write tools only when
+    /// writes are opted in (mirrors the standalone CLI's advertised set).
+    func tools() async -> [Tool] {
+        mcpTools(from: MCPTools.all(
+            allowWrites: directory.allowWrites,
+            screenEnabled: directory.secondaryAvailable
+        ))
     }
 
-    private static func annotations(from dict: [String: Any]) -> Tool.Annotations {
-        Tool.Annotations(
-            title: dict["title"] as? String,
-            readOnlyHint: dict["readOnlyHint"] as? Bool,
-            destructiveHint: dict["destructiveHint"] as? Bool,
-            openWorldHint: dict["openWorldHint"] as? Bool
-        )
-    }
-
-    /// Converts a JSON value from the shared catalogue into an MCP `Value`. Bool is checked
-    /// before the numeric types so a flag isn't read as an int.
-    private static func mcpValue(_ any: Any) -> Value {
-        switch any {
-        case let value as Value: value
-        case let bool as Bool: .bool(bool)
-        case let int as Int: .int(int)
-        case let double as Double: .double(double)
-        case let string as String: .string(string)
-        case let array as [Any]: .array(array.map(mcpValue))
-        case let object as [String: Any]: .object(object.mapValues(mcpValue))
-        default: .null
+    func callTool(_ name: String, arguments: [String: Value]?) async -> CallTool.Result {
+        // With nothing configured, give the friendly setup message rather than a raw
+        // account-resolution error (matches the prior hand-rolled behaviour).
+        guard !directory.accounts.isEmpty else {
+            return errorResult(Self.noAccountMessage)
         }
+
+        let arguments = Self.nativeArguments(arguments)
+        let outcome = await MCPTools.run(name: name, arguments: arguments, directory: directory)
+        // Report the call (tool name + served account + ok/error only - never arguments)
+        // so the app's MCP status view can show recent activity (#523).
+        let served = directory.resolve(arguments[MCPTools.account] as? String)?.accountName
+            ?? directory.current?.accountName
+        MCPActivityLog.recordCall(tool: name, account: served, succeeded: !outcome.isError)
+        return textResult(outcome.text, isError: outcome.isError ? true : nil)
     }
 
     /// Flattens the SDK's typed `[String: Value]` arguments into the `[String: Any]` the

@@ -1,6 +1,15 @@
 {
-  "originHash" : "e324ebcd0d5c5b00ada2027a19699b8f8c06ebe0953d647c7abe5b02c7e9ce16",
+  "originHash" : "5b2e468f84a4b38f58ca194435b045d49458dfd3193a8aaea3dda9c91b04db52",
   "pins" : [
+    {
+      "identity" : "buddy-kit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/adamtheturtle/buddy-kit",
+      "state" : {
+        "revision" : "3b8d22946c568ebaf7ff272391a24bf598260186",
+        "version" : "0.5.0"
+      }
+    },
     {
       "identity" : "eventsource",
       "kind" : "remoteSourceControl",
@@ -26,6 +35,15 @@
       "state" : {
         "revision" : "a0cb0954ecb21e4e31b0070e6ed5674e8556685a",
         "version" : "1.6.0"
+      }
+    },
+    {
+      "identity" : "swift-concurrency-extras",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/pointfreeco/swift-concurrency-extras",
+      "state" : {
+        "revision" : "a90e2e40a7a840a853dd29e57cbef5dbb72c9d5b",
+        "version" : "1.4.0"
       }
     },
     {
@@ -62,6 +80,33 @@
       "state" : {
         "revision" : "7502b711c92a17741fa625d722b0ccbd595d8ed1",
         "version" : "1.7.2"
+      }
+    },
+    {
+      "identity" : "swiftui-flow",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/tevelee/SwiftUI-Flow",
+      "state" : {
+        "revision" : "798364823cdfc6afb4aff43eff5a3ddbca89b54f",
+        "version" : "3.4.0"
+      }
+    },
+    {
+      "identity" : "swiftui-math",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/gonzalezreal/swiftui-math",
+      "state" : {
+        "revision" : "0b5c2cfaaec8d6193db206f675048eeb5ce95f71",
+        "version" : "0.1.0"
+      }
+    },
+    {
+      "identity" : "textual",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/adamtheturtle/textual",
+      "state" : {
+        "revision" : "d7e8e12f84e8b7eefd38996a663331f9ee9d8792",
+        "version" : "0.5.1"
       }
     }
   ],

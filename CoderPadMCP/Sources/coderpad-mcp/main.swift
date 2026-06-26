@@ -236,75 +236,65 @@ private func advertisedTools() -> [Tool] {
 
 // MARK: - Server
 
-let server = Server(
-    name: "PadBuddy",
-    version: "0.1.0",
-    capabilities: .init(
-        prompts: .init(listChanged: false),
-        resources: .init(subscribe: false, listChanged: false),
-        tools: .init(listChanged: false)
-    )
-)
+/// The CoderPad provider for buddy-kit's `BuddyMCPServer`: it advertises the CoderPad
+/// catalogue, prompts and resources, and runs the tool dispatch + resource reads against
+/// the configured accounts. The generic server wiring (handler registration, the
+/// PromptError mapping, stdio) is the shared `BuddyMCPServer`; only this CoderPad-specific
+/// behaviour lives here, identical to the in-app server's provider.
+struct CoderPadProvider: MCPToolProvider {
+    func tools() async -> [Tool] {
+        advertisedTools()
+    }
 
-await server.withMethodHandler(ListTools.self) { _ in
-    ListTools.Result(tools: advertisedTools())
-}
+    func callTool(_ name: String, arguments: [String: Value]?) async -> CallTool.Result {
+        // list_accounts is a directory-level query - it isn't scoped to one account.
+        if name == "list_accounts" {
+            return jsonResult(["accounts": accountSet.directory()])
+        }
 
-// MARK: - Prompts (#517)
+        // Resolve the target account up front so every tool gives the same clear error.
+        let requestedAccount = stringArgument(arguments, "account")
+        guard let account = accountSet.resolve(requestedAccount) else {
+            return unknownAccount(requestedAccount)
+        }
 
-await server.withMethodHandler(ListPrompts.self) { _ in
-    ListPrompts.Result(prompts: interviewPrompts)
-}
+        // Write tools are gated on the opt-in, regardless of which account is targeted.
+        if writeToolNames.contains(name), !accountSet.allowWrites {
+            return writesDisabled()
+        }
 
-await server.withMethodHandler(GetPrompt.self) { params in
-    do {
-        return try renderPrompt(name: params.name, arguments: params.arguments)
-    } catch let PromptError.unknownPrompt(name) {
-        throw MCPError.invalidParams("Unknown prompt: \(name)")
-    } catch let PromptError.missingArgument(name) {
-        throw MCPError.invalidParams("Missing required argument: \(name)")
+        return await dispatch(name: name, arguments: arguments, account: account)
+    }
+
+    func prompts() async -> [Prompt] {
+        interviewPrompts
+    }
+
+    func getPrompt(_ name: String, arguments: [String: String]?) async throws -> GetPrompt.Result {
+        try renderPrompt(name: name, arguments: arguments)
+    }
+
+    func resources() async -> [Resource] {
+        staticResources
+    }
+
+    func resourceTemplates() async -> [Resource.Template] {
+        // Qualified: the unqualified name resolves to this method, not the global catalog.
+        CoderPadMCPCore.resourceTemplates
+    }
+
+    func readResource(_ uri: String) async throws -> ReadResource.Result {
+        guard let request = parseResourceURI(uri) else {
+            throw MCPError.invalidParams("Unknown resource URI: \(uri)")
+        }
+
+        // Resources are URI-addressed with no account selector, so they read from the
+        // default account. Qualified: the unqualified name resolves to this method.
+        return try await coderpad_mcp.readResource(request, uri: uri, account: accountSet.defaultAccount)
     }
 }
 
-// MARK: - Resources (#517)
-
-await server.withMethodHandler(ListResources.self) { _ in
-    ListResources.Result(resources: staticResources)
-}
-
-await server.withMethodHandler(ListResourceTemplates.self) { _ in
-    ListResourceTemplates.Result(templates: resourceTemplates)
-}
-
-await server.withMethodHandler(ReadResource.self) { params in
-    guard let request = parseResourceURI(params.uri) else {
-        throw MCPError.invalidParams("Unknown resource URI: \(params.uri)")
-    }
-
-    // Resources are URI-addressed with no account selector, so they read from the
-    // default account.
-    return try await readResource(request, uri: params.uri, account: accountSet.defaultAccount)
-}
-
-await server.withMethodHandler(CallTool.self) { params in
-    // list_accounts is a directory-level query — it isn't scoped to one account.
-    if params.name == "list_accounts" {
-        return jsonResult(["accounts": accountSet.directory()])
-    }
-
-    // Resolve the target account up front so every tool gives the same clear error.
-    let requestedAccount = stringArgument(params.arguments, "account")
-    guard let account = accountSet.resolve(requestedAccount) else {
-        return unknownAccount(requestedAccount)
-    }
-
-    // Write tools are gated on the opt-in, regardless of which account is targeted.
-    if writeToolNames.contains(params.name), !accountSet.allowWrites {
-        return writesDisabled()
-    }
-
-    return await dispatch(name: params.name, arguments: params.arguments, account: account)
-}
+let server = BuddyMCPServer(name: "PadBuddy", version: "0.1.0", provider: CoderPadProvider())
 
 // MARK: - Tool dispatch
 
@@ -473,12 +463,12 @@ private func padCodeJSON(id: String, maxFileChars: Int?, account: MCPAccount) as
         throw MCPError.internalError("Could not parse the pad response as JSON.")
     }
 
-    var environments: [PadEnvironment] = []
+    var environments: [PadCodeEnvironment] = []
     for environmentID in environmentIDs(in: pad) {
         let environmentResponse = await apiGet("/api/pad_environments/\(environmentID)", account: account)
         guard environmentResponse.ok, let object = jsonObject(environmentResponse.body) else { continue }
 
-        environments.append(PadEnvironment(id: environmentID, object: object))
+        environments.append(PadCodeEnvironment(id: environmentID, object: object))
     }
 
     let payload = padCodePayload(id: id, pad: pad, environments: environments, maxFileChars: maxFileChars)
@@ -864,6 +854,4 @@ private func updateQuestion(id: Int, arguments: [String: Value]?, account: MCPAc
 
 // MARK: - Run
 
-let transport = StdioTransport()
-try await server.start(transport: transport)
-await server.waitUntilCompleted()
+try await server.run(transport: StdioTransport())
