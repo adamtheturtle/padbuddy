@@ -318,9 +318,9 @@ struct OrgDirectoryTests {
     func `loading the demo org populates names and the default language`() async {
         let directory = OrgDirectory()
         await directory.load(for: .demo())
-        #expect(directory.display("alex@demo.co") == "Alex Park")
+        #expect(directory.display(MockFixtures.demoUserEmail) == MockFixtures.demoUserName)
         // Trailing whitespace is trimmed before the lookup.
-        #expect(directory.name(for: " alex@demo.co ") == "Alex Park")
+        #expect(directory.name(for: " \(MockFixtures.demoUserEmail) ") == MockFixtures.demoUserName)
         #expect(directory.defaultLanguage == "go")
     }
 
@@ -329,11 +329,11 @@ struct OrgDirectoryTests {
         let directory = OrgDirectory()
         // The bad-key account 401s, so nothing is cached and no account is marked loaded.
         await directory.load(for: .demoBadKey())
-        #expect(directory.display("alex@demo.co") == "alex@demo.co")
+        #expect(directory.display(MockFixtures.demoUserEmail) == MockFixtures.demoUserEmail)
         #expect(directory.defaultLanguage == nil)
         // A subsequent successful load still populates rather than being skipped.
         await directory.load(for: .demo())
-        #expect(directory.display("alex@demo.co") == "Alex Park")
+        #expect(directory.display(MockFixtures.demoUserEmail) == MockFixtures.demoUserName)
     }
 }
 

@@ -72,7 +72,7 @@ final class CoderpadUITests: XCTestCase {
 
         // ⌘2 → Questions, and the seeded questions load there.
         app.typeKey("2", modifierFlags: .command) // View ▸ Questions
-        XCTAssertTrue(row("FizzBuzz", in: app).waitForExistence(timeout: Self.listLoadTimeout),
+        XCTAssertTrue(row("Two Sum", in: app).waitForExistence(timeout: Self.listLoadTimeout),
                       "A seeded demo question should appear after switching to Questions")
 
         // ⌘1 → back to Pads restores the list.
@@ -140,9 +140,9 @@ final class CoderpadUITests: XCTestCase {
 
         // Questions section with a question selected — a feature shot for #506.
         app.typeKey("2", modifierFlags: .command) // View ▸ Questions
-        XCTAssertTrue(row("FizzBuzz", in: app).waitForExistence(timeout: Self.listLoadTimeout),
+        XCTAssertTrue(row("Two Sum", in: app).waitForExistence(timeout: Self.listLoadTimeout),
                       "A seeded demo question should appear after switching to Questions")
-        clickRow("FizzBuzz")
+        clickRow("Two Sum")
         usleep(1_500_000)
         capture("questions-detail")
 
