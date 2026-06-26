@@ -92,12 +92,8 @@ final class MergedRouting {
     }
 }
 
-/// A pad or question paired with the account it belongs to, used as the row model
-/// in the merged lists. `id` namespaces the item id by account so the SwiftUI
-/// `ForEach`/selection identity stays unique even if two orgs ever shared an item
-/// id.
-struct AccountScoped<Item>: Identifiable {
-    let account: Account
-    let item: Item
-    let id: String
-}
+// `AccountScoped<Account, Item>` — the account-tagged row model for the merged lists —
+// now lives in buddy-kit's BuddyAppKit (shared with RankBuddy, #566) and is available
+// here via the `@_exported import BuddyAppKit` umbrella in BuddyAppKit.swift. The pad/
+// question rows pass an explicit `id` (the pad slug / namespaced question id) so the
+// SwiftUI `ForEach`/selection identity is unchanged.

@@ -3,15 +3,14 @@
 //  coderpad
 //
 
+import BuddyDesignSystem
 import LocalAuthentication
 import SwiftUI
 
-enum ValidationState: Equatable {
-    case idle
-    case validating
-    case valid(String)
-    case invalid(String)
-}
+/// The validation status type now lives in BuddyDesignSystem (shared with RankBuddy's
+/// account editor). The org name that used to ride on `.valid` is held separately in
+/// `AccountEditor.validatedOrgName`, since the shared `.valid` is detail-free.
+typealias ValidationState = CredentialValidationState
 
 struct AccountEditor: View {
     @State var draft: Account
@@ -38,6 +37,9 @@ struct AccountEditor: View {
     let initialAPIKey: String
     let initialBaseURL: String?
     @State var validation: ValidationState = .idle
+    /// The organization name resolved by a successful key validation, used as the default
+    /// account name. Held here since the shared `.valid` validation state is detail-free.
+    @State var validatedOrgName: String?
     @State var orgUsers: [OrganizationUser] = []
     /// True while the background fetch of the org's member list (for a saved account,
     /// on open) is in flight — see `loadOrgMembersForEditing`.

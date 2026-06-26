@@ -123,7 +123,7 @@ struct MergedPadsView: View {
 /// what made clicking a row slow on a large merged list (the merged counterpart of
 /// the single-account fix in #395).
 final class FilteredScopedPadsCache {
-    var rows: [AccountScoped<Pad>] = []
+    var rows: [AccountScoped<Account, Pad>] = []
     var key: Key?
 
     struct Key: Equatable {
@@ -141,7 +141,7 @@ final class FilteredScopedPadsCache {
 /// rebuilt only when the merged pads or sort change (keyed by `signature`), so the
 /// O(n log n) sort and the option Sets no longer rerun on every render (#366).
 final class ScopedPadsCache {
-    var rows: [AccountScoped<Pad>] = []
+    var rows: [AccountScoped<Account, Pad>] = []
     var availableStates: [PadState] = []
     var availableLanguages: [String] = []
     var availableOwners: [String] = []

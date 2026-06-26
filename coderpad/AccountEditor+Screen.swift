@@ -7,6 +7,7 @@
 //  gate Save.
 //
 
+import BuddyDesignSystem
 import SwiftUI
 
 extension AccountEditor {
@@ -122,27 +123,10 @@ extension AccountEditor {
             .disabled(screenValidateDisabled)
     }
 
-    @ViewBuilder
     var screenValidationBanner: some View {
-        switch screenValidation {
-        case .idle:
-            EmptyView()
-
-        case .validating:
-            HStack(spacing: 6) {
-                ProgressView().controlSize(.small)
-                Text("Validating Screen key…").foregroundStyle(.secondary)
-            }
-            .font(.callout)
-
-        case .valid:
-            Label("Screen key works.", systemImage: "checkmark.circle.fill")
-                .foregroundStyle(.green).font(.callout)
-
-        case let .invalid(message):
-            Label(message, systemImage: "xmark.octagon.fill")
-                .foregroundStyle(.red).font(.callout)
-        }
+        // Screen is additive, so success IS shown (unlike the interview key).
+        ValidationStatusBanner(screenValidation, validating: "Validating Screen key…",
+                               success: "Screen key works.")
     }
 
     /// Optional, non-blocking check that the Screen key reaches the Screen API. Mirrors
@@ -156,7 +140,7 @@ extension AccountEditor {
         do {
             let client = ScreenClient.live(apiKey: key, baseURL: draft.screenRegion.baseURL)
             _ = try await client.listCampaigns()
-            screenValidation = .valid("")
+            screenValidation = .valid
         } catch {
             screenValidation = .invalid(friendlyValidationMessage(for: error))
         }

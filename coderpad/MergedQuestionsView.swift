@@ -51,7 +51,7 @@ struct MergedQuestionsView: View {
     /// Rows queued for a multi-row delete (carrying their source account, so each
     /// deletes against the right client), awaiting the confirmation dialog, plus the
     /// error from a failed delete. Single-row delete is delegated to the detail view.
-    @State var rowsPendingBulkDelete: [AccountScoped<Question>]?
+    @State var rowsPendingBulkDelete: [AccountScoped<Account, Question>]?
     @State var bulkDeleteError: String?
     @Binding var search: String
 
@@ -93,7 +93,7 @@ struct MergedQuestionsView: View {
 /// rebuilt only when the merged questions change (keyed by `signature`), so the
 /// tagged-array build and the option Sets no longer rerun on every render (#366).
 final class ScopedQuestionsCache {
-    var rows: [AccountScoped<Question>] = []
+    var rows: [AccountScoped<Account, Question>] = []
     var availableLanguages: [String] = []
     var availableOwners: [String] = []
     /// The hash of the inputs the cached values were built from; `nil` until the
@@ -105,7 +105,7 @@ final class ScopedQuestionsCache {
 /// plus each account's favorite question ids so per-row `isFavorite` checks are
 /// O(1) and allocation-free (#367).
 final class SortedQuestionsCache {
-    var rows: [AccountScoped<Question>] = []
+    var rows: [AccountScoped<Account, Question>] = []
     var favoritesByAccount: [UUID: Set<Int>] = [:]
     /// The inputs the cached rows were filtered+sorted for. A row click re-runs `body`
     /// several times via the selection cascade, and only the selection differs across

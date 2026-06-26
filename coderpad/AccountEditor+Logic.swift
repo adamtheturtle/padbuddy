@@ -3,6 +3,7 @@
 //  coderpad
 //
 
+import BuddyDesignSystem
 import SwiftUI
 
 extension AccountEditor {
@@ -135,7 +136,7 @@ extension AccountEditor {
 
     func finalizeNameIfNeeded() {
         if draft.name.trimmingCharacters(in: .whitespaces).isEmpty {
-            if case let .valid(org) = validation {
+            if isValidated, let org = validatedOrgName {
                 draft.name = org
             } else {
                 draft.name = "Account"
@@ -143,23 +144,10 @@ extension AccountEditor {
         }
     }
 
-    @ViewBuilder
     var validationBanner: some View {
-        switch validation {
-        case .idle, .valid:
-            EmptyView()
-
-        case .validating:
-            HStack(spacing: 6) {
-                ProgressView().controlSize(.small)
-                Text("Validating API key…").foregroundStyle(.secondary)
-            }
-            .font(.callout)
-
-        case let .invalid(message):
-            Label(message, systemImage: "xmark.octagon.fill")
-                .foregroundStyle(.red).font(.callout)
-        }
+        // Interview-key success is signalled by enabling Save, not a banner, so the
+        // success text is omitted (the shared banner renders nothing on `.valid` then).
+        ValidationStatusBanner(validation, validating: "Validating API key…")
     }
 
     /// A non-blocking, amber note shown when the key validated against the org but
@@ -254,7 +242,8 @@ extension AccountEditor {
                     draft.userEmail = org.users.first?.email ?? ""
                 }
             }
-            validation = .valid(org.organizationName)
+            validation = .valid
+            validatedOrgName = org.organizationName
             // The key reaches the org; now surface any feature endpoints it isn't
             // scoped for, as a non-blocking note (the account still saves).
             scopeWarning = await missingScopesWarning(client: client)

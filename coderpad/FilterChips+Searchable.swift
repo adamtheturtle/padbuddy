@@ -6,6 +6,7 @@
 //  popover. Split out of FilterChips.swift so each chip family keeps its own file.
 //
 
+import BuddyDesignSystem
 import SwiftUI
 
 // MARK: - Searchable filter chip
@@ -189,7 +190,7 @@ private struct SearchableFilterPopover: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
                     if let meEmail {
-                        PopoverRow(
+                        PopoverSelectionRow(
                             label: String(localized: "Me"),
                             subtitle: formatter(meEmail) == meEmail ? meEmail : formatter(meEmail),
                             isSelected: selected == meEmail
@@ -199,13 +200,13 @@ private struct SearchableFilterPopover: View {
                         }
                         Divider()
                     }
-                    PopoverRow(label: String(localized: "All"), subtitle: nil, isSelected: selected == nil) {
+                    PopoverSelectionRow(label: String(localized: "All"), subtitle: nil, isSelected: selected == nil) {
                         selected = nil
                         presented = false
                     }
                     Divider()
                     ForEach(options, id: \.self) { option in
-                        PopoverRow(
+                        PopoverSelectionRow(
                             label: formatter(option),
                             subtitle: formatter(option) == option ? nil : option,
                             isSelected: option == selected
@@ -223,39 +224,5 @@ private struct SearchableFilterPopover: View {
             }
             .frame(width: 320, height: 320)
         }
-    }
-}
-
-private struct PopoverRow: View {
-    let label: String
-    let subtitle: String?
-    let isSelected: Bool
-    let action: () -> Void
-
-    @State private var hovered = false
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: isSelected ? "checkmark" : "circle")
-                    .font(.caption)
-                    .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
-                    .accessibilityHidden(true)
-                    .frame(width: 16)
-                Text(label).lineLimit(1)
-                Spacer(minLength: 4)
-                if let subtitle {
-                    Text(subtitle)
-                        .font(.caption.monospaced())
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                }
-            }
-            .padding(.horizontal, 12).padding(.vertical, 6)
-            .background(hovered ? Color.accentColor.opacity(0.10) : Color.clear)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .onHover { hovered = $0 }
     }
 }

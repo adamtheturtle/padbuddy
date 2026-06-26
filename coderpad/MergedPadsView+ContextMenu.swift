@@ -18,7 +18,7 @@ extension MergedPadsView {
     /// (the hosted content is hit-transparent, so a SwiftUI `.contextMenu` can't be
     /// used). A multi-row selection acts on the whole selection, Finder-style;
     /// otherwise it's the single-row menu. (Share is reachable from the detail pane.)
-    func padTableMenuItems(_ row: AccountScoped<Pad>) -> [MenuItem] {
+    func padTableMenuItems(_ row: AccountScoped<Account, Pad>) -> [MenuItem] {
         if selectedIDs.count > 1, selectedIDs.contains(row.item.id) {
             let pads = selectedPadsInOrder
             return [
@@ -63,7 +63,7 @@ extension MergedPadsView {
     /// drops) plus the internal `FavoriteDrop` JSON carrying the *originating* account
     /// (so it drops onto the sidebar Favorites and pins to the right account, #297).
     #if os(macOS)
-    func padPasteboardItem(_ row: AccountScoped<Pad>) -> NSPasteboardItem? {
+    func padPasteboardItem(_ row: AccountScoped<Account, Pad>) -> NSPasteboardItem? {
         guard let url = row.item.webURL else { return nil }
 
         let item = NSPasteboardItem()

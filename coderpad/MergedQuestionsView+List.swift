@@ -295,7 +295,7 @@ extension MergedQuestionsView {
     }
 
     /// Opens a combined-list question in its own window with its originating account.
-    private func openQuestionWindow(_ row: AccountScoped<Question>) {
+    private func openQuestionWindow(_ row: AccountScoped<Account, Question>) {
         openWindow(id: "question", value: QuestionWindowID(account: row.account.id, id: row.item.id))
     }
 
@@ -308,14 +308,14 @@ extension MergedQuestionsView {
 
     /// The selected rows in list order, carrying their source account, for a
     /// multi-row Copy or Delete.
-    var selectedRowsInOrder: [AccountScoped<Question>] {
+    var selectedRowsInOrder: [AccountScoped<Account, Question>] {
         sorted.filter { selectedRowIDs.contains($0.id) }
     }
 
     /// Delete several selected questions at once, each against its own account's
     /// client (per-org), looping the same delete-then-broadcast path the detail view
     /// uses so every list drops the row and the selection follows. Surfaces a failure.
-    func bulkDelete(_ rows: [AccountScoped<Question>]) async {
+    func bulkDelete(_ rows: [AccountScoped<Account, Question>]) async {
         for row in rows {
             do {
                 try await row.account.makeClient().deleteQuestion(id: row.item.id)

@@ -21,7 +21,7 @@ extension MergedPadsView {
     /// cross-account sort on every read beach-balled the main thread on large
     /// merged orgs — most visibly when toggling a preset like "Mine", which fires
     /// several re-renders in quick succession.
-    var scoped: [AccountScoped<Pad>] {
+    var scoped: [AccountScoped<Account, Pad>] {
         scopedCache.rows
     }
 
@@ -37,7 +37,7 @@ extension MergedPadsView {
 
         scopedCache.signature = signature
 
-        var rows: [AccountScoped<Pad>] = []
+        var rows: [AccountScoped<Account, Pad>] = []
         for account in mergeable {
             for pad in padsByAccount[account.id] ?? [] {
                 rows.append(AccountScoped(account: account, item: pad, id: pad.id))
@@ -73,7 +73,7 @@ extension MergedPadsView {
         return hasher.finalize()
     }
 
-    var filtered: [AccountScoped<Pad>] {
+    var filtered: [AccountScoped<Account, Pad>] {
         filteredCache.rows
     }
 
@@ -106,7 +106,7 @@ extension MergedPadsView {
 
     /// Whether `row`'s pad is owned by its own account's user. Ownership is account
     /// scoped, so "mine" is compared against each pad's source account.
-    func isMine(_ row: AccountScoped<Pad>) -> Bool {
+    func isMine(_ row: AccountScoped<Account, Pad>) -> Bool {
         row.account.owns(row.item.ownerEmail)
     }
 
