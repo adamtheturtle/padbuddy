@@ -124,8 +124,13 @@ final class WebController: NSObject {
             WKWebsiteDataTypeMemoryCache,
             WKWebsiteDataTypeFetchCache
         ]
+        // The completion handler is delivered on the main thread, but only the newer
+        // SDK annotates it `@MainActor`. Assert the isolation explicitly so the
+        // main-actor `reloadFromOrigin()` call compiles against both SDKs.
         dataStore.removeData(ofTypes: cacheTypes, modifiedSince: .distantPast) {
-            webView.reloadFromOrigin()
+            MainActor.assumeIsolated {
+                _ = webView.reloadFromOrigin()
+            }
         }
     }
 
@@ -145,7 +150,9 @@ final class WebController: NSObject {
             WKWebsiteDataTypeWebSQLDatabases
         ]
         dataStore.removeData(ofTypes: sessionTypes, modifiedSince: .distantPast) {
-            webView.reloadFromOrigin()
+            MainActor.assumeIsolated {
+                _ = webView.reloadFromOrigin()
+            }
         }
     }
 }
@@ -224,30 +231,30 @@ final class WebController: NSObject {
         // Surface JavaScript dialogs natively so pages that rely on them (some sign-in
         // flows show confirm/alert prompts) behave instead of silently no-opping.
 
+        // Use the async delegate variants rather than the completion-handler ones:
+        // only the newer SDK annotates the completion handler `@MainActor @Sendable`,
+        // so a closure-based witness "nearly matches" under the older SDK and (with
+        // warnings-as-errors) fails to build. The async form has no closure parameter
+        // to disagree on and satisfies the requirement against both SDKs.
+        @MainActor
         func webView(_: WKWebView,
                      runJavaScriptAlertPanelWithMessage message: String,
-                     initiatedByFrame _: WKFrameInfo,
-                     completionHandler: @escaping @MainActor @Sendable () -> Void) {
-            MainActor.assumeIsolated {
-                let alert = NSAlert()
-                alert.messageText = message
-                alert.addButton(withTitle: "OK")
-                alert.runModal()
-                completionHandler()
-            }
+                     initiatedByFrame _: WKFrameInfo) async {
+            let alert = NSAlert()
+            alert.messageText = message
+            alert.addButton(withTitle: "OK")
+            alert.runModal()
         }
 
+        @MainActor
         func webView(_: WKWebView,
                      runJavaScriptConfirmPanelWithMessage message: String,
-                     initiatedByFrame _: WKFrameInfo,
-                     completionHandler: @escaping @MainActor @Sendable (Bool) -> Void) {
-            MainActor.assumeIsolated {
-                let alert = NSAlert()
-                alert.messageText = message
-                alert.addButton(withTitle: "OK")
-                alert.addButton(withTitle: "Cancel")
-                completionHandler(alert.runModal() == .alertFirstButtonReturn)
-            }
+                     initiatedByFrame _: WKFrameInfo) async -> Bool {
+            let alert = NSAlert()
+            alert.messageText = message
+            alert.addButton(withTitle: "OK")
+            alert.addButton(withTitle: "Cancel")
+            return alert.runModal() == .alertFirstButtonReturn
         }
     }
 #else
