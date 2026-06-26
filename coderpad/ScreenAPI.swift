@@ -4,14 +4,14 @@
 //
 //  Models for the CoderPad Screen API (formerly CodinGame for Work),
 //  documented at https://api.screen.coderpad.io. This is a *separate* product
-//  from the Interview API modelled in `CoderPadAPI.swift`: it lives on a
+//  from the Interview API modelled in the `CoderPadKit` package: it lives on a
 //  different host (`https://www.codingame.com`, or `.eu` for EU customers),
 //  authenticates with an `API-Key` header rather than a bearer token, and uses
 //  offset-based pagination. The networking client is `ScreenClient`.
 //
 //  These decode-only models reuse `loggedDecodeIfPresent` (defined in
-//  CoderPadAPI.swift) so a field the API adds or omits never fails the whole
-//  decode — the docs explicitly warn that new response fields may appear within
+//  `DecodeLogging.swift`) so a field the API adds or omits never fails the whole
+//  decode, since the docs explicitly warn that new response fields may appear within
 //  this API version without a version bump.
 //
 

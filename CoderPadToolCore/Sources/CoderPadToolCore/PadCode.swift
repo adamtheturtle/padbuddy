@@ -49,7 +49,7 @@ public func synthesizedFilename(language: String?) -> String {
 }
 
 /// A fetched multi-file environment: its id and decoded JSON object.
-public struct PadEnvironment {
+public struct PadCodeEnvironment {
     public let id: Int
     public let object: [String: Any]
 
@@ -69,7 +69,7 @@ public func environmentIDs(in pad: [String: Any]) -> [Int] {
 /// legacy single-file pad's top-level "contents" is the fallback used only when no
 /// environment files were found.
 public func padCodeFiles(
-    pad: [String: Any], environments: [PadEnvironment], maxFileChars: Int?
+    pad: [String: Any], environments: [PadCodeEnvironment], maxFileChars: Int?
 ) -> [[String: Any]] {
     var files: [[String: Any]] = []
 
@@ -103,7 +103,7 @@ public func padCodeFiles(
 
 /// The full get_pad_code payload for a pad.
 public func padCodePayload(
-    id: String, pad: [String: Any], environments: [PadEnvironment], maxFileChars: Int?
+    id: String, pad: [String: Any], environments: [PadCodeEnvironment], maxFileChars: Int?
 ) -> [String: Any] {
     [
         "pad_id": id,

@@ -47,12 +47,12 @@ nonisolated extension MCPTools {
             return Outcome(text: "Could not parse the pad response as JSON.", isError: true)
         }
 
-        var environments: [CoderPadToolCore.PadEnvironment] = []
+        var environments: [CoderPadToolCore.PadCodeEnvironment] = []
         for environmentID in environmentIDs(in: pad) {
             let response = await get("/api/pad_environments/\(environmentID)", key: key, base: base)
             guard !response.isError, let object = jsonObject(response.text) else { continue }
 
-            environments.append(CoderPadToolCore.PadEnvironment(id: environmentID, object: object))
+            environments.append(CoderPadToolCore.PadCodeEnvironment(id: environmentID, object: object))
         }
 
         let payload = padCodePayload(id: id, pad: pad, environments: environments, maxFileChars: maxFileChars)

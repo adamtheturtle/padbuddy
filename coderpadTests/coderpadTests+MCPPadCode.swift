@@ -40,7 +40,7 @@ struct MCPPadCodeTests {
     @Test
     func `multi-file environments win and carry filenames, language, and id`() {
         let pad: [String: Any] = ["title": "Interview", "contents": "legacy", "language": "python"]
-        let env = CoderPadToolCore.PadEnvironment(id: 9, object: [
+        let env = CoderPadToolCore.PadCodeEnvironment(id: 9, object: [
             "language": "javascript",
             "file_contents": [
                 ["path": "index.js", "contents": "console.log(1)"],

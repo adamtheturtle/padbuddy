@@ -1,97 +1,62 @@
 //
-//  CoderPadAPI+Organization.swift
+//  CoderPadKit+Presentation.swift
 //  coderpad
 //
-//  Organization, quota, and the user-facing `CoderPadError`.
+//  The app-side presentation overlay over the locale-free `CoderPadKit` types: the
+//  human-facing labels, SF Symbols, and localized error sentences. These live in the
+//  app (not the package) so the existing String Catalog translations keep working and
+//  the library stays presentation-free and locale-free (#569).
 //
 
+import CoderPadKit
 import Foundation
 
-nonisolated struct Organization: Decodable, Hashable {
-    let id: Int
-    let organizationName: String
-    let userCount: Int?
-    let users: [OrganizationUser]
-    let teams: [PadTeam]
-    let organizationDefaultLanguage: String?
-    let singleSignOnSupported: Bool?
-    /// URL of the organization's SSO sign-in portal, when SSO is supported.
-    let singleSignInURL: String?
-
-    enum CodingKeys: String, CodingKey {
-        case id, users, teams
-        case organizationName = "organization_name"
-        case userCount = "user_count"
-        case organizationDefaultLanguage = "organization_default_language"
-        case singleSignOnSupported = "single_sign_on_supported"
-        case singleSignInURL = "single_sign_in_url"
+extension InterviewType {
+    /// Human-facing label for filter menus and badges. Localized at the source so
+    /// every `Text(type.label)` / `MetaLabel(text:)` site renders in the user's
+    /// language even though those views take a plain `String` (#111).
+    var label: String {
+        switch self {
+        case .live: String(localized: "Live")
+        case .takeHome: String(localized: "Take-home")
+        }
     }
 }
 
-nonisolated struct OrganizationUser: Decodable, Identifiable, Hashable {
-    var id: String {
-        email
+extension PadState {
+    /// Human-facing label for badges and filter menus. Localized at the source so
+    /// `StateBadge` / `MetaLabel` (which take a plain `String`) still render in the
+    /// user's language (#111). `.other` carries an unrecognized API value, so it's
+    /// surfaced verbatim rather than translated.
+    var label: String {
+        switch self {
+        case .active: String(localized: "Active")
+        case .ended: String(localized: "Ended")
+        case .pending: String(localized: "Pending")
+        case .deleted: String(localized: "Deleted")
+        case let .other(raw): raw.replacingOccurrences(of: "_", with: " ").capitalized
+        }
     }
 
-    let email: String
-    let name: String?
-    let teams: [String]?
-    let padsCreated: Int?
-
-    enum CodingKeys: String, CodingKey {
-        case email, name, teams
-        case padsCreated = "pads_created"
-    }
-}
-
-nonisolated struct OrganizationStats: Decodable, Hashable {
-    let startTime: Date?
-    let endTime: Date?
-    let padsCreated: Int
-    let users: [OrganizationUser]
-
-    enum CodingKeys: String, CodingKey {
-        case users
-        case startTime = "start_time"
-        case endTime = "end_time"
-        case padsCreated = "pads_created"
+    /// SF Symbol paired with this state when it's rendered as restrained
+    /// metadata (every state except the prominent "Active"; see `StateBadge`).
+    var systemImage: String {
+        switch self {
+        case .active: "dot.radiowaves.left.and.right"
+        case .ended: "checkmark.circle"
+        case .pending: "clock"
+        case .deleted: "trash"
+        case .other: "circle"
+        }
     }
 }
 
-nonisolated struct Quota: Decodable, Hashable {
-    let trialExpiresAt: Date?
-    let padsUsed: Int?
-    let quotaReset: Date?
-    let unlimited: Bool?
-    let overagesEnabled: Bool?
-    /// Pads left in the current billing cycle. Absent (nil) when `unlimited` is true.
-    let padsRemaining: Int?
-    /// Total pads allocated for the billing cycle. Absent (nil) when `unlimited` is true.
-    let billingCyclePadLimit: Int?
+// MARK: - Localized errors
 
-    enum CodingKeys: String, CodingKey {
-        case unlimited
-        case trialExpiresAt = "trial_expires_at"
-        case padsUsed = "pads_used"
-        case quotaReset = "quota_reset_at"
-        case overagesEnabled = "overages_enabled"
-        case padsRemaining = "pads_remaining"
-        case billingCyclePadLimit = "billing_cycle_pad_limit"
-    }
-}
-
-// MARK: - Errors
-
-enum CoderPadError: LocalizedError {
-    case missingAPIKey
-    case http(Int, String)
-    case decode(String)
-    /// A transport-level failure (offline, timeout, unreachable host) before any HTTP
-    /// response arrived. Mapped to a plain-language sentence rather than surfacing the
-    /// raw `URLError`, which on the sandbox can read as a cryptic "could not connect".
-    case network(URLError)
-
-    var errorDescription: String? {
+/// Retroactive `LocalizedError` conformance so `CoderPadError` presents user-facing,
+/// localized sentences in the app while staying a raw, locale-free type in the package.
+extension CoderPadError: @retroactive LocalizedError {
+    public var errorDescription: String? {
         switch self {
         case .missingAPIKey:
             String(localized: "Missing API key. Open Settings to add an account.")
@@ -120,7 +85,7 @@ enum CoderPadError: LocalizedError {
     }
 
     /// A human-facing sentence for an HTTP failure. Deliberately never echoes the raw
-    /// response body — surfacing `{"status":404,"error":"Not Found"}` in an alert leaks
+    /// response body - surfacing `{"status":404,"error":"Not Found"}` in an alert leaks
     /// the transport layer into the UI. Known status codes get a plain-language
     /// explanation; for anything else we prefer a message the API itself supplied,
     /// falling back to a generic line that keeps the code for a bug report.
@@ -158,11 +123,5 @@ enum CoderPadError: LocalizedError {
             }
         }
         return nil
-    }
-
-    var isUnauthorized: Bool {
-        if case .http(401, _) = self { return true }
-        if case .http(403, _) = self { return true }
-        return false
     }
 }
