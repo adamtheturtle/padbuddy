@@ -58,7 +58,7 @@ struct CloudSyncTests {
         let draft = UUID()
         let identities = [live: "host|jane@acme.com", draft: ""]
 
-        let cloud = AccountSyncMerge.toCloud([live: ["pad-1", "pad-2"], draft: ["pad-x"]]) {
+        let cloud = CloudSyncMerge.toCloud([live: ["pad-1", "pad-2"], draft: ["pad-x"]]) {
             identities[$0]
         }
 
@@ -70,7 +70,7 @@ struct CloudSyncTests {
         let local = UUID()
         let identity = "host|jane@acme.com"
 
-        let merged = AccountSyncMerge.mergeArrays(
+        let merged = CloudSyncMerge.mergeArrays(
             cloud: [identity: ["pad-2", "pad-3"]],
             into: [local: ["pad-1", "pad-2"]]
         ) { $0 == identity ? local : nil }
@@ -85,7 +85,7 @@ struct CloudSyncTests {
         let local = UUID()
         let identity = "host|jane@acme.com"
 
-        let merged = AccountSyncMerge.mergeArrays(
+        let merged = CloudSyncMerge.mergeArrays(
             cloud: [identity: ["pad-9"]],
             into: [:]
         ) { $0 == identity ? local : nil }
@@ -97,7 +97,7 @@ struct CloudSyncTests {
     func `merging ignores cloud entries for accounts not configured on this device`() {
         let local = UUID()
 
-        let merged = AccountSyncMerge.mergeArrays(
+        let merged = CloudSyncMerge.mergeArrays(
             cloud: ["host|someone-else@acme.com": ["pad-7"]],
             into: [local: ["pad-1"]]
         ) { _ in nil }
@@ -117,7 +117,7 @@ struct CloudSyncTests {
         let local = UUID()
         let identity = "host|jane@acme.com"
 
-        let merged = AccountSyncMerge.mergeArrays(
+        let merged = CloudSyncMerge.mergeArrays(
             cloud: [identity: [Item(id: 2, label: "cloud-renamed"), Item(id: 3, label: "from-cloud")]],
             into: [local: [Item(id: 1, label: "local"), Item(id: 2, label: "local-2")]],
             uuidForSyncID: { $0 == identity ? local : nil },
@@ -138,7 +138,7 @@ struct CloudSyncTests {
         let local = UUID()
         let identity = "host|jane@acme.com"
 
-        let merged = AccountSyncMerge.mergeArrays(
+        let merged = CloudSyncMerge.mergeArrays(
             cloud: [identity: [Item(id: 5, label: "x")]],
             into: [:],
             uuidForSyncID: { $0 == identity ? local : nil },
@@ -155,7 +155,7 @@ struct CloudSyncTests {
         let local = UUID()
         let identity = "host|jane@acme.com"
 
-        let merged = AccountSyncMerge.mergeNestedArrays(
+        let merged = CloudSyncMerge.mergeNestedArrays(
             cloud: [identity: [
                 "pads": [Item(id: 2, label: "cloud"), Item(id: 9, label: "cloud-only")],
                 "questions": [Item(id: 1, label: "q-cloud")]
@@ -181,7 +181,7 @@ struct CloudSyncTests {
         let earlier = Date(timeIntervalSince1970: 1000)
         let later = Date(timeIntervalSince1970: 2000)
 
-        let merged = AccountSyncMerge.mergeTimestamps(
+        let merged = CloudSyncMerge.mergeTimestamps(
             cloud: [identity: ["pad-1": later, "pad-2": earlier, "pad-3": later]],
             into: [local: ["pad-1": earlier, "pad-2": later]]
         ) { $0 == identity ? local : nil }
@@ -197,13 +197,13 @@ struct CloudSyncTests {
         let identity = "host|jane@acme.com"
         let opened = Date(timeIntervalSince1970: 5000)
 
-        let adopted = AccountSyncMerge.mergeTimestamps(
+        let adopted = CloudSyncMerge.mergeTimestamps(
             cloud: [identity: ["pad-9": opened]],
             into: [:]
         ) { $0 == identity ? local : nil }
         #expect(adopted[local] == ["pad-9": opened])
 
-        let unchanged = AccountSyncMerge.mergeTimestamps(
+        let unchanged = CloudSyncMerge.mergeTimestamps(
             cloud: ["host|other@acme.com": ["pad-7": opened]],
             into: [local: ["pad-1": opened]]
         ) { _ in nil }

@@ -42,8 +42,8 @@ extension MergedPadsView {
         languageFilter = saved.languageFilter
         ownerFilter = saved.ownerFilter
         typeFilter = saved.typeFilter
-        updatedWindow = saved.updatedWindow ?? PadDateWindow()
-        createdWindow = saved.createdWindow ?? PadDateWindow()
+        updatedWindow = saved.updatedWindow ?? DateWindow()
+        createdWindow = saved.createdWindow ?? DateWindow()
     }
 
     /// Persist the current filters so the merged list reopens with the same view.

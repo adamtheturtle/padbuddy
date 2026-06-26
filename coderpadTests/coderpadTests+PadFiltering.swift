@@ -126,11 +126,11 @@ struct PadFilterTests {
         let pads = try samplePads()
         // ABC1 was updated yesterday, XYZ2 back in January.
         let recent = PadListLogic.filter(
-            pads, using: PadFilterCriteria(updated: PadDateWindow(range: "last 7 days")), now: fixedNow
+            pads, using: PadFilterCriteria(updated: DateWindow(range: "last 7 days")), now: fixedNow
         )
         #expect(recent.map(\.id) == ["ABC1"])
         let month = PadListLogic.filter(
-            pads, using: PadFilterCriteria(updated: PadDateWindow(range: "last 30 days")), now: fixedNow
+            pads, using: PadFilterCriteria(updated: DateWindow(range: "last 30 days")), now: fixedNow
         )
         #expect(month.map(\.id) == ["ABC1"])
     }
@@ -144,11 +144,11 @@ struct PadFilterTests {
             makePad(id: "NEW", updatedAt: "2026-01-02T09:00:00Z", createdAt: "2026-06-11T09:00:00Z")
         ]
         let byUpdated = PadListLogic.filter(
-            pads, using: PadFilterCriteria(updated: PadDateWindow(range: "last 7 days")), now: fixedNow
+            pads, using: PadFilterCriteria(updated: DateWindow(range: "last 7 days")), now: fixedNow
         )
         #expect(byUpdated.map(\.id) == ["OLD"])
         let byCreated = PadListLogic.filter(
-            pads, using: PadFilterCriteria(created: PadDateWindow(range: "last 7 days")), now: fixedNow
+            pads, using: PadFilterCriteria(created: DateWindow(range: "last 7 days")), now: fixedNow
         )
         #expect(byCreated.map(\.id) == ["NEW"])
     }
@@ -162,7 +162,7 @@ struct PadFilterTests {
             makePad(id: "MAY", updatedAt: "2026-05-15T12:00:00Z")
         ]
         // April only. The named window is set too, to prove custom takes precedence.
-        let criteria = PadFilterCriteria(updated: PadDateWindow(
+        let criteria = PadFilterCriteria(updated: DateWindow(
             range: "last 7 days",
             customStart: iso.date(from: "2026-04-01T00:00:00Z"),
             customEnd: iso.date(from: "2026-04-30T23:59:59Z")
@@ -179,8 +179,8 @@ struct PadFilterTests {
         ]
         // Updated within the last week AND created in April: both match.
         let both = PadFilterCriteria(
-            updated: PadDateWindow(range: "last 7 days"),
-            created: PadDateWindow(
+            updated: DateWindow(range: "last 7 days"),
+            created: DateWindow(
                 customStart: iso.date(from: "2026-04-01T00:00:00Z"),
                 customEnd: iso.date(from: "2026-04-30T23:59:59Z")
             )
@@ -188,8 +188,8 @@ struct PadFilterTests {
         #expect(PadListLogic.filter(pads, using: both, now: fixedNow).map(\.id) == ["P"])
         // The created window (today only) excludes it even though the updated one matches.
         let mismatch = PadFilterCriteria(
-            updated: PadDateWindow(range: "last 7 days"),
-            created: PadDateWindow(range: "today")
+            updated: DateWindow(range: "last 7 days"),
+            created: DateWindow(range: "today")
         )
         let mismatched = PadListLogic.filter(pads, using: mismatch, now: fixedNow)
         #expect(mismatched.isEmpty)
@@ -210,7 +210,7 @@ struct PadFilterTests {
             PadFilterCriteria(team: "Cursor"),
             PadFilterCriteria(type: "take-home"),
             PadFilterCriteria(search: "onsite"),
-            PadFilterCriteria(updated: PadDateWindow(range: "last 7 days"))
+            PadFilterCriteria(updated: DateWindow(range: "last 7 days"))
         ]
         for criteria in criteriaSet {
             let viaFilter = PadListLogic.filter(pads, using: criteria, now: fixedNow).map(\.id)

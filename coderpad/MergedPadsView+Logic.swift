@@ -163,7 +163,7 @@ extension MergedPadsView {
     func clearAllFilters() {
         stateFilter = nil; languageFilter = nil; ownerFilter = nil; typeFilter = nil
         accountFilter = nil; mineOnly = false
-        updatedWindow = PadDateWindow(); createdWindow = PadDateWindow()
+        updatedWindow = DateWindow(); createdWindow = DateWindow()
     }
 
     /// Interprets the typed query on device and, when it maps to a real filter set,

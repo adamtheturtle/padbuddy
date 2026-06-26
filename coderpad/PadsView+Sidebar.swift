@@ -86,7 +86,7 @@ extension PadsView {
     func clearAllFilters() {
         stateFilter = nil; languageFilter = nil
         ownerFilter = nil; teamFilter = nil; typeFilter = nil
-        updatedWindow = PadDateWindow(); createdWindow = PadDateWindow()
+        updatedWindow = DateWindow(); createdWindow = DateWindow()
     }
 
     var sidebar: some View {

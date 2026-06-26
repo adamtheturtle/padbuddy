@@ -117,8 +117,8 @@ extension PadsView {
         ownerFilter = saved.ownerFilter
         teamFilter = saved.teamFilter
         typeFilter = saved.typeFilter
-        updatedWindow = saved.updatedWindow ?? PadDateWindow()
-        createdWindow = saved.createdWindow ?? PadDateWindow()
+        updatedWindow = saved.updatedWindow ?? DateWindow()
+        createdWindow = saved.createdWindow ?? DateWindow()
     }
 
     /// Whether the list's live filters exactly match `saved`, so its chip can show
@@ -131,8 +131,8 @@ extension PadsView {
             ownerFilter == saved.ownerFilter &&
             teamFilter == saved.teamFilter &&
             typeFilter == saved.typeFilter &&
-            updatedWindow == (saved.updatedWindow ?? PadDateWindow()) &&
-            createdWindow == (saved.createdWindow ?? PadDateWindow())
+            updatedWindow == (saved.updatedWindow ?? DateWindow()) &&
+            createdWindow == (saved.createdWindow ?? DateWindow())
     }
 
     func captureCurrentSearch(named name: String) -> NamedSearch {
@@ -157,7 +157,7 @@ extension PadsView {
             .joined(separator: "|")
     }
 
-    private static func windowToken(_ window: PadDateWindow) -> String {
+    private static func windowToken(_ window: DateWindow) -> String {
         window.signatureToken
     }
 

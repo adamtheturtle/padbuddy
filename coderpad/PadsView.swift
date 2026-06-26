@@ -62,8 +62,8 @@ struct PadsView: View {
     @State var hasLoadedOnce = false
     /// Independent date filters: one constrains the updated date, one the created
     /// date. Both apply at once, so a pad must satisfy each active window.
-    @State var updatedWindow = PadDateWindow()
-    @State var createdWindow = PadDateWindow()
+    @State var updatedWindow = DateWindow()
+    @State var createdWindow = DateWindow()
     /// Guards the once-per-account restore of persisted live filters so the
     /// `onChange` that saves them doesn't fire before the restore has run.
     @State var didRestoreFilters = false

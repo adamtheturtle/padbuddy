@@ -124,7 +124,7 @@ final class FavoritePadsStore {
     private func mirrorToCloud() {
         guard CloudSyncStore.shared.isAvailable else { return }
 
-        let cloud = AccountSyncMerge.toCloud(byAccount) { uuid in
+        let cloud = CloudSyncMerge.toCloud(byAccount) { uuid in
             AccountsStore.shared.accounts.first { $0.id == uuid }?.syncID
         }
         if let data = try? JSONEncoder().encode(cloud) {
@@ -139,7 +139,7 @@ final class FavoritePadsStore {
         guard let data = CloudSyncStore.shared.data(forKey: Self.cloudKey),
               let cloud = try? JSONDecoder().decode([String: [String]].self, from: data) else { return }
 
-        let merged = AccountSyncMerge.mergeArrays(cloud: cloud, into: byAccount) { identity in
+        let merged = CloudSyncMerge.mergeArrays(cloud: cloud, into: byAccount) { identity in
             AccountsStore.shared.accounts.first { $0.syncID == identity }?.id
         }
         guard merged != byAccount else { return }
@@ -221,7 +221,7 @@ final class PadOpenedStore {
     private func mirrorToCloud() {
         guard CloudSyncStore.shared.isAvailable else { return }
 
-        let cloud = AccountSyncMerge.toCloud(byAccount) { uuid in
+        let cloud = CloudSyncMerge.toCloud(byAccount) { uuid in
             AccountsStore.shared.accounts.first { $0.id == uuid }?.syncID
         }
         if let data = try? JSONEncoder().encode(cloud) {
@@ -236,7 +236,7 @@ final class PadOpenedStore {
         guard let data = CloudSyncStore.shared.data(forKey: Self.cloudKey),
               let cloud = try? JSONDecoder().decode([String: [String: Date]].self, from: data) else { return }
 
-        let merged = AccountSyncMerge.mergeTimestamps(cloud: cloud, into: byAccount) { identity in
+        let merged = CloudSyncMerge.mergeTimestamps(cloud: cloud, into: byAccount) { identity in
             AccountsStore.shared.accounts.first { $0.syncID == identity }?.id
         }
         guard merged != byAccount else { return }

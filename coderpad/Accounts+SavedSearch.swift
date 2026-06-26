@@ -33,8 +33,8 @@ struct NamedSearch: Identifiable, Codable, Hashable {
     /// Independent date constraints for the pad list: one applied to the updated
     /// date, one to the created date. Nil when the search has no such constraint.
     /// Optional so snapshots saved before these existed still decode.
-    var updatedWindow: PadDateWindow?
-    var createdWindow: PadDateWindow?
+    var updatedWindow: DateWindow?
+    var createdWindow: DateWindow?
     var draftFilter: String?
 
     init(name: String,
@@ -43,7 +43,7 @@ struct NamedSearch: Identifiable, Codable, Hashable {
          stateFilter: PadState? = nil, languageFilter: String? = nil,
          ownerFilter: String? = nil, teamFilter: String? = nil,
          typeFilter: String? = nil,
-         updatedWindow: PadDateWindow? = nil, createdWindow: PadDateWindow? = nil,
+         updatedWindow: DateWindow? = nil, createdWindow: DateWindow? = nil,
          draftFilter: String? = nil) {
         self.id = id
         self.name = name
@@ -77,7 +77,7 @@ struct NamedSearch: Identifiable, Codable, Hashable {
         return parts.joined(separator: ", ")
     }
 
-    private func appendWindowDescription(_ window: PadDateWindow?, noun: String, to parts: inout [String]) {
+    private func appendWindowDescription(_ window: DateWindow?, noun: String, to parts: inout [String]) {
         guard let window, window.isActive else { return }
 
         if window.customStart != nil || window.customEnd != nil {
@@ -226,7 +226,7 @@ final class SavedSearchStore {
     private func mirrorToCloud() {
         guard CloudSyncStore.shared.isAvailable else { return }
 
-        let cloud = AccountSyncMerge.toCloud(byAccount) { uuid in
+        let cloud = CloudSyncMerge.toCloud(byAccount) { uuid in
             AccountsStore.shared.accounts.first { $0.id == uuid }?.syncID
         }
         if let data = try? JSONEncoder().encode(cloud) {
@@ -243,7 +243,7 @@ final class SavedSearchStore {
               let cloud = try? JSONDecoder().decode([String: [String: [NamedSearch]]].self, from: data)
         else { return }
 
-        let merged = AccountSyncMerge.mergeNestedArrays(cloud: cloud, into: byAccount) { identity in
+        let merged = CloudSyncMerge.mergeNestedArrays(cloud: cloud, into: byAccount) { identity in
             AccountsStore.shared.accounts.first { $0.syncID == identity }?.id
         } id: { $0.id }
         guard merged != byAccount else { return }

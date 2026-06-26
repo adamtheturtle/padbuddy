@@ -8,48 +8,18 @@
 //  events log on top of these.
 //
 
+import BuddyAppKit
 import Foundation
 
-/// One date-range constraint: a named window key (one of `PadDateRange.options`)
-/// and/or an explicit custom range. A custom range overrides the named window. An
-/// all-nil window imposes no constraint. The pad list carries two of these — one
-/// applied to the updated date, one to the created date — so they can be filtered
-/// independently and at the same time.
-struct PadDateWindow: Equatable, Hashable, Codable {
-    var range: String?
-    var customStart: Date?
-    var customEnd: Date?
-
-    var isActive: Bool {
-        range != nil || customStart != nil || customEnd != nil
-    }
-
-    /// A stable change token covering the named range *and* the custom bounds, so a
-    /// signature built from it changes when a custom range does. Two different
-    /// custom ranges (both with `range == nil`) must not collapse to one token.
-    var signatureToken: String {
-        [range,
-         customStart.map { String($0.timeIntervalSince1970) },
-         customEnd.map { String($0.timeIntervalSince1970) }]
-            .map { $0 ?? "·" }.joined(separator: ",")
-    }
-
-    /// Whether `value` falls within this window. `now` resolves a named window to a
-    /// lower bound; a custom range supplies explicit inclusive bounds. An inactive
-    /// window contains everything.
-    func contains(_ value: Date, now: Date) -> Bool {
-        let lower = customStart ?? range.flatMap { PadDateRange.start(for: $0, now: now) }
-        return (lower.map { value >= $0 } ?? true)
-            && (customEnd.map { value <= $0 } ?? true)
-    }
-}
-
-/// The lower bound a pad's date must satisfy for a named date-range filter. `now`
-/// is injectable so tests are deterministic rather than depending on the wall
-/// clock.
+/// The named date-range lower bounds moved to buddy-kit (`NamedDateRange`). This shim
+/// forwards the pure parts and keeps `displayLabel` app-side, because its
+/// `String(localized:)` lookups must resolve against the app bundle's String Catalog,
+/// not the package's.
 enum PadDateRange {
     /// The labels used both for the filter chips and as the keys understood here.
-    static let options = ["today", "last 24 hours", "last 7 days", "last 30 days", "last 90 days"]
+    static var options: [String] {
+        NamedDateRange.options
+    }
 
     /// A localized, display-ready label for a range key. The raw `options` values
     /// double as match keys, so they're kept verbatim and translated only for
@@ -66,25 +36,12 @@ enum PadDateRange {
     }
 
     /// The earliest date a pad may have to satisfy `option`, or `nil` for an
-    /// unrecognized option (treated as "no lower bound").
-    ///
-    /// Multi-day windows anchor to *calendar-day* boundaries rather than a rolling
-    /// count of hours, so "last 7 days" means today plus the six prior whole days
-    /// and stays stable as the clock advances through the day (matching Gmail /
-    /// Linear). "Last 24 hours" is the deliberate exception — it names an hour
-    /// window, so it rolls.
+    /// unrecognized option (treated as "no lower bound"). Forwards to
+    /// `NamedDateRange.start`; see there for the calendar-day-anchoring rationale.
     static func start(for option: String,
                       now: Date = Date(),
                       calendar: Calendar = .current) -> Date? {
-        let startOfToday = calendar.startOfDay(for: now)
-        switch option {
-        case "today": return startOfToday
-        case "last 24 hours": return calendar.date(byAdding: .hour, value: -24, to: now)
-        case "last 7 days": return calendar.date(byAdding: .day, value: -6, to: startOfToday)
-        case "last 30 days": return calendar.date(byAdding: .day, value: -29, to: startOfToday)
-        case "last 90 days": return calendar.date(byAdding: .day, value: -89, to: startOfToday)
-        default: return nil
-        }
+        NamedDateRange.start(for: option, now: now, calendar: calendar)
     }
 }
 
@@ -102,8 +59,8 @@ struct PadFilterCriteria {
     /// Date constraints applied independently and together: `updated` is compared
     /// against the pad's updated date (falling back to created), `created` against
     /// its created date. A pad must satisfy every active window.
-    var updated = PadDateWindow()
-    var created = PadDateWindow()
+    var updated = DateWindow()
+    var created = DateWindow()
 }
 
 enum PadListLogic {

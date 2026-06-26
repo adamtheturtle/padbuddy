@@ -129,7 +129,7 @@ final class InterviewTemplatesStore {
     private func mirrorToCloud() {
         guard CloudSyncStore.shared.isAvailable else { return }
 
-        let cloud = AccountSyncMerge.toCloud(byAccount) { uuid in
+        let cloud = CloudSyncMerge.toCloud(byAccount) { uuid in
             AccountsStore.shared.accounts.first { $0.id == uuid }?.syncID
         }
         if let data = try? JSONEncoder().encode(cloud) {
@@ -144,7 +144,7 @@ final class InterviewTemplatesStore {
         guard let data = CloudSyncStore.shared.data(forKey: Self.cloudKey),
               let cloud = try? JSONDecoder().decode([String: [InterviewTemplate]].self, from: data) else { return }
 
-        let merged = AccountSyncMerge.mergeArrays(cloud: cloud, into: byAccount) { identity in
+        let merged = CloudSyncMerge.mergeArrays(cloud: cloud, into: byAccount) { identity in
             AccountsStore.shared.accounts.first { $0.syncID == identity }?.id
         } id: { $0.id }
         guard merged != byAccount else { return }

@@ -3,7 +3,7 @@
 //  coderpad
 //
 //  The domain-specific filter chips that stay app-side: the date-range chip bound to
-//  a `PadDateWindow`. The generic chip primitives — the focus-ring suppressor, the
+//  a `DateWindow`. The generic chip primitives — the focus-ring suppressor, the
 //  menu-backed `ChipMenuShell`, and the categorical `FilterChipMenu` — now live in
 //  CoderPadDesignSystem (#515); this chip builds on the public `ChipMenuShell`. The
 //  saved-search chips live in FilterChips+SavedSearch / +Searchable.
@@ -11,13 +11,13 @@
 
 import SwiftUI
 
-/// A date-range filter chip bound to one `PadDateWindow`. `title` names the date
+/// A date-range filter chip bound to one `DateWindow`. `title` names the date
 /// it constrains ("Updated" / "Created"); the pad bar shows one chip per window so
 /// the two can be set independently. Offers the named windows and a custom
 /// start/end picker, sharing the same chip styling as the other menu chips.
 struct DateRangeFilterChip: View {
     let title: String
-    @Binding var window: PadDateWindow
+    @Binding var window: DateWindow
     let options: [String]
 
     @State private var showCustom = false
@@ -68,17 +68,17 @@ struct DateRangeFilterChip: View {
             labelColor: labelColor,
             menuDisabled: false,
             clearLabel: String(localized: "Clear \(title.lowercased()) date filter"),
-            onClear: { window = PadDateWindow() },
+            onClear: { window = DateWindow() },
             menu: {
                 Button {
-                    window = PadDateWindow()
+                    window = DateWindow()
                 } label: {
                     if isActive { Text("Any time") } else { Label("Any time", systemImage: "checkmark") }
                 }
                 Divider()
                 ForEach(options, id: \.self) { option in
                     Button {
-                        window = PadDateWindow(range: option)
+                        window = DateWindow(range: option)
                     } label: {
                         if !isCustom, option == window.range {
                             Label(PadDateRange.displayLabel(for: option), systemImage: "checkmark")
@@ -134,7 +134,7 @@ struct DateRangeFilterChip: View {
         let calendar = Calendar.current
         let start = calendar.startOfDay(for: draftStart)
         let end = calendar.date(bySettingHour: 23, minute: 59, second: 59, of: draftEnd) ?? draftEnd
-        window = PadDateWindow(customStart: start, customEnd: end)
+        window = DateWindow(customStart: start, customEnd: end)
         showCustom = false
     }
 }

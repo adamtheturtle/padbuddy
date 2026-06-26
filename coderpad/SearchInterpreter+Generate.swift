@@ -91,7 +91,7 @@ import Foundation
                     ownerFilter: owner,
                     teamFilter: team,
                     typeFilter: groundType(resolveType(query.type ?? ""), query: trimmed),
-                    updatedWindow: range.map { PadDateWindow(range: $0) }
+                    updatedWindow: range.map { DateWindow(range: $0) }
                 )
                 return isMeaningful(search) ? search : nil
             } catch {
