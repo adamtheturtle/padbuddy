@@ -180,9 +180,16 @@ struct PadBrowserView: View {
                     clearSessionButton
                 #endif
 
-                if controller.isLoading {
-                    ProgressView().controlSize(.small)
-                }
+                // Keep the loading spinner a permanent member of the glass cluster and
+                // drive only its opacity (#590). Inserting/removing it on every
+                // `isLoading` toggle - which the WKWebView KVO can fire more than once
+                // per frame during a load - changed the `GlassEffectContainer`'s child
+                // set repeatedly within a frame, forcing it to re-resolve its glass
+                // shapes and logging a "glassEffect() tried to update multiple times per
+                // frame" fault. Opacity changes leave the container's membership stable.
+                ProgressView()
+                    .controlSize(.small)
+                    .opacity(controller.isLoading ? 1 : 0)
 
                 urlLabel
                     .frame(maxWidth: .infinity, alignment: .leading)
