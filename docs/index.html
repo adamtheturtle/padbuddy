@@ -52,22 +52,20 @@
           Download for macOS
           <span class="button-sub">macOS 15+</span>
         </a>
-        <!--
-          Mac App Store call to action. Disabled placeholder until the listing is
-          live (App Store epic #189, listing #489). When it ships, replace this
-          <span> with Apple's official badge artwork wrapped in an <a> to the
-          product page, keeping Apple's required clear space. See issue #504.
-        -->
-        <span class="mas-badge mas-badge--disabled" role="note"
-              aria-label="Coming soon to the Mac App Store">
+        <!-- TestFlight beta. Apple-style pill badge (same chrome the Mac App Store
+             badge will use once that listing is live; App Store epic #189, listing
+             #489, badge swap #504). Public link from App Store Connect: anyone with
+             the TestFlight app can self-enroll to try pre-release builds. -->
+        <a class="mas-badge" href="https://testflight.apple.com/join/X1XZq47d"
+           aria-label="Join the beta on TestFlight">
           <svg class="mas-badge__logo" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <path fill="currentColor" d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.12 0-.23-.02-.3-.03-.01-.06-.04-.22-.04-.39 0-1.15.572-2.27 1.206-2.98.804-.94 2.142-1.64 3.248-1.68.03.13.05.28.05.43zm4.565 15.71c-.03.07-.463 1.58-1.518 3.12-.945 1.34-1.94 2.71-3.43 2.71-1.517 0-1.9-.88-3.63-.88-1.698 0-2.302.91-3.67.91-1.377 0-2.332-1.26-3.428-2.8-1.287-1.82-2.323-4.63-2.323-7.28 0-4.28 2.797-6.55 5.552-6.55 1.448 0 2.675.95 3.6.95.865 0 2.222-1.01 3.902-1.01.613 0 2.886.06 4.374 2.19-.13.09-2.383 1.37-2.383 4.19 0 3.26 2.854 4.42 2.955 4.45z"/>
+            <path fill="currentColor" d="M12 2 3 7v3l9 5 9-5V7l-9-5zm0 2.3L18.1 8 12 11.4 5.9 8 12 4.3zM5 11.6l6 3.3V21l-6-3.3v-6.1zm14 0v6.1L13 21v-6.1l6-3.3z"/>
           </svg>
           <span class="mas-badge__text">
-            <span class="mas-badge__top">Coming soon to the</span>
-            <span class="mas-badge__bottom">Mac App Store</span>
+            <span class="mas-badge__top">Join the beta on</span>
+            <span class="mas-badge__bottom">TestFlight</span>
           </span>
-        </span>
+        </a>
       </p>
     </div>
     <figure class="hero-shot reveal" data-delay="3">
@@ -148,6 +146,7 @@
   <footer class="wrap">
     <p>
       <a class="js-download-link" href="https://github.com/adamtheturtle/coderpad-macos-releases/releases/latest">Download</a> ·
+      <a href="https://testflight.apple.com/join/X1XZq47d">TestFlight beta</a> ·
       <a href="privacy-policy.html">Privacy</a> ·
       <a href="mailto:hello@adamdangoor.com">Support</a>
     </p>

@@ -137,8 +137,8 @@ a:hover { text-decoration: underline; }
   margin-top: 2px;
 }
 
-/* Mac App Store badge: Apple-style black pill. Disabled placeholder for now;
-   swap for the official artwork + product-page link once the listing is live. */
+/* Apple-style black pill badge. Currently the TestFlight beta link; the Mac App
+   Store badge will reuse this chrome once that listing is live (#504). */
 .mas-badge {
   display: inline-flex;
   align-items: center;
@@ -154,7 +154,7 @@ a:hover { text-decoration: underline; }
 .mas-badge__logo { width: 24px; height: 24px; flex: 0 0 auto; }
 .mas-badge__top { display: block; font-size: .7rem; opacity: .85; }
 .mas-badge__bottom { display: block; font-size: 1.15rem; font-weight: 600; letter-spacing: -0.01em; }
-.mas-badge--disabled { opacity: .55; cursor: default; }
+.mas-badge:hover { text-decoration: none; opacity: .92; }
 
 /* --- Main content --------------------------------------------------------- */
 
