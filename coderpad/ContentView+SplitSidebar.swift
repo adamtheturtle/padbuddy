@@ -167,6 +167,13 @@ extension MainSplit {
     /// own `columnVisibility` rather than the AppKit `toggleSidebar` selector, since we
     /// already own that state. The ⌃⌘S shortcut lives on the View ▸ Show/Hide Sidebar
     /// menu item (#396) — its conventional home — so it isn't duplicated here.
+    ///
+    /// macOS only: on iPad we keep `NavigationSplitView`'s native sidebar/column toggle
+    /// (we don't `.toolbar(removing: .sidebarToggle)` there), which the system places and
+    /// sizes correctly for touch. The hand-rolled `.navigation` button gets shoved into
+    /// the iPad nav-bar overflow, hiding all navigation behind a tiny "…" — so this
+    /// item exists only on macOS and the framework's toggle stands in on iOS.
+    #if os(macOS)
     @ToolbarContentBuilder
     var sidebarToggle: some ToolbarContent {
         ToolbarItem(placement: .navigation) {
@@ -176,4 +183,5 @@ extension MainSplit {
             .help("Show or hide the sidebar")
         }
     }
+    #endif
 }

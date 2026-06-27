@@ -8,28 +8,38 @@ import SwiftUI
 // MARK: - The two- and three-column NavigationSplitView layouts
 
 extension MainSplit {
+    /// The sidebar column, shared by the two- and three-column layouts. On macOS the
+    /// framework's default sidebar toggle is dropped (`sidebarToggle` supplies a
+    /// leading-edge replacement so the content actions don't float past the
+    /// collapsed-sidebar inset, #337); on iPad we keep the native toggle, which the
+    /// system places correctly for touch — the hand-rolled one is buried in the nav-bar
+    /// overflow there, hiding navigation behind a tiny "…".
+    @ViewBuilder
+    var sidebarColumn: some View {
+        Sidebar(section: $section)
+            #if os(macOS)
+            .toolbar(removing: .sidebarToggle)
+            #endif
+            // Grow the sidebar's minimum to fit the widest row label. Rounded
+            // and only reassigned on a real change, so feeding the measured
+            // width back into the same column's min doesn't thrash layout.
+            .onPreferenceChange(SidebarRowWidthKey.self) { width in
+                guard width > 0 else { return }
+
+                let needed = (width + Self.sidebarRowChrome).rounded()
+                if abs(sidebarMinWidth - needed) > 0.5 { sidebarMinWidth = needed }
+            }
+            .navigationSplitViewColumnWidth(
+                min: sidebarMinWidth,
+                ideal: max(280, sidebarMinWidth),
+                max: max(340, sidebarMinWidth)
+            )
+            .navigationTitle("")
+    }
+
     var threeColumnSplit: some View {
         NavigationSplitView(columnVisibility: $columnVisibility) {
-            Sidebar(section: $section)
-                // Drop the framework's default toggle; `sidebarToggle` below supplies a
-                // leading-edge replacement so the content actions don't float past the
-                // collapsed-sidebar inset (#337).
-                .toolbar(removing: .sidebarToggle)
-                // Grow the sidebar's minimum to fit the widest row label. Rounded
-                // and only reassigned on a real change, so feeding the measured
-                // width back into the same column's min doesn't thrash layout.
-                .onPreferenceChange(SidebarRowWidthKey.self) { width in
-                    guard width > 0 else { return }
-
-                    let needed = (width + Self.sidebarRowChrome).rounded()
-                    if abs(sidebarMinWidth - needed) > 0.5 { sidebarMinWidth = needed }
-                }
-                .navigationSplitViewColumnWidth(
-                    min: sidebarMinWidth,
-                    ideal: max(280, sidebarMinWidth),
-                    max: max(340, sidebarMinWidth)
-                )
-                .navigationTitle("")
+            sidebarColumn
         } content: {
             SectionContent(
                 section: section,
@@ -92,7 +102,9 @@ extension MainSplit {
                 searchFieldFocused = true
             }
         )
+        #if os(macOS)
         .toolbar { sidebarToggle }
+        #endif
         .navigationTitle(sectionTitle)
         // `navigationSubtitle` is macOS (and iOS 26+) only; on iPad 18 the section
         // subtitle is simply omitted from the navigation bar.
@@ -104,26 +116,7 @@ extension MainSplit {
     var twoColumnSplit: some View {
         listSearchable(
             NavigationSplitView(columnVisibility: $columnVisibility) {
-                Sidebar(section: $section)
-                    // Drop the framework's default toggle; `sidebarToggle` below supplies a
-                    // leading-edge replacement so the content actions don't float past the
-                    // collapsed-sidebar inset (#337).
-                    .toolbar(removing: .sidebarToggle)
-                    // Grow the sidebar's minimum to fit the widest row label. Rounded
-                    // and only reassigned on a real change, so feeding the measured
-                    // width back into the same column's min doesn't thrash layout.
-                    .onPreferenceChange(SidebarRowWidthKey.self) { width in
-                        guard width > 0 else { return }
-
-                        let needed = (width + Self.sidebarRowChrome).rounded()
-                        if abs(sidebarMinWidth - needed) > 0.5 { sidebarMinWidth = needed }
-                    }
-                    .navigationSplitViewColumnWidth(
-                        min: sidebarMinWidth,
-                        ideal: max(280, sidebarMinWidth),
-                        max: max(340, sidebarMinWidth)
-                    )
-                    .navigationTitle("")
+                sidebarColumn
             } detail: {
                 SectionContent(
                     section: section,
@@ -138,7 +131,9 @@ extension MainSplit {
                 .onPreferenceChange(SectionCountKey.self) { sectionCount = $0 }
             }
         )
+        #if os(macOS)
         .toolbar { sidebarToggle }
+        #endif
         .navigationTitle(sectionTitle)
         // `navigationSubtitle` is macOS (and iOS 26+) only; on iPad 18 the section
         // subtitle is simply omitted from the navigation bar.

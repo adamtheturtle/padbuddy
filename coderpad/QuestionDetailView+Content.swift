@@ -53,7 +53,11 @@ extension QuestionDetailView {
                 Button {
                     openWindow(id: "pad-browser", value: url)
                 } label: {
-                    Image(systemName: "macwindow.badge.plus")
+                    #if os(macOS)
+                        Image(systemName: "macwindow.badge.plus")
+                    #else
+                        Image(systemName: "rectangle.badge.plus")
+                    #endif
                 }
                 .help("Open in separate window")
                 .buttonStyle(.borderless)
