@@ -1018,6 +1018,9 @@
         }
       }
     },
+    "Active Interviews" : {
+
+    },
     "Activity" : {
 
     },
@@ -1740,6 +1743,9 @@
       }
     },
     "Comma-separated (optional)" : {
+
+    },
+    "Comma-separated, e.g. strong, follow-up" : {
 
     },
     "Completed" : {
@@ -2584,6 +2590,9 @@
         }
       }
     },
+    "Document Actions" : {
+
+    },
     "Done" : {
 
     },
@@ -2877,6 +2886,9 @@
     "Europe" : {
 
     },
+    "Evaluation" : {
+
+    },
     "Events" : {
       "localizations" : {
         "es" : {
@@ -2937,6 +2949,9 @@
         }
       }
     },
+    "Export as Markdown" : {
+
+    },
     "Export as Markdown…" : {
 
     },
@@ -2967,6 +2982,7 @@
       }
     },
     "Favorite Pads" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en-GB" : {
           "stringUnit" : {
@@ -2983,6 +2999,7 @@
       }
     },
     "Favorite Questions" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en-GB" : {
           "stringUnit" : {
@@ -3015,7 +3032,6 @@
       }
     },
     "Favorites" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en-GB" : {
           "stringUnit" : {
@@ -3529,6 +3545,9 @@
         }
       }
     },
+    "Limit PadBuddy to a single CoderPad account while a Focus is on." : {
+
+    },
     "Live" : {
       "localizations" : {
         "es" : {
@@ -3698,6 +3717,9 @@
           }
         }
       }
+    },
+    "More browser actions" : {
+
     },
     "More shortcuts" : {
       "localizations" : {
@@ -4100,6 +4122,9 @@
       }
     },
     "None of your Screen accounts could load campaigns." : {
+
+    },
+    "Notes" : {
 
     },
     "Nothing selected" : {
@@ -4727,6 +4752,9 @@
         }
       }
     },
+    "Passwords" : {
+
+    },
     "Paste a CoderPad pad URL. It opens in the in-app browser window." : {
       "localizations" : {
         "es" : {
@@ -4819,6 +4847,9 @@
         }
       }
     },
+    "Print" : {
+
+    },
     "Print…" : {
       "localizations" : {
         "es" : {
@@ -4838,6 +4869,12 @@
           }
         }
       }
+    },
+    "Private notes for this pad…" : {
+
+    },
+    "Private to you. Ratings, tags, and notes sync across your devices via iCloud and are never sent to CoderPad." : {
+
     },
     "Proctoring warnings" : {
 
@@ -4994,6 +5031,12 @@
           }
         }
       }
+    },
+    "Rate %lld of 5" : {
+
+    },
+    "Rating" : {
+
     },
     "Recent Activity" : {
       "extractionState" : "stale",
@@ -5159,6 +5202,9 @@
     "Report Options" : {
 
     },
+    "Require Face ID or Touch ID to reveal API keys" : {
+
+    },
     "Require Touch ID to reveal API keys" : {
       "localizations" : {
         "es" : {
@@ -5206,6 +5252,9 @@
         }
       }
     },
+    "Resize notes" : {
+
+    },
     "Result notifications (optional)" : {
 
     },
@@ -5228,6 +5277,9 @@
           }
         }
       }
+    },
+    "Save Code" : {
+
     },
     "Save Code…" : {
       "localizations" : {
@@ -5274,6 +5326,12 @@
           }
         }
       }
+    },
+    "Scope to Account" : {
+
+    },
+    "Scoped to %@" : {
+
     },
     "Score" : {
 
@@ -6651,6 +6709,9 @@
           }
         }
       }
+    },
+    "View code full screen" : {
+
     },
     "View or configure the Screen event webhook." : {
 
