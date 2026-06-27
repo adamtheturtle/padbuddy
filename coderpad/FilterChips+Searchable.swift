@@ -164,6 +164,9 @@ extension View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                // The 22x22 clear target is exactly half the 44pt touch minimum in each
+                // dimension; expand the hit area on touch (no-op on macOS, #597).
+                .touchTarget()
                 .accessibilityLabel(label)
             }
         }
