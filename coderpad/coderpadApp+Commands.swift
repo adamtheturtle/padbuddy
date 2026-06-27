@@ -145,18 +145,6 @@ struct PadCommands: Commands {
             .keyboardShortcut(.return, modifiers: [.command, .option])
             .disabled(pad == nil)
 
-            // Opens the side-by-side comparison workspace (#594), seeding it with the
-            // focused pad when there is one. Enabled even with no selection so the
-            // workspace can be opened and populated from its own Add Pad menu.
-            Button("Compare Pads…") {
-                if let pad, let entry = ComparePad(pad: pad) {
-                    ComparePadsModel.shared.add(entry)
-                }
-                AppActivator.bringToFront()
-                openWindow(id: "compare-pads")
-            }
-            .keyboardShortcut("c", modifiers: [.command, .control])
-
             Button("Watch Playback") {
                 guard let pad else { return }
 
