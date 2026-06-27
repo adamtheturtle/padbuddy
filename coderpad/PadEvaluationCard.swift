@@ -54,6 +54,10 @@ struct PadEvaluationCard: View {
                             .foregroundStyle(value <= rating ? .yellow : .secondary)
                     }
                     .buttonStyle(.plain)
+                    // Five tiny icon-only stars 4pt apart are unreliable to hit on
+                    // touch; give each a 44pt target (no-op on macOS, #597). The 44pt
+                    // frames sit side by side so adjacent ratings no longer overlap.
+                    .touchTarget()
                     .help("Rate \(value) of 5")
                     .accessibilityLabel("Rate \(value) of 5")
                 }

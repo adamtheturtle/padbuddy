@@ -45,6 +45,7 @@ extension EnvironmentCodeCard {
         }
         .buttonStyle(.borderless)
         .controlSize(.small)
+        .touchTarget() // 44pt touch floor on iPad, no-op on macOS (#597)
         .help("Copy code")
         .accessibilityLabel("Copy code")
     }
@@ -65,6 +66,7 @@ extension EnvironmentCodeCard {
         }
         .buttonStyle(.borderless)
         .controlSize(.small)
+        .touchTarget() // 44pt touch floor on iPad, no-op on macOS (#597)
         .help(isMultiFile ? String(localized: "Download all files as a folder") : String(localized: "Download code"))
         .accessibilityLabel(isMultiFile
             ? String(localized: "Download all files as a folder")
@@ -176,6 +178,7 @@ extension EnvironmentCodeCard {
         }
         .buttonStyle(.borderless)
         .controlSize(.small)
+        .touchTarget() // 44pt touch floor on iPad, no-op on macOS (#597)
         .disabled(isExplaining)
         .help("Explain this file")
         .accessibilityLabel("Explain this file")
