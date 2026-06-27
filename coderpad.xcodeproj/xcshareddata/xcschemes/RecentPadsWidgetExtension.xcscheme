@@ -18,6 +18,7 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "66E3CDBC2FDD6D1C00FE87A9"
                BuildableName = "RecentPadsWidgetExtension.appex"
+               BlueprintName = "RecentPadsWidgetExtension"
                ReferencedContainer = "container:coderpad.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>

@@ -14,6 +14,8 @@
 		6676A3432FEF13620023907A /* CoderPadKitMock in Frameworks */ = {isa = PBXBuildFile; productRef = 6676A3422FEF13620023907A /* CoderPadKitMock */; };
 		6676A3452FEF13950023907A /* BuddyMCP in Frameworks */ = {isa = PBXBuildFile; productRef = 6676A3442FEF13950023907A /* BuddyMCP */; };
 		6676A3472FEF139E0023907A /* BuddyMCP in Frameworks */ = {isa = PBXBuildFile; productRef = 6676A3462FEF139E0023907A /* BuddyMCP */; };
+		6676A3A22FEF95500023907A /* CoderPadKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6676A3A12FEF95500023907A /* CoderPadKit */; };
+		6676A3A42FEF95500023907A /* CoderPadKitMock in Frameworks */ = {isa = PBXBuildFile; productRef = 6676A3A32FEF95500023907A /* CoderPadKitMock */; };
 		668CA7E82FEC782F00420E24 /* CommandPaletteKit in Frameworks */ = {isa = PBXBuildFile; productRef = 668CA7E72FEC782F00420E24 /* CommandPaletteKit */; };
 		668CA7EF2FEC83C100420E24 /* CommandPaletteKit in Frameworks */ = {isa = PBXBuildFile; productRef = 668CA7EE2FEC83C100420E24 /* CommandPaletteKit */; };
 		668CA8002FECBCA200420E24 /* WhatsNewKit in Frameworks */ = {isa = PBXBuildFile; productRef = 668CA7FF2FECBCA200420E24 /* WhatsNewKit */; };
@@ -209,6 +211,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				66F544012FE5EECD000214AA /* Flow in Frameworks */,
+				6676A3A22FEF95500023907A /* CoderPadKit in Frameworks */,
 				66F544052FE5EECD000214AA /* Highlightr in Frameworks */,
 				668CA8022FECBCBA00420E24 /* WhatsNewKit in Frameworks */,
 				668CA7EF2FEC83C100420E24 /* CommandPaletteKit in Frameworks */,
@@ -216,6 +219,7 @@
 				6676A3472FEF139E0023907A /* BuddyMCP in Frameworks */,
 				6693DA532FE9D021005CA3CE /* CoderPadToolCore in Frameworks */,
 				66C6A33F2FEA883500731E7E /* BuddyAppKit in Frameworks */,
+				6676A3A42FEF95500023907A /* CoderPadKitMock in Frameworks */,
 				66769DA52FED3F3A0023907A /* PaginatedRESTClient in Frameworks */,
 				66C6A33D2FEA883500731E7E /* MCP in Frameworks */,
 				66C6A3412FEA883500731E7E /* BuddyDesignSystem in Frameworks */,
@@ -398,6 +402,8 @@
 				668CA8012FECBCBA00420E24 /* WhatsNewKit */,
 				66769DA42FED3F3A0023907A /* PaginatedRESTClient */,
 				6676A3462FEF139E0023907A /* BuddyMCP */,
+				6676A3A12FEF95500023907A /* CoderPadKit */,
+				6676A3A32FEF95500023907A /* CoderPadKitMock */,
 			);
 			productName = coderpad;
 			productReference = 66F5440C2FE5EECD000214AA /* PadBuddy.app */;
@@ -1241,6 +1247,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 66C6A3352FEA84E300731E7E /* XCRemoteSwiftPackageReference "buddy-kit" */;
 			productName = BuddyMCP;
+		};
+		6676A3A12FEF95500023907A /* CoderPadKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6676A33F2FEF13620023907A /* XCRemoteSwiftPackageReference "CoderPadKit" */;
+			productName = CoderPadKit;
+		};
+		6676A3A32FEF95500023907A /* CoderPadKitMock */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6676A33F2FEF13620023907A /* XCRemoteSwiftPackageReference "CoderPadKit" */;
+			productName = CoderPadKitMock;
 		};
 		668CA7E72FEC782F00420E24 /* CommandPaletteKit */ = {
 			isa = XCSwiftPackageProductDependency;
