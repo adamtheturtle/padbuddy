@@ -14,6 +14,10 @@ extension PadDetailView {
                 if hasTimestamps {
                     metaCards
                 }
+                // The interviewer's own rating / notes / tags for this pad (#591),
+                // stored locally per pad. Keyed by id so it reloads as the detail
+                // pane shows different pads.
+                PadEvaluationCard(padID: pad.id)
                 if !pad.participants.isEmpty {
                     participantsCard
                 }
