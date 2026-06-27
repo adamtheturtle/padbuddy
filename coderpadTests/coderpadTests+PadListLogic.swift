@@ -301,14 +301,14 @@ struct PadEventGroupingTests {
 struct OrgDirectoryTests {
     @Test
     func `display falls back to the email until a name is known`() {
-        let directory = OrgDirectory()
+        let directory = OrgDirectory(seedFromDisk: false)
         #expect(directory.name(for: "who@x.co") == nil)
         #expect(directory.display("who@x.co") == "who@x.co")
     }
 
     @Test
     func `name(for:) trims whitespace and rejects blanks`() {
-        let directory = OrgDirectory()
+        let directory = OrgDirectory(seedFromDisk: false)
         // No lookup is populated, so a blank email returns nil rather than a key hit.
         #expect(directory.name(for: "   ") == nil)
         #expect(directory.name(for: "") == nil)
@@ -316,7 +316,7 @@ struct OrgDirectoryTests {
 
     @Test
     func `loading the demo org populates names and the default language`() async {
-        let directory = OrgDirectory()
+        let directory = OrgDirectory(seedFromDisk: false)
         await directory.load(for: .demo())
         #expect(directory.display(MockFixtures.demoUserEmail) == MockFixtures.demoUserName)
         // Trailing whitespace is trimmed before the lookup.
@@ -326,7 +326,7 @@ struct OrgDirectoryTests {
 
     @Test
     func `a failed load leaves the directory empty and unblocked for a later load`() async {
-        let directory = OrgDirectory()
+        let directory = OrgDirectory(seedFromDisk: false)
         // The bad-key account 401s, so nothing is cached and no account is marked loaded.
         await directory.load(for: .demoBadKey())
         #expect(directory.display(MockFixtures.demoUserEmail) == MockFixtures.demoUserEmail)

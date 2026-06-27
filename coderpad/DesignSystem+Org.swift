@@ -86,8 +86,13 @@ final class OrgDirectory {
     /// until the organization fetch returns. Mirrors the pads/questions caches'
     /// stale-while-revalidate: the persisted snapshot warms the UI, then the async
     /// `load`/`loadMerged` refreshes it from the network.
-    init() {
-        nameByEmail = Self.cachedSeed()
+    ///
+    /// `seedFromDisk` defaults to true for production. Tests that assert on a
+    /// directory's load behavior pass `false` so a persisted `DirectoryCache` left on
+    /// disk by a real app run (the cache dir is shared, not sandboxed per test) can't
+    /// pre-populate the map and make a "fresh" directory look non-empty.
+    init(seedFromDisk: Bool = true) {
+        nameByEmail = seedFromDisk ? Self.cachedSeed() : [:]
     }
 
     /// The persisted name map for whichever list appears first: the union of every
