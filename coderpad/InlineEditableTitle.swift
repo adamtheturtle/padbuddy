@@ -34,11 +34,19 @@ struct InlineEditableTitle: View {
     /// truncated title doesn't run right up against (or under) the pencil.
     private static let pencilReserve: CGFloat = 28
 
-    /// The pencil is a hint, not a control, so it appears only while the row is
-    /// hovered or the field is focused — keeping the header clean otherwise. Hidden
-    /// while read-only, where the title can't be edited at all.
+    /// The pencil is a hint, not a control. Hidden while read-only, where the title
+    /// can't be edited at all. On macOS it appears only while the row is hovered or
+    /// the field is focused, keeping the header clean otherwise. iPad has no hover, so
+    /// a hover-gated pencil would never show and the title reads as non-editable —
+    /// there it's shown persistently, matching the other inline editors' touch
+    /// affordances (the favorite star, the field pencils).
     private var showsPencil: Bool {
-        !isReadOnly && (hovered || focus.wrappedValue)
+        guard !isReadOnly else { return false }
+        #if os(macOS)
+            return hovered || focus.wrappedValue
+        #else
+            return true
+        #endif
     }
 
     /// Width to pin the field to: the title's natural width, clamped to what the
