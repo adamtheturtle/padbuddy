@@ -20,6 +20,16 @@ struct PadEvaluationCard: View {
     /// The pad whose evaluation is currently loaded into the drafts above, so a save
     /// triggered mid-reload can't write one pad's text onto another's record.
     @State private var loadedPadID: String?
+    /// The user-chosen height of the notes editor, set by dragging the corner handle.
+    /// Clamped to ``Self.notesMinHeight``...``Self.notesMaxHeight`` so it can grow for a
+    /// long write-up but never collapse away or run off the pane.
+    @State private var notesHeight = Self.notesMinHeight
+    /// The editor height when the active resize drag began, so each drag applies its
+    /// translation relative to where the handle was grabbed.
+    @State private var notesHeightAtDragStart: CGFloat?
+
+    private static let notesMinHeight: CGFloat = 90
+    private static let notesMaxHeight: CGFloat = 600
 
     var body: some View {
         DetailSection(title: "Evaluation", systemImage: "checklist") {
@@ -27,6 +37,7 @@ struct PadEvaluationCard: View {
                 ratingRow
                 tagsRow
                 notesRow
+                privacyNote
             }
         }
         .onChange(of: padID, initial: true) { _, _ in load() }
@@ -99,7 +110,7 @@ struct PadEvaluationCard: View {
                 .foregroundStyle(.secondary)
             TextEditor(text: $notes)
                 .font(.callout)
-                .frame(minHeight: 90)
+                .frame(height: notesHeight)
                 .padding(6)
                 .background(Color.subtleStroke.opacity(0.5),
                             in: RoundedRectangle(cornerRadius: 8, style: .continuous))
@@ -109,11 +120,62 @@ struct PadEvaluationCard: View {
                             .font(.callout)
                             .foregroundStyle(.secondary)
                             .padding(.horizontal, 11)
-                            .padding(.vertical, 14)
+                            .padding(.vertical, 8)
                             .allowsHitTesting(false)
                     }
                 }
+                .overlay(alignment: .bottom) {
+                    notesResizeHandle
+                }
         }
+    }
+
+    /// A grabber bar centred along the editor's bottom edge. Dragging it up or down
+    /// resizes the notes area, clamped so it stays usable.
+    ///
+    /// The drag is measured in the `.global` coordinate space: the handle moves as the
+    /// editor grows, so a handle-local translation would feed back on itself and jitter.
+    private var notesResizeHandle: some View {
+        Capsule()
+            .fill(.secondary)
+            .frame(width: 36, height: 5)
+            .padding(.vertical, 5)
+            .contentShape(Rectangle())
+            // Declarative vertical-resize cursor on hover (macOS-only: iPadOS has no
+            // equivalent pointer-shape API here).
+            #if os(macOS)
+            .pointerStyle(.rowResize)
+            #endif
+            .gesture(
+                DragGesture(minimumDistance: 0, coordinateSpace: .global)
+                    .onChanged { value in
+                        let start = notesHeightAtDragStart ?? notesHeight
+                        notesHeightAtDragStart = start
+                        notesHeight = min(
+                            max(start + value.translation.height, Self.notesMinHeight),
+                            Self.notesMaxHeight
+                        )
+                    }
+                    .onEnded { _ in notesHeightAtDragStart = nil }
+            )
+            .accessibilityLabel("Resize notes")
+    }
+
+    // MARK: - Privacy note
+
+    /// Makes it explicit that this evaluation is the interviewer's private scratch data:
+    /// it syncs across their own devices through iCloud but is never written back to
+    /// CoderPad, so a private rating and notes can't leak into the shared pad on the service.
+    private var privacyNote: some View {
+        Label(
+            "Private to you. Ratings, tags, and notes sync across your devices via iCloud and are never sent to CoderPad.",
+            systemImage: "lock.fill"
+        )
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .labelStyle(.titleAndIcon)
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(.top, 2)
     }
 
     // MARK: - Load / save
