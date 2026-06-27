@@ -127,30 +127,76 @@ struct AccountEditor: View {
         }
     }
 
+    /// On iPad, the modal Add-account sheet presents Cancel/Save in the navigation bar
+    /// (the standard iOS modal-editor layout) rather than as an inline button row at the
+    /// bottom of the form. macOS keeps its Mail-style inline buttons, and the embedded
+    /// editor (a detail pane already inside the Settings NavigationStack) keeps its inline
+    /// Save too. (#584)
+    private var usesNavigationBarActions: Bool {
+        #if os(macOS)
+            false
+        #else
+            !embedded
+        #endif
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                // Only the modal Add sheet carries a title; the embedded editor shows
-                // the account's identity in the sidebar already, so it omits one and
-                // leads with the Use/Current control instead.
-                if !embedded {
-                    Text("Add account").font(.title3.bold())
+        #if os(macOS)
+            editorContent
+        #else
+            if usesNavigationBarActions {
+                NavigationStack {
+                    editorContent
+                        .navigationTitle("Add account")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button("Cancel", action: onCancel)
+                            }
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button("Save") {
+                                    finalizeNameIfNeeded()
+                                    onSave(draft)
+                                }
+                                .disabled(!canSave)
+                            }
+                        }
                 }
-                Spacer()
-                if let onUse {
-                    if isCurrent {
-                        Label("Current", systemImage: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
-                            .font(.callout)
-                    } else {
-                        Button("Use This Account", action: onUse)
-                            .help("Switch the app to this account.")
+            } else {
+                editorContent
+            }
+        #endif
+    }
+
+    private var editorContent: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            // Skip the header row entirely when it would be empty: on the iPad modal
+            // sheet the title moves to the nav bar and there's no Use control (#584).
+            if (!embedded && !usesNavigationBarActions) || onUse != nil {
+                HStack {
+                    // Only the modal Add sheet carries a title; the embedded editor shows
+                    // the account's identity in the sidebar already, so it omits one and
+                    // leads with the Use/Current control instead. On iPad the nav bar
+                    // carries the title, so the in-body one is dropped there (#584).
+                    if !embedded && !usesNavigationBarActions {
+                        Text("Add account").font(.title3.bold())
+                    }
+                    Spacer()
+                    if let onUse {
+                        if isCurrent {
+                            Label("Current", systemImage: "checkmark.circle.fill")
+                                .foregroundStyle(.green)
+                                .font(.callout)
+                        } else {
+                            Button("Use This Account", action: onUse)
+                                .help("Switch the app to this account.")
+                        }
                     }
                 }
+                // Reserve the button's height so swapping it for the shorter "Current"
+                // label between accounts doesn't shift the rest of the form.
+                .frame(minHeight: 24)
             }
-            // Reserve the button's height so swapping it for the shorter "Current"
-            // label between accounts doesn't shift the rest of the form.
-            .frame(minHeight: 24)
             // A flat, Mail-style pane: a right-aligned label column with left-aligned,
             // bordered fields beside it — rather than a grouped form that pushes values
             // to the trailing edge.
@@ -165,13 +211,19 @@ struct AccountEditor: View {
                         .help("Remove this account and its stored API key from this Mac.")
                 }
                 Spacer()
-                // A saved account embedded inline has no Cancel: selecting away simply
-                // discards unsaved edits, the way Mail's account pane works.
-                if !(embedded && onDelete != nil) {
-                    Button("Cancel", role: .cancel, action: onCancel)
+                // The iPad modal sheet hosts Cancel/Save in the navigation bar, so the
+                // inline row drops them and keeps only Validate (and Delete) there (#584).
+                if !usesNavigationBarActions {
+                    // A saved account embedded inline has no Cancel: selecting away simply
+                    // discards unsaved edits, the way Mail's account pane works.
+                    if !(embedded && onDelete != nil) {
+                        Button("Cancel", role: .cancel, action: onCancel)
+                    }
                 }
                 validateButton
-                saveButton
+                if !usesNavigationBarActions {
+                    saveButton
+                }
             }
         }
         .padding()
