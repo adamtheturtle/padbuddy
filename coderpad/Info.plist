@@ -2,6 +2,19 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- iPad UIKit App Config (#579), ignored on macOS. Declare full orientation
+	     support (Apple will require it) - the NavigationSplitView UI already adapts to
+	     every size class - and opt into the modern storyboard-less launch screen (an
+	     empty UILaunchScreen uses the system background; required going forward). -->
+	<key>UISupportedInterfaceOrientations~ipad</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+		<string>UIInterfaceOrientationPortraitUpsideDown</string>
+		<string>UIInterfaceOrientationLandscapeLeft</string>
+		<string>UIInterfaceOrientationLandscapeRight</string>
+	</array>
+	<key>UILaunchScreen</key>
+	<dict/>
 	<!-- Sparkle in-app updates (#28). SUFeedURL points at the appcast on the latest
 	     release of the PUBLIC artifacts repo (coderpad-macos-releases), NOT this
 	     private source repo: the app fetches the feed + DMG unauthenticated, and a
