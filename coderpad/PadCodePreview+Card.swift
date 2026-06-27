@@ -11,7 +11,11 @@ import SwiftUI
 extension EnvironmentCodeCard {
     var header: some View {
         HStack {
+            // Keep the title on one line: on iPad the trailing action buttons can
+            // claim the whole row, and without this SwiftUI compresses the header
+            // label to a one-character-wide column that reads as vertical text.
             SectionHeader(title: "Code", systemImage: "chevron.left.slash.chevron.right")
+                .fixedSize()
             // When several environments are stacked, flag the active one so the
             // cards don't blur together — the one state here that genuinely needs
             // to pop, so it keeps the green capsule (matching an active pad's
@@ -31,9 +35,29 @@ extension EnvironmentCodeCard {
             if PadCodeExplainer.isAvailable {
                 explainButton
             }
+            expandButton
             downloadButton
             copyButton
         }
+    }
+
+    /// Header button that opens the code in a large, full-screen viewer. The
+    /// inline card pins the code to a 360-tall viewport (a deliberate fix for the
+    /// nested-scroll hang, #494); this gives a way to read a long file in full
+    /// without that clamp — a click on macOS, a tap on iPad.
+    private var expandButton: some View {
+        Button {
+            showFullCode = true
+        } label: {
+            Image(systemName: "arrow.up.left.and.arrow.down.right")
+        }
+        .buttonStyle(.borderless)
+        .controlSize(.small)
+        // Compact icon-only header buttons are a tap on iPad; give each the 44pt touch
+        // floor (no-op on macOS, #597).
+        .touchTarget()
+        .help("View code full screen")
+        .accessibilityLabel("View code full screen")
     }
 
     /// Header button that copies the selected file's contents.

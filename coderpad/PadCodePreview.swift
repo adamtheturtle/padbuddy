@@ -167,6 +167,10 @@ struct EnvironmentCodeCard: View {
     @State var explanationFileID: String?
     @State var isExplaining = false
     @State var showExplanation = false
+    /// Presents the code in a large, full-screen viewer so the source can be read
+    /// without the card's fixed 360-tall viewport. Tap/click the expand button to
+    /// open it; the file list and selection carry over.
+    @State var showFullCode = false
 
     var selected: CodeFile {
         files.first { $0.id == selectedFileID } ?? files.first ?? .placeholder
@@ -237,6 +241,9 @@ struct EnvironmentCodeCard: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .sheet(isPresented: $showFullCode) {
+            fullCodeViewer
+        }
         // When the environment's files change (added/removed/renamed — ids are
         // path-based), clear the retained selection so `selected` falls back to the
         // first file rather than pointing at a stale or wrong file. An in-place
@@ -298,6 +305,11 @@ struct HighlightedCode: View, Equatable {
     let contents: String
     let language: String?
     let dark: Bool
+    /// When true the scroll fills whatever height it's given instead of pinning to
+    /// 360. Only safe when this is the *outermost* vertical scroll (the full-screen
+    /// viewer) — inside the detail pane's own vertical scroll the fixed height is
+    /// what avoids the combinatorial re-measure hang (#494), so the card keeps it.
+    var fillsHeight = false
 
     /// The highlighted result, filled in by an off-main pass; plain `contents`
     /// renders until it lands so the main thread isn't blocked tokenizing (#372).
@@ -306,7 +318,8 @@ struct HighlightedCode: View, Equatable {
     /// Compare only the inputs (not the @State result) so SwiftUI keeps skipping
     /// re-renders for unrelated reasons, e.g. the file sidebar's resize drag.
     static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.contents == rhs.contents && lhs.language == rhs.language && lhs.dark == rhs.dark
+        lhs.contents == rhs.contents && lhs.language == rhs.language
+            && lhs.dark == rhs.dark && lhs.fillsHeight == rhs.fillsHeight
     }
 
     var body: some View {
@@ -325,9 +338,11 @@ struct HighlightedCode: View, Equatable {
         // re-running CoreText text measurement combinatorially and beachballing the
         // main thread (#494). Pinning the height gives the nested scroll an unambiguous
         // size, so the outer scroll never renegotiates it; the code still scrolls in
-        // both axes within this fixed viewport.
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-        .frame(height: 360)
+        // both axes within this fixed viewport. The full-screen viewer opts into
+        // `fillsHeight` because there it *is* the outer scroll, so there's nothing to
+        // renegotiate against.
+        .frame(maxWidth: .infinity, maxHeight: fillsHeight ? .infinity : nil, alignment: .topLeading)
+        .frame(height: fillsHeight ? nil : 360)
         // Re-run only when the inputs change; a same-id task isn't restarted, so
         // an unrelated re-render won't re-highlight.
         .task(id: HighlightInput(contents: contents, language: language, dark: dark)) {
