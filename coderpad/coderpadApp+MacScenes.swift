@@ -84,6 +84,7 @@
             questionScene
             padScene
             screenTestScene
+            comparePadsScene
             mcpActivityScene
 
             Settings {
@@ -150,6 +151,17 @@
                     .frame(minWidth: 600, minHeight: 560)
                     .preferredColorScheme(appearance.colorScheme)
             }
+        }
+
+        /// The side-by-side pad comparison workspace (#594). A single `Window` (not a
+        /// `WindowGroup`): the compared set lives in `ComparePadsModel`, so "Compare
+        /// Pads…" adds to the existing window rather than spawning a new one each time.
+        private var comparePadsScene: some Scene {
+            Window("Compare Pads", id: "compare-pads") {
+                ComparePadsView()
+                    .preferredColorScheme(appearance.colorScheme)
+            }
+            .defaultSize(width: 1200, height: 800)
         }
 
         /// The menu-bar extra. The system can flip `isInserted` to false if the user
