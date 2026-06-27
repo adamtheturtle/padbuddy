@@ -3,9 +3,10 @@
 //  coderpadTests
 //
 //  Unit coverage for the pure logic behind the per-pad evaluation layer (#591):
-//  emptiness, the comma-separated tag parser, and the Codable round-trip the local
-//  store persists. The store itself is a UserDefaults-backed singleton (UI glue), so
-//  these tests target the value type's behaviour rather than the store.
+//  emptiness, the comma-separated tag parser, the Codable round-trip the local store
+//  persists, and the iCloud last-writer-wins merge (#598). The store itself is a
+//  UserDefaults/iCloud-backed singleton (UI glue), so these tests target the value
+//  type's behaviour and the store's pure merge function rather than the store object.
 //
 
 @testable import CoderPad
@@ -51,5 +52,81 @@ struct PadEvaluationTests {
         let data = try JSONEncoder().encode(map)
         let decoded = try JSONDecoder().decode([String: PadEvaluation].self, from: data)
         #expect(decoded == map)
+    }
+}
+
+@MainActor
+@Suite("Pad evaluation iCloud merge")
+struct PadEvaluationMergeTests {
+    private let t0 = Date(timeIntervalSince1970: 1_000)
+    private let t1 = Date(timeIntervalSince1970: 2_000)
+
+    @Test("Cloud-only pads are added; neither device's pads are lost")
+    func additiveUnion() {
+        let local: [String: PadEvaluation] = ["mine": PadEvaluation(rating: 5)]
+        let cloud: [String: PadEvaluation] = ["theirs": PadEvaluation(rating: 3)]
+        let merged = PadEvaluationStore.merged(
+            cloudEvaluations: cloud,
+            cloudUpdatedAt: ["theirs": t0],
+            localEvaluations: local,
+            localUpdatedAt: ["mine": t0]
+        )
+        #expect(merged.evaluations == ["mine": PadEvaluation(rating: 5), "theirs": PadEvaluation(rating: 3)])
+        #expect(merged.updatedAt == ["mine": t0, "theirs": t0])
+    }
+
+    @Test("A newer cloud edit wins for a pad present on both sides")
+    func newerCloudWins() {
+        let merged = PadEvaluationStore.merged(
+            cloudEvaluations: ["p": PadEvaluation(rating: 4, notes: "cloud")],
+            cloudUpdatedAt: ["p": t1],
+            localEvaluations: ["p": PadEvaluation(rating: 2, notes: "local")],
+            localUpdatedAt: ["p": t0]
+        )
+        #expect(merged.evaluations["p"] == PadEvaluation(rating: 4, notes: "cloud"))
+        #expect(merged.updatedAt["p"] == t1)
+    }
+
+    @Test("An older or equal cloud edit does not overwrite the local one")
+    func staleCloudIgnored() {
+        let local: [String: PadEvaluation] = ["p": PadEvaluation(rating: 2, notes: "local")]
+        let mergedOlder = PadEvaluationStore.merged(
+            cloudEvaluations: ["p": PadEvaluation(rating: 4, notes: "cloud")],
+            cloudUpdatedAt: ["p": t0],
+            localEvaluations: local,
+            localUpdatedAt: ["p": t1]
+        )
+        #expect(mergedOlder.evaluations["p"] == PadEvaluation(rating: 2, notes: "local"))
+        #expect(mergedOlder.updatedAt["p"] == t1)
+
+        // Equal timestamps are a tie the local side keeps (cloud must be strictly newer).
+        let mergedEqual = PadEvaluationStore.merged(
+            cloudEvaluations: ["p": PadEvaluation(rating: 4, notes: "cloud")],
+            cloudUpdatedAt: ["p": t0],
+            localEvaluations: local,
+            localUpdatedAt: ["p": t0]
+        )
+        #expect(mergedEqual.evaluations["p"] == PadEvaluation(rating: 2, notes: "local"))
+    }
+
+    @Test("A missing timestamp is treated as the distant past")
+    func missingTimestampLosesToTimestamped() {
+        // Local has a real edit time; cloud lacks one, so local wins.
+        let mergedLocalWins = PadEvaluationStore.merged(
+            cloudEvaluations: ["p": PadEvaluation(rating: 4, notes: "cloud")],
+            cloudUpdatedAt: [:],
+            localEvaluations: ["p": PadEvaluation(rating: 2, notes: "local")],
+            localUpdatedAt: ["p": t0]
+        )
+        #expect(mergedLocalWins.evaluations["p"] == PadEvaluation(rating: 2, notes: "local"))
+
+        // Cloud has a real edit time; local lacks one, so cloud wins.
+        let mergedCloudWins = PadEvaluationStore.merged(
+            cloudEvaluations: ["p": PadEvaluation(rating: 4, notes: "cloud")],
+            cloudUpdatedAt: ["p": t0],
+            localEvaluations: ["p": PadEvaluation(rating: 2, notes: "local")],
+            localUpdatedAt: [:]
+        )
+        #expect(mergedCloudWins.evaluations["p"] == PadEvaluation(rating: 4, notes: "cloud"))
     }
 }

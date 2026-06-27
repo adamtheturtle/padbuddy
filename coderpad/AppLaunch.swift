@@ -46,6 +46,7 @@ enum AppLaunch {
         SavedSearchStore.shared.syncFromCloud()
         InterviewTemplatesStore.shared.syncFromCloud()
         PadOpenedStore.shared.syncFromCloud()
+        PadEvaluationStore.shared.syncFromCloud()
         PreferenceCloudSync.shared.start()
         // Keep the current account's pads fresh on a timer even when no window is open
         // and the menu is never clicked — the one state where nothing else fetches.
