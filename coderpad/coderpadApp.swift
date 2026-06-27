@@ -240,7 +240,11 @@ struct CoderpadApp: App {
                     handleDeepLink(url)
                 }
                 .provideAppSettingsAction()
-                .sheet(isPresented: Binding(
+                // A full-screen cover, not a `.sheet`: on iPad a sheet is a centered form
+                // sheet whose faint scrim let the parent's empty-state text and window
+                // chrome bleed around the card edges and read as broken (#577/#578). A
+                // full cover hides the background entirely; the Done button dismisses it.
+                .fullScreenCover(isPresented: Binding(
                     get: { SettingsPresentation.shared.isPresented },
                     set: { SettingsPresentation.shared.isPresented = $0 }
                 )) {
