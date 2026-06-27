@@ -363,7 +363,7 @@ struct PadCodeTests {
     @Test
     func `multi-file environments take precedence and carry filenames + ids`() {
         let pad: [String: Any] = ["title": "Interview", "contents": "legacy code", "language": "python"]
-        let env = PadEnvironment(id: 9, object: [
+        let env = PadCodeEnvironment(id: 9, object: [
             "language": "javascript",
             "file_contents": [
                 ["path": "index.js", "contents": "console.log(1)"],
