@@ -170,6 +170,10 @@ struct FavoriteStarButton: View {
                 .contentTransition(.symbolEffect(.replace))
         }
         .buttonStyle(.plain)
+        // The caption-size star is a ~15pt target tuned for a pointer; on iPad it's
+        // always shown (no hover) so it must also be comfortably tappable - give it a
+        // 44pt hit area on touch (no-op on macOS, #597).
+        .touchTarget()
         // macOS reveals the star on row hover to keep rows clean; iPad has no hover on
         // touch, so a non-favorite star would be invisible and un-tappable - always show it.
         #if os(macOS)

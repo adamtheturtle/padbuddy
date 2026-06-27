@@ -92,6 +92,10 @@ struct InlineEditableTitle: View {
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .opacity(showsPencil ? 1 : 0)
+                // The ~17pt pencil is shown persistently on iPad, so give it a 44pt hit
+                // area on touch (no-op on macOS, #597). Applied before the tap gesture so
+                // the enlarged frame is what registers the tap.
+                .touchTarget()
                 // The pencil is a hint, but clicking it should begin editing too, not
                 // just hovering the title (#472). Tap-to-focus mirrors the resting
                 // title overlay above.
