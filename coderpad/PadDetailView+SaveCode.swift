@@ -159,13 +159,7 @@ extension PadDetailView {
                     guard panel.runModal() == .OK, let directory = panel.url else { return }
 
                     let root = directory.appending(path: Self.sanitizeComponent(suggestedBaseName))
-                    let fileManager = FileManager.default
-                    for file in files {
-                        let destination = root.appending(path: file.relativePath)
-                        try fileManager.createDirectory(at: destination.deletingLastPathComponent(),
-                                                        withIntermediateDirectories: true)
-                        try file.contents.write(to: destination, atomically: true, encoding: .utf8)
-                    }
+                    try write(files, into: root)
                 }
             } catch {
                 mutateError = error.localizedDescription
@@ -190,6 +184,20 @@ extension PadDetailView {
             }
         #endif
     }
+
+    #if os(macOS)
+        /// Write each file into `root`, creating intermediate folders so the
+        /// pad's project structure survives.
+        private func write(_ files: [SavableFile], into root: URL) throws {
+            let fileManager = FileManager.default
+            for file in files {
+                let destination = root.appending(path: file.relativePath)
+                try fileManager.createDirectory(at: destination.deletingLastPathComponent(),
+                                                withIntermediateDirectories: true)
+                try file.contents.write(to: destination, atomically: true, encoding: .utf8)
+            }
+        }
+    #endif
 
     /// A file's path with each component made filesystem-safe, preserving the
     /// `/` separators so folder structure survives. Drops empty and `.`/`..`

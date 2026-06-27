@@ -40,6 +40,7 @@ enum WhatsNewContent {
                     image: .init(systemName: "bolt.horizontal"),
                     title: .init(String(localized: "Faster section switching")),
                     subtitle: .init(String(localized:
+                        // swiftlint:disable:next line_length
                         "Pads and Questions are cached per account, so switching sections shows your last data instantly while a background reload runs."))
                 ),
                 WhatsNew.Feature(

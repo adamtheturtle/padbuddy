@@ -112,7 +112,7 @@ enum DockBadge {
                     .map { ($0.id, $0.userEmail.canonicalOwnerEmail) },
                 uniquingKeysWith: { first, _ in first }
             )
-            let count = PadsCacheStore.shared.padsByAccount.reduce(0) { running, entry in
+            let activePadTotal = PadsCacheStore.shared.padsByAccount.reduce(0) { running, entry in
                 let (accountID, pads) = entry
                 guard let email = canonicalEmails[accountID] else { return running }
 
@@ -120,7 +120,7 @@ enum DockBadge {
                     $0.status == .active && $0.ownerEmail.canonicalOwnerEmail == email
                 })
             }
-            NSApp.dockTile.badgeLabel = count > 0 ? "\(count)" : nil
+            NSApp.dockTile.badgeLabel = activePadTotal > 0 ? "\(activePadTotal)" : nil
             // Force the tile to redraw. Setting `badgeLabel` alone doesn't always refresh a
             // tile that's already on screen, so the new count can otherwise go unshown.
             NSApp.dockTile.display()

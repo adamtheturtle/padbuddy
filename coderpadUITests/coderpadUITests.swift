@@ -97,31 +97,6 @@ final class CoderpadUITests: XCTestCase {
 
         let app = launchDemoApp()
 
-        func capture(_ name: String) {
-            let window = app.windows.firstMatch
-            let shot = window.exists ? window.screenshot() : app.screenshot()
-            let attachment = XCTAttachment(screenshot: shot)
-            attachment.name = name
-            attachment.lifetime = .keepAlways
-            add(attachment)
-        }
-
-        /// Click a row by title, re-querying right before the click so a transient
-        /// relayout (e.g. the one-shot window resize) can't leave us with a stale
-        /// element reference.
-        func clickRow(_ title: String) {
-            let element = row(title, in: app)
-            _ = element.waitForExistence(timeout: Self.listLoadTimeout)
-            // Wait until the layout has settled enough for the row to be hittable;
-            // the one-shot window resize can otherwise stale the element snapshot
-            // mid-click.
-            let deadline = Date().addingTimeInterval(5)
-            while !element.isHittable, Date() < deadline {
-                usleep(100_000)
-            }
-            element.click()
-        }
-
         // Pads paint on launch; wait for them, then give the window a beat to grow
         // to full size (`applicationDidBecomeActive` resizes it under `-uiTesting`).
         XCTAssertTrue(row("Onsite: Senior Backend Engineer", in: app).waitForExistence(timeout: Self.listLoadTimeout),
@@ -130,21 +105,21 @@ final class CoderpadUITests: XCTestCase {
 
         // Pads list with nothing selected: the sidebar + populated list before the
         // user picks anything — the "browse your pads" App Store shot (#62).
-        capture("pads-list")
+        captureScreenshot("pads-list", in: app)
 
         // Pads with a pad selected: the Mail-style three-column layout (sidebar +
         // list + populated detail) — the hero shot for #505.
-        clickRow("Onsite: Senior Backend Engineer")
+        clickRow("Onsite: Senior Backend Engineer", in: app)
         usleep(1_500_000) // let the detail pane settle
-        capture("pads-detail")
+        captureScreenshot("pads-detail", in: app)
 
         // Questions section with a question selected — a feature shot for #506.
         app.typeKey("2", modifierFlags: .command) // View ▸ Questions
         XCTAssertTrue(row("Two Sum", in: app).waitForExistence(timeout: Self.listLoadTimeout),
                       "A seeded demo question should appear after switching to Questions")
-        clickRow("Two Sum")
+        clickRow("Two Sum", in: app)
         usleep(1_500_000)
-        capture("questions-detail")
+        captureScreenshot("questions-detail", in: app)
 
         // Organization directory: the seeded team/member data renders each person's
         // name as static text, so wait on one before shooting — an org-overview App
@@ -153,7 +128,7 @@ final class CoderpadUITests: XCTestCase {
         XCTAssertTrue(row("Basil Fawlty", in: app).waitForExistence(timeout: Self.listLoadTimeout),
                       "A seeded demo org member should appear after switching to Organization")
         usleep(1_500_000)
-        capture("organization")
+        captureScreenshot("organization", in: app)
 
         // The website hero again, but with a larger Dynamic Type size so the UI text
         // is legible at the on-page size (replaces docs/assets/screenshot-pads). A
@@ -163,19 +138,38 @@ final class CoderpadUITests: XCTestCase {
         XCTAssertTrue(row("Onsite: Senior Backend Engineer", in: large).waitForExistence(timeout: Self.listLoadTimeout),
                       "The seeded pads should reload in the large-text launch")
         usleep(3_000_000)
-        let largeRow = row("Onsite: Senior Backend Engineer", in: large)
-        let largeDeadline = Date().addingTimeInterval(5)
-        while !largeRow.isHittable, Date() < largeDeadline {
-            usleep(100_000)
-        }
-        largeRow.click()
+        clickRow("Onsite: Senior Backend Engineer", in: large)
         usleep(1_500_000)
-        let window = large.windows.firstMatch
-        let shot = window.exists ? window.screenshot() : large.screenshot()
+        captureScreenshot("pads-detail-large", in: large)
+    }
+
+    /// Capture the frontmost window (falling back to the whole app) as a
+    /// keep-always screenshot attachment named `name`.
+    @MainActor
+    private func captureScreenshot(_ name: String, in app: XCUIApplication) {
+        let window = app.windows.firstMatch
+        let shot = window.exists ? window.screenshot() : app.screenshot()
         let attachment = XCTAttachment(screenshot: shot)
-        attachment.name = "pads-detail-large"
+        attachment.name = name
         attachment.lifetime = .keepAlways
         add(attachment)
+    }
+
+    /// Click a row by title, re-querying right before the click so a transient
+    /// relayout (e.g. the one-shot window resize) can't leave us with a stale
+    /// element reference.
+    @MainActor
+    private func clickRow(_ title: String, in app: XCUIApplication) {
+        let element = row(title, in: app)
+        _ = element.waitForExistence(timeout: Self.listLoadTimeout)
+        // Wait until the layout has settled enough for the row to be hittable;
+        // the one-shot window resize can otherwise stale the element snapshot
+        // mid-click.
+        let deadline = Date().addingTimeInterval(5)
+        while !element.isHittable, Date() < deadline {
+            usleep(100_000)
+        }
+        element.click()
     }
 
     /// App Store appearance shots (#62): the seeded pads-detail hero captured in both
@@ -199,8 +193,10 @@ final class CoderpadUITests: XCTestCase {
 
             // Pads paint on launch; wait for them, then let the one-shot window resize
             // (`applicationDidBecomeActive`) settle before capturing.
-            XCTAssertTrue(row("Onsite: Senior Backend Engineer", in: app).waitForExistence(timeout: Self.listLoadTimeout),
-                          "A seeded demo pad should appear once the list loads (\(appearance))")
+            XCTAssertTrue(
+                row("Onsite: Senior Backend Engineer", in: app).waitForExistence(timeout: Self.listLoadTimeout),
+                "A seeded demo pad should appear once the list loads (\(appearance))"
+            )
             usleep(3_000_000)
 
             // The shot is a whole-display grab, so the test app must be frontmost or

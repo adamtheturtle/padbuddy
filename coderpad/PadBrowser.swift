@@ -166,11 +166,11 @@ final class WebController: NSObject {
         /// request entirely and nothing appears. We create a real popup web view sharing
         /// the opener's configuration (so the `window.opener` postMessage handshake that
         /// completes the sign-in keeps working) and host it in its own window.
-        //
-        // This popup-to-NSWindow orchestration is deliberately macOS-only: it preserves
-        // the Google login popup flow. On iOS there is no NSWindow analog, so the
-        // platform-default behavior (return nil, which loads the request in the main
-        // web view in place) is used instead — see the `#else` conformance below.
+        ///
+        /// This popup-to-NSWindow orchestration is deliberately macOS-only: it preserves
+        /// the Google login popup flow. On iOS there is no NSWindow analog, so the
+        /// platform-default behavior (return nil, which loads the request in the main
+        /// web view in place) is used instead - see the `#else` conformance below.
         func webView(_: WKWebView,
                      createWebViewWith configuration: WKWebViewConfiguration,
                      for _: WKNavigationAction,
