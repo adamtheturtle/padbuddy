@@ -22,7 +22,7 @@ struct Sidebar: View {
     @State var padsCache = PadsCacheStore.shared
     @State private var quotaCache = QuotaCacheStore.shared
     @State var nav = AppNavigation.shared
-    /// Highlights the Favorite Pads / Favorite Questions section while an item is
+    /// Highlights the pad or question group of the Favorites section while an item is
     /// dragged over it, the Finder-style cue that dropping there will pin the item.
     @State var droppingFavoritePads = false
     @State var droppingFavoriteQuestions = false

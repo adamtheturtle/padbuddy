@@ -96,24 +96,27 @@ extension Sidebar {
         }
     }
 
-    /// Favourite pads and questions get their own headed sections (#346). An empty
-    /// section is hidden entirely at rest so it leaves no header or gap in the sidebar
-    /// (#440/#444) — an empty `List` section still reserves a minimum-height row, so
-    /// zeroing the inner spacer alone wasn't enough. It reappears (with its drop zone)
-    /// only while a favourite drag is in progress, so a row can still be dragged onto an
-    /// empty section to create the first favourite. Dropping pins the dragged item to the
-    /// account it came from (carried in the payload), which makes a drop in the combined
-    /// view land on the right account.
+    /// Favourite pads and questions share one headed "Favorites" section (#571): pads
+    /// list first, then questions, each row carrying its own kind glyph (a pad/document
+    /// vs a question bubble) instead of a single yellow star, so the kind is legible
+    /// without splitting the sidebar into two headers. Each kind's rows still render
+    /// only when that kind has favourites or a drag is in progress, so the section never
+    /// shows an empty pad or question group at rest; the whole section hides when neither
+    /// kind has anything and nothing is being dragged (#440/#444) — an empty `List` row
+    /// still reserves a minimum height, so gating each body keeps no resting gap. Each
+    /// body keeps its own drop zone, so a row dragged onto either kind pins to the
+    /// account it came from (carried in the payload), landing on the right account in
+    /// the combined view.
     @ViewBuilder
     var favoritesSection: some View {
-        if !favoritePadItems.isEmpty || favoriteDragMonitor.isDragging {
-            Section("Favorite Pads") {
-                favoritePadsBody(favoritePadItems).sidebarGroupRow()
-            }
-        }
-        if !favoriteItems.isEmpty || favoriteDragMonitor.isDragging {
-            Section("Favorite Questions") {
-                favoriteQuestionsBody(favoriteItems).sidebarGroupRow()
+        if !favoritePadItems.isEmpty || !favoriteItems.isEmpty || favoriteDragMonitor.isDragging {
+            Section("Favorites") {
+                if !favoritePadItems.isEmpty || favoriteDragMonitor.isDragging {
+                    favoritePadsBody(favoritePadItems).sidebarGroupRow()
+                }
+                if !favoriteItems.isEmpty || favoriteDragMonitor.isDragging {
+                    favoriteQuestionsBody(favoriteItems).sidebarGroupRow()
+                }
             }
         }
     }
@@ -130,7 +133,10 @@ extension Sidebar {
                     onReorder: { reorderPad($0, before: item) },
                     onAdd: { addDroppedFavorite($0, beforePad: item) },
                     row: {
-                        sidebarSubRow(label: item.title, icon: "star.fill", iconTint: .yellow) {
+                        // A document glyph marks the favourite as a pad — the same icon
+                        // the Pads section uses — so pads and questions read apart in the
+                        // combined Favorites section without a tinted star (#571).
+                        sidebarSubRow(label: item.title, icon: "doc.text") {
                             if item.account != nil {
                                 section = .pads
                                 MergedRouting.shared.selectFavoritePad(id: item.padID)
@@ -163,7 +169,10 @@ extension Sidebar {
                     onReorder: { reorderQuestion($0, before: item) },
                     onAdd: { addDroppedFavorite($0, beforeQuestion: item) },
                     row: {
-                        sidebarSubRow(label: item.title, icon: "star.fill", iconTint: .yellow) {
+                        // A question-bubble glyph marks the favourite as a question — the
+                        // same icon the Questions section uses — distinguishing it from a
+                        // favourite pad in the shared Favorites section (#571).
+                        sidebarSubRow(label: item.title, icon: "questionmark.bubble") {
                             if let account = item.account {
                                 // Merged view: switch to the combined questions list and let
                                 // it select the right account's row (per-org ids collide, so
