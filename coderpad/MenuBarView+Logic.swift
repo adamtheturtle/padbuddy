@@ -43,6 +43,23 @@ extension MenuBarView {
         return startedOnly ? mineOnly.filter { $0.status == .active } : mineOnly
     }
 
+    /// Pads with a live session in progress right now (#593), newest first. Drawn from
+    /// the same cached list the rest of the menu reads, so it costs nothing extra, and
+    /// filtered to the active lifecycle state. Unlike ``myPads`` this isn't scoped to
+    /// the signed-in user: an interview happening now is worth surfacing whoever owns it.
+    var activePads: [Pad] {
+        pads.filter { $0.status == .active }
+    }
+
+    /// Opens `pad` in the in-app browser window, bringing the app forward first so the
+    /// window appears even from a windowless menu-bar-only state.
+    func openPadBrowser(_ pad: Pad) {
+        guard let url = pad.webURL else { return }
+
+        AppActivator.bringToFront()
+        openWindow(id: "pad-browser", value: url)
+    }
+
     /// Questions for the "New Pad from Question" submenu, with favorites floated to
     /// the top (keeping the underlying most-recently-updated order within each
     /// group) so the user's starred questions lead the one-click pad list.

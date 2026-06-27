@@ -90,6 +90,8 @@ struct MenuBarView: View {
         return Group {
             statusItems
 
+            activeInterviewItems()
+
             newPadItems(account: account)
 
             Divider()
@@ -103,6 +105,31 @@ struct MenuBarView: View {
             Divider()
 
             helpAndQuitItems
+        }
+    }
+
+    /// A glanceable list of interviews that are live right now (#593), pinned near the
+    /// top of the menu so an in-progress session is the first thing you see. Hidden
+    /// entirely when nothing is active so the menu stays compact. Click-through opens
+    /// the pad in the in-app browser. Drawn from the same cached list as the rest of
+    /// the menu, so it adds no network work.
+    @ViewBuilder
+    private func activeInterviewItems() -> some View {
+        let live = activePads
+        if !live.isEmpty {
+            Text("Active Interviews")
+                .font(.caption).foregroundStyle(.secondary)
+            ForEach(live.prefix(topCount)) { pad in
+                Button {
+                    openPadBrowser(pad)
+                } label: {
+                    Label(padLabel(pad), systemImage: "dot.radiowaves.left.and.right")
+                }
+            }
+            if live.count > topCount {
+                Text("…\(live.count - topCount) more").foregroundStyle(.secondary)
+            }
+            Divider()
         }
     }
 
