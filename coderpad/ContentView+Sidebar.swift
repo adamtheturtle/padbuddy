@@ -157,7 +157,9 @@ struct Sidebar: View {
                 .padding(.vertical, 2)
                 .background(Color.secondary.opacity(0.15), in: Capsule())
         }
-        .font(.body)
+        // No explicit font: inherit the native sidebar row size, matching the section
+        // rows above and the favourites below (#572). The "Unlimited" capsule keeps its
+        // own smaller caption above.
         .padding(.vertical, 7)
         // The framework dims native list rows when the window isn't the active one;
         // this hand-built row paints its own `.secondary` colors that wouldn't follow,
@@ -191,7 +193,10 @@ struct Sidebar: View {
                     .accessibilityHidden(true)
                     .frame(width: 22)
                 Text(label)
-                    .font(.callout)
+                    // No explicit font: inherit the native sidebar row size so the
+                    // favourites / saved searches read as full navigation rows, equal
+                    // in weight to the top-level section rows (#572). Hierarchy is
+                    // carried by the section headers and selection highlight, not size.
                     .lineLimit(1)
                     .truncationMode(.tail)
                     .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
