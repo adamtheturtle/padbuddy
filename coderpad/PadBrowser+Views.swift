@@ -167,53 +167,14 @@ struct PadBrowserView: View {
     private var toolbar: some View {
         GlassCluster(spacing: 8) {
             HStack(spacing: 8) {
-                Button { controller.goBack() } label: {
-                    Image(systemName: "chevron.left")
-                }
-                .disabled(!controller.canGoBack)
-                .help("Back")
-                .accessibilityLabel("Back")
-
-                Button { controller.goForward() } label: {
-                    Image(systemName: "chevron.right")
-                }
-                .disabled(!controller.canGoForward)
-                .help("Forward")
-                .accessibilityLabel("Forward")
-
-                // Plain reload, with Option-click escalating to a no-cache hard refresh.
-                // A right-click menu and the ⇧⌘R shortcut below expose the same options
-                // for discoverability.
-                Button {
-                    #if os(macOS)
-                        // Option-click escalates to a no-cache hard refresh. There is no
-                        // iOS equivalent for reading the modifier on tap, so iPad gets the
-                        // plain reload (the context menu still exposes a hard refresh).
-                        if NSEvent.modifierFlags.contains(.option) {
-                            controller.hardReload()
-                        } else {
-                            controller.reload()
-                        }
-                    #else
-                        controller.reload()
-                    #endif
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                }
-                .help("Reload (hold ⌥ to reload without cache)")
-                .accessibilityLabel("Reload page")
-                .contextMenu {
-                    Button("Reload") { controller.reload() }
-                    Button("Reload Without Cache") { controller.hardReload() }
-                    Divider()
-                    Button("Clear Session (Log Out)") { controller.clearSession() }
-                }
-
-                Button { controller.clearSession() } label: {
-                    Image(systemName: "person.crop.circle.badge.xmark")
-                }
-                .help("Clear session: log out of the Pad by clearing cookies and storage")
-                .accessibilityLabel("Clear session and log out")
+                backButton
+                forwardButton
+                reloadButton
+                // macOS keeps Clear Session inline; on iPad it moves to the trailing
+                // overflow menu so the narrow detail-column bar isn't crowded.
+                #if os(macOS)
+                    clearSessionButton
+                #endif
 
                 if controller.isLoading {
                     ProgressView().controlSize(.small)
@@ -223,38 +184,18 @@ struct PadBrowserView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .layoutPriority(0)
 
-                // Native Passwords/iCloud Keychain autofill can't appear in an embedded
-                // WKWebView, so offer manual help: open the Passwords app to look up and
-                // copy a login to paste into the field.
-                Button { BrowserSettings.openPasswordsApp() } label: {
-                    Image(systemName: "key.fill")
-                }
-                .help("Open the Passwords app to look up and copy a login")
-                .accessibilityLabel("Open Passwords")
-
-                Button {
-                    BrowserSettings.openExternally(controller.currentURL ?? url)
-                } label: {
-                    // Show the full label in the wide standalone Pad Browser window, but
-                    // collapse to the icon alone when embedded in the narrower detail
-                    // column so this and the trailing Copy button aren't clipped off the
-                    // right edge.
-                    ViewThatFits(in: .horizontal) {
-                        Label("Open in Browser", systemImage: "safari")
-                            .fixedSize()
-                        Image(systemName: "safari")
-                    }
-                }
-                .help("Open the current page in your default browser")
-                .accessibilityLabel("Open in Browser")
-
-                Button {
-                    Clipboard.copy((controller.currentURL ?? url).absoluteString)
-                } label: {
-                    Image(systemName: "doc.on.doc")
-                }
-                .help("Copy URL")
-                .accessibilityLabel("Copy URL")
+                // The secondary actions (Passwords, Open in Browser, Copy URL — plus
+                // Clear Session and a hard reload) stay as their own buttons in the wide
+                // macOS window, but collapse into a single ellipsis menu on iPad, where
+                // the detail column is too narrow to hold seven icons and the URL. This
+                // is the standard Safari-on-iPad compact layout.
+                #if os(macOS)
+                    passwordsButton
+                    openExternalButton
+                    copyURLButton
+                #else
+                    overflowMenu
+                #endif
             }
             // Each control becomes its own Liquid Glass element on macOS 26, blending
             // and morphing as a cluster via the enclosing GlassCluster. The bar itself
@@ -276,6 +217,128 @@ struct PadBrowserView: View {
             }
             .hidden()
         }
+    }
+
+    private var backButton: some View {
+        Button { controller.goBack() } label: {
+            Image(systemName: "chevron.left")
+        }
+        .disabled(!controller.canGoBack)
+        .help("Back")
+        .accessibilityLabel("Back")
+    }
+
+    private var forwardButton: some View {
+        Button { controller.goForward() } label: {
+            Image(systemName: "chevron.right")
+        }
+        .disabled(!controller.canGoForward)
+        .help("Forward")
+        .accessibilityLabel("Forward")
+    }
+
+    /// Plain reload, with Option-click escalating to a no-cache hard refresh on macOS.
+    /// A right-click/long-press menu and the ⇧⌘R shortcut expose the same options.
+    private var reloadButton: some View {
+        Button {
+            #if os(macOS)
+                // Option-click escalates to a no-cache hard refresh. There is no
+                // iOS equivalent for reading the modifier on tap, so iPad gets the
+                // plain reload (the context menu still exposes a hard refresh).
+                if NSEvent.modifierFlags.contains(.option) {
+                    controller.hardReload()
+                } else {
+                    controller.reload()
+                }
+            #else
+                controller.reload()
+            #endif
+        } label: {
+            Image(systemName: "arrow.clockwise")
+        }
+        .help("Reload (hold ⌥ to reload without cache)")
+        .accessibilityLabel("Reload page")
+        .contextMenu {
+            Button("Reload") { controller.reload() }
+            Button("Reload Without Cache") { controller.hardReload() }
+            Divider()
+            Button("Clear Session (Log Out)") { controller.clearSession() }
+        }
+    }
+
+    private var clearSessionButton: some View {
+        Button { controller.clearSession() } label: {
+            Image(systemName: "person.crop.circle.badge.xmark")
+        }
+        .help("Clear session: log out of the Pad by clearing cookies and storage")
+        .accessibilityLabel("Clear session and log out")
+    }
+
+    /// Native Passwords/iCloud Keychain autofill can't appear in an embedded
+    /// WKWebView, so offer manual help: open the Passwords app to look up and
+    /// copy a login to paste into the field.
+    private var passwordsButton: some View {
+        Button { BrowserSettings.openPasswordsApp() } label: {
+            Image(systemName: "key.fill")
+        }
+        .help("Open the Passwords app to look up and copy a login")
+        .accessibilityLabel("Open Passwords")
+    }
+
+    private var openExternalButton: some View {
+        Button {
+            BrowserSettings.openExternally(controller.currentURL ?? url)
+        } label: {
+            // Show the full label in the wide standalone Pad Browser window, but
+            // collapse to the icon alone when embedded in the narrower detail
+            // column so this and the trailing Copy button aren't clipped off the
+            // right edge.
+            ViewThatFits(in: .horizontal) {
+                Label("Open in Browser", systemImage: "safari")
+                    .fixedSize()
+                Image(systemName: "safari")
+            }
+        }
+        .help("Open the current page in your default browser")
+        .accessibilityLabel("Open in Browser")
+    }
+
+    private var copyURLButton: some View {
+        Button {
+            Clipboard.copy((controller.currentURL ?? url).absoluteString)
+        } label: {
+            Image(systemName: "doc.on.doc")
+        }
+        .help("Copy URL")
+        .accessibilityLabel("Copy URL")
+    }
+
+    /// iPad-only: the secondary browser actions folded into one trailing menu, so the
+    /// narrow detail-column toolbar shows just Back/Forward/Reload, the address, and
+    /// this ellipsis — the Safari-on-iPad layout — instead of clipping seven icons.
+    private var overflowMenu: some View {
+        Menu {
+            Button { BrowserSettings.openExternally(controller.currentURL ?? url) } label: {
+                Label("Open in Browser", systemImage: "safari")
+            }
+            Button { Clipboard.copy((controller.currentURL ?? url).absoluteString) } label: {
+                Label("Copy URL", systemImage: "doc.on.doc")
+            }
+            Button { BrowserSettings.openPasswordsApp() } label: {
+                Label("Passwords", systemImage: "key.fill")
+            }
+            Divider()
+            Button { controller.hardReload() } label: {
+                Label("Reload Without Cache", systemImage: "arrow.clockwise")
+            }
+            Button(role: .destructive) { controller.clearSession() } label: {
+                Label("Clear Session (Log Out)", systemImage: "person.crop.circle.badge.xmark")
+            }
+        } label: {
+            Image(systemName: "ellipsis.circle")
+        }
+        .help("More browser actions")
+        .accessibilityLabel("More browser actions")
     }
 
     private var urlLabel: some View {
