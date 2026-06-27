@@ -18,6 +18,10 @@ packages:
     path: ../buddy-kit
   FastList:
     path: ../FastList
+  CoderPadKit:
+    path: ../CoderPadKit
+  CommandPaletteKit:
+    path: ../CommandPaletteKit
   CoderPadToolCore:
     path: CoderPadToolCore
   mcp-swift-sdk:
@@ -26,6 +30,9 @@ packages:
   Highlightr:
     url: https://github.com/raspu/Highlightr
     exactVersion: 2.3.0
+  WhatsNewKit:
+    url: https://github.com/SvenTiigi/WhatsNewKit.git
+    exactVersion: 2.2.1
 targets:
   PadBuddyiPad:
     type: application
@@ -61,15 +68,23 @@ targets:
       - package: buddy-kit
         product: BuddyAppKit
       - package: buddy-kit
-        product: PaginatedRESTClient
+        product: BuddyMCP
       - package: FastList
         product: FastList
+      - package: CoderPadKit
+        product: CoderPadKit
+      - package: CoderPadKit
+        product: CoderPadKitMock
+      - package: CommandPaletteKit
+        product: CommandPaletteKit
       - package: CoderPadToolCore
         product: CoderPadToolCore
       - package: mcp-swift-sdk
         product: MCP
       - package: Highlightr
         product: Highlightr
+      - package: WhatsNewKit
+        product: WhatsNewKit
   PadBuddyiPadUITests:
     type: bundle.ui-testing
     platform: iOS

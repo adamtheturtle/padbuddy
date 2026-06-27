@@ -250,6 +250,33 @@ struct CoderpadApp: App {
         .commands {
             IPadCommands()
         }
+
+        iOSPadBrowserScene
+    }
+
+    /// A pad opened in its own window on iPad — the multi-window counterpart to the
+    /// detail browser's "Open in separate window" button. With Stage Manager or Split
+    /// View this places the pad's live web view in a second window beside the main one;
+    /// it is keyed by URL so the system can restore it. Mirrors the macOS
+    /// ``padBrowserScene`` (#292/#354) within iPad's single-`WindowGroup` model.
+    private var iOSPadBrowserScene: some Scene {
+        // swiftformat:disable:next unusedArguments
+        WindowGroup("Pad", id: "pad-browser", for: URL.self) { $url in
+            if let url {
+                NavigationStack {
+                    PadBrowserView(url: url)
+                        .navigationTitle(url.host ?? "Pad")
+                        .navigationBarTitleDisplayMode(.inline)
+                }
+                .preferredColorScheme(appearance.colorScheme)
+            } else {
+                // A restored window can arrive without its URL; show a placeholder
+                // rather than a blank window.
+                ContentUnavailableView("No Pad", systemImage: "rectangle.on.rectangle",
+                                       description: Text("Open a pad to view it here."))
+                    .preferredColorScheme(appearance.colorScheme)
+            }
+        }
     }
 
     /// The iPad in-app Settings sheet (there is no macOS-style `Settings` scene on iOS).

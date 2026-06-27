@@ -66,21 +66,59 @@ final class PadBuddyiPadUITests: XCTestCase {
         add(shot)
     }
 
-    /// The favorite star is visible and tappable on iPad (it is not hover-gated there).
-    func testFavoriteStarIsTappable() throws {
+    /// The detail pane's "Document Actions" overflow menu exposes Print, Export as
+    /// Markdown, and Save Code on iPad (the File-menu commands have no menu bar there).
+    func testDocumentActionsMenu() throws {
         let app = launchSeeded()
 
         let firstPadTitle = app.staticTexts["Pairing: React Performance"]
         XCTAssertTrue(firstPadTitle.waitForExistence(timeout: 12))
+        firstPadTitle.tap()
 
-        // The star buttons carry an accessibility label of the form "Add <title> to Favorites".
-        let star = app.buttons["Add Pairing: React Performance to Favorites"]
+        let menu = app.buttons["Document Actions"]
+        XCTAssertTrue(menu.waitForExistence(timeout: 10),
+                      "The detail pane should offer a Document Actions menu on iPad.")
+        menu.tap()
+
+        for item in ["Print", "Export as Markdown", "Save Code"] {
+            XCTAssertTrue(app.buttons[item].waitForExistence(timeout: 5),
+                          "The Document Actions menu should contain '\(item)'.")
+        }
+
+        let shot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        shot.name = "document-actions-menu"
+        shot.lifetime = .keepAlways
+        add(shot)
+
+        // Dismiss the menu by tapping outside it, rather than invoking an action — the
+        // export/print actions present a system sheet (a separate process) that would
+        // linger over the app and pollute later tests. The export itself is verified by
+        // its own staging logic and a manual run.
+        app.tap()
+    }
+
+    /// The favorite star is visible and tappable on iPad (it is not hover-gated there).
+    func testFavoriteStarIsTappable() throws {
+        let app = launchSeeded()
+
+        let padTitle = "Pairing: React Performance"
+        XCTAssertTrue(app.staticTexts[padTitle].waitForExistence(timeout: 12))
+
+        // The star's accessibility label embeds the pad title — "Add <title> to
+        // Favorites" or, in toggled form, "Remove <title> from Favorites". Match by the
+        // title substring so the assertion is independent of region spelling
+        // (the catalog localizes "Favorites" to "Favourites" in en-GB, for example).
+        let star = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@ AND label BEGINSWITH[c] %@", padTitle, "Add")
+        ).firstMatch
         XCTAssertTrue(star.waitForExistence(timeout: 5),
                       "The favorite star should be visible/hittable on iPad.")
         star.tap()
 
         // After tapping, the label flips to the "Remove ..." form.
-        let unstar = app.buttons["Remove Pairing: React Performance from Favorites"]
+        let unstar = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS[c] %@ AND label BEGINSWITH[c] %@", padTitle, "Remove")
+        ).firstMatch
         XCTAssertTrue(unstar.waitForExistence(timeout: 5),
                       "Tapping the star should toggle the favorite state.")
     }

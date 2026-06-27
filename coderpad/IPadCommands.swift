@@ -14,6 +14,8 @@
 
     struct IPadCommands: Commands {
         @FocusedValue(\.findAction) private var findAction
+        @FocusedValue(\.printAction) private var printAction
+        @FocusedValue(\.exportMarkdownAction) private var exportMarkdownAction
 
         var body: some Commands {
             CommandGroup(replacing: .newItem) {
@@ -32,6 +34,19 @@
                 Button("Find") { findAction?.perform() }
                     .keyboardShortcut("f", modifiers: [.command])
                     .disabled(findAction == nil)
+            }
+
+            // The focused pad detail's document actions, mirroring the on-screen
+            // "Document Actions" toolbar menu so hardware-keyboard users get ⌘P / ⇧⌘E
+            // (and can discover them by holding ⌘). Both disable when no pad is frontmost.
+            CommandGroup(replacing: .printItem) {
+                Button("Print…") { printAction?.perform() }
+                    .keyboardShortcut("p", modifiers: [.command])
+                    .disabled(printAction == nil)
+
+                Button("Export as Markdown…") { exportMarkdownAction?.perform() }
+                    .keyboardShortcut("e", modifiers: [.command, .shift])
+                    .disabled(exportMarkdownAction == nil)
             }
 
             CommandMenu("Go") {

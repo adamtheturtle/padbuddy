@@ -7,6 +7,7 @@
     import AppKit
 #else
     import UIKit
+    import UniformTypeIdentifiers
 #endif
 import SwiftUI
 
@@ -34,6 +35,11 @@ struct PadDetailView: View {
     @State private var showDeleteConfirm = false
     @State private var isMutating = false
     @State var mutateError: String?
+    #if !os(macOS)
+        /// The document staged for the iPad's `.fileExporter` (Save Code / Export Markdown).
+        /// `nil` dismisses the export sheet.
+        @State var pendingExport: PadExportDocument?
+    #endif
     @State private var nav = AppNavigation.shared
     @Environment(\.openWindow) private var openWindow
     @Environment(\.orgDirectory) var directory
@@ -133,6 +139,26 @@ struct PadDetailView: View {
             .disabled(isMutating || isReadOnly)
             .help("Delete this pad")
         }
+        #if !os(macOS)
+            // iPad has no menu bar, so the File-menu document actions (Print, Export as
+            // Markdown, Save Code) live in a detail-pane overflow menu instead.
+            ToolbarItem(id: "documents", placement: .primaryAction) {
+                Menu {
+                    Button { printPadDocument() } label: {
+                        Label("Print", systemImage: "printer")
+                    }
+                    Button { exportMarkdown() } label: {
+                        Label("Export as Markdown", systemImage: "doc.richtext")
+                    }
+                    Button { saveCodeLocally() } label: {
+                        Label("Save Code", systemImage: "square.and.arrow.down")
+                    }
+                    .disabled(!hasSavableCode)
+                } label: {
+                    Label("Document Actions", systemImage: "ellipsis.circle")
+                }
+            }
+        #endif
         // Opt-in only: hidden by default in the customizable toolbar so it
         // doesn't crowd the common case, but available to add for users who end
         // interviews often. Routes through the same confirmation as the Pad menu.
@@ -185,7 +211,11 @@ struct PadDetailView: View {
             Button {
                 openWindow(id: "pad-browser", value: url)
             } label: {
-                Image(systemName: "macwindow.badge.plus")
+                #if os(macOS)
+                    Image(systemName: "macwindow.badge.plus")
+                #else
+                    Image(systemName: "rectangle.badge.plus")
+                #endif
             }
             .help("Open in separate window")
             .buttonStyle(.borderless)
@@ -201,9 +231,7 @@ struct PadDetailView: View {
             // Publish a print rendering so File ▸ Print (⌘P) can produce a hard copy
             // or PDF of the pad's summary and code (whatever has loaded so far).
             .focusedSceneValue(\.printAction, PrintAction(id: "pad-\(pad.id)") {
-                printDocument(PadPrintDocument(pad: pad, files: printFiles(),
-                                               displayName: directory.display),
-                              jobTitle: pad.title.isEmpty ? pad.id : pad.title)
+                printPadDocument()
             })
             // Publish a Markdown export action so File ▸ Export as Markdown… can write the
             // pad's summary and code to a .md file (#524).
@@ -233,6 +261,20 @@ struct PadDetailView: View {
             } message: {
                 Text(mutateError ?? "")
             }
+            #if !os(macOS)
+            .fileExporter(
+                isPresented: .init(get: { pendingExport != nil },
+                                   set: { if !$0 { pendingExport = nil } }),
+                document: pendingExport,
+                contentType: pendingExport?.contentType ?? .plainText,
+                defaultFilename: pendingExport?.defaultName
+            ) { result in
+                if case let .failure(error) = result {
+                    mutateError = error.localizedDescription
+                }
+                pendingExport = nil
+            }
+            #endif
     }
 
     /// Wires the Pad menu commands (Edit, End, Delete, Watch, Save Code), which

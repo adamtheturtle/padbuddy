@@ -7,6 +7,7 @@
     import AppKit
 #else
     import UIKit
+    import UniformTypeIdentifiers
 #endif
 import SwiftUI
 
@@ -83,18 +84,29 @@ extension PadDetailView {
         return result
     }
 
-    /// Prompts for a destination and writes the pad as a single Markdown document — its
-    /// summary plus each code file in a fenced block (#524). The PDF half of "export" is
-    /// already covered by File ▸ Print's "Save as PDF".
-    func exportMarkdown() {
-        #if os(macOS)
-            let name = pad.title.isEmpty ? pad.id : pad.title
-            let document = padMarkdownDocument(
-                title: name,
-                summary: padSummaryRows(pad, displayName: directory.display),
-                files: printFiles()
-            )
+    /// Renders the pad as a single Markdown document — its summary plus each code file in a
+    /// fenced block (#524) — and routes the title and metadata through a hard copy on
+    /// macOS's `File ▸ Print` "Save as PDF". Shared by both platforms' export entry points.
+    func printPadDocument() {
+        printDocument(
+            PadPrintDocument(pad: pad, files: printFiles(), displayName: directory.display),
+            jobTitle: pad.title.isEmpty ? pad.id : pad.title
+        )
+    }
 
+    /// Writes the pad as a single Markdown document — its summary plus each code file in a
+    /// fenced block (#524). On macOS this prompts with an `NSSavePanel`; on iOS it stages a
+    /// document for `.fileExporter`. The PDF half of "export" is covered by Print's
+    /// "Save as PDF".
+    func exportMarkdown() {
+        let name = pad.title.isEmpty ? pad.id : pad.title
+        let document = padMarkdownDocument(
+            title: name,
+            summary: padSummaryRows(pad, displayName: directory.display),
+            files: printFiles()
+        )
+
+        #if os(macOS)
             let panel = NSSavePanel()
             panel.canCreateDirectories = true
             panel.nameFieldStringValue = "\(name).md"
@@ -107,7 +119,11 @@ extension PadDetailView {
                 mutateError = error.localizedDescription
             }
         #else
-            // TODO: iPad via .fileExporter/.fileImporter
+            pendingExport = PadExportDocument(
+                text: document,
+                contentType: .plainText,
+                defaultName: "\(Self.sanitizeComponent(name)).md"
+            )
         #endif
     }
 
@@ -116,13 +132,13 @@ extension PadDetailView {
     /// chooser, then write into a subfolder named after the pad with their
     /// project structure intact.
     func saveCodeLocally() {
-        #if os(macOS)
-            let files = savableFiles()
-            guard !files.isEmpty else {
-                mutateError = "This pad has no code to save."
-                return
-            }
+        let files = savableFiles()
+        guard !files.isEmpty else {
+            mutateError = "This pad has no code to save."
+            return
+        }
 
+        #if os(macOS)
             do {
                 if files.count == 1 {
                     let panel = NSSavePanel()
@@ -155,7 +171,23 @@ extension PadDetailView {
                 mutateError = error.localizedDescription
             }
         #else
-            // TODO: iPad via .fileExporter/.fileImporter
+            // A single file exports as a plain document the user names; several files
+            // export as a `.zip` named after the pad, with each file's project structure
+            // preserved inside — mirroring the macOS save-panel / open-panel split.
+            if files.count == 1 {
+                pendingExport = PadExportDocument(
+                    text: files[0].contents,
+                    contentType: .plainText,
+                    defaultName: URL(fileURLWithPath: files[0].relativePath).lastPathComponent
+                )
+            } else if let archive = PadExportDocument(
+                zipName: Self.sanitizeComponent(suggestedBaseName),
+                files: files.map { ($0.relativePath, $0.contents) }
+            ) {
+                pendingExport = archive
+            } else {
+                mutateError = "Could not prepare the pad's files for export."
+            }
         #endif
     }
 
@@ -225,3 +257,80 @@ extension FocusedValues {
     /// pad detail is frontmost.
     @Entry var padHasSavableCode: Bool?
 }
+
+#if !os(macOS)
+    /// A staged export for the iPad's `.fileExporter`, always a single file: a one-file
+    /// pad (or the Markdown export) exports as plain text the user names; a multi-file pad
+    /// exports as a `.zip` whose entries preserve the pad's project folder structure.
+    ///
+    /// A single file (rather than a directory `FileWrapper`) is deliberate: SwiftUI's
+    /// `.fileExporter` writes a directory document to a same-named temporary path and
+    /// throws "a file with the same name already exists" when a prior export of the same
+    /// pad lingers there. Zipping keeps every export on the robust single-file path.
+    struct PadExportDocument: FileDocument {
+        static var readableContentTypes: [UTType] { [] }
+        static var writableContentTypes: [UTType] { [.plainText, .zip] }
+
+        /// The content type handed to `.fileExporter` — `.plainText` for a single file,
+        /// `.zip` for a multi-file pad.
+        let contentType: UTType
+        /// The default name the export sheet pre-fills (including the extension).
+        let defaultName: String
+        private let data: Data
+
+        /// A single text file the user names in the export sheet.
+        init(text: String, contentType: UTType, defaultName: String) {
+            self.contentType = contentType
+            self.defaultName = defaultName
+            data = Data(text.utf8)
+        }
+
+        /// A multi-file pad zipped into one archive named after the pad, each file at its
+        /// relative path (e.g. `src/main.rs`) so the project structure survives. Returns
+        /// `nil` if the archive can't be built (the caller surfaces an error).
+        init?(zipName: String, files: [(path: String, contents: String)]) {
+            guard let archive = Self.zipData(folderName: zipName, files: files) else { return nil }
+            contentType = .zip
+            defaultName = "\(zipName).zip"
+            data = archive
+        }
+
+        init(configuration: ReadConfiguration) throws {
+            throw CocoaError(.featureUnsupported)
+        }
+
+        func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+            FileWrapper(regularFileWithContents: data)
+        }
+
+        /// Writes the files into a uniquely-named temporary folder, then uses
+        /// `NSFileCoordinator`'s `.forUploading` option (Foundation's built-in zip) to
+        /// archive it, returning the archive bytes. Cleans up the scratch directory.
+        private static func zipData(folderName: String,
+                                    files: [(path: String, contents: String)]) -> Data? {
+            let fileManager = FileManager.default
+            let scratch = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            let folder = scratch.appendingPathComponent(folderName)
+            defer { try? fileManager.removeItem(at: scratch) }
+
+            do {
+                for file in files {
+                    let destination = folder.appending(path: file.path)
+                    try fileManager.createDirectory(at: destination.deletingLastPathComponent(),
+                                                    withIntermediateDirectories: true)
+                    try Data(file.contents.utf8).write(to: destination)
+                }
+            } catch {
+                return nil
+            }
+
+            var archive: Data?
+            var coordinationError: NSError?
+            NSFileCoordinator().coordinate(readingItemAt: folder, options: .forUploading,
+                                           error: &coordinationError) { zippedURL in
+                archive = try? Data(contentsOf: zippedURL)
+            }
+            return archive
+        }
+    }
+#endif
