@@ -23,6 +23,17 @@ struct PadEvaluation: Codable, Equatable {
     var isEmpty: Bool {
         rating == 0 && notes.isEmpty && tags.isEmpty
     }
+
+    /// Splits a comma-separated tag string into clean tags: trimmed, non-empty, and
+    /// de-duplicated case-insensitively while preserving the order they were typed.
+    /// Shared by the editor (live preview + save) so both agree on the stored form.
+    static func parseTags(from text: String) -> [String] {
+        var seen = Set<String>()
+        return text
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty && seen.insert($0.lowercased()).inserted }
+    }
 }
 
 @MainActor

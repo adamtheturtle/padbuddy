@@ -83,11 +83,7 @@ struct PadEvaluationCard: View {
     /// The tags as the store will persist them: trimmed, non-empty, de-duplicated while
     /// keeping the order the user typed them in.
     private var parsedTags: [String] {
-        var seen = Set<String>()
-        return tagsText
-            .split(separator: ",")
-            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty && seen.insert($0.lowercased()).inserted }
+        PadEvaluation.parseTags(from: tagsText)
     }
 
     // MARK: - Notes
