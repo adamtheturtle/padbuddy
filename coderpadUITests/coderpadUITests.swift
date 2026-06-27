@@ -133,14 +133,18 @@ final class CoderpadUITests: XCTestCase {
         // The website hero again, but with a larger Dynamic Type size so the UI text
         // is legible at the on-page size (replaces docs/assets/screenshot-pads). A
         // fresh launch is needed because Dynamic Type is fixed at the window's launch.
+        //
+        // Capture the populated Pads list rather than clicking into a pad's detail:
+        // under accessibility1 the larger text drops the split view's list column out
+        // of the hit-testable hierarchy after the one-shot window resize, so the row
+        // click is unreliable here (the dark detail shot already covers the detail
+        // layout). Same click-free rationale as testCaptureAppStoreLightDark.
         app.terminate()
         let large = launchDemoApp(textSize: "accessibility1")
         XCTAssertTrue(row("Onsite: Senior Backend Engineer", in: large).waitForExistence(timeout: Self.listLoadTimeout),
                       "The seeded pads should reload in the large-text launch")
         usleep(3_000_000)
-        clickRow("Onsite: Senior Backend Engineer", in: large)
-        usleep(1_500_000)
-        captureScreenshot("pads-detail-large", in: large)
+        captureScreenshot("pads-list-large", in: large)
     }
 
     /// Capture the frontmost window (falling back to the whole app) as a
