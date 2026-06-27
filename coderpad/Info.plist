@@ -17,6 +17,13 @@
 	     XPC service (paired with the -spks/-spki mach-lookup entitlements). -->
 	<key>SUEnableInstallerLauncherService</key>
 	<true/>
+	<!-- Custom NSUserActivity types the app advertises (#596). Handoff / Spotlight /
+	     Siri prediction of the active pad is silently ignored unless its type is
+	     declared here. See PadHandoff.swift. -->
+	<key>NSUserActivityTypes</key>
+	<array>
+		<string>com.adamdangoor.padbuddy.viewing-pad</string>
+	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

@@ -49,6 +49,13 @@
                             AppNavigation.shared.showFavoriteQuestion(id: ref.id)
                         }
                     }
+                    // Resume a pad handed off from another device / Siri Suggestion (#596),
+                    // reopening it in the in-app browser window the rest of the app uses.
+                    .onContinueUserActivity(PadActivity.type) { activity in
+                        if let url = padActivityURL(activity) {
+                            AppRouter.requestOpenPadInBrowser(url)
+                        }
+                    }
                     // Open a pad tapped in the Recent Pads widget (coderpad://pad/<id>).
                     .onOpenURL { url in
                         handleDeepLink(url)

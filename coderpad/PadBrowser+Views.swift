@@ -117,6 +117,10 @@ struct PadBrowserView: View {
                     }
                 }
         }
+        // Advertise the live pad for Handoff / Spotlight / Siri (#596). Track the
+        // web view's in-page navigation so the activity always reflects the URL the
+        // user is actually looking at, not just the one it opened with.
+        .advertisesPadActivity(url: controller.currentURL ?? url, title: controller.pageTitle)
         // No minimum size here: when embedded in the detail pane this view must fit
         // the (narrower) column, otherwise a 900pt floor pushes the toolbar wider
         // than the column and clips its trailing controls. The standalone Pad Browser

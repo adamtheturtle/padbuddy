@@ -34,6 +34,10 @@ final class WebController: NSObject {
     /// a blank web view. Cleared the moment a new navigation starts or one succeeds.
     var loadFailure: String?
 
+    /// The loaded page's `<title>`, used to label the Handoff/Spotlight activity (#596).
+    /// `nil` until the page reports one.
+    var pageTitle: String?
+
     private(set) var webView: WKWebView?
 
     private var observers: [NSKeyValueObservation] = []
@@ -95,6 +99,10 @@ final class WebController: NSObject {
                 // would do it too, but both linters wrongly flag that as redundant.)
                 let value = change.newValue.flatMap(\.self)
                 Task { @MainActor in self?.currentURL = value }
+            },
+            webView.observe(\.title, options: [.initial, .new]) { [weak self] _, change in
+                let value = change.newValue.flatMap(\.self)
+                Task { @MainActor in self?.pageTitle = value }
             }
         ]
     }
