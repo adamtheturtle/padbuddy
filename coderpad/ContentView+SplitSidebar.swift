@@ -39,6 +39,21 @@ extension MainSplit {
         sectionHasDetail ? collapsedFloor : Self.detailMinWidth
     }
 
+    /// The minimum width pinned on the split's frame. On macOS it's the honest drag
+    /// floor (``windowMinWidth``), dropped to `nil` once the OS squeezes the window below
+    /// it (``isBelowWindowFloor``) so the split compresses instead of overflowing. On iPad
+    /// it's always `nil`: there's no `NSWindow.contentMinSize` to back up a floor and the
+    /// ``WindowMinWidth`` width reporter is a no-op there, so `isBelowWindowFloor` can never
+    /// trip to release a pinned floor — leaving a forced `minWidth` to overflow (and clip
+    /// the leading column of) any window narrower than it.
+    var windowFloorMinWidth: CGFloat? {
+        #if os(macOS)
+            isBelowWindowFloor ? nil : windowMinWidth
+        #else
+            nil
+        #endif
+    }
+
     /// True when the OS has forced the window narrower than its honest drag floor
     /// (``windowMinWidth``) — only reachable via Split View, tiling, Stage Manager, or a
     /// small/scaled display, since the `NSWindow`'s `contentMinSize` stops a free drag at

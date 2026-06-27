@@ -50,8 +50,14 @@ extension MainSplit {
             // `maxWidth: .infinity` + `.leading` pins the split's leading edge to the
             // window so the residual overflow falls off the *trailing* (detail) edge —
             // keeping the list and filter bar readable instead of bleeding off the left.
-            .frame(minWidth: isBelowWindowFloor ? nil : windowMinWidth,
-                   maxWidth: .infinity, alignment: .leading)
+            // iPad gets no floor: there's no `NSWindow.contentMinSize` to honor, and the
+            // `WindowMinWidth` width reporter is a no-op on iOS, so `containerWidth` stays
+            // 0 and `isBelowWindowFloor` never trips. A forced `minWidth` there would stay
+            // pinned even when the window is narrower (portrait on a small iPad, Split View,
+            // Stage Manager, Slide Over) — making the split wider than the window, which
+            // SwiftUI centers, clipping the leading column's first characters off the edge.
+            // Letting the iPad split take the window's true width keeps it inside the bounds.
+            .frame(minWidth: windowFloorMinWidth, maxWidth: .infinity, alignment: .leading)
             // Pin the drag floor on the host window itself, since `.frame(minWidth:)`
             // alone doesn't reliably reach the window's `contentMinSize` from inside a
             // NavigationSplitView. This view also reports the window's *true* content
