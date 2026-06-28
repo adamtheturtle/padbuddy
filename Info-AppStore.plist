@@ -10,6 +10,12 @@
 	     skip the export-compliance prompt on every App Store Connect upload (#490). -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<!-- Read-only calendar access (#592). Shown when the user opts in via "Connect
+	     Calendar…". -->
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>PadBuddy reads your calendar to show upcoming interviews and open the pad linked to each one.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>PadBuddy reads your calendar to show upcoming interviews and open the pad linked to each one.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

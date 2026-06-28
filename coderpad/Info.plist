@@ -2,6 +2,13 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<!-- Read-only calendar access (#592). Shown when the user opts in via "Connect
+	     Calendar…"; requestFullAccessToEvents requires the FullAccess key on current
+	     OSes, and the legacy key is kept for back-compat. -->
+	<key>NSCalendarsFullAccessUsageDescription</key>
+	<string>PadBuddy reads your calendar to show upcoming interviews and open the pad linked to each one.</string>
+	<key>NSCalendarsUsageDescription</key>
+	<string>PadBuddy reads your calendar to show upcoming interviews and open the pad linked to each one.</string>
 	<!-- iPad UIKit App Config (#579), ignored on macOS. Declare full orientation
 	     support (Apple will require it) - the NavigationSplitView UI already adapts to
 	     every size class - and opt into the modern storyboard-less launch screen (an

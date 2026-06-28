@@ -1757,6 +1757,9 @@
     "Connect an assistant to the server and its tool calls show up here." : {
 
     },
+    "Connect Calendar…" : {
+
+    },
     "Continue" : {
       "localizations" : {
         "es" : {
@@ -6547,6 +6550,9 @@
           }
         }
       }
+    },
+    "Upcoming Interviews" : {
+
     },
     "Updated" : {
       "localizations" : {

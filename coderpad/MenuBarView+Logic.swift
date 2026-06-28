@@ -87,6 +87,37 @@ extension MenuBarView {
         openWindow(id: "main")
     }
 
+    // MARK: - Calendar interviews (#592)
+
+    /// The pad confidently linked to `event`, if any, drawn from the same cached pad
+    /// list the rest of the menu reads.
+    func matchedPad(for event: CalendarInterview) -> Pad? {
+        InterviewPadMatcher.bestMatch(for: event, among: pads)
+    }
+
+    /// A one-line menu label for an upcoming interview: its start time (prefixed with
+    /// the weekday when it isn't today) and title.
+    func interviewLabel(_ event: CalendarInterview) -> String {
+        let dayPrefix = Calendar.current.isDateInToday(event.start)
+            ? ""
+            : event.start.formatted(.dateTime.weekday(.abbreviated)) + " "
+        let time = event.start.formatted(date: .omitted, time: .shortened)
+        let title = event.title.isEmpty ? "Interview" : event.title
+        return "\(dayPrefix)\(time) · \(title)"
+    }
+
+    /// Jumps from a calendar slot into its pad when one is linked (the headline of
+    /// #592); otherwise opens the Calendar app so the user can see the event.
+    func openInterview(_ event: CalendarInterview) {
+        if let pad = matchedPad(for: event) {
+            openPadBrowser(pad)
+        } else if let calendarApp = NSWorkspace.shared
+            .urlForApplication(withBundleIdentifier: "com.apple.iCal") {
+            AppActivator.bringToFront()
+            NSWorkspace.shared.openApplication(at: calendarApp, configuration: .init())
+        }
+    }
+
     /// Opens the Settings window directly, without also opening the main window — a
     /// menu-bar "Settings…" click should surface only Settings, not the app window
     /// (#463). Activates the app first so the panel comes forward even when no
