@@ -96,6 +96,8 @@ struct InlineEditableTitle: View {
                 // area on touch (no-op on macOS, #597). Applied before the tap gesture so
                 // the enlarged frame is what registers the tap.
                 .touchTarget()
+                // Highlight the pencil under the iPad pointer (#586).
+                .pointerHoverEffect()
                 // The pencil is a hint, but clicking it should begin editing too, not
                 // just hovering the title (#472). Tap-to-focus mirrors the resting
                 // title overlay above.

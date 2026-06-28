@@ -70,8 +70,9 @@ struct FileTreeRows: View {
         }
         .buttonStyle(.plain)
         // ~26pt tall (caption + 5pt v-padding); raise the row to the 44pt touch floor
-        // on iPad (no-op on macOS, #597).
+        // on iPad (no-op on macOS, #597), and highlight it under the iPad pointer (#586).
         .touchTarget()
+        .pointerHoverEffect()
         // VoiceOver otherwise reads only "‹name›, button" with no sense of whether
         // the folder is open. Speak the state as the element's value and describe
         // what activating it does (#351). macOS has no public `.isExpanded` trait.
@@ -111,8 +112,9 @@ struct FileTreeRows: View {
         }
         .buttonStyle(.plain)
         // Match the folder row: raise the file row to the 44pt touch floor on iPad
-        // (no-op on macOS, #597).
+        // (no-op on macOS, #597), and highlight it under the iPad pointer (#586).
         .touchTarget()
+        .pointerHoverEffect()
         .help(file.path ?? file.name)
     }
 }

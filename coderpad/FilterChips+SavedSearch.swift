@@ -131,8 +131,9 @@ struct SavedSearchChip: View {
                 }
                 .buttonStyle(.borderless)
                 // The ~11pt × glyph is a sub-20pt target; give it the 44pt touch floor
-                // (no-op on macOS, #597).
+                // (no-op on macOS, #597) and a pointer hover highlight on iPad (#586).
                 .touchTarget()
+                .pointerHoverEffect()
                 .accessibilityLabel("Delete saved search \(name)")
             }
         }

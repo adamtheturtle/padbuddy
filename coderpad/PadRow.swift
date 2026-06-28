@@ -174,6 +174,8 @@ struct FavoriteStarButton: View {
         // always shown (no hover) so it must also be comfortably tappable - give it a
         // 44pt hit area on touch (no-op on macOS, #597).
         .touchTarget()
+        // Highlight the star under the iPad trackpad/Magic Keyboard pointer (#586).
+        .pointerHoverEffect()
         // macOS reveals the star on row hover to keep rows clean; iPad has no hover on
         // touch, so a non-favorite star would be invisible and un-tappable - always show it.
         #if os(macOS)

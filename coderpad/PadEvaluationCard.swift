@@ -69,6 +69,8 @@ struct PadEvaluationCard: View {
                     // touch; give each a 44pt target (no-op on macOS, #597). The 44pt
                     // frames sit side by side so adjacent ratings no longer overlap.
                     .touchTarget()
+                    // Highlight each star under the iPad pointer (#586).
+                    .pointerHoverEffect()
                     .help("Rate \(value) of 5")
                     .accessibilityLabel("Rate \(value) of 5")
                 }
@@ -167,10 +169,9 @@ struct PadEvaluationCard: View {
     /// it syncs across their own devices through iCloud but is never written back to
     /// CoderPad, so a private rating and notes can't leak into the shared pad on the service.
     private var privacyNote: some View {
-        Label(
-            "Private to you. Ratings, tags, and notes sync across your devices via iCloud and are never sent to CoderPad.",
-            systemImage: "lock.fill"
-        )
+        let message: LocalizedStringKey =
+        "Private to you. Ratings, tags, and notes sync across your devices via iCloud and are never sent to CoderPad."
+        return Label(message, systemImage: "lock.fill")
         .font(.caption)
         .foregroundStyle(.secondary)
         .labelStyle(.titleAndIcon)

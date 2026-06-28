@@ -9,6 +9,12 @@
 //  without changing the glyph, and is a no-op on macOS so the compact pointer layout
 //  stays byte-identical.
 //
+//  `pointerHoverEffect()` is the companion for the iPad's trackpad/Magic Keyboard
+//  pointer (#586): it highlights an interactive control as the pointer moves over it,
+//  the touch-platform analogue of the macOS row hover. `.hoverEffect` is a UIKit-pointer
+//  concept unavailable on macOS (which uses `onHover` opacity instead), so the helper is
+//  a no-op there.
+//
 
 import SwiftUI
 
@@ -22,6 +28,17 @@ extension View {
             self
         #else
             frame(minWidth: side, minHeight: side).contentShape(Rectangle())
+        #endif
+    }
+
+    /// Applies the standard iPadOS pointer hover effect so a trackpad/Magic Keyboard
+    /// pointer highlights this control as it moves over it. A no-op on macOS, where
+    /// hover is handled by the existing `onHover` opacity treatment on rows.
+    func pointerHoverEffect() -> some View {
+        #if os(macOS)
+            self
+        #else
+            hoverEffect()
         #endif
     }
 }

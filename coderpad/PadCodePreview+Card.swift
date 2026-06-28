@@ -54,8 +54,9 @@ extension EnvironmentCodeCard {
         .buttonStyle(.borderless)
         .controlSize(.small)
         // Compact icon-only header buttons are a tap on iPad; give each the 44pt touch
-        // floor (no-op on macOS, #597).
+        // floor (no-op on macOS, #597) and a pointer hover highlight (#586).
         .touchTarget()
+        .pointerHoverEffect()
         .help("View code full screen")
         .accessibilityLabel("View code full screen")
     }
@@ -70,6 +71,7 @@ extension EnvironmentCodeCard {
         .buttonStyle(.borderless)
         .controlSize(.small)
         .touchTarget() // 44pt touch floor on iPad, no-op on macOS (#597)
+        .pointerHoverEffect() // pointer hover highlight on iPad (#586)
         .help("Copy code")
         .accessibilityLabel("Copy code")
     }
@@ -91,6 +93,7 @@ extension EnvironmentCodeCard {
         .buttonStyle(.borderless)
         .controlSize(.small)
         .touchTarget() // 44pt touch floor on iPad, no-op on macOS (#597)
+        .pointerHoverEffect() // pointer hover highlight on iPad (#586)
         .help(isMultiFile ? String(localized: "Download all files as a folder") : String(localized: "Download code"))
         .accessibilityLabel(isMultiFile
             ? String(localized: "Download all files as a folder")
@@ -203,6 +206,7 @@ extension EnvironmentCodeCard {
         .buttonStyle(.borderless)
         .controlSize(.small)
         .touchTarget() // 44pt touch floor on iPad, no-op on macOS (#597)
+        .pointerHoverEffect() // pointer hover highlight on iPad (#586)
         .disabled(isExplaining)
         .help("Explain this file")
         .accessibilityLabel("Explain this file")
