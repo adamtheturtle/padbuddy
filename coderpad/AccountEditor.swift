@@ -178,7 +178,7 @@ struct AccountEditor: View {
                     // the account's identity in the sidebar already, so it omits one and
                     // leads with the Use/Current control instead. On iPad the nav bar
                     // carries the title, so the in-body one is dropped there (#584).
-                    if !embedded && !usesNavigationBarActions {
+                    if !embedded, !usesNavigationBarActions {
                         Text("Add account").font(.title3.bold())
                     }
                     Spacer()
