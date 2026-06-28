@@ -144,6 +144,14 @@ struct MainSplit: View {
     /// selection pill's edge. Added to the measured label width.
     static let sidebarRowChrome: CGFloat = 110
 
+    /// Fixed width of the iPad sidebar column. iPad gets no `navigationSplitViewColumnWidth`
+    /// from `macColumnWidth` (the #599 fix), so this single value pins the leftmost column
+    /// so it doesn't jump width as the split swaps between its two- and three-column forms.
+    /// Matches the standard iOS regular-width sidebar size and the macOS ideal.
+    #if os(iOS)
+    static let iPadSidebarWidth: CGFloat = 320
+    #endif
+
     /// Minimum width of the detail column. A single source shared by the column
     /// definition and the auto-collapse/window-floor math, so they can't drift.
     static let detailMinWidth: CGFloat = 360

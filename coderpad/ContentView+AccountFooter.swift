@@ -29,8 +29,30 @@ struct AccountFooter: View {
             if store.currentAccount == nil {
                 manageAccountsButton
             }
+            #if !os(macOS)
+                // iPad has no Settings scene / ⌘, so Settings would otherwise be
+                // reachable only via the account menu's "Manage Accounts…" — which
+                // reads as accounts, not preferences. Surface a visible gear (#600).
+                settingsButton
+            #endif
         }
     }
+
+    #if !os(macOS)
+        /// iOS-only Settings entry point: opens Settings on the General tab. macOS
+        /// relies on ⌘, and the Settings menu instead, where this would be redundant.
+        private var settingsButton: some View {
+            Button {
+                SettingsNavigation.shared.selectedTab = .general
+                openSettings()
+            } label: {
+                Image(systemName: "gearshape")
+            }
+            .buttonStyle(.borderless)
+            .help("Settings")
+            .accessibilityLabel("Settings")
+        }
+    #endif
 
     /// Opens Settings on the Accounts tab — the single "manage accounts" entry point
     /// that replaces the footer's old separate Add Account button/sheet and Settings

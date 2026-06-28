@@ -153,7 +153,10 @@ struct QuotaDetail: View {
     }
 
     private var statTiles: some View {
-        HStack(spacing: 12) {
+        // Adaptive grid so the tiles stay on one row in a wide (macOS) pane but
+        // wrap to multiple columns in a narrow one (e.g. iPad mini portrait),
+        // keeping each tile wide enough that its uppercase title never hyphenates.
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 160), spacing: 12)], alignment: .leading, spacing: 12) {
             if quota.unlimited == true {
                 StatTile(title: "Plan", value: String(localized: "Unlimited"), systemImage: "infinity", tint: .green)
             } else if let used = quota.padsUsed {

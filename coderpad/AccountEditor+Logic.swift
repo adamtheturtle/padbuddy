@@ -117,6 +117,33 @@ extension AccountEditor {
         return isValidated || (isEditing && draft.apiKey == initialAPIKey && draft.baseURL == initialBaseURL)
     }
 
+    /// On iPad the embedded editor lives inside the Settings sheet, whose nav bar
+    /// already carries a "Done" button. A second inline "Save" beside it read as a
+    /// confusing peer - which one commits, which one closes? - and tapping "Done"
+    /// silently dropped any unsaved field edits. So on iPad the embedded saved-account
+    /// editor commits its edits live (the way the icon/tint already do) and drops the
+    /// inline "Save" entirely, leaving "Done" as the single, unambiguous way out.
+    /// macOS keeps its explicit inline "Save": its Settings is a window with no "Done"
+    /// to collide with. (#601)
+    var commitsLive: Bool {
+        #if os(macOS)
+            false
+        #else
+            embedded && isEditing
+        #endif
+    }
+
+    /// Persists the current draft to the saved account immediately, for the iPad
+    /// live-commit path. A no-op unless the draft is in a saveable state (`canSave` -
+    /// e.g. a changed key still awaiting validation, or a missing email, holds the
+    /// commit) and carries a non-blank description, so a half-finished edit never
+    /// overwrites the stored account.
+    func commitLiveEdit() {
+        guard commitsLive, canSave,
+              !draft.name.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        onSave(draft)
+    }
+
     @ViewBuilder
     var saveButton: some View {
         let save = {

@@ -34,6 +34,17 @@ extension MainSplit {
                 ideal: max(280, sidebarMinWidth),
                 max: max(340, sidebarMinWidth)
             )
+            // Pin the iPad sidebar to one fixed width. `macColumnWidth` is a no-op on
+            // iOS (#599), so without this the system re-derives the sidebar width
+            // whenever the split swaps between its three-column (Pads/Questions/Screen)
+            // and two-column (Organization/Quota) forms — making the leftmost column
+            // visibly jump width as the user taps between those sections. The sidebar's
+            // content (the section labels) is identical in both, so a fixed width sizes
+            // it the same way every time while the content/detail columns stay natively
+            // sized, keeping the #599 detail-clipping fix intact.
+            #if os(iOS)
+            .navigationSplitViewColumnWidth(Self.iPadSidebarWidth)
+            #endif
             .navigationTitle("")
     }
 

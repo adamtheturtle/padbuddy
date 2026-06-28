@@ -34,12 +34,12 @@ extension PadDetailView {
                                           users: orgUsers,
                                           keyOwnerEmail: AccountsStore.shared.currentAccount?.userEmail)
                 }
-                propertyRow("Private") {
+                propertyRow("Private", alignment: .center) {
                     Toggle("", isOn: privateBinding)
                         .labelsHidden()
                         .toggleStyle(.switch)
                 }
-                propertyRow("Execution enabled") {
+                propertyRow("Execution enabled", alignment: .center) {
                     Toggle("", isOn: executionBinding)
                         .labelsHidden()
                         .toggleStyle(.switch)
@@ -54,9 +54,15 @@ extension PadDetailView {
 
     /// A labeled row pairing a property name with its inline control, matching the
     /// alignment of the read-only `LabeledRow`s in the Details section.
+    ///
+    /// Picker rows align to `.firstTextBaseline` so the label sits on the control's
+    /// text baseline. Toggle rows pass `.center`: a switch has no meaningful text
+    /// baseline, and the taller iOS switch otherwise leaves the label stranded at
+    /// the top of the control rather than centered beside it.
     private func propertyRow(_ label: LocalizedStringKey,
+                             alignment: VerticalAlignment = .firstTextBaseline,
                              @ViewBuilder control: () -> some View) -> some View {
-        HStack(alignment: .firstTextBaseline) {
+        HStack(alignment: alignment) {
             Text(label)
                 .foregroundStyle(.secondary)
                 .frame(minWidth: 110, alignment: .leading)

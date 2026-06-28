@@ -146,7 +146,14 @@ struct AccountEditor: View {
         #else
             if usesNavigationBarActions {
                 NavigationStack {
-                    editorContent
+                    // Wrap the form in a ScrollView so it sits under (and scrolls
+                    // behind) the navigation bar with a proper opaque scroll edge.
+                    // A bare VStack leaves the bar translucent, letting the first
+                    // field row draw over the "Add account" title and Save button.
+                    // It also keeps the tall form reachable when the keyboard is up.
+                    ScrollView {
+                        editorContent
+                    }
                         .navigationTitle("Add account")
                         .navigationBarTitleDisplayMode(.inline)
                         .toolbar {
@@ -221,7 +228,9 @@ struct AccountEditor: View {
                     }
                 }
                 validateButton
-                if !usesNavigationBarActions {
+                // On iPad the embedded editor commits live and relies on the Settings
+                // sheet's "Done", so it omits the inline Save; macOS keeps it. (#601)
+                if !usesNavigationBarActions, !commitsLive {
                     saveButton
                 }
             }
@@ -232,8 +241,15 @@ struct AccountEditor: View {
         .onChange(of: draft.apiKey) { _, _ in validation = .idle; scopeWarning = nil }
         .onChange(of: draft.baseURL) { _, _ in validation = .idle }
         // A changed Screen key or region invalidates any prior Screen validation result.
-        .onChange(of: draft.screenApiKey) { _, _ in screenValidation = .idle }
-        .onChange(of: draft.screenRegion) { _, _ in screenValidation = .idle }
+        // Screen credentials don't gate `canSave`, so commit them live on iPad too (#601).
+        .onChange(of: draft.screenApiKey) { _, _ in screenValidation = .idle; commitLiveEdit() }
+        .onChange(of: draft.screenRegion) { _, _ in screenValidation = .idle; commitLiveEdit() }
+        // iPad live-commit: persist Description / Your Email edits the moment they change,
+        // and persist a re-validated key or server URL the moment validation flips to
+        // `.valid` (which re-enables `canSave`). A no-op on macOS and the modal Add sheet.
+        .onChange(of: draft.name) { _, _ in commitLiveEdit() }
+        .onChange(of: draft.userEmail) { _, _ in commitLiveEdit() }
+        .onChange(of: validation) { _, _ in commitLiveEdit() }
         // Icon and tint are cosmetic, so persist them the moment they change rather
         // than waiting for Save (which gates on validation/email for the credentials).
         .onChange(of: draft.iconSymbol) { _, _ in onAppearanceChange?(draft.iconSymbol, draft.tintHex) }
