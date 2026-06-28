@@ -29,7 +29,7 @@ extension MainSplit {
                 let needed = (width + Self.sidebarRowChrome).rounded()
                 if abs(sidebarMinWidth - needed) > 0.5 { sidebarMinWidth = needed }
             }
-            .navigationSplitViewColumnWidth(
+            .macColumnWidth(
                 min: sidebarMinWidth,
                 ideal: max(280, sidebarMinWidth),
                 max: max(340, sidebarMinWidth)
@@ -66,7 +66,7 @@ extension MainSplit {
             // Surface the visible list's result count (e.g. "12 pads") as the toolbar
             // subtitle beneath the section title, bubbled up via `SectionCountKey`.
             .onPreferenceChange(SectionCountKey.self) { sectionCount = $0 }
-            .navigationSplitViewColumnWidth(
+            .macColumnWidth(
                 min: effectiveContentMinWidth,
                 // `NavigationSplitView` sizes its own minimum off the columns' *ideal*
                 // widths, not their `min`s, so below the floor the ideal has to collapse
@@ -84,7 +84,7 @@ extension MainSplit {
                 questionSelection: $detailQuestion,
                 screenSearch: $screenSearch
             )
-            .navigationSplitViewColumnWidth(
+            .macColumnWidth(
                 min: effectiveDetailMinWidth,
                 ideal: isBelowWindowFloor ? effectiveDetailMinWidth : 520
             )
@@ -161,5 +161,29 @@ extension MainSplit {
         } else {
             content
         }
+    }
+}
+
+extension View {
+    /// Applies a fixed `navigationSplitViewColumnWidth` on macOS only, passing the view
+    /// through untouched on iOS. The column widths here are hand-tuned for an AppKit
+    /// window the user can drag to any size; on iPad they backfire. `NavigationSplitView`
+    /// sizes its columns off these ideals/maxes, and the macOS-sized detail ideal (520)
+    /// plus its open-ended `max` inflate the split wider than a portrait iPad mini (744pt) —
+    /// the detail pane then slides under the opaque list column on the leading edge and off
+    /// the screen on the trailing edge (#599). iPad has no draggable window floor to relax
+    /// these (``isBelowWindowFloor`` is permanently false there), so the fix is to let the
+    /// system size the columns natively, which fits them to the device by design.
+    @ViewBuilder
+    func macColumnWidth(min: CGFloat, ideal: CGFloat, max: CGFloat? = nil) -> some View {
+        #if os(macOS)
+            if let max {
+                navigationSplitViewColumnWidth(min: min, ideal: ideal, max: max)
+            } else {
+                navigationSplitViewColumnWidth(min: min, ideal: ideal)
+            }
+        #else
+            self
+        #endif
     }
 }
