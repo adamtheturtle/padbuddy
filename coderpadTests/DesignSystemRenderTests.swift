@@ -106,9 +106,15 @@ struct DesignSystemRenderTests {
     }
 
     @Test func `question print document renders`() throws {
+        // Populate every MarkdownText-backed section (description, candidate
+        // instructions, solution) so the print document rasterizes each selectable
+        // block. The print path sets `\.isRasterizedForPrint` so ImageRenderer doesn't
+        // hit the un-flattenable text-selection overlay and log a fault (#582).
         let json = #"""
         {"id": 1, "title": "Two Sum", "language": "python3",
-         "description": "Return the indices that sum to the target.",
+         "description": "Return the indices that sum to the **target**.",
+         "candidate_instructions": [{"instructions": "Read the prompt.", "default_visible": true},
+                                    {"instructions": "Then `solve` it.", "default_visible": true}],
          "contents": "def two_sum(nums, target):\n    pass",
          "solution": "Use a hash map."}
         """#

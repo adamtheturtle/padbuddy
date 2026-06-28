@@ -74,6 +74,10 @@ struct QuestionPrintDocument: View {
         }
         .padding(24)
         .frame(maxWidth: .infinity, alignment: .leading)
+        // This document is rasterized by ImageRenderer (Print / Save-as-PDF). Tell the
+        // selectable MarkdownText blocks above to drop their text-selection overlay, which
+        // ImageRenderer can't flatten - otherwise each logs a SwiftUICore fault (#582).
+        .environment(\.isRasterizedForPrint, true)
     }
 }
 
