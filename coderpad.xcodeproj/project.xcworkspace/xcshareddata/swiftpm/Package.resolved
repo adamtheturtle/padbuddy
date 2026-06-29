@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/CoderPadKit.git",
       "state" : {
-        "revision" : "19cdd6dfe15090e4fc1a589fd4321db8842d360d",
-        "version" : "0.1.2"
+        "revision" : "50a86250a7bc71ef7db3280939fc53d914997e7f",
+        "version" : "0.1.3"
       }
     },
     {
