@@ -202,8 +202,15 @@ struct MenuBarView: View {
         // active account, rather than hanging it off an unrelated leaf button.
         .task(id: store.currentAccountID) { await load(account: account) }
 
+        // Both New Pad and New Pad from Question create the pad under this account,
+        // but open it in your default browser, which renders it under whatever
+        // CoderPad account is signed in there. The two can differ, so warn first.
+        newPadAccountWarning
+
         if !questions.isEmpty {
             Menu("New Pad from Question") {
+                // The submenu is its own menu, so repeat the warning inside it.
+                newPadAccountWarning
                 let favoriteIDs = Set(favorites.favorites(account: store.currentAccountID))
                 ForEach(questionsForMenu(favoriteIDs: favoriteIDs).prefix(topCount)) { question in
                     Button {
@@ -222,6 +229,14 @@ struct MenuBarView: View {
             }
             .disabled((account.isMock == false && account.apiKey.isEmpty) || network.isOffline)
         }
+    }
+
+    /// Caption note warning that a newly created pad opens in the default
+    /// browser's signed-in CoderPad account, which may differ from this account.
+    private var newPadAccountWarning: some View {
+        Text("Opens in your browser's signed-in account")
+            .font(.caption)
+            .foregroundStyle(.secondary)
     }
 
     /// "My Pads" header and the user's recent pads (or a status line).
