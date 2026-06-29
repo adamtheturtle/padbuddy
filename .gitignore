@@ -3,6 +3,7 @@ xcuserdata/
 *.xcuserstate
 DerivedData/
 DerivedData_localrel/
+DerivedData_ipadbuild/
 build/
 build_release/
 

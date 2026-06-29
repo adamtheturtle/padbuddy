@@ -291,6 +291,14 @@ struct FindAction: Equatable {
     /// Identifies the owning pane (e.g. "pads"), so re-publishes from the same
     /// pane compare equal while a genuine pane switch compares unequal.
     let id: String
+    /// `true` when this pane's search is a SwiftUI `.searchable` field, which on
+    /// iOS already installs its own ⌘F "Find" key command. `IPadCommands` reads
+    /// this to avoid registering a second ⌘F over it (a duplicate UIKit logs as a
+    /// `_UIMenuBuilderError`). Panes with a bespoke filter field (e.g. Organization)
+    /// leave it `false` so the iPad command still provides their ⌘F. Unused on
+    /// macOS, where `.searchable` does not bind ⌘F and the menu command always wins.
+    var hasSystemFindShortcut: Bool = false
+    /// Declared last so call sites can pass it as a trailing closure.
     let perform: () -> Void
 
     static func == (lhs: Self, rhs: Self) -> Bool {

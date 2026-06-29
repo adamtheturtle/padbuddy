@@ -216,6 +216,14 @@ extension Sidebar {
                 Section("Suggested") {
                     VStack(spacing: 2) {
                         ForEach(items) { item in
+                            // Bind `nav` to a local so the row's tap closure captures
+                            // only the `AppNavigation` reference and the value-type
+                            // `item`, not `self`. Capturing the whole `Sidebar` struct
+                            // (with its `@State`/`@Binding` storage) makes SwiftUI fault
+                            // in `swift_retain` while copying the row value on the iPad
+                            // `NavigationSplitView` layout path (EXC_BAD_ACCESS on first
+                            // layout, so the app shows only a black screen).
+                            let nav = nav
                             sidebarSubRow(label: item.search.name, icon: item.icon,
                                           isSelected: isItemSelected(item)) {
                                 nav.applySavedSearch(item.search, kind: item.kind)
@@ -235,6 +243,10 @@ extension Sidebar {
     private var mergedDefaultsSection: some View {
         Section("Suggested") {
             VStack(spacing: 2) {
+                // Capture `nav` (not `self`) in the row tap closures — see the note in
+                // `defaultsSection`: capturing the whole `Sidebar` struct faults in
+                // `swift_retain` while SwiftUI copies the row value on the iPad layout path.
+                let nav = nav
                 sidebarSubRow(label: String(localized: "My Pads"), icon: "person.fill",
                               isSelected: nav.section == .pads && nav.mergedPadsMineOnly) {
                     nav.toggleMergedMine(kind: .pads)
@@ -255,6 +267,13 @@ extension Sidebar {
             Section("Saved Searches") {
                 VStack(spacing: 2) {
                     ForEach(items) { item in
+                        // Capture the stores (not `self`) in the row's tap and delete
+                        // closures — see the note in `defaultsSection`: capturing the
+                        // whole `Sidebar` struct faults in `swift_retain` while SwiftUI
+                        // copies the row value on the iPad layout path.
+                        let nav = nav
+                        let savedSearches = savedSearches
+                        let accountID = accountID
                         sidebarSubRow(label: item.search.name, icon: item.icon,
                                       isSelected: isItemSelected(item)) {
                             nav.applySavedSearch(item.search, kind: item.kind)

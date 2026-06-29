@@ -236,10 +236,24 @@ extension View {
     /// last real section steps onto the Suggested/Saved/Favorites group rows instead of
     /// cycling among the actual sections (#481). The inner search rows are still
     /// clickable — they're `Button`s, unaffected by row-selection being disabled.
+    ///
+    /// Only macOS zeroes the row insets: there the `List` (NSTableView) keeps its
+    /// standard source-list content margin even with `EdgeInsets()`, so clearing the
+    /// insets lets the group span the full row while its sub-rows still line up with
+    /// the native section rows. On iOS zeroing the insets drops that leading margin
+    /// entirely, pushing the group (the unlimited Quota row, Suggested/Saved/Favorites)
+    /// flush to the column's leading edge — left of the native section rows. So there
+    /// the default insets are kept and only the background and separator are cleared.
     func sidebarGroupRow() -> some View {
-        listRowInsets(EdgeInsets())
-            .listRowBackground(Color.clear)
-            .listRowSeparator(.hidden)
-            .selectionDisabled()
+        #if os(macOS)
+            listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .selectionDisabled()
+        #else
+            listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .selectionDisabled()
+        #endif
     }
 }

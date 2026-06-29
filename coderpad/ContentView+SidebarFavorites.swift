@@ -125,7 +125,15 @@ extension Sidebar {
     /// and the drop-to-pin target. Kept as one `List` row so the whole interaction works
     /// inside the rebuilt list sidebar (#281/#288, #346).
     private func favoritePadsBody(_ pads: [FavoritePadItem]) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        // Capture the stores/binding (not `self`) in the per-row tap and delete
+        // closures — see the note in `Sidebar.defaultsSection`: capturing the whole
+        // `Sidebar` struct faults in `swift_retain` while SwiftUI copies the row value
+        // on the iPad layout path (a black-screen crash on first layout).
+        let nav = nav
+        let favoritePads = favoritePads
+        let accountID = accountID
+        let sectionBinding = $section
+        return VStack(alignment: .leading, spacing: 2) {
             ForEach(pads) { item in
                 favoriteRowChrome(
                     rowID: item.id,
@@ -138,13 +146,19 @@ extension Sidebar {
                         // combined Favorites section without a tinted star (#571).
                         sidebarSubRow(label: item.title, icon: "doc.text") {
                             if item.account != nil {
-                                section = .pads
+                                sectionBinding.wrappedValue = .pads
                                 MergedRouting.shared.selectFavoritePad(id: item.padID)
                             } else {
                                 nav.showFavoritePad(id: item.padID)
                             }
                         }
-                        .contextMenu { removeFavoriteButton { unfavoritePad(item) } }
+                        .contextMenu {
+                            removeFavoriteButton {
+                                if let account = item.account ?? accountID {
+                                    favoritePads.remove(item.padID, account: account)
+                                }
+                            }
+                        }
                     }
                 )
             }
@@ -161,7 +175,15 @@ extension Sidebar {
 
     /// The starred-question rows, mirroring ``favoritePadsBody`` for the question store.
     private func favoriteQuestionsBody(_ questions: [FavoriteItem]) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+        // Capture the stores/binding (not `self`) in the per-row tap and delete
+        // closures — see the note in `Sidebar.defaultsSection`: capturing the whole
+        // `Sidebar` struct faults in `swift_retain` while SwiftUI copies the row value
+        // on the iPad layout path (a black-screen crash on first layout).
+        let nav = nav
+        let favorites = favorites
+        let accountID = accountID
+        let sectionBinding = $section
+        return VStack(alignment: .leading, spacing: 2) {
             ForEach(questions) { item in
                 favoriteRowChrome(
                     rowID: item.id,
@@ -177,13 +199,19 @@ extension Sidebar {
                                 // Merged view: switch to the combined questions list and let
                                 // it select the right account's row (per-org ids collide, so
                                 // the account must travel with the id).
-                                section = .questions
+                                sectionBinding.wrappedValue = .questions
                                 MergedRouting.shared.selectFavoriteQuestion(account: account, id: item.questionID)
                             } else {
                                 nav.showFavoriteQuestion(id: item.questionID)
                             }
                         }
-                        .contextMenu { removeFavoriteButton { unfavoriteQuestion(item) } }
+                        .contextMenu {
+                            removeFavoriteButton {
+                                if let account = item.account ?? accountID {
+                                    favorites.toggle(item.questionID, title: item.title, account: account)
+                                }
+                            }
+                        }
                     }
                 )
             }
@@ -262,18 +290,6 @@ extension Sidebar {
         Button(role: .destructive, action: action) {
             Label("Remove from Favorites", systemImage: "star.slash")
         }
-    }
-
-    private func unfavoritePad(_ item: FavoritePadItem) {
-        guard let account = item.account ?? accountID else { return }
-
-        favoritePads.remove(item.padID, account: account)
-    }
-
-    private func unfavoriteQuestion(_ item: FavoriteItem) {
-        guard let account = item.account ?? accountID else { return }
-
-        favorites.toggle(item.questionID, title: item.title, account: account)
     }
 
     /// Pins each dropped pad or question to the account carried in its payload (the

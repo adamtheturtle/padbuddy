@@ -30,10 +30,15 @@
                 .keyboardShortcut("n", modifiers: [.command, .shift])
             }
 
+            // A `.searchable` field already gives iOS its own ⌘F "Find"; adding ours
+            // on top makes two ⌘F commands UIKit rejects as a duplicate
+            // (`_UIMenuBuilderError`). So only provide ⌘F for panes whose search is a
+            // bespoke field with no system shortcut (e.g. Organization).
             CommandGroup(after: .textEditing) {
-                Button("Find") { findAction?.perform() }
-                    .keyboardShortcut("f", modifiers: [.command])
-                    .disabled(findAction == nil)
+                if let findAction, !findAction.hasSystemFindShortcut {
+                    Button("Find") { findAction.perform() }
+                        .keyboardShortcut("f", modifiers: [.command])
+                }
             }
 
             // The focused pad detail's document actions, mirroring the on-screen

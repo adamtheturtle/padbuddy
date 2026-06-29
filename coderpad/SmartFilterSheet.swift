@@ -19,7 +19,19 @@ struct SmartFilterSheet: View {
     let onSubmit: () -> Void
     let onCancel: () -> Void
 
+    /// On iPad a plain `.sheet` is a fixed-size form card, so this short content
+    /// would float in a large empty box. We measure the content's natural height
+    /// and pin the sheet to a matching detent. macOS sheets already size to fit.
+    @State private var contentHeight: CGFloat = 0
+
     var body: some View {
+        content
+        #if os(iOS)
+            .presentationDetents(contentHeight > 0 ? [.height(contentHeight)] : [.medium])
+        #endif
+    }
+
+    private var content: some View {
         VStack(alignment: .leading, spacing: 16) {
             header
             VStack(alignment: .leading, spacing: 6) {
@@ -43,6 +55,9 @@ struct SmartFilterSheet: View {
         }
         .padding(20)
         .frame(minWidth: 440)
+        #if os(iOS)
+        .onGeometryChange(for: CGFloat.self) { $0.size.height } action: { contentHeight = $0 }
+        #endif
     }
 
     /// A tinted sparkles glyph beside the title and a one-line explanation, so the

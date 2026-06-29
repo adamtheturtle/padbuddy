@@ -17,7 +17,8 @@ packages:
   buddy-kit:
     path: ../buddy-kit
   FastList:
-    path: ../FastList
+    url: https://github.com/adamtheturtle/FastList.git
+    from: 0.4.2
   CoderPadKit:
     path: ../CoderPadKit
   CommandPaletteKit:

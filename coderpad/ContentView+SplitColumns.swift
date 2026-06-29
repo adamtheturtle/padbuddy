@@ -109,7 +109,7 @@ extension MainSplit {
         .searchFocused($searchFieldFocused)
         .focusedSceneValue(
             \.findAction,
-            FindAction(id: section == .questions ? "questions" : "pads") {
+            FindAction(id: section == .questions ? "questions" : "pads", hasSystemFindShortcut: true) {
                 searchFieldFocused = true
             }
         )
