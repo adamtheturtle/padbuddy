@@ -24,31 +24,32 @@ extension MenuBarView {
     /// Pads owned by the account's configured email, if the user set one in Settings.
     /// Otherwise falls back to the most-frequent owner email in the fetched list, since
     /// the CoderPad API doesn't tell us which user the key belongs to.
-    var myPads: [Pad] {
-        let mineOnly: [Pad]
+    private var myOwnedPads: [Pad] {
         if let mine = store.currentAccount?.userEmail, !mine.isEmpty {
-            mineOnly = pads.filter { $0.ownerEmail == mine }
-        } else {
-            let owners = pads
-                .map(\.ownerEmail)
-                .filter { !$0.isEmpty }
-                .reduce(into: [String: Int]()) { $0[$1, default: 0] += 1 }
-            if let mine = owners.max(by: { $0.value < $1.value })?.key {
-                mineOnly = pads.filter { $0.ownerEmail == mine }
-            } else {
-                mineOnly = pads
-            }
+            return pads.filter { $0.ownerEmail == mine }
         }
-        // Optionally narrow to active interviews when the user enables it in Settings.
-        return startedOnly ? mineOnly.filter { $0.status == .active } : mineOnly
+        let owners = pads
+            .map(\.ownerEmail)
+            .filter { !$0.isEmpty }
+            .reduce(into: [String: Int]()) { $0[$1, default: 0] += 1 }
+        if let mine = owners.max(by: { $0.value < $1.value })?.key {
+            return pads.filter { $0.ownerEmail == mine }
+        }
+        return pads
     }
 
-    /// Pads with a live session in progress right now (#593), newest first. Drawn from
-    /// the same cached list the rest of the menu reads, so it costs nothing extra, and
-    /// filtered to the active lifecycle state. Unlike ``myPads`` this isn't scoped to
-    /// the signed-in user: an interview happening now is worth surfacing whoever owns it.
+    /// The user's pads, optionally narrowed to active interviews when the user enables
+    /// it in Settings.
+    var myPads: [Pad] {
+        startedOnly ? myOwnedPads.filter { $0.status == .active } : myOwnedPads
+    }
+
+    /// The user's pads with a live session in progress right now (#593), newest first.
+    /// Drawn from the same cached list the rest of the menu reads, so it costs nothing
+    /// extra, and scoped to the signed-in user so the section surfaces the user's own
+    /// in-progress interviews.
     var activePads: [Pad] {
-        pads.filter { $0.status == .active }
+        myOwnedPads.filter { $0.status == .active }
     }
 
     /// Opens `pad` in the in-app browser window, bringing the app forward first so the
@@ -85,37 +86,6 @@ extension MenuBarView {
     func openMain() {
         AppActivator.bringToFront()
         openWindow(id: "main")
-    }
-
-    // MARK: - Calendar interviews (#592)
-
-    /// The pad confidently linked to `event`, if any, drawn from the same cached pad
-    /// list the rest of the menu reads.
-    func matchedPad(for event: CalendarInterview) -> Pad? {
-        InterviewPadMatcher.bestMatch(for: event, among: pads)
-    }
-
-    /// A one-line menu label for an upcoming interview: its start time (prefixed with
-    /// the weekday when it isn't today) and title.
-    func interviewLabel(_ event: CalendarInterview) -> String {
-        let dayPrefix = Calendar.current.isDateInToday(event.start)
-            ? ""
-            : event.start.formatted(.dateTime.weekday(.abbreviated)) + " "
-        let time = event.start.formatted(date: .omitted, time: .shortened)
-        let title = event.title.isEmpty ? "Interview" : event.title
-        return "\(dayPrefix)\(time) · \(title)"
-    }
-
-    /// Jumps from a calendar slot into its pad when one is linked (the headline of
-    /// #592); otherwise opens the Calendar app so the user can see the event.
-    func openInterview(_ event: CalendarInterview) {
-        if let pad = matchedPad(for: event) {
-            openPadBrowser(pad)
-        } else if let calendarApp = NSWorkspace.shared
-            .urlForApplication(withBundleIdentifier: "com.apple.iCal") {
-            AppActivator.bringToFront()
-            NSWorkspace.shared.openApplication(at: calendarApp, configuration: .init())
-        }
     }
 
     /// Opens the Settings window directly, without also opening the main window — a
