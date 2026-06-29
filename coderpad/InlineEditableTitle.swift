@@ -69,7 +69,18 @@ struct InlineEditableTitle: View {
                 .lineLimit(1)
                 // Hug the title up to the available width; a longer title is capped
                 // here and truncates rather than widening the whole pane (#429).
-                .frame(width: fieldWidth, alignment: .leading)
+                // `maxWidth`, not a hard `width`: a hard width sets the field's
+                // *minimum* to `fieldWidth`, which on iPad — where the detail
+                // `NavigationSplitView` column has no max width (the macOS column-width
+                // ideals are gated off, #599) — forces the column minimum out to the
+                // full untruncated title width. `availableWidth` then measures that
+                // inflated column, so `fieldWidth` stays at `naturalWidth` and the
+                // column never collapses: a feedback loop that slides the whole detail
+                // pane under the list on the leading edge and off-screen on the trailing
+                // edge for any long-titled pad. Capping with `maxWidth` lets the field
+                // (and column) shrink to the pane and truncate instead, while the greedy
+                // `TextField` still fills up to `fieldWidth` so a short title hugs.
+                .frame(maxWidth: fieldWidth, alignment: .leading)
                 // A plain TextField hard-*clips* an over-long title instead of showing
                 // a trailing ellipsis (#445). While not editing, hide the field's text
                 // and overlay a tail-truncating Text in its place so a long title reads
