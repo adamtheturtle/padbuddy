@@ -13,9 +13,16 @@ extension PadDetailView {
             }
         } content: {
             if let loadError {
-                Label(loadError.localizedDescription, systemImage: "exclamationmark.triangle")
-                    .foregroundStyle(.orange)
-                    .font(.callout)
+                VStack(alignment: .leading, spacing: 8) {
+                    Label(loadError.localizedDescription, systemImage: "exclamationmark.triangle")
+                        .foregroundStyle(.orange)
+                        .font(.callout)
+                    // Inline recovery so a failed fetch doesn't force a navigate-away-and-back
+                    // or a global reload (#621). Disabled while a retry is already in flight.
+                    Button("Retry") { Task { await load() } }
+                        .controlSize(.small)
+                        .disabled(isLoading)
+                }
             } else if events.isEmpty, !isLoading {
                 Text("No events yet.").foregroundStyle(.secondary).font(.callout)
             } else {
