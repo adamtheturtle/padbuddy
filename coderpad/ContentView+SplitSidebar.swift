@@ -97,7 +97,7 @@ extension MainSplit {
             guard !keepSidebarWhileNarrow else { return }
 
             if columnVisibility == .all {
-                withAnimation(.smooth) {
+                withAnimation(reduceMotion ? nil : .smooth) {
                     columnVisibility = sectionHasDetail ? .doubleColumn : .detailOnly
                 }
                 autoCollapsed = true
@@ -107,7 +107,7 @@ extension MainSplit {
             // applies, and we restore anything we auto-collapsed.
             keepSidebarWhileNarrow = false
             if autoCollapsed {
-                withAnimation(.smooth) { columnVisibility = .all }
+                withAnimation(reduceMotion ? nil : .smooth) { columnVisibility = .all }
                 autoCollapsed = false
             }
         }
@@ -165,7 +165,7 @@ extension MainSplit {
     /// toggle here persists (#273) and stands down the width auto-collapse (#307) just
     /// like the system toggle did.
     func toggleSidebar() {
-        withAnimation(.smooth) {
+        withAnimation(reduceMotion ? nil : .smooth) {
             if columnVisibility == .all {
                 columnVisibility = sectionHasDetail ? .doubleColumn : .detailOnly
             } else {

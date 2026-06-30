@@ -21,6 +21,8 @@ struct InlineEditableTitle: View {
     @State private var hovered = false
     /// While offline the app is read-only, so the title isn't editable (#321).
     @Environment(\.isReadOnly) private var isReadOnly
+    /// Drop the pencil fade-in when Reduce Motion is on (#614).
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// The title's natural (untruncated) width, and the row's available width.
     /// Together they cap the editable field so it hugs a short title (keeping the
@@ -130,7 +132,7 @@ struct InlineEditableTitle: View {
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { availableWidth = $0 }
         .contentShape(Rectangle())
         .onHover { hovered = $0 }
-        .animation(.easeInOut(duration: 0.12), value: showsPencil)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.12), value: showsPencil)
     }
 
     /// The resting (non-editing) title: a tail-truncating `Text` shown over the

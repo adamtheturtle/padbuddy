@@ -15,6 +15,10 @@ import SwiftUI
 struct MainSplit: View {
     @State var store = AccountsStore.shared
     @State var network = NetworkMonitor.shared
+    /// Honors the Reduce Motion accessibility setting (#614): when on, the sidebar
+    /// and detail-pane layout transitions snap instead of sliding. Read in the
+    /// `withAnimation` sites in `ContentView+SplitSidebar`.
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
     /// Observed so the Screen section's title/search prompt can reflect whether a
     /// campaign is drilled into (campaigns → candidates), see #467/#468/#470.
     @State var nav = AppNavigation.shared

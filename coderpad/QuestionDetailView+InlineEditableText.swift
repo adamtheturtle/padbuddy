@@ -22,6 +22,8 @@ struct InlineEditableText: View {
 
     /// While offline the app is read-only, so long-form fields aren't editable (#321).
     @Environment(\.isReadOnly) private var isReadOnly
+    /// Drop the hover fade when Reduce Motion is on (#614).
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var editing = false
     @State private var draft = ""
     @State private var saving = false
@@ -33,7 +35,7 @@ struct InlineEditableText: View {
             if editing { editor } else { display }
         }
         .onHover { hovered = $0 }
-        .animation(.easeInOut(duration: 0.12), value: hovered)
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.12), value: hovered)
     }
 
     private var display: some View {

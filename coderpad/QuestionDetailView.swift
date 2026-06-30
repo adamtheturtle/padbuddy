@@ -17,6 +17,8 @@ struct QuestionDetailView: View {
     @Environment(\.colorScheme) var colorScheme
     /// While offline the app is read-only, so create/edit/delete actions disable (#321).
     @Environment(\.isReadOnly) var isReadOnly
+    /// Snap the undo-deletion banner instead of springing it when Reduce Motion is on (#614).
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var nav = AppNavigation.shared
     @State private var accounts = AccountsStore.shared
     @State private var favorites = FavoriteQuestionsStore.shared
@@ -100,7 +102,7 @@ struct QuestionDetailView: View {
             }
         }
         .overlay(alignment: .bottom) { undoDeletionBanner }
-        .animation(.spring(duration: 0.3), value: deletionTask == nil)
+        .animation(reduceMotion ? nil : .spring(duration: 0.3), value: deletionTask == nil)
         // Publish the favorite state so the Question menu's Favorite command can
         // show the matching "Add to"/"Remove from Favorites" title and toggle it.
         .focusedSceneValue(\.focusedQuestionIsFavorite, isFavorite)

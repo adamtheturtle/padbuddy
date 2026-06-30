@@ -15,11 +15,13 @@ import SwiftUI
 /// stay in lockstep, and animates the swap like the sidebar toggle (#403).
 struct DetailPaneToggleToolbarContent: CustomizableToolbarContent {
     @AppStorage(MainSplit.detailPaneHiddenKey) private var detailPaneHidden = false
+    /// Snap the pane swap instead of sliding it when Reduce Motion is on (#614).
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some CustomizableToolbarContent {
         ToolbarItem(id: "toggle-detail-pane", placement: .automatic) {
             Button {
-                withAnimation(.smooth) { detailPaneHidden.toggle() }
+                withAnimation(reduceMotion ? nil : .smooth) { detailPaneHidden.toggle() }
             } label: {
                 Label(detailPaneHidden ? "Show Detail Pane" : "Hide Detail Pane",
                       systemImage: "sidebar.right")
