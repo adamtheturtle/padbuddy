@@ -66,7 +66,7 @@ extension SettingsView {
             } header: {
                 Text("Activity")
             } footer: {
-                Text("Recorded on this Mac. Tool names and times only — never pad or "
+                Text("Recorded on this Mac. Tool names and times only, never pad or "
                     + "candidate content.")
                     .foregroundStyle(.secondary)
             }
