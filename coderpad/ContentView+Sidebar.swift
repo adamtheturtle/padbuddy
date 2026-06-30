@@ -9,6 +9,9 @@ import UniformTypeIdentifiers
 struct Sidebar: View {
     @Binding var section: AppSection
     @Environment(\.colorScheme) private var colorScheme
+    /// Snap the favourites drop spacer instead of sliding it when Reduce Motion is on (#614).
+    /// Not `private`: read from the `favoriteDropSpacer` in the sidebar-favourites extension.
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
     // Native sidebar rows desaturate when their window stops being the active one;
     // the custom unlimited-quota row has to read this state to dim in step (#347).
     #if os(macOS)

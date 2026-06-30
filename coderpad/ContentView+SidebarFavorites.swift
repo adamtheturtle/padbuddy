@@ -219,7 +219,7 @@ extension Sidebar {
             .frame(maxWidth: .infinity)
             .frame(height: favoriteDragMonitor.isDragging ? 28 : 0)
             .contentShape(Rectangle())
-            .animation(.smooth, value: favoriteDragMonitor.isDragging)
+            .animation(reduceMotion ? nil : .smooth, value: favoriteDragMonitor.isDragging)
     }
 
     /// Decodes a dragged-in `FavoriteDrop` from a provider and hands it to `perform`
