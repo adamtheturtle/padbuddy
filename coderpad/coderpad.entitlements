@@ -24,12 +24,6 @@
 	<true/>
 	<key>com.apple.security.network.client</key>
 	<true/>
-	<!-- Read-only calendar access (#592): lets the app list upcoming interviews and
-	     link them to their pads. Needs no provisioning profile, so a notarized
-	     Developer-ID build can carry it safely. Paired with
-	     NSCalendarsFullAccessUsageDescription in Info.plist. -->
-	<key>com.apple.security.personal-information.calendars</key>
-	<true/>
 	<!-- Sparkle (#28): the sandboxed app talks to Sparkle's Installer XPC service
 	     (-spks) and its launcher (-spki) over these mach ports to install updates.
 	     The Downloader service (-spkd) is unnecessary because we already hold

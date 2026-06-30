@@ -43,6 +43,7 @@ enum AppLaunch {
         CloudSyncStore.shared.start()
         FavoritePadsStore.shared.syncFromCloud()
         FavoriteQuestionsStore.shared.syncFromCloud()
+        FavoritesOrderStore.shared.syncFromCloud()
         SavedSearchStore.shared.syncFromCloud()
         InterviewTemplatesStore.shared.syncFromCloud()
         PadOpenedStore.shared.syncFromCloud()

@@ -175,35 +175,77 @@ struct AccountEditor: View {
         #endif
     }
 
-    private var editorContent: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            // Skip the header row entirely when it would be empty: on the iPad modal
-            // sheet the title moves to the nav bar and there's no Use control (#584).
-            if (!embedded && !usesNavigationBarActions) || onUse != nil {
-                HStack {
-                    // Only the modal Add sheet carries a title; the embedded editor shows
-                    // the account's identity in the sidebar already, so it omits one and
-                    // leads with the Use/Current control instead. On iPad the nav bar
-                    // carries the title, so the in-body one is dropped there (#584).
-                    if !embedded, !usesNavigationBarActions {
-                        Text("Add account").font(.title3.bold())
-                    }
-                    Spacer()
-                    if let onUse {
-                        if isCurrent {
-                            Label("Current", systemImage: "checkmark.circle.fill")
-                                .foregroundStyle(.green)
-                                .font(.callout)
-                        } else {
-                            Button("Use This Account", action: onUse)
-                                .help("Switch the app to this account.")
-                        }
+    /// The header row: an optional "Add account" title and the Use/Current control.
+    /// Skipped entirely when it would be empty — on the iPad modal sheet the title
+    /// moves to the nav bar and there's no Use control (#584).
+    @ViewBuilder
+    private var headerRow: some View {
+        if (!embedded && !usesNavigationBarActions) || onUse != nil {
+            HStack {
+                // Only the modal Add sheet carries a title; the embedded editor shows
+                // the account's identity in the sidebar already, so it omits one and
+                // leads with the Use/Current control instead. On iPad the nav bar
+                // carries the title, so the in-body one is dropped there (#584).
+                if !embedded, !usesNavigationBarActions {
+                    Text("Add account").font(.title3.bold())
+                }
+                Spacer()
+                if let onUse {
+                    if isCurrent {
+                        Label("Current", systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                            .font(.callout)
+                    } else {
+                        Button("Use This Account", action: onUse)
+                            .help("Switch the app to this account.")
                     }
                 }
-                // Reserve the button's height so swapping it for the shorter "Current"
-                // label between accounts doesn't shift the rest of the form.
-                .frame(minHeight: 24)
             }
+            // Reserve the button's height so swapping it for the shorter "Current"
+            // label between accounts doesn't shift the rest of the form.
+            .frame(minHeight: 24)
+        }
+    }
+
+    /// The bottom action row: Delete, Cancel, Validate, and Save, each shown
+    /// according to the editor's mode (embedded / modal / iPad nav-bar actions).
+    @ViewBuilder
+    private var actionRow: some View {
+        HStack {
+            if onDelete != nil {
+                Button("Delete", role: .destructive) { showDeleteConfirmation = true }
+                    .help("Remove this account and its stored API key from this Mac.")
+            }
+            Spacer()
+            // The iPad modal sheet hosts Cancel/Save in the navigation bar, so the
+            // inline row drops them and keeps only Validate (and Delete) there (#584).
+            if !usesNavigationBarActions {
+                // A saved account embedded inline has no Cancel: selecting away simply
+                // discards unsaved edits, the way Mail's account pane works.
+                if !(embedded && onDelete != nil) {
+                    Button("Cancel", role: .cancel, action: onCancel)
+                }
+            }
+            validateButton
+            // On iPad the embedded editor commits live and relies on the Settings
+            // sheet's "Done", so it omits the inline Save; macOS keeps it. (#601)
+            if !usesNavigationBarActions, !commitsLive {
+                saveButton
+            }
+        }
+    }
+
+    /// The form column and its frame. Splitting the `.onChange`/dialog modifiers off
+    /// into `editorContent` keeps each chained `some View` expression under the
+    /// type-checker's 250ms budget (see warnings-as-errors timing). The frame metrics
+    /// are explicitly-typed locals so the `embedded ? nil : 460` ternaries don't make
+    /// the checker re-infer `CGFloat?` across the whole chain.
+    private var editorForm: some View {
+        let minWidth: CGFloat? = embedded ? nil : 460
+        let minHeight: CGFloat? = embedded ? nil : 320
+        let maxHeight: CGFloat? = embedded ? .infinity : nil
+        return VStack(alignment: .leading, spacing: 14) {
+            headerRow
             // A flat, Mail-style pane: a right-aligned label column with left-aligned,
             // bordered fields beside it — rather than a grouped form that pushes values
             // to the trailing edge.
@@ -212,56 +254,46 @@ struct AccountEditor: View {
             validationBanner
             scopeWarningBanner
 
-            HStack {
-                if onDelete != nil {
-                    Button("Delete", role: .destructive) { showDeleteConfirmation = true }
-                        .help("Remove this account and its stored API key from this Mac.")
-                }
-                Spacer()
-                // The iPad modal sheet hosts Cancel/Save in the navigation bar, so the
-                // inline row drops them and keeps only Validate (and Delete) there (#584).
-                if !usesNavigationBarActions {
-                    // A saved account embedded inline has no Cancel: selecting away simply
-                    // discards unsaved edits, the way Mail's account pane works.
-                    if !(embedded && onDelete != nil) {
-                        Button("Cancel", role: .cancel, action: onCancel)
-                    }
-                }
-                validateButton
-                // On iPad the embedded editor commits live and relies on the Settings
-                // sheet's "Done", so it omits the inline Save; macOS keeps it. (#601)
-                if !usesNavigationBarActions, !commitsLive {
-                    saveButton
-                }
-            }
+            actionRow
         }
         .padding()
-        .frame(minWidth: embedded ? nil : 460, minHeight: embedded ? nil : 320,
-               maxHeight: embedded ? .infinity : nil, alignment: .top)
-        .onChange(of: draft.apiKey) { _, _ in validation = .idle; scopeWarning = nil }
-        .onChange(of: draft.baseURL) { _, _ in validation = .idle }
-        // A changed Screen key or region invalidates any prior Screen validation result.
-        // Screen credentials don't gate `canSave`, so commit them live on iPad too (#601).
-        .onChange(of: draft.screenApiKey) { _, _ in screenValidation = .idle; commitLiveEdit() }
-        .onChange(of: draft.screenRegion) { _, _ in screenValidation = .idle; commitLiveEdit() }
-        // iPad live-commit: persist Description / Your Email edits the moment they change,
-        // and persist a re-validated key or server URL the moment validation flips to
-        // `.valid` (which re-enables `canSave`). A no-op on macOS and the modal Add sheet.
-        .onChange(of: draft.name) { _, _ in commitLiveEdit() }
-        .onChange(of: draft.userEmail) { _, _ in commitLiveEdit() }
-        .onChange(of: validation) { _, _ in commitLiveEdit() }
-        // Icon and tint are cosmetic, so persist them the moment they change rather
-        // than waiting for Save (which gates on validation/email for the credentials).
-        .onChange(of: draft.iconSymbol) { _, _ in onAppearanceChange?(draft.iconSymbol, draft.tintHex) }
-        .onChange(of: draft.tintHex) { _, _ in onAppearanceChange?(draft.iconSymbol, draft.tintHex) }
-        .confirmationDialog("Delete this account?",
-                            isPresented: $showDeleteConfirmation,
-                            titleVisibility: .visible) {
-            Button("Delete Account", role: .destructive) { onDelete?() }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("“\(initialName)” and its stored API key will be removed from this Mac. This can’t be undone.")
-        }
+        .frame(minWidth: minWidth, minHeight: minHeight, maxHeight: maxHeight, alignment: .top)
+    }
+
+    /// The form plus the credential watchers: a changed Interview/Screen key or server
+    /// URL clears any prior validation, and (on iPad) live-commits editable fields. Kept
+    /// separate from `editorContent` so neither chained `some View` expression blows the
+    /// type-checker's 250ms budget.
+    private var editorWatchers: some View {
+        editorForm
+            .onChange(of: draft.apiKey) { _, _ in validation = .idle; scopeWarning = nil }
+            .onChange(of: draft.baseURL) { _, _ in validation = .idle }
+            // A changed Screen key or region invalidates any prior Screen validation result.
+            // Screen credentials don't gate `canSave`, so commit them live on iPad too (#601).
+            .onChange(of: draft.screenApiKey) { _, _ in screenValidation = .idle; commitLiveEdit() }
+            .onChange(of: draft.screenRegion) { _, _ in screenValidation = .idle; commitLiveEdit() }
+            // iPad live-commit: persist Description / Your Email edits the moment they change,
+            // and persist a re-validated key or server URL the moment validation flips to
+            // `.valid` (which re-enables `canSave`). A no-op on macOS and the modal Add sheet.
+            .onChange(of: draft.name) { _, _ in commitLiveEdit() }
+    }
+
+    private var editorContent: some View {
+        editorWatchers
+            .onChange(of: draft.userEmail) { _, _ in commitLiveEdit() }
+            .onChange(of: validation) { _, _ in commitLiveEdit() }
+            // Icon and tint are cosmetic, so persist them the moment they change rather
+            // than waiting for Save (which gates on validation/email for the credentials).
+            .onChange(of: draft.iconSymbol) { _, _ in onAppearanceChange?(draft.iconSymbol, draft.tintHex) }
+            .onChange(of: draft.tintHex) { _, _ in onAppearanceChange?(draft.iconSymbol, draft.tintHex) }
+            .confirmationDialog("Delete this account?",
+                                isPresented: $showDeleteConfirmation,
+                                titleVisibility: .visible) {
+                Button("Delete Account", role: .destructive) { onDelete?() }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("“\(initialName)” and its stored API key will be removed from this Mac. This can’t be undone.")
+            }
     }
 }
 

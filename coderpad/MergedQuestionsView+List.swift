@@ -238,7 +238,7 @@ extension MergedQuestionsView {
         FastList(sorted, selection: $selectedRowIDs) { row in
             QuestionRowHostableContent(
                 question: row.item,
-                accountName: row.account.name,
+                rowAccount: RowAccount(row.account),
                 account: row.account.id,
                 favorites: favorites,
                 onToggleFavorite: { toggleFavorite(row) }

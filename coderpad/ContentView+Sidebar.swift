@@ -18,14 +18,14 @@ struct Sidebar: View {
     @State var savedSearches = SavedSearchStore.shared
     @State var favorites = FavoriteQuestionsStore.shared
     @State var favoritePads = FavoritePadsStore.shared
+    @State var favoritesOrder = FavoritesOrderStore.shared
     @State var questionsCache = QuestionsCacheStore.shared
     @State var padsCache = PadsCacheStore.shared
     @State private var quotaCache = QuotaCacheStore.shared
     @State var nav = AppNavigation.shared
-    /// Highlights the pad or question group of the Favorites section while an item is
-    /// dragged over it, the Finder-style cue that dropping there will pin the item.
-    @State var droppingFavoritePads = false
-    @State var droppingFavoriteQuestions = false
+    /// Highlights the Favorites section while an item is dragged over it, the
+    /// Finder-style cue that dropping there will pin the item.
+    @State var droppingFavorites = false
     /// Drives the empty-Favourites drop zone to appear only while a favorite drag is in
     /// flight, so an empty section keeps no resting gap (#444).
     @State var favoriteDragMonitor = FavoriteDragMonitor.shared

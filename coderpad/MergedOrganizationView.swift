@@ -78,11 +78,7 @@ struct MergedOrganizationView: View {
         }
         .toolbar(id: "merged-organization") {
             ToolbarItem(id: "period", placement: .automatic) {
-                Picker("Period", selection: $period) {
-                    ForEach(StatsPeriod.allCases) { Text($0.rawValue).tag($0) }
-                }
-                .pickerStyle(.menu)
-                .help("Stats period")
+                periodPicker
             }
             // Hidden by default — reachable via View ▸ Customize Toolbar… or the
             // File ▸ Reload command (⌘R) (#413).
@@ -91,6 +87,31 @@ struct MergedOrganizationView: View {
             }
             .defaultCustomization(.hidden)
         }
+    }
+
+    /// The stats-period selector. On macOS the menu picker shows the selected
+    /// window inline (there's room for it); on iPad the toolbar collapses an
+    /// unlabelled picker into a generic "…" overflow, so it's a Menu with a
+    /// calendar glyph that reads as "pick a date window" at a glance.
+    @ViewBuilder
+    private var periodPicker: some View {
+        #if os(macOS)
+        Picker("Period", selection: $period) {
+            ForEach(StatsPeriod.allCases) { Text($0.rawValue).tag($0) }
+        }
+        .pickerStyle(.menu)
+        .help("Stats period")
+        #else
+        Menu {
+            Picker("Period", selection: $period) {
+                ForEach(StatsPeriod.allCases) { Text($0.rawValue).tag($0) }
+            }
+            .pickerStyle(.inline)
+        } label: {
+            Label("Period", systemImage: "calendar")
+        }
+        .help("Stats period")
+        #endif
     }
 
     /// The custom From/To range, pinned above the ScrollView so it stays visible

@@ -19,7 +19,7 @@ import SwiftUI
 /// two orgs share a campaign id.
 struct ScopedScreenCampaign: Identifiable, Hashable {
     let accountID: UUID
-    let accountName: String
+    let account: RowAccount
     let campaign: ScreenCampaign
     var id: String {
         "\(accountID.uuidString):\(campaign.id)"
@@ -92,7 +92,7 @@ struct MergedScreenView: View {
 
         for (account, _) in screenAccounts {
             for campaign in campaignsByAccount[account.id] ?? [] {
-                let scoped = ScopedScreenCampaign(accountID: account.id, accountName: account.name,
+                let scoped = ScopedScreenCampaign(accountID: account.id, account: RowAccount(account),
                                                   campaign: campaign)
                 if scoped.id == id { return scoped }
             }
@@ -141,7 +141,7 @@ struct MergedScreenView: View {
         let query = selectedScopedID == nil ? search.trimmingCharacters(in: .whitespaces).lowercased() : ""
         let scoped = screenAccounts.flatMap { account, _ in
             (campaignsByAccount[account.id] ?? []).map {
-                ScopedScreenCampaign(accountID: account.id, accountName: account.name, campaign: $0)
+                ScopedScreenCampaign(accountID: account.id, account: RowAccount(account), campaign: $0)
             }
         }
         return scoped
@@ -152,7 +152,7 @@ struct MergedScreenView: View {
                 if lhs.campaign.pinned != rhs.campaign.pinned { return lhs.campaign.pinned }
                 let byName = lhs.campaign.name.localizedStandardCompare(rhs.campaign.name)
                 if byName != .orderedSame { return byName == .orderedAscending }
-                return lhs.accountName.localizedStandardCompare(rhs.accountName) == .orderedAscending
+                return lhs.account.name.localizedStandardCompare(rhs.account.name) == .orderedAscending
             }
     }
 
@@ -252,7 +252,7 @@ struct MergedScreenCampaignRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             ScreenCampaignRow(campaign: scoped.campaign)
-            MetaLabel(text: scoped.accountName, systemImage: "person.crop.circle")
+            AccountMetaLabel(account: scoped.account)
         }
         .contentShape(Rectangle())
     }
@@ -263,11 +263,11 @@ struct MergedScreenCampaignRow: View {
     // expression stays under the 250ms type-check budget (warnings-as-errors
     // makes an overrun a fatal build error).
     let backend = ScopedScreenCampaign(
-        accountID: UUID(), accountName: "Acme",
+        accountID: UUID(), account: RowAccount(Account(name: "Acme", apiKey: "")),
         campaign: ScreenCampaign(id: 1, name: "Backend Engineer", languages: ["python"], pinned: true)
     )
     let frontend = ScopedScreenCampaign(
-        accountID: UUID(), accountName: "Globex",
+        accountID: UUID(), account: RowAccount(Account(name: "Globex", apiKey: "")),
         campaign: ScreenCampaign(id: 2, name: "Frontend Engineer", languages: ["javascript"])
     )
     List {

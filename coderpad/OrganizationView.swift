@@ -134,11 +134,7 @@ struct OrganizationView: View {
     @ToolbarContentBuilder
     private var organizationToolbar: some CustomizableToolbarContent {
         ToolbarItem(id: "period", placement: .automatic) {
-            Picker("Period", selection: $period) {
-                ForEach(StatsPeriod.allCases) { Text($0.rawValue).tag($0) }
-            }
-            .pickerStyle(.menu)
-            .help("Stats period")
+            periodPicker
         }
         // Hidden by default — reachable via View ▸ Customize Toolbar… or the
         // File ▸ Reload command (⌘R) (#413).
@@ -146,6 +142,31 @@ struct OrganizationView: View {
             ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
         }
         .defaultCustomization(.hidden)
+    }
+
+    /// The stats-period selector. On macOS the menu picker shows the selected
+    /// window inline (there's room for it); on iPad the toolbar collapses an
+    /// unlabelled picker into a generic "…" overflow, so it's a Menu with a
+    /// calendar glyph that reads as "pick a date window" at a glance.
+    @ViewBuilder
+    private var periodPicker: some View {
+        #if os(macOS)
+        Picker("Period", selection: $period) {
+            ForEach(StatsPeriod.allCases) { Text($0.rawValue).tag($0) }
+        }
+        .pickerStyle(.menu)
+        .help("Stats period")
+        #else
+        Menu {
+            Picker("Period", selection: $period) {
+                ForEach(StatsPeriod.allCases) { Text($0.rawValue).tag($0) }
+            }
+            .pickerStyle(.inline)
+        } label: {
+            Label("Period", systemImage: "calendar")
+        }
+        .help("Stats period")
+        #endif
     }
 
     /// The custom From/To range, pinned above the ScrollView (only when the
@@ -313,5 +334,24 @@ struct OrganizationView: View {
         guard !Task.isCancelled else { return }
 
         stats = result
+    }
+}
+
+#Preview("Period picker") {
+    @Previewable @State var period: StatsPeriod = .days7
+    NavigationStack {
+        Color.clear
+            .toolbar {
+                ToolbarItem(placement: .automatic) {
+                    Menu {
+                        Picker("Period", selection: $period) {
+                            ForEach(StatsPeriod.allCases) { Text($0.rawValue).tag($0) }
+                        }
+                        .pickerStyle(.inline)
+                    } label: {
+                        Label("Period", systemImage: "calendar")
+                    }
+                }
+            }
     }
 }

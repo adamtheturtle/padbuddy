@@ -11,7 +11,7 @@ import SwiftUI
 /// row's hit-testing or selection. `==` compares only the fields it renders.
 private struct QuestionRowInfo: View, Equatable {
     let question: Question
-    let accountName: String?
+    let account: RowAccount?
 
     static func == (lhs: Self, rhs: Self) -> Bool {
         let lhsq = lhs.question, rhsq = rhs.question
@@ -23,7 +23,7 @@ private struct QuestionRowInfo: View, Equatable {
             && lhsq.isDraft == rhsq.isDraft
             && lhsq.authorName == rhsq.authorName
             && lhsq.updatedAt == rhsq.updatedAt
-            && lhs.accountName == rhs.accountName
+            && lhs.account == rhs.account
     }
 
     var body: some View {
@@ -39,8 +39,8 @@ private struct QuestionRowInfo: View, Equatable {
                     .font(.callout.weight(.medium))
                     .lineLimit(1)
                 HStack(spacing: 8) {
-                    if let accountName {
-                        MetaLabel(text: accountName, systemImage: "person.crop.circle")
+                    if let account {
+                        AccountMetaLabel(account: account)
                     }
                     if let lang = question.language, !lang.isEmpty {
                         MetaLabel(text: lang.languageDisplayName)
@@ -84,7 +84,7 @@ private struct QuestionRowInfo: View, Equatable {
     /// label, so it isn't folded in here.
     private var accessibilityLabel: String {
         var parts = [question.displayTitle]
-        if let accountName { parts.append(accountName) }
+        if let account { parts.append(account.name) }
         if let lang = question.language, !lang.isEmpty {
             parts.append(lang.languageDisplayName)
         }
@@ -106,7 +106,9 @@ private struct QuestionRowInfo: View, Equatable {
 /// and the context menu are the table's job.
 struct QuestionRowHostableContent: View {
     let question: Question
-    var accountName: String?
+    /// The account this row belongs to, named on the row only in the merged list
+    /// (`nil` in the per-account list). (#604)
+    var rowAccount: RowAccount?
     /// The owning account, used to read the favorite state.
     var account: UUID?
     /// Read live in `body` (it's `@Observable`) so toggling the star re-renders the
@@ -119,7 +121,7 @@ struct QuestionRowHostableContent: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 8) {
-            QuestionRowInfo(question: question, accountName: accountName)
+            QuestionRowInfo(question: question, account: rowAccount)
                 .equatable()
                 .allowsHitTesting(false)
             FavoriteStarButton(
@@ -130,6 +132,7 @@ struct QuestionRowHostableContent: View {
             )
         }
         .padding(.vertical, 4)
+        .fastListRowInsets()
         .onHover { hovered = $0 }
     }
 }

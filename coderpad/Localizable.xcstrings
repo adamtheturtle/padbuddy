@@ -1757,9 +1757,6 @@
     "Connect an assistant to the server and its tool calls show up here." : {
 
     },
-    "Connect Calendar…" : {
-
-    },
     "Continue" : {
       "localizations" : {
         "es" : {
@@ -4127,6 +4124,9 @@
     "None of your Screen accounts could load campaigns." : {
 
     },
+    "Not secure" : {
+
+    },
     "Notes" : {
 
     },
@@ -4508,6 +4508,9 @@
           }
         }
       }
+    },
+    "Opens in your browser's signed-in account" : {
+
     },
     "Optional" : {
       "localizations" : {
@@ -5452,6 +5455,9 @@
           }
         }
       }
+    },
+    "Secure" : {
+
     },
     "Select a campaign" : {
 
@@ -6553,9 +6559,6 @@
           }
         }
       }
-    },
-    "Upcoming Interviews" : {
-
     },
     "Updated" : {
       "localizations" : {

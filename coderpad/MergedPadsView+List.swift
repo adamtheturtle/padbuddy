@@ -324,7 +324,7 @@ extension MergedPadsView {
                 isChanged: PadListLogic.hasNewActivitySinceOpen(
                     row.item, lastOpened: openedStore.lastOpened(row.item.id, account: row.account.id)
                 ),
-                accountName: row.account.name,
+                rowAccount: RowAccount(row.account),
                 ownerDisplay: directory.display(row.item.ownerEmail),
                 account: row.account.id,
                 favoritePads: favoritePads

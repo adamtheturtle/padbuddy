@@ -9,220 +9,203 @@ import UniformTypeIdentifiers
 extension Sidebar {
     // MARK: Favorites
 
-    private struct FavoriteItem: Identifiable {
-        /// Unique per row. In the merged view two accounts can both star a question
-        /// with the same per-org id, so the row id namespaces by account.
+    /// One favourite row, pad or question, in the shared drag-ordered list. The kind and
+    /// the kind's own id travel in `ref`; the rest is what the row needs to render and route.
+    private struct FavoriteEntry: Identifiable {
+        /// Unique per row. Pad ids and question ids can't be told apart by value alone (a
+        /// slug vs an Int), and in the merged view two accounts can both favourite the same
+        /// id, so the row id carries the kind and (in the merged view) the account.
         let id: String
-        let questionID: Int
-        /// The owning account when shown in the merged view, so a tap selects the
-        /// right account's row; `nil` in a single-account view.
+        let ref: FavoriteRef
+        /// The owning account when shown in the merged view, so a tap selects the right
+        /// account's row and a reorder stays scoped to it; `nil` in a single-account view.
         let account: UUID?
         let title: String
     }
 
-    private struct FavoritePadItem: Identifiable {
-        /// Unique per row. Pad ids are globally unique, but the merged view still
-        /// namespaces by account so removing a favorite targets the right account.
-        let id: String
-        let padID: String
-        /// The owning account when shown in the merged view; `nil` single-account.
-        let account: UUID?
-        let title: String
+    /// The account's favourites in the default pads-then-questions order — the seed the
+    /// shared order store reconciles its saved drag order against (see ``FavoritesOrderStore``).
+    private func presentRefs(account: UUID) -> [FavoriteRef] {
+        favoritePads.favorites(account: account).map { FavoriteRef.pad($0) }
+            + favorites.favorites(account: account).map { FavoriteRef.question($0) }
     }
 
-    /// The pinned pads to show, mirroring `favoriteItems` for questions: the current
-    /// account's in a single-account view, or every mergeable account's in the
-    /// combined view. Titles come from each account's pads cache, falling back to the id.
-    private var favoritePadItems: [FavoritePadItem] {
+    /// The favourites to show, pads and starred questions interleaved in one drag order
+    /// (see ``FavoritesOrderStore``): the current account's in a single-account view, or
+    /// every mergeable account's (in account order) in the combined "All Accounts" view,
+    /// so favourites stay reachable from the sidebar there too. Each account keeps its own
+    /// order, so the combined view still groups by account even though within an account
+    /// the two kinds interleave freely.
+    private var favoriteEntries: [FavoriteEntry] {
         if isMergedView {
-            return accounts.mergeableAccounts.flatMap { favoritePadItems(forAccount: $0.id, namespaced: true) }
+            return accounts.mergeableAccounts.flatMap { favoriteEntries(forAccount: $0.id, namespaced: true) }
         }
         guard let account = accountID else { return [] }
 
-        return favoritePadItems(forAccount: account, namespaced: false)
+        return favoriteEntries(forAccount: account, namespaced: false)
     }
 
-    private func favoritePadItems(forAccount account: UUID, namespaced: Bool) -> [FavoritePadItem] {
-        let ids = favoritePads.favorites(account: account)
-        guard !ids.isEmpty else { return [] }
+    /// Builds one account's favourite rows in their saved drag order. Pad titles come from
+    /// the pads cache (falling back to the id); question titles come from the live
+    /// questions cache when present (so renames show through), else the title stored with
+    /// the favourite — so the name shows even before the list loads (#325), with
+    /// "Question #id" only a last resort for a legacy favourite not yet seen.
+    private func favoriteEntries(forAccount account: UUID, namespaced: Bool) -> [FavoriteEntry] {
+        let questions = favorites.titledFavorites(account: account)
+        guard !favoritePads.favorites(account: account).isEmpty || !questions.isEmpty else { return [] }
 
-        let titles = Dictionary(
+        let ordered = favoritesOrder.order(present: presentRefs(account: account), account: account)
+        let padTitles = Dictionary(
             padsCache.get(account).map { ($0.id, $0.title.isEmpty ? $0.id : $0.title) },
             uniquingKeysWith: { first, _ in first }
         )
-        return ids.map { id in
-            FavoritePadItem(
-                id: namespaced ? "\(account.uuidString)-\(id)" : id,
-                padID: id,
-                account: namespaced ? account : nil,
-                title: titles[id] ?? id
-            )
-        }
-    }
-
-    /// The starred questions to show: the current account's in a single-account view,
-    /// or every mergeable account's (in account order) in the combined "All Accounts"
-    /// view, so favorites stay reachable from the sidebar there too. The title comes
-    /// from the live questions cache when present (so renames show through), else the
-    /// title stored with the favorite — so the name shows even before the list loads
-    /// (#325), and "Question #id" is only ever a last resort for a legacy favorite
-    /// whose question hasn't been seen yet.
-    private var favoriteItems: [FavoriteItem] {
-        if isMergedView {
-            return accounts.mergeableAccounts.flatMap { favoriteItems(forAccount: $0.id, namespaced: true) }
-        }
-        guard let account = accountID else { return [] }
-
-        return favoriteItems(forAccount: account, namespaced: false)
-    }
-
-    private func favoriteItems(forAccount account: UUID, namespaced: Bool) -> [FavoriteItem] {
-        let favorites = favorites.titledFavorites(account: account)
-        guard !favorites.isEmpty else { return [] }
-
         let cacheTitles = Dictionary(
             questionsCache.get(account).map { ($0.id, $0.displayTitle) },
             uniquingKeysWith: { first, _ in first }
         )
-        return favorites.map { favorite in
-            let resolved = cacheTitles[favorite.id]
-                ?? (favorite.title.isEmpty ? "Question #\(favorite.id)" : favorite.title)
-            return FavoriteItem(
-                id: namespaced ? "\(account.uuidString)-\(favorite.id)" : "\(favorite.id)",
-                questionID: favorite.id,
-                account: namespaced ? account : nil,
-                title: resolved
-            )
-        }
-    }
-
-    /// Favourite pads and questions share one headed "Favorites" section (#571): pads
-    /// list first, then questions, each row carrying its own kind glyph (a pad/document
-    /// vs a question bubble) instead of a single yellow star, so the kind is legible
-    /// without splitting the sidebar into two headers. Each kind's rows still render
-    /// only when that kind has favourites or a drag is in progress, so the section never
-    /// shows an empty pad or question group at rest; the whole section hides when neither
-    /// kind has anything and nothing is being dragged (#440/#444) — an empty `List` row
-    /// still reserves a minimum height, so gating each body keeps no resting gap. Each
-    /// body keeps its own drop zone, so a row dragged onto either kind pins to the
-    /// account it came from (carried in the payload), landing on the right account in
-    /// the combined view.
-    @ViewBuilder
-    var favoritesSection: some View {
-        if !favoritePadItems.isEmpty || !favoriteItems.isEmpty || favoriteDragMonitor.isDragging {
-            Section("Favorites") {
-                if !favoritePadItems.isEmpty || favoriteDragMonitor.isDragging {
-                    favoritePadsBody(favoritePadItems).sidebarGroupRow()
-                }
-                if !favoriteItems.isEmpty || favoriteDragMonitor.isDragging {
-                    favoriteQuestionsBody(favoriteItems).sidebarGroupRow()
-                }
-            }
-        }
-    }
-
-    /// The pinned-pad rows, their empty-state hint, the drag-to-reorder insertion line,
-    /// and the drop-to-pin target. Kept as one `List` row so the whole interaction works
-    /// inside the rebuilt list sidebar (#281/#288, #346).
-    private func favoritePadsBody(_ pads: [FavoritePadItem]) -> some View {
-        // Capture the stores/binding (not `self`) in the per-row tap and delete
-        // closures — see the note in `Sidebar.defaultsSection`: capturing the whole
-        // `Sidebar` struct faults in `swift_retain` while SwiftUI copies the row value
-        // on the iPad layout path (a black-screen crash on first layout).
-        let nav = nav
-        let favoritePads = favoritePads
-        let accountID = accountID
-        let sectionBinding = $section
-        return VStack(alignment: .leading, spacing: 2) {
-            ForEach(pads) { item in
-                favoriteRowChrome(
-                    rowID: item.id,
-                    payload: padReorderPayload(item),
-                    onReorder: { reorderPad($0, before: item) },
-                    onAdd: { addDroppedFavorite($0, beforePad: item) },
-                    row: {
-                        // A document glyph marks the favourite as a pad — the same icon
-                        // the Pads section uses — so pads and questions read apart in the
-                        // combined Favorites section without a tinted star (#571).
-                        sidebarSubRow(label: item.title, icon: "doc.text") {
-                            if item.account != nil {
-                                sectionBinding.wrappedValue = .pads
-                                MergedRouting.shared.selectFavoritePad(id: item.padID)
-                            } else {
-                                nav.showFavoritePad(id: item.padID)
-                            }
-                        }
-                        .contextMenu {
-                            removeFavoriteButton {
-                                if let account = item.account ?? accountID {
-                                    favoritePads.remove(item.padID, account: account)
-                                }
-                            }
-                        }
-                    }
+        let storedTitles = Dictionary(
+            questions.map { ($0.id, $0.title) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        return ordered.map { ref in
+            switch ref {
+            case let .pad(padID):
+                return FavoriteEntry(
+                    id: namespaced ? "\(account.uuidString)-pad-\(padID)" : "pad-\(padID)",
+                    ref: ref,
+                    account: namespaced ? account : nil,
+                    title: padTitles[padID] ?? padID
+                )
+            case let .question(questionID):
+                let stored = storedTitles[questionID] ?? ""
+                let resolved = cacheTitles[questionID]
+                    ?? (stored.isEmpty ? "Question #\(questionID)" : stored)
+                return FavoriteEntry(
+                    id: namespaced ? "\(account.uuidString)-q-\(questionID)" : "q-\(questionID)",
+                    ref: ref,
+                    account: namespaced ? account : nil,
+                    title: resolved
                 )
             }
-            if pads.isEmpty { favoriteDropSpacer }
-        }
-        .modifier(FavoriteDropChrome(isHighlighted: droppingFavoritePads))
-        .onDrop(of: [.coderpadFavorite], isTargeted: $droppingFavoritePads) { providers in
-            for provider in providers {
-                loadFavoriteDrop(from: provider) { _ = handleFavoriteDrop([$0]) }
-            }
-            return true
         }
     }
 
-    /// The starred-question rows, mirroring ``favoritePadsBody`` for the question store.
-    private func favoriteQuestionsBody(_ questions: [FavoriteItem]) -> some View {
-        // Capture the stores/binding (not `self`) in the per-row tap and delete
-        // closures — see the note in `Sidebar.defaultsSection`: capturing the whole
-        // `Sidebar` struct faults in `swift_retain` while SwiftUI copies the row value
-        // on the iPad layout path (a black-screen crash on first layout).
+    /// Favourite pads and starred questions share one headed "Favorites" section as a
+    /// single drag-ordered list (#571): each row carries its own kind glyph (a pad/document
+    /// vs a question bubble) instead of a tinted star, so the kind stays legible without
+    /// splitting the list, and the two kinds interleave freely in whatever order they were
+    /// dragged into — nothing groups pads above questions. The section hides when there's
+    /// nothing favourited and nothing being dragged (#440/#444): an empty `List` row still
+    /// reserves a minimum height, so gating the whole section keeps no resting gap.
+    @ViewBuilder
+    var favoritesSection: some View {
+        let entries = favoriteEntries
+        if !entries.isEmpty || favoriteDragMonitor.isDragging {
+            Section("Favorites") {
+                favoritesBody(entries).sidebarGroupRow()
+            }
+        }
+    }
+
+    /// The favourite rows, their empty-state drop hint, the drag-to-reorder insertion
+    /// line, and the drop-to-pin target. Kept as one `List` row so the whole interaction
+    /// works inside the rebuilt list sidebar (#281/#288, #346).
+    private func favoritesBody(_ entries: [FavoriteEntry]) -> some View {
+        // Capture the stores/binding (not `self`) in the per-row tap and delete closures
+        // — see the note in `Sidebar.defaultsSection`: capturing the whole `Sidebar`
+        // struct faults in `swift_retain` while SwiftUI copies the row value on the iPad
+        // layout path (a black-screen crash on first layout).
         let nav = nav
+        let favoritePads = favoritePads
         let favorites = favorites
         let accountID = accountID
         let sectionBinding = $section
         return VStack(alignment: .leading, spacing: 2) {
-            ForEach(questions) { item in
+            ForEach(entries) { item in
                 favoriteRowChrome(
                     rowID: item.id,
-                    payload: questionReorderPayload(item),
-                    onReorder: { reorderQuestion($0, before: item) },
-                    onAdd: { addDroppedFavorite($0, beforeQuestion: item) },
+                    payload: reorderPayload(item),
+                    onReorder: { reorder($0, before: item) },
+                    onAdd: { addDroppedFavorite($0, before: item) },
                     row: {
-                        // A question-bubble glyph marks the favourite as a question — the
-                        // same icon the Questions section uses — distinguishing it from a
-                        // favourite pad in the shared Favorites section (#571).
-                        sidebarSubRow(label: item.title, icon: "questionmark.bubble") {
-                            if let account = item.account {
-                                // Merged view: switch to the combined questions list and let
-                                // it select the right account's row (per-org ids collide, so
-                                // the account must travel with the id).
-                                sectionBinding.wrappedValue = .questions
-                                MergedRouting.shared.selectFavoriteQuestion(account: account, id: item.questionID)
-                            } else {
-                                nav.showFavoriteQuestion(id: item.questionID)
-                            }
-                        }
-                        .contextMenu {
-                            removeFavoriteButton {
-                                if let account = item.account ?? accountID {
-                                    favorites.toggle(item.questionID, title: item.title, account: account)
-                                }
-                            }
-                        }
+                        favoriteRow(item, deps: FavoriteRowDeps(
+                            nav: nav,
+                            favoritePads: favoritePads,
+                            favorites: favorites,
+                            accountID: accountID,
+                            sectionBinding: sectionBinding
+                        ))
                     }
                 )
             }
-            if questions.isEmpty { favoriteDropSpacer }
+            if entries.isEmpty { favoriteDropSpacer }
         }
-        .modifier(FavoriteDropChrome(isHighlighted: droppingFavoriteQuestions))
-        .onDrop(of: [.coderpadFavorite], isTargeted: $droppingFavoriteQuestions) { providers in
+        .modifier(FavoriteDropChrome(isHighlighted: droppingFavorites))
+        .onDrop(of: [.coderpadFavorite], isTargeted: $droppingFavorites) { providers in
             for provider in providers {
                 loadFavoriteDrop(from: provider) { _ = handleFavoriteDrop([$0]) }
             }
             return true
+        }
+    }
+
+    /// One favourite row: a pad opens its pad, a question opens its question, each with the
+    /// same glyph its own section uses (a document vs a question bubble) so the kind reads
+    /// at a glance without a tinted star (#571). In the merged view the tap routes through
+    /// `MergedRouting` so the right account's row is selected (per-org ids collide, so the
+    /// account must travel with the id).
+    /// The stores and bindings a favourite row acts on, bundled so the row builder
+    /// stays under the parameter-count limit while still receiving them as locals —
+    /// never read from `self`, whose capture in a sidebar action closure crashed on
+    /// iPad (see the sidebar self-capture fix).
+    struct FavoriteRowDeps {
+        let nav: AppNavigation
+        let favoritePads: FavoritePadsStore
+        let favorites: FavoriteQuestionsStore
+        let accountID: UUID?
+        let sectionBinding: Binding<AppSection>
+    }
+
+    @ViewBuilder
+    private func favoriteRow(_ item: FavoriteEntry, deps: FavoriteRowDeps) -> some View {
+        let nav = deps.nav
+        let favoritePads = deps.favoritePads
+        let favorites = deps.favorites
+        let accountID = deps.accountID
+        let sectionBinding = deps.sectionBinding
+        switch item.ref {
+        case let .pad(padID):
+            sidebarSubRow(label: item.title, icon: "doc.text") {
+                if item.account != nil {
+                    sectionBinding.wrappedValue = .pads
+                    MergedRouting.shared.selectFavoritePad(id: padID)
+                } else {
+                    nav.showFavoritePad(id: padID)
+                }
+            }
+            .contextMenu {
+                removeFavoriteButton {
+                    if let account = item.account ?? accountID {
+                        favoritePads.remove(padID, account: account)
+                    }
+                }
+            }
+        case let .question(questionID):
+            sidebarSubRow(label: item.title, icon: "questionmark.bubble") {
+                if let account = item.account {
+                    sectionBinding.wrappedValue = .questions
+                    MergedRouting.shared.selectFavoriteQuestion(account: account, id: questionID)
+                } else {
+                    nav.showFavoriteQuestion(id: questionID)
+                }
+            }
+            .contextMenu {
+                removeFavoriteButton {
+                    if let account = item.account ?? accountID {
+                        favorites.toggle(questionID, title: item.title, account: account)
+                    }
+                }
+            }
         }
     }
 
@@ -250,28 +233,28 @@ extension Sidebar {
         }
     }
 
-    /// Pins a dropped pad immediately before `item` in the favourites' pad group, so a
-    /// drop lands where it was released rather than at the end. A question dropped onto
-    /// a pad row can't interleave among pads (the kinds are separate, ordered groups),
-    /// so it appends to its own group instead.
-    private func addDroppedFavorite(_ drop: FavoriteDrop, beforePad item: FavoritePadItem) {
-        guard case let .pad(account, id, _) = drop else { _ = handleFavoriteDrop([drop]); return }
-
-        favoritePads.add(id, account: account)
-        if let target = item.account ?? accountID, target == account {
-            favoritePads.move(id, before: item.padID, account: account)
+    /// Pins a dropped pad or question immediately before `item` in the combined order, so
+    /// a drop lands where it was released rather than at the end. The item is added to its
+    /// kind's store, then the shared order places it before the target — across kinds now,
+    /// so a question can land between two pads and vice versa. A drop from a different
+    /// account than the row's still pins (to its own account), just without the
+    /// before-positioning, since order is per-account.
+    private func addDroppedFavorite(_ drop: FavoriteDrop, before item: FavoriteEntry) {
+        let dropped: FavoriteRef
+        let account: UUID
+        switch drop {
+        case let .pad(dropAccount, id, _):
+            favoritePads.add(id, account: dropAccount)
+            dropped = .pad(id)
+            account = dropAccount
+        case let .question(dropAccount, id, title):
+            favorites.add(id, title: title, account: dropAccount)
+            dropped = .question(id)
+            account = dropAccount
         }
-    }
+        guard let target = item.account ?? accountID, target == account else { return }
 
-    /// Pins a dropped question immediately before `item` in the favourites' question
-    /// group. A pad dropped onto a question row appends to the pad group instead.
-    private func addDroppedFavorite(_ drop: FavoriteDrop, beforeQuestion item: FavoriteItem) {
-        guard case let .question(account, id, title) = drop else { _ = handleFavoriteDrop([drop]); return }
-
-        favorites.add(id, title: title, account: account)
-        if let target = item.account ?? accountID, target == account {
-            favorites.move(id, before: item.questionID, account: account)
-        }
+        favoritesOrder.move(dropped, before: item.ref, present: presentRefs(account: account), account: account)
     }
 
     /// Decodes a within-sidebar `FavoriteReorder` from a provider and applies the move.
@@ -362,34 +345,31 @@ extension Sidebar {
         }
     }
 
-    private func padReorderPayload(_ item: FavoritePadItem) -> FavoriteReorder? {
+    private func reorderPayload(_ item: FavoriteEntry) -> FavoriteReorder? {
         guard let account = item.account ?? accountID else { return nil }
 
-        return .pad(account: account, id: item.padID)
+        switch item.ref {
+        case let .pad(id): return .pad(account: account, id: id)
+        case let .question(id): return .question(account: account, id: id)
+        }
     }
 
-    private func questionReorderPayload(_ item: FavoriteItem) -> FavoriteReorder? {
-        guard let account = item.account ?? accountID else { return nil }
+    /// Reorders a dragged favourite to sit before `item` in the shared order, but only
+    /// within the same account (a reorder never moves a favourite between accounts). The
+    /// dragged item and the target can be different kinds, so a question can be dropped
+    /// between two pads and vice versa.
+    private func reorder(_ dropped: FavoriteReorder, before item: FavoriteEntry) {
+        guard let targetAccount = item.account ?? accountID else { return }
 
-        return .question(account: account, id: item.questionID)
-    }
+        let ref: FavoriteRef
+        let account: UUID
+        switch dropped {
+        case let .pad(dropAccount, id): ref = .pad(id); account = dropAccount
+        case let .question(dropAccount, id): ref = .question(id); account = dropAccount
+        }
+        guard account == targetAccount else { return }
 
-    /// Reorders a dropped pad favorite to sit before `item`, but only within the
-    /// same account (a reorder never moves a favorite between accounts).
-    private func reorderPad(_ dropped: FavoriteReorder, before item: FavoritePadItem) {
-        guard case let .pad(account, id) = dropped,
-              let targetAccount = item.account ?? accountID,
-              account == targetAccount else { return }
-
-        favoritePads.move(id, before: item.padID, account: account)
-    }
-
-    private func reorderQuestion(_ dropped: FavoriteReorder, before item: FavoriteItem) {
-        guard case let .question(account, id) = dropped,
-              let targetAccount = item.account ?? accountID,
-              account == targetAccount else { return }
-
-        favorites.move(id, before: item.questionID, account: account)
+        favoritesOrder.move(ref, before: item.ref, present: presentRefs(account: account), account: account)
     }
 }
 

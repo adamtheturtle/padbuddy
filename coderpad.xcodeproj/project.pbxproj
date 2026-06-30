@@ -1219,8 +1219,8 @@
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/adamtheturtle/FastList";
 			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.1.0;
+				kind = exactVersion;
+				version = 0.4.3;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

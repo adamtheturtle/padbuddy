@@ -5,7 +5,6 @@
 //
 
 import AppKit
-import EventKit
 import SwiftUI
 
 struct MenuBarLabel: View {
@@ -28,9 +27,6 @@ struct MenuBarView: View {
     // refreshes it in the background without clearing.
     @State private var padsCache = PadsCacheStore.shared
     @State private var questionsCache = QuestionsCacheStore.shared
-    /// Read-only calendar integration (#592): upcoming interviews, linked to their
-    /// pads where a confident match exists.
-    @State private var calendar = InterviewCalendar.shared
     @State var isLoading = false
     @State var errorMessage: String?
     /// Per-render memo of the sorted pads/questions, refreshed once at the top of
@@ -96,8 +92,6 @@ struct MenuBarView: View {
 
             activeInterviewItems()
 
-            upcomingInterviewItems()
-
             newPadItems(account: account)
 
             Divider()
@@ -136,47 +130,6 @@ struct MenuBarView: View {
                 Text("…\(live.count - topCount) more").foregroundStyle(.secondary)
             }
             Divider()
-        }
-    }
-
-    /// Upcoming scheduled interviews from the user's calendar (#592). Read-only and
-    /// opt-in: before access is granted it shows a single "Connect Calendar…" action;
-    /// once granted it lists the soonest events, each linking straight to its matched
-    /// pad (or opening Calendar when no pad is confidently linked). Hidden entirely
-    /// when access is denied or there is nothing upcoming.
-    @ViewBuilder
-    private func upcomingInterviewItems() -> some View {
-        switch calendar.authorization {
-        case .notDetermined:
-            Button("Connect Calendar…") {
-                Task { await calendar.requestAccessAndReload() }
-            }
-            Divider()
-        case .fullAccess:
-            let events = calendar.upcoming
-            if !events.isEmpty {
-                Text("Upcoming Interviews")
-                    .font(.caption).foregroundStyle(.secondary)
-                    .task { calendar.reloadIfAuthorized() }
-                ForEach(events.prefix(topCount)) { event in
-                    Button {
-                        openInterview(event)
-                    } label: {
-                        Label(
-                            interviewLabel(event),
-                            systemImage: matchedPad(for: event) == nil
-                                ? "calendar"
-                                : "arrow.up.forward.app"
-                        )
-                    }
-                }
-                if events.count > topCount {
-                    Text("…\(events.count - topCount) more").foregroundStyle(.secondary)
-                }
-                Divider()
-            }
-        default:
-            EmptyView()
         }
     }
 

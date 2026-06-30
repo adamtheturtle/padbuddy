@@ -135,6 +135,7 @@ extension Account: StorableAccount {
     AccountHealthMonitor.shared.clearUnauthorized(id)
     FavoritePadsStore.shared.remove(account: id)
     FavoriteQuestionsStore.shared.remove(account: id)
+    FavoritesOrderStore.shared.remove(account: id)
     SavedSearchStore.shared.remove(account: id)
     PadOpenedStore.shared.remove(account: id)
     InterviewTemplatesStore.shared.remove(account: id)

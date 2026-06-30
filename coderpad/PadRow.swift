@@ -34,6 +34,43 @@ import SwiftUI
     }
 #endif
 
+/// The account a merged-list row belongs to, reduced to just what the row renders:
+/// the name plus the avatar's tint and symbol. `nil` in the per-account lists, where
+/// every row shares one account and naming it on each row would be noise.
+/// `Equatable`/`Hashable` (a plain value type) so the memoized row body re-renders
+/// when the account's identity changes, and so it can sit inside the `Hashable`
+/// merged-row models. (#604)
+struct RowAccount: Equatable, Hashable {
+    let name: String
+    let tint: Color
+    let symbol: String?
+
+    init(_ account: Account) {
+        name = account.name
+        tint = account.avatarTint
+        symbol = account.iconSymbol
+    }
+}
+
+/// Names the account a merged-list row came from, using the account's own avatar
+/// (its tint + chosen symbol, or its initials) rather than a generic person glyph —
+/// so multi-account users can tell at a glance which account a pad/question belongs
+/// to, matching the avatar shown in the org/quota headers and the sidebar footer.
+/// Styled like ``MetaLabel`` so it sits cleanly among the row's other metadata. (#604)
+struct AccountMetaLabel: View {
+    let account: RowAccount
+
+    var body: some View {
+        HStack(spacing: 4) {
+            AvatarCircle(label: account.name, diameter: 14, tint: account.tint, symbol: account.symbol)
+            Text(account.name).font(.caption)
+        }
+        .lineLimit(1)
+        .fixedSize(horizontal: true, vertical: false)
+        .foregroundStyle(.secondary)
+    }
+}
+
 /// The pad row's static title/metadata/date block — the bulk of the row's render
 /// cost — memoized via `.equatable()` by ``PadRowHostableContent`` (#439). It holds no interaction
 /// and no closures, so wrapping it in an `EquatableView` can't affect the row's
@@ -42,7 +79,7 @@ import SwiftUI
 private struct PadRowInfo: View, Equatable {
     let pad: Pad
     let isChanged: Bool
-    let accountName: String?
+    let account: RowAccount?
     /// The owner's display name as already resolved by ``PadRowHostableContent`` against the org
     /// directory; compared in `==` so a directory update re-renders the block.
     let ownerDisplay: String
@@ -58,7 +95,7 @@ private struct PadRowInfo: View, Equatable {
             // and it folds in `endedAt`, so compare it directly.
             && lpad.informativeUpdatedAt == rpad.informativeUpdatedAt
             && lhs.isChanged == rhs.isChanged
-            && lhs.accountName == rhs.accountName
+            && lhs.account == rhs.account
             && lhs.ownerDisplay == rhs.ownerDisplay
     }
 
@@ -82,8 +119,8 @@ private struct PadRowInfo: View, Equatable {
                     .lineLimit(1)
                 HStack(spacing: 8) {
                     StateBadge(state: pad.status)
-                    if let accountName {
-                        MetaLabel(text: accountName, systemImage: "person.crop.circle")
+                    if let account {
+                        AccountMetaLabel(account: account)
                     }
                     if let language = pad.language, !language.isEmpty {
                         MetaLabel(text: language.languageDisplayName)
@@ -137,7 +174,7 @@ private struct PadRowInfo: View, Equatable {
 
     private var accessibilityLabel: String {
         var parts = [pad.title.isEmpty ? pad.id : pad.title, pad.status.label]
-        if let accountName { parts.append(accountName) }
+        if let account { parts.append(account.name) }
         if let language = pad.language, !language.isEmpty {
             parts.append(language.languageDisplayName)
         }
@@ -189,6 +226,39 @@ struct FavoriteStarButton: View {
     }
 }
 
+extension View {
+    /// Insets a `FastList` row's hosted content horizontally on the iPad backend.
+    ///
+    /// On iPad `FastList` is a native `List`, and its rows host their SwiftUI content
+    /// ~18pt to the *left* of the cell that draws the selection highlight — the content
+    /// frame ignores the column's leading layout margin, so the title slides under the
+    /// sidebar's trailing edge (clipping its leading characters) and overhangs the
+    /// highlight, which tracks the cell and so reads as a too-small pill. `listRowInsets`
+    /// can't fix this: the plain list honors its vertical component but overrides the
+    /// horizontal with the system layout margin, leaving the content where it was.
+    /// Padding *inside* the hosted content is immune, so it's the lever that actually
+    /// seats the text within the cell — clear of the sidebar and inside the highlight.
+    /// A no-op on macOS, where `FastList` is `NSTableView`-backed and insets its own rows.
+    ///
+    /// The trailing `.containerRelativeFrame(.horizontal)` forces every row to fill the
+    /// column. `FastList` wraps each iPad row in `.contextMenu`/`.draggable`, which proposes
+    /// the content's *intrinsic* width to the row (so the inner `Spacer` never expands) and
+    /// centers it — leaving rows with wider metadata (e.g. "Used 4×") sitting noticeably
+    /// wider than narrower ones (e.g. "C++"). A plain `.frame(maxWidth: .infinity)` can't
+    /// fix that: under an intrinsic-width proposal it just resolves to the ideal width.
+    /// `containerRelativeFrame` ignores the proposal and sizes to the list's container
+    /// width, so every row spans the full column and the metadata no longer drives width.
+    @ViewBuilder
+    func fastListRowInsets() -> some View {
+        #if os(iOS)
+            padding(.leading, 32).padding(.trailing, 24)
+                .containerRelativeFrame(.horizontal, alignment: .leading)
+        #else
+            self
+        #endif
+    }
+}
+
 /// The pad row as hosted inside the `NSTableView`-backed `FastList` (#439). The
 /// title/metadata block is `.allowsHitTesting(false)` so left-clicks pass straight
 /// through the `NSHostingView` to the table for native selection; only the favorite
@@ -198,7 +268,9 @@ struct FavoriteStarButton: View {
 struct PadRowHostableContent: View {
     let pad: Pad
     var isChanged: Bool = false
-    var accountName: String?
+    /// The account this row belongs to, named on the row only in the merged list
+    /// (`nil` in the per-account list). (#604)
+    var rowAccount: RowAccount?
     var ownerDisplay: String
     /// The owning account, used to read/toggle the favorite state.
     var account: UUID?
@@ -213,7 +285,7 @@ struct PadRowHostableContent: View {
             PadRowInfo(
                 pad: pad,
                 isChanged: isChanged,
-                accountName: accountName,
+                account: rowAccount,
                 ownerDisplay: ownerDisplay
             )
             .equatable()
@@ -230,6 +302,7 @@ struct PadRowHostableContent: View {
             )
         }
         .padding(.vertical, 4)
+        .fastListRowInsets()
         .onHover { hovered = $0 }
     }
 }
