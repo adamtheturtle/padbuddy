@@ -119,24 +119,56 @@ extension MergedQuestionsView {
                 : String(localized: "\(shown) questions across \(accountCount) accounts"))
     }
 
+    /// Names any accounts whose fetch failed. A rejected API key reads differently from a
+    /// transient network blip (red key glyph plus a jump to the account editor, vs. an
+    /// orange "couldn't refresh") so the two aren't confused (#622).
     @ViewBuilder
     var errorBar: some View {
         let failed = accounts.mergeableAccounts.filter { accountErrors[$0.id] != nil }
+        let authFailed = failed.filter { healthMonitor.isUnauthorized($0.id) }
+        let networkFailed = failed.filter { !healthMonitor.isUnauthorized($0.id) }
         if !failed.isEmpty {
-            HStack(spacing: 6) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundStyle(.orange)
-                    // Decorative: the adjacent message already states the failure, so
-                    // VoiceOver shouldn't announce the bare symbol name before it.
-                    .accessibilityHidden(true)
-                Text("Couldn't refresh \(failed.map(\.name).joined(separator: ", ")). "
-                    + "Showing the last loaded questions.")
-                    .foregroundStyle(.secondary)
-                Spacer()
+            VStack(alignment: .leading, spacing: 4) {
+                if !authFailed.isEmpty {
+                    HStack(spacing: 6) {
+                        Image(systemName: "key.slash.fill")
+                            .foregroundStyle(.red)
+                            .accessibilityHidden(true)
+                        Text("The API key for \(authFailed.map(\.name).joined(separator: ", ")) was rejected.")
+                            .foregroundStyle(.secondary)
+                        Button("Fix in Settings") { openAccountSettings(authFailed[0]) }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(Color.accentColor)
+                        Spacer()
+                    }
+                }
+                if !networkFailed.isEmpty {
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                            // Decorative: the adjacent message already states the failure, so
+                            // VoiceOver shouldn't announce the bare symbol name before it.
+                            .accessibilityHidden(true)
+                        Text("Couldn't refresh \(networkFailed.map(\.name).joined(separator: ", ")). "
+                            + "Showing the last loaded questions.")
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                    }
+                }
             }
             .font(.caption)
             .padding(.horizontal, 12)
             .padding(.vertical, 4)
         }
+    }
+
+    /// Opens Settings on the Accounts tab with this account selected for editing, so a
+    /// rejected key can be fixed where the error points (#622). Mirrors the same helper
+    /// in `MergedOrganizationView`.
+    private func openAccountSettings(_ account: Account) {
+        let navigation = SettingsNavigation.shared
+        navigation.selectedTab = .accounts
+        navigation.accountToEdit = account.id
+        openSettings()
     }
 }

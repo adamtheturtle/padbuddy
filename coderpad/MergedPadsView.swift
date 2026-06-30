@@ -25,12 +25,18 @@ struct MergedPadsView: View {
     /// While offline the app is read-only, so create/delete controls disable (#321).
     @Environment(\.isReadOnly) var isReadOnly
     @Environment(\.openWindow) var openWindow
+    /// Cross-platform Settings opener (macOS window / iPad sheet), so an auth-failure
+    /// in the error bar can jump to the account editor (#622).
+    @Environment(\.openAppSettings) var openSettings
     @State var accounts = AccountsStore.shared
     @State var router = MergedRouting.shared
     @State var nav = AppNavigation.shared
     @State var cache = PadsCacheStore.shared
     @State var openedStore = PadOpenedStore.shared
     @State var favoritePads = FavoritePadsStore.shared
+    /// Per-account auth health, so the error bar can tell a rejected key from a
+    /// transient network blip (#622).
+    @State var healthMonitor = AccountHealthMonitor.shared
     /// The latest pads per account. Seeded from each account's disk cache on appear
     /// for an instant list, then replaced as the live fan-out fetch lands.
     @State var padsByAccount: [UUID: [Pad]] = [:]

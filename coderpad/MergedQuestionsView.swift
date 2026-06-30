@@ -20,11 +20,17 @@ struct MergedQuestionsView: View {
     /// While offline the app is read-only, so create/edit/delete controls disable (#321).
     @Environment(\.isReadOnly) var isReadOnly
     @Environment(\.openWindow) var openWindow
+    /// Cross-platform Settings opener (macOS window / iPad sheet), so an auth-failure
+    /// in the error bar can jump to the account editor (#622).
+    @Environment(\.openAppSettings) var openSettings
     @State var accounts = AccountsStore.shared
     @State var router = MergedRouting.shared
     @State var cache = QuestionsCacheStore.shared
     @State var favorites = FavoriteQuestionsStore.shared
     @State var nav = AppNavigation.shared
+    /// Per-account auth health, so the error bar can tell a rejected key from a
+    /// transient network blip (#622).
+    @State var healthMonitor = AccountHealthMonitor.shared
     @State var questionsByAccount: [UUID: [Question]] = [:]
     @State var accountErrors: [UUID: String] = [:]
     @State var isLoading = false
