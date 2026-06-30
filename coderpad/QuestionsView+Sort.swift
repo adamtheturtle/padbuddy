@@ -75,6 +75,42 @@ enum QuestionSort: String, CaseIterable, Identifiable {
         let options = Self.directions(for: newField)
         return options[min(slot, options.count - 1)].sort
     }
+
+    /// Arrange question-backed rows by this sort. "Last used" is backed by
+    /// `updatedAt` — the only per-question recency signal the API exposes.
+    func sorted<C: Collection>(_ items: C, question: (C.Element) -> Question) -> [C.Element] {
+        switch self {
+        case .titleAsc:
+            items.sorted {
+                let lhs = question($0).displayTitle
+                let rhs = question($1).displayTitle
+                return lhs.localizedCaseInsensitiveCompare(rhs) == .orderedAscending
+            }
+
+        case .titleDesc:
+            items.sorted {
+                let lhs = question($0).displayTitle
+                let rhs = question($1).displayTitle
+                return lhs.localizedCaseInsensitiveCompare(rhs) == .orderedDescending
+            }
+
+        case .lastUsedDesc:
+            items.sorted { (question($0).updatedAt ?? .distantPast) > (question($1).updatedAt ?? .distantPast) }
+
+        case .lastUsedAsc:
+            items.sorted { (question($0).updatedAt ?? .distantPast) < (question($1).updatedAt ?? .distantPast) }
+
+        case .usedDesc:
+            items.sorted { (question($0).used ?? 0) > (question($1).used ?? 0) }
+
+        case .usedAsc:
+            items.sorted { (question($0).used ?? 0) < (question($1).used ?? 0) }
+        }
+    }
+
+    func sorted(_ items: some Collection<Question>) -> [Question] {
+        sorted(items) { $0 }
+    }
 }
 
 /// One direction option for a ``QuestionSortField``: the concrete ``QuestionSort``

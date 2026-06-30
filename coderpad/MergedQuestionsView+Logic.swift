@@ -14,18 +14,18 @@ import SwiftUI
 extension MergedQuestionsView {
     // MARK: - Combined + filtered data
 
-    /// Every account's questions, tagged with their source account. Memoized into
-    /// `scopedCache` once per render by `refreshScoped()`; read many times in one
-    /// `body` (chip options, counts, empty-state checks).
+    /// Every account's questions, tagged with their source account and arranged by
+    /// the active sort. Memoized into `scopedCache`; read many times in one `body`
+    /// (filter pass, chip options, counts, empty-state checks).
     var scoped: [AccountScoped<Account, Question>] {
         scopedCache.rows
     }
 
-    /// Rebuild the memoized `scoped` rows when the underlying data changes, rather
-    /// than once per render: the tagged-array build and the chip-option Sets only
-    /// rerun when the merged questions actually change, not on every keystroke /
-    /// selection / filter toggle (#366). Reads only `questionsByAccount` so it never
-    /// triggers a cache read.
+    /// Rebuild the memoized `scoped` rows when the underlying data or sort changes,
+    /// rather than once per render: the tagged-array build, cross-account sort, and
+    /// chip-option Sets only rerun when the merged questions actually change, not on
+    /// every keystroke / selection / filter toggle (#366/#633). Reads only
+    /// `questionsByAccount` so it never triggers a cache read.
     func refreshScoped() {
         let mergeable = accounts.mergeableAccounts
         let signature = scopedSignature(mergeable: mergeable)
@@ -40,7 +40,7 @@ extension MergedQuestionsView {
                                           id: Self.rowID(account: account.id, question: question.id)))
             }
         }
-        scopedCache.rows = rows
+        scopedCache.rows = sort.sorted(rows, question: { $0.item })
         // Rebuild the chip-option lists in the same pass, sharing the input signature.
         scopedCache.availableLanguages = Array(Set(rows.compactMap { $0.item.language?.lowercased() })
             .filter { !$0.isEmpty }).sorted()
@@ -55,6 +55,7 @@ extension MergedQuestionsView {
     /// per-render array rebuild + two full Set passes.
     func scopedSignature(mergeable: [Account]) -> Int {
         var hasher = Hasher()
+        hasher.combine(sort)
         for account in mergeable {
             hasher.combine(account.id)
             let questions = questionsByAccount[account.id] ?? []
@@ -96,7 +97,6 @@ extension MergedQuestionsView {
             scopedSignature: scopedCache.signature ?? 0,
             filterSignature: filterSignature,
             favoritesOnly: favoritesOnly,
-            sortRawValue: sort.rawValue,
             favoritesByAccount: favoritesByAccount
         )
         guard sortedCache.key != key else { return }
@@ -121,35 +121,7 @@ extension MergedQuestionsView {
                     || (item.language ?? "").localizedCaseInsensitiveContains(search)
                     || (item.authorName ?? "").localizedCaseInsensitiveContains(search))
         }
-        sortedCache.rows = sortRows(filtered)
-    }
-
-    /// Orders the filtered cross-account rows by the active sort. Extracted from
-    /// `refreshSorted()` so that function stays within the body-length lint.
-    private func sortRows(_ rows: [AccountScoped<Account, Question>]) -> [AccountScoped<Account, Question>] {
-        switch sort {
-        case .titleAsc:
-            rows.sorted {
-                $0.item.displayTitle.localizedCaseInsensitiveCompare($1.item.displayTitle) == .orderedAscending
-            }
-
-        case .titleDesc:
-            rows.sorted {
-                $0.item.displayTitle.localizedCaseInsensitiveCompare($1.item.displayTitle) == .orderedDescending
-            }
-
-        case .lastUsedDesc:
-            rows.sorted { ($0.item.updatedAt ?? .distantPast) > ($1.item.updatedAt ?? .distantPast) }
-
-        case .lastUsedAsc:
-            rows.sorted { ($0.item.updatedAt ?? .distantPast) < ($1.item.updatedAt ?? .distantPast) }
-
-        case .usedDesc:
-            rows.sorted { ($0.item.used ?? 0) > ($1.item.used ?? 0) }
-
-        case .usedAsc:
-            rows.sorted { ($0.item.used ?? 0) < ($1.item.used ?? 0) }
-        }
+        sortedCache.rows = filtered
     }
 
     func isMine(_ row: AccountScoped<Account, Question>) -> Bool {

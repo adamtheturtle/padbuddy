@@ -129,7 +129,6 @@ final class SortedQuestionsCache {
         let scopedSignature: Int
         let filterSignature: String
         let favoritesOnly: Bool
-        let sortRawValue: String
         /// Favorites drive both the favorites filter and each row's star, so a toggle
         /// must re-run; comparing the small id sets is cheap and exact.
         let favoritesByAccount: [UUID: Set<Int>]

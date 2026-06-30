@@ -76,24 +76,10 @@ extension QuestionsView {
         listCache.owners = Array(Set(questions.map(\.ownerEmail)).filter { !$0.isEmpty }).sorted()
     }
 
-    /// Arrange `items` by the active sort. "Last used" is backed by `updatedAt` — the
-    /// only per-question recency signal the API exposes. Favorites keep their natural
-    /// position; the Favorites chip filters the list down to them when needed.
+    /// Arrange `items` by the active sort. Favorites keep their natural position;
+    /// the Favorites chip filters the list down to them when needed.
     private func applySort(_ items: [Question]) -> [Question] {
-        switch sort {
-        case .titleAsc:
-            items.sorted { $0.displayTitle.localizedCaseInsensitiveCompare($1.displayTitle) == .orderedAscending }
-        case .titleDesc:
-            items.sorted { $0.displayTitle.localizedCaseInsensitiveCompare($1.displayTitle) == .orderedDescending }
-        case .lastUsedDesc:
-            items.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
-        case .lastUsedAsc:
-            items.sorted { ($0.updatedAt ?? .distantPast) < ($1.updatedAt ?? .distantPast) }
-        case .usedDesc:
-            items.sorted { ($0.used ?? 0) > ($1.used ?? 0) }
-        case .usedAsc:
-            items.sorted { ($0.used ?? 0) < ($1.used ?? 0) }
-        }
+        sort.sorted(items)
     }
 }
 
