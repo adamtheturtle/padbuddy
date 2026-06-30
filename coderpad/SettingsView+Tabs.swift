@@ -332,6 +332,18 @@ extension SettingsView {
 
     var menuBarTab: some View {
         Form {
+            // The tab is always present (#608) so the Settings layout stays stable; when
+            // the menu-bar icon is turned off (Dock-only mode) the controls below have no
+            // effect, so explain that and disable them rather than making the whole tab
+            // vanish and reappear.
+            if !presence.showsMenuBarIcon {
+                Section {
+                    Text("The menu-bar icon is turned off. Turn it on under General, "
+                        + "“Show PadBuddy in”, to use these settings.")
+                        .foregroundStyle(.secondary)
+                }
+            }
+
             Section {
                 Stepper(value: $menuBarTopN, in: 0 ... 30, step: 1) {
                     HStack {
@@ -348,5 +360,6 @@ extension SettingsView {
             }
         }
         .formStyle(.grouped)
+        .disabled(!presence.showsMenuBarIcon)
     }
 }

@@ -97,11 +97,11 @@ struct SettingsView: View {
             // both are macOS-only, so neither tab appears on iPad. (Menu Bar is further
             // hidden in Dock-only mode where its icon never shows, #453.)
             #if os(macOS)
-                if presence.showsMenuBarIcon {
-                    menuBarTab
-                        .tabItem { Label("Menu Bar", systemImage: "menubar.rectangle") }
-                        .tag(SettingsTab.menuBar)
-                }
+                // Always present so the Settings layout doesn't shift as the menu-bar icon
+                // is toggled (#608); the tab explains and disables itself in Dock-only mode.
+                menuBarTab
+                    .tabItem { Label("Menu Bar", systemImage: "menubar.rectangle") }
+                    .tag(SettingsTab.menuBar)
                 mcpTab
                     .tabItem { Label("MCP Server", systemImage: "terminal") }
                     .tag(SettingsTab.mcp)
@@ -111,14 +111,6 @@ struct SettingsView: View {
         #if os(macOS)
             .frame(minWidth: 620, minHeight: 440)
         #endif
-        // If the Menu Bar tab is hidden while it's the active selection (presence just
-        // switched to Dock-only), fall back to General so the window isn't left on a
-        // tab that no longer exists.
-        .onChange(of: presence) { _, newValue in
-            if !newValue.showsMenuBarIcon, navigation.selectedTab == .menuBar {
-                navigation.selectedTab = .general
-            }
-        }
         // A caller (e.g. the unauthorized banner) can request the editor for a
         // specific account; honor it both when Settings first appears and while it's
         // already open.
