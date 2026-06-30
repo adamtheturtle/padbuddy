@@ -33,14 +33,17 @@ extension PadDetailView {
                 if let roles = participantRoles {
                     if !roles.candidates.isEmpty {
                         participantGroup(
-                            title: roles.candidates.count == 1 ? "Candidate" : "Candidates",
+                            // Automatic plural agreement (#625): `inflect` adapts the noun to
+                            // the count across every locale's plural rules, replacing the
+                            // hand-built two-form English ternary.
+                            title: "^[\(roles.candidates.count) Candidate](inflect: true)",
                             systemImage: "person.crop.circle.badge.questionmark",
                             names: roles.candidates, tint: .blue
                         )
                     }
                     if !roles.interviewers.isEmpty {
                         participantGroup(
-                            title: roles.interviewers.count == 1 ? "Interviewer" : "Interviewers",
+                            title: "^[\(roles.interviewers.count) Interviewer](inflect: true)",
                             systemImage: "person.crop.circle.badge.checkmark",
                             names: roles.interviewers, tint: .purple, clickable: true
                         )
