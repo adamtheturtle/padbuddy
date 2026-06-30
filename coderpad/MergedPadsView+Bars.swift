@@ -112,11 +112,24 @@ extension MergedPadsView {
 
         let shown = filtered.count
         let accountCount = accounts.mergeableAccounts.count
-        return (activeFilterCount > 0 || !search.isEmpty)
+        let base = (activeFilterCount > 0 || !search.isEmpty)
             ? String(localized: "\(shown) of \(scoped.count) pads across \(accountCount) accounts")
             : (shown == 1
                 ? String(localized: "\(shown) pad across \(accountCount) accounts")
                 : String(localized: "\(shown) pads across \(accountCount) accounts"))
+        return base + freshnessSuffix
+    }
+
+    /// A trailing " · Refreshing…" / " · Updated X ago" cue appended to the count, so the
+    /// cached-then-refreshed list shows its freshness without adding chrome (#619).
+    private var freshnessSuffix: String {
+        if isLoading {
+            return " · " + String(localized: "Refreshing…")
+        }
+        if let lastRefreshed {
+            return " · " + String(localized: "Updated \(RelativeDateLabel.labels(for: lastRefreshed).relative)")
+        }
+        return ""
     }
 
     /// A quiet note naming any accounts whose fetch failed, so the merged list
