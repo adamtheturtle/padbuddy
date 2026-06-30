@@ -83,6 +83,10 @@ private struct PadRowInfo: View, Equatable {
     /// The owner's display name as already resolved by ``PadRowHostableContent`` against the org
     /// directory; compared in `==` so a directory update re-renders the block.
     let ownerDisplay: String
+    /// Whether Increase Contrast is on, resolved by the parent (the `.equatable()` here
+    /// would otherwise hide an environment read from memoization); compared in `==` so
+    /// toggling the setting re-renders the dot (#616).
+    let highContrast: Bool
 
     static func == (lhs: Self, rhs: Self) -> Bool {
         let lpad = lhs.pad, rpad = rhs.pad
@@ -97,6 +101,7 @@ private struct PadRowInfo: View, Equatable {
             && lhs.isChanged == rhs.isChanged
             && lhs.account == rhs.account
             && lhs.ownerDisplay == rhs.ownerDisplay
+            && lhs.highContrast == rhs.highContrast
     }
 
     var body: some View {
@@ -168,6 +173,13 @@ private struct PadRowInfo: View, Equatable {
             Circle()
                 .fill(Color.blue)
                 .frame(width: 8, height: 8)
+                // Under Increase Contrast a flat blue dot can blend into the row; add a
+                // contrasting outline so it stays distinct for low-vision users (#616).
+                .overlay {
+                    if highContrast {
+                        Circle().strokeBorder(Color.primary, lineWidth: 1)
+                    }
+                }
                 .help("Updated since last refresh")
         }
     }
@@ -279,6 +291,10 @@ struct PadRowHostableContent: View {
     /// change. Passing a static `Bool` left the star stuck (#439).
     var favoritePads: FavoritePadsStore
     @State private var hovered = false
+    /// Read out here (not inside the `.equatable()` `PadRowInfo`, where it would be
+    /// invisible to memoization) and threaded in as a compared value, so the
+    /// recently-updated dot gains a contrasting outline under Increase Contrast (#616).
+    @Environment(\.colorSchemeContrast) private var contrast
 
     var body: some View {
         HStack(alignment: .center, spacing: 8) {
@@ -286,7 +302,8 @@ struct PadRowHostableContent: View {
                 pad: pad,
                 isChanged: isChanged,
                 account: rowAccount,
-                ownerDisplay: ownerDisplay
+                ownerDisplay: ownerDisplay,
+                highContrast: contrast == .increased
             )
             .equatable()
             .allowsHitTesting(false)
