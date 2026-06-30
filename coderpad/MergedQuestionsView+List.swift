@@ -337,7 +337,13 @@ extension MergedQuestionsView {
                 Button("Clear Filters") { clearAllFilters() }
             }
         } else if scoped.isEmpty, !isLoading {
-            ContentUnavailableView("No Questions", systemImage: "questionmark.bubble")
+            // Spell out that this account set is genuinely empty, so it doesn't read as
+            // still-loading or over-filtered (#618).
+            ContentUnavailableView {
+                Label("No Questions", systemImage: "questionmark.bubble")
+            } description: {
+                Text("Questions from your accounts' banks will appear here.")
+            }
         }
     }
 }

@@ -285,7 +285,13 @@ extension MergedPadsView {
                         Button("Clear Filters") { clearAllFilters() }
                     }
                 } else if scoped.isEmpty, !isLoading {
-                    ContentUnavailableView("No Pads", systemImage: "doc.text")
+                    // Spell out that this account set is genuinely empty, so it doesn't
+                    // read as still-loading or over-filtered (#618).
+                    ContentUnavailableView {
+                        Label("No Pads", systemImage: "doc.text")
+                    } description: {
+                        Text("Pads from your accounts will appear here once you create or join them.")
+                    }
                 }
             }
             .onKeyPress(.return) {
