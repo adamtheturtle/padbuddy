@@ -94,6 +94,9 @@ struct QuestionDetailView: View {
 
     var body: some View {
         draftSync(core)
+            // Error haptic when a delete fails; fires only on the transition into an
+            // error, not on dismissal. No-op on macOS (#611).
+            .sensoryFeedback(trigger: deleteError) { _, new in new != nil ? .error : nil }
     }
 
     private var core: some View {

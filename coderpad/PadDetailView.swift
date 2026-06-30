@@ -263,6 +263,9 @@ struct PadDetailView: View {
             } message: {
                 Text(mutateError ?? "")
             }
+            // Error haptic when a mutation (end/delete/save) fails; fires only on the
+            // transition into an error, not on dismissal. No-op on macOS (#611).
+            .sensoryFeedback(trigger: mutateError) { _, new in new != nil ? .error : nil }
             #if !os(macOS)
             .fileExporter(
                 isPresented: .init(get: { pendingExport != nil },

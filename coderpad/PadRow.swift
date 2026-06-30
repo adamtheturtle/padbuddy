@@ -210,15 +210,23 @@ struct FavoriteStarButton: View {
     /// The row's display title, used only to phrase the accessibility label.
     let title: String
     let onToggle: () -> Void
+    /// Bumped on each tap to drive a light haptic on the toggle (#611). Tied to the tap,
+    /// not `isFavorite`, so a favorite changed elsewhere doesn't buzz this row.
+    @State private var feedbackTrigger = 0
 
     var body: some View {
-        Button(action: onToggle) {
+        Button {
+            feedbackTrigger += 1
+            onToggle()
+        } label: {
             Image(systemName: isFavorite ? "star.fill" : "star")
                 .font(.caption)
                 .foregroundStyle(isFavorite ? AnyShapeStyle(.yellow) : AnyShapeStyle(.secondary))
                 .contentTransition(.symbolEffect(.replace))
         }
         .buttonStyle(.plain)
+        // Light tactile confirmation on touch devices; a no-op on macOS (#611).
+        .sensoryFeedback(.impact(flexibility: .soft), trigger: feedbackTrigger)
         // The caption-size star is a ~15pt target tuned for a pointer; on iPad it's
         // always shown (no hover) so it must also be comfortably tappable - give it a
         // 44pt hit area on touch (no-op on macOS, #597).
