@@ -50,6 +50,16 @@ extension QuestionsView {
         return count == 1 ? String(localized: "\(count) question") : String(localized: "\(count) questions")
     }
 
+    /// Resets the question filter chips, mirroring `MergedQuestionsView.clearAllFilters`
+    /// and the single-account Pads list, so the no-match overlay's Clear Filters button
+    /// has a target (#617). The search field (owned by `MainSplit`) is left untouched,
+    /// matching the Pads list.
+    func clearAllFilters() {
+        languageFilter = nil; ownerFilter = nil
+        typeFilter = nil; draftFilter = nil
+        favoritesOnly = false
+    }
+
     var sidebar: some View {
         FilterableListView(
             isLoading: isLoading,
@@ -162,6 +172,19 @@ extension QuestionsView {
         #if os(macOS)
         .onDragSession(began: FavoriteDragLifecycle.onBegan, ended: FavoriteDragLifecycle.onEnded)
         #endif
+        // When filters exclude every question, explain why and offer a reset rather than
+        // leaving a blank list that reads like a load failure — matching the Pads list (#617).
+        .overlay {
+            if sorted.isEmpty, !questions.isEmpty {
+                ContentUnavailableView {
+                    Label("No Matching Questions", systemImage: "line.3.horizontal.decrease.circle")
+                } description: {
+                    Text("No questions match the current filters.")
+                } actions: {
+                    Button("Clear Filters") { clearAllFilters() }
+                }
+            }
+        }
         // Scene-scoped, mirroring PadsView: the Question menu commands stay enabled
         // whenever this window is frontmost and a question is selected.
         .focusedSceneValue(\.focusedQuestion, selection)
