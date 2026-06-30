@@ -51,10 +51,13 @@ struct QuestionWindow: View {
     var body: some View {
         Group {
             if let account, let question = cachedQuestion ?? fetched {
-                QuestionDetailView(client: account.makeClient(),
+                let client = account.makeClient()
+                QuestionDetailView(client: client,
                                    question: question,
                                    accountID: account.id)
                     .navigationTitle(question.displayTitle)
+                    // The question's web URL backs the title-bar proxy icon (#609).
+                    .navigationDocument(question.webURL(baseURL: client.baseURL))
             } else if value == nil || loadFailed {
                 // The system can restore this window without a value, or the fetch
                 // can fail (e.g. the question was deleted); show a placeholder rather

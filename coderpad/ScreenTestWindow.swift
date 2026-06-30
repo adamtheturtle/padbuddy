@@ -43,8 +43,14 @@ struct ScreenTestWindow: View {
     var body: some View {
         Group {
             if let client = account?.makeScreenClient(), let test = fetched {
-                ScreenTestDetailView(client: client, test: test)
+                let detail = ScreenTestDetailView(client: client, test: test)
                     .navigationTitle(test.candidateName ?? test.candidateEmail ?? String(localized: "Test Session"))
+                // The recruiter dashboard URL backs the title-bar proxy icon (#609).
+                if let urlString = test.url, let url = URL(string: urlString) {
+                    detail.navigationDocument(url)
+                } else {
+                    detail
+                }
             } else if value == nil || loadFailed || account?.makeScreenClient() == nil {
                 // The system can restore this window without a value, the account may
                 // have lost its Screen key, or the fetch can fail (e.g. the session was
