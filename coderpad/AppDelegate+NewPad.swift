@@ -3,8 +3,8 @@
 //  coderpad
 //
 //  The widget / Control Center "New Pad" path: create a pad through the API and open
-//  it in the browser without surfacing the app window, falling back to the in-app
-//  create flow when that isn't possible (#456, #485). Split out of the main app file
+//  it according to the app's browser preference, falling back to the in-app create
+//  flow when that isn't possible (#456, #485, #602). Split out of the main app file
 //  so it stays under the file-length budget.
 //
 
@@ -46,13 +46,14 @@ extension AppDelegate {
         createPadInBrowser(account: request.account, question: request.question)
     }
 
-    /// Creates a pad through the API and opens it in the browser — the same behavior as
-    /// the menu-bar extra's New Pad — so the widget and Control Center buttons make a pad
-    /// without surfacing the app's window (#485). The work runs here, in the app, rather
-    /// than in the extension's `CreatePadIntent`, because only the app has the API client,
-    /// the account's keychained key, and the network entitlement. When there's no usable
-    /// account or the request fails, it falls back to opening the in-app create flow so a
-    /// tap is never silently lost.
+    /// Creates a pad through the API and opens it according to the user's browser
+    /// preference — the same behavior as the menu-bar extra's New Pad. The in-app
+    /// default avoids handing a pad created under one API account to a system-browser
+    /// session that may be signed into another account (#602). The work runs here, in
+    /// the app, rather than in the extension's `CreatePadIntent`, because only the app
+    /// has the API client, the account's keychained key, and the network entitlement.
+    /// When there's no usable account or the request fails, it falls back to opening
+    /// the in-app create flow so a tap is never silently lost.
     @MainActor
     static func createPadInBrowser(account: String?, question: Int?) {
         let store = AccountsStore.shared
@@ -81,13 +82,26 @@ extension AppDelegate {
             do {
                 let pad = try await client.createPad(body)
                 if let url = pad.webURL {
-                    BrowserSettings.openExternally(url)
+                    openCreatedPad(url)
                 }
             } catch {
                 // Offline or a transient API error: surface the in-app create flow so the
                 // user can retry, rather than failing silently.
                 routeNewPadViaDeepLink(account: accountID.uuidString, question: question)
             }
+        }
+    }
+
+    /// Opens a newly-created pad through the user's browser preference. External opens
+    /// still use the configured system browser, but the default in-app browser keeps the
+    /// app-created pad out of an unrelated browser account session (#602).
+    @MainActor
+    static func openCreatedPad(_ url: URL) {
+        if BrowserSettings.openLinksIn == .external {
+            BrowserSettings.openExternally(url)
+        } else {
+            AppActivator.bringToFront()
+            AppRouter.requestOpenPadInBrowser(url)
         }
     }
 

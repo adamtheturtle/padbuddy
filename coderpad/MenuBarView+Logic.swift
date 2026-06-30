@@ -57,8 +57,19 @@ extension MenuBarView {
     func openPadBrowser(_ pad: Pad) {
         guard let url = pad.webURL else { return }
 
-        AppActivator.bringToFront()
-        openWindow(id: "pad-browser", value: url)
+        openPadURL(url)
+    }
+
+    /// Opens a pad URL from the menu bar, honoring the app-wide browser preference.
+    /// The in-app default avoids handing a newly-created pad to an unrelated system
+    /// browser session, which may be signed into a different CoderPad account (#602).
+    func openPadURL(_ url: URL) {
+        if BrowserSettings.openLinksIn == .external {
+            BrowserSettings.openExternally(url)
+        } else {
+            AppActivator.bringToFront()
+            openWindow(id: "pad-browser", value: url)
+        }
     }
 
     /// Questions for the "New Pad from Question" submenu, with favorites floated to
@@ -76,7 +87,7 @@ extension MenuBarView {
         do {
             let pad = try await client.createPad(body)
             if let url = pad.webURL {
-                BrowserSettings.openExternally(url)
+                openPadURL(url)
             }
         } catch {
             errorMessage = error.localizedDescription

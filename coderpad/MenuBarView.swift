@@ -155,9 +155,9 @@ struct MenuBarView: View {
         // active account, rather than hanging it off an unrelated leaf button.
         .task(id: store.currentAccountID) { await load(account: account) }
 
-        // Both New Pad and New Pad from Question create the pad under this account,
-        // but open it in your default browser, which renders it under whatever
-        // CoderPad account is signed in there. The two can differ, so warn first.
+        // Both New Pad and New Pad from Question create the pad under this account;
+        // when the user has chosen the external browser, that browser may be signed
+        // into a different CoderPad account, so warn first (#602).
         newPadAccountWarning
 
         if !questions.isEmpty {
@@ -186,10 +186,13 @@ struct MenuBarView: View {
 
     /// Caption note warning that a newly created pad opens in the default
     /// browser's signed-in CoderPad account, which may differ from this account.
+    @ViewBuilder
     private var newPadAccountWarning: some View {
-        Text("Opens in your browser's signed-in account")
-            .font(.caption)
-            .foregroundStyle(.secondary)
+        if BrowserSettings.openLinksIn == .external {
+            Text("Opens in your browser's signed-in account")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
     }
 
     /// "My Pads" header and the user's recent pads (or a status line).
@@ -208,7 +211,7 @@ struct MenuBarView: View {
             ForEach(myPads.prefix(topCount)) { pad in
                 Button {
                     if let url = pad.webURL {
-                        BrowserSettings.openExternally(url)
+                        openPadURL(url)
                     }
                 } label: {
                     Text(padLabel(pad))
