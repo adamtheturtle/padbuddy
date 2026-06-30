@@ -354,6 +354,9 @@ struct PadBrowserView: View {
 
     private var urlLabel: some View {
         let address = controller.currentURL?.absoluteString ?? url.absoluteString
+        // Localize the spoken security state itself (#624): as a literal interpolated
+        // into the label below it was formatted as a value and never entered the catalog.
+        let security = isSecure ? String(localized: "Secure") : String(localized: "Not secure")
         return HStack(spacing: 6) {
             Image(systemName: lockIcon)
                 .foregroundStyle(lockTint)
@@ -372,7 +375,7 @@ struct PadBrowserView: View {
         // bare symbol name and miss the security state entirely. Read the bar as one
         // element that names whether the connection is secure, then the address (#79).
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(isSecure ? "Secure" : "Not secure"), \(address)")
+        .accessibilityLabel("\(security), \(address)")
     }
 
     /// Whether the displayed page is loaded over HTTPS, driving both the lock glyph
