@@ -10,7 +10,7 @@ import SwiftUI
 struct MenuBarLabel: View {
     var body: some View {
         Image(systemName: "doc.text.magnifyingglass")
-            .accessibilityLabel("CoderPad")
+            .accessibilityLabel("PadBuddy")
     }
 }
 
@@ -224,7 +224,7 @@ struct MenuBarView: View {
     /// account switching.
     @ViewBuilder
     private func navigationItems(account: Account) -> some View {
-        Menu("Go to") {
+        Menu("Navigate") {
             Button("Pads") { go(.pads) }
             Button("Questions") { go(.questions) }
             Button("Organization") { go(.organization) }
@@ -287,7 +287,7 @@ struct MenuBarView: View {
             Link("Send Feedback…", destination: CoderPadLinks.feedbackMailto)
         }
 
-        Button("About CoderPad") { showAboutPanel() }
+        Button("About PadBuddy") { showAboutPanel() }
 
         Button("Quit") { NSApp.terminate(nil) }
             .keyboardShortcut("q")
