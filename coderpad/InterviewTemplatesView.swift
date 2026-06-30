@@ -66,7 +66,14 @@ struct ManageTemplatesSheet: View {
             }
         }
         .padding()
+        // macOS sizes the sheet with a fixed frame; iPad sizes to a resizable detent with
+        // a drag indicator so it reads as dismissible (#610).
+        #if os(macOS)
         .frame(minWidth: 480, minHeight: 360)
+        #else
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+        #endif
         .sheet(item: $editing) { editingTemplate in
             if let account {
                 TemplateEditorSheet(
@@ -210,7 +217,14 @@ struct TemplateEditorSheet: View {
             }
         }
         .padding()
+        // macOS sizes the sheet with a fixed frame; iPad sizes to a resizable detent with
+        // a drag indicator so it reads as dismissible (#610).
+        #if os(macOS)
         .frame(minWidth: 460, minHeight: 340)
+        #else
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+        #endif
         .task { await loadQuestions() }
     }
 

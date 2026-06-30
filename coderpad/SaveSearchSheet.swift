@@ -54,7 +54,14 @@ struct SaveSearchSheet: View {
             }
         }
         .padding()
+        // macOS keeps a fixed width; this small form sizes to a medium detent on iPad with
+        // a drag indicator so it reads as dismissible (#610).
+        #if os(macOS)
         .frame(minWidth: 360)
+        #else
+        .presentationDetents([.medium])
+        .presentationDragIndicator(.visible)
+        #endif
     }
 
     /// A sparkle button that fills the name field with an on-device suggestion built

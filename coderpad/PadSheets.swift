@@ -115,7 +115,14 @@ struct NewPadSheet: View {
             }
         }
         .padding()
+        // macOS sizes the sheet with a fixed frame; iPad sizes to a resizable detent and
+        // shows a drag indicator so the form reads as dismissible (#610).
+        #if os(macOS)
         .frame(minWidth: 460, minHeight: 360)
+        #else
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
+        #endif
         .task { await loadQuestions() }
         .task { await loadOrganization() }
         .task { applyOrgDefaultLanguage() }
