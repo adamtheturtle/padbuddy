@@ -41,12 +41,6 @@ struct QuestionWindow: View {
         return accounts.currentAccount
     }
 
-    private var representedURL: URL? {
-        guard let account, let question = cachedQuestion ?? fetched else { return nil }
-
-        return question.webURL(baseURL: account.makeClient().baseURL)
-    }
-
     /// The question from the warm cache, if the owning account has it loaded.
     private var cachedQuestion: Question? {
         guard let value, let account else { return nil }
@@ -57,13 +51,10 @@ struct QuestionWindow: View {
     var body: some View {
         Group {
             if let account, let question = cachedQuestion ?? fetched {
-                let client = account.makeClient()
-                QuestionDetailView(client: client,
+                QuestionDetailView(client: account.makeClient(),
                                    question: question,
                                    accountID: account.id)
                     .navigationTitle(question.displayTitle)
-                    // The question's web URL backs the title-bar proxy icon (#609).
-                    .navigationDocument(question.webURL(baseURL: client.baseURL))
             } else if value == nil || loadFailed {
                 // The system can restore this window without a value, or the fetch
                 // can fail (e.g. the question was deleted); show a placeholder rather
@@ -74,7 +65,6 @@ struct QuestionWindow: View {
                 ProgressView().controlSize(.large)
             }
         }
-        .representedWindowURL(representedURL)
         .task(id: value) { await loadIfNeeded() }
     }
 

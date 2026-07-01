@@ -40,23 +40,11 @@ struct ScreenTestWindow: View {
         return accounts.currentAccount
     }
 
-    private var representedURL: URL? {
-        guard let urlString = fetched?.url else { return nil }
-
-        return URL(string: urlString)
-    }
-
     var body: some View {
         Group {
             if let client = account?.makeScreenClient(), let test = fetched {
-                let detail = ScreenTestDetailView(client: client, test: test)
+                ScreenTestDetailView(client: client, test: test)
                     .navigationTitle(test.candidateName ?? test.candidateEmail ?? String(localized: "Test Session"))
-                // The recruiter dashboard URL backs the title-bar proxy icon (#609).
-                if let urlString = test.url, let url = URL(string: urlString) {
-                    detail.navigationDocument(url)
-                } else {
-                    detail
-                }
             } else if value == nil || loadFailed || account?.makeScreenClient() == nil {
                 // The system can restore this window without a value, the account may
                 // have lost its Screen key, or the fetch can fail (e.g. the session was
@@ -67,7 +55,6 @@ struct ScreenTestWindow: View {
                 ProgressView().controlSize(.large)
             }
         }
-        .representedWindowURL(representedURL)
         .task(id: value) { await loadIfNeeded() }
     }
 

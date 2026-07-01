@@ -41,10 +41,6 @@ struct PadWindow: View {
         return accounts.currentAccount
     }
 
-    private var representedURL: URL? {
-        (cachedPad ?? fetched)?.webURL
-    }
-
     /// The pad from the warm cache, if the owning account has it loaded.
     private var cachedPad: Pad? {
         guard let value, let account else { return nil }
@@ -55,15 +51,8 @@ struct PadWindow: View {
     var body: some View {
         Group {
             if let account, let pad = cachedPad ?? fetched {
-                let detail = PadDetailView(client: account.makeClient(), pad: pad)
+                PadDetailView(client: account.makeClient(), pad: pad)
                     .navigationTitle(pad.title.isEmpty ? pad.id : pad.title)
-                // The pad's web URL backs the title-bar proxy icon (#609), so the title
-                // can be cmd-dragged to grab a link and right-clicked for the path popover.
-                if let url = pad.webURL {
-                    detail.navigationDocument(url)
-                } else {
-                    detail
-                }
             } else if value == nil || loadFailed {
                 // The system can restore this window without a value, or the fetch
                 // can fail (e.g. the pad was deleted); show a placeholder rather
@@ -74,7 +63,6 @@ struct PadWindow: View {
                 ProgressView().controlSize(.large)
             }
         }
-        .representedWindowURL(representedURL)
         .task(id: value) { await loadIfNeeded() }
     }
 
