@@ -263,7 +263,8 @@ extension QuestionsView {
                 },
                 .separator,
                 .button(title: String(localized: "Delete \(questions.count) Questions…"),
-                        isEnabled: !isReadOnly) {
+                        isEnabled: !isReadOnly,
+                        role: .destructive) {
                     questionsPendingBulkDelete = questions
                 }
             ]
@@ -294,7 +295,8 @@ extension QuestionsView {
         }
         items.append(.separator)
         items.append(.button(title: String(localized: "Delete Question…"),
-                             isEnabled: !isReadOnly) {
+                             isEnabled: !isReadOnly,
+                             role: .destructive) {
                 selectedQuestionIDs = [question.id]
                 nav.deleteQuestionID = question.id
             })

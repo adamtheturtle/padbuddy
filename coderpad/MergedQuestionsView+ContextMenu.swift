@@ -31,7 +31,8 @@ extension MergedQuestionsView {
                 },
                 .separator,
                 .button(title: String(localized: "Delete \(rows.count) Questions…"),
-                        isEnabled: !isReadOnly) {
+                        isEnabled: !isReadOnly,
+                        role: .destructive) {
                     rowsPendingBulkDelete = rows
                 }
             ]
@@ -55,7 +56,7 @@ extension MergedQuestionsView {
                 accountFilter = row.account.id
             },
             .separator,
-            .button(title: String(localized: "Delete Question…"), isEnabled: !isReadOnly) {
+            .button(title: String(localized: "Delete Question…"), isEnabled: !isReadOnly, role: .destructive) {
                 select(row)
                 nav.deleteQuestionID = row.item.id
             }

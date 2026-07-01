@@ -218,7 +218,7 @@ struct ScreenTestsView: View {
             items.append(.button(title: String(localized: "Cancel Invitation")) { Task { await cancel(test) } })
             items.append(.separator)
         }
-        items.append(.button(title: String(localized: "Delete Test Session")) { testPendingDelete = test })
+        items.append(.button(title: String(localized: "Delete Test Session"), role: .destructive) { testPendingDelete = test })
         return items
     }
 

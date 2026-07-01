@@ -27,7 +27,8 @@ extension MergedPadsView {
                 },
                 .separator,
                 .button(title: String(localized: "Delete \(pads.count) Pads…"),
-                        isEnabled: !isReadOnly) {
+                        isEnabled: !isReadOnly,
+                        role: .destructive) {
                     padsPendingBulkDelete = pads
                 }
             ]
@@ -53,7 +54,7 @@ extension MergedPadsView {
                 ownerFilter = row.item.ownerEmail
             },
             .separator,
-            .button(title: String(localized: "Delete…"), isEnabled: !isReadOnly) {
+            .button(title: String(localized: "Delete…"), isEnabled: !isReadOnly, role: .destructive) {
                 padPendingDelete = row.item
             }
         ]
