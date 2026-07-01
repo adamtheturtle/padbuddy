@@ -7,7 +7,9 @@
 //
 
 import SwiftUI
+#if !os(iOS)
 import Textual
+#endif
 
 /// Renders GitHub-flavored Markdown via Textual, themed to match the app's
 /// typography. Call sites are unchanged: `MarkdownText(raw)`.
@@ -27,8 +29,25 @@ public struct MarkdownText: View {
         if raw.isEmpty {
             Text("(empty)").foregroundStyle(.secondary)
         } else {
+            #if os(iOS)
+            iosMarkdown
+            #else
             StructuredText(markdown: raw)
                 .textual.textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            #endif
+        }
+    }
+
+    @ViewBuilder
+    private var iosMarkdown: some View {
+        if let attributed = try? AttributedString(markdown: raw) {
+            Text(attributed)
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        } else {
+            Text(raw)
+                .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
