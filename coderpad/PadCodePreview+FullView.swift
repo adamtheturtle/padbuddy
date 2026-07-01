@@ -41,12 +41,12 @@ extension EnvironmentCodeCard {
             Image(systemName: "chevron.left.slash.chevron.right")
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
-            Text(isMultiFile ? selected.name : (language?.languageDisplayName ?? String(localized: "Code")))
+            Text(isMultiFile ? selected.name : (language?.coderPadLanguageDisplayName ?? String(localized: "Code")))
                 .font(.headline)
                 .lineLimit(1)
                 .truncationMode(.middle)
             if let language, !language.isEmpty, isMultiFile {
-                MetaLabel(text: language.languageDisplayName)
+                MetaLabel(text: language.coderPadLanguageDisplayName)
             }
             Spacer(minLength: 12)
             Button(String(localized: "Done")) {

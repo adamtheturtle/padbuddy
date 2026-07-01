@@ -24,13 +24,11 @@ struct PadDetailView: View {
     // Inline-editable field drafts, seeded from the pad and committed one field at
     // a time. Each control binds to its draft for an immediate, optimistic update;
     // a failed save reverts the draft to the pad's value (see PadDetailView+Edit).
-    @State var titleDraft = ""
     @State var draftLanguage = "python3"
     @State var draftOwner = ""
     @State var draftIsPrivate = false
     @State var draftExecution = true
     @State var orgUsers: [OrganizationUser] = []
-    @FocusState var titleFocused: Bool
     // Module-internal (not private) so the Pad-menu handlers and loading split into
     // PadDetailView+MenuActions.swift can drive them across the file boundary.
     @State var showEndConfirm = false
@@ -57,7 +55,6 @@ struct PadDetailView: View {
     init(client: CoderPadClient, pad: Pad) {
         self.client = client
         self.pad = pad
-        _titleDraft = State(initialValue: pad.title)
         _draftLanguage = State(initialValue: pad.language ?? "python3")
         _draftOwner = State(initialValue: pad.ownerEmail)
         _draftIsPrivate = State(initialValue: pad.isPrivate ?? false)
@@ -303,17 +300,16 @@ struct PadDetailView: View {
 
     /// Seeds the editable drafts on appear and whenever a different pad is shown,
     /// then keeps each in sync with server-side changes (another field's save, or a
-    /// push update) — except the title while it's being typed. A title edit commits
-    /// when focus leaves the field, mirroring the Return key.
+    /// push update). The title is no longer among these: `InlineEditableTitle` is now
+    /// self-owning (it holds its own draft and focus and commits on Return / focus-loss),
+    /// so it reads `pad.title` directly and needs no external draft or focus gating.
     private func draftSync(_ content: some View) -> some View {
         content
             .onChange(of: pad.id, initial: true) { _, _ in seedDrafts() }
-            .onChange(of: pad.title) { _, newValue in if !titleFocused { titleDraft = newValue } }
             .onChange(of: pad.language) { _, newValue in draftLanguage = newValue ?? "python3" }
             .onChange(of: pad.ownerEmail) { _, newValue in draftOwner = newValue }
             .onChange(of: pad.isPrivate) { _, newValue in draftIsPrivate = newValue ?? false }
             .onChange(of: pad.executionEnabled) { _, newValue in draftExecution = newValue ?? true }
-            .onChange(of: titleFocused) { _, focused in if !focused { Task { await commitTitle() } } }
     }
 }
 

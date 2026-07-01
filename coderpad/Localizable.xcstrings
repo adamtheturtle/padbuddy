@@ -1344,6 +1344,7 @@
       }
     },
     "Apply saved search %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2658,6 +2659,7 @@
       }
     },
     "Delete saved search %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2771,6 +2773,7 @@
       }
     },
     "Describe what you want in plain language and it becomes filters." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3050,6 +3053,7 @@
       }
     },
     "Edit title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6477,6 +6481,7 @@
       }
     },
     "Smart Filter" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {

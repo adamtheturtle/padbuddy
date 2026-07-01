@@ -16,6 +16,7 @@
 //  app (a single, main-actor reader) when it loads, avoiding multi-process rewrite races.
 //
 
+import BuddyMCP
 import Foundation
 
 /// One recorded MCP server event. `launch` marks a `--mcp` process starting; `call` marks
@@ -43,42 +44,31 @@ nonisolated enum MCPActivityLog {
     /// The most recent entries kept; older ones are dropped when the app trims on load.
     static let maxEntries = 30
 
-    private static var fileURL: URL? {
+    /// Backing store: buddy-kit's JSONL log in the shared container, keeping the same
+    /// directory (`com.coderpad.app`), filename (`mcp-activity.jsonl`), cap, and ISO-8601
+    /// date coding as the previous hand-rolled implementation, so existing logs read back
+    /// unchanged. Nil only if Application Support can't be resolved, in which case every
+    /// operation is a safe no-op (matching the old `fileURL == nil` guards).
+    private static let store: JSONLLog<MCPActivityEntry>? = {
         guard let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
         else { return nil }
 
         let dir = base.appending(path: "com.coderpad.app", directoryHint: .isDirectory)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
-        return dir.appending(path: "mcp-activity.jsonl")
-    }
+        return JSONLLog(directory: dir, fileName: "mcp-activity.jsonl", maxEntries: maxEntries)
+    }()
 
     // MARK: - Writing (headless server)
 
     /// Record a `--mcp` process launch serving `account` (its display name, or nil).
     static func recordLaunch(account: String?) {
-        append(MCPActivityEntry(id: UUID(), time: Date(), kind: .launch, tool: nil, account: account, succeeded: nil))
+        store?.append(MCPActivityEntry(id: UUID(), time: Date(), kind: .launch, tool: nil, account: account,
+                                       succeeded: nil))
     }
 
     /// Record one tool call: its name, the account served, and whether it succeeded.
     static func recordCall(tool: String, account: String?, succeeded: Bool) {
-        append(MCPActivityEntry(id: UUID(), time: Date(), kind: .call, tool: tool, account: account,
-                                succeeded: succeeded))
-    }
-
-    private static func append(_ entry: MCPActivityEntry) {
-        guard let url = fileURL,
-              let data = try? encoder.encode(entry),
-              let line = String(bytes: data, encoding: .utf8) else { return }
-
-        let payload = Data((line + "\n").utf8)
-        if let handle = try? FileHandle(forWritingTo: url) {
-            defer { try? handle.close() }
-            _ = try? handle.seekToEnd()
-            try? handle.write(contentsOf: payload)
-        } else {
-            // First write: create the file with this line.
-            try? payload.write(to: url, options: .atomic)
-        }
+        store?.append(MCPActivityEntry(id: UUID(), time: Date(), kind: .call, tool: tool, account: account,
+                                       succeeded: succeeded))
     }
 
     // MARK: - Reading (app)
@@ -86,47 +76,18 @@ nonisolated enum MCPActivityLog {
     /// The most recent entries, newest last, decoding tolerantly (a malformed line, e.g.
     /// from a torn concurrent append, is skipped rather than failing the whole read).
     static func load() -> [MCPActivityEntry] {
-        guard let url = fileURL, let text = try? String(contentsOf: url, encoding: .utf8) else { return [] }
-
-        let entries = text
-            .split(separator: "\n", omittingEmptySubsequences: true)
-            .compactMap { line -> MCPActivityEntry? in
-                guard let data = line.data(using: .utf8) else { return nil }
-
-                return try? decoder.decode(MCPActivityEntry.self, from: data)
-            }
-        return Array(entries.suffix(maxEntries))
+        store?.load() ?? []
     }
 
     /// Rewrite the file to only the last `maxEntries` lines, so the debug log can't grow
     /// without bound. Called by the app (one process) after a load, so it doesn't race the
     /// headless appenders for the rewrite.
     static func trimIfNeeded() {
-        guard let url = fileURL, let text = try? String(contentsOf: url, encoding: .utf8) else { return }
-
-        let lines = text.split(separator: "\n", omittingEmptySubsequences: true)
-        guard lines.count > maxEntries else { return }
-
-        let trimmed = lines.suffix(maxEntries).joined(separator: "\n") + "\n"
-        try? Data(trimmed.utf8).write(to: url, options: .atomic)
+        store?.trim()
     }
 
     /// Delete the log, e.g. so it doesn't outlive the data it describes.
     static func clear() {
-        guard let url = fileURL else { return }
-
-        try? FileManager.default.removeItem(at: url)
-    }
-
-    private static var encoder: JSONEncoder {
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        return encoder
-    }
-
-    private static var decoder: JSONDecoder {
-        let decoder = JSONDecoder()
-        decoder.dateDecodingStrategy = .iso8601
-        return decoder
+        store?.clear()
     }
 }

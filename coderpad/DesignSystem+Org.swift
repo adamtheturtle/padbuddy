@@ -206,12 +206,9 @@ private enum DirectoryCache {
 
 extension EnvironmentValues {
     @Entry var orgDirectory = OrgDirectory.placeholder
-
-    /// True while the app is read-only (currently driven by `NetworkMonitor` going
-    /// offline). Editing controls read this to disable themselves so a browse-only
-    /// state never lets a mutation fire against an unreachable server (#321). Injected
-    /// once at the window root in `ContentView`; defaults to `false` (editable).
-    @Entry var isReadOnly = false
+    // `EnvironmentValues.isReadOnly` now lives in `BuddyDesignSystem` (#321), re-exported
+    // via `DesignSystem.swift`, so the app's editing controls keep reading `\.isReadOnly`
+    // unqualified. The `FocusedValues.isReadOnly` counterpart below is a separate key.
 }
 
 // MARK: - Focused scene value for the selected pad

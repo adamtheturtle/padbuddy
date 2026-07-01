@@ -193,7 +193,7 @@ struct ScreenCampaignRow: View {
     /// The campaign's languages as friendly names (e.g. "Python, JavaScript"), reusing
     /// the same display mapping the rest of the app uses.
     private var languageSummary: String {
-        campaign.languages.map(\.languageDisplayName).joined(separator: ", ")
+        campaign.languages.map(\.coderPadLanguageDisplayName).joined(separator: ", ")
     }
 }
 

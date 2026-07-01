@@ -78,7 +78,7 @@ extension QuestionDetailView {
             headerIdentity
             HStack(spacing: 8) {
                 if let lang = question.language, !lang.isEmpty {
-                    MetaLabel(text: lang.languageDisplayName)
+                    MetaLabel(text: lang.coderPadLanguageDisplayName)
                 }
                 question.interviewType.chip
                 if question.shared == true {
@@ -109,9 +109,12 @@ extension QuestionDetailView {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 4) {
                 // The title is edited in place: it reads as the heading until you
-                // hover or click in, and commits on Return or when focus leaves.
-                InlineEditableTitle(text: $titleDraft, placeholder: "Untitled Question",
-                                    focus: $titleFocused) { Task { await commitTitle() } }
+                // hover or click in, and commits on Return or when focus leaves. The
+                // control is self-owning (it holds its own draft and focus), so it takes
+                // the question's title and an async commit returning whether it saved.
+                InlineEditableTitle(title: question.title, placeholder: "Untitled Question",
+                                    isEditable: !isReadOnly, clampsWidth: true,
+                                    font: .title.bold()) { newTitle in await commitTitle(newTitle) }
                 if let author = question.authorName {
                     Text("by \(author)")
                         .font(.caption)

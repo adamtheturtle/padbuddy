@@ -25,12 +25,12 @@ enum AppLaunch {
         // Carry an old on/off Dock-badge choice into the new scope preference (#399),
         // then seed the badge from whatever pads are already cached; it refreshes again
         // as each account's list loads.
-        DockBadge.migrateScopeIfNeeded()
+        DockBadgeController.migrateScopeIfNeeded()
         // The Dock badge only renders for an app granted the `.badge` capability
         // (macOS Monterey+, #317), so ask for it when the badge is in use. Idempotent,
         // so re-requesting every launch is harmless.
-        if DockBadge.scope != .off { PadUpdateNotifier.shared.requestBadgeAuthorization() }
-        DockBadge.refresh()
+        if DockBadgeController.scope != .off { PadUpdateNotifier.shared.requestBadgeAuthorization() }
+        DockBadgeController.refresh()
         // Mirror every account's favourite questions into the App Group up front so the
         // Recent Pads widget's "New Pad question" picker is populated even before any
         // Questions section has been opened this session (#411). The per-account sync

@@ -97,7 +97,7 @@ struct ManageTemplatesSheet: View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(template.name).font(.headline)
-                Text("\(template.questionTitle) · \(template.language.languageDisplayName)")
+                Text("\(template.questionTitle) · \(template.language.coderPadLanguageDisplayName)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -189,10 +189,10 @@ struct TemplateEditorSheet: View {
 
                 Picker("Language", selection: $language) {
                     ForEach(CoderPadLanguages.pickerOptions, id: \.self) {
-                        Text($0.languageDisplayName).tag($0)
+                        Text($0.coderPadLanguageDisplayName).tag($0)
                     }
                     if !CoderPadLanguages.pickerOptions.contains(language) {
-                        Text(language.languageDisplayName).tag(language)
+                        Text(language.coderPadLanguageDisplayName).tag(language)
                     }
                 }
 

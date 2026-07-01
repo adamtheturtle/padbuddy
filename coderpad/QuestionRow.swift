@@ -43,7 +43,7 @@ private struct QuestionRowInfo: View, Equatable {
                         AccountMetaLabel(account: account)
                     }
                     if let lang = question.language, !lang.isEmpty {
-                        MetaLabel(text: lang.languageDisplayName)
+                        MetaLabel(text: lang.coderPadLanguageDisplayName)
                     }
                     if question.interviewType == .takeHome {
                         InterviewType.takeHome.chip
@@ -77,7 +77,7 @@ private struct QuestionRowInfo: View, Equatable {
         var parts = [question.displayTitle]
         if let account { parts.append(account.name) }
         if let lang = question.language, !lang.isEmpty {
-            parts.append(lang.languageDisplayName)
+            parts.append(lang.coderPadLanguageDisplayName)
         }
         if question.interviewType == .takeHome { parts.append("Take-home") }
         if let used = question.used, used > 0 { parts.append("used \(used) times") }

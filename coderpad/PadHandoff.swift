@@ -39,14 +39,10 @@ extension View {
     func advertisesPadActivity(url: URL, title: String?) -> some View {
         userActivity(PadActivity.type) { activity in
             activity.title = (title?.isEmpty == false ? title : nil) ?? url.host ?? "Pad"
-            activity.webpageURL = url
             activity.targetContentIdentifier = url.absoluteString
-            activity.isEligibleForHandoff = true
-            activity.isEligibleForSearch = true
-            // Siri prediction / Suggestions is an iOS-only eligibility flag.
-            #if !os(macOS)
-                activity.isEligibleForPrediction = true
-            #endif
+            // Sets webpageURL plus the Handoff/Spotlight (and iOS-only prediction)
+            // eligibility flags shared across the interview apps (BuddyAppKit).
+            activity.applyBuddyHandoffFlags(webpageURL: url)
             activity.addUserInfoEntries(from: [PadActivity.urlKey: url.absoluteString])
         }
     }

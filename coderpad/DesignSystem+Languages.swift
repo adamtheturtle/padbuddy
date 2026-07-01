@@ -23,61 +23,33 @@ extension InterviewType {
 }
 
 extension String {
-    var languageDisplayName: String {
-        switch lowercased() {
-        case "python": return "Python"
-        case "python2": return "Python 2"
-        case "python3": return "Python 3"
-        case "javascript": return "JavaScript"
-        case "typescript": return "TypeScript"
-        case "node", "node.js", "nodejs": return "Node.js"
-        case "swift": return "Swift"
-        case "go", "golang": return "Go"
-        case "rust": return "Rust"
-        case "java": return "Java"
-        case "kotlin": return "Kotlin"
-        case "ruby": return "Ruby"
-        case "c": return "C"
-        case "cpp", "c++": return "C++"
-        case "csharp", "c#": return "C#"
-        case "objective-c", "objc": return "Objective-C"
-        case "php": return "PHP"
-        case "html": return "HTML"
-        case "css": return "CSS"
-        case "sql": return "SQL"
-        case "mysql": return "MySQL"
-        case "postgresql", "postgres": return "PostgreSQL"
-        case "bash": return "Bash"
-        case "shell", "sh": return "Shell"
-        case "r": return "R"
-        case "scala": return "Scala"
-        case "elixir": return "Elixir"
-        case "erlang": return "Erlang"
-        case "haskell": return "Haskell"
-        case "perl": return "Perl"
-        case "lua": return "Lua"
-        case "dart": return "Dart"
-        case "clojure": return "Clojure"
-        case "ocaml": return "OCaml"
-        case "f#", "fsharp": return "F#"
-        case "julia": return "Julia"
-        case "markdown": return "Markdown"
-        case "solidity": return "Solidity"
-        case "tcl": return "Tcl"
-        case "verilog": return "Verilog"
-        case "plaintext", "plain-text", "plain_text": return String(localized: "Plain text")
+    /// A human-friendly display name for a CoderPad language code, handling the two
+    /// service-specific cases the shared `BuddyAppKit` catalog deliberately leaves
+    /// app-side, then delegating everything else to `String.languageDisplayName`:
+    ///
+    /// - `plaintext` (and its `plain-text` / `plain_text` spellings) reads as the
+    ///   localized "Plain text" rather than a bare title-cased "Plaintext".
+    /// - `multifile_<lang>` names CoderPad's multi-file project environments, e.g.
+    ///   `multifile_python` -> "Python Project" (localized), with a bare `multifile_`
+    ///   falling back to "Project".
+    ///
+    /// Every other code, including the whole known-language table and the title-cased
+    /// unknown-code fallback, comes straight from `BuddyAppKit`'s superset catalog.
+    var coderPadLanguageDisplayName: String {
+        let lowered = lowercased()
+        switch lowered {
+        case "plaintext", "plain-text", "plain_text":
+            return String(localized: "Plain text")
         default:
-            let lowered = lowercased()
             if lowered.hasPrefix("multifile_") {
                 let base = String(lowered.dropFirst("multifile_".count))
                 return base.isEmpty
                     ? String(localized: "Project")
-                    : String(localized: "\(base.languageDisplayName) Project",
+                    : String(localized: "\(base.coderPadLanguageDisplayName) Project",
                              comment: "A multi-file project environment for a language, e.g. \"Python Project\"")
             }
-            guard !isEmpty else { return self }
 
-            return prefix(1).uppercased() + dropFirst()
+            return languageDisplayName
         }
     }
 }

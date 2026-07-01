@@ -324,6 +324,8 @@ struct PadsView: View {
                     isInterpreting: isInterpreting,
                     failed: smartFilterFailed,
                     placeholder: "e.g. active Python pads from my team",
+                    failedMessage: "Couldn't turn that into filters. Try naming a language, owner, state, or date.",
+                    hintMessage: "Mention a language, owner, state, or date.",
                     onSubmit: { Task { await applySmartFilter() } },
                     onCancel: { showSmartFilter = false }
                 )

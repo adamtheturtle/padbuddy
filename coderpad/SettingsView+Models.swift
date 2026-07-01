@@ -8,9 +8,6 @@
 #else
     import UIKit
 #endif
-#if os(macOS)
-    import ServiceManagement
-#endif
 import SwiftUI
 
 /// Where a pad link opens when you activate it.
@@ -307,33 +304,6 @@ enum GeneralSettings {
             NSApp.setActivationPolicy(presence.showsDockIcon ? .regular : .accessory)
         #else
             // iOS: no Dock or activation policy, so presence has no effect here.
-        #endif
-    }
-}
-
-/// Thin wrapper over `SMAppService.mainApp` for the "Launch at login" toggle. The
-/// enabled state is owned by the system, so reads go straight to the service rather
-/// than to `UserDefaults`.
-enum LoginItem {
-    static var isEnabled: Bool {
-        #if os(macOS)
-            SMAppService.mainApp.status == .enabled
-        #else
-            // iOS: there's no launch-at-login concept, so the toggle reads off and
-            // setting it is a no-op (keeps the settings UI call sites compiling).
-            false
-        #endif
-    }
-
-    static func setEnabled(_ enabled: Bool) throws {
-        #if os(macOS)
-            if enabled {
-                try SMAppService.mainApp.register()
-            } else {
-                try SMAppService.mainApp.unregister()
-            }
-        #else
-            _ = enabled
         #endif
     }
 }

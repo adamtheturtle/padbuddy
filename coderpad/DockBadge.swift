@@ -8,9 +8,6 @@
 //  app already maintains.
 //
 
-#if os(macOS)
-    import AppKit
-#endif
 import SwiftUI
 
 /// What the Dock badge counts: nothing, the current account's started pads, or
@@ -33,7 +30,11 @@ enum DockBadgeScope: String, CaseIterable, Identifiable {
     }
 }
 
-enum DockBadge {
+/// Owns the app's Dock-badge policy: which accounts' started pads to count (the
+/// user's ``DockBadgeScope`` choice) and the migration of the old on/off preference.
+/// The count *derivation* lives here; rendering the tile is delegated to
+/// `BuddyAppKit`'s `DockBadge.set(count:)`.
+enum DockBadgeController {
     enum Key {
         static let scope = "general.dockBadgeScope"
         /// The old on/off Bool, kept only so a saved choice can be migrated into
@@ -67,31 +68,32 @@ enum DockBadge {
 
     /// Recompute the badge and apply it on the main thread. Cheap and idempotent, so
     /// it's safe to call after any pad-cache change or when the preference is edited.
-    /// Reading the sources and touching `NSApp.dockTile` both happen on the main actor.
+    /// Reading the sources and rendering the tile both happen on the main actor.
     static func refresh() {
         Task { @MainActor in apply() }
     }
 
-    /// Resolve the count and write the badge. A nil label removes the badge entirely,
-    /// so "nothing to show" (or the badge being off) leaves a clean icon rather than a "0".
+    /// Resolve the count and write the badge via `BuddyAppKit`'s `DockBadge`. A zero
+    /// count clears the badge, so "nothing to show" (or the badge being off) leaves a
+    /// clean icon rather than a "0".
     @MainActor
     static func apply() {
-        // iOS has no Dock, so there's nothing to render. The scope/preference logic
-        // above still compiles and works; only the tile rendering is macOS-only.
+        // iOS has no Dock, so `DockBadge.set(count:)` is a no-op there. The scope/count
+        // derivation below still compiles and works; only the tile rendering is macOS-only.
         #if os(macOS)
             let store = AccountsStore.shared
             // The accounts whose started pads the badge counts, per the chosen scope.
             let countedAccounts: [Account]
             switch scope {
             case .off:
-                NSApp.dockTile.badgeLabel = nil
+                DockBadge.set(count: 0)
                 return
 
             case .currentAccount:
                 // No single current account (e.g. the combined "All Accounts" view) means
                 // there's nothing to scope to, so clear the badge rather than guess.
                 guard let current = store.currentAccount else {
-                    NSApp.dockTile.badgeLabel = nil
+                    DockBadge.set(count: 0)
                     return
                 }
 
@@ -120,10 +122,7 @@ enum DockBadge {
                     $0.status == .active && $0.ownerEmail.canonicalOwnerEmail == email
                 })
             }
-            NSApp.dockTile.badgeLabel = activePadTotal > 0 ? "\(activePadTotal)" : nil
-            // Force the tile to redraw. Setting `badgeLabel` alone doesn't always refresh a
-            // tile that's already on screen, so the new count can otherwise go unshown.
-            NSApp.dockTile.display()
+            DockBadge.set(count: activePadTotal)
         #endif
     }
 }

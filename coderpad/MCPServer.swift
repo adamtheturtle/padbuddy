@@ -54,37 +54,20 @@ nonisolated enum MCPServer {
     /// directory is resolved by the caller on the main actor (`Account` is main-actor
     /// isolated); the SDK's actor-based server then runs nonisolated. Tool activity is
     /// forwarded to `MCPActivityLog` so the app's status view can show it (#523). Never
-    /// returns: it blocks the calling thread on the async server until stdin closes.
+    /// returns: buddy-kit's shared stdio bootstrap blocks on the async server until stdin
+    /// closes, then exits.
+    ///
+    /// The in-app server serves whenever it's launched (the user controls it by adding or
+    /// removing the MCP client configuration), so no `isEnabled:` gate is passed; the launch
+    /// is always recorded via `onLaunch`, matching the previous open-coded behaviour.
     static func runUntilExit(directory: MCPAccountDirectory) -> Never {
-        MCPActivityLog.recordLaunch(account: directory.current?.accountName)
-        // Bridge the SDK's async server to this synchronous, never-returning entry point.
-        // The directory is a plain Sendable value, so it crosses into the task safely.
-        let semaphore = DispatchSemaphore(value: 0)
-        Task {
-            await serve(directory: directory)
-            semaphore.signal()
-        }
-        semaphore.wait()
-        exit(0)
-    }
-
-    /// Serves the CoderPad tool provider over the official MCP Swift SDK via buddy-kit's
-    /// `BuddyMCPServer`, over stdio until the transport closes. The in-app server is
-    /// tools-only, so the provider supplies just the catalogue and dispatch and the shared
-    /// bootstrap wires it to the SDK - the same bootstrap the standalone CLI uses.
-    private static func serve(directory: MCPAccountDirectory) async {
-        let server = BuddyMCPServer(
+        BuddyMCPServer.runOverStdioUntilExit(
             name: serverName,
             version: serverVersion,
             capabilities: .init(tools: .init(listChanged: false)),
+            onLaunch: { MCPActivityLog.recordLaunch(account: directory.current?.accountName) },
             provider: CoderPadToolProvider(directory: directory)
         )
-
-        do {
-            try await server.run(transport: StdioTransport())
-        } catch {
-            FileHandle.standardError.write(Data("PadBuddy MCP server failed to start: \(error)\n".utf8))
-        }
     }
 }
 

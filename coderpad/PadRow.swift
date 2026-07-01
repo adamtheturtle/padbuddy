@@ -128,7 +128,7 @@ private struct PadRowInfo: View, Equatable {
                         AccountMetaLabel(account: account)
                     }
                     if let language = pad.language, !language.isEmpty {
-                        MetaLabel(text: language.languageDisplayName)
+                        MetaLabel(text: language.coderPadLanguageDisplayName)
                     }
                     if pad.interviewType == .takeHome {
                         InterviewType.takeHome.chip
@@ -175,7 +175,7 @@ private struct PadRowInfo: View, Equatable {
         var parts = [pad.title.isEmpty ? pad.id : pad.title, pad.status.label]
         if let account { parts.append(account.name) }
         if let language = pad.language, !language.isEmpty {
-            parts.append(language.languageDisplayName)
+            parts.append(language.coderPadLanguageDisplayName)
         }
         if pad.interviewType == .takeHome { parts.append("Take-home") }
         parts.append(ownerDisplay)

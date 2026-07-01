@@ -27,7 +27,7 @@ extension EnvironmentCodeCard {
             // on the left rather than among the action buttons — otherwise the
             // gray label reads as a fourth tappable control next to them.
             if let language, !language.isEmpty {
-                MetaLabel(text: language.languageDisplayName)
+                MetaLabel(text: language.coderPadLanguageDisplayName)
             }
             Spacer()
             // The per-file actions live in the header rather than floating over
@@ -270,7 +270,7 @@ extension EnvironmentCodeCard {
 
     var accessibilityLabel: String {
         // Name the environment by its language, the same identity shown visually.
-        let environmentName = language.flatMap { $0.isEmpty ? nil : $0.languageDisplayName }
+        let environmentName = language.flatMap { $0.isEmpty ? nil : $0.coderPadLanguageDisplayName }
         if isMultiFile {
             if let environmentName {
                 return String(localized: "Code preview of \(selected.name) in \(environmentName) in pad \(padID)")

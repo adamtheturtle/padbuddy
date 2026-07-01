@@ -19,12 +19,14 @@ extension MergedQuestionsView {
     var presetsBar: some View {
         FlowLayout(spacing: 6, lineSpacing: 6) {
             if hasAnyFavorites {
-                SavedSearchChip(name: "Favorites", systemImage: "star.fill", isActive: favoritesOnly) {
+                SavedSearchChip(name: "Favorites", systemImage: "star.fill", isActive: favoritesOnly,
+                                maxNameLength: NamedSearch.maxNameLength) {
                     favoritesOnly.toggle()
                     if favoritesOnly { mineOnly = false; clearChips() }
                 }
             }
-            SavedSearchChip(name: "Mine", systemImage: "person.fill", isActive: mineOnly) {
+            SavedSearchChip(name: "Mine", systemImage: "person.fill", isActive: mineOnly,
+                            maxNameLength: NamedSearch.maxNameLength) {
                 mineOnly.toggle()
             }
         }
@@ -50,7 +52,7 @@ extension MergedQuestionsView {
             FilterChipMenu(
                 title: String(localized: "Language"), icon: "chevron.left.slash.chevron.right",
                 selected: $languageFilter, options: availableLanguages,
-                formatter: { $0.languageDisplayName }
+                formatter: { $0.coderPadLanguageDisplayName }
             )
             .measuresFilterBarWidth()
             SearchableFilterChip(

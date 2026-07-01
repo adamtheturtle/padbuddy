@@ -69,7 +69,7 @@ extension PadDetailView {
                 // here is redundant. Keep it when there's no card (nothing else
                 // names the language) or several (this summarizes the active one).
                 if let language = pad.language, !language.isEmpty, codeCardCount != 1 {
-                    MetaLabel(text: language.languageDisplayName)
+                    MetaLabel(text: language.coderPadLanguageDisplayName)
                 }
                 if let type = pad.interviewType {
                     type.chip
@@ -90,9 +90,12 @@ extension PadDetailView {
     private var identity: some View {
         VStack(alignment: .leading, spacing: 4) {
             // The title is edited in place: it reads as the heading until you
-            // hover or click in, and commits on Return or when focus leaves.
-            InlineEditableTitle(text: $titleDraft, placeholder: "Untitled Pad",
-                                focus: $titleFocused) { Task { await commitTitle() } }
+            // hover or click in, and commits on Return or when focus leaves. The
+            // control is self-owning (it holds its own draft and focus), so it takes
+            // the pad's title and an async commit that returns whether the rename saved.
+            InlineEditableTitle(title: pad.title, placeholder: "Untitled Pad",
+                                isEditable: !isReadOnly, clampsWidth: true,
+                                font: .title.bold()) { newTitle in await commitTitle(newTitle) }
             // The owner's name links to their pads (the app's person
             // navigation); the email keeps its mailto below. When the name
             // isn't known the link falls back to showing the email itself.

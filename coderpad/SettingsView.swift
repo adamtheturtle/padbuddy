@@ -3,7 +3,6 @@
 //  coderpad
 //
 
-import LocalAuthentication
 import SwiftUI
 
 /// The tabs in the Settings window, used to drive `SettingsView`'s selection so
@@ -73,7 +72,7 @@ struct SettingsView: View {
     @AppStorage(GeneralSettings.Key.requireBiometricsToRevealKey) var requireBiometricsToRevealKey = false
     @AppStorage(GeneralSettings.Key.spotlightIndexing) var spotlightIndexing = false
     @AppStorage(GeneralSettings.Key.notifyOnPadUpdates) var notifyOnPadUpdates = false
-    @AppStorage(DockBadge.Key.scope) var dockBadgeScope: DockBadgeScope = .allAccounts
+    @AppStorage(DockBadgeController.Key.scope) var dockBadgeScope: DockBadgeScope = .allAccounts
     @State var accountsStore = AccountsStore.shared
 
     // Launch-at-login mirrors the live `SMAppService` state rather than UserDefaults,
@@ -124,6 +123,23 @@ struct SettingsView: View {
         }
     }
 
+    /// Bridges the stored `AppAppearance` preference to the `ColorScheme?` that
+    /// buddy-kit's shared `AppearancePicker` binds to. `AppAppearance` is kept as the
+    /// persisted form (and drives `preferredColorScheme`); the picker just reads/writes
+    /// its color scheme, mapping nil back to `.system`.
+    var appearanceSchemeBinding: Binding<ColorScheme?> {
+        Binding(
+            get: { appearance.colorScheme },
+            set: { scheme in
+                switch scheme {
+                case .light: appearance = .light
+                case .dark: appearance = .dark
+                default: appearance = .system
+                }
+            }
+        )
+    }
+
     /// Binding for the "Require Touch ID to reveal API keys" toggle. Turning the gate
     /// *on* is free, but turning it *off* removes the protection, so the disable path is
     /// itself gated behind a Touch ID (or password) check — otherwise anyone at an
@@ -140,19 +156,12 @@ struct SettingsView: View {
                     return
                 }
 
-                let context = LAContext()
-                var policyError: NSError?
-                guard context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &policyError) else {
-                    requireBiometricsToRevealKey = false
-                    return
-                }
-
                 Task {
-                    let success = await (try? context.evaluatePolicy(
-                        .deviceOwnerAuthentication,
-                        localizedReason: "Turn off Touch ID protection for your saved API key"
-                    )) ?? false
-                    if success { requireBiometricsToRevealKey = false }
+                    if await BiometricGate.authenticateToDisableGate(
+                        reason: "Turn off Touch ID protection for your saved API key"
+                    ) {
+                        requireBiometricsToRevealKey = false
+                    }
                 }
             }
         )

@@ -5,73 +5,70 @@
 //  Observable monitors for account key health and pad activity.
 //
 
+import BuddyAppKit
 import Foundation
 
+/// Re-checks the current account's key on a timer so a key revoked mid-session surfaces
+/// the unauthorized banner without needing a section switch. A thin app-specific wrapper
+/// around buddy-kit's generic ``BuddyAppKit/AccountHealthMonitor`` that folds in
+/// PadBuddy's account-eligibility rules and its `quota()` liveness probe, and keeps the
+/// `shared` singleton and `checkCurrentAccount()` name the app's call sites use.
+@MainActor
 @Observable
 final class AccountHealthMonitor {
     static let shared = AccountHealthMonitor()
 
-    private(set) var unauthorizedAccountIDs: Set<UUID> = []
-    private(set) var lastChecked: Date?
-    private var checkTask: Task<Void, Never>?
+    private let monitor: BuddyAppKit.AccountHealthMonitor<UUID>
 
-    private init() {}
+    var unauthorizedAccountIDs: Set<UUID> { monitor.unauthorizedAccountIDs }
+    var lastChecked: Date? { monitor.lastChecked }
 
-    /// Re-checks the current account's key on a fixed interval (default 30 min) so a key
-    /// revoked mid-session surfaces the unauthorized banner without needing a section switch.
+    private init() {
+        monitor = BuddyAppKit.AccountHealthMonitor<UUID>(
+            accountToCheck: {
+                // The bad-key demo is intentionally checked so it surfaces the unauthorized
+                // banner; the mock-data demo is skipped since it's always authorized.
+                guard let account = AccountsStore.shared.currentAccount,
+                      account.isBadKeyDemo || (!account.isMock && !account.apiKey.isEmpty)
+                else { return nil }
+                return account.id
+            },
+            probe: { id in
+                guard let account = AccountsStore.shared.accounts.first(where: { $0.id == id }) else { return }
+                // A liveness probe only needs to learn whether the key still authenticates,
+                // so hit the tiny `/api/quota` endpoint rather than downloading the whole
+                // org (teams + every user) every interval just to read its status code (#374).
+                _ = try await account.makeClient().quota()
+            },
+            isUnauthorized: { ($0 as? CoderPadError)?.isUnauthorized == true }
+        )
+    }
+
+    /// Re-checks the current account's key on a fixed interval (default 30 min).
     /// Idempotent: repeated calls keep the single existing timer.
     func start(every interval: Duration = .seconds(1800)) {
-        guard checkTask == nil else { return }
-
-        checkTask = Task { [weak self] in
-            // Validate immediately so a key already revoked before launch surfaces the
-            // banner now, rather than after a full interval, then re-check on the timer.
-            await self?.checkCurrentAccount()
-            while !Task.isCancelled {
-                try? await Task.sleep(for: interval)
-                if Task.isCancelled { break }
-                await self?.checkCurrentAccount()
-            }
-        }
+        monitor.start(every: interval)
     }
 
     // Deliberate monitor lifecycle API, kept for start/stop symmetry.
     // periphery:ignore
     func stop() {
-        checkTask?.cancel()
-        checkTask = nil
+        monitor.stop()
     }
 
     func checkCurrentAccount() async {
-        // The bad-key demo is intentionally checked so it surfaces the unauthorized
-        // banner; the mock-data demo is skipped since it's always authorized.
-        guard let account = AccountsStore.shared.currentAccount,
-              account.isBadKeyDemo || (!account.isMock && !account.apiKey.isEmpty) else { return }
-
-        let client = account.makeClient()
-        do {
-            // A liveness probe only needs to learn whether the key still authenticates,
-            // so hit the tiny `/api/quota` endpoint rather than downloading the whole
-            // org (teams + every user) every interval just to read its status code (#374).
-            _ = try await client.quota()
-            unauthorizedAccountIDs.remove(account.id)
-        } catch let error as CoderPadError where error.isUnauthorized {
-            unauthorizedAccountIDs.insert(account.id)
-        } catch {
-            // transient errors don't change auth state
-        }
-        lastChecked = Date()
+        await monitor.check()
     }
 
     func isUnauthorized(_ accountID: UUID) -> Bool {
-        unauthorizedAccountIDs.contains(accountID)
+        monitor.isUnauthorized(accountID)
     }
 
     /// Clear a stale unauthorized verdict, e.g. when the account's key is changed
     /// in place. A fresh `checkCurrentAccount` re-flags it if the new key is also
     /// revoked, but until then the banner shouldn't claim the new key is bad.
     func clearUnauthorized(_ accountID: UUID) {
-        unauthorizedAccountIDs.remove(accountID)
+        monitor.clearUnauthorized(accountID)
     }
 }
 
@@ -86,9 +83,10 @@ final class AccountHealthMonitor {
 /// Writing the result through `PadsCacheStore.set` is what makes it worthwhile: that
 /// cascades to the widget's shared snapshot and the active-pads Dock badge, so both
 /// stay current without any window on screen.
+@MainActor
 final class PadsBackgroundRefresher {
     static let shared = PadsBackgroundRefresher()
-    private var refreshTask: Task<Void, Never>?
+    private var loop: RepeatingTask?
     private init() {}
 
     /// Refetches the current account's pads on a fixed interval (default 5 min).
@@ -96,24 +94,23 @@ final class PadsBackgroundRefresher {
     /// launch so it runs whether or not a window is open — unlike the per-section
     /// loads, which only fire while the UI is on screen.
     func start(every interval: Duration = .seconds(300)) {
-        guard refreshTask == nil else { return }
+        guard loop == nil else { return }
 
-        refreshTask = Task { [weak self] in
-            while !Task.isCancelled {
-                // No immediate fetch: launch already presents a window that loads the
-                // current account, so the first useful background tick is one interval out.
-                try? await Task.sleep(for: interval)
-                if Task.isCancelled { break }
-                await self?.refreshCurrentAccount()
-            }
+        // No immediate fetch (`runImmediately: false`): launch already presents a window
+        // that loads the current account, so the first useful background tick is one
+        // interval out.
+        let loop = RepeatingTask(runImmediately: false, interval: interval) { [weak self] in
+            await self?.refreshCurrentAccount()
         }
+        self.loop = loop
+        loop.start()
     }
 
     // Deliberate monitor lifecycle API, kept for start/stop symmetry.
     // periphery:ignore
     func stop() {
-        refreshTask?.cancel()
-        refreshTask = nil
+        loop?.stop()
+        loop = nil
     }
 
     func refreshCurrentAccount() async {

@@ -20,12 +20,12 @@ extension QuestionDetailView {
                 propertyRow("Language") {
                     Picker("", selection: languageBinding) {
                         ForEach(CoderPadLanguages.pickerOptions, id: \.self) {
-                            Text($0.languageDisplayName).tag($0)
+                            Text($0.coderPadLanguageDisplayName).tag($0)
                         }
                         // Keep the question's current language selectable even when it
                         // isn't one of the common picker options.
                         if !CoderPadLanguages.pickerOptions.contains(draftLanguage) {
-                            Text(draftLanguage.languageDisplayName).tag(draftLanguage)
+                            Text(draftLanguage.coderPadLanguageDisplayName).tag(draftLanguage)
                         }
                     }
                     .labelsHidden()
@@ -65,15 +65,14 @@ extension QuestionDetailView {
     }
 
     /// Seeds the metadata drafts on appear and keeps each in sync with server-side
-    /// changes (this view's own saves, or a push update) — except the title while
-    /// it's being typed. A title edit commits when focus leaves the field.
+    /// changes (this view's own saves, or a push update). The title is no longer among
+    /// these: `InlineEditableTitle` is now self-owning (it holds its own draft and focus
+    /// and commits on Return / focus-loss), so it reads `question.title` directly.
     func draftSync(_ content: some View) -> some View {
         content
             .onChange(of: question.id, initial: true) { _, _ in seedDrafts() }
-            .onChange(of: question.title) { _, newValue in if !titleFocused { titleDraft = newValue } }
             .onChange(of: question.language) { _, newValue in draftLanguage = newValue ?? "python3" }
             .onChange(of: question.padType) { _, _ in draftPadType = currentType }
-            .onChange(of: titleFocused) { _, focused in if !focused { Task { await commitTitle() } } }
     }
 
     // MARK: - Bindings
@@ -106,19 +105,22 @@ extension QuestionDetailView {
     }
 
     func seedDrafts() {
-        titleDraft = question.title
         draftLanguage = question.language ?? "python3"
         draftPadType = currentType
     }
 
     // MARK: - Per-field commits
 
-    func commitTitle() async {
-        let newTitle = titleDraft
-        guard newTitle != question.title else { return }
+    /// Commits an inline title rename, returning whether it saved so the self-owning
+    /// `InlineEditableTitle` can leave edit mode. On failure the host keeps the old
+    /// title (the control reverts by just leaving edit mode), so there's no draft to
+    /// reset — hence the `saveContent` path (which reports success) rather than the
+    /// `revert`-based `save`.
+    func commitTitle(_ newTitle: String) async -> Bool {
+        guard newTitle != question.title else { return true }
 
-        await save(QuestionUpdate(id: question.id, title: newTitle),
-                   optimistic: optimisticQuestion(title: newTitle)) { titleDraft = question.title }
+        return await saveContent(QuestionUpdate(id: question.id, title: newTitle),
+                                 optimistic: optimisticQuestion(title: newTitle))
     }
 
     func commitLanguage(_ language: String) async {

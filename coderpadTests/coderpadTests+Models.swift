@@ -57,7 +57,7 @@ struct LanguageHelperTests {
         ("verilog", "Verilog")
     ])
     func `languageDisplayName maps known codes to friendly names`(code: String, expected: String) {
-        #expect(code.languageDisplayName == expected)
+        #expect(code.coderPadLanguageDisplayName == expected)
     }
 
     @Test(arguments: [
@@ -68,7 +68,7 @@ struct LanguageHelperTests {
         ("multifile_nodejs", "Node.js Project")
     ])
     func `languageDisplayName names multifile project environments`(code: String, expected: String) {
-        #expect(code.languageDisplayName == expected)
+        #expect(code.coderPadLanguageDisplayName == expected)
     }
 
     @Test(arguments: [
@@ -76,7 +76,7 @@ struct LanguageHelperTests {
         ("", "")
     ])
     func `languageDisplayName capitalizes unknown codes`(code: String, expected: String) {
-        #expect(code.languageDisplayName == expected)
+        #expect(code.coderPadLanguageDisplayName == expected)
     }
 }
 

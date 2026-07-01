@@ -70,7 +70,7 @@ struct DesignSystemRenderTests {
 
     @Test func `appearance picker renders for every selection`() {
         for option in AppAppearance.allCases {
-            expectRenders(AppearancePicker(selection: .constant(option)),
+            expectRenders(AppearancePicker(selection: .constant(option.colorScheme)),
                           "AppearancePicker(\(option.rawValue))")
         }
     }
@@ -94,12 +94,12 @@ struct DesignSystemRenderTests {
         )
         let noURL = try CoderPadClient.decoder.decode(Pad.self, from: Data(#"{"id": "X1", "url": ""}"#.utf8))
         expectRenders(
-            PadRowHostableContent(pad: withURL, ownerDisplay: "owner@x.co", favoritePads: .shared)
+            PadRowHostableContent(pad: withURL, ownerDisplay: "owner@x.co", isFavorite: false, onToggleFavorite: {})
                 .frame(width: 320),
             "PadRowHostableContent with title"
         )
         expectRenders(
-            PadRowHostableContent(pad: noURL, ownerDisplay: "", favoritePads: .shared)
+            PadRowHostableContent(pad: noURL, ownerDisplay: "", isFavorite: false, onToggleFavorite: {})
                 .frame(width: 320),
             "PadRowHostableContent without title"
         )

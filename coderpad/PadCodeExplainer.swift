@@ -75,7 +75,7 @@ enum PadCodeExplainer {
             guard !body.isEmpty else { return nil }
             guard SystemLanguageModel.default.availability == .available else { return nil }
 
-            let language = file.language?.languageDisplayName ?? "code"
+            let language = file.language?.coderPadLanguageDisplayName ?? "code"
             let instructions = """
             You explain source code to an interviewer reviewing a candidate's work. First describe \
             what the code does and the approach it takes, clearly and neutrally. Then assess the \

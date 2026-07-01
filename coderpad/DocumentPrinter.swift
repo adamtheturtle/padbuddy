@@ -22,7 +22,7 @@ struct QuestionPrintDocument: View {
     private var metaLine: String {
         var parts: [String] = [question.interviewType.label]
         if let language = question.language, !language.isEmpty {
-            parts.append(language.languageDisplayName)
+            parts.append(language.coderPadLanguageDisplayName)
         }
         if let author = question.authorName, !author.isEmpty {
             parts.append(String(localized: "by \(author)"))
@@ -109,7 +109,7 @@ func padSummaryRows(_ pad: Pad, displayName: (String) -> String = \.self) -> [(S
         ("Owner", displayName(pad.ownerEmail))
     ]
     if let language = pad.language, !language.isEmpty {
-        rows.append(("Language", language.languageDisplayName))
+        rows.append(("Language", language.coderPadLanguageDisplayName))
     }
     if !pad.participants.isEmpty {
         rows.append(("Participants", pad.participants.map(displayName).joined(separator: ", ")))

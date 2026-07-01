@@ -64,7 +64,7 @@ enum SearchInterpreter {
         guard !trimmed.isEmpty else { return nil }
 
         if let exact = languages.first(where: { $0.lowercased() == trimmed }) { return exact }
-        return languages.first { $0.languageDisplayName.lowercased() == trimmed }
+        return languages.first { $0.coderPadLanguageDisplayName.lowercased() == trimmed }
     }
 
     /// Matches a free-form owner onto an email present in the list and returns that
@@ -135,9 +135,10 @@ enum SearchInterpreter {
     }
 
     /// A short, comma-separated list of options to steer the model, capped so a big
-    /// org's owner list doesn't dominate the prompt.
+    /// org's owner list doesn't dominate the prompt. Delegates to the shared
+    /// ``SearchGrounding`` core.
     static func optionList(_ values: [String], limit: Int) -> String {
-        values.prefix(limit).joined(separator: ", ")
+        SearchGrounding.optionList(values, limit: limit)
     }
 
     // MARK: - Grounding (reject model values the query doesn't support)
@@ -150,26 +151,17 @@ enum SearchInterpreter {
     // vets. Shared with the generated path and exercised directly in tests.
 
     /// Lowercased alphanumeric word tokens of `text`, for whole-word comparison
-    /// against the query (so "lin" doesn't match inside "linked").
+    /// against the query (so "lin" doesn't match inside "linked"). Delegates to the
+    /// shared ``SearchGrounding`` core.
     static func tokens(_ text: String) -> Set<String> {
-        Set(text.lowercased()
-            .split { !$0.isLetter && !$0.isNumber }
-            .map(String.init)
-            .filter { !$0.isEmpty })
+        SearchGrounding.tokens(text)
     }
 
     /// Words that name a filter concept rather than a pad or question title, so they
-    /// must never survive into the free-text search. Covers list nouns, connectors,
-    /// and the state/type/recency vocabulary the model otherwise leaves in `text`.
-    static let filterStopWords: Set<String> = [
-        "pad", "pads", "question", "questions", "interview", "interviews",
-        "by", "from", "the", "a", "an", "of", "in", "on", "for", "with", "and",
-        "my", "me", "show", "find", "all", "owned", "created", "made",
-        "active", "ended", "pending", "started", "finished", "open", "closed",
-        "live", "take", "home", "takehome", "draft", "published",
-        "today", "yesterday", "last", "recent", "recently", "past", "this",
-        "day", "days", "week", "weeks", "month", "months", "hour", "hours"
-    ]
+    /// must never survive into the free-text search. Now the shared ``SearchGrounding``
+    /// stop-word set — a superset of the old app list; the extra words only ever strip
+    /// genuine filter concepts, never real titles.
+    static let filterStopWords = SearchGrounding.filterStopWords
 
     /// Keeps a resolved language only when the query actually names it, so the
     /// model's habit of grabbing the first option doesn't apply a language the user
@@ -180,7 +172,7 @@ enum SearchInterpreter {
     static func groundLanguage(_ code: String?, query: String) -> String? {
         guard let code else { return nil }
 
-        let accepted = tokens(code).union(tokens(code.languageDisplayName))
+        let accepted = tokens(code).union(tokens(code.coderPadLanguageDisplayName))
             .filter { !$0.allSatisfy(\.isNumber) }
         return tokens(query).isDisjoint(with: accepted) ? nil : code
     }
@@ -261,14 +253,7 @@ enum SearchInterpreter {
 
     /// Keeps a resolved date window only when the query mentions a time frame.
     static func groundDateRange(_ range: String?, query: String) -> String? {
-        guard let range else { return nil }
-
-        let dateWords: Set = [
-            "today", "yesterday", "week", "weeks", "month", "months", "day", "days",
-            "hour", "hours", "recent", "recently", "last", "past", "this",
-            "24", "7", "30", "90", "year", "years"
-        ]
-        return tokens(query).isDisjoint(with: dateWords) ? nil : range
+        SearchGrounding.groundDateRange(range, query: query)
     }
 
     /// Strips the model's free-text down to genuine title keywords: drops filter
@@ -281,16 +266,10 @@ enum SearchInterpreter {
         var drop = filterStopWords
         for language in languages {
             drop.formUnion(tokens(language))
-            drop.formUnion(tokens(language.languageDisplayName))
+            drop.formUnion(tokens(language.coderPadLanguageDisplayName))
         }
         drop.formUnion(tokens(ownerName))
         drop.formUnion(tokens(team))
-        let kept = raw.split(whereSeparator: { $0 == " " || $0 == "\n" || $0 == "\t" })
-            .map(String.init)
-            .filter { word in
-                let key = word.lowercased().filter { $0.isLetter || $0.isNumber }
-                return !key.isEmpty && !drop.contains(key)
-            }
-        return kept.joined(separator: " ")
+        return SearchGrounding.groundText(raw: raw, drop: drop)
     }
 }

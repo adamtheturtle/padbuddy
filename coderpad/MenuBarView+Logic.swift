@@ -17,7 +17,7 @@ extension MenuBarView {
 
     func padLabel(_ pad: Pad) -> String {
         let title = pad.title.isEmpty ? pad.id : pad.title
-        let language = pad.language.flatMap { $0.isEmpty ? nil : " · \($0.languageDisplayName)" } ?? ""
+        let language = pad.language.flatMap { $0.isEmpty ? nil : " · \($0.coderPadLanguageDisplayName)" } ?? ""
         return "\(title)\(language)"
     }
 

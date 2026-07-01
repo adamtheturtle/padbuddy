@@ -62,7 +62,7 @@ enum QuestionDrafter {
             guard !trimmed.isEmpty else { return nil }
             guard SystemLanguageModel.default.availability == .available else { return nil }
 
-            let languageName = language.languageDisplayName
+            let languageName = language.coderPadLanguageDisplayName
             let modelInstructions = """
             You help interviewers author coding interview questions. Given a brief description and a \
             target language, draft a complete question: a concise title, a short interviewer-facing \

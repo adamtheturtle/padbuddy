@@ -181,6 +181,8 @@ struct QuestionsView: View {
                     isInterpreting: isInterpreting,
                     failed: smartFilterFailed,
                     placeholder: "e.g. my draft SQL questions",
+                    failedMessage: "Couldn't turn that into filters. Try naming a language, owner, state, or date.",
+                    hintMessage: "Mention a language, owner, state, or date.",
                     onSubmit: { Task { await applySmartFilter() } },
                     onCancel: { showSmartFilter = false }
                 )

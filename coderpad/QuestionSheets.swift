@@ -62,9 +62,9 @@ struct NewQuestionSheet: View {
                 }
                 TextField("Title", text: $title)
                 Picker("Language", selection: languageSelection) {
-                    ForEach(CoderPadLanguages.pickerOptions, id: \.self) { Text($0.languageDisplayName).tag($0) }
+                    ForEach(CoderPadLanguages.pickerOptions, id: \.self) { Text($0.coderPadLanguageDisplayName).tag($0) }
                     if !CoderPadLanguages.pickerOptions.contains(language) {
-                        Text(language.languageDisplayName).tag(language)
+                        Text(language.coderPadLanguageDisplayName).tag(language)
                     }
                 }
                 Picker("Type", selection: $padType) {

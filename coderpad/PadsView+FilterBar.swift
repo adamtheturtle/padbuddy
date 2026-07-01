@@ -55,12 +55,14 @@ extension PadsView {
             FlowLayout(spacing: 6, lineSpacing: 6) {
                 ForEach(defaults) { item in
                     SavedSearchChip(name: item.search.name, systemImage: item.icon,
-                                    isActive: isActiveSearch(item.search)) {
+                                    isActive: isActiveSearch(item.search),
+                                    maxNameLength: NamedSearch.maxNameLength) {
                         apply(item.search)
                     }
                 }
                 ForEach(saved) { item in
-                    SavedSearchChip(name: item.name, isActive: isActiveSearch(item)) {
+                    SavedSearchChip(name: item.name, isActive: isActiveSearch(item),
+                                    maxNameLength: NamedSearch.maxNameLength) {
                         apply(item)
                     } onDelete: {
                         if let account = accounts.currentAccountID {
@@ -93,7 +95,7 @@ extension PadsView {
                 icon: "chevron.left.slash.chevron.right",
                 selected: $languageFilter,
                 options: availableLanguages,
-                formatter: { $0.languageDisplayName }
+                formatter: { $0.coderPadLanguageDisplayName }
             )
             .measuresFilterBarWidth()
             SearchableFilterChip(

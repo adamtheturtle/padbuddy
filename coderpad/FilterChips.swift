@@ -159,9 +159,12 @@ struct DateRangeFilterChip: View {
             // Idle and active saved-search tokens — a distinct rounded-rect shape
             // from the filter pills above (#405), accent glass + readable text when
             // applied (#397).
-            SavedSearchChip(name: "My Pads", systemImage: "person.fill", isActive: false, onApply: {})
-            SavedSearchChip(name: "Active", systemImage: "bolt.fill", isActive: true, onApply: {})
-            SavedSearchChip(name: "Frontend", isActive: false, onApply: {}, onDelete: {})
+            SavedSearchChip(name: "My Pads", systemImage: "person.fill", isActive: false,
+                            maxNameLength: NamedSearch.maxNameLength, onApply: {})
+            SavedSearchChip(name: "Active", systemImage: "bolt.fill", isActive: true,
+                            maxNameLength: NamedSearch.maxNameLength, onApply: {})
+            SavedSearchChip(name: "Frontend", isActive: false,
+                            maxNameLength: NamedSearch.maxNameLength, onApply: {}, onDelete: {})
         }
     }
     .padding(40)

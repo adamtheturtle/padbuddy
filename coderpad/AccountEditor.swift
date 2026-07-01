@@ -4,7 +4,6 @@
 //
 
 import BuddyDesignSystem
-import LocalAuthentication
 import SwiftUI
 
 /// The validation status type now lives in BuddyDesignSystem (shared with RankBuddy's
@@ -109,21 +108,14 @@ struct AccountEditor: View {
     /// set), reveal anyway rather than lock the user out of their own key.
     private func toggleReveal(of revealed: Binding<Bool>, reason: String) {
         if revealed.wrappedValue { revealed.wrappedValue = false; return }
-        guard requireBiometricsToRevealKey else { revealed.wrappedValue = true; return }
-
-        let context = LAContext()
-        var policyError: NSError?
-        guard context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &policyError) else {
-            revealed.wrappedValue = true
-            return
-        }
 
         Task {
-            let success = await (try? context.evaluatePolicy(
-                .deviceOwnerAuthentication,
-                localizedReason: reason
-            )) ?? false
-            if success { revealed.wrappedValue = true }
+            if await BiometricGate.authenticateForReveal(
+                settingEnabled: requireBiometricsToRevealKey,
+                reason: reason
+            ) {
+                revealed.wrappedValue = true
+            }
         }
     }
 

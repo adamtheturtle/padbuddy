@@ -20,24 +20,6 @@ import SwiftUI
 // design system is shared.
 @_exported import FastList
 
-/// Shared corner radii so cards, chips, and controls curve consistently instead of
-/// each view reaching for its own magic number. Named by the role a shape plays
-/// rather than its value; tweak here to restyle a whole tier at once (#629). The
-/// generic `Spacing`/`ChipContrast` tokens live in `BuddyDesignSystem`; these are
-/// app-local because the radius scale is particular to this app's chrome.
-enum Radius {
-    /// Tightly nested inner fills (e.g. an appearance swatch inside a selected card).
-    static let tight: CGFloat = 4
-    /// Compact controls: chips, tokens, and small pills.
-    static let chip: CGFloat = 6
-    /// Standard controls, selectable rows, and small cards.
-    static let control: CGFloat = 8
-    /// Content cards and media/code thumbnails.
-    static let card: CGFloat = 10
-    /// Prominent hero and empty-state cards.
-    static let prominent: CGFloat = 16
-}
-
 extension Spacing {
     /// Vertical rhythm between fields in compact detail groups.
     static let contentGroupGap: CGFloat = 10

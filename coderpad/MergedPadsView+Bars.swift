@@ -21,11 +21,13 @@ extension MergedPadsView {
     /// chips so the merged list feels of a piece with `PadsView`.
     var presetsBar: some View {
         FlowLayout(spacing: 6, lineSpacing: 6) {
-            SavedSearchChip(name: "Mine", systemImage: "person.fill", isActive: mineOnly) {
+            SavedSearchChip(name: "Mine", systemImage: "person.fill", isActive: mineOnly,
+                            maxNameLength: NamedSearch.maxNameLength) {
                 mineOnly.toggle()
             }
             SavedSearchChip(name: "Active", systemImage: "bolt.fill",
-                            isActive: stateFilter == .active) {
+                            isActive: stateFilter == .active,
+                            maxNameLength: NamedSearch.maxNameLength) {
                 stateFilter = stateFilter == .active ? nil : .active
             }
         }
@@ -50,7 +52,7 @@ extension MergedPadsView {
             FilterChipMenu(
                 title: String(localized: "Language"), icon: "chevron.left.slash.chevron.right",
                 selected: $languageFilter, options: availableLanguages,
-                formatter: { $0.languageDisplayName }
+                formatter: { $0.coderPadLanguageDisplayName }
             )
             .measuresFilterBarWidth()
             SearchableFilterChip(

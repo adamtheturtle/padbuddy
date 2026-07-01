@@ -294,7 +294,7 @@ extension QuestionsView {
             }
         ]
         if let lang = question.language, !lang.isEmpty {
-            items.append(.button(title: String(localized: "Show \(lang.languageDisplayName) Questions")) {
+            items.append(.button(title: String(localized: "Show \(lang.coderPadLanguageDisplayName) Questions")) {
                 languageFilter = lang.lowercased()
             })
         }

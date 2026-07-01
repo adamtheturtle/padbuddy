@@ -161,7 +161,7 @@ extension PadDetailView {
               !meta.isEmpty else { return nil }
 
         switch event.kind.lowercased() {
-        case "ran", "executed": return meta.languageDisplayName
+        case "ran", "executed": return meta.coderPadLanguageDisplayName
         case "added_question": return "#\(meta)"
         case "joined" where meta.lowercased() == "spectator": return String(localized: "as spectator")
         default: return nil

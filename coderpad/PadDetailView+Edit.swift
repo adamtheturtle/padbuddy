@@ -18,12 +18,12 @@ extension PadDetailView {
                 propertyRow("Language") {
                     Picker("", selection: languageBinding) {
                         ForEach(CoderPadLanguages.pickerOptions, id: \.self) {
-                            Text($0.languageDisplayName).tag($0)
+                            Text($0.coderPadLanguageDisplayName).tag($0)
                         }
                         // Keep the pad's current language selectable even when it
                         // isn't one of the common picker options.
                         if !CoderPadLanguages.pickerOptions.contains(draftLanguage) {
-                            Text(draftLanguage.languageDisplayName).tag(draftLanguage)
+                            Text(draftLanguage.coderPadLanguageDisplayName).tag(draftLanguage)
                         }
                     }
                     .labelsHidden()
@@ -103,7 +103,6 @@ extension PadDetailView {
     /// Seeds every editable draft from the pad. Called on appear and whenever a
     /// different pad is shown.
     func seedDrafts() {
-        titleDraft = pad.title
         draftLanguage = pad.language ?? "python3"
         draftOwner = pad.ownerEmail
         draftIsPrivate = pad.isPrivate ?? false
@@ -124,12 +123,20 @@ extension PadDetailView {
 
     // MARK: - Per-field commits
 
-    func commitTitle() async {
-        let newTitle = titleDraft
-        guard newTitle != pad.title else { return }
+    /// Commits an inline title rename, returning whether it saved so the self-owning
+    /// `InlineEditableTitle` can leave edit mode. On failure the host keeps the old
+    /// title (the control reverts by just leaving edit mode), so there's no draft to
+    /// reset — hence the direct optimistic PUT rather than the `revert`-based `save`.
+    func commitTitle(_ newTitle: String) async -> Bool {
+        guard newTitle != pad.title else { return true }
 
-        await save(PadUpdate(id: pad.id, title: newTitle), optimistic: optimisticPad(title: newTitle)) {
-            titleDraft = pad.title
+        do {
+            try await client.updatePadWithoutRefetch(PadUpdate(id: pad.id, title: newTitle))
+            AppRouter.padUpdated(optimisticPad(title: newTitle))
+            return true
+        } catch {
+            mutateError = error.localizedDescription
+            return false
         }
     }
 

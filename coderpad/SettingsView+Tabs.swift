@@ -32,7 +32,7 @@ extension SettingsView {
 
             Section {
                 LabeledContent("Appearance") {
-                    AppearancePicker(selection: $appearance)
+                    AppearancePicker(selection: appearanceSchemeBinding)
                 }
             }
 
@@ -64,7 +64,7 @@ extension SettingsView {
                     if scope != .off { PadUpdateNotifier.shared.requestBadgeAuthorization() }
                     // Apply or clear the badge immediately rather than waiting for the
                     // next pad refresh.
-                    DockBadge.refresh()
+                    DockBadgeController.refresh()
                 }
                 .disabled(!presence.showsDockIcon)
             }

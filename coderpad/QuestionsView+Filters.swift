@@ -13,7 +13,7 @@ extension QuestionsView {
         FlowLayout(spacing: 8, lineSpacing: 8) {
             FilterChipMenu(title: String(localized: "Language"), icon: "chevron.left.slash.chevron.right",
                            selected: $languageFilter, options: availableLanguages,
-                           formatter: { $0.languageDisplayName })
+                           formatter: { $0.coderPadLanguageDisplayName })
                 .measuresFilterBarWidth()
             SearchableFilterChip(title: String(localized: "Owner"), icon: "person",
                                  selected: $ownerFilter, options: availableOwners,
@@ -99,7 +99,8 @@ extension QuestionsView {
                 // once at least one question is starred.
                 if hasFavorites {
                     SavedSearchChip(name: "Favorites", systemImage: "star.fill",
-                                    isActive: favoritesOnly) {
+                                    isActive: favoritesOnly,
+                                    maxNameLength: NamedSearch.maxNameLength) {
                         favoritesOnly.toggle()
                         // Favorites and the recall chips beside it are mutually
                         // exclusive presets, so turning Favorites on clears the
@@ -114,12 +115,14 @@ extension QuestionsView {
                 }
                 ForEach(defaults) { item in
                     SavedSearchChip(name: item.search.name, systemImage: item.icon,
-                                    isActive: isActiveSearch(item.search)) {
+                                    isActive: isActiveSearch(item.search),
+                                    maxNameLength: NamedSearch.maxNameLength) {
                         apply(item.search)
                     }
                 }
                 ForEach(saved) { item in
-                    SavedSearchChip(name: item.name, isActive: isActiveSearch(item)) {
+                    SavedSearchChip(name: item.name, isActive: isActiveSearch(item),
+                                    maxNameLength: NamedSearch.maxNameLength) {
                         apply(item)
                     } onDelete: {
                         if let account = accounts.currentAccountID {
