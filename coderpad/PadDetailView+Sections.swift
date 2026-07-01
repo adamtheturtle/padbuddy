@@ -153,9 +153,9 @@ extension PadDetailView {
                         // pad's detail view is rebuilt (#375).
                         WhiteboardImage(url: url)
                             .frame(maxWidth: .infinity)
-                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .clipShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
                             .overlay(
-                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                                     .stroke(Color.subtleStroke, lineWidth: 1)
                             )
                     }

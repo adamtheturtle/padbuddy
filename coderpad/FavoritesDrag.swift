@@ -28,7 +28,8 @@ extension UTType {
     /// In-process type for reordering a favorite *within* the sidebar (#299). Kept
     /// distinct from ``coderpadFavorite`` so a reorder drag (favorite row → favorite
     /// row) never triggers the add-a-favorite drop, and vice versa.
-    nonisolated static let coderpadFavoriteReorder = UTType(exportedAs: "com.coderpad.favorite-reorder", conformingTo: .data)
+    nonisolated static let coderpadFavoriteReorder = UTType(exportedAs: "com.coderpad.favorite-reorder",
+                                                            conformingTo: .data)
 }
 
 /// What a pad or question row hands the sidebar Favorites drop target. Codable so

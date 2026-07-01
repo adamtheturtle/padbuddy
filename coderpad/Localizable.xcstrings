@@ -79,7 +79,14 @@
       }
     },
     "%@" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%@"
+          }
+        }
+      }
     },
     "%@ - %@" : {
       "localizations" : {
@@ -242,10 +249,66 @@
       }
     },
     "%lld campaign" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%lld campaña"
+          }
+        }
+      }
     },
     "%lld campaigns" : {
-
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld campaign"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld campaigns"
+                }
+              },
+              "zero" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld campaigns"
+                }
+              }
+            }
+          }
+        },
+        "es" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld campaña"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld campañas"
+                }
+              },
+              "zero" : {
+                "stringUnit" : {
+                  "state" : "machine_translated",
+                  "value" : "%lld campañas"
+                }
+              }
+            }
+          }
+        }
+      }
     },
     "%lld candidate" : {
 
@@ -927,7 +990,14 @@
       }
     },
     "Aborted" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Interrumpida"
+          }
+        }
+      }
     },
     "About CoderPad" : {
       "extractionState" : "stale",
@@ -1109,13 +1179,27 @@
       }
     },
     "Add or manage accounts in Settings" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Añadir o gestionar cuentas en Ajustes"
+          }
+        }
+      }
     },
     "Add Template" : {
 
     },
     "Add to %@" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Añadir a %@"
+          }
+        }
+      }
     },
     "Add to Favorites" : {
       "localizations" : {
@@ -1177,13 +1261,34 @@
       }
     },
     "All Statuses" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Todos los estados"
+          }
+        }
+      }
     },
     "All time" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Todo el tiempo"
+          }
+        }
+      }
     },
     "Allow the MCP server to make changes" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Permitir que el servidor MCP haga cambios"
+          }
+        }
+      }
     },
     "Anonymized" : {
 
@@ -1262,7 +1367,14 @@
       }
     },
     "Assistant" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Asistente"
+          }
+        }
+      }
     },
     "Authentication error" : {
       "localizations" : {
@@ -1361,13 +1473,27 @@
       }
     },
     "By technology" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Por tecnología"
+          }
+        }
+      }
     },
     "Campaigns" : {
 
     },
     "Campaigns and test sessions will appear here." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Las campañas y las sesiones de prueba aparecerán aquí."
+          }
+        }
+      }
     },
     "Cancel" : {
       "localizations" : {
@@ -1380,7 +1506,14 @@
       }
     },
     "Cancel Invitation" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Cancelar invitación"
+          }
+        }
+      }
     },
     "Cancelled" : {
 
@@ -1419,13 +1552,34 @@
       }
     },
     "Candidate link" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Enlace del candidato"
+          }
+        }
+      }
     },
     "Candidate name" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Nombre del candidato"
+          }
+        }
+      }
     },
     "candidate@example.com" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "candidate@example.com"
+          }
+        }
+      }
     },
     "Candidates" : {
       "extractionState" : "stale",
@@ -1459,7 +1613,14 @@
       }
     },
     "Choose what the exported PDF report includes." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Elige qué incluye el informe PDF exportado."
+          }
+        }
+      }
     },
     "Clear" : {
       "localizations" : {
@@ -1675,10 +1836,24 @@
       }
     },
     "CoderPad Screen" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "CoderPad Screen"
+          }
+        }
+      }
     },
     "CoderPad Screen sends test-session events (started, completed, …) to this URL." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "CoderPad Screen envía eventos de sesiones de prueba (iniciada, completada, …) a esta URL."
+          }
+        }
+      }
     },
     "CoderPad, %lld unseen pad %@" : {
       "extractionState" : "stale",
@@ -1752,7 +1927,14 @@
       }
     },
     "Comma-separated (optional)" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Separadas por comas (opcional)"
+          }
+        }
+      }
     },
     "Comma-separated, e.g. strong, follow-up" : {
 
@@ -1761,7 +1943,14 @@
 
     },
     "Completed %@" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Completada el %@"
+          }
+        }
+      }
     },
     "Connect an assistant to the server and its tool calls show up here." : {
 
@@ -1930,7 +2119,14 @@
       }
     },
     "Couldn't complete that action" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudo completar esa acción"
+          }
+        }
+      }
     },
     "Couldn’t create pad" : {
       "localizations" : {
@@ -1999,7 +2195,14 @@
       }
     },
     "Couldn't open the report" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudo abrir el informe"
+          }
+        }
+      }
     },
     "Couldn't reach CoderPad. Check your connection and try again." : {
       "localizations" : {
@@ -2083,7 +2286,14 @@
       }
     },
     "Create a new CoderPad pad." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Crea un nuevo pad de CoderPad."
+          }
+        }
+      }
     },
     "Create a new interview pad from this question" : {
       "localizations" : {
@@ -2206,7 +2416,14 @@
       }
     },
     "Date Range" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Rango de fechas"
+          }
+        }
+      }
     },
     "Default" : {
       "localizations" : {
@@ -2484,7 +2701,14 @@
       }
     },
     "Delete this test session?" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "¿Eliminar esta sesión de prueba?"
+          }
+        }
+      }
     },
     "Delete…" : {
       "localizations" : {
@@ -2547,7 +2771,14 @@
       }
     },
     "Describe what you want in plain language and it becomes filters." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Describe lo que quieres en lenguaje natural y se convierte en filtros."
+          }
+        }
+      }
     },
     "Description" : {
       "localizations" : {
@@ -2719,13 +2950,34 @@
       }
     },
     "Duration" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Duración"
+          }
+        }
+      }
     },
     "e.g. \"Backend phone screen\"" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "p. ej. «Entrevista telefónica de backend»"
+          }
+        }
+      }
     },
     "e.g. active Python pads" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "p. ej. pads de Python activos"
+          }
+        }
+      }
     },
     "e.g. active Python pads from my team" : {
       "localizations" : {
@@ -2788,7 +3040,14 @@
       }
     },
     "Edit Template" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Editar plantilla"
+          }
+        }
+      }
     },
     "Edit title" : {
       "localizations" : {
@@ -2890,13 +3149,27 @@
       }
     },
     "Enter a valid https:// URL." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Introduce una URL https:// válida."
+          }
+        }
+      }
     },
     "Europe" : {
 
     },
     "Evaluation" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Evaluación"
+          }
+        }
+      }
     },
     "Events" : {
       "localizations" : {
@@ -2962,7 +3235,14 @@
 
     },
     "Export as Markdown…" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Exportar como Markdown…"
+          }
+        }
+      }
     },
     "Faster section switching" : {
       "localizations" : {
@@ -3233,7 +3513,14 @@
       }
     },
     "Hide Screen API key" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Ocultar clave de API de Screen"
+          }
+        }
+      }
     },
     "Hide Sidebar" : {
       "localizations" : {
@@ -3335,7 +3622,14 @@
 
     },
     "Indexed on this device only. Pad and question titles can include candidate names." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Indexado solo en este dispositivo. Los títulos de los pads y las preguntas pueden incluir nombres de candidatos."
+          }
+        }
+      }
     },
     "Indexed on this Mac only. Pad and question titles can include candidate names." : {
       "extractionState" : "stale",
@@ -3359,7 +3653,14 @@
       }
     },
     "Interview Templates" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Plantillas de entrevista"
+          }
+        }
+      }
     },
     "Interviewer" : {
       "extractionState" : "stale",
@@ -3387,13 +3688,27 @@
 
     },
     "Invitation Sent" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Invitación enviada"
+          }
+        }
+      }
     },
     "Invite a candidate to this campaign." : {
 
     },
     "Invite Candidate" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Invitar candidato"
+          }
+        }
+      }
     },
     "Invited" : {
 
@@ -3468,7 +3783,14 @@
       }
     },
     "Last activity" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Última actividad"
+          }
+        }
+      }
     },
     "Last Updated" : {
       "localizations" : {
@@ -3651,13 +3973,27 @@
       }
     },
     "Manage accounts" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Gestionar cuentas"
+          }
+        }
+      }
     },
     "Manage Accounts" : {
 
     },
     "Manage Accounts…" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Gestionar cuentas…"
+          }
+        }
+      }
     },
     "Manage Templates…" : {
 
@@ -3690,7 +4026,14 @@
       }
     },
     "Mention a language, owner, state, or date." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Menciona un lenguaje, propietario, estado o fecha."
+          }
+        }
+      }
     },
     "Menu Bar" : {
       "localizations" : {
@@ -3890,7 +4233,14 @@
       }
     },
     "New Template" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Nueva plantilla"
+          }
+        }
+      }
     },
     "Newest First" : {
       "localizations" : {
@@ -3986,7 +4336,14 @@
 
     },
     "No campaigns" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No hay campañas"
+          }
+        }
+      }
     },
     "No candidate link was returned. The candidate was emailed their invitation." : {
 
@@ -4045,7 +4402,14 @@
       }
     },
     "No one has been invited to this campaign yet." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Todavía no se ha invitado a nadie a esta campaña."
+          }
+        }
+      }
     },
     "No Pad" : {
       "localizations" : {
@@ -4118,10 +4482,24 @@
       }
     },
     "No report yet" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Aún no hay informe"
+          }
+        }
+      }
     },
     "No templates yet" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Aún no hay plantillas"
+          }
+        }
+      }
     },
     "No test session matches your filters." : {
 
@@ -4140,10 +4518,24 @@
       }
     },
     "None of your Screen accounts could load campaigns." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Ninguna de tus cuentas de Screen pudo cargar las campañas."
+          }
+        }
+      }
     },
     "Not secure" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No seguro"
+          }
+        }
+      }
     },
     "Notes" : {
 
@@ -4233,7 +4625,14 @@
       }
     },
     "Only fetch test sessions active within a recent window." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Obtener solo las sesiones de prueba activas dentro de una ventana reciente."
+          }
+        }
+      }
     },
     "Open" : {
       "localizations" : {
@@ -4442,7 +4841,14 @@
       }
     },
     "Open PDF" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Abrir PDF"
+          }
+        }
+      }
     },
     "Open Settings" : {
       "localizations" : {
@@ -4528,7 +4934,14 @@
       }
     },
     "Opens in your browser's signed-in account" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Se abre en la cuenta con la que has iniciado sesión en el navegador"
+          }
+        }
+      }
     },
     "Optional" : {
       "localizations" : {
@@ -4554,10 +4967,24 @@
       }
     },
     "Optional: connect this account to CoderPad Screen (assessments)." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Opcional: conecta esta cuenta a CoderPad Screen (evaluaciones)."
+          }
+        }
+      }
     },
     "Optional: connect this account to Screen assessments." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Opcional: conecta esta cuenta con las evaluaciones de Screen."
+          }
+        }
+      }
     },
     "Order" : {
       "localizations" : {
@@ -4622,7 +5049,14 @@
       }
     },
     "Overall score" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Puntuación general"
+          }
+        }
+      }
     },
     "Override only for self-hosted or regional CoderPad deployments. Leave blank to use the default." : {
       "localizations" : {
@@ -4721,7 +5155,14 @@
 
     },
     "PadBuddy connects to your CoderPad account with an API key, then keeps your pads and questions a click away. Add an account to get started." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "PadBuddy se conecta a tu cuenta de CoderPad con una clave de API y mantiene tus pads y preguntas a un clic de distancia. Añade una cuenta para empezar."
+          }
+        }
+      }
     },
     "Pads" : {
       "localizations" : {
@@ -4813,7 +5254,14 @@
       }
     },
     "Paste your Screen API key" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pega tu clave de API de Screen"
+          }
+        }
+      }
     },
     "Pending" : {
       "localizations" : {
@@ -4836,7 +5284,14 @@
       }
     },
     "Pinned" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Fijado"
+          }
+        }
+      }
     },
     "Plain text" : {
       "localizations" : {
@@ -4862,7 +5317,14 @@
 
     },
     "Prefer to edit the file yourself?" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "¿Prefieres editar el archivo tú mismo?"
+          }
+        }
+      }
     },
     "Previous Section" : {
       "localizations" : {
@@ -4875,7 +5337,14 @@
       }
     },
     "Print" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Imprimir"
+          }
+        }
+      }
     },
     "Print…" : {
       "localizations" : {
@@ -4898,10 +5367,24 @@
       }
     },
     "Private notes for this pad…" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Notas privadas para este pad…"
+          }
+        }
+      }
     },
     "Private to you. Ratings, tags, and notes sync across your devices via iCloud and are never sent to CoderPad." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Privado para ti. Las valoraciones, etiquetas y notas se sincronizan entre tus dispositivos mediante iCloud y nunca se envían a CoderPad."
+          }
+        }
+      }
     },
     "Proctoring warnings" : {
 
@@ -4917,7 +5400,14 @@
       }
     },
     "Projected ~%@ by reset" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Previsto ~%@ al restablecer"
+          }
+        }
+      }
     },
     "Projected ~%lld by reset" : {
       "localizations" : {
@@ -5063,7 +5553,14 @@
       }
     },
     "Rate %lld of 5" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Valorar %lld de 5"
+          }
+        }
+      }
     },
     "Rating" : {
 
@@ -5101,7 +5598,14 @@
       }
     },
     "Recent tool calls" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Llamadas de herramientas recientes"
+          }
+        }
+      }
     },
     "Recheck" : {
       "localizations" : {
@@ -5120,7 +5624,14 @@
 
     },
     "Region" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Región"
+          }
+        }
+      }
     },
     "Reload" : {
       "localizations" : {
@@ -5143,7 +5654,14 @@
       }
     },
     "Reload campaigns." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Recargar las campañas."
+          }
+        }
+      }
     },
     "Reload page" : {
       "localizations" : {
@@ -5156,7 +5674,14 @@
       }
     },
     "Reload test sessions." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Recargar las sesiones de prueba."
+          }
+        }
+      }
     },
     "Reload Without Cache" : {
       "localizations" : {
@@ -5179,7 +5704,14 @@
       }
     },
     "Remove" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Eliminar"
+          }
+        }
+      }
     },
     "Remove %@ from Favorites" : {
       "localizations" : {
@@ -5214,7 +5746,14 @@
       }
     },
     "Remove the webhook?" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "¿Eliminar el webhook?"
+          }
+        }
+      }
     },
     "Remove this account and its stored API key from this Mac." : {
       "localizations" : {
@@ -5233,10 +5772,24 @@
 
     },
     "Report Options" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Opciones del informe"
+          }
+        }
+      }
     },
     "Require Face ID or Touch ID to reveal API keys" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Requerir Face ID o Touch ID para mostrar las claves de API"
+          }
+        }
+      }
     },
     "Require Touch ID to reveal API keys" : {
       "localizations" : {
@@ -5260,7 +5813,14 @@
       }
     },
     "Required: pick which member you are to finish." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Obligatorio: elige qué miembro eres para terminar."
+          }
+        }
+      }
     },
     "Resend Invitation" : {
 
@@ -5286,7 +5846,14 @@
       }
     },
     "Resize notes" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Cambiar el tamaño de las notas"
+          }
+        }
+      }
     },
     "Result notifications (optional)" : {
 
@@ -5367,19 +5934,54 @@
 
     },
     "Score" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Puntuación"
+          }
+        }
+      }
     },
     "Screen" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Screen"
+          }
+        }
+      }
     },
     "Screen API Key" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Clave de API de Screen"
+          }
+        }
+      }
     },
     "Screen Key" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Clave de Screen"
+          }
+        }
+      }
     },
     "Screen key works." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "La clave de Screen funciona."
+          }
+        }
+      }
     },
     "Screen Webhook" : {
 
@@ -5408,10 +6010,24 @@
       }
     },
     "Search campaigns" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Buscar campañas"
+          }
+        }
+      }
     },
     "Search candidates" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Buscar candidatos"
+          }
+        }
+      }
     },
     "Search members" : {
       "localizations" : {
@@ -5487,7 +6103,14 @@
 
     },
     "Select a campaign" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Selecciona una campaña"
+          }
+        }
+      }
     },
     "Select a pad" : {
       "localizations" : {
@@ -5660,7 +6283,14 @@
       }
     },
     "Show Archived" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mostrar archivados"
+          }
+        }
+      }
     },
     "Show Detail Pane" : {
       "localizations" : {
@@ -5774,7 +6404,14 @@
       }
     },
     "Show Screen API key" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mostrar clave de API de Screen"
+          }
+        }
+      }
     },
     "Show Sidebar" : {
       "localizations" : {
@@ -5810,7 +6447,14 @@
       }
     },
     "Show the Screen API key." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Muestra la clave de API de Screen."
+          }
+        }
+      }
     },
     "Shows pads from %@" : {
       "localizations" : {
@@ -5933,7 +6577,14 @@
       }
     },
     "Started" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Iniciada"
+          }
+        }
+      }
     },
     "Starter Code" : {
       "localizations" : {
@@ -6066,7 +6717,14 @@
       }
     },
     "Tags" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Etiquetas"
+          }
+        }
+      }
     },
     "Take-home" : {
       "localizations" : {
@@ -6099,7 +6757,14 @@
       }
     },
     "Template actions" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Acciones de plantilla"
+          }
+        }
+      }
     },
     "Test cases" : {
       "localizations" : {
@@ -6122,10 +6787,24 @@
       }
     },
     "Test Session" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Sesión de prueba"
+          }
+        }
+      }
     },
     "Test Session Unavailable" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Sesión de prueba no disponible"
+          }
+        }
+      }
     },
     "Text to search pad titles, owners, and participants for." : {
       "localizations" : {
@@ -6161,7 +6840,14 @@
 
     },
     "The candidate was emailed their invitation again." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Se envió de nuevo la invitación por correo electrónico al candidato."
+          }
+        }
+      }
     },
     "The marker shows where your usage would be if it tracked the billing cycle evenly." : {
       "localizations" : {
@@ -6213,13 +6899,27 @@
 
     },
     "The test session was created." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Se creó la sesión de prueba."
+          }
+        }
+      }
     },
     "These %@ pads will be permanently deleted. This can't be undone." : {
 
     },
     "These %@ questions will be permanently deleted. This can't be undone." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Estas %@ preguntas se eliminarán permanentemente. Esto no se puede deshacer."
+          }
+        }
+      }
     },
     "These %lld pads will be permanently deleted. This can't be undone." : {
       "localizations" : {
@@ -6266,7 +6966,14 @@
       }
     },
     "This account has no Screen campaigns yet." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Esta cuenta todavía no tiene campañas de Screen."
+          }
+        }
+      }
     },
     "This account's API key is invalid" : {
       "localizations" : {
@@ -6299,7 +7006,14 @@
       }
     },
     "This app is an unofficial client for the CoderPad interview platform. It is not affiliated with, authorized, maintained, or endorsed by CoderPad, Inc. “CoderPad” is a trademark of CoderPad, Inc." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Esta aplicación es un cliente no oficial de la plataforma de entrevistas CoderPad. No está afiliada, autorizada, mantenida ni respaldada por CoderPad, Inc. “CoderPad” es una marca comercial de CoderPad, Inc."
+          }
+        }
+      }
     },
     "This key works, but isn't authorized for: %@. Those sections may be empty." : {
       "localizations" : {
@@ -6351,7 +7065,14 @@
       }
     },
     "This test session couldn’t be loaded." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudo cargar esta sesión de prueba."
+          }
+        }
+      }
     },
     "Time & space complexity" : {
       "localizations" : {
@@ -6454,7 +7175,14 @@
       }
     },
     "Try Again" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Reintentar"
+          }
+        }
+      }
     },
     "Turning this off also requires Touch ID, so it can't be bypassed." : {
       "extractionState" : "stale",
@@ -6621,7 +7349,14 @@
       }
     },
     "Use" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Usar"
+          }
+        }
+      }
     },
     "Use “%@”" : {
       "localizations" : {
@@ -6715,7 +7450,14 @@
       }
     },
     "Validate Screen Key" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Validar clave de Screen"
+          }
+        }
+      }
     },
     "Validate to choose a different member." : {
       "extractionState" : "stale",
@@ -6739,7 +7481,14 @@
       }
     },
     "Validating Screen key…" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Validando la clave de Screen…"
+          }
+        }
+      }
     },
     "Version %@" : {
       "extractionState" : "stale",
@@ -6753,7 +7502,14 @@
       }
     },
     "View code full screen" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Ver el código a pantalla completa"
+          }
+        }
+      }
     },
     "View or configure the Screen event webhook." : {
 
@@ -6762,7 +7518,14 @@
 
     },
     "Waiting" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "En espera"
+          }
+        }
+      }
     },
     "Watch" : {
       "localizations" : {
@@ -6805,10 +7568,24 @@
       }
     },
     "Webhook" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Webhook"
+          }
+        }
+      }
     },
     "Webhook URL" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "URL del webhook"
+          }
+        }
+      }
     },
     "Welcome to PadBuddy" : {
       "localizations" : {
@@ -6920,7 +7697,14 @@
       }
     },
     "Your Screen accounts have no campaigns yet." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Tus cuentas de Screen todavía no tienen campañas."
+          }
+        }
+      }
     },
     "Your trial expires %@." : {
       "localizations" : {

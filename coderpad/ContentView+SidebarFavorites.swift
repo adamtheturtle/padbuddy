@@ -401,7 +401,8 @@ extension Sidebar {
 
         guard let targetAccount = item.account ?? accountID, resolved.account == targetAccount else { return }
 
-        favoritesOrder.move(resolved.ref, before: item.ref, present: presentRefs(account: resolved.account), account: resolved.account)
+        favoritesOrder.move(resolved.ref, before: item.ref,
+                            present: presentRefs(account: resolved.account), account: resolved.account)
     }
 
     /// Reorders a dragged favourite to the bottom of the visible shared order. In merged
@@ -418,7 +419,8 @@ extension Sidebar {
             return
         }
 
-        favoritesOrder.moveToEnd(resolved.ref, present: presentRefs(account: resolved.account), account: resolved.account)
+        favoritesOrder.moveToEnd(resolved.ref,
+                                 present: presentRefs(account: resolved.account), account: resolved.account)
     }
 
     private func favoriteReorderRef(_ dropped: FavoriteReorder) -> (ref: FavoriteRef, account: UUID)? {
@@ -442,7 +444,7 @@ private struct FavoriteDropChrome: ViewModifier {
             .contentShape(Rectangle())
             .background(
                 isHighlighted ? Color.accentColor.opacity(0.12) : Color.clear,
-                in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
             )
     }
 }

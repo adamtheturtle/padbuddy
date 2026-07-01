@@ -264,8 +264,8 @@ struct OrganizationView: View {
                             }
                             .padding(10)
                             .background(Color.subtleStroke.opacity(0.5),
-                                        in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-                            .contentShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                        in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
+                            .contentShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
                         }
                         .buttonStyle(.plain)
                         .help("Show pads owned by \(user.name ?? user.email)")

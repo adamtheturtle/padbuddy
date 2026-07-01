@@ -114,6 +114,16 @@ jobs:
           ./swiftformat_linux --version
           ./swiftformat_linux . --lint --reporter github-actions-log
 
+      # Localization gate: fails if any user-facing string in a .xcstrings catalog
+      # is missing a complete `es` translation, so a newly-added string can't land
+      # on main unlocalised. Reuses the Swift toolchain this container already
+      # ships (no extra download) — the checker is dependency-free Foundation.
+      # scripts/check-localization.swift documents the full policy.
+      - name: Localization completeness (strict)
+        run: |
+          set -euo pipefail
+          swift scripts/check-localization.swift
+
   test:
     name: Build & Test
     # The full macOS build+test is expensive (10x-billed minutes), so it stays

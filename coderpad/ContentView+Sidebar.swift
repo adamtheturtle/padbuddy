@@ -227,9 +227,9 @@ struct Sidebar: View {
             .padding(.vertical, 5)
             .background(
                 isSelected ? Color.primary.opacity(0.10) : Color.clear,
-                in: RoundedRectangle(cornerRadius: 8, style: .continuous)
+                in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
             )
-            .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
             // The framework desaturates native sidebar rows when the window stops being
             // the active one, but these custom rows paint their own accent/primary
             // colours that don't follow, so they'd stay fully bright while the section

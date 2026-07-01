@@ -105,7 +105,7 @@ struct FileTreeRows: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(
                 isSelected ? Color.accentColor.opacity(0.18) : Color.clear,
-                in: RoundedRectangle(cornerRadius: 6, style: .continuous)
+                in: RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
             )
             .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
             .contentShape(Rectangle())

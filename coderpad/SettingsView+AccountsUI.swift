@@ -24,9 +24,9 @@ struct AddRemoveControl: View {
         }
         .frame(height: 22)
         .background(Color.platformControlBackground,
-                    in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    in: RoundedRectangle(cornerRadius: Radius.chip, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
                 .stroke(Color.subtleStroke, lineWidth: 1)
         )
         .fixedSize()

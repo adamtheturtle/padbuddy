@@ -325,8 +325,8 @@ struct AccountSymbolPicker: View {
                 .font(.system(size: 13))
                 .frame(width: 24, height: 24)
                 .background(isSelected ? Color.accentColor.opacity(0.2) : .clear,
-                            in: RoundedRectangle(cornerRadius: 6))
-                .overlay(RoundedRectangle(cornerRadius: 6)
+                            in: RoundedRectangle(cornerRadius: Radius.chip))
+                .overlay(RoundedRectangle(cornerRadius: Radius.chip)
                     .stroke(isSelected ? Color.accentColor : Color.secondary.opacity(0.3),
                             lineWidth: isSelected ? 1.5 : 0.5))
         }

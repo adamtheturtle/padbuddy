@@ -115,7 +115,7 @@ struct PadEvaluationCard: View {
                 .frame(height: notesHeight)
                 .padding(6)
                 .background(Color.subtleStroke.opacity(0.5),
-                            in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
                 .overlay(alignment: .topLeading) {
                     if notes.isEmpty {
                         Text("Private notes for this pad…")

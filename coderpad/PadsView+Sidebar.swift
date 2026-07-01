@@ -264,7 +264,7 @@ extension PadsView {
             item.setData(data, forType: NSPasteboard.PasteboardType(UTType.coderpadFavorite.identifier))
         }
         return item
-    }
+    } 
     #endif
 
     /// The right-click menu for a pad row in the `NSTableView`-backed list, built as

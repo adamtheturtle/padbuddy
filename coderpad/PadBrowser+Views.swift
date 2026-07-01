@@ -162,7 +162,7 @@ struct PadBrowserView: View {
         .padding(32)
         .frame(maxWidth: 420)
         .floatingGlass(
-            in: RoundedRectangle(cornerRadius: 16, style: .continuous),
+            in: RoundedRectangle(cornerRadius: Radius.prominent, style: .continuous),
             fallback: .regularMaterial
         )
         .padding()
@@ -373,7 +373,7 @@ struct PadBrowserView: View {
         .padding(.horizontal, 10)
         .padding(.vertical, 4)
         .background(Color.subtleStroke.opacity(0.7),
-                    in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    in: RoundedRectangle(cornerRadius: Radius.chip, style: .continuous))
         // The lock is icon- and color-only, so VoiceOver would otherwise announce a
         // bare symbol name and miss the security state entirely. Read the bar as one
         // element that names whether the connection is secure, then the address (#79).

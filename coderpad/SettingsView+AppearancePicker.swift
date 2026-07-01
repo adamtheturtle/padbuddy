@@ -32,9 +32,9 @@ struct AppearancePicker: View {
             VStack(spacing: 6) {
                 AppearanceSwatch(appearance: option)
                     .frame(width: 104, height: 64)
-                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .clipShape(RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
                     .overlay(
-                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
                             .stroke(isSelected ? Color.accentColor : Color.subtleStroke,
                                     lineWidth: isSelected ? 3 : 1)
                     )
@@ -68,9 +68,9 @@ private struct AppearanceSwatch: View {
         ZStack {
             background
             // A small mock window to read as a desktop rather than a flat colour.
-            RoundedRectangle(cornerRadius: 4, style: .continuous)
+            RoundedRectangle(cornerRadius: Radius.tight, style: .continuous)
                 .fill(windowFill)
-                .overlay(RoundedRectangle(cornerRadius: 4, style: .continuous)
+                .overlay(RoundedRectangle(cornerRadius: Radius.tight, style: .continuous)
                     .stroke(Color.black.opacity(0.12), lineWidth: 0.5))
                 .frame(width: 60, height: 36)
                 .overlay(alignment: .topLeading) {

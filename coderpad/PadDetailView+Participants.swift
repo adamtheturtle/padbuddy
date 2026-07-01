@@ -91,7 +91,7 @@ extension PadDetailView {
                         AppNavigation.shared.showPads(PadsRequest(ownerEmail: email))
                     } label: {
                         participantRow(name: name, tint: tint, clickable: true)
-                            .contentShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            .contentShape(RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
                     }
                     .buttonStyle(.plain)
                     #if os(macOS)
@@ -125,7 +125,8 @@ extension PadDetailView {
         }
         .padding(.vertical, 4)
         .padding(.horizontal, 8)
-        .background(Color.subtleStroke.opacity(0.6), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .background(Color.subtleStroke.opacity(0.6),
+                    in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
     }
 
     /// The org email for a participant matched by display name, used to turn an

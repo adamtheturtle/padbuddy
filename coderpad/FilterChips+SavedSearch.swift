@@ -69,7 +69,7 @@ struct SavedSearchChip: View {
     /// The token shape for saved-search chips: a rounded rectangle, deliberately
     /// distinct from the filter chips' `Capsule`, so the recall tokens and the
     /// filter pills are told apart at a glance regardless of accent state (#405).
-    static let tokenShape = RoundedRectangle(cornerRadius: 6, style: .continuous)
+    static let tokenShape = RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
 
     /// Saved searches are *recall* buttons, not state: tapping one launches a set
     /// of filters rather than toggling a value. They stay neutral until applied, at

@@ -87,8 +87,8 @@ struct InlineEditableText: View {
                 .scrollContentBackground(.hidden)
                 .padding(8)
                 .background(Color.platformTextBackground,
-                            in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
                     .stroke(Color.subtleStroke, lineWidth: 1))
             HStack(spacing: 8) {
                 Spacer(minLength: 0)

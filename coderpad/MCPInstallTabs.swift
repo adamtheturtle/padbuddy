@@ -63,7 +63,7 @@ struct MCPInstallTabs: View {
             .padding(8)
             .background(
                 Color.platformTextBackground,
-                in: RoundedRectangle(cornerRadius: 6, style: .continuous)
+                in: RoundedRectangle(cornerRadius: Radius.chip, style: .continuous)
             )
         Button {
             Clipboard.copy(snippet)
