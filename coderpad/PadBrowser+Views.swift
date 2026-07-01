@@ -102,6 +102,8 @@ import WebKit
 struct PadBrowserView: View {
     let url: URL
     @State private var controller = WebController()
+    /// Fade the loading spinner only when Reduce Motion allows it (#628).
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     /// The load-failure icon's point size, scaled with the user's preferred text
     /// size (tracking Large Title) so it honors the accessibility setting.
     @ScaledMetric(relativeTo: .largeTitle) private var errorIconSize: CGFloat = 40
@@ -190,6 +192,7 @@ struct PadBrowserView: View {
                 ProgressView()
                     .controlSize(.small)
                     .opacity(controller.isLoading ? 1 : 0)
+                    .animation(reduceMotion ? nil : .easeInOut(duration: 0.18), value: controller.isLoading)
 
                 urlLabel
                     .frame(maxWidth: .infinity, alignment: .leading)

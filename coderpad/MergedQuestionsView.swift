@@ -17,6 +17,8 @@ import SwiftUI
 struct MergedQuestionsView: View {
     @Environment(\.orgDirectory) var directory
     @Environment(\.scenePhase) var scenePhase
+    /// Fade list loading/content swaps only when Reduce Motion allows it (#628).
+    @Environment(\.accessibilityReduceMotion) var reduceMotion
     /// While offline the app is read-only, so create/edit/delete controls disable (#321).
     @Environment(\.isReadOnly) var isReadOnly
     @Environment(\.openWindow) var openWindow

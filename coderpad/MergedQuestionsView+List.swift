@@ -174,7 +174,10 @@ extension MergedQuestionsView {
     var content: some View {
         Group {
             if isLoading, scoped.isEmpty {
-                ProgressView("Loading questions…").frame(maxWidth: .infinity, maxHeight: .infinity)
+                ProgressView("Loading questions…")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .transition(.opacity)
+                    .id("loading")
             } else {
                 VStack(spacing: 0) {
                     presetsBar
@@ -183,8 +186,11 @@ extension MergedQuestionsView {
                     Divider()
                     questionsList
                 }
+                .transition(.opacity)
+                .id("content")
             }
         }
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.18), value: isLoading && scoped.isEmpty)
         // Surface the count beneath the "Questions" title in the window toolbar
         // rather than as an inline bar above the list.
         .reportsSectionCount(countSubtitle)

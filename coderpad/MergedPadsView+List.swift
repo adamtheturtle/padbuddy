@@ -210,7 +210,10 @@ extension MergedPadsView {
     var content: some View {
         Group {
             if isLoading, scoped.isEmpty {
-                ProgressView("Loading pads…").frame(maxWidth: .infinity, maxHeight: .infinity)
+                ProgressView("Loading pads…")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .transition(.opacity)
+                    .id("loading")
             } else {
                 VStack(spacing: 0) {
                     presetsBar
@@ -219,8 +222,11 @@ extension MergedPadsView {
                     Divider()
                     padCollection
                 }
+                .transition(.opacity)
+                .id("content")
             }
         }
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.18), value: isLoading && scoped.isEmpty)
         // Surface the count beneath the "Pads" title in the window toolbar rather
         // than as an inline bar above the list.
         .reportsSectionCount(countSubtitle)
