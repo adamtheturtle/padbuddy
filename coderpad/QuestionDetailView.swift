@@ -40,6 +40,22 @@ struct QuestionDetailView: View {
     @State var editError: String?
     @FocusState var titleFocused: Bool
 
+    private var detailToolbarLeadingPlacement: ToolbarItemPlacement {
+        #if os(macOS)
+            .primaryAction
+        #else
+            .topBarLeading
+        #endif
+    }
+
+    private var detailToolbarTrailingPlacement: ToolbarItemPlacement {
+        #if os(macOS)
+            .primaryAction
+        #else
+            .topBarTrailing
+        #endif
+    }
+
     /// Detail-column actions live in the unified window toolbar rather than in
     /// the content header: there they float on the system Liquid Glass layer
     /// automatically, and the header stays free for identity and metadata. A
@@ -51,7 +67,7 @@ struct QuestionDetailView: View {
         if #available(macOS 26, iOS 26, *) {
             ToolbarSpacer(.fixed)
         }
-        ToolbarItem(id: "favorite", placement: .primaryAction) {
+        ToolbarItem(id: "favorite", placement: detailToolbarLeadingPlacement) {
             Button { toggleFavorite() } label: {
                 Label(isFavorite ? String(localized: "Favorited") : String(localized: "Favorite"),
                       systemImage: isFavorite ? "star.fill" : "star")
@@ -64,7 +80,7 @@ struct QuestionDetailView: View {
                 ? String(localized: "Remove from Favorites")
                 : String(localized: "Add to Favorites"))
         }
-        ToolbarItem(id: "new-pad", placement: .primaryAction) {
+        ToolbarItem(id: "new-pad", placement: detailToolbarLeadingPlacement) {
             Button { Task { await createPadInline() } } label: {
                 if isCreatingPad {
                     ProgressView().controlSize(.small)
@@ -76,13 +92,13 @@ struct QuestionDetailView: View {
             .help("Create a new interview pad from this question")
             .accessibilityLabel("New Pad")
         }
-        ToolbarItem(id: "share", placement: .primaryAction) {
+        ToolbarItem(id: "share", placement: detailToolbarTrailingPlacement) {
             ShareLink(item: question.webURL(baseURL: client.baseURL)) {
                 Label("Share", systemImage: "square.and.arrow.up")
             }
             .help("Share a link to this question")
         }
-        ToolbarItem(id: "delete", placement: .primaryAction) {
+        ToolbarItem(id: "delete", placement: detailToolbarTrailingPlacement) {
             Button(role: .destructive) { showDeleteConfirm = true } label: {
                 Label("Delete", systemImage: "trash")
             }

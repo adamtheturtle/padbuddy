@@ -49,6 +49,22 @@ struct PadDetailView: View {
     /// While offline the app is read-only, so the destructive/edit actions disable (#321).
     @Environment(\.isReadOnly) var isReadOnly
 
+    private var detailToolbarLeadingPlacement: ToolbarItemPlacement {
+        #if os(macOS)
+            .primaryAction
+        #else
+            .topBarLeading
+        #endif
+    }
+
+    private var detailToolbarTrailingPlacement: ToolbarItemPlacement {
+        #if os(macOS)
+            .primaryAction
+        #else
+            .topBarTrailing
+        #endif
+    }
+
     /// Seed the editable drafts from the pad up front so the title and properties
     /// render with their real values on the very first frame. The view is recreated
     /// per pad (`.id(pad.id)`), so this runs on every pad switch; without it the
@@ -90,14 +106,14 @@ struct PadDetailView: View {
             ToolbarSpacer(.fixed)
         }
         if let url = pad.webURL {
-            ToolbarItem(id: "share", placement: .primaryAction) {
+            ToolbarItem(id: "share", placement: detailToolbarLeadingPlacement) {
                 ShareLink(item: url) {
                     Label("Share", systemImage: "square.and.arrow.up")
                 }
                 .help("Share pad")
                 .accessibilityLabel("Share pad")
             }
-            ToolbarItem(id: "open", placement: .primaryAction) {
+            ToolbarItem(id: "open", placement: detailToolbarLeadingPlacement) {
                 Button {
                     if BrowserSettings.openLinksIn == .external {
                         BrowserSettings.openExternally(url)
@@ -115,7 +131,7 @@ struct PadDetailView: View {
             }
         }
         if let playbackURL = pad.playbackURL {
-            ToolbarItem(id: "watch", placement: .primaryAction) {
+            ToolbarItem(id: "watch", placement: detailToolbarLeadingPlacement) {
                 Button {
                     if BrowserSettings.openLinksIn == .external {
                         BrowserSettings.openExternally(playbackURL)
@@ -132,7 +148,7 @@ struct PadDetailView: View {
         if #available(macOS 26, iOS 26, *) {
             ToolbarSpacer(.fixed)
         }
-        ToolbarItem(id: "delete", placement: .primaryAction) {
+        ToolbarItem(id: "delete", placement: detailToolbarTrailingPlacement) {
             Button(role: .destructive) {
                 showDeleteConfirm = true
             } label: {
@@ -144,7 +160,7 @@ struct PadDetailView: View {
         #if !os(macOS)
             // iPad has no menu bar, so the File-menu document actions (Print, Export as
             // Markdown, Save Code) live in a detail-pane overflow menu instead.
-            ToolbarItem(id: "documents", placement: .primaryAction) {
+            ToolbarItem(id: "documents", placement: detailToolbarTrailingPlacement) {
                 Menu {
                     Button { printPadDocument() } label: {
                         Label("Print", systemImage: "printer")
@@ -164,7 +180,7 @@ struct PadDetailView: View {
         // Opt-in only: hidden by default in the customizable toolbar so it
         // doesn't crowd the common case, but available to add for users who end
         // interviews often. Routes through the same confirmation as the Pad menu.
-        ToolbarItem(id: "end-interview", placement: .primaryAction) {
+        ToolbarItem(id: "end-interview", placement: detailToolbarTrailingPlacement) {
             Button(role: .destructive) {
                 showEndConfirm = true
             } label: {
