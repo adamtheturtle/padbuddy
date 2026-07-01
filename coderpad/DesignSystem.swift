@@ -38,6 +38,23 @@ enum Radius {
     static let prominent: CGFloat = 16
 }
 
+extension Spacing {
+    /// Vertical rhythm between fields in compact detail groups.
+    static let contentGroupGap: CGFloat = 10
+    /// Gap between related controls in action rows.
+    static let controlGap: CGFloat = 12
+    /// Vertical rhythm for sheet-level form stacks.
+    static let sheetGap: CGFloat = 14
+    /// Horizontal inset for compact inline controls such as chips and address pills.
+    static let compactControlH: CGFloat = 10
+    /// Vertical inset for compact inline controls such as chips.
+    static let compactControlV: CGFloat = 5
+    /// Interior padding for compact popovers and empty states.
+    static let popoverInset: CGFloat = 10
+    /// Interior padding for prominent overlays.
+    static let overlayInset: CGFloat = 32
+}
+
 /// A pad's lifecycle state. A live pad is the one status that genuinely benefits
 /// from standing out, so it keeps a subtle green capsule; every other state reads
 /// as restrained secondary metadata (an SF Symbol + text, see ``MetaLabel``) so the

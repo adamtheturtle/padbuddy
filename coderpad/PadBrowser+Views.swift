@@ -145,7 +145,7 @@ struct PadBrowserView: View {
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
-            HStack(spacing: 12) {
+            HStack(spacing: Spacing.controlGap) {
                 Button {
                     controller.retryRequestedURL()
                 } label: {
@@ -159,7 +159,7 @@ struct PadBrowserView: View {
                 }
             }
         }
-        .padding(32)
+        .padding(Spacing.overlayInset)
         .frame(maxWidth: 420)
         .floatingGlass(
             in: RoundedRectangle(cornerRadius: Radius.prominent, style: .continuous),
@@ -217,7 +217,7 @@ struct PadBrowserView: View {
             // glass-on-glass.
             .glassButtonStyle()
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, Spacing.bannerH)
         .padding(.vertical, 8)
         .background(.regularMaterial)
         .background {
@@ -370,7 +370,7 @@ struct PadBrowserView: View {
                 .lineLimit(1)
                 .truncationMode(.middle)
         }
-        .padding(.horizontal, 10)
+        .padding(.horizontal, Spacing.compactControlH)
         .padding(.vertical, 4)
         .background(Color.subtleStroke.opacity(0.7),
                     in: RoundedRectangle(cornerRadius: Radius.chip, style: .continuous))

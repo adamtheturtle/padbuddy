@@ -43,7 +43,7 @@ struct NewPadSheet: View {
     @State private var users: [OrganizationUser] = []
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: Spacing.sheetGap) {
             Text("New Pad").font(.title3.bold())
 
             Form {

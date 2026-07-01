@@ -135,7 +135,7 @@ struct ChipLabel: View {
             Image(systemName: showsClear ? "xmark.circle.fill" : "chevron.down").font(.caption2)
                 .accessibilityHidden(true)
         }
-        .padding(.horizontal, 10).padding(.vertical, 5)
+        .padding(.horizontal, Spacing.compactControlH).padding(.vertical, Spacing.compactControlV)
         .foregroundStyle(labelColor)
         // Glass on macOS 26, opaque capsule on 15. The fallback thickens its
         // hairline border under Increase Contrast so the outline stays defined for
@@ -188,7 +188,7 @@ private struct SearchableFilterPopover: View {
         VStack(spacing: 0) {
             TextField("Search \(title.lowercased())", text: $search)
                 .textFieldStyle(.roundedBorder)
-                .padding(10)
+                .padding(Spacing.popoverInset)
             Divider()
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
@@ -221,7 +221,7 @@ private struct SearchableFilterPopover: View {
                     if options.isEmpty {
                         Text("No matches")
                             .font(.callout).foregroundStyle(.secondary)
-                            .padding(10)
+                            .padding(Spacing.popoverInset)
                     }
                 }
             }

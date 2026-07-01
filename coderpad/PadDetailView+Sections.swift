@@ -54,7 +54,7 @@ extension PadDetailView {
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: Spacing.contentGroupGap) {
             // Actions now live in the window toolbar, so the header only carries
             // identity, the metadata chips, and the raw ID below.
             identity
@@ -142,7 +142,7 @@ extension PadDetailView {
     /// pad and playback links.
     private var whiteboardCard: some View {
         Card {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: Spacing.contentGroupGap) {
                 SectionHeader(title: "Whiteboard", systemImage: "scribble.variable")
                 if let url = whiteboardURL {
                     Button {
