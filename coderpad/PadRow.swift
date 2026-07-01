@@ -202,11 +202,17 @@ private struct PadRowDateLabel: View {
                     .lineLimit(1)
                     .fixedSize()
                     .help("Updated \(labels.tooltip)")
+                    .frame(minWidth: Self.relativeDateColumnWidth, alignment: .trailing)
             } else {
+                // A `minWidth` frame is a floor, not a ceiling: an empty, infinitely
+                // flexible `Color.clear` inside one would grab all the row's leftover
+                // width (it has `layoutPriority(1)`), squishing the title and dragging
+                // the star left. Reserve exactly the column width so undated rows keep
+                // the star/date column aligned with dated rows without expanding (#635).
                 Color.clear
+                    .frame(width: Self.relativeDateColumnWidth)
             }
         }
-        .frame(minWidth: Self.relativeDateColumnWidth, alignment: .trailing)
         .layoutPriority(1)
         .allowsHitTesting(false)
     }
