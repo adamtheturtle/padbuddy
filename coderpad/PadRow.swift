@@ -134,27 +134,14 @@ private struct PadRowInfo: View, Equatable {
                         InterviewType.takeHome.chip
                     }
                 }
+                .lineLimit(1)
                 Text(ownerDisplay)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
             }
-            Spacer(minLength: 8)
-            // Mirror the question row: the relative date sits on the trailing edge
-            // in the same .caption/.secondary styling, rather than as a faint extra
-            // line tucked under the metadata.
-            if let updated = pad.informativeUpdatedAt {
-                // Cached labels rather than `.formatted` per render: on a large list
-                // this block is re-evaluated for every visible row on each selection
-                // pass, and `.formatted(.relative:)` is costly (#439).
-                let labels = RelativeDateLabel.labels(for: updated)
-                Text(labels.relative)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .fixedSize()
-                    .help("Updated \(labels.tooltip)")
-            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .clipped()
         }
         // Read the title + metadata block as one VoiceOver element with a coherent
         // label, rather than stopping on each badge/label separately. The "changed"
@@ -197,6 +184,31 @@ private struct PadRowInfo: View, Equatable {
         }
         if isChanged { parts.append("recently updated") }
         return parts.joined(separator: ", ")
+    }
+}
+
+private struct PadRowDateLabel: View {
+    private static let relativeDateColumnWidth: CGFloat = 78
+
+    let updated: Date?
+
+    var body: some View {
+        Group {
+            if let updated {
+                let labels = RelativeDateLabel.labels(for: updated)
+                Text(labels.relative)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .fixedSize()
+                    .help("Updated \(labels.tooltip)")
+            } else {
+                Color.clear
+            }
+        }
+        .frame(minWidth: Self.relativeDateColumnWidth, alignment: .trailing)
+        .layoutPriority(1)
+        .allowsHitTesting(false)
     }
 }
 
@@ -315,6 +327,9 @@ struct PadRowHostableContent: View {
             )
             .equatable()
             .allowsHitTesting(false)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .clipped()
+            .layoutPriority(0)
             FavoriteStarButton(
                 isFavorite: favoritePads.isFavorite(pad.id, account: account),
                 hovered: hovered,
@@ -325,8 +340,10 @@ struct PadRowHostableContent: View {
                     favoritePads.toggle(pad.id, account: account)
                 }
             )
+            PadRowDateLabel(updated: pad.informativeUpdatedAt)
         }
         .padding(.vertical, 4)
+        .padding(.trailing, 24)
         .fastListRowInsets()
         .onHover { hovered = $0 }
     }

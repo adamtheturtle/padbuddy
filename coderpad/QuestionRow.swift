@@ -10,6 +10,8 @@ import SwiftUI
 /// interaction and no closures, so wrapping it in an `EquatableView` can't affect the
 /// row's hit-testing or selection. `==` compares only the fields it renders.
 private struct QuestionRowInfo: View, Equatable {
+    private static let relativeDateColumnWidth: CGFloat = 78
+
     let question: Question
     let account: RowAccount?
 
@@ -55,10 +57,13 @@ private struct QuestionRowInfo: View, Equatable {
                         Chip(text: String(localized: "Draft"), systemImage: "doc.badge.ellipsis", tint: .orange)
                     }
                 }
+                .lineLimit(1)
                 if let author = question.authorName {
                     Text(author).font(.caption).foregroundStyle(.secondary)
                 }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .clipped()
             Spacer(minLength: 8)
             if let lastUsed = question.updatedAt {
                 // Cached labels rather than `.formatted` per render — see PadRow (#439).
@@ -68,6 +73,8 @@ private struct QuestionRowInfo: View, Equatable {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .fixedSize()
+                    .frame(minWidth: Self.relativeDateColumnWidth, alignment: .trailing)
+                    .layoutPriority(1)
                     .help("Last used \(labels.tooltip)")
                     .accessibilityLabel("Last used \(labels.relative)")
             }
@@ -124,6 +131,9 @@ struct QuestionRowHostableContent: View {
             QuestionRowInfo(question: question, account: rowAccount)
                 .equatable()
                 .allowsHitTesting(false)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .clipped()
+                .layoutPriority(0)
             FavoriteStarButton(
                 isFavorite: favorites.isFavorite(question.id, account: account),
                 hovered: hovered,
@@ -132,6 +142,7 @@ struct QuestionRowHostableContent: View {
             )
         }
         .padding(.vertical, 4)
+        .padding(.trailing, 24)
         .fastListRowInsets()
         .onHover { hovered = $0 }
     }

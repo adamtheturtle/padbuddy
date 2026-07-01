@@ -77,7 +77,7 @@ struct MergedOrganizationView: View {
             }
         }
         .toolbar(id: "merged-organization") {
-            ToolbarItem(id: "period", placement: .automatic) {
+            ToolbarItem(id: "period", placement: .primaryAction) {
                 periodPicker
             }
             // Hidden by default — reachable via View ▸ Customize Toolbar… or the
@@ -90,9 +90,9 @@ struct MergedOrganizationView: View {
     }
 
     /// The stats-period selector. On macOS the menu picker shows the selected
-    /// window inline (there's room for it); on iPad the toolbar collapses an
-    /// unlabelled picker into a generic "…" overflow, so it's a Menu with a
-    /// calendar glyph that reads as "pick a date window" at a glance.
+    /// window inline (there's room for it); on iPad it's a primary toolbar Menu
+    /// with a calendar glyph so users don't have to open the generic overflow
+    /// before choosing a date window.
     @ViewBuilder
     private var periodPicker: some View {
         #if os(macOS)

@@ -70,6 +70,7 @@ struct Sidebar: View {
             // background over them.
             .scrollContentBackground(.hidden)
             .accessibilityLabel("Sections")
+            .id(sidebarListIdentity)
 
             Divider()
             AccountFooter()
@@ -105,6 +106,19 @@ struct Sidebar: View {
 
     var accountID: UUID? {
         accounts.currentAccountID
+    }
+
+    /// The first native `List` section changes shape when Quota/Screen availability
+    /// changes. Rebuilding the source list for those structural changes avoids an
+    /// AppKit diff assertion where the section reports the new count without matching
+    /// insert/delete bookkeeping.
+    private var sidebarListIdentity: String {
+        let rootRows = sectionOrder.map(\.rawValue).joined(separator: "|")
+        return [
+            rootRows,
+            quotaIsUnlimited ? "quota-unlimited" : "quota-navigable",
+            screenSectionAvailable ? "screen" : "no-screen"
+        ].joined(separator: ":")
     }
 
     /// The framework dims native sidebar rows when the window stops being the active

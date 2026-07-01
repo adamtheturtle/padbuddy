@@ -19,6 +19,13 @@ enum FavoriteRef: Codable, Hashable, Sendable {
     case question(Int)
 }
 
+/// A favourite row in the combined "All Accounts" sidebar. Account identity has to be
+/// part of the order key because pad slugs and question ids can collide across orgs.
+struct MergedFavoriteRef: Codable, Hashable, Sendable {
+    let account: UUID
+    let ref: FavoriteRef
+}
+
 /// The interleaved drag order of a sidebar's favourites — pads and starred questions in
 /// one list — per account. Before this, the sidebar always listed every favourite pad
 /// above every favourite question; now a single order spans both kinds so a question can
@@ -38,7 +45,9 @@ enum FavoriteRef: Codable, Hashable, Sendable {
 final class FavoritesOrderStore {
     static let shared = FavoritesOrderStore()
     private var byAccount: [UUID: [FavoriteRef]] = [:]
+    private var mergedOrder: [MergedFavoriteRef] = []
     private static let key = "favoritesOrder.v1"
+    private static let mergedKey = "favoritesMergedOrder.v1"
     /// The iCloud mirror, keyed by each account's stable sync id rather than the
     /// per-device `UUID`, under its own key (#536).
     private static let cloudKey = "favoritesOrder.cloud.v1"
@@ -50,6 +59,10 @@ final class FavoritesOrderStore {
         if let data = UserDefaults.standard.data(forKey: Self.key),
            let decoded = try? JSONDecoder().decode([UUID: [FavoriteRef]].self, from: data) {
             byAccount = decoded
+        }
+        if let data = UserDefaults.standard.data(forKey: Self.mergedKey),
+           let decoded = try? JSONDecoder().decode([MergedFavoriteRef].self, from: data) {
+            mergedOrder = decoded
         }
         // Re-pull and merge whenever iCloud reports an external change to our mirror.
         cloudObserverTask = Task { @MainActor in
@@ -93,14 +106,64 @@ final class FavoritesOrderStore {
         save()
     }
 
+    /// Moves `ref` to the end of the combined order. This backs drops into the empty
+    /// space below the final favorite row, where there is no row to use as a `before`
+    /// target.
+    func moveToEnd(_ ref: FavoriteRef, present: [FavoriteRef], account: UUID) {
+        var ordered = order(present: present, account: account)
+        guard let from = ordered.firstIndex(of: ref), let last = ordered.indices.last, from != last else { return }
+
+        ordered.remove(at: from)
+        ordered.append(ref)
+        byAccount[account] = ordered
+        save()
+    }
+
+    /// The combined-view favourites in their stored cross-account order. This is separate
+    /// from the per-account order above because merged rows can be dragged across accounts.
+    func merged(present: [MergedFavoriteRef]) -> [MergedFavoriteRef] {
+        let presentSet = Set(present)
+        var result = mergedOrder.filter { presentSet.contains($0) }
+        let have = Set(result)
+        result.append(contentsOf: present.filter { !have.contains($0) })
+        return result
+    }
+
+    func moveMerged(_ ref: MergedFavoriteRef, before target: MergedFavoriteRef, present: [MergedFavoriteRef]) {
+        guard ref != target else { return }
+
+        var ordered = merged(present: present)
+        guard let from = ordered.firstIndex(of: ref), ordered.contains(target) else { return }
+
+        ordered.remove(at: from)
+        let insertAt = ordered.firstIndex(of: target) ?? ordered.count
+        ordered.insert(ref, at: insertAt)
+        mergedOrder = ordered
+        saveMerged()
+    }
+
+    func moveMergedToEnd(_ ref: MergedFavoriteRef, present: [MergedFavoriteRef]) {
+        var ordered = merged(present: present)
+        guard let from = ordered.firstIndex(of: ref), let last = ordered.indices.last, from != last else { return }
+
+        ordered.remove(at: from)
+        ordered.append(ref)
+        mergedOrder = ordered
+        saveMerged()
+    }
+
     /// Drops an account's saved order, called when the account is removed or re-keyed so
     /// its favourite refs don't linger in UserDefaults, alongside the kind-specific
     /// stores (#379).
     func remove(account: UUID) {
-        guard byAccount[account] != nil else { return }
+        let hadAccountOrder = byAccount[account] != nil
+        let filteredMergedOrder = mergedOrder.filter { $0.account != account }
+        guard hadAccountOrder || filteredMergedOrder.count != mergedOrder.count else { return }
 
         byAccount[account] = nil
+        mergedOrder = filteredMergedOrder
         save()
+        saveMerged()
     }
 
     private func save() {
@@ -112,6 +175,16 @@ final class FavoritesOrderStore {
             persistenceLogger.error("Failed to encode favorites order: \(reason, privacy: .public)")
         }
         mirrorToCloud()
+    }
+
+    private func saveMerged() {
+        do {
+            let data = try JSONEncoder().encode(mergedOrder)
+            UserDefaults.standard.set(data, forKey: Self.mergedKey)
+        } catch {
+            let reason = error.localizedDescription
+            persistenceLogger.error("Failed to encode merged favorites order: \(reason, privacy: .public)")
+        }
     }
 
     /// Pushes the current order up to iCloud, keyed by each account's stable sync id.

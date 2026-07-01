@@ -32,17 +32,23 @@ extension Sidebar {
 
     /// The favourites to show, pads and starred questions interleaved in one drag order
     /// (see ``FavoritesOrderStore``): the current account's in a single-account view, or
-    /// every mergeable account's (in account order) in the combined "All Accounts" view,
-    /// so favourites stay reachable from the sidebar there too. Each account keeps its own
-    /// order, so the combined view still groups by account even though within an account
-    /// the two kinds interleave freely.
+    /// every mergeable account's in one cross-account order in the combined "All Accounts"
+    /// view, so favourites can be rearranged exactly where they appear.
     private var favoriteEntries: [FavoriteEntry] {
         if isMergedView {
-            return accounts.mergeableAccounts.flatMap { favoriteEntries(forAccount: $0.id, namespaced: true) }
+            return favoritesOrder.merged(present: presentMergedRefs()).compactMap { item in
+                favoriteEntry(forAccount: item.account, ref: item.ref, namespaced: true)
+            }
         }
         guard let account = accountID else { return [] }
 
         return favoriteEntries(forAccount: account, namespaced: false)
+    }
+
+    private func presentMergedRefs() -> [MergedFavoriteRef] {
+        accounts.mergeableAccounts.flatMap { account in
+            presentRefs(account: account.id).map { MergedFavoriteRef(account: account.id, ref: $0) }
+        }
     }
 
     /// Builds one account's favourite rows in their saved drag order. Pad titles come from
@@ -55,6 +61,11 @@ extension Sidebar {
         guard !favoritePads.favorites(account: account).isEmpty || !questions.isEmpty else { return [] }
 
         let ordered = favoritesOrder.order(present: presentRefs(account: account), account: account)
+        return ordered.compactMap { favoriteEntry(forAccount: account, ref: $0, namespaced: namespaced) }
+    }
+
+    private func favoriteEntry(forAccount account: UUID, ref: FavoriteRef, namespaced: Bool) -> FavoriteEntry? {
+        let questions = favorites.titledFavorites(account: account)
         let padTitles = Dictionary(
             padsCache.get(account).map { ($0.id, $0.title.isEmpty ? $0.id : $0.title) },
             uniquingKeysWith: { first, _ in first }
@@ -67,26 +78,28 @@ extension Sidebar {
             questions.map { ($0.id, $0.title) },
             uniquingKeysWith: { first, _ in first }
         )
-        return ordered.map { ref in
-            switch ref {
-            case let .pad(padID):
-                return FavoriteEntry(
-                    id: namespaced ? "\(account.uuidString)-pad-\(padID)" : "pad-\(padID)",
-                    ref: ref,
-                    account: namespaced ? account : nil,
-                    title: padTitles[padID] ?? padID
-                )
-            case let .question(questionID):
-                let stored = storedTitles[questionID] ?? ""
-                let resolved = cacheTitles[questionID]
-                    ?? (stored.isEmpty ? "Question #\(questionID)" : stored)
-                return FavoriteEntry(
-                    id: namespaced ? "\(account.uuidString)-q-\(questionID)" : "q-\(questionID)",
-                    ref: ref,
-                    account: namespaced ? account : nil,
-                    title: resolved
-                )
-            }
+        switch ref {
+        case let .pad(padID):
+            guard favoritePads.favorites(account: account).contains(padID) else { return nil }
+
+            return FavoriteEntry(
+                id: namespaced ? "\(account.uuidString)-pad-\(padID)" : "pad-\(padID)",
+                ref: ref,
+                account: namespaced ? account : nil,
+                title: padTitles[padID] ?? padID
+            )
+        case let .question(questionID):
+            guard favorites.favorites(account: account).contains(questionID) else { return nil }
+
+            let stored = storedTitles[questionID] ?? ""
+            let resolved = cacheTitles[questionID]
+                ?? (stored.isEmpty ? "Question #\(questionID)" : stored)
+            return FavoriteEntry(
+                id: namespaced ? "\(account.uuidString)-q-\(questionID)" : "q-\(questionID)",
+                ref: ref,
+                account: namespaced ? account : nil,
+                title: resolved
+            )
         }
     }
 
@@ -141,9 +154,16 @@ extension Sidebar {
             if entries.isEmpty { favoriteDropSpacer }
         }
         .modifier(FavoriteDropChrome(isHighlighted: droppingFavorites))
-        .onDrop(of: [.coderpadFavorite], isTargeted: $droppingFavorites) { providers in
+        .onDrop(of: [.coderpadFavoriteReorder, .coderpadFavorite], isTargeted: $droppingFavorites) { providers in
             for provider in providers {
-                loadFavoriteDrop(from: provider) { _ = handleFavoriteDrop([$0]) }
+                if provider.hasItemConformingToTypeIdentifier(UTType.coderpadFavoriteReorder.identifier) {
+                    loadFavoriteReorder(from: provider) { reorder in
+                        reorderTargetID = nil
+                        moveFavoriteToEnd(reorder)
+                    }
+                } else {
+                    loadFavoriteDrop(from: provider) { _ = handleFavoriteDrop([$0]) }
+                }
             }
             return true
         }
@@ -252,6 +272,15 @@ extension Sidebar {
             dropped = .question(id)
             account = dropAccount
         }
+        if isMergedView, let targetAccount = item.account {
+            favoritesOrder.moveMerged(
+                MergedFavoriteRef(account: account, ref: dropped),
+                before: MergedFavoriteRef(account: targetAccount, ref: item.ref),
+                present: presentMergedRefs()
+            )
+            return
+        }
+
         guard let target = item.account ?? accountID, target == account else { return }
 
         favoritesOrder.move(dropped, before: item.ref, present: presentRefs(account: account), account: account)
@@ -359,17 +388,44 @@ extension Sidebar {
     /// dragged item and the target can be different kinds, so a question can be dropped
     /// between two pads and vice versa.
     private func reorder(_ dropped: FavoriteReorder, before item: FavoriteEntry) {
-        guard let targetAccount = item.account ?? accountID else { return }
+        guard let resolved = favoriteReorderRef(dropped) else { return }
 
-        let ref: FavoriteRef
-        let account: UUID
-        switch dropped {
-        case let .pad(dropAccount, id): ref = .pad(id); account = dropAccount
-        case let .question(dropAccount, id): ref = .question(id); account = dropAccount
+        if isMergedView, let targetAccount = item.account {
+            favoritesOrder.moveMerged(
+                MergedFavoriteRef(account: resolved.account, ref: resolved.ref),
+                before: MergedFavoriteRef(account: targetAccount, ref: item.ref),
+                present: presentMergedRefs()
+            )
+            return
         }
-        guard account == targetAccount else { return }
 
-        favoritesOrder.move(ref, before: item.ref, present: presentRefs(account: account), account: account)
+        guard let targetAccount = item.account ?? accountID, resolved.account == targetAccount else { return }
+
+        favoritesOrder.move(resolved.ref, before: item.ref, present: presentRefs(account: resolved.account), account: resolved.account)
+    }
+
+    /// Reorders a dragged favourite to the bottom of the visible shared order. In merged
+    /// mode that means the bottom of the cross-account list; otherwise it means the bottom
+    /// of the current account's favourites.
+    private func moveFavoriteToEnd(_ dropped: FavoriteReorder) {
+        guard let resolved = favoriteReorderRef(dropped) else { return }
+
+        if isMergedView {
+            favoritesOrder.moveMergedToEnd(
+                MergedFavoriteRef(account: resolved.account, ref: resolved.ref),
+                present: presentMergedRefs()
+            )
+            return
+        }
+
+        favoritesOrder.moveToEnd(resolved.ref, present: presentRefs(account: resolved.account), account: resolved.account)
+    }
+
+    private func favoriteReorderRef(_ dropped: FavoriteReorder) -> (ref: FavoriteRef, account: UUID)? {
+        switch dropped {
+        case let .pad(account, id): return (.pad(id), account)
+        case let .question(account, id): return (.question(id), account)
+        }
     }
 }
 
