@@ -40,6 +40,12 @@ struct ScreenTestWindow: View {
         return accounts.currentAccount
     }
 
+    private var representedURL: URL? {
+        guard let urlString = fetched?.url else { return nil }
+
+        return URL(string: urlString)
+    }
+
     var body: some View {
         Group {
             if let client = account?.makeScreenClient(), let test = fetched {
@@ -61,6 +67,7 @@ struct ScreenTestWindow: View {
                 ProgressView().controlSize(.large)
             }
         }
+        .representedWindowURL(representedURL)
         .task(id: value) { await loadIfNeeded() }
     }
 

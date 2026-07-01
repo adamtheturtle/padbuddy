@@ -41,6 +41,10 @@ struct PadWindow: View {
         return accounts.currentAccount
     }
 
+    private var representedURL: URL? {
+        (cachedPad ?? fetched)?.webURL
+    }
+
     /// The pad from the warm cache, if the owning account has it loaded.
     private var cachedPad: Pad? {
         guard let value, let account else { return nil }
@@ -70,6 +74,7 @@ struct PadWindow: View {
                 ProgressView().controlSize(.large)
             }
         }
+        .representedWindowURL(representedURL)
         .task(id: value) { await loadIfNeeded() }
     }
 

@@ -41,6 +41,12 @@ struct QuestionWindow: View {
         return accounts.currentAccount
     }
 
+    private var representedURL: URL? {
+        guard let account, let question = cachedQuestion ?? fetched else { return nil }
+
+        return question.webURL(baseURL: account.makeClient().baseURL)
+    }
+
     /// The question from the warm cache, if the owning account has it loaded.
     private var cachedQuestion: Question? {
         guard let value, let account else { return nil }
@@ -68,6 +74,7 @@ struct QuestionWindow: View {
                 ProgressView().controlSize(.large)
             }
         }
+        .representedWindowURL(representedURL)
         .task(id: value) { await loadIfNeeded() }
     }
 
