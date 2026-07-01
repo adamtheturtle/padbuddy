@@ -17,7 +17,7 @@ extension MergedQuestionsView {
     /// Every account's questions, tagged with their source account and arranged by
     /// the active sort. Memoized into `scopedCache`; read many times in one `body`
     /// (filter pass, chip options, counts, empty-state checks).
-    var scoped: [AccountScoped<Account, Question>] {
+    var scoped: [MergedQuestionRow] {
         scopedCache.rows
     }
 
@@ -33,11 +33,10 @@ extension MergedQuestionsView {
 
         scopedCache.signature = signature
 
-        var rows: [AccountScoped<Account, Question>] = []
+        var rows: [MergedQuestionRow] = []
         for account in mergeable {
             for question in questionsByAccount[account.id] ?? [] {
-                rows.append(AccountScoped(account: account, item: question,
-                                          id: Self.rowID(account: account.id, question: question.id)))
+                rows.append(MergedQuestionRow(account: account, item: question))
             }
         }
         scopedCache.rows = sort.sorted(rows, question: { $0.item })
@@ -75,7 +74,7 @@ extension MergedQuestionsView {
 
     /// Filtered rows arranged by the active sort, matching `QuestionsView.sorted`.
     /// Memoized into `sortedCache` once per render by `refreshSorted()`.
-    var sorted: [AccountScoped<Account, Question>] {
+    var sorted: [MergedQuestionRow] {
         sortedCache.rows
     }
 
@@ -124,11 +123,11 @@ extension MergedQuestionsView {
         sortedCache.rows = filtered
     }
 
-    func isMine(_ row: AccountScoped<Account, Question>) -> Bool {
+    func isMine(_ row: MergedQuestionRow) -> Bool {
         row.account.owns(row.item.ownerEmail)
     }
 
-    func isFavorite(_ row: AccountScoped<Account, Question>) -> Bool {
+    func isFavorite(_ row: MergedQuestionRow) -> Bool {
         // Consult the per-render memo built by `refreshSorted()` — O(1), no per-call
         // array allocation (#367).
         sortedCache.favoritesByAccount[row.account.id]?.contains(row.item.id) ?? false
@@ -142,7 +141,7 @@ extension MergedQuestionsView {
 
     /// The scoped row for a namespaced row id, used to resolve the List selection
     /// back to a specific account's question (not just the first id match).
-    func row(forRowID rowID: String) -> AccountScoped<Account, Question>? {
+    func row(forRowID rowID: String) -> MergedQuestionRow? {
         scoped.first { $0.id == rowID }
     }
 
@@ -178,7 +177,7 @@ extension MergedQuestionsView {
     /// Select a specific scoped row (from a context menu or a freshly inserted
     /// question), keeping the List selection, the `Question` binding, and the
     /// routed account in step.
-    func select(_ scopedRow: AccountScoped<Account, Question>) {
+    func select(_ scopedRow: MergedQuestionRow) {
         router.selectedQuestionAccountID = scopedRow.account.id
         selection = scopedRow.item
         selectedRowID = scopedRow.id
@@ -349,7 +348,7 @@ extension MergedQuestionsView {
 
     // MARK: - Actions
 
-    func toggleFavorite(_ row: AccountScoped<Account, Question>) {
+    func toggleFavorite(_ row: MergedQuestionRow) {
         favorites.toggle(row.item.id, title: row.item.displayTitle, account: row.account.id)
         if favoritesOnly, !hasAnyFavorites { favoritesOnly = false }
     }

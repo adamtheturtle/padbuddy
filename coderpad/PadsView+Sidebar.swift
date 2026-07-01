@@ -203,10 +203,16 @@ extension PadsView {
                     pad, lastOpened: openedStore.lastOpened(pad.id, account: accounts.currentAccountID)
                 ),
                 ownerDisplay: directory.display(pad.ownerEmail),
-                account: accounts.currentAccountID,
-                favoritePads: favoritePads
+                isFavorite: favoritePads.isFavorite(pad.id, account: accounts.currentAccountID),
+                onToggleFavorite: {
+                    guard let account = accounts.currentAccountID else { return }
+
+                    favoritePads.toggle(pad.id, account: account)
+                }
             )
         }
+        .rowHeight(FastListRowMetrics.macHeight)
+        .reloadID(padListReloadID)
         .onDoubleClick { openPadDetailWindow($0) }
         .onReturnKey { openPad($0) }
         .swipeActions(edge: .leading) { pad in
@@ -233,7 +239,7 @@ extension PadsView {
         // iPad: drag a pad's URL into Safari, Notes, or a Split View.
         .onRowDragURL { $0.webURL }
         .rowContextMenu { padTableMenuItems($0) }
-        .onTopRowChange { persistTopRow($0) }
+        .onTopRowChange { scheduleTopRowPersistence($0) }
         .scrollToRow(id: pendingScrollToID) { pendingScrollToID = nil }
         #if os(macOS)
         .onDragSession(began: FavoriteDragLifecycle.onBegan, ended: FavoriteDragLifecycle.onEnded)
@@ -243,6 +249,11 @@ extension PadsView {
             // NSTableView doesn't re-host rows on a selection change (#439).
         .onChange(of: selectedIDs) { SelectionProfiler.selectionChanged() }
         #endif
+    }
+
+    private var padListReloadID: String {
+        let account = accounts.currentAccountID
+        return favoritePads.favorites(account: account).joined(separator: "\u{1F}")
     }
 
     /// The drag payload for a pad row in the `NSTableView`-backed list: the pad's web

@@ -66,6 +66,10 @@ struct MergedPadsView: View {
     /// won't scroll to a programmatic selection on its own. Consumed and cleared by
     /// the `ScrollViewReader` in the list.
     @State var pendingScrollToID: String?
+    /// Debounces free-scroll-position persistence. `FastList` reports each new top
+    /// row during scroll; writing every one to `UserDefaults` makes scrolling hitch
+    /// on large pad/question lists (#633).
+    @State var topRowPersistTask: Task<Void, Never>?
     /// Whether the saved filters have been restored this session. Gates persistence
     /// so the empty startup state never clobbers a saved snapshot, mirroring `PadsView`.
     @State var didRestoreFilters = false

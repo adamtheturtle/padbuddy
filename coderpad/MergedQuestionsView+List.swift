@@ -130,9 +130,9 @@ extension MergedQuestionsView {
             .sheet(item: $creatingForAccount) { account in
                 NewQuestionSheet(client: account.makeClient()) { created in
                     insert(created, into: account)
-                    let rowID = Self.rowID(account: account.id, question: created.id)
-                    select(AccountScoped(account: account, item: created, id: rowID))
-                    selectedRowIDs = [rowID]
+                    let row = MergedQuestionRow(account: account, item: created)
+                    select(row)
+                    selectedRowIDs = [row.id]
                     creatingForAccount = nil
                 } onCancel: {
                     creatingForAccount = nil
@@ -244,12 +244,13 @@ extension MergedQuestionsView {
         FastList(sorted, selection: $selectedRowIDs) { row in
             QuestionRowHostableContent(
                 question: row.item,
-                rowAccount: RowAccount(row.account),
-                account: row.account.id,
-                favorites: favorites,
+                rowAccount: row.rowAccount,
+                isFavorite: isFavorite(row),
                 onToggleFavorite: { toggleFavorite(row) }
             )
         }
+        .rowHeight(FastListRowMetrics.macHeight)
+        .reloadID(mergedQuestionListReloadID)
         // Double-click / Return open the question in its own window with the
         // originating account (the first click selects it).
         .onDoubleClick { openQuestionWindow($0) }
@@ -279,7 +280,7 @@ extension MergedQuestionsView {
         // iPad: drag a question's URL into Safari, Notes, or a Split View.
         .onRowDragURL { $0.item.webURL(baseURL: $0.account.resolvedBaseURL) }
         .rowContextMenu { questionTableMenuItems($0) }
-        .onTopRowChange { persistTopRow($0) }
+        .onTopRowChange { scheduleTopRowPersistence($0) }
         .scrollToRow(id: pendingScrollToRowID) { pendingScrollToRowID = nil }
         #if os(macOS)
             .onDragSession(began: FavoriteDragLifecycle.onBegan, ended: FavoriteDragLifecycle.onEnded)
@@ -300,8 +301,17 @@ extension MergedQuestionsView {
         #endif
     }
 
+    private var mergedQuestionListReloadID: String {
+        accounts.mergeableAccounts
+            .map { account in
+                let ids = favorites.favorites(account: account.id).map(String.init).joined(separator: ",")
+                return "\(account.id.uuidString):\(ids)"
+            }
+            .joined(separator: "|")
+    }
+
     /// Opens a combined-list question in its own window with its originating account.
-    private func openQuestionWindow(_ row: AccountScoped<Account, Question>) {
+    private func openQuestionWindow(_ row: MergedQuestionRow) {
         openWindow(id: "question", value: QuestionWindowID(account: row.account.id, id: row.item.id))
     }
 
@@ -314,14 +324,14 @@ extension MergedQuestionsView {
 
     /// The selected rows in list order, carrying their source account, for a
     /// multi-row Copy or Delete.
-    var selectedRowsInOrder: [AccountScoped<Account, Question>] {
+    var selectedRowsInOrder: [MergedQuestionRow] {
         sorted.filter { selectedRowIDs.contains($0.id) }
     }
 
     /// Delete several selected questions at once, each against its own account's
     /// client (per-org), looping the same delete-then-broadcast path the detail view
     /// uses so every list drops the row and the selection follows. Surfaces a failure.
-    func bulkDelete(_ rows: [AccountScoped<Account, Question>]) async {
+    func bulkDelete(_ rows: [MergedQuestionRow]) async {
         for row in rows {
             do {
                 try await row.account.makeClient().deleteQuestion(id: row.item.id)

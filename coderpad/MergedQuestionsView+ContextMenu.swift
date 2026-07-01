@@ -20,7 +20,7 @@ extension MergedQuestionsView {
     /// selection, Finder-style; otherwise it's the single-row menu. Actions needing the
     /// detail pane select the row first, then route through `AppNavigation`. (Share is
     /// reachable from the detail pane.)
-    func questionTableMenuItems(_ row: AccountScoped<Account, Question>) -> [MenuItem] {
+    func questionTableMenuItems(_ row: MergedQuestionRow) -> [MenuItem] {
         if selectedRowIDs.count > 1, selectedRowIDs.contains(row.id) {
             let rows = selectedRowsInOrder
             return [
@@ -68,7 +68,7 @@ extension MergedQuestionsView {
     /// `FavoriteDrop` JSON carrying that account (so it drops onto the sidebar
     /// Favorites and pins to the right account, #297).
     #if os(macOS)
-    func questionPasteboardItem(_ row: AccountScoped<Account, Question>) -> NSPasteboardItem? {
+    func questionPasteboardItem(_ row: MergedQuestionRow) -> NSPasteboardItem? {
         let url = row.item.webURL(baseURL: row.account.resolvedBaseURL)
         let item = NSPasteboardItem()
         item.setString(url.absoluteString, forType: .URL)

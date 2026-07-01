@@ -80,6 +80,10 @@ struct PadsView: View {
     /// programmatic selection, so without this the restored pad stays selected
     /// off-screen with the list pinned to the top. Cleared after the scroll.
     @State var pendingScrollToID: String?
+    /// Debounces free-scroll-position persistence. `FastList` reports each new top
+    /// row during scroll; writing every one to `UserDefaults` makes scrolling hitch
+    /// on large pad/question lists (#633).
+    @State var topRowPersistTask: Task<Void, Never>?
     /// Per-render memo for `filtered` (see `refreshFiltered()`). A reference type so
     /// `body` can refresh it without mutating SwiftUI state mid-evaluation.
     @State var filteredCache = FilteredPadsCache()

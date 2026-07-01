@@ -110,6 +110,16 @@ extension MergedPadsView {
         }
     }
 
+    func scheduleTopRowPersistence(_ id: String?) {
+        topRowPersistTask?.cancel()
+        topRowPersistTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(350))
+            guard !Task.isCancelled else { return }
+
+            persistTopRow(id)
+        }
+    }
+
     /// Restore the previously-open pad once a list exists to resolve it against.
     /// Marks the restore complete as soon as pads load (so later changes persist),
     /// then reselects via `PadsView.padToRestore` — the same pure, unit-tested

@@ -218,13 +218,11 @@ private struct PadRowDateLabel: View {
     }
 }
 
-/// Inline favorite toggle on a pad/question row, à la Mail's flag: always shown
-/// (filled) once pinned, and revealed faintly on hover otherwise so the resting list
-/// stays uncluttered. The button always occupies its slot — only opacity changes on
-/// hover — so rows don't shift as the pointer moves.
+/// Inline favorite toggle on a pad/question row, à la Mail's flag: filled once
+/// pinned, faint otherwise so it stays available without row-hover state. The
+/// button always occupies its slot, so rows don't shift as the pointer moves.
 struct FavoriteStarButton: View {
     let isFavorite: Bool
-    let hovered: Bool
     /// The row's display title, used only to phrase the accessibility label.
     let title: String
     let onToggle: () -> Void
@@ -251,10 +249,10 @@ struct FavoriteStarButton: View {
         .touchTarget()
         // Highlight the star under the iPad trackpad/Magic Keyboard pointer (#586).
         .pointerHoverEffect()
-        // macOS reveals the star on row hover to keep rows clean; iPad has no hover on
-        // touch, so a non-favorite star would be invisible and un-tappable - always show it.
+        // Keep non-favorite stars faint but present on macOS; row-hover state in
+        // recycled hosting cells adds scroll-time churn on large lists (#633).
         #if os(macOS)
-            .opacity(isFavorite || hovered ? 1 : 0)
+            .opacity(isFavorite ? 1 : 0.35)
         #else
             .opacity(1)
         #endif
@@ -262,6 +260,14 @@ struct FavoriteStarButton: View {
         .accessibilityLabel(isFavorite ? "Remove \(title) from Favorites"
             : "Add \(title) to Favorites")
     }
+}
+
+enum FastListRowMetrics {
+    /// Fixed hosted-row height for the AppKit `FastList` backend. Pad and question rows
+    /// are fixed-format rows; giving AppKit one stable intrinsic height avoids per-row
+    /// automatic height discovery as `NSTableView` recycles SwiftUI hosting cells during
+    /// fast scrolls (#633).
+    static let macHeight: CGFloat = 64
 }
 
 extension View {
@@ -295,6 +301,15 @@ extension View {
             self
         #endif
     }
+
+    @ViewBuilder
+    func fixedFastListRowHeight() -> some View {
+        #if os(macOS)
+            frame(height: FastListRowMetrics.macHeight)
+        #else
+            self
+        #endif
+    }
 }
 
 /// The pad row as hosted inside the `NSTableView`-backed `FastList` (#439). The
@@ -310,13 +325,10 @@ struct PadRowHostableContent: View {
     /// (`nil` in the per-account list). (#604)
     var rowAccount: RowAccount?
     var ownerDisplay: String
-    /// The owning account, used to read/toggle the favorite state.
-    var account: UUID?
-    /// Read live in `body` (it's `@Observable`) so toggling the star re-renders this
-    /// hosted row immediately — the cell isn't otherwise re-created on a favorite
-    /// change. Passing a static `Bool` left the star stuck (#439).
-    var favoritePads: FavoritePadsStore
-    @State private var hovered = false
+    /// Resolved by the list owner so the hosted row doesn't read the `@Observable`
+    /// favorites store while `NSTableView` recycles cells during scroll (#633).
+    var isFavorite: Bool
+    var onToggleFavorite: () -> Void
     /// Read out here (not inside the `.equatable()` `PadRowInfo`, where it would be
     /// invisible to memoization) and threaded in as a compared value, so the
     /// recently-updated dot gains a contrasting outline under Increase Contrast (#616).
@@ -337,20 +349,15 @@ struct PadRowHostableContent: View {
             .clipped()
             .layoutPriority(0)
             FavoriteStarButton(
-                isFavorite: favoritePads.isFavorite(pad.id, account: account),
-                hovered: hovered,
+                isFavorite: isFavorite,
                 title: pad.title.isEmpty ? pad.id : pad.title,
-                onToggle: {
-                    guard let account else { return }
-
-                    favoritePads.toggle(pad.id, account: account)
-                }
+                onToggle: onToggleFavorite
             )
             PadRowDateLabel(updated: pad.informativeUpdatedAt)
         }
         .padding(.vertical, 4)
         .padding(.trailing, 24)
+        .fixedFastListRowHeight()
         .fastListRowInsets()
-        .onHover { hovered = $0 }
     }
 }

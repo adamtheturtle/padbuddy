@@ -44,6 +44,16 @@ extension QuestionsView {
         }
     }
 
+    func scheduleTopRowPersistence(_ id: Int?) {
+        topRowPersistTask?.cancel()
+        topRowPersistTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(350))
+            guard !Task.isCancelled else { return }
+
+            persistTopRow(id)
+        }
+    }
+
     /// The saved question to reselect on launch: the stored id, but only when nothing
     /// is already selected, no navigation is pending, and the id is still in the loaded
     /// list. Pure so the restore decision is unit-testable in isolation.

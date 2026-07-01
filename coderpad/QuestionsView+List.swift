@@ -128,11 +128,12 @@ extension QuestionsView {
         FastList(sorted, selection: $selectedQuestionIDs) { question in
             QuestionRowHostableContent(
                 question: question,
-                account: accounts.currentAccountID,
-                favorites: favorites,
+                isFavorite: favoriteIDSet.contains(question.id),
                 onToggleFavorite: { toggleFavorite(question) }
             )
         }
+        .rowHeight(FastListRowMetrics.macHeight)
+        .reloadID(questionListReloadID)
         .onDoubleClick { openQuestionWindow($0) }
         .onReturnKey { openQuestionWindow($0) }
         .swipeActions(edge: .leading) { question in
@@ -167,7 +168,7 @@ extension QuestionsView {
         // iPad: drag a question's URL into Safari, Notes, or a Split View.
         .onRowDragURL { $0.webURL(baseURL: client.baseURL) }
         .rowContextMenu { questionTableMenuItems($0) }
-        .onTopRowChange { persistTopRow($0) }
+        .onTopRowChange { scheduleTopRowPersistence($0) }
         .scrollToRow(id: pendingScrollToID) { pendingScrollToID = nil }
         #if os(macOS)
         .onDragSession(began: FavoriteDragLifecycle.onBegan, ended: FavoriteDragLifecycle.onEnded)
@@ -196,6 +197,10 @@ extension QuestionsView {
         })
         #endif
         .macPullToRefresh { await reload() }
+    }
+
+    private var questionListReloadID: [Int] {
+        favoriteIDSet.sorted()
     }
 
     /// Opens a question in its own window (double-click / Return), the first click

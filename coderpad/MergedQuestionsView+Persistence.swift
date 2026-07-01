@@ -123,6 +123,16 @@ extension MergedQuestionsView {
         }
     }
 
+    func scheduleTopRowPersistence(_ rowID: String?) {
+        topRowPersistTask?.cancel()
+        topRowPersistTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(350))
+            guard !Task.isCancelled else { return }
+
+            persistTopRow(rowID)
+        }
+    }
+
     /// Restore the previously-open question once a list exists to resolve it against.
     /// Marks the restore complete as soon as questions load (so later changes
     /// persist), then reselects via `rowToRestore`. Builds the available row ids from

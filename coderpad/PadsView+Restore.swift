@@ -49,6 +49,16 @@ extension PadsView {
         }
     }
 
+    func scheduleTopRowPersistence(_ id: String?) {
+        topRowPersistTask?.cancel()
+        topRowPersistTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(350))
+            guard !Task.isCancelled else { return }
+
+            persistTopRow(id)
+        }
+    }
+
     /// The saved pad to reselect on launch: the stored id, but only when nothing is
     /// already selected, no deep link is pending, and the id is still in the loaded
     /// list. Pure so the restore decision is unit-testable in isolation.

@@ -116,15 +116,12 @@ struct QuestionRowHostableContent: View {
     /// The account this row belongs to, named on the row only in the merged list
     /// (`nil` in the per-account list). (#604)
     var rowAccount: RowAccount?
-    /// The owning account, used to read the favorite state.
-    var account: UUID?
-    /// Read live in `body` (it's `@Observable`) so toggling the star re-renders the
-    /// hosted row immediately — the cell isn't otherwise re-created on a favorite change.
-    var favorites: FavoriteQuestionsStore
+    /// Resolved by the list owner so the hosted row doesn't read the `@Observable`
+    /// favorites store while `NSTableView` recycles cells during scroll (#633).
+    var isFavorite: Bool
     /// Toggles the favorite via the owning view's method (which may also clear the
     /// Favorites filter when the last star is removed), rather than the store directly.
     var onToggleFavorite: () -> Void
-    @State private var hovered = false
 
     var body: some View {
         HStack(alignment: .center, spacing: 8) {
@@ -135,15 +132,14 @@ struct QuestionRowHostableContent: View {
                 .clipped()
                 .layoutPriority(0)
             FavoriteStarButton(
-                isFavorite: favorites.isFavorite(question.id, account: account),
-                hovered: hovered,
+                isFavorite: isFavorite,
                 title: question.displayTitle,
                 onToggle: onToggleFavorite
             )
         }
         .padding(.vertical, 4)
         .padding(.trailing, 24)
+        .fixedFastListRowHeight()
         .fastListRowInsets()
-        .onHover { hovered = $0 }
     }
 }

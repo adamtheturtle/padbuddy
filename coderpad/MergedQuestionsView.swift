@@ -56,13 +56,17 @@ struct MergedQuestionsView: View {
     /// won't scroll to a programmatic selection on its own. Consumed and cleared by
     /// the `ScrollViewReader` in the list.
     @State var pendingScrollToRowID: String?
+    /// Debounces free-scroll-position persistence. `FastList` reports each new top
+    /// row during scroll; writing every one to `UserDefaults` makes scrolling hitch
+    /// on large pad/question lists (#633).
+    @State var topRowPersistTask: Task<Void, Never>?
     /// Whether the saved filters have been restored this session. Gates persistence
     /// so the empty startup state never clobbers a saved snapshot, mirroring `QuestionsView`.
     @State var didRestoreFilters = false
     /// Rows queued for a multi-row delete (carrying their source account, so each
     /// deletes against the right client), awaiting the confirmation dialog, plus the
     /// error from a failed delete. Single-row delete is delegated to the detail view.
-    @State var rowsPendingBulkDelete: [AccountScoped<Account, Question>]?
+    @State var rowsPendingBulkDelete: [MergedQuestionRow]?
     @State var bulkDeleteError: String?
     @Binding var search: String
 
@@ -100,11 +104,29 @@ struct MergedQuestionsView: View {
     }
 }
 
+/// A merged-list question row with both the full source account (for actions,
+/// routing, and URLs) and the small account badge value the row renders. Building
+/// `RowAccount` once when the scoped cache changes keeps scroll-time cell hosting
+/// from reparsing avatar tint/color data for every visible row.
+struct MergedQuestionRow: Identifiable, Hashable {
+    let account: Account
+    let rowAccount: RowAccount
+    let item: Question
+    let id: String
+
+    init(account: Account, item: Question) {
+        self.account = account
+        rowAccount = RowAccount(account)
+        self.item = item
+        id = MergedQuestionsView.rowID(account: account.id, question: item.id)
+    }
+}
+
 /// Memo holding the merged questions list's combined rows and chip-option lists,
 /// rebuilt only when the merged questions change (keyed by `signature`), so the
 /// tagged-array build and the option Sets no longer rerun on every render (#366).
 final class ScopedQuestionsCache {
-    var rows: [AccountScoped<Account, Question>] = []
+    var rows: [MergedQuestionRow] = []
     var availableLanguages: [String] = []
     var availableOwners: [String] = []
     /// The hash of the inputs the cached values were built from; `nil` until the
@@ -116,7 +138,7 @@ final class ScopedQuestionsCache {
 /// plus each account's favorite question ids so per-row `isFavorite` checks are
 /// O(1) and allocation-free (#367).
 final class SortedQuestionsCache {
-    var rows: [AccountScoped<Account, Question>] = []
+    var rows: [MergedQuestionRow] = []
     var favoritesByAccount: [UUID: Set<Int>] = [:]
     /// The inputs the cached rows were filtered+sorted for. A row click re-runs `body`
     /// several times via the selection cascade, and only the selection differs across

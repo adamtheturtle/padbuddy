@@ -338,10 +338,12 @@ extension MergedPadsView {
                 ),
                 rowAccount: RowAccount(row.account),
                 ownerDisplay: directory.display(row.item.ownerEmail),
-                account: row.account.id,
-                favoritePads: favoritePads
+                isFavorite: favoritePads.isFavorite(row.item.id, account: row.account.id),
+                onToggleFavorite: { favoritePads.toggle(row.item.id, account: row.account.id) }
             )
         }
+        .rowHeight(FastListRowMetrics.macHeight)
+        .reloadID(mergedPadListReloadID)
         // Double-click opens the pad's native detail in its own window with the
         // originating account (#354); Return opens its live URL in the browser.
         .onDoubleClick { row in
@@ -368,10 +370,18 @@ extension MergedPadsView {
         // iPad: drag a pad's URL into Safari, Notes, or a Split View.
         .onRowDragURL { $0.item.webURL }
         .rowContextMenu { padTableMenuItems($0) }
-        .onTopRowChange { persistTopRow($0) }
+        .onTopRowChange { scheduleTopRowPersistence($0) }
         .scrollToRow(id: pendingScrollToID) { pendingScrollToID = nil }
         #if os(macOS)
             .onDragSession(began: FavoriteDragLifecycle.onBegan, ended: FavoriteDragLifecycle.onEnded)
         #endif
+    }
+
+    private var mergedPadListReloadID: String {
+        accounts.mergeableAccounts
+            .map { account in
+                "\(account.id.uuidString):\(favoritePads.favorites(account: account.id).joined(separator: ","))"
+            }
+            .joined(separator: "|")
     }
 }
