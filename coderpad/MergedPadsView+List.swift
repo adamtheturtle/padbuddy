@@ -308,16 +308,16 @@ extension MergedPadsView {
             }
             .macPullToRefresh { await reload() }
             .focusedSceneValue(\.focusedPad, selection)
-            // Edit ▸ Copy / ⌘C copies the selected pads' web URLs (one per line)
-            // while the list holds focus, matching the row's "Copy Pad URL" action
-            // and extending it to a multi-row selection. The O(N) `selectedPadsInOrder`
-            // scan is built lazily (only on an actual copy); the per-render gate is the
-            // O(1) empty-selection check, so it stays off the click path.
-            #if os(macOS)
+        // Edit ▸ Copy / ⌘C copies the selected pads' web URLs (one per line)
+        // while the list holds focus, matching the row's "Copy Pad URL" action
+        // and extending it to a multi-row selection. The O(N) `selectedPadsInOrder`
+        // scan is built lazily (only on an actual copy); the per-render gate is the
+        // O(1) empty-selection check, so it stays off the click path.
+        #if os(macOS)
             .onCopyCommand(perform: copyLinkCommand(hasSelection: !selectedIDs.isEmpty) {
                 selectedPadsInOrder.map(\.url).joined(separator: "\n")
             })
-            #endif
+        #endif
     }
 
     /// The selected pads in the order they appear in the list (rather than the
@@ -371,7 +371,7 @@ extension MergedPadsView {
         .onTopRowChange { persistTopRow($0) }
         .scrollToRow(id: pendingScrollToID) { pendingScrollToID = nil }
         #if os(macOS)
-        .onDragSession(began: FavoriteDragLifecycle.onBegan, ended: FavoriteDragLifecycle.onEnded)
+            .onDragSession(began: FavoriteDragLifecycle.onBegan, ended: FavoriteDragLifecycle.onEnded)
         #endif
     }
 }

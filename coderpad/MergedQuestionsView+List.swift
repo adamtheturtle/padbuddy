@@ -282,11 +282,11 @@ extension MergedQuestionsView {
         .onTopRowChange { persistTopRow($0) }
         .scrollToRow(id: pendingScrollToRowID) { pendingScrollToRowID = nil }
         #if os(macOS)
-        .onDragSession(began: FavoriteDragLifecycle.onBegan, ended: FavoriteDragLifecycle.onEnded)
+            .onDragSession(began: FavoriteDragLifecycle.onBegan, ended: FavoriteDragLifecycle.onEnded)
         #endif
-        .overlay { questionsOverlay }
-        .macPullToRefresh { await reload() }
-        .focusedSceneValue(\.focusedQuestion, selection)
+            .overlay { questionsOverlay }
+            .macPullToRefresh { await reload() }
+            .focusedSceneValue(\.focusedQuestion, selection)
         // Edit ▸ Copy / ⌘C copies the selected questions' web URLs (one per line)
         // while the list holds focus, matching the row's "Copy Question URL" action
         // and extending it to a multi-row selection. Each link is built from its
@@ -294,9 +294,9 @@ extension MergedQuestionsView {
         // The O(N) `selectedQuestionURLsInOrder` scan is built lazily (only on an actual
         // copy); the per-render gate is the O(1) empty-selection check, off the click path.
         #if os(macOS)
-        .onCopyCommand(perform: copyLinkCommand(hasSelection: !selectedRowIDs.isEmpty) {
-            selectedQuestionURLsInOrder.joined(separator: "\n")
-        })
+            .onCopyCommand(perform: copyLinkCommand(hasSelection: !selectedRowIDs.isEmpty) {
+                selectedQuestionURLsInOrder.joined(separator: "\n")
+            })
         #endif
     }
 

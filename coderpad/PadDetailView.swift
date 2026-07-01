@@ -49,22 +49,6 @@ struct PadDetailView: View {
     /// While offline the app is read-only, so the destructive/edit actions disable (#321).
     @Environment(\.isReadOnly) var isReadOnly
 
-    private var detailToolbarLeadingPlacement: ToolbarItemPlacement {
-        #if os(macOS)
-            .primaryAction
-        #else
-            .topBarLeading
-        #endif
-    }
-
-    private var detailToolbarTrailingPlacement: ToolbarItemPlacement {
-        #if os(macOS)
-            .primaryAction
-        #else
-            .topBarTrailing
-        #endif
-    }
-
     /// Seed the editable drafts from the pad up front so the title and properties
     /// render with their real values on the very first frame. The view is recreated
     /// per pad (`.id(pad.id)`), so this runs on every pad switch; without it the
@@ -282,7 +266,7 @@ struct PadDetailView: View {
             // Error haptic when a mutation (end/delete/save) fails; fires only on the
             // transition into an error, not on dismissal. No-op on macOS (#611).
             .sensoryFeedback(trigger: mutateError) { _, new in new != nil ? .error : nil }
-            #if !os(macOS)
+        #if !os(macOS)
             .fileExporter(
                 isPresented: .init(get: { pendingExport != nil },
                                    set: { if !$0 { pendingExport = nil } }),
@@ -295,7 +279,7 @@ struct PadDetailView: View {
                 }
                 pendingExport = nil
             }
-            #endif
+        #endif
     }
 
     /// Wires the Pad menu commands (Edit, End, Delete, Watch, Save Code), which
@@ -330,6 +314,24 @@ struct PadDetailView: View {
             .onChange(of: pad.isPrivate) { _, newValue in draftIsPrivate = newValue ?? false }
             .onChange(of: pad.executionEnabled) { _, newValue in draftExecution = newValue ?? true }
             .onChange(of: titleFocused) { _, focused in if !focused { Task { await commitTitle() } } }
+    }
+}
+
+private extension PadDetailView {
+    var detailToolbarLeadingPlacement: ToolbarItemPlacement {
+        #if os(macOS)
+            .primaryAction
+        #else
+            .topBarLeading
+        #endif
+    }
+
+    var detailToolbarTrailingPlacement: ToolbarItemPlacement {
+        #if os(macOS)
+            .primaryAction
+        #else
+            .topBarTrailing
+        #endif
     }
 }
 
