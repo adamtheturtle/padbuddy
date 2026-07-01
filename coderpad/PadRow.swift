@@ -188,8 +188,6 @@ private struct PadRowInfo: View, Equatable {
 }
 
 private struct PadRowDateLabel: View {
-    private static let relativeDateColumnWidth: CGFloat = 78
-
     let updated: Date?
 
     var body: some View {
@@ -202,7 +200,7 @@ private struct PadRowDateLabel: View {
                     .lineLimit(1)
                     .fixedSize()
                     .help("Updated \(labels.tooltip)")
-                    .frame(minWidth: Self.relativeDateColumnWidth, alignment: .trailing)
+                    .frame(minWidth: FastListRowMetrics.dateColumnWidth, alignment: .trailing)
             } else {
                 // A `minWidth` frame is a floor, not a ceiling: an empty, infinitely
                 // flexible `Color.clear` inside one would grab all the row's leftover
@@ -210,7 +208,7 @@ private struct PadRowDateLabel: View {
                 // the star left. Reserve exactly the column width so undated rows keep
                 // the star/date column aligned with dated rows without expanding (#635).
                 Color.clear
-                    .frame(width: Self.relativeDateColumnWidth)
+                    .frame(width: FastListRowMetrics.dateColumnWidth)
             }
         }
         .layoutPriority(1)
@@ -263,6 +261,12 @@ struct FavoriteStarButton: View {
 }
 
 enum FastListRowMetrics {
+    /// Fixed width of the right-aligned trailing date column shared by pad and question
+    /// rows. Reserving one common width keeps the favorite star seated in the same
+    /// horizontal slot across both lists (star, then date), so the star doesn't jump
+    /// when switching between Pads and Questions (#635, #650).
+    static let dateColumnWidth: CGFloat = 78
+
     /// Fixed hosted-row height for the AppKit `FastList` backend. Pad and question rows
     /// are fixed-format rows; giving AppKit one stable intrinsic height avoids per-row
     /// automatic height discovery as `NSTableView` recycles SwiftUI hosting cells during

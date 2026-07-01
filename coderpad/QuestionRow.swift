@@ -10,8 +10,6 @@ import SwiftUI
 /// interaction and no closures, so wrapping it in an `EquatableView` can't affect the
 /// row's hit-testing or selection. `==` compares only the fields it renders.
 private struct QuestionRowInfo: View, Equatable {
-    private static let relativeDateColumnWidth: CGFloat = 78
-
     let question: Question
     let account: RowAccount?
 
@@ -64,20 +62,6 @@ private struct QuestionRowInfo: View, Equatable {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .clipped()
-            Spacer(minLength: 8)
-            if let lastUsed = question.updatedAt {
-                // Cached labels rather than `.formatted` per render — see PadRow (#439).
-                let labels = RelativeDateLabel.labels(for: lastUsed)
-                Text(labels.relative)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .fixedSize()
-                    .frame(minWidth: Self.relativeDateColumnWidth, alignment: .trailing)
-                    .layoutPriority(1)
-                    .help("Last used \(labels.tooltip)")
-                    .accessibilityLabel("Last used \(labels.relative)")
-            }
         }
         // Read the title + metadata block as one VoiceOver element with a
         // coherent label (mirroring PadRow), rather than stopping on each chip
@@ -103,6 +87,38 @@ private struct QuestionRowInfo: View, Equatable {
             parts.append("last used \(RelativeDateLabel.labels(for: lastUsed).relative)")
         }
         return parts.joined(separator: ", ")
+    }
+}
+
+/// The question row's right-aligned "last used" date column, mirroring
+/// ``PadRowDateLabel`` so the favorite star lands in the same slot on both lists —
+/// info, then star, then a fixed date column — rather than the star sitting to the
+/// right of the date on questions but to its left on pads (#650). Reserves the shared
+/// column width even when a question has never been used so the star stays aligned.
+private struct QuestionRowDateLabel: View {
+    let lastUsed: Date?
+
+    var body: some View {
+        Group {
+            if let lastUsed {
+                // Cached labels rather than `.formatted` per render — see PadRow (#439).
+                let labels = RelativeDateLabel.labels(for: lastUsed)
+                Text(labels.relative)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .fixedSize()
+                    .help("Last used \(labels.tooltip)")
+                    .frame(minWidth: FastListRowMetrics.dateColumnWidth, alignment: .trailing)
+            } else {
+                // Reserve exactly the column width so unused questions keep the
+                // star/date column aligned with used ones (mirrors PadRowDateLabel, #635).
+                Color.clear
+                    .frame(width: FastListRowMetrics.dateColumnWidth)
+            }
+        }
+        .layoutPriority(1)
+        .allowsHitTesting(false)
     }
 }
 
@@ -136,6 +152,7 @@ struct QuestionRowHostableContent: View {
                 title: question.displayTitle,
                 onToggle: onToggleFavorite
             )
+            QuestionRowDateLabel(lastUsed: question.updatedAt)
         }
         .padding(.vertical, 4)
         .padding(.trailing, 24)
