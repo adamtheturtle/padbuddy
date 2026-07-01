@@ -7,6 +7,7 @@
 
 import XCTest
 
+#if os(macOS)
 /// End-to-end flows over the in-process demo account. Launching with `-uiTesting`
 /// starts the app from a single in-memory demo account backed by the mock server
 /// (no network, no Keychain writes — see `AccountsStore.isUITesting`), so these run
@@ -294,3 +295,4 @@ final class CoderpadUITests: XCTestCase {
         }
     }
 }
+#endif
