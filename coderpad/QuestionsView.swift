@@ -6,6 +6,7 @@
 #if os(macOS)
     import AppKit
 #endif
+import AsyncAlgorithms
 import SwiftUI
 
 struct QuestionsView: View {
@@ -150,11 +151,17 @@ struct QuestionsView: View {
                     questions = cache.get(id)
                     questionsRevision += 1
                 }
-                // Closure form so a change to the interval in Settings takes effect on
-                // the next cycle without restarting the task.
-                await periodicReload(interval: { GeneralSettings.refreshInterval }, work: {
-                    await reload()
-                })
+                // Initial load, then refresh on a timer rebuilt each cycle so a change to
+                // the interval in Settings takes effect on the next tick without restarting
+                // the task.
+                await reload()
+                while !Task.isCancelled {
+                    let interval = max(GeneralSettings.refreshInterval, .milliseconds(1))
+                    for await _ in AsyncTimerSequence.repeating(every: interval) {
+                        await reload()
+                        break
+                    }
+                }
             }
             .sheet(isPresented: $showCreate) {
                 NewQuestionSheet(client: client) { created in

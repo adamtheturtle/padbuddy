@@ -9,6 +9,8 @@
 #if os(macOS)
     import AppKit
 #endif
+import AsyncAlgorithms
+import MacPullToRefresh
 import SwiftUI
 
 extension MergedQuestionsView {
@@ -30,9 +32,16 @@ extension MergedQuestionsView {
                 // Reopen the question selected last session, once the seeded cache (or
                 // the reload below) provides a list to resolve it against.
                 restoreSelectedRowIfNeeded()
-                await periodicReload(interval: { GeneralSettings.refreshInterval }, work: {
-                    await reload()
-                })
+                // Initial load, then refresh on a timer rebuilt each cycle so an interval
+                // change in Settings takes effect on the next tick without restarting the task.
+                await reload()
+                while !Task.isCancelled {
+                    let interval = max(GeneralSettings.refreshInterval, .milliseconds(1))
+                    for await _ in AsyncTimerSequence.repeating(every: interval) {
+                        await reload()
+                        break
+                    }
+                }
             }
             .onAppear {
                 // Restore the filters the list was left with last session before
@@ -75,15 +84,29 @@ extension MergedQuestionsView {
             // Keep the sidebar's "My Questions" row in sync with this list's "Mine"
             // preset: publish the live state and consume any sidebar toggle, the
             // same bridge `MergedPadsView` uses for "My Pads".
-            .onChange(of: mineOnly, initial: true) { _, isOn in
-                if nav.mergedQuestionsMineOnly != isOn { nav.mergedQuestionsMineOnly = isOn }
-            }
+            .onChange(of: mineOnly, initial: true) { _, isOn in publishMergedQuestionsMineOnly(isOn) }
             .onChange(of: nav.mergedQuestionsMineRequest, initial: true) { _, request in
-                guard let request else { return }
-
-                nav.mergedQuestionsMineRequest = nil
-                if mineOnly != request { mineOnly = request }
+                consumeMergedQuestionsMineRequest(request)
             }
+    }
+
+    private func publishMergedQuestionsMineOnly(_ isOn: Bool) {
+        guard nav.mergedQuestionsMineOnly != isOn else { return }
+
+        DispatchQueue.main.async {
+            if nav.mergedQuestionsMineOnly != isOn { nav.mergedQuestionsMineOnly = isOn }
+        }
+    }
+
+    private func consumeMergedQuestionsMineRequest(_ request: Bool?) {
+        guard let request else { return }
+
+        DispatchQueue.main.async {
+            guard nav.mergedQuestionsMineRequest != nil else { return }
+
+            nav.mergedQuestionsMineRequest = nil
+            if mineOnly != request { mineOnly = request }
+        }
     }
 
     private var decoratedStreams: some View {

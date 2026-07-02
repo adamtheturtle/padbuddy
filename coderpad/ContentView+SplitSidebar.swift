@@ -85,6 +85,14 @@ extension MainSplit {
             : Self.detailMinWidth
     }
 
+    func updateContainerWidth(_ width: CGFloat) {
+        guard containerWidth != width else { return }
+
+        DispatchQueue.main.async {
+            if containerWidth != width { containerWidth = width }
+        }
+    }
+
     /// Collapses the sidebar when the container is too narrow to hold every column
     /// at its minimum, and restores it once there's room again — but only when the
     /// collapse was ours to begin with, never a manual one.

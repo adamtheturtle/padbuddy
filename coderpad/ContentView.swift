@@ -130,8 +130,8 @@ struct ContentView: View {
             // The "Open Pad by ID" intent routes through durable AppNavigation state so a
             // cold-launch request isn't dropped: consume whatever is already pending on
             // appear, and react to any value set afterwards.
-            .task { consumeOpenPadID() }
-            .onChange(of: nav.openPadID) { _, _ in consumeOpenPadID() }
+            .task { scheduleConsumeOpenPadID() }
+            .onChange(of: nav.openPadID) { _, _ in scheduleConsumeOpenPadID() }
             .task {
                 for await url in AppRouter.openPadInBrowserRequests {
                     openWindow(id: "pad-browser", value: url)
@@ -176,6 +176,10 @@ struct ContentView: View {
                     )
                 }
             }
+    }
+
+    private func scheduleConsumeOpenPadID() {
+        DispatchQueue.main.async { consumeOpenPadID() }
     }
 
     /// Opens any pad id queued by the "Open Pad by ID" intent, then clears it so it

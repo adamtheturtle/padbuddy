@@ -4,12 +4,13 @@
 //
 //  CoderPad's print-friendly document views (Cmd-P / Save-as-PDF). The generic print core -
 //  `printDocument(_:jobTitle:)` and the `PrintSection`/`PrintCode` layout primitives - now
-//  lives in buddy-kit's BuddyDesignSystem (#564), reaching the app via the
-//  `@_exported import BuddyDesignSystem` umbrella in DesignSystem.swift. These views shape a
-//  Question / Pad into a printable layout built from those primitives.
+//  lives in PrintableView (#652), reaching the app via the `@_exported import PrintableView`
+//  umbrella in DesignSystem.swift. These views shape a Question / Pad into a printable
+//  layout built from those primitives.
 //
 
 import SwiftUI
+import PrintableView
 
 // MARK: - Question
 
@@ -41,13 +42,13 @@ struct QuestionPrintDocument: View {
             }
 
             if let description = question.description, !description.isEmpty {
-                PrintSection(title: "Description") {
+                PrintableView.PrintSection(title: "Description") {
                     MarkdownText(description).font(.callout)
                 }
             }
 
             if !question.candidateInstructions.isEmpty {
-                PrintSection(title: "Candidate Instructions") {
+                PrintableView.PrintSection(title: "Candidate Instructions") {
                     VStack(alignment: .leading, spacing: 10) {
                         let instructions = question.candidateInstructions
                         ForEach(Array(instructions.enumerated()), id: \.offset) { index, item in
@@ -63,11 +64,11 @@ struct QuestionPrintDocument: View {
             }
 
             if let contents = question.contents, !contents.isEmpty {
-                PrintSection(title: "Starter Code") { PrintCode(code: contents) }
+                PrintableView.PrintSection(title: "Starter Code") { PrintableView.PrintCode(code: contents) }
             }
 
             if let solution = question.solution, !solution.isEmpty {
-                PrintSection(title: "Solution") {
+                PrintableView.PrintSection(title: "Solution") {
                     MarkdownText(solution).font(.callout)
                 }
             }
@@ -140,7 +141,7 @@ struct PadPrintDocument: View {
             Text(pad.title.isEmpty ? pad.id : pad.title)
                 .font(.title.bold())
 
-            PrintSection(title: "Summary") {
+            PrintableView.PrintSection(title: "Summary") {
                 VStack(alignment: .leading, spacing: 4) {
                     ForEach(Array(summaryRows.enumerated()), id: \.offset) { _, row in
                         HStack(alignment: .firstTextBaseline, spacing: 8) {
@@ -157,7 +158,7 @@ struct PadPrintDocument: View {
             }
 
             ForEach(files) { file in
-                PrintSection(title: file.title) { PrintCode(code: file.code) }
+                PrintableView.PrintSection(title: file.title) { PrintableView.PrintCode(code: file.code) }
             }
         }
         .padding(24)

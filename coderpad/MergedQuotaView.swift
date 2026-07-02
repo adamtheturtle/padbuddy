@@ -13,6 +13,7 @@
 //  recording each account's error in isolation.
 //
 
+import MacPullToRefresh
 import SwiftUI
 
 struct MergedQuotaView: View {

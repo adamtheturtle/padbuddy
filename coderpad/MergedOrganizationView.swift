@@ -15,6 +15,7 @@
 //  and refetched on its own when the period changes.
 //
 
+import MacPullToRefresh
 import SwiftUI
 
 struct MergedOrganizationView: View {

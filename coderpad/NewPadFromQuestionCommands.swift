@@ -24,7 +24,7 @@ struct NewPadFromQuestionCommands: Commands {
     var body: some Commands {
         CommandGroup(after: .newItem) {
             if let account = accounts.currentAccount {
-                let questions = questionsCache.get(account.id)
+                let questions = questionsCache.cached(account.id)
                 if !questions.isEmpty {
                     let favoriteIDs = Set(FavoriteQuestionsStore.shared.favorites(account: account.id))
                     let ordered = questions.filter { favoriteIDs.contains($0.id) }

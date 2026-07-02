@@ -64,13 +64,17 @@ extension QuestionDetailView {
         }
     }
 
+    private func scheduleSeedDrafts() {
+        DispatchQueue.main.async { seedDrafts() }
+    }
+
     /// Seeds the metadata drafts on appear and keeps each in sync with server-side
     /// changes (this view's own saves, or a push update). The title is no longer among
     /// these: `InlineEditableTitle` is now self-owning (it holds its own draft and focus
     /// and commits on Return / focus-loss), so it reads `question.title` directly.
     func draftSync(_ content: some View) -> some View {
         content
-            .onChange(of: question.id, initial: true) { _, _ in seedDrafts() }
+            .onChange(of: question.id, initial: true) { _, _ in scheduleSeedDrafts() }
             .onChange(of: question.language) { _, newValue in draftLanguage = newValue ?? "python3" }
             .onChange(of: question.padType) { _, _ in draftPadType = currentType }
     }

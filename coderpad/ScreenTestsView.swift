@@ -84,9 +84,17 @@ struct ScreenTestsView: View {
         // campaigns column can show it as the window subtitle while a campaign is selected
         // (#475) — see `AppNavigation.screenTestsSubtitle`. A test session's report opens
         // in its own window on double-click / Return (#474); there's no inline report here.
-        .onChange(of: countSubtitle, initial: true) { _, new in nav.screenTestsSubtitle = new }
+        .onChange(of: countSubtitle, initial: true) { _, new in publishCountSubtitle(new) }
         // Deselecting the campaign tears this view down; reset the published candidate count.
-        .onDisappear { nav.screenTestsSubtitle = "" }
+        .onDisappear { publishCountSubtitle("") }
+    }
+
+    private func publishCountSubtitle(_ subtitle: String) {
+        guard nav.screenTestsSubtitle != subtitle else { return }
+
+        DispatchQueue.main.async {
+            if nav.screenTestsSubtitle != subtitle { nav.screenTestsSubtitle = subtitle }
+        }
     }
 
     /// Extracted from `body` so its getter stays under the Release build's 250ms

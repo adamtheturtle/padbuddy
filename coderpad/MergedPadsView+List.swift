@@ -9,6 +9,8 @@
 #if os(macOS)
     import AppKit
 #endif
+import AsyncAlgorithms
+import MacPullToRefresh
 import SwiftUI
 
 extension MergedPadsView {
@@ -35,9 +37,16 @@ extension MergedPadsView {
                 // Reopen the pad selected last session, once the seeded cache (or the
                 // reload below) provides a list to resolve it against.
                 restoreSelectedPadIfNeeded()
-                await periodicReload(interval: { GeneralSettings.refreshInterval }, work: {
-                    await reload()
-                })
+                // Initial load, then refresh on a timer rebuilt each cycle so an interval
+                // change in Settings takes effect on the next tick without restarting the task.
+                await reload()
+                while !Task.isCancelled {
+                    let interval = max(GeneralSettings.refreshInterval, .milliseconds(1))
+                    for await _ in AsyncTimerSequence.repeating(every: interval) {
+                        await reload()
+                        break
+                    }
+                }
             }
             .onAppear {
                 // Restore the filters the list was left with last session before
@@ -74,14 +83,9 @@ extension MergedPadsView {
             // preset: publish the live state (so the highlight is honest however
             // it changed — chip or sidebar) and consume any toggle the sidebar
             // queued. `initial: true` covers the value already set on appear.
-            .onChange(of: mineOnly, initial: true) { _, isOn in
-                if nav.mergedPadsMineOnly != isOn { nav.mergedPadsMineOnly = isOn }
-            }
+            .onChange(of: mineOnly, initial: true) { _, isOn in publishMergedPadsMineOnly(isOn) }
             .onChange(of: nav.mergedPadsMineRequest, initial: true) { _, request in
-                guard let request else { return }
-
-                nav.mergedPadsMineRequest = nil
-                if mineOnly != request { mineOnly = request }
+                consumeMergedPadsMineRequest(request)
             }
             // A favourite pad tapped in the merged sidebar arrives here by id (pad ids
             // are globally unique, so no account need travel with it). Cleared once
@@ -96,7 +100,7 @@ extension MergedPadsView {
             // Consume navigation requests routed to Pads. In merged mode this includes
             // owner/search requests from person links as well as New Pad deep links;
             // `applyPendingRequest()` keeps those semantics aligned with `PadsView`.
-            .onChange(of: nav.padsRequest, initial: true) { _, _ in applyPendingRequest() }
+            .onChange(of: nav.padsRequest, initial: true) { _, _ in scheduleApplyPendingRequest() }
             .onChange(of: selection) { _, newValue in
                 // Debounced off the click's synchronous path: `markOpened` mutates the shared
                 // Observable open-history store every row reads, so it rebuilds the whole
@@ -112,6 +116,29 @@ extension MergedPadsView {
                 }
                 if selectedID != newValue?.id { selectedID = newValue?.id }
             }
+    }
+
+    private func publishMergedPadsMineOnly(_ isOn: Bool) {
+        guard nav.mergedPadsMineOnly != isOn else { return }
+
+        DispatchQueue.main.async {
+            if nav.mergedPadsMineOnly != isOn { nav.mergedPadsMineOnly = isOn }
+        }
+    }
+
+    private func consumeMergedPadsMineRequest(_ request: Bool?) {
+        guard let request else { return }
+
+        DispatchQueue.main.async {
+            guard nav.mergedPadsMineRequest != nil else { return }
+
+            nav.mergedPadsMineRequest = nil
+            if mineOnly != request { mineOnly = request }
+        }
+    }
+
+    private func scheduleApplyPendingRequest() {
+        DispatchQueue.main.async { applyPendingRequest() }
     }
 
     /// The reload / pad-update / pad-deletion router streams.

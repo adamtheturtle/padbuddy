@@ -67,11 +67,11 @@ extension Sidebar {
     private func favoriteEntry(forAccount account: UUID, ref: FavoriteRef, namespaced: Bool) -> FavoriteEntry? {
         let questions = favorites.titledFavorites(account: account)
         let padTitles = Dictionary(
-            padsCache.get(account).map { ($0.id, $0.title.isEmpty ? $0.id : $0.title) },
+            padsCache.cached(account).map { ($0.id, $0.title.isEmpty ? $0.id : $0.title) },
             uniquingKeysWith: { first, _ in first }
         )
         let cacheTitles = Dictionary(
-            questionsCache.get(account).map { ($0.id, $0.displayTitle) },
+            questionsCache.cached(account).map { ($0.id, $0.displayTitle) },
             uniquingKeysWith: { first, _ in first }
         )
         let storedTitles = Dictionary(

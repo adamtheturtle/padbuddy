@@ -25,9 +25,13 @@ extension MainSplit {
         guard !store.isMergedView, let account = store.currentAccountID else { return "none" }
 
         let count = section == .questions
-            ? questionsCache.get(account).count
-            : padsCache.get(account).count
+            ? questionsCache.cached(account).count
+            : padsCache.cached(account).count
         return "\(account.uuidString):\(section.rawValue):\(count)"
+    }
+
+    func scheduleRestoreSelectionIfNeeded() {
+        DispatchQueue.main.async { restoreSelectionIfNeeded() }
     }
 
     /// Re-selects the pad/question the user left selected last session, once its row is

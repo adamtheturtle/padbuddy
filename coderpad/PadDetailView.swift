@@ -310,6 +310,10 @@ struct PadDetailView: View {
             .onChange(of: nav.saveCodePadID) { _, _ in consumePendingSaveCode() }
     }
 
+    private func scheduleSeedDrafts() {
+        DispatchQueue.main.async { seedDrafts() }
+    }
+
     /// Seeds the editable drafts on appear and whenever a different pad is shown,
     /// then keeps each in sync with server-side changes (another field's save, or a
     /// push update). The title is no longer among these: `InlineEditableTitle` is now
@@ -317,7 +321,7 @@ struct PadDetailView: View {
     /// so it reads `pad.title` directly and needs no external draft or focus gating.
     private func draftSync(_ content: some View) -> some View {
         content
-            .onChange(of: pad.id, initial: true) { _, _ in seedDrafts() }
+            .onChange(of: pad.id, initial: true) { _, _ in scheduleSeedDrafts() }
             .onChange(of: pad.language) { _, newValue in draftLanguage = newValue ?? "python3" }
             .onChange(of: pad.ownerEmail) { _, newValue in draftOwner = newValue }
             .onChange(of: pad.isPrivate) { _, newValue in draftIsPrivate = newValue ?? false }

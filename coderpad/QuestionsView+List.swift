@@ -8,6 +8,7 @@
 #else
     import UIKit
 #endif
+import MacPullToRefresh
 import SwiftUI
 import UniformTypeIdentifiers
 

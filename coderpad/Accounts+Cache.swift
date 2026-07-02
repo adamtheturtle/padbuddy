@@ -50,6 +50,10 @@ final class PadsCacheStore {
     private let writeQueue = SerialWriteQueue()
     private init() {}
 
+    func cached(_ accountID: UUID) -> [Pad] {
+        padsByAccount[accountID] ?? []
+    }
+
     func get(_ accountID: UUID) -> [Pad] {
         if let cached = padsByAccount[accountID] { return cached }
         if !diskConsulted.contains(accountID) {
@@ -124,6 +128,10 @@ final class QuestionsCacheStore {
     private var diskConsulted: Set<UUID> = []
     private let writeQueue = SerialWriteQueue()
     private init() {}
+
+    func cached(_ accountID: UUID) -> [Question] {
+        questionsByAccount[accountID] ?? []
+    }
 
     func get(_ accountID: UUID) -> [Question] {
         if let cached = questionsByAccount[accountID] { return cached }

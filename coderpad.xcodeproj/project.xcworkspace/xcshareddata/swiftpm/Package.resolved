@@ -1,13 +1,13 @@
 {
-  "originHash" : "888698cc8338af55939279f97ea1bfb92e5e0388a32acafad338145389b2edd7",
+  "originHash" : "1fe179cf6813b2368d3d09ba00d716393e4b9315b639fcd08ea81ce2916da19c",
   "pins" : [
     {
       "identity" : "buddy-kit",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/buddy-kit",
       "state" : {
-        "revision" : "1ff422c1595dcc4637b74f9c14888c1556ed9faa",
-        "version" : "0.9.0"
+        "revision" : "7f2ad095b36a3f3eddfd658517f8425dfb0644d4",
+        "version" : "0.12.0"
       }
     },
     {
@@ -60,8 +60,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/MacPullToRefresh",
       "state" : {
-        "revision" : "709fb5cc5463755dcd0bd839e7685f1e72b18cb5",
-        "version" : "0.1.0"
+        "revision" : "ea200256d52a4a1abbabd8041a3411424ec9922e",
+        "version" : "0.2.0"
       }
     },
     {

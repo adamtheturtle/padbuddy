@@ -64,15 +64,33 @@ struct MergedScreenView: View {
         }
         // Restore the published selection on appear, and publish each change onward so the
         // detail column shows the campaign's tests, routed to the right account (#448).
-        .onAppear {
-            if let account = routing.selectedScreenAccountID, let campaign = nav.screenCampaignSelection {
-                selectedScopedID = "\(account.uuidString):\(campaign.id)"
-            }
+        .onAppear { restoreSelectedCampaign() }
+        .onChange(of: selectedScopedID) { _, id in publishSelectedCampaign(id) }
+    }
+
+    private func restoreSelectedCampaign() {
+        let id: String?
+        if let account = routing.selectedScreenAccountID, let campaign = nav.screenCampaignSelection {
+            id = "\(account.uuidString):\(campaign.id)"
+        } else {
+            id = nil
         }
-        .onChange(of: selectedScopedID) { _, id in
-            let scoped = scopedCampaign(id: id)
-            nav.screenCampaignSelection = scoped?.campaign
-            routing.selectedScreenAccountID = scoped?.accountID
+        guard selectedScopedID != id else { return }
+
+        DispatchQueue.main.async {
+            if selectedScopedID != id { selectedScopedID = id }
+        }
+    }
+
+    private func publishSelectedCampaign(_ id: String?) {
+        let scoped = scopedCampaign(id: id)
+        let campaign = scoped?.campaign
+        let accountID = scoped?.accountID
+        guard nav.screenCampaignSelection != campaign || routing.selectedScreenAccountID != accountID else { return }
+
+        DispatchQueue.main.async {
+            if nav.screenCampaignSelection != campaign { nav.screenCampaignSelection = campaign }
+            if routing.selectedScreenAccountID != accountID { routing.selectedScreenAccountID = accountID }
         }
     }
 

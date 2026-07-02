@@ -54,9 +54,25 @@ struct ScreenCampaignsView: View {
         }
         // Restore the published selection on appear, and publish each change onward so
         // the detail column can show the selected campaign's test sessions (#448).
-        .onAppear { selectedCampaignID = nav.screenCampaignSelection?.id }
-        .onChange(of: selectedCampaignID) { _, id in
-            nav.screenCampaignSelection = campaigns.first { $0.id == id }
+        .onAppear { restoreSelectedCampaign() }
+        .onChange(of: selectedCampaignID) { _, id in publishSelectedCampaign(id) }
+    }
+
+    private func restoreSelectedCampaign() {
+        let id = nav.screenCampaignSelection?.id
+        guard selectedCampaignID != id else { return }
+
+        DispatchQueue.main.async {
+            if selectedCampaignID != id { selectedCampaignID = id }
+        }
+    }
+
+    private func publishSelectedCampaign(_ id: Int?) {
+        let campaign = campaigns.first { $0.id == id }
+        guard nav.screenCampaignSelection != campaign else { return }
+
+        DispatchQueue.main.async {
+            if nav.screenCampaignSelection != campaign { nav.screenCampaignSelection = campaign }
         }
     }
 

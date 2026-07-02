@@ -6,6 +6,7 @@
 #if os(macOS)
     import AppKit
 #endif
+import AsyncAlgorithms
 import SwiftUI
 import UniformTypeIdentifiers
 
@@ -178,9 +179,17 @@ struct PadsView: View {
                 // Reopen the pad that was selected last session, once a list exists
                 // to resolve it against (the cache above, or the reload below).
                 restoreSelectedPadIfNeeded()
-                await periodicReload(interval: { nextRefreshInterval }, work: {
-                    await reload()
-                })
+                // Initial load, then refresh on a timer rebuilt each cycle so the adaptive
+                // pad-count cadence (and any Settings change) takes effect on the next tick
+                // without restarting the task.
+                await reload()
+                while !Task.isCancelled {
+                    let interval = max(nextRefreshInterval, .milliseconds(1))
+                    for await _ in AsyncTimerSequence.repeating(every: interval) {
+                        await reload()
+                        break
+                    }
+                }
             }
             .onAppear {
                 // Restore first so a deep-link request can still override it below.

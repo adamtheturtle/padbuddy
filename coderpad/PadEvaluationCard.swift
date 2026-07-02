@@ -40,7 +40,7 @@ struct PadEvaluationCard: View {
                 privacyNote
             }
         }
-        .onChange(of: padID, initial: true) { _, _ in load() }
+        .onChange(of: padID, initial: true) { _, _ in scheduleLoad() }
         .onChange(of: rating) { _, _ in save() }
         .onChange(of: notes) { _, _ in save() }
         .onChange(of: tagsText) { _, _ in save() }
@@ -180,6 +180,10 @@ struct PadEvaluationCard: View {
     }
 
     // MARK: - Load / save
+
+    private func scheduleLoad() {
+        DispatchQueue.main.async { load() }
+    }
 
     private func load() {
         let evaluation = store.evaluation(for: padID)

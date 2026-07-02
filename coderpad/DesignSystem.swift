@@ -14,6 +14,11 @@ import SwiftUI
 // top of them stay below.
 @_exported import BuddyDesignSystem
 
+// The print / Save-as-PDF core (`printDocument`, `PrintSection`, `PrintCode`) now
+// lives in the standalone `PrintableView` package (#652). Re-exported here so the
+// existing print document call sites keep using those symbols unqualified.
+@_exported import PrintableView
+
 // The NSTableView-backed list (`FastList`, `SwipeAction`, `MenuItem`) was lifted out
 // of `BuddyDesignSystem` into the standalone `FastList` package (#548). Re-exported here
 // so the four list columns keep using it unqualified, the same way the rest of the

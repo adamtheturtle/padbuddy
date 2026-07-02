@@ -23,12 +23,7 @@ extension MainSplit {
             // Grow the sidebar's minimum to fit the widest row label. Rounded
             // and only reassigned on a real change, so feeding the measured
             // width back into the same column's min doesn't thrash layout.
-            .onPreferenceChange(SidebarRowWidthKey.self) { width in
-                guard width > 0 else { return }
-
-                let needed = (width + Self.sidebarRowChrome).rounded()
-                if abs(sidebarMinWidth - needed) > 0.5 { sidebarMinWidth = needed }
-            }
+            .onPreferenceChange(SidebarRowWidthKey.self, perform: updateSidebarMinWidth)
             .macColumnWidth(
                 min: sidebarMinWidth,
                 ideal: max(280, sidebarMinWidth),
@@ -64,19 +59,10 @@ extension MainSplit {
             // filter-bar width feeds this column's own min width, so re-writing it
             // with sub-pixel-different (or identical) values would re-invalidate the
             // column mid-layout — which AppKit reports as layout recursion.
-            .onPreferenceChange(FilterBarWidthKey.self) { width in
-                // Clamp to the ceiling so the column floor never demands more than
-                // the window's minimum width can give it. Past this the filter bar
-                // scrolls horizontally rather than squeezing and clipping the list.
-                // Floor it at a readable baseline so the list can't be dragged to a
-                // sliver when a section's filter bar measures narrow.
-                let clamped = min(max(width, Self.contentSearchMinWidth),
-                                  Self.contentMinWidthCeiling).rounded()
-                if contentMinWidth != clamped { contentMinWidth = clamped }
-            }
+            .onPreferenceChange(FilterBarWidthKey.self, perform: updateContentMinWidth)
             // Surface the visible list's result count (e.g. "12 pads") as the toolbar
             // subtitle beneath the section title, bubbled up via `SectionCountKey`.
-            .onPreferenceChange(SectionCountKey.self) { sectionCount = $0 }
+            .onPreferenceChange(SectionCountKey.self, perform: updateSectionCount)
             .macColumnWidth(
                 min: effectiveContentMinWidth,
                 // `NavigationSplitView` sizes its own minimum off the columns' *ideal*
@@ -139,7 +125,7 @@ extension MainSplit {
                 )
                 // Organization and Quota publish no count, so this resets the subtitle
                 // back to the static section subtitle when switching in from a list.
-                .onPreferenceChange(SectionCountKey.self) { sectionCount = $0 }
+                .onPreferenceChange(SectionCountKey.self, perform: updateSectionCount)
             }
         )
         #if os(macOS)
@@ -171,6 +157,40 @@ extension MainSplit {
                 )
         } else {
             content
+        }
+    }
+
+    func updateSidebarMinWidth(_ width: CGFloat) {
+        guard width > 0 else { return }
+
+        let needed = (width + Self.sidebarRowChrome).rounded()
+        guard abs(sidebarMinWidth - needed) > 0.5 else { return }
+
+        DispatchQueue.main.async {
+            if abs(sidebarMinWidth - needed) > 0.5 { sidebarMinWidth = needed }
+        }
+    }
+
+    func updateContentMinWidth(_ width: CGFloat) {
+        // Clamp to the ceiling so the column floor never demands more than
+        // the window's minimum width can give it. Past this the filter bar
+        // scrolls horizontally rather than squeezing and clipping the list.
+        // Floor it at a readable baseline so the list can't be dragged to a
+        // sliver when a section's filter bar measures narrow.
+        let clamped = min(max(width, Self.contentSearchMinWidth),
+                          Self.contentMinWidthCeiling).rounded()
+        guard contentMinWidth != clamped else { return }
+
+        DispatchQueue.main.async {
+            if contentMinWidth != clamped { contentMinWidth = clamped }
+        }
+    }
+
+    func updateSectionCount(_ count: String) {
+        guard sectionCount != count else { return }
+
+        DispatchQueue.main.async {
+            if sectionCount != count { sectionCount = count }
         }
     }
 }

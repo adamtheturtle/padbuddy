@@ -64,9 +64,7 @@ extension MainSplit {
             // width back into `containerWidth` (driving the sidebar auto-collapse and the
             // below-floor detection): a SwiftUI reader here would only ever see the
             // floored frame width and never notice the OS squeezing the window narrower.
-            .background(WindowMinWidth(width: windowMinWidth) { width in
-                if containerWidth != width { containerWidth = width }
-            })
+            .background(WindowMinWidth(width: windowMinWidth, onContentWidth: updateContainerWidth))
             // Suppress AppKit's sidebar/content tracking-separator line while the
             // sidebar is collapsed — with no sidebar divider to track it draws a stray
             // vertical line right after the leading actions (#337).
@@ -95,6 +93,8 @@ extension MainSplit {
                 updateSidebarCollapse(for: containerWidth)
             }
             .task(id: SessionKey(accountID: store.currentAccountID, merged: store.isMergedView)) {
+                await Task.yield()
+
                 if store.isMergedView {
                     if let raw = UserDefaults.standard.string(forKey: "section.merged"),
                        let restored = AppSection(rawValue: raw),
@@ -156,7 +156,7 @@ extension MainSplit {
         decoratedObservers
             // Resume the row the user left selected last session, once its list has loaded
             // (#273). Re-runs when the section is restored at launch and when rows arrive.
-            .onChange(of: restoreProbe, initial: true) { _, _ in restoreSelectionIfNeeded() }
+            .onChange(of: restoreProbe, initial: true) { _, _ in scheduleRestoreSelectionIfNeeded() }
             .onChange(of: padSelection) { _, sel in persistSelection(padID: sel?.id, questionID: nil) }
             .onChange(of: questionSelection) { _, sel in persistSelection(padID: nil, questionID: sel?.id) }
             // Settle the live selection into the detail pane, debouncing arrow-key

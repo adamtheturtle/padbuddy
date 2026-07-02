@@ -45,7 +45,7 @@ struct QuestionWindow: View {
     private var cachedQuestion: Question? {
         guard let value, let account else { return nil }
 
-        return cache.get(account.id).first { $0.id == value.id }
+        return cache.cached(account.id).first { $0.id == value.id }
     }
 
     var body: some View {
