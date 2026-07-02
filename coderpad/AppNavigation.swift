@@ -66,6 +66,16 @@ final class AppNavigation {
     /// column's own count preference doesn't propagate out to the toolbar (#475).
     var screenTestsSubtitle = ""
 
+    /// The visible list section's result-count summary (e.g. "12 pads"), published by
+    /// the active list pane via ``publishSectionCount(_:)`` and shown by `MainSplit` as
+    /// the window's toolbar subtitle beneath the section title. Replaces the former
+    /// `SectionCountKey` SwiftUI preference, which SwiftUICore faulted on ("tried to
+    /// update multiple times per frame"): a list's count can change across the several
+    /// `body` passes that settle one frame, and the preference wrote each intermediate
+    /// value straight into the tree. Routing it through the guarded, async setter below
+    /// defers every update out of the current transaction, so it can't churn in a frame.
+    var sectionCountSubtitle = ""
+
     /// The live filter signature of each list, republished by its pane whenever its
     /// filters change (and on appear). The sidebar compares these against the
     /// suggested and saved rows to highlight whichever search is currently applied,
@@ -139,6 +149,18 @@ final class AppNavigation {
     /// Switch to a section with no pending request.
     func show(_ section: AppSection) {
         self.section = section
+    }
+
+    /// Publish the active list section's result-count subtitle. Guarded and dispatched
+    /// async (mirroring the tests list's ``screenTestsSubtitle`` publish) so a value
+    /// arrived at over a frame's several body passes lands once, on the next runloop,
+    /// instead of mutating the toolbar subtitle repeatedly mid-transaction.
+    func publishSectionCount(_ subtitle: String) {
+        guard sectionCountSubtitle != subtitle else { return }
+
+        DispatchQueue.main.async {
+            if self.sectionCountSubtitle != subtitle { self.sectionCountSubtitle = subtitle }
+        }
     }
 
     /// Switch to Pads and queue a request for the list to apply on appear.

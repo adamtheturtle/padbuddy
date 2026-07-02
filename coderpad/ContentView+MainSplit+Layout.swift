@@ -91,6 +91,13 @@ extension MainSplit {
             // re-evaluate against the width we already know.
             .onChange(of: section) { _, _ in
                 updateSidebarCollapse(for: containerWidth)
+                // Clear the toolbar count subtitle the instant the section changes so a
+                // count from the section we left never lingers under the new title. The
+                // list-backed sections (Pads/Questions/Screen) republish their own count
+                // on appear via `reportsSectionCount`, whose async publish lands after
+                // this synchronous reset; Organization/Quota publish none and so stay
+                // blank, falling back to the static subtitle.
+                nav.sectionCountSubtitle = ""
             }
             .task(id: SessionKey(accountID: store.currentAccountID, merged: store.isMergedView)) {
                 await Task.yield()

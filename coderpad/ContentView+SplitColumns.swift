@@ -60,9 +60,6 @@ extension MainSplit {
             // with sub-pixel-different (or identical) values would re-invalidate the
             // column mid-layout — which AppKit reports as layout recursion.
             .onPreferenceChange(FilterBarWidthKey.self, perform: updateContentMinWidth)
-            // Surface the visible list's result count (e.g. "12 pads") as the toolbar
-            // subtitle beneath the section title, bubbled up via `SectionCountKey`.
-            .onPreferenceChange(SectionCountKey.self, perform: updateSectionCount)
             .macColumnWidth(
                 min: effectiveContentMinWidth,
                 // `NavigationSplitView` sizes its own minimum off the columns' *ideal*
@@ -123,9 +120,6 @@ extension MainSplit {
                     questionSearch: $questionSearch,
                     screenSearch: $screenSearch
                 )
-                // Organization and Quota publish no count, so this resets the subtitle
-                // back to the static section subtitle when switching in from a list.
-                .onPreferenceChange(SectionCountKey.self, perform: updateSectionCount)
             }
         )
         #if os(macOS)
@@ -186,13 +180,6 @@ extension MainSplit {
         }
     }
 
-    func updateSectionCount(_ count: String) {
-        guard sectionCount != count else { return }
-
-        DispatchQueue.main.async {
-            if sectionCount != count { sectionCount = count }
-        }
-    }
 }
 
 extension View {

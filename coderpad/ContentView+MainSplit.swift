@@ -233,16 +233,16 @@ struct MainSplit: View {
         store.isMergedView ? String(localized: "All accounts") : ""
     }
 
-    /// The active section's result-count summary, bubbled up from the list views via
-    /// `SectionCountKey` (e.g. "12 pads"). Pads/Questions report a count; the merged
-    /// variants already name the account span, so they supersede the "All accounts"
-    /// cue while empty-count sections (Organization, Quota) fall back to it.
-    @State var sectionCount = ""
-
-    /// What actually shows beneath the title: the count when a section publishes one,
-    /// otherwise the static section subtitle.
+    /// What actually shows beneath the title: the active list section's result-count
+    /// summary (e.g. "12 pads") when it publishes one, otherwise the static section
+    /// subtitle. The count is published by the list panes into
+    /// ``AppNavigation/sectionCountSubtitle`` (via `reportsSectionCount`) rather than a
+    /// SwiftUI preference, which faulted when a count changed across a single frame's
+    /// body passes. Pads/Questions report a count; the merged variants already name the
+    /// account span, so their count supersedes the "All accounts" cue while empty-count
+    /// sections (Organization, Quota) fall back to it.
     var displaySubtitle: String {
-        sectionCount.isEmpty ? sectionSubtitle : sectionCount
+        nav.sectionCountSubtitle.isEmpty ? sectionSubtitle : nav.sectionCountSubtitle
     }
 
     // `body` is split across `splitLayout` + two observer groups rather than one long
