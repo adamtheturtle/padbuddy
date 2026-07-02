@@ -65,7 +65,7 @@ extension QuestionDetailView {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
-            .floatingGlass(in: Rectangle(), fallback: .thinMaterial)
+            .glassEffect(.regular, in: Rectangle())
             Divider()
             PadBrowserView(url: url)
         }

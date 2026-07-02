@@ -26,7 +26,7 @@ struct APIErrorView: View {
                         navigation.accountToEdit = AccountsStore.shared.currentAccountID
                         openSettings()
                     }
-                    .prominentGlassButtonStyle()
+                    .buttonStyle(.glassProminent)
                     if let onRetry {
                         Button("Retry", action: onRetry)
                     }
@@ -40,7 +40,7 @@ struct APIErrorView: View {
             } actions: {
                 VStack(spacing: 8) {
                     Button("Open Settings") { openSettings() }
-                        .prominentGlassButtonStyle()
+                        .buttonStyle(.glassProminent)
                     GetAPIKeyLink()
                 }
             }
@@ -52,7 +52,7 @@ struct APIErrorView: View {
             } actions: {
                 if let onRetry {
                     Button("Retry", action: onRetry)
-                        .prominentGlassButtonStyle()
+                        .buttonStyle(.glassProminent)
                 }
             }
         }

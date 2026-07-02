@@ -56,6 +56,7 @@ private struct QuestionRowInfo: View, Equatable {
                     }
                 }
                 .lineLimit(1)
+                .clipsMetadataOverflow()
                 if let author = question.authorName {
                     Text(author).font(.caption).foregroundStyle(.secondary)
                 }

@@ -64,9 +64,7 @@ struct QuestionDetailView: View {
     /// sibling of "New Question".
     @ToolbarContentBuilder
     private var detailToolbar: some CustomizableToolbarContent {
-        if #available(macOS 26, iOS 26, *) {
-            ToolbarSpacer(.fixed)
-        }
+        ToolbarSpacer(.fixed)
         ToolbarItem(id: "favorite", placement: detailToolbarLeadingPlacement) {
             Button { toggleFavorite() } label: {
                 Label(isFavorite ? String(localized: "Favorited") : String(localized: "Favorite"),

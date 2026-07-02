@@ -83,9 +83,7 @@ struct PadDetailView: View {
     /// menu.
     @ToolbarContentBuilder
     private var detailToolbar: some CustomizableToolbarContent {
-        if #available(macOS 26, iOS 26, *) {
-            ToolbarSpacer(.fixed)
-        }
+        ToolbarSpacer(.fixed)
         if let url = pad.webURL {
             ToolbarItem(id: "share", placement: detailToolbarLeadingPlacement) {
                 ShareLink(item: url) {
@@ -126,9 +124,7 @@ struct PadDetailView: View {
                 .accessibilityLabel("Watch playback")
             }
         }
-        if #available(macOS 26, iOS 26, *) {
-            ToolbarSpacer(.fixed)
-        }
+        ToolbarSpacer(.fixed)
         ToolbarItem(id: "delete", placement: detailToolbarTrailingPlacement) {
             Button(role: .destructive) {
                 showDeleteConfirm = true
@@ -222,10 +218,20 @@ struct PadDetailView: View {
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
-        .floatingGlass(in: Rectangle(), fallback: .thinMaterial)
+        .glassEffect(.regular, in: Rectangle())
     }
 
+    // Split into two sub-chains (publishers, then dialogs) rather than one long chain:
+    // the combined chain tips the Swift type-checker over its 250ms per-expression budget
+    // on the iOS SDK, which warnings-as-errors turns into a hard build failure. Each half
+    // type-checks comfortably under the limit.
     private func presentationState(_ content: some View) -> some View {
+        presentationDialogs(presentationPublishers(content))
+    }
+
+    /// Publishes the focused-scene values (Print / Export / Save availability) and kicks
+    /// off the pad load.
+    private func presentationPublishers(_ content: some View) -> some View {
         content
             // Publish a print rendering so File ▸ Print (⌘P) can produce a hard copy
             // or PDF of the pad's summary and code (whatever has loaded so far).
@@ -241,6 +247,12 @@ struct PadDetailView: View {
             // until the pad's code (environments or legacy inline contents) has loaded.
             .focusedSceneValue(\.padHasSavableCode, hasSavableCode)
             .task(id: pad.id) { await load() }
+    }
+
+    /// The end/delete confirmations, the failure alert, its error haptic, and the Markdown
+    /// file exporter.
+    private func presentationDialogs(_ content: some View) -> some View {
+        content
             .confirmationDialog("End this interview?", isPresented: $showEndConfirm, titleVisibility: .visible) {
                 Button("End Interview", role: .destructive) { Task { await endInterview() } }
                 Button("Cancel", role: .cancel) {}

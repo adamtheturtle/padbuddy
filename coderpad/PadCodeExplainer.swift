@@ -32,44 +32,25 @@ enum PadCodeExplainer {
     /// ``PadSummarizer/isAvailable`` for the conditions.
     static var isAvailable: Bool {
         #if canImport(FoundationModels)
-            if #available(macOS 26, iOS 26, *) {
-                return SystemLanguageModel.default.availability == .available
-            }
+            return SystemLanguageModel.default.availability == .available
+        #else
+            return false
         #endif
-        return false
     }
 
     /// An explanation of what `file` does plus quality and optimality notes, or
     /// nil if the model is unavailable, the file is empty, or generation fails.
     static func explain(file: CodeFile) async -> CodeExplanation? {
         #if canImport(FoundationModels)
-            if #available(macOS 26, iOS 26, *) {
-                return await generate(file: file)
-            }
+            return await generate(file: file)
+        #else
+            return nil
         #endif
-        return nil
     }
 }
 
 #if canImport(FoundationModels)
-    @available(macOS 26, iOS 26, *)
     private extension PadCodeExplainer {
-        @Generable
-        struct Explanation {
-            @Guide(description: "A clear explanation of what the code does and the approach it takes, "
-                + "in two to three plain sentences. No preamble, no markdown, no code fences.")
-            let summary: String
-
-            @Guide(description: "An assessment of the code's quality and readability, covering naming, "
-                + "structure, clarity, and style, in one to two plain sentences. No markdown.")
-            let readability: String
-
-            @Guide(description: "The approach's time and space complexity stated in Big O notation "
-                + "(for example O(n) time, O(1) space), and whether that is optimal for the problem "
-                + "or could be improved, in one to two plain sentences. No markdown.")
-            let optimality: String
-        }
-
         static func generate(file: CodeFile) async -> CodeExplanation? {
             let body = file.contents.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !body.isEmpty else { return nil }
@@ -83,20 +64,41 @@ enum PadCodeExplainer {
             Big O notation, noting whether that is optimal for the problem or could be improved. \
             Judge the code, not the candidate. Do not restate the code line by line and do not use \
             markdown.
+
+            Reply with exactly these three labeled sections and nothing else:
+            SUMMARY: what the code does and the approach it takes, in two to three plain sentences.
+            READABILITY: the code's quality and readability - naming, structure, clarity, style - \
+            in one to two plain sentences.
+            OPTIMALITY: the time and space complexity in Big O notation (for example O(n) time, \
+            O(1) space) and whether that is optimal, in one to two plain sentences.
             """
             let prompt = "Explain this \(language) file named \(file.name):\n\n\(body.prefix(maxCodeCharacters))"
             let session = LanguageModelSession(instructions: instructions)
             do {
-                let response = try await session.respond(to: prompt, generating: Explanation.self)
-                let explanation = CodeExplanation(
-                    summary: response.content.summary.trimmingCharacters(in: .whitespacesAndNewlines),
-                    readability: response.content.readability.trimmingCharacters(in: .whitespacesAndNewlines),
-                    optimality: response.content.optimality.trimmingCharacters(in: .whitespacesAndNewlines)
-                )
-                return explanation.summary.isEmpty ? nil : explanation
+                // Plain-text `respond(to:)`, never `@Generable` (its emitted accessor aborts
+                // at dyld load on some OS builds); the labeled reply is parsed back here.
+                let response = try await session.respond(to: prompt)
+                return parseExplanation(response.content)
             } catch {
                 return nil
             }
+        }
+
+        /// Reconstructs the three-part explanation from the model's labeled reply. Nil when
+        /// the summary is missing, mirroring the old "empty summary means nothing usable"
+        /// guard. Pure and off-main-safe, so it's testable without the model.
+        static func parseExplanation(_ reply: String) -> CodeExplanation? {
+            let sections = OnDeviceModelParsing.labeledSections(
+                reply, labels: ["SUMMARY", "READABILITY", "OPTIMALITY"]
+            )
+            let summary = sections["SUMMARY"] ?? ""
+            guard !summary.isEmpty else { return nil }
+
+            return CodeExplanation(
+                summary: summary,
+                readability: sections["READABILITY"] ?? "",
+                optimality: sections["OPTIMALITY"] ?? ""
+            )
         }
     }
 #endif

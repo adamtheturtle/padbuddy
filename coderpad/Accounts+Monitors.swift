@@ -5,6 +5,7 @@
 //  Observable monitors for account key health and pad activity.
 //
 
+import AsyncAlgorithms
 import BuddyAppKit
 import Foundation
 
@@ -86,7 +87,7 @@ final class AccountHealthMonitor {
 @MainActor
 final class PadsBackgroundRefresher {
     static let shared = PadsBackgroundRefresher()
-    private var loop: RepeatingTask?
+    private var loop: Task<Void, Never>?
     private init() {}
 
     /// Refetches the current account's pads on a fixed interval (default 5 min).
@@ -99,17 +100,19 @@ final class PadsBackgroundRefresher {
         // No immediate fetch (`runImmediately: false`): launch already presents a window
         // that loads the current account, so the first useful background tick is one
         // interval out.
-        let loop = RepeatingTask(runImmediately: false, interval: interval) { [weak self] in
-            await self?.refreshCurrentAccount()
+        let interval = interval > .zero ? interval : .milliseconds(1)
+        let loop = Task { [weak self] in
+            for await _ in AsyncTimerSequence.repeating(every: interval) {
+                await self?.refreshCurrentAccount()
+            }
         }
         self.loop = loop
-        loop.start()
     }
 
     // Deliberate monitor lifecycle API, kept for start/stop symmetry.
     // periphery:ignore
     func stop() {
-        loop?.stop()
+        loop?.cancel()
         loop = nil
     }
 

@@ -24,8 +24,6 @@ struct SearchableFilterChip: View {
 
     @State private var presented = false
     @State private var search = ""
-    @Environment(\.colorSchemeContrast) private var contrast
-
     private var chipText: String {
         guard let selected else { return title }
 
@@ -53,17 +51,6 @@ struct SearchableFilterChip: View {
         selected != nil
     }
 
-    /// Idle wears the neutral chip pill so it reads as a control rather than bare
-    /// text + chevron, matching the `Menu`-based FilterChipMenu chips (#352); a set
-    /// filter swaps it for the accent capsule.
-    private var fillColor: Color {
-        isActive ? Color.accentColor.opacity(ChipContrast.fill(0.18, contrast)) : Color.chipIdleFill
-    }
-
-    private var strokeColor: Color {
-        isActive ? Color.accentColor.opacity(ChipContrast.stroke(0.4, contrast)) : Color.subtleStroke
-    }
-
     private var labelColor: Color {
         chipLabelColor(isActive: isActive)
     }
@@ -80,8 +67,6 @@ struct SearchableFilterChip: View {
             title: title,
             icon: icon,
             text: chipText,
-            fillColor: fillColor,
-            strokeColor: strokeColor,
             labelColor: labelColor,
             showsClear: isActive
         )
@@ -118,15 +103,11 @@ struct ChipLabel: View {
     let title: String
     let icon: String
     let text: String
-    let fillColor: Color
-    let strokeColor: Color
     let labelColor: Color
     /// When true, the trailing chevron becomes a clear (×) glyph to signal the chip
     /// can be cleared in place. The actual tap target is supplied by the parent via
     /// `chipClearOverlay` so clearing is independent of the chip's menu/popover.
     var showsClear: Bool = false
-    @Environment(\.colorSchemeContrast) private var contrast
-
     var body: some View {
         HStack(spacing: 4) {
             Image(systemName: icon).font(.caption).accessibilityHidden(true)
@@ -137,15 +118,7 @@ struct ChipLabel: View {
         }
         .padding(.horizontal, Spacing.compactControlH).padding(.vertical, Spacing.compactControlV)
         .foregroundStyle(labelColor)
-        // Glass on macOS 26, opaque capsule on 15. The fallback thickens its
-        // hairline border under Increase Contrast so the outline stays defined for
-        // low-vision users (#352).
-        .chipCapsule(
-            glassTint: showsClear ? .accentColor : nil,
-            fallbackFill: fillColor,
-            fallbackStroke: strokeColor,
-            fallbackStrokeWidth: ChipContrast.lineWidth(contrast)
-        )
+        .glassEffect(showsClear ? .regular.tint(.accentColor) : .regular, in: Capsule())
     }
 }
 

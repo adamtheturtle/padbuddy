@@ -135,6 +135,7 @@ private struct PadRowInfo: View, Equatable {
                     }
                 }
                 .lineLimit(1)
+                .clipsMetadataOverflow()
                 Text(ownerDisplay)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -275,6 +276,31 @@ enum FastListRowMetrics {
 }
 
 extension View {
+    /// Bounds a row's `fixedSize` metadata chips to the width the row actually allots,
+    /// clipping any overflow at the trailing edge rather than letting the chips force the
+    /// whole row wider than its list column.
+    ///
+    /// The metadata chips (``StateBadge``/``MetaLabel``/``Chip``/``AccountMetaLabel``) are
+    /// each `.fixedSize` so they stay whole rather than truncating to "Pyth…". The side
+    /// effect is that a row carrying more metadata than fits (an extra language plus a
+    /// "Used N×" chip, say) has a *minimum* width larger than the iPad list column. A frame
+    /// - including the `containerRelativeFrame` that seats each row in its column - can't
+    /// shrink below its content's minimum, so such a row lays out at its intrinsic width
+    /// instead: its trailing star/date get shoved out of view, and in a `NavigationSplitView`
+    /// content column the whole row drifts off the shared leading edge (the "middle row too
+    /// far left" report).
+    ///
+    /// `frame(width: 0)` makes this line *report* zero width - leaving its natural height, so
+    /// row height and Dynamic Type are untouched - while the chips still draw, leading-aligned,
+    /// overflowing that zero frame. The outer flexible frame then takes only the width the row
+    /// allots and `clipped()` trims the overflow, so excess chips fall off the trailing edge
+    /// and the row can no longer outgrow its column. A no-op when the metadata already fits.
+    func clipsMetadataOverflow() -> some View {
+        frame(width: 0, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .clipped()
+    }
+
     /// Insets a `FastList` row's hosted content horizontally on the iPad backend.
     ///
     /// On iPad `FastList` is a native `List`, and its rows host their SwiftUI content

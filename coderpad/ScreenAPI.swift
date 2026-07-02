@@ -9,8 +9,8 @@
 //  authenticates with an `API-Key` header rather than a bearer token, and uses
 //  offset-based pagination. The networking client is `ScreenClient`.
 //
-//  These decode-only models reuse `lenientDecodeIfPresent` (from `BuddyAppKit`) so a
-//  field the API adds or omits never fails the whole decode, since the docs explicitly
+//  These decode-only models use `try? decodeIfPresent` so a field the API adds or
+//  omits never fails the whole decode, since the docs explicitly
 //  warn that new response fields may appear within this API version without a version
 //  bump.
 //
@@ -41,10 +41,10 @@ nonisolated struct ScreenCampaign: Decodable, Identifiable, Hashable {
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(Int.self, forKey: .id)
-        name = container.lenientDecodeIfPresent(String.self, forKey: .name) ?? ""
-        languages = container.lenientDecodeIfPresent([String].self, forKey: .languages) ?? []
-        pinned = container.lenientDecodeIfPresent(Bool.self, forKey: .pinned) ?? false
-        archived = container.lenientDecodeIfPresent(Bool.self, forKey: .archived) ?? false
+        name = (try? container.decodeIfPresent(String.self, forKey: .name)) ?? ""
+        languages = (try? container.decodeIfPresent([String].self, forKey: .languages)) ?? []
+        pinned = (try? container.decodeIfPresent(Bool.self, forKey: .pinned)) ?? false
+        archived = (try? container.decodeIfPresent(Bool.self, forKey: .archived)) ?? false
     }
 
     enum CodingKeys: String, CodingKey {
@@ -100,7 +100,7 @@ nonisolated struct ScreenInvitationResult: Decodable, Hashable {
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(Int.self, forKey: .id)
-        testURL = container.lenientDecodeIfPresent(String.self, forKey: .testURL)
+        testURL = try? container.decodeIfPresent(String.self, forKey: .testURL)
     }
 
     enum CodingKeys: String, CodingKey {
@@ -168,24 +168,24 @@ nonisolated struct ScreenTestSession: Decodable, Identifiable, Hashable {
 
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        status = container.lenientDecodeIfPresent(String.self, forKey: .status) ?? "unknown"
-        url = container.lenientDecodeIfPresent(String.self, forKey: .url)
-        report = container.lenientDecodeIfPresent(ScreenReport.self, forKey: .report)
+        status = (try? container.decodeIfPresent(String.self, forKey: .status)) ?? "unknown"
+        url = try? container.decodeIfPresent(String.self, forKey: .url)
+        report = try? container.decodeIfPresent(ScreenReport.self, forKey: .report)
         id = try container.decode(Int.self, forKey: .id)
-        idTest = container.lenientDecodeIfPresent(Int.self, forKey: .idTest)
-        organizationID = container.lenientDecodeIfPresent(String.self, forKey: .organizationID)
-        campaignID = container.lenientDecodeIfPresent(Int.self, forKey: .campaignID)
-        candidateName = container.lenientDecodeIfPresent(String.self, forKey: .candidateName)
-        candidateEmail = container.lenientDecodeIfPresent(String.self, forKey: .candidateEmail)
-        tags = container.lenientDecodeIfPresent([String].self, forKey: .tags) ?? []
-        sendTime = container.lenientDecodeIfPresent(Int.self, forKey: .sendTime)
-        startTime = container.lenientDecodeIfPresent(Int.self, forKey: .startTime)
-        endTime = container.lenientDecodeIfPresent(Int.self, forKey: .endTime)
-        lastActivityTime = container.lenientDecodeIfPresent(Int.self, forKey: .lastActivityTime)
-        testURL = container.lenientDecodeIfPresent(String.self, forKey: .testURL)
-        candidateLanguage = container.lenientDecodeIfPresent(String.self, forKey: .candidateLanguage)
-        questions = container.lenientDecodeIfPresent([ScreenTestQuestion].self, forKey: .questions) ?? []
-        approvalStatus = container.lenientDecodeIfPresent(String.self, forKey: .approvalStatus)
+        idTest = try? container.decodeIfPresent(Int.self, forKey: .idTest)
+        organizationID = try? container.decodeIfPresent(String.self, forKey: .organizationID)
+        campaignID = try? container.decodeIfPresent(Int.self, forKey: .campaignID)
+        candidateName = try? container.decodeIfPresent(String.self, forKey: .candidateName)
+        candidateEmail = try? container.decodeIfPresent(String.self, forKey: .candidateEmail)
+        tags = (try? container.decodeIfPresent([String].self, forKey: .tags)) ?? []
+        sendTime = try? container.decodeIfPresent(Int.self, forKey: .sendTime)
+        startTime = try? container.decodeIfPresent(Int.self, forKey: .startTime)
+        endTime = try? container.decodeIfPresent(Int.self, forKey: .endTime)
+        lastActivityTime = try? container.decodeIfPresent(Int.self, forKey: .lastActivityTime)
+        testURL = try? container.decodeIfPresent(String.self, forKey: .testURL)
+        candidateLanguage = try? container.decodeIfPresent(String.self, forKey: .candidateLanguage)
+        questions = (try? container.decodeIfPresent([ScreenTestQuestion].self, forKey: .questions)) ?? []
+        approvalStatus = try? container.decodeIfPresent(String.self, forKey: .approvalStatus)
     }
 
     enum CodingKeys: String, CodingKey {
@@ -241,7 +241,7 @@ nonisolated struct ScreenTestQuestion: Decodable, Identifiable, Hashable {
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(Int.self, forKey: .id)
-        lastActivityTime = container.lenientDecodeIfPresent(Int.self, forKey: .lastActivityTime)
+        lastActivityTime = try? container.decodeIfPresent(Int.self, forKey: .lastActivityTime)
     }
 
     enum CodingKeys: String, CodingKey {
@@ -288,16 +288,16 @@ nonisolated struct ScreenReport: Decodable, Hashable {
 
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        duration = container.lenientDecodeIfPresent(Int.self, forKey: .duration)
-        warnings = container.lenientDecodeIfPresent([String].self, forKey: .warnings) ?? []
-        points = container.lenientDecodeIfPresent(Int.self, forKey: .points)
-        score = container.lenientDecodeIfPresent(Double.self, forKey: .score)
-        technologies = container.lenientDecodeIfPresent([String: ScreenTechnologyResult].self,
-                                                       forKey: .technologies) ?? [:]
-        totalDuration = container.lenientDecodeIfPresent(Int.self, forKey: .totalDuration)
-        totalPoints = container.lenientDecodeIfPresent(Int.self, forKey: .totalPoints)
-        comparativeScore = container.lenientDecodeIfPresent(Double.self, forKey: .comparativeScore)
-        communityStats = container.lenientDecodeIfPresent([Int].self, forKey: .communityStats)
+        duration = try? container.decodeIfPresent(Int.self, forKey: .duration)
+        warnings = (try? container.decodeIfPresent([String].self, forKey: .warnings)) ?? []
+        points = try? container.decodeIfPresent(Int.self, forKey: .points)
+        score = try? container.decodeIfPresent(Double.self, forKey: .score)
+        technologies = (try? container.decodeIfPresent([String: ScreenTechnologyResult].self,
+                                                       forKey: .technologies)) ?? [:]
+        totalDuration = try? container.decodeIfPresent(Int.self, forKey: .totalDuration)
+        totalPoints = try? container.decodeIfPresent(Int.self, forKey: .totalPoints)
+        comparativeScore = try? container.decodeIfPresent(Double.self, forKey: .comparativeScore)
+        communityStats = try? container.decodeIfPresent([Int].self, forKey: .communityStats)
     }
 
     enum CodingKeys: String, CodingKey {
@@ -320,11 +320,11 @@ nonisolated struct ScreenTechnologyResult: Decodable, Hashable {
 
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        points = container.lenientDecodeIfPresent(Int.self, forKey: .points)
-        score = container.lenientDecodeIfPresent(Double.self, forKey: .score)
-        skills = container.lenientDecodeIfPresent([String: ScreenSkillResult].self, forKey: .skills) ?? [:]
-        totalPoints = container.lenientDecodeIfPresent(Int.self, forKey: .totalPoints)
-        comparativeScore = container.lenientDecodeIfPresent(Double.self, forKey: .comparativeScore)
+        points = try? container.decodeIfPresent(Int.self, forKey: .points)
+        score = try? container.decodeIfPresent(Double.self, forKey: .score)
+        skills = (try? container.decodeIfPresent([String: ScreenSkillResult].self, forKey: .skills)) ?? [:]
+        totalPoints = try? container.decodeIfPresent(Int.self, forKey: .totalPoints)
+        comparativeScore = try? container.decodeIfPresent(Double.self, forKey: .comparativeScore)
     }
 
     enum CodingKeys: String, CodingKey {
@@ -342,9 +342,9 @@ nonisolated struct ScreenSkillResult: Decodable, Hashable {
 
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        points = container.lenientDecodeIfPresent(Int.self, forKey: .points)
-        score = container.lenientDecodeIfPresent(Double.self, forKey: .score)
-        totalPoints = container.lenientDecodeIfPresent(Int.self, forKey: .totalPoints)
+        points = try? container.decodeIfPresent(Int.self, forKey: .points)
+        score = try? container.decodeIfPresent(Double.self, forKey: .score)
+        totalPoints = try? container.decodeIfPresent(Int.self, forKey: .totalPoints)
     }
 
     enum CodingKeys: String, CodingKey {
@@ -364,8 +364,8 @@ nonisolated struct ScreenTestsPage: Decodable, Hashable {
 
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        tests = container.lenientDecodeIfPresent([ScreenTestSession].self, forKey: .tests) ?? []
-        pagination = container.lenientDecodeIfPresent(ScreenPagination.self, forKey: .pagination)
+        tests = (try? container.decodeIfPresent([ScreenTestSession].self, forKey: .tests)) ?? []
+        pagination = try? container.decodeIfPresent(ScreenPagination.self, forKey: .pagination)
     }
 
     enum CodingKeys: String, CodingKey {
@@ -382,11 +382,11 @@ nonisolated struct ScreenPagination: Decodable, Hashable {
 
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        start = container.lenientDecodeIfPresent(Int.self, forKey: .start)
-        limit = container.lenientDecodeIfPresent(Int.self, forKey: .limit)
-        total = container.lenientDecodeIfPresent(Int.self, forKey: .total)
-        hasMoreItems = container.lenientDecodeIfPresent(Bool.self, forKey: .hasMoreItems) ?? false
-        nextStart = container.lenientDecodeIfPresent(Int.self, forKey: .nextStart)
+        start = try? container.decodeIfPresent(Int.self, forKey: .start)
+        limit = try? container.decodeIfPresent(Int.self, forKey: .limit)
+        total = try? container.decodeIfPresent(Int.self, forKey: .total)
+        hasMoreItems = (try? container.decodeIfPresent(Bool.self, forKey: .hasMoreItems)) ?? false
+        nextStart = try? container.decodeIfPresent(Int.self, forKey: .nextStart)
     }
 
     enum CodingKeys: String, CodingKey {

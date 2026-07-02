@@ -9,6 +9,9 @@
 /* Begin PBXBuildFile section */
 		66153CF62FEB609C00272AF3 /* FastList in Frameworks */ = {isa = PBXBuildFile; productRef = 66153CF52FEB609C00272AF3 /* FastList */; };
 		663804472FF64ACC004A9FCE /* MacPullToRefresh in Frameworks */ = {isa = PBXBuildFile; productRef = 663804462FF64ACC004A9FCE /* MacPullToRefresh */; };
+		6638044D2FF6559C004A9FCE /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 6638044C2FF6559C004A9FCE /* AsyncAlgorithms */; };
+		6638044F2FF655B0004A9FCE /* AsyncAlgorithms in Frameworks */ = {isa = PBXBuildFile; productRef = 6638044E2FF655B0004A9FCE /* AsyncAlgorithms */; };
+		663806CC2FF679B1004A9FCE /* PrintableView in Frameworks */ = {isa = PBXBuildFile; productRef = 663806CB2FF679B1004A9FCE /* PrintableView */; };
 		6638FF682FF64481004A9FCE /* MCPKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6638FF672FF64481004A9FCE /* MCPKit */; };
 		6676A3412FEF13620023907A /* CoderPadKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6676A3402FEF13620023907A /* CoderPadKit */; };
 		6676A3432FEF13620023907A /* CoderPadKitMock in Frameworks */ = {isa = PBXBuildFile; productRef = 6676A3422FEF13620023907A /* CoderPadKitMock */; };
@@ -165,6 +168,7 @@
 			files = (
 				6676A3412FEF13620023907A /* CoderPadKit in Frameworks */,
 				663804472FF64ACC004A9FCE /* MacPullToRefresh in Frameworks */,
+				663806CC2FF679B1004A9FCE /* PrintableView in Frameworks */,
 				66C6A3472FEA890100731E7E /* BuddyAppKit in Frameworks */,
 				668CA7E82FEC782F00420E24 /* CommandPaletteKit in Frameworks */,
 				66C6A3392FEA84E300731E7E /* BuddyDesignSystem in Frameworks */,
@@ -176,6 +180,7 @@
 				66E3CC582FDA31CC00FE87A9 /* Highlightr in Frameworks */,
 				6693DA5C2FE9F08F005CA3CE /* MCP in Frameworks */,
 				66BDDD422FF63E06008224BE /* MCPKit in Frameworks */,
+				6638044D2FF6559C004A9FCE /* AsyncAlgorithms in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -217,6 +222,7 @@
 				66C6A33D2FEA883500731E7E /* MCP in Frameworks */,
 				66C6A3412FEA883500731E7E /* BuddyDesignSystem in Frameworks */,
 				6638FF682FF64481004A9FCE /* MCPKit in Frameworks */,
+				6638044F2FF655B0004A9FCE /* AsyncAlgorithms in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -292,6 +298,8 @@
 				6676A3422FEF13620023907A /* CoderPadKitMock */,
 				66BDDD412FF63E06008224BE /* MCPKit */,
 				663804462FF64ACC004A9FCE /* MacPullToRefresh */,
+				6638044C2FF6559C004A9FCE /* AsyncAlgorithms */,
+				663806CB2FF679B1004A9FCE /* PrintableView */,
 			);
 			productName = coderpad;
 			productReference = 66C8C50B2FA73AB0009B720C /* PadBuddy.app */;
@@ -395,6 +403,7 @@
 				6676A3A12FEF95500023907A /* CoderPadKit */,
 				6676A3A32FEF95500023907A /* CoderPadKitMock */,
 				6638FF672FF64481004A9FCE /* MCPKit */,
+				6638044E2FF655B0004A9FCE /* AsyncAlgorithms */,
 			);
 			productName = coderpad;
 			productReference = 66F5440C2FE5EECD000214AA /* PadBuddy.app */;
@@ -449,6 +458,8 @@
 				6676A33F2FEF13620023907A /* XCRemoteSwiftPackageReference "CoderPadKit" */,
 				66BDDD402FF63E05008224BE /* XCRemoteSwiftPackageReference "MCPKit" */,
 				663804452FF64ACC004A9FCE /* XCRemoteSwiftPackageReference "MacPullToRefresh" */,
+				6638044B2FF6559C004A9FCE /* XCRemoteSwiftPackageReference "swift-async-algorithms" */,
+				663806CA2FF679B1004A9FCE /* XCRemoteSwiftPackageReference "PrintableView" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 66C8C50C2FA73AB0009B720C /* Products */;
@@ -621,8 +632,9 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -681,8 +693,9 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
-				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = macosx;
@@ -722,7 +735,6 @@
 				INFOPLIST_KEY_CFBundleDisplayName = PadBuddy;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -779,7 +791,6 @@
 				INFOPLIST_KEY_CFBundleDisplayName = PadBuddy;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.developer-tools";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -813,7 +824,6 @@
 				CURRENT_PROJECT_VERSION = 3;
 				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 0.1.12;
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.coderpadTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -835,7 +845,6 @@
 				CURRENT_PROJECT_VERSION = 3;
 				DEAD_CODE_STRIPPING = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 0.1.12;
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.coderpadTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -912,7 +921,6 @@
 					"@executable_path/../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 0.1.12;
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy.RecentPadsWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -949,7 +957,6 @@
 					"@executable_path/../Frameworks",
 					"@executable_path/../../../../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 15.0;
 				MARKETING_VERSION = 0.1.12;
 				PRODUCT_BUNDLE_IDENTIFIER = com.adamdangoor.padbuddy.RecentPadsWidget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -1146,6 +1153,22 @@
 				version = 0.1.0;
 			};
 		};
+		6638044B2FF6559C004A9FCE /* XCRemoteSwiftPackageReference "swift-async-algorithms" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-async-algorithms";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.1.5;
+			};
+		};
+		663806CA2FF679B1004A9FCE /* XCRemoteSwiftPackageReference "PrintableView" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/adamtheturtle/PrintableView";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.1.0;
+			};
+		};
 		6676A33F2FEF13620023907A /* XCRemoteSwiftPackageReference "CoderPadKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/adamtheturtle/CoderPadKit.git";
@@ -1230,6 +1253,21 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 663804452FF64ACC004A9FCE /* XCRemoteSwiftPackageReference "MacPullToRefresh" */;
 			productName = MacPullToRefresh;
+		};
+		6638044C2FF6559C004A9FCE /* AsyncAlgorithms */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6638044B2FF6559C004A9FCE /* XCRemoteSwiftPackageReference "swift-async-algorithms" */;
+			productName = AsyncAlgorithms;
+		};
+		6638044E2FF655B0004A9FCE /* AsyncAlgorithms */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 6638044B2FF6559C004A9FCE /* XCRemoteSwiftPackageReference "swift-async-algorithms" */;
+			productName = AsyncAlgorithms;
+		};
+		663806CB2FF679B1004A9FCE /* PrintableView */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 663806CA2FF679B1004A9FCE /* XCRemoteSwiftPackageReference "PrintableView" */;
+			productName = PrintableView;
 		};
 		6638FF672FF64481004A9FCE /* MCPKit */ = {
 			isa = XCSwiftPackageProductDependency;

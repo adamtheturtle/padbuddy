@@ -11,12 +11,7 @@ import WidgetKit
 struct RecentPadsWidgetBundle: WidgetBundle {
     var body: some Widget {
         RecentPadsWidget()
-        // Controls reached the Mac (Control Center / menu bar) in macOS 26; the
-        // extension still deploys to macOS 15 for the widget itself, so gate the
-        // control on availability and leave the widget unconditional.
-        if #available(macOS 26.0, *) {
-            NewPadControl()
-        }
+        NewPadControl()
     }
 }
 
@@ -26,7 +21,6 @@ struct RecentPadsWidgetBundle: WidgetBundle {
 /// the create flow. It can't use `OpenURLIntent`: that only opens universal (https)
 /// links, never the app's `coderpad://` custom scheme, so the control did nothing
 /// (#485).
-@available(macOS 26.0, *)
 struct NewPadControl: ControlWidget {
     static let kind = "com.adamdangoor.padbuddy.NewPadControl"
 

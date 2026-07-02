@@ -23,11 +23,10 @@ enum SearchInterpreter {
     /// ``PadSummarizer/isAvailable`` for the conditions.
     static var isAvailable: Bool {
         #if canImport(FoundationModels)
-            if #available(macOS 26, iOS 26, *) {
-                return SystemLanguageModel.default.availability == .available
-            }
+            return SystemLanguageModel.default.availability == .available
+        #else
+            return false
         #endif
-        return false
     }
 
     /// A pad filter set derived from `text`, or nil when the model is unavailable,
@@ -36,22 +35,20 @@ enum SearchInterpreter {
     static func interpretPads(_ text: String, languages: [String], owners: [OwnerOption],
                               teams: [String]) async -> NamedSearch? {
         #if canImport(FoundationModels)
-            if #available(macOS 26, iOS 26, *) {
-                return await generatePads(text, languages: languages, owners: owners, teams: teams)
-            }
+            return await generatePads(text, languages: languages, owners: owners, teams: teams)
+        #else
+            return nil
         #endif
-        return nil
     }
 
     /// A question filter set derived from `text`, or nil under the same conditions
     /// as ``interpretPads(_:languages:owners:teams:)``.
     static func interpretQuestions(_ text: String, languages: [String], owners: [OwnerOption]) async -> NamedSearch? {
         #if canImport(FoundationModels)
-            if #available(macOS 26, iOS 26, *) {
-                return await generateQuestions(text, languages: languages, owners: owners)
-            }
+            return await generateQuestions(text, languages: languages, owners: owners)
+        #else
+            return nil
         #endif
-        return nil
     }
 
     // MARK: - Value resolution (pure, shared with the generated path)

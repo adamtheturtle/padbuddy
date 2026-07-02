@@ -215,7 +215,7 @@ struct ContentView: View {
                 """)
             } actions: {
                 Button("Add Account") { startAddingAccount() }
-                    .prominentGlassButtonStyle()
+                    .buttonStyle(.glassProminent)
                 GetAPIKeyLink()
             }
         } else {
@@ -225,7 +225,7 @@ struct ContentView: View {
                 Text("Choose one of your saved accounts in Settings.")
             } actions: {
                 Button("Open Settings") { openSettings() }
-                    .prominentGlassButtonStyle()
+                    .buttonStyle(.glassProminent)
             }
         }
     }

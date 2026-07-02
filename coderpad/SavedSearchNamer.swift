@@ -13,11 +13,10 @@ enum SavedSearchNamer {
     /// still downloading. Callers use this to decide whether to show the affordance.
     static var isAvailable: Bool {
         #if canImport(FoundationModels)
-            if #available(macOS 26, iOS 26, *) {
-                return SystemLanguageModel.default.availability == .available
-            }
+            return SystemLanguageModel.default.availability == .available
+        #else
+            return false
         #endif
-        return false
     }
 
     /// A short, friendly label built from the search's active filters, or nil if
@@ -25,25 +24,15 @@ enum SavedSearchNamer {
     /// fails. Callers keep the manual field untouched on nil.
     static func suggestName(for search: NamedSearch) async -> String? {
         #if canImport(FoundationModels)
-            if #available(macOS 26, iOS 26, *) {
-                return await generate(for: search)
-            }
+            return await generate(for: search)
+        #else
+            return nil
         #endif
-        return nil
     }
 }
 
 #if canImport(FoundationModels)
-    @available(macOS 26, iOS 26, *)
     private extension SavedSearchNamer {
-        /// A single field so guided generation hands back a clean label rather than
-        /// prose we'd have to strip quotes and punctuation out of.
-        @Generable
-        struct Suggestion {
-            @Guide(description: "A concise Title Case label of at most four words, no quotes or trailing punctuation")
-            let name: String
-        }
-
         static func generate(for search: NamedSearch) async -> String? {
             let criteria = search.filterDescription
             guard !criteria.isEmpty else { return nil }
@@ -53,21 +42,36 @@ enum SavedSearchNamer {
             You name saved searches in a developer tool for browsing coding interview \
             pads and questions. Given a list of the active filters, produce a concise, \
             human label the user would recognize at a glance. Use Title Case, at most \
-            four words, no quotes, and no trailing punctuation.
+            four words, no quotes, and no trailing punctuation. Reply with only the label \
+            on a single line - no preamble, explanation, or markdown.
             """
             let session = LanguageModelSession(instructions: instructions)
             do {
-                let response = try await session.respond(
-                    to: "Filters: \(criteria)",
-                    generating: Suggestion.self
-                )
-                let name = response.content.name.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !name.isEmpty else { return nil }
-
-                return String(name.prefix(NamedSearch.maxNameLength))
+                // Plain-text `respond(to:)`, never `@Generable`: the accessor the macro
+                // emits is absent on some shipping OS builds and aborts at dyld load. The
+                // reply is a single label line we clean here (see `cleanLabel`).
+                let response = try await session.respond(to: "Filters: \(criteria)")
+                return cleanLabel(response.content)
             } catch {
                 return nil
             }
+        }
+
+        /// Reduces the model's plain-text reply to a single clean label: the first
+        /// non-empty line, with surrounding quotes and trailing sentence punctuation
+        /// removed, capped to the field's max length. Nil when nothing usable remains.
+        /// Pure and off-main-safe, so it's testable without the model.
+        static func cleanLabel(_ reply: String) -> String? {
+            let firstLine = reply
+                .split(whereSeparator: \.isNewline)
+                .first
+                .map(String.init) ?? ""
+            var name = firstLine.trimmingCharacters(in: .whitespacesAndNewlines)
+            name = name.trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
+            name = name.trimmingCharacters(in: CharacterSet(charactersIn: " .,:;"))
+            guard !name.isEmpty else { return nil }
+
+            return String(name.prefix(NamedSearch.maxNameLength))
         }
     }
 #endif

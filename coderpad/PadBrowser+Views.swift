@@ -161,17 +161,14 @@ struct PadBrowserView: View {
         }
         .padding(Spacing.overlayInset)
         .frame(maxWidth: 420)
-        .floatingGlass(
-            in: RoundedRectangle(cornerRadius: Radius.prominent, style: .continuous),
-            fallback: .regularMaterial
-        )
+        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: Radius.prominent, style: .continuous))
         .padding()
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(.background)
     }
 
     private var toolbar: some View {
-        GlassCluster(spacing: 8) {
+        GlassEffectContainer(spacing: 8) {
             HStack(spacing: 8) {
                 backButton
                 forwardButton
@@ -211,11 +208,10 @@ struct PadBrowserView: View {
                     overflowMenu
                 #endif
             }
-            // Each control becomes its own Liquid Glass element on macOS 26, blending
-            // and morphing as a cluster via the enclosing GlassCluster. The bar itself
-            // stays a plain material so the glass refracts content rather than stacking
-            // glass-on-glass.
-            .glassButtonStyle()
+            // Each control becomes its own Liquid Glass element, blending and morphing
+            // as a cluster via the enclosing GlassEffectContainer. The bar itself stays
+            // a plain material so the glass refracts content rather than stacking glass.
+            .buttonStyle(.glass)
         }
         .padding(.horizontal, Spacing.bannerH)
         .padding(.vertical, 8)

@@ -1,5 +1,5 @@
 {
-  "originHash" : "60aaab529c4aaa0cb050a7d0db366375cbb918a91d6fedac0d43a216345da7a0",
+  "originHash" : "888698cc8338af55939279f97ea1bfb92e5e0388a32acafad338145389b2edd7",
   "pins" : [
     {
       "identity" : "buddy-kit",
@@ -83,12 +83,30 @@
       }
     },
     {
+      "identity" : "printableview",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/adamtheturtle/PrintableView",
+      "state" : {
+        "revision" : "e580c2f2304e09f49ec5a36a3d5c07b25998f5e0",
+        "version" : "0.1.0"
+      }
+    },
+    {
       "identity" : "sparkle",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/sparkle-project/Sparkle",
       "state" : {
         "revision" : "d46d456107feacc80711b21847b82b07bd9fb46e",
         "version" : "2.9.3"
+      }
+    },
+    {
+      "identity" : "swift-async-algorithms",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-async-algorithms",
+      "state" : {
+        "revision" : "3da39bbc4e687d4192af7c9cf4eab805745a0b9c",
+        "version" : "1.1.5"
       }
     },
     {

@@ -2,10 +2,9 @@
 //  DesignSystem+Glass.swift
 //  coderpad
 //
-//  The generic Liquid Glass primitives (floatingGlass / chipCapsule / glass button
-//  styles / chipLabelColor / GlassCluster) now live in the CoderPadDesignSystem
-//  package (#377). This keeps the app-coupled "Get an API key" link, which depends
-//  on the CoderPad-specific `CoderPadLinks`.
+//  Most Liquid Glass styling now uses SwiftUI 26 APIs directly. This keeps the
+//  app-coupled "Get an API key" link, which depends on the CoderPad-specific
+//  `CoderPadLinks`.
 //
 
 import SwiftUI
@@ -26,7 +25,7 @@ struct GetAPIKeyLink: View {
         }
 
         if prominent {
-            button.prominentGlassButtonStyle()
+            button.buttonStyle(.glassProminent)
         } else {
             // Borderless keeps the chromeless, accent-tinted hyperlink look the old
             // `Link` had on both macOS and iPadOS, rather than a bordered push button.

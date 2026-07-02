@@ -55,25 +55,40 @@ struct SectionContent: View {
     private var mergedContent: some View {
         // One `.id()` on the whole switch rather than per case: each section still gets a
         // distinct, stable identity ("merged-<section>"), so switching sections recreates
-        // the view as before — but the four branches no longer each carry a modifier,
-        // which keeps this getter's type-check comfortably under the limit.
-        Group {
-            switch section {
-            case .pads:
-                MergedPadsView(selection: $padSelection, search: $padSearch)
-            case .questions:
-                MergedQuestionsView(selection: $questionSelection, search: $questionSearch)
-            case .organization:
-                MergedOrganizationView()
-            case .quota:
-                MergedQuotaView()
-            // Campaigns aggregated across every Screen-enabled account (#442); the row
-            // only appears when at least one mergeable account has a Screen key.
-            case .screen:
-                MergedScreenView(search: $screenSearch)
-            }
+        // the view as before.
+        mergedSection
+            .id("merged-\(section.rawValue)")
+    }
+
+    /// The section branches, each erased to `AnyView` via a per-branch property. Building
+    /// all five view initializers - several taking `@Binding` projections - in one switch
+    /// expression tips this getter over the type-checker's 250ms budget on the iOS SDK, and
+    /// warnings-as-errors turns that overrun into a build failure. Splitting each branch out
+    /// so no single expression type-checks more than one initializer keeps every piece well
+    /// under the limit. The `AnyView` cost is negligible: this container is rebuilt only when
+    /// the user switches sections.
+    private var mergedSection: AnyView {
+        switch section {
+        case .pads: mergedPads
+        case .questions: mergedQuestions
+        case .organization: AnyView(MergedOrganizationView())
+        case .quota: AnyView(MergedQuotaView())
+        // Campaigns aggregated across every Screen-enabled account (#442); the row
+        // only appears when at least one mergeable account has a Screen key.
+        case .screen: mergedScreen
         }
-        .id("merged-\(section.rawValue)")
+    }
+
+    private var mergedPads: AnyView {
+        AnyView(MergedPadsView(selection: $padSelection, search: $padSearch))
+    }
+
+    private var mergedQuestions: AnyView {
+        AnyView(MergedQuestionsView(selection: $questionSelection, search: $questionSearch))
+    }
+
+    private var mergedScreen: AnyView {
+        AnyView(MergedScreenView(search: $screenSearch))
     }
 }
 

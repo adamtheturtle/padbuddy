@@ -22,41 +22,25 @@ enum QuestionDrafter {
     /// ``PadSummarizer/isAvailable`` for the conditions.
     static var isAvailable: Bool {
         #if canImport(FoundationModels)
-            if #available(macOS 26, iOS 26, *) {
-                return SystemLanguageModel.default.availability == .available
-            }
+            return SystemLanguageModel.default.availability == .available
+        #else
+            return false
         #endif
-        return false
     }
 
     /// A drafted question for `prompt` in `language`, or nil when the model is
     /// unavailable, the prompt is empty, or generation fails.
     static func draft(prompt: String, language: String) async -> Draft? {
         #if canImport(FoundationModels)
-            if #available(macOS 26, iOS 26, *) {
-                return await generate(prompt: prompt, language: language)
-            }
+            return await generate(prompt: prompt, language: language)
+        #else
+            return nil
         #endif
-        return nil
     }
 }
 
 #if canImport(FoundationModels)
-    @available(macOS 26, iOS 26, *)
     private extension QuestionDrafter {
-        @Generable
-        struct RawDraft {
-            @Guide(description: "A short, specific question title, at most eight words. No quotes.")
-            let title: String
-            @Guide(description: "A one or two sentence summary of the problem for the interviewer.")
-            let description: String
-            @Guide(description: "Clear candidate-facing instructions: what to build and any constraints. "
-                + "Plain prose, no markdown headers.")
-            let instructions: String
-            @Guide(description: "A correct reference solution in the requested language, as plain source code.")
-            let solution: String
-        }
-
         static func generate(prompt: String, language: String) async -> Draft? {
             let trimmed = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else { return nil }
@@ -68,23 +52,43 @@ enum QuestionDrafter {
             target language, draft a complete question: a concise title, a short interviewer-facing \
             description, clear candidate instructions, and a correct reference solution in the target \
             language. Keep it self-contained and unambiguous.
+
+            Reply with exactly these four labeled sections, in this order, and nothing else:
+            TITLE: a short, specific title, at most eight words, no quotes.
+            DESCRIPTION: a one or two sentence summary of the problem for the interviewer.
+            INSTRUCTIONS: clear candidate-facing instructions - what to build and any constraints, \
+            as plain prose.
+            SOLUTION: a correct reference solution in \(languageName), as plain source code (this \
+            section may span multiple lines).
             """
             let session = LanguageModelSession(instructions: modelInstructions)
             do {
-                let response = try await session.respond(
-                    to: "Target language: \(languageName)\nBrief: \(trimmed)",
-                    generating: RawDraft.self
-                )
-                let draft = response.content
-                return Draft(
-                    title: draft.title.trimmingCharacters(in: .whitespacesAndNewlines),
-                    description: draft.description.trimmingCharacters(in: .whitespacesAndNewlines),
-                    instructions: draft.instructions.trimmingCharacters(in: .whitespacesAndNewlines),
-                    solution: draft.solution.trimmingCharacters(in: .whitespacesAndNewlines)
-                )
+                // Plain-text `respond(to:)`, never `@Generable` (its emitted accessor aborts
+                // at dyld load on some OS builds); the labeled reply is parsed back here.
+                let response = try await session.respond(to: "Target language: \(languageName)\nBrief: \(trimmed)")
+                return parseDraft(response.content)
             } catch {
                 return nil
             }
+        }
+
+        /// Reconstructs the drafted question from the model's labeled reply. Any field the
+        /// model omitted comes back empty, which the editor treats as "nothing to fill" (the
+        /// same contract as before). Nil only when nothing usable was produced. Pure and
+        /// off-main-safe, so it's testable without the model.
+        static func parseDraft(_ reply: String) -> Draft? {
+            let sections = OnDeviceModelParsing.labeledSections(
+                reply, labels: ["TITLE", "DESCRIPTION", "INSTRUCTIONS", "SOLUTION"]
+            )
+            let draft = Draft(
+                title: sections["TITLE"] ?? "",
+                description: sections["DESCRIPTION"] ?? "",
+                instructions: sections["INSTRUCTIONS"] ?? "",
+                solution: sections["SOLUTION"] ?? ""
+            )
+            let hasContent = ![draft.title, draft.description, draft.instructions, draft.solution]
+                .allSatisfy(\.isEmpty)
+            return hasContent ? draft : nil
         }
     }
 #endif
