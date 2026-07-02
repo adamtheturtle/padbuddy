@@ -13,7 +13,7 @@
 //  no extra entitlement.
 //
 
-import BuddyMCP
+import MCPKit
 
 #if os(macOS)
     import AppKit
@@ -72,16 +72,16 @@ enum MCPClientInstall {
         }
 
         /// The config snippet to paste by hand, for the "edit the file yourself" fallback.
-        /// Delegates to buddy-kit's `BuddyMCPClient` for the `padbuddy` server. Codex gets the
+        /// Delegates to MCPKit's `MCPClient` for the `padbuddy` server. Codex gets the
         /// `[mcp_servers.padbuddy]` TOML table and Claude Desktop / Cursor get the `mcpServers`
         /// JSON block, as before.
         ///
-        /// Claude Code is mapped to the JSON block too (`BuddyMCPClient.claudeDesktop`) rather
-        /// than to buddy-kit's `.claudeCode`, which emits a `claude mcp add …` shell command:
+        /// Claude Code is mapped to the JSON block too (`MCPClient.claudeDesktop`) rather
+        /// than to MCPKit's `.claudeCode`, which emits a `claude mcp add …` shell command:
         /// this pane's copy says "edit ~/.claude.json yourself" and shows that file path, so a
         /// JSON snippet is what matches - preserving the previous behaviour exactly.
         func snippet(executablePath: String) -> String {
-            let mapped: BuddyMCPClient? = switch self {
+            let mapped: MCPClient? = switch self {
             case .claudeDesktop: .claudeDesktop
             case .claudeCode: .claudeDesktop // JSON block for ~/.claude.json, not the CLI command
             case .codex: .codex

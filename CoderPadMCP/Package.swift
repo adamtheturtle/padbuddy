@@ -10,8 +10,7 @@ import PackageDescription
 
 let package = Package(
     name: "CoderPadMCP",
-    // macOS 15 to match buddy-kit's floor (its `BuddyMCP` seam shares the package's
-    // platform with the SwiftUI-backed `BuddyDesignSystem`); the app itself is macOS 15+.
+    // macOS 15 to match the app's floor.
     platforms: [.macOS(.v15)],
     dependencies: [
         .package(url: "https://github.com/modelcontextprotocol/swift-sdk.git", from: "0.12.1"),
@@ -20,19 +19,19 @@ let package = Package(
         .package(path: "../CoderPadToolCore"),
         // The service-agnostic MCP seam (argument coercion, descriptor->Tool bridge,
         // result builders, prompt helpers, and the server bootstrap) shared with the
-        // in-app server and RankBuddy (#565). Concrete catalog/transforms stay here.
-        .package(url: "https://github.com/adamtheturtle/buddy-kit", from: "0.5.0")
+        // in-app server. Concrete catalog/transforms stay here.
+        .package(url: "https://github.com/adamtheturtle/MCPKit/", exact: "0.1.0")
     ],
     targets: [
         // The MCP-bound core (the CoderPad tool schemas, prompts, and resources), split
         // out so it can be unit-tested (#522). Re-exports CoderPadToolCore (transforms)
-        // and BuddyMCP (the generic seam) so the executable and tests keep calling both
+        // and MCPKit (the generic seam) so the executable and tests keep calling both
         // unqualified.
         .target(
             name: "CoderPadMCPCore",
             dependencies: [
                 .product(name: "MCP", package: "swift-sdk"),
-                .product(name: "BuddyMCP", package: "buddy-kit"),
+                .product(name: "MCPKit", package: "MCPKit"),
                 "CoderPadToolCore"
             ]
         ),

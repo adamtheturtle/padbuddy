@@ -1,13 +1,13 @@
 {
-  "originHash" : "cd70a88ecba2e012d78a8cbc6edf6128834ee1a18781e88a250bee654cbbf207",
+  "originHash" : "60aaab529c4aaa0cb050a7d0db366375cbb918a91d6fedac0d43a216345da7a0",
   "pins" : [
     {
       "identity" : "buddy-kit",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/adamtheturtle/buddy-kit",
       "state" : {
-        "revision" : "73ee4b7e78f3cda73edc19a2436878d1eeac998e",
-        "version" : "0.8.0"
+        "revision" : "1ff422c1595dcc4637b74f9c14888c1556ed9faa",
+        "version" : "0.9.0"
       }
     },
     {
@@ -53,6 +53,24 @@
       "state" : {
         "revision" : "05e7fcc63b33925cd0c1faaa205cdd5681e7bbef",
         "version" : "2.3.0"
+      }
+    },
+    {
+      "identity" : "macpulltorefresh",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/adamtheturtle/MacPullToRefresh",
+      "state" : {
+        "revision" : "709fb5cc5463755dcd0bd839e7685f1e72b18cb5",
+        "version" : "0.1.0"
+      }
+    },
+    {
+      "identity" : "mcpkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/adamtheturtle/MCPKit/",
+      "state" : {
+        "revision" : "29cd39ff8d7d15e024807a634ab1efb51ea9005c",
+        "version" : "0.1.0"
       }
     },
     {

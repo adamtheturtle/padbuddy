@@ -16,7 +16,7 @@
 //  app (a single, main-actor reader) when it loads, avoiding multi-process rewrite races.
 //
 
-import BuddyMCP
+import MCPKit
 import Foundation
 
 /// One recorded MCP server event. `launch` marks a `--mcp` process starting; `call` marks
@@ -44,7 +44,7 @@ nonisolated enum MCPActivityLog {
     /// The most recent entries kept; older ones are dropped when the app trims on load.
     static let maxEntries = 30
 
-    /// Backing store: buddy-kit's JSONL log in the shared container, keeping the same
+    /// Backing store: MCPKit's JSONL log in the shared container, keeping the same
     /// directory (`com.coderpad.app`), filename (`mcp-activity.jsonl`), cap, and ISO-8601
     /// date coding as the previous hand-rolled implementation, so existing logs read back
     /// unchanged. Nil only if Application Support can't be resolved, in which case every

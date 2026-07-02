@@ -236,10 +236,10 @@ private func advertisedTools() -> [Tool] {
 
 // MARK: - Server
 
-/// The CoderPad provider for buddy-kit's `BuddyMCPServer`: it advertises the CoderPad
+/// The CoderPad provider for MCPKit's `MCPServer`: it advertises the CoderPad
 /// catalogue, prompts and resources, and runs the tool dispatch + resource reads against
 /// the configured accounts. The generic server wiring (handler registration, the
-/// PromptError mapping, stdio) is the shared `BuddyMCPServer`; only this CoderPad-specific
+/// PromptError mapping, stdio) is the shared `MCPServer`; only this CoderPad-specific
 /// behaviour lives here, identical to the in-app server's provider.
 struct CoderPadProvider: MCPToolProvider {
     func tools() async -> [Tool] {
@@ -294,7 +294,7 @@ struct CoderPadProvider: MCPToolProvider {
     }
 }
 
-let server = BuddyMCPServer(name: "PadBuddy", version: "0.1.0", provider: CoderPadProvider())
+let server = MCPServer(name: "PadBuddy", version: "0.1.0", provider: CoderPadProvider())
 
 // MARK: - Tool dispatch
 

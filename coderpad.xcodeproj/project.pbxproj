@@ -8,12 +8,12 @@
 
 /* Begin PBXBuildFile section */
 		66153CF62FEB609C00272AF3 /* FastList in Frameworks */ = {isa = PBXBuildFile; productRef = 66153CF52FEB609C00272AF3 /* FastList */; };
+		663804472FF64ACC004A9FCE /* MacPullToRefresh in Frameworks */ = {isa = PBXBuildFile; productRef = 663804462FF64ACC004A9FCE /* MacPullToRefresh */; };
+		6638FF682FF64481004A9FCE /* MCPKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6638FF672FF64481004A9FCE /* MCPKit */; };
 		66769DA52FED3F3A0023907A /* PaginatedRESTClient in Frameworks */ = {isa = PBXBuildFile; productRef = 66769DA42FED3F3A0023907A /* PaginatedRESTClient */; };
 		66769DA72FED3F490023907A /* PaginatedRESTClient in Frameworks */ = {isa = PBXBuildFile; productRef = 66769DA62FED3F490023907A /* PaginatedRESTClient */; };
 		6676A3412FEF13620023907A /* CoderPadKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6676A3402FEF13620023907A /* CoderPadKit */; };
 		6676A3432FEF13620023907A /* CoderPadKitMock in Frameworks */ = {isa = PBXBuildFile; productRef = 6676A3422FEF13620023907A /* CoderPadKitMock */; };
-		6676A3452FEF13950023907A /* BuddyMCP in Frameworks */ = {isa = PBXBuildFile; productRef = 6676A3442FEF13950023907A /* BuddyMCP */; };
-		6676A3472FEF139E0023907A /* BuddyMCP in Frameworks */ = {isa = PBXBuildFile; productRef = 6676A3462FEF139E0023907A /* BuddyMCP */; };
 		6676A3A22FEF95500023907A /* CoderPadKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6676A3A12FEF95500023907A /* CoderPadKit */; };
 		6676A3A42FEF95500023907A /* CoderPadKitMock in Frameworks */ = {isa = PBXBuildFile; productRef = 6676A3A32FEF95500023907A /* CoderPadKitMock */; };
 		668CA7E82FEC782F00420E24 /* CommandPaletteKit in Frameworks */ = {isa = PBXBuildFile; productRef = 668CA7E72FEC782F00420E24 /* CommandPaletteKit */; };
@@ -23,6 +23,7 @@
 		668E402A2FE2F7DC00AA8228 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; platformFilters = (macos, ); productRef = 668E40292FE2F7DC00AA8228 /* Sparkle */; };
 		6693DA532FE9D021005CA3CE /* CoderPadToolCore in Frameworks */ = {isa = PBXBuildFile; productRef = 6693DA522FE9D021005CA3CE /* CoderPadToolCore */; };
 		6693DA5C2FE9F08F005CA3CE /* MCP in Frameworks */ = {isa = PBXBuildFile; productRef = 6693DA5B2FE9F08F005CA3CE /* MCP */; };
+		66BDDD422FF63E06008224BE /* MCPKit in Frameworks */ = {isa = PBXBuildFile; productRef = 66BDDD412FF63E06008224BE /* MCPKit */; };
 		66C6A3392FEA84E300731E7E /* BuddyDesignSystem in Frameworks */ = {isa = PBXBuildFile; productRef = 66C6A3382FEA84E300731E7E /* BuddyDesignSystem */; };
 		66C6A33D2FEA883500731E7E /* MCP in Frameworks */ = {isa = PBXBuildFile; productRef = 66C6A33C2FEA883500731E7E /* MCP */; };
 		66C6A33F2FEA883500731E7E /* BuddyAppKit in Frameworks */ = {isa = PBXBuildFile; productRef = 66C6A33E2FEA883500731E7E /* BuddyAppKit */; };
@@ -168,18 +169,19 @@
 			files = (
 				66769DA72FED3F490023907A /* PaginatedRESTClient in Frameworks */,
 				6676A3412FEF13620023907A /* CoderPadKit in Frameworks */,
+				663804472FF64ACC004A9FCE /* MacPullToRefresh in Frameworks */,
 				66C6A3472FEA890100731E7E /* BuddyAppKit in Frameworks */,
 				668CA7E82FEC782F00420E24 /* CommandPaletteKit in Frameworks */,
 				66C6A3392FEA84E300731E7E /* BuddyDesignSystem in Frameworks */,
 				66F5F54A2FEC1C5400D064BD /* CoderPadToolCore in Frameworks */,
 				668CA8002FECBCA200420E24 /* WhatsNewKit in Frameworks */,
 				66FA9C362FEAB12400F1A795 /* FastList in Frameworks */,
-				6676A3452FEF13950023907A /* BuddyMCP in Frameworks */,
 				66F543E52FE57AB9000214AA /* Flow in Frameworks */,
 				6676A3432FEF13620023907A /* CoderPadKitMock in Frameworks */,
 				668E402A2FE2F7DC00AA8228 /* Sparkle in Frameworks */,
 				66E3CC582FDA31CC00FE87A9 /* Highlightr in Frameworks */,
 				6693DA5C2FE9F08F005CA3CE /* MCP in Frameworks */,
+				66BDDD422FF63E06008224BE /* MCPKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -216,13 +218,13 @@
 				668CA8022FECBCBA00420E24 /* WhatsNewKit in Frameworks */,
 				668CA7EF2FEC83C100420E24 /* CommandPaletteKit in Frameworks */,
 				66153CF62FEB609C00272AF3 /* FastList in Frameworks */,
-				6676A3472FEF139E0023907A /* BuddyMCP in Frameworks */,
 				6693DA532FE9D021005CA3CE /* CoderPadToolCore in Frameworks */,
 				66C6A33F2FEA883500731E7E /* BuddyAppKit in Frameworks */,
 				6676A3A42FEF95500023907A /* CoderPadKitMock in Frameworks */,
 				66769DA52FED3F3A0023907A /* PaginatedRESTClient in Frameworks */,
 				66C6A33D2FEA883500731E7E /* MCP in Frameworks */,
 				66C6A3412FEA883500731E7E /* BuddyDesignSystem in Frameworks */,
+				6638FF682FF64481004A9FCE /* MCPKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -298,7 +300,8 @@
 				66769DA62FED3F490023907A /* PaginatedRESTClient */,
 				6676A3402FEF13620023907A /* CoderPadKit */,
 				6676A3422FEF13620023907A /* CoderPadKitMock */,
-				6676A3442FEF13950023907A /* BuddyMCP */,
+				66BDDD412FF63E06008224BE /* MCPKit */,
+				663804462FF64ACC004A9FCE /* MacPullToRefresh */,
 			);
 			productName = coderpad;
 			productReference = 66C8C50B2FA73AB0009B720C /* PadBuddy.app */;
@@ -401,9 +404,9 @@
 				668CA7EE2FEC83C100420E24 /* CommandPaletteKit */,
 				668CA8012FECBCBA00420E24 /* WhatsNewKit */,
 				66769DA42FED3F3A0023907A /* PaginatedRESTClient */,
-				6676A3462FEF139E0023907A /* BuddyMCP */,
 				6676A3A12FEF95500023907A /* CoderPadKit */,
 				6676A3A32FEF95500023907A /* CoderPadKitMock */,
+				6638FF672FF64481004A9FCE /* MCPKit */,
 			);
 			productName = coderpad;
 			productReference = 66F5440C2FE5EECD000214AA /* PadBuddy.app */;
@@ -458,6 +461,8 @@
 				668CA7FE2FECBCA200420E24 /* XCRemoteSwiftPackageReference "WhatsNewKit" */,
 				66769DA12FED3E730023907A /* XCRemoteSwiftPackageReference "PaginatedRESTClient" */,
 				6676A33F2FEF13620023907A /* XCRemoteSwiftPackageReference "CoderPadKit" */,
+				66BDDD402FF63E05008224BE /* XCRemoteSwiftPackageReference "MCPKit" */,
+				663804452FF64ACC004A9FCE /* XCRemoteSwiftPackageReference "MacPullToRefresh" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 66C8C50C2FA73AB0009B720C /* Products */;
@@ -1147,6 +1152,14 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		663804452FF64ACC004A9FCE /* XCRemoteSwiftPackageReference "MacPullToRefresh" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/adamtheturtle/MacPullToRefresh";
+			requirement = {
+				kind = exactVersion;
+				version = 0.1.0;
+			};
+		};
 		66769DA12FED3E730023907A /* XCRemoteSwiftPackageReference "PaginatedRESTClient" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/adamtheturtle/PaginatedRESTClient.git";
@@ -1195,12 +1208,20 @@
 				minimumVersion = 0.12.1;
 			};
 		};
+		66BDDD402FF63E05008224BE /* XCRemoteSwiftPackageReference "MCPKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/adamtheturtle/MCPKit/";
+			requirement = {
+				kind = exactVersion;
+				version = 0.1.0;
+			};
+		};
 		66C6A3352FEA84E300731E7E /* XCRemoteSwiftPackageReference "buddy-kit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/adamtheturtle/buddy-kit";
 			requirement = {
 				kind = exactVersion;
-				version = 0.8.0;
+				version = 0.9.0;
 			};
 		};
 		66E3CC562FDA31CC00FE87A9 /* XCRemoteSwiftPackageReference "Highlightr" */ = {
@@ -1235,6 +1256,16 @@
 			package = 66FA9C342FEAB12400F1A795 /* XCRemoteSwiftPackageReference "FastList" */;
 			productName = FastList;
 		};
+		663804462FF64ACC004A9FCE /* MacPullToRefresh */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 663804452FF64ACC004A9FCE /* XCRemoteSwiftPackageReference "MacPullToRefresh" */;
+			productName = MacPullToRefresh;
+		};
+		6638FF672FF64481004A9FCE /* MCPKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 66BDDD402FF63E05008224BE /* XCRemoteSwiftPackageReference "MCPKit" */;
+			productName = MCPKit;
+		};
 		66769DA42FED3F3A0023907A /* PaginatedRESTClient */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 66769DA12FED3E730023907A /* XCRemoteSwiftPackageReference "PaginatedRESTClient" */;
@@ -1254,16 +1285,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 6676A33F2FEF13620023907A /* XCRemoteSwiftPackageReference "CoderPadKit" */;
 			productName = CoderPadKitMock;
-		};
-		6676A3442FEF13950023907A /* BuddyMCP */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 66C6A3352FEA84E300731E7E /* XCRemoteSwiftPackageReference "buddy-kit" */;
-			productName = BuddyMCP;
-		};
-		6676A3462FEF139E0023907A /* BuddyMCP */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 66C6A3352FEA84E300731E7E /* XCRemoteSwiftPackageReference "buddy-kit" */;
-			productName = BuddyMCP;
 		};
 		6676A3A12FEF95500023907A /* CoderPadKit */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -1309,6 +1330,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 6693DA5A2FE9F08F005CA3CE /* XCRemoteSwiftPackageReference "swift-sdk" */;
 			productName = MCP;
+		};
+		66BDDD412FF63E06008224BE /* MCPKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 66BDDD402FF63E05008224BE /* XCRemoteSwiftPackageReference "MCPKit" */;
+			productName = MCPKit;
 		};
 		66C6A3382FEA84E300731E7E /* BuddyDesignSystem */ = {
 			isa = XCSwiftPackageProductDependency;

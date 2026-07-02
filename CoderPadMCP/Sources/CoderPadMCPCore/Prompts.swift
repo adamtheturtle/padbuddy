@@ -9,7 +9,7 @@
 //  it is unit-tested without a server.
 //
 
-import BuddyMCP
+import MCPKit
 import Foundation
 import MCP
 

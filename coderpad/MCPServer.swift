@@ -20,7 +20,7 @@
 //  CoderPad `MCPTools` over the SDK.
 //
 
-import BuddyMCP
+import MCPKit
 import Foundation
 import MCP
 
@@ -54,14 +54,14 @@ nonisolated enum MCPServer {
     /// directory is resolved by the caller on the main actor (`Account` is main-actor
     /// isolated); the SDK's actor-based server then runs nonisolated. Tool activity is
     /// forwarded to `MCPActivityLog` so the app's status view can show it (#523). Never
-    /// returns: buddy-kit's shared stdio bootstrap blocks on the async server until stdin
+    /// returns: MCPKit's shared stdio bootstrap blocks on the async server until stdin
     /// closes, then exits.
     ///
     /// The in-app server serves whenever it's launched (the user controls it by adding or
     /// removing the MCP client configuration), so no `isEnabled:` gate is passed; the launch
     /// is always recorded via `onLaunch`, matching the previous open-coded behaviour.
     static func runUntilExit(directory: MCPAccountDirectory) -> Never {
-        BuddyMCPServer.runOverStdioUntilExit(
+        MCPKit.MCPServer.runOverStdioUntilExit(
             name: serverName,
             version: serverVersion,
             capabilities: .init(tools: .init(listChanged: false)),
@@ -71,7 +71,7 @@ nonisolated enum MCPServer {
     }
 }
 
-/// The CoderPad in-app MCP tool provider for buddy-kit's `BuddyMCPServer`. It advertises
+/// The CoderPad in-app MCP tool provider for MCPKit's `MCPServer`. It advertises
 /// the CoderPad catalogue (gated on the configured accounts' Screen / writes settings) and
 /// runs `MCPTools` against them. Tools-only - the in-app server exposes no prompts or
 /// resources - so it relies on the `MCPToolProvider` defaults for those. `nonisolated`

@@ -5,11 +5,11 @@
 //  Builds the standalone server's `MCP.Tool` list from the single shared catalog in
 //  CoderPadToolCore (#521), so the CLI advertises exactly the same tools - names,
 //  descriptions, schemas, gating, annotations - as the in-app server. The generic
-//  descriptor->`Tool` conversion now lives in BuddyMCP (`mcpTools`); this keeps only the
+//  descriptor->`Tool` conversion now lives in MCPKit (`mcpTools`); this keeps only the
 //  CoderPad-specific selection of which descriptors to advertise.
 //
 
-import BuddyMCP
+import MCPKit
 import CoderPadToolCore
 import MCP
 
