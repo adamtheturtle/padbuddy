@@ -208,7 +208,7 @@ extension PadsView {
                 onToggleFavorite: {
                     guard let account = accounts.currentAccountID else { return }
 
-                    favoritePads.toggle(pad.id, account: account)
+                    favoritePads.toggle(pad.id, title: pad.title, account: account)
                 }
             )
         }
@@ -225,7 +225,7 @@ extension PadsView {
             ) {
                 guard let account = accounts.currentAccountID else { return }
 
-                favoritePads.toggle(pad.id, account: account)
+                favoritePads.toggle(pad.id, title: pad.title, account: account)
             }]
         }
         .swipeActions(edge: .trailing) { pad in
@@ -276,7 +276,7 @@ extension PadsView {
             item.setData(data, forType: NSPasteboard.PasteboardType(UTType.coderpadFavorite.identifier))
         }
         return item
-    } 
+    }
     #endif
 
     /// The right-click menu for a pad row in the `NSTableView`-backed list, built as
@@ -309,7 +309,7 @@ extension PadsView {
                 : String(localized: "Add to Favorites")) {
                     guard let account = accounts.currentAccountID else { return }
 
-                    favoritePads.toggle(pad.id, account: account)
+                    favoritePads.toggle(pad.id, title: pad.title, account: account)
                 },
             .separator,
             .button(title: String(localized: "Copy Pad ID")) { Clipboard.copy(pad.id) },

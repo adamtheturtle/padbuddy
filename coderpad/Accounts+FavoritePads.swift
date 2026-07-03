@@ -9,17 +9,29 @@ import Foundation
 import os
 import SwiftUI
 
+/// One favorite ("pinned") pad: its CoderPad slug id plus the title captured when it
+/// was pinned. Persisting the title lets the sidebar show the pad's name immediately
+/// — even before the pads list has loaded — instead of falling back to the bare slug
+/// / short code (#654), mirroring how a starred question keeps its title (#325).
+struct FavoritePad: Codable, Hashable {
+    let id: String
+    var title: String
+}
+
 /// Per-account favorite ("pinned") pads, identified by pad id. The pad counterpart
 /// to ``FavoriteQuestionsStore``: dragging a pad onto the sidebar pins it as a
 /// quick-access shortcut. Scoped per account — a pad id is a CoderPad slug, unique
 /// across orgs, but favorites are still kept per account so the sidebar shows the
 /// right set — and persisted to UserDefaults as one JSON blob keyed by account id.
 /// The array keeps insertion order so the sidebar lists pads in the order pinned.
+/// Each entry also carries the pad's title (see ``FavoritePad``) so the sidebar never
+/// has to fall back to its bare slug (#654).
 @Observable
 final class FavoritePadsStore {
     static let shared = FavoritePadsStore()
-    private var byAccount: [UUID: [String]] = [:]
-    private static let key = "favoritePads.v1"
+    private var byAccount: [UUID: [FavoritePad]] = [:]
+    private static let key = "favoritePads.v2"
+    private static let legacyKey = "favoritePads.v1"
     /// The iCloud mirror is keyed by each account's stable sync id (a `String`), not
     /// the per-device `UUID` the local blob uses, so it lives under its own key with
     /// its own schema (#536).
@@ -30,8 +42,16 @@ final class FavoritePadsStore {
 
     private init() {
         if let data = UserDefaults.standard.data(forKey: Self.key),
-           let decoded = try? JSONDecoder().decode([UUID: [String]].self, from: data) {
+           let decoded = try? JSONDecoder().decode([UUID: [FavoritePad]].self, from: data) {
             byAccount = decoded
+        } else if let data = UserDefaults.standard.data(forKey: Self.legacyKey),
+                  let legacy = try? JSONDecoder().decode([UUID: [String]].self, from: data) {
+            // Carry id-only favourites saved before titles were stored into the new
+            // shape with empty titles; they're backfilled from the cache by
+            // `refreshTitles` as soon as the account's pads load.
+            byAccount = legacy.mapValues { ids in ids.map { FavoritePad(id: $0, title: "") } }
+            save()
+            UserDefaults.standard.removeObject(forKey: Self.legacyKey)
         }
         // Re-pull and merge whenever iCloud reports an external change to our mirror.
         cloudObserverTask = Task { @MainActor in
@@ -43,7 +63,17 @@ final class FavoritePadsStore {
         }
     }
 
+    /// The favorite pad ids in pinned order, for membership tests and ordering — the
+    /// callers that only care about identity, not titles.
     func favorites(account: UUID?) -> [String] {
+        guard let account else { return [] }
+
+        return (byAccount[account] ?? []).map(\.id)
+    }
+
+    /// The favorite pads with their stored titles, in pinned order, for the sidebar
+    /// rows that show a name.
+    func titledFavorites(account: UUID?) -> [FavoritePad] {
         guard let account else { return [] }
 
         return byAccount[account] ?? []
@@ -52,50 +82,76 @@ final class FavoritePadsStore {
     func isFavorite(_ id: String, account: UUID?) -> Bool {
         guard let account else { return false }
 
-        return byAccount[account]?.contains(id) ?? false
+        return byAccount[account]?.contains { $0.id == id } ?? false
     }
 
     /// Pins the pad if it isn't already, preserving order. Used by the sidebar drop
     /// target, where a drop should only ever add (never remove) a favorite.
-    func add(_ id: String, account: UUID) {
-        var ids = byAccount[account] ?? []
-        guard !ids.contains(id) else { return }
+    func add(_ id: String, title: String, account: UUID) {
+        var entries = byAccount[account] ?? []
+        guard !entries.contains(where: { $0.id == id }) else { return }
 
-        ids.append(id)
-        byAccount[account] = ids
+        entries.append(FavoritePad(id: id, title: title))
+        byAccount[account] = entries
         save()
     }
 
     /// Toggles the pad's pinned state, appending when newly pinned so order holds.
-    func toggle(_ id: String, account: UUID) {
-        var ids = byAccount[account] ?? []
-        if let index = ids.firstIndex(of: id) {
-            ids.remove(at: index)
+    func toggle(_ id: String, title: String, account: UUID) {
+        var entries = byAccount[account] ?? []
+        if let index = entries.firstIndex(where: { $0.id == id }) {
+            entries.remove(at: index)
         } else {
-            ids.append(id)
+            entries.append(FavoritePad(id: id, title: title))
         }
-        byAccount[account] = ids
+        byAccount[account] = entries
         save()
     }
 
     func remove(_ id: String, account: UUID) {
-        guard var ids = byAccount[account], let index = ids.firstIndex(of: id) else { return }
+        guard var entries = byAccount[account], let index = entries.firstIndex(where: { $0.id == id }) else { return }
 
-        ids.remove(at: index)
-        byAccount[account] = ids
+        entries.remove(at: index)
+        byAccount[account] = entries
         save()
     }
 
     /// Reorders `id` to sit immediately before `targetID`, persisting the new order
     /// (drag-to-reorder in the sidebar, #299). A no-op if either id isn't present.
     func move(_ id: String, before targetID: String, account: UUID) {
-        var ids = byAccount[account] ?? []
-        guard let from = ids.firstIndex(of: id), ids.contains(targetID), id != targetID else { return }
+        var entries = byAccount[account] ?? []
+        guard let from = entries.firstIndex(where: { $0.id == id }),
+              entries.contains(where: { $0.id == targetID }), id != targetID else { return }
 
-        ids.remove(at: from)
-        let insertAt = ids.firstIndex(of: targetID) ?? ids.count
-        ids.insert(id, at: insertAt)
-        byAccount[account] = ids
+        let moved = entries.remove(at: from)
+        let insertAt = entries.firstIndex(where: { $0.id == targetID }) ?? entries.count
+        entries.insert(moved, at: insertAt)
+        byAccount[account] = entries
+        save()
+    }
+
+    /// Updates stored titles from a freshly loaded pad list, so a favourite's name
+    /// stays current after a rename and legacy id-only favourites gain a title.
+    /// Called when an account's pads cache is refreshed; a no-op when nothing actually
+    /// changed, so it doesn't churn the store on every load.
+    func refreshTitles(from pads: [Pad], account: UUID) {
+        guard var entries = byAccount[account], !entries.isEmpty else { return }
+
+        let titles = Dictionary(
+            pads.map { ($0.id, $0.title) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        var changed = false
+        for index in entries.indices {
+            guard let title = titles[entries[index].id],
+                  !title.isEmpty, title != entries[index].title else { continue }
+
+            entries[index].title = title
+            changed = true
+        }
+        guard changed else { return }
+
+        byAccount[account] = entries
         save()
     }
 
@@ -137,11 +193,11 @@ final class FavoritePadsStore {
     /// external iCloud change. No-op when iCloud is unavailable (#536).
     func syncFromCloud() {
         guard let data = CloudSyncStore.shared.data(forKey: Self.cloudKey),
-              let cloud = try? JSONDecoder().decode([String: [String]].self, from: data) else { return }
+              let cloud = try? JSONDecoder().decode([String: [FavoritePad]].self, from: data) else { return }
 
         let merged = CloudSyncMerge.mergeArrays(cloud: cloud, into: byAccount) { identity in
             AccountsStore.shared.accounts.first { $0.syncID == identity }?.id
-        }
+        } id: { $0.id }
         guard merged != byAccount else { return }
 
         byAccount = merged

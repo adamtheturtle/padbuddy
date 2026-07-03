@@ -368,7 +368,7 @@ extension MergedPadsView {
                 rowAccount: RowAccount(row.account),
                 ownerDisplay: directory.display(row.item.ownerEmail),
                 isFavorite: favoritePads.isFavorite(row.item.id, account: row.account.id),
-                onToggleFavorite: { favoritePads.toggle(row.item.id, account: row.account.id) }
+                onToggleFavorite: { favoritePads.toggle(row.item.id, title: row.item.title, account: row.account.id) }
             )
         }
         .rowHeight(FastListRowMetrics.macHeight)
@@ -385,7 +385,7 @@ extension MergedPadsView {
                 title: starred ? String(localized: "Unfavorite") : String(localized: "Favorite"),
                 tint: Color(platformColor: .systemYellow),
                 systemImage: starred ? "star.slash" : "star.fill"
-            ) { favoritePads.toggle(row.item.id, account: row.account.id) }]
+            ) { favoritePads.toggle(row.item.id, title: row.item.title, account: row.account.id) }]
         }
         .swipeActions(edge: .trailing) { row in
             isReadOnly ? [] : [SwipeAction(title: String(localized: "Delete"), role: .destructive,
