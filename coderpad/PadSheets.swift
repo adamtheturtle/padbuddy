@@ -56,7 +56,9 @@ struct NewPadSheet: View {
 
                 Section {
                     Picker("Language", selection: languageSelection) {
-                        ForEach(CoderPadLanguages.pickerOptions, id: \.self) { Text($0.coderPadLanguageDisplayName).tag($0) }
+                        ForEach(CoderPadLanguages.pickerOptions, id: \.self) {
+                            Text($0.coderPadLanguageDisplayName).tag($0)
+                        }
                         if !CoderPadLanguages.pickerOptions.contains(language) {
                             Text(language.coderPadLanguageDisplayName).tag(language)
                         }
