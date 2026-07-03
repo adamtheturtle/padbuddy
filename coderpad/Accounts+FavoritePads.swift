@@ -31,7 +31,6 @@ final class FavoritePadsStore {
     static let shared = FavoritePadsStore()
     private var byAccount: [UUID: [FavoritePad]] = [:]
     private static let key = "favoritePads.v2"
-    private static let legacyKey = "favoritePads.v1"
     /// The iCloud mirror is keyed by each account's stable sync id (a `String`), not
     /// the per-device `UUID` the local blob uses, so it lives under its own key with
     /// its own schema (#536).
@@ -44,14 +43,6 @@ final class FavoritePadsStore {
         if let data = UserDefaults.standard.data(forKey: Self.key),
            let decoded = try? JSONDecoder().decode([UUID: [FavoritePad]].self, from: data) {
             byAccount = decoded
-        } else if let data = UserDefaults.standard.data(forKey: Self.legacyKey),
-                  let legacy = try? JSONDecoder().decode([UUID: [String]].self, from: data) {
-            // Carry id-only favourites saved before titles were stored into the new
-            // shape with empty titles; they're backfilled from the cache by
-            // `refreshTitles` as soon as the account's pads load.
-            byAccount = legacy.mapValues { ids in ids.map { FavoritePad(id: $0, title: "") } }
-            save()
-            UserDefaults.standard.removeObject(forKey: Self.legacyKey)
         }
         // Re-pull and merge whenever iCloud reports an external change to our mirror.
         cloudObserverTask = Task { @MainActor in
@@ -131,9 +122,9 @@ final class FavoritePadsStore {
     }
 
     /// Updates stored titles from a freshly loaded pad list, so a favourite's name
-    /// stays current after a rename and legacy id-only favourites gain a title.
-    /// Called when an account's pads cache is refreshed; a no-op when nothing actually
-    /// changed, so it doesn't churn the store on every load.
+    /// stays current after a rename (and a pad favourited while still untitled gains
+    /// its name once set). Called when an account's pads cache is refreshed; a no-op
+    /// when nothing actually changed, so it doesn't churn the store on every load.
     func refreshTitles(from pads: [Pad], account: UUID) {
         guard var entries = byAccount[account], !entries.isEmpty else { return }
 

@@ -85,8 +85,8 @@ final class PadsCacheStore {
         // every account inside `refresh`), now that the complete list is in hand.
         DockBadgeController.refresh()
         // Keep stored favourite-pad titles current now that fresh pads (and their
-        // titles) are in hand — this upgrades legacy id-only favourites and tracks
-        // renames, so the sidebar never shows a bare slug (#654).
+        // titles) are in hand — tracks renames and names a pad favourited while
+        // still untitled, so the sidebar shows a current title (#654).
         FavoritePadsStore.shared.refreshTitles(from: pads, account: accountID)
         writeQueue.enqueue {
             CacheDisk.save(pads, kind: "pads", account: accountID)
