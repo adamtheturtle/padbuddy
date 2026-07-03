@@ -1153,7 +1153,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/MacPullToRefresh";
 			requirement = {
 				kind = exactVersion;
-				version = 0.2.0;
+				version = 0.3.1;
 			};
 		};
 		6638044B2FF6559C004A9FCE /* XCRemoteSwiftPackageReference "swift-async-algorithms" */ = {
@@ -1225,7 +1225,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/buddy-kit";
 			requirement = {
 				kind = exactVersion;
-				version = 0.12.0;
+				version = 0.13.0;
 			};
 		};
 		66E3CC562FDA31CC00FE87A9 /* XCRemoteSwiftPackageReference "Highlightr" */ = {
