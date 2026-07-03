@@ -112,6 +112,9 @@ struct AccountFooter: View {
             .menuStyle(.button)
             .buttonStyle(.plain)
             .menuIndicator(.hidden)
+            // Highlight the account switcher under the iPad pointer; the plain style
+            // otherwise leaves this custom trigger inert to it. A no-op on macOS (#586).
+            .pointerHoverEffect()
             .accessibilityLabel("Switch account")
         }
     }

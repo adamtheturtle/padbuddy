@@ -238,6 +238,11 @@ struct Sidebar: View {
             .opacity(inactiveDimming)
         }
         .buttonStyle(.plain)
+        // Highlight the row under the iPad trackpad/Magic Keyboard pointer, following
+        // its rounded-rect content shape. A plain-style button gets no pointer effect on
+        // its own, so these custom sidebar rows (Saved Searches, Favorites, My Pads/
+        // Questions) otherwise stayed inert to the pointer; a no-op on macOS (#586).
+        .pointerHoverEffect()
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
