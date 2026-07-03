@@ -104,6 +104,15 @@ struct AccountFooter: View {
                 Divider()
                 Button("Manage Accounts…") { manageAccounts() }
             } label: {
+                // Deliberately NO `.pointerHoverEffect()` here (unlike the sidebar rows and
+                // toolbar buttons, #586): a `Menu` hosts its label in its own
+                // `UIHostingController`, so the label content is that host's *root* view. The
+                // pointer highlight renders by inserting a `_UIPortalView` as a sibling of the
+                // effected view, and a root view has no valid sibling slot — UIKit falls back
+                // to adding it straight onto `UIHostingController.view`, which logs the "not
+                // supported / may result in a broken view hierarchy" SwiftUI fault. Wrapping in
+                // a SwiftUI container doesn't help (stacks are drawn into the host, not backed
+                // by a distinct UIView), so the switcher simply forgoes the pointer highlight.
                 triggerLabel
             }
             // `.button` (not `.borderlessButton`) lets the rich label lay out at
@@ -112,9 +121,6 @@ struct AccountFooter: View {
             .menuStyle(.button)
             .buttonStyle(.plain)
             .menuIndicator(.hidden)
-            // Highlight the account switcher under the iPad pointer; the plain style
-            // otherwise leaves this custom trigger inert to it. A no-op on macOS (#586).
-            .pointerHoverEffect()
             .accessibilityLabel("Switch account")
         }
     }
