@@ -132,6 +132,7 @@ extension QuestionsView {
                 isFavorite: favoriteIDSet.contains(question.id),
                 onToggleFavorite: { toggleFavorite(question) }
             )
+            .fastListRowManualSelection(id: question.id, selection: $selectedQuestionIDs)
         }
         .rowHeight(FastListRowMetrics.macHeight)
         .reloadID(questionListReloadID)

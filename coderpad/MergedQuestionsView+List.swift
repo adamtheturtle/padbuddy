@@ -273,6 +273,7 @@ extension MergedQuestionsView {
                 isFavorite: isFavorite(row),
                 onToggleFavorite: { toggleFavorite(row) }
             )
+            .fastListRowManualSelection(id: row.id, selection: $selectedRowIDs)
         }
         .rowHeight(FastListRowMetrics.macHeight)
         .reloadID(mergedQuestionListReloadID)

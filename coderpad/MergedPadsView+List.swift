@@ -307,6 +307,7 @@ extension MergedPadsView {
                 isFavorite: favoritePads.isFavorite(row.item.id, account: row.account.id),
                 onToggleFavorite: { favoritePads.toggle(row.item.id, title: row.item.title, account: row.account.id) }
             )
+            .fastListRowManualSelection(id: row.item.id, selection: $selectedIDs)
         }
         .rowHeight(FastListRowMetrics.macHeight)
         .reloadID(mergedPadListReloadID)

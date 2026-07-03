@@ -67,7 +67,25 @@ struct AccountMetaLabel: View {
         }
         .lineLimit(1)
         .fixedSize(horizontal: true, vertical: false)
-        .foregroundStyle(.secondary)
+        .foregroundStyle(Color.fastListRowSecondaryLabel)
+    }
+}
+
+extension Color {
+    static var fastListRowPrimaryLabel: Color {
+        #if os(iOS)
+            Color(platformColor: .label)
+        #else
+            .primary
+        #endif
+    }
+
+    static var fastListRowSecondaryLabel: Color {
+        #if os(iOS)
+            Color(platformColor: .secondaryLabel)
+        #else
+            .secondary
+        #endif
     }
 }
 
@@ -120,7 +138,7 @@ private struct PadRowInfo: View, Equatable {
             VStack(alignment: .leading, spacing: 4) {
                 Text(pad.title.isEmpty ? pad.id : pad.title)
                     .font(.callout.weight(.medium))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Color.fastListRowPrimaryLabel)
                     .lineLimit(1)
                 HStack(spacing: 8) {
                     StateBadge(state: pad.status)
@@ -138,7 +156,7 @@ private struct PadRowInfo: View, Equatable {
                 .clipsMetadataOverflow()
                 Text(ownerDisplay)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.fastListRowSecondaryLabel)
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -197,7 +215,7 @@ private struct PadRowDateLabel: View {
                 let labels = RelativeDateLabel.labels(for: updated)
                 Text(labels.relative)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.fastListRowSecondaryLabel)
                     .lineLimit(1)
                     .fixedSize()
                     .help("Updated \(labels.tooltip)")
@@ -336,6 +354,20 @@ extension View {
     func fixedFastListRowHeight() -> some View {
         #if os(macOS)
             frame(height: FastListRowMetrics.macHeight)
+        #else
+            self
+        #endif
+    }
+
+    @ViewBuilder
+    func fastListRowManualSelection<ID: Hashable>(id: ID, selection: Binding<Set<ID>>) -> some View {
+        #if os(iOS)
+            contentShape(Rectangle())
+                .selectionDisabled()
+                .focusEffectDisabled()
+                .simultaneousGesture(TapGesture().onEnded {
+                    selection.wrappedValue = [id]
+                })
         #else
             self
         #endif

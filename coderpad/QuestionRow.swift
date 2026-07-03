@@ -37,6 +37,7 @@ private struct QuestionRowInfo: View, Equatable {
             VStack(alignment: .leading, spacing: 4) {
                 Text(question.displayTitle)
                     .font(.callout.weight(.medium))
+                    .foregroundStyle(Color.fastListRowPrimaryLabel)
                     .lineLimit(1)
                 HStack(spacing: 8) {
                     if let account {
@@ -58,7 +59,7 @@ private struct QuestionRowInfo: View, Equatable {
                 .lineLimit(1)
                 .clipsMetadataOverflow()
                 if let author = question.authorName {
-                    Text(author).font(.caption).foregroundStyle(.secondary)
+                    Text(author).font(.caption).foregroundStyle(Color.fastListRowSecondaryLabel)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -106,7 +107,7 @@ private struct QuestionRowDateLabel: View {
                 let labels = RelativeDateLabel.labels(for: lastUsed)
                 Text(labels.relative)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.fastListRowSecondaryLabel)
                     .lineLimit(1)
                     .fixedSize()
                     .help("Last used \(labels.tooltip)")

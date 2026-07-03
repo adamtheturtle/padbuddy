@@ -211,6 +211,7 @@ extension PadsView {
                     favoritePads.toggle(pad.id, title: pad.title, account: account)
                 }
             )
+            .fastListRowManualSelection(id: pad.id, selection: $selectedIDs)
         }
         .rowHeight(FastListRowMetrics.macHeight)
         .reloadID(padListReloadID)
