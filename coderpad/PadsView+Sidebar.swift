@@ -212,6 +212,11 @@ extension PadsView {
                 }
             )
             .fastListRowManualSelection(id: pad.id, selection: $selectedIDs)
+            // iPad: drag onto the sidebar Favorites to pin, or out to Safari/Notes/Split View.
+            .favoriteDraggable(padFavoritePayload(pad), title: pad.title.isEmpty ? pad.id : pad.title)
+            // iPad: the row's context menu with a compact preview (macOS uses the FastList
+            // `NSMenu` path below instead).
+            .favoriteRowContextMenu(padTableMenuItems(pad), title: pad.title.isEmpty ? pad.id : pad.title)
         }
         .rowHeight(FastListRowMetrics.macHeight)
         .reloadID(padListReloadID)
@@ -238,9 +243,14 @@ extension PadsView {
         #if os(macOS)
         .onRowDrag { padPasteboardItem($0) }
         #endif
-        // iPad: drag a pad's URL into Safari, Notes, or a Split View.
-        .onRowDragURL { $0.webURL }
+        // iPad drag is attached to the row content above via `.favoriteDraggable` so it can
+        // carry the favorite payload alongside the URL; `FastList.onRowDragURL` (URL only)
+        // would add a second, conflicting `.draggable`. The iPad context menu is likewise
+        // attached to the row content (`.favoriteRowContextMenu`) so its long-press preview
+        // stays compact; `FastList`'s `NSMenu` path here is macOS-only.
+        #if os(macOS)
         .rowContextMenu { padTableMenuItems($0) }
+        #endif
         .onTopRowChange { scheduleTopRowPersistence($0) }
         .scrollToRow(id: pendingScrollToID) { pendingScrollToID = nil }
         #if os(macOS)
@@ -256,6 +266,19 @@ extension PadsView {
     private var padListReloadID: String {
         let account = accounts.currentAccountID
         return favoritePads.favorites(account: account).joined(separator: "\u{1F}")
+    }
+
+    /// The iPad drag payload for a pad row: the internal `FavoriteDrop` (so it can be
+    /// dropped on the sidebar Favorites to pin it, #297) plus the web URL (so external
+    /// drops still receive a link). `nil` — non-draggable — when there's no current
+    /// account or the pad has no URL, mirroring `padPasteboardItem` on macOS.
+    func padFavoritePayload(_ pad: Pad) -> FavoriteDragPayload? {
+        guard let account = accounts.currentAccountID, let url = pad.webURL else { return nil }
+
+        return FavoriteDragPayload(
+            drop: .pad(account: account, id: pad.id, title: pad.title.isEmpty ? pad.id : pad.title),
+            url: url
+        )
     }
 
     /// The drag payload for a pad row in the `NSTableView`-backed list: the pad's web

@@ -63,10 +63,15 @@ struct AccountMetaLabel: View {
     var body: some View {
         HStack(spacing: 4) {
             AvatarCircle(label: account.name, diameter: 14, tint: account.tint, symbol: account.symbol)
-            Text(account.name).font(.caption)
+            // Unlike the short, `.fixedSize` chips beside it, an account name is
+            // free-form and can be long, so let it truncate with a tail ellipsis
+            // ("Fawlty Tow…") rather than staying whole and being hard-clipped
+            // mid-glyph by `clipsMetadataOverflow` on a narrow list column.
+            Text(account.name)
+                .font(.caption)
+                .lineLimit(1)
+                .truncationMode(.tail)
         }
-        .lineLimit(1)
-        .fixedSize(horizontal: true, vertical: false)
         .foregroundStyle(Color.fastListRowSecondaryLabel)
     }
 }
@@ -294,28 +299,27 @@ enum FastListRowMetrics {
 }
 
 extension View {
-    /// Bounds a row's `fixedSize` metadata chips to the width the row actually allots,
-    /// clipping any overflow at the trailing edge rather than letting the chips force the
-    /// whole row wider than its list column.
+    /// Bounds a row's metadata line to the width the row actually allots, so it can never
+    /// force the whole row wider than its list column, while letting a compressible chip
+    /// (the account name) truncate cleanly instead of being clipped mid-glyph.
     ///
-    /// The metadata chips (``StateBadge``/``MetaLabel``/``Chip``/``AccountMetaLabel``) are
-    /// each `.fixedSize` so they stay whole rather than truncating to "Pyth…". The side
-    /// effect is that a row carrying more metadata than fits (an extra language plus a
-    /// "Used N×" chip, say) has a *minimum* width larger than the iPad list column. A frame
-    /// - including the `containerRelativeFrame` that seats each row in its column - can't
-    /// shrink below its content's minimum, so such a row lays out at its intrinsic width
-    /// instead: its trailing star/date get shoved out of view, and in a `NavigationSplitView`
-    /// content column the whole row drifts off the shared leading edge (the "middle row too
-    /// far left" report).
+    /// The short chips (``StateBadge``/``MetaLabel``/``Chip``) are each `.fixedSize` so they
+    /// stay whole rather than truncating to "Pyth…". The side effect is that a row carrying
+    /// more metadata than fits (an extra language plus a "Used N×" chip, say) has a *minimum*
+    /// width larger than the iPad list column. A frame - including the `containerRelativeFrame`
+    /// that seats each row in its column - can't shrink below its content's minimum, so such a
+    /// row would otherwise lay out at its intrinsic width: its trailing star/date get shoved
+    /// out of view, and in a `NavigationSplitView` content column the whole row drifts off the
+    /// shared leading edge (the "middle row too far left" report).
     ///
-    /// `frame(width: 0)` makes this line *report* zero width - leaving its natural height, so
-    /// row height and Dynamic Type are untouched - while the chips still draw, leading-aligned,
-    /// overflowing that zero frame. The outer flexible frame then takes only the width the row
-    /// allots and `clipped()` trims the overflow, so excess chips fall off the trailing edge
-    /// and the row can no longer outgrow its column. A no-op when the metadata already fits.
+    /// `minWidth: 0` makes this line *report* zero minimum width - leaving its natural height,
+    /// so row height and Dynamic Type are untouched - so the row can never be forced wider than
+    /// its column. Unlike a fixed `frame(width: 0)`, the flexible frame proposes the row's
+    /// *actual* allotted width down to the chips, so the one compressible chip (the free-form
+    /// ``AccountMetaLabel`` name) truncates with a tail ellipsis to fit; `clipped()` then trims
+    /// any residual overflow from the whole-width fixed chips. A no-op when the metadata fits.
     func clipsMetadataOverflow() -> some View {
-        frame(width: 0, alignment: .leading)
-            .frame(maxWidth: .infinity, alignment: .leading)
+        frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
             .clipped()
     }
 

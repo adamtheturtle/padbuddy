@@ -308,6 +308,12 @@ extension MergedPadsView {
                 onToggleFavorite: { favoritePads.toggle(row.item.id, title: row.item.title, account: row.account.id) }
             )
             .fastListRowManualSelection(id: row.item.id, selection: $selectedIDs)
+            // iPad: drag onto the sidebar Favorites to pin, or out to Safari/Notes/Split View.
+            .favoriteDraggable(padFavoritePayload(row), title: row.item.title.isEmpty ? row.item.id : row.item.title)
+            // iPad: the row's context menu with a compact preview (macOS uses the FastList
+            // `NSMenu` path below instead).
+            .favoriteRowContextMenu(padTableMenuItems(row),
+                                    title: row.item.title.isEmpty ? row.item.id : row.item.title)
         }
         .rowHeight(FastListRowMetrics.macHeight)
         .reloadID(mergedPadListReloadID)
@@ -334,9 +340,14 @@ extension MergedPadsView {
         #if os(macOS)
         .onRowDrag { padPasteboardItem($0) }
         #endif
-        // iPad: drag a pad's URL into Safari, Notes, or a Split View.
-        .onRowDragURL { $0.item.webURL }
+        // iPad drag is attached to the row content above via `.favoriteDraggable` so it can
+        // carry the favorite payload alongside the URL; `FastList.onRowDragURL` (URL only)
+        // would add a second, conflicting `.draggable`. The iPad context menu is likewise
+        // attached to the row content (`.favoriteRowContextMenu`) so its long-press preview
+        // stays compact; `FastList`'s `NSMenu` path here is macOS-only.
+        #if os(macOS)
         .rowContextMenu { padTableMenuItems($0) }
+        #endif
         .onTopRowChange { scheduleTopRowPersistence($0) }
         .scrollToRow(id: pendingScrollToID) { pendingScrollToID = nil }
         #if os(macOS)

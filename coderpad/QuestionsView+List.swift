@@ -133,6 +133,11 @@ extension QuestionsView {
                 onToggleFavorite: { toggleFavorite(question) }
             )
             .fastListRowManualSelection(id: question.id, selection: $selectedQuestionIDs)
+            // iPad: drag onto the sidebar Favorites to pin, or out to Safari/Notes/Split View.
+            .favoriteDraggable(questionFavoritePayload(question), title: question.displayTitle)
+            // iPad: the row's context menu with a compact preview (macOS uses the FastList
+            // `NSMenu` path below instead).
+            .favoriteRowContextMenu(questionTableMenuItems(question), title: question.displayTitle)
         }
         .rowHeight(FastListRowMetrics.macHeight)
         .reloadID(questionListReloadID)
@@ -167,9 +172,14 @@ extension QuestionsView {
         #if os(macOS)
         .onRowDrag { questionPasteboardItem($0) }
         #endif
-        // iPad: drag a question's URL into Safari, Notes, or a Split View.
-        .onRowDragURL { $0.webURL(baseURL: client.baseURL) }
+        // iPad drag is attached to the row content above via `.favoriteDraggable` so it can
+        // carry the favorite payload alongside the URL; `FastList.onRowDragURL` (URL only)
+        // would add a second, conflicting `.draggable`. The iPad context menu is likewise
+        // attached to the row content (`.favoriteRowContextMenu`) so its long-press preview
+        // stays compact; `FastList`'s `NSMenu` path here is macOS-only.
+        #if os(macOS)
         .rowContextMenu { questionTableMenuItems($0) }
+        #endif
         .onTopRowChange { scheduleTopRowPersistence($0) }
         .scrollToRow(id: pendingScrollToID) { pendingScrollToID = nil }
         #if os(macOS)
@@ -209,6 +219,19 @@ extension QuestionsView {
     /// having selected it.
     private func openQuestionWindow(_ question: Question) {
         openWindow(id: "question", value: QuestionWindowID(account: accounts.currentAccountID, id: question.id))
+    }
+
+    /// The iPad drag payload for a question row: the internal `FavoriteDrop` (so it can
+    /// be dropped on the sidebar Favorites to pin it, #297) plus the web URL (so external
+    /// drops still receive a link). `nil` — non-draggable — when there's no current
+    /// account, mirroring `questionPasteboardItem` on macOS.
+    func questionFavoritePayload(_ question: Question) -> FavoriteDragPayload? {
+        guard let account = accounts.currentAccountID else { return nil }
+
+        return FavoriteDragPayload(
+            drop: .question(account: account, id: question.id, title: question.displayTitle),
+            url: question.webURL(baseURL: client.baseURL)
+        )
     }
 
     /// The drag payload for a question row: its web URL (external link drops) plus the

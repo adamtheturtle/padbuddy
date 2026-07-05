@@ -44,6 +44,102 @@ enum FavoriteDrop: Codable, Transferable {
     }
 }
 
+/// The iPad drag payload for a pad or question row: the internal ``FavoriteDrop`` JSON so the
+/// row can be dropped on the sidebar Favorites to pin it (#297), plus the row's web URL so it
+/// still drags out to Safari, Notes, or a Split View — the two payloads the single macOS
+/// `NSPasteboardItem` carries (see `padPasteboardItem`), reunited for the SwiftUI drag path.
+/// macOS builds its drag at the AppKit layer because the hosted row content is hit-transparent
+/// there; on iPad the row content isn't, so a native `.draggable` carrying this grabs directly.
+struct FavoriteDragPayload: Transferable {
+    let drop: FavoriteDrop
+    /// The row's web URL, for external drops. Rows without one aren't draggable (mirrored by
+    /// `padPasteboardItem` returning `nil`), so this is always present.
+    let url: URL
+
+    static var transferRepresentation: some TransferRepresentation {
+        // The favorite payload first so an in-app drop on the sidebar prefers it…
+        DataRepresentation(exportedContentType: .coderpadFavorite) { payload in
+            try JSONEncoder().encode(payload.drop)
+        }
+        // …while other apps still receive a plain link.
+        ProxyRepresentation { $0.url }
+    }
+}
+
+extension View {
+    /// iPad: makes a pad or question row draggable onto the sidebar Favorites (and out to
+    /// Safari/Notes/Split View), carrying the same ``FavoriteDrop`` the macOS pasteboard path
+    /// builds. A no-op on macOS, where `FastList.onRowDrag` supplies the richer `NSPasteboardItem`
+    /// instead (the hosted row content there is hit-transparent, so a SwiftUI `.draggable`
+    /// wouldn't grab). `payload` is `nil` for a row that can't be favourited (no account or URL).
+    @ViewBuilder
+    func favoriteDraggable(_ payload: FavoriteDragPayload?, title: String) -> some View {
+        #if os(iOS)
+            if let payload {
+                // An explicit compact preview so the lift is a small chip rather than a
+                // full-width snapshot of the row (matching FastList's URL-drag chip).
+                draggable(payload) { FavoriteDragChip(title: title) }
+            } else {
+                self
+            }
+        #else
+            self
+        #endif
+    }
+
+    /// iPad: attaches a pad/question row's context menu with an explicit compact preview, so a
+    /// long-press lifts a small title-and-star chip rather than a full-width snapshot of the row.
+    ///
+    /// `FastList`'s own `.rowContextMenu` only supplies a compact preview when a drag *URL* is
+    /// configured (see `onRowDragURL`); these rows carry the richer ``FavoriteDragPayload`` via
+    /// `.favoriteDraggable` instead of a URL, so `FastList` has no title to build a chip from and
+    /// its long-press platter defaults to the whole row — full-width and padded with empty space
+    /// under the row's `containerRelativeFrame` layout. Rendering the same ``MenuItem``s here (so
+    /// the menu itself is unchanged) with an explicit preview keeps the platter compact. A no-op
+    /// on macOS, where `FastList`'s AppKit `NSMenu` path drives the menu over hit-transparent
+    /// content and this modifier's iOS `.rowContextMenu` stays gated off.
+    @ViewBuilder
+    func favoriteRowContextMenu(_ items: [MenuItem], title: String) -> some View {
+        #if os(iOS)
+            contextMenu {
+                ForEach(Array(items.enumerated()), id: \.offset) { _, item in
+                    switch item {
+                    case let .button(buttonTitle, isEnabled, role, action):
+                        Button(role: role == .destructive ? .destructive : nil, action: action) {
+                            Text(buttonTitle)
+                        }
+                        .disabled(!isEnabled)
+                    case .separator:
+                        Divider()
+                    }
+                }
+            } preview: {
+                FavoriteDragChip(title: title)
+            }
+        #else
+            self
+        #endif
+    }
+}
+
+#if os(iOS)
+    /// The compact lift preview for an iPad favourite drag: the row's title beside a star,
+    /// sized to its content so the row lifts as a small chip instead of a full-width snapshot.
+    private struct FavoriteDragChip: View {
+        let title: String
+
+        var body: some View {
+            Label(title, systemImage: "star")
+                .lineLimit(1)
+                .font(.body)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(.regularMaterial, in: .rect(cornerRadius: 8))
+                .fixedSize()
+        }
+    }
+#endif
+
 /// App-level signal that a favorite-able pad or question is currently being dragged,
 /// so the sidebar can reveal its empty-Favourites drop zone *only* while a drop is
 /// possible and keep no resting gap otherwise (#444). The NSTableView row drag has

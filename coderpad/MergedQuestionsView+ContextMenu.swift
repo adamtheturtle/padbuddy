@@ -63,6 +63,21 @@ extension MergedQuestionsView {
         ]
     }
 
+    /// The iPad drag payload for a combined-questions row: the internal `FavoriteDrop`
+    /// carrying the *originating* account (so it drops onto the sidebar Favorites and pins
+    /// to the right account, #297) plus the web URL resolved against that account's server
+    /// (so external drops still receive a link).
+    func questionFavoritePayload(_ row: MergedQuestionRow) -> FavoriteDragPayload {
+        FavoriteDragPayload(
+            drop: .question(
+                account: row.account.id,
+                id: row.item.id,
+                title: row.item.displayTitle
+            ),
+            url: row.item.webURL(baseURL: row.account.resolvedBaseURL)
+        )
+    }
+
     /// The drag payload for a combined-questions row: its web URL (resolved against the
     /// originating account's server, external link drops) plus the internal
     /// `FavoriteDrop` JSON carrying that account (so it drops onto the sidebar
