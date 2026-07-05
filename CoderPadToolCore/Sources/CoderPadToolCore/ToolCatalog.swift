@@ -5,8 +5,8 @@
 //  The single source of truth for the CoderPad MCP tool catalog (#521): tool names,
 //  descriptions, input schemas, gating, and write annotations, expressed as plumbing-
 //  neutral JSON ([String: Any]) so both servers build their own tool objects from it.
-//  The in-app `--mcp` server (BuddyMCP / hand-rolled JSON-RPC) returns these descriptors
-//  almost verbatim; the standalone `coderpad-mcp` CLI converts each to an `MCP.Tool`.
+//  Both the in-app `--mcp` server and the standalone `coderpad-mcp` CLI convert each
+//  descriptor to an `MCP.Tool` through MCPKit's shared `mcpTools(from:)` bridge.
 //  Defining a tool here means it appears, identically, on both servers.
 //
 //  Every account-scoped tool carries an optional `account` argument (the servers can act

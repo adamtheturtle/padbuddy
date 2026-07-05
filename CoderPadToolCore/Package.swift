@@ -3,9 +3,10 @@
 // The network-free, plumbing-neutral core of the CoderPad MCP tool set (#521): the
 // pad/question count-aggregate-compact transforms and the get_pad_code assembly. Both
 // MCP servers depend on this so a tool's data shaping is written once — the in-app
-// `--mcp` server (#402, via BuddyMCP) and the standalone `coderpad-mcp` CLI (#393, via
-// CoderPadMCPCore). Foundation only, no MCP-SDK or app coupling, so either plumbing can
-// wrap the same pure functions. A sibling of the app and of `CoderPadMCP` at the repo root.
+// `--mcp` server (#402) and the standalone `coderpad-mcp` CLI (#393), both wiring these
+// transforms through the shared MCPKit seam. Foundation only, no MCP-SDK or app
+// coupling, so either plumbing can wrap the same pure functions. A sibling of the app
+// and of `CoderPadMCP` at the repo root.
 
 import PackageDescription
 

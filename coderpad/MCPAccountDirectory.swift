@@ -6,8 +6,8 @@
 //  extracted from the app's main-actor `Account` (the secrets are read on the main actor
 //  in `MCPAccountLoader`), letting the rest of the headless server stay `nonisolated`.
 //  They previously lived in the BuddyMCP package, which hand-rolled the JSON-RPC server;
-//  that server is now the official MCP Swift SDK (see `MCPServer.swift`), so the model
-//  lives here with the only code that uses it.
+//  that server is now MCPKit's `MCPServer` over the official MCP Swift SDK (see
+//  `MCPServer.swift`), so the model lives here with the only code that uses it.
 //
 
 import Foundation
