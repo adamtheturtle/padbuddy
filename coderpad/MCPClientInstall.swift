@@ -167,17 +167,9 @@ enum MCPClientInstall {
         let url = folder.appendingPathComponent(spec.fileName)
         do {
             if spec.isTOML {
-                let added = try appendCodexServer(into: url, executablePath: executablePath)
-                if added {
-                    showAlert(.informational, "Added to \(client.displayName)", client.restartHint)
-                } else {
-                    showAlert(.informational, "Already in \(client.displayName)",
-                              "\(client.displayName) already has a \u{201C}padbuddy\u{201D} server. "
-                                  + "Edit \(client.configPath) by hand if its path changed.")
-                }
+                try upsertCodexServer(into: url, client: client, executablePath: executablePath)
             } else {
-                try mergeJSONServer(into: url, executablePath: executablePath)
-                showAlert(.informational, "Added to \(client.displayName)", client.restartHint)
+                try mergeJSONServer(into: url, client: client, executablePath: executablePath)
             }
         } catch {
             showAlert(.warning, "Couldn't update \(client.displayName)", error.localizedDescription)
@@ -186,14 +178,25 @@ enum MCPClientInstall {
 
     // MARK: - JSON config (Claude Desktop, Claude Code, Cursor)
 
-    private static func mergeJSONServer(into url: URL, executablePath: String) throws {
+    /// Adds the PadBuddy entry to `client`'s `mcpServers`, or - when one is already there -
+    /// rewrites it (after the user confirms) so its command points at this copy of PadBuddy,
+    /// preserving anything else in the file. Reports the outcome itself; does nothing and shows
+    /// no alert if the user cancels the update.
+    @MainActor
+    private static func mergeJSONServer(into url: URL, client: Client, executablePath: String) throws {
         var root = try existingJSON(at: url)
         var servers = root["mcpServers"] as? [String: Any] ?? [:]
+        let alreadyPresent = servers["padbuddy"] != nil
+        if alreadyPresent, !confirmUpdate(client) { return }
+
         servers["padbuddy"] = ["command": executablePath, "args": ["--mcp"]]
         root["mcpServers"] = servers
 
         let data = try JSONSerialization.data(withJSONObject: root, options: [.prettyPrinted, .sortedKeys])
         try data.write(to: url, options: .atomic)
+
+        let title = alreadyPresent ? "Updated \(client.displayName)" : "Added to \(client.displayName)"
+        showAlert(.informational, title, client.restartHint)
     }
 
     /// Reads and parses the existing JSON config, returning an empty object when the file is
@@ -212,25 +215,61 @@ enum MCPClientInstall {
 
     // MARK: - TOML config (Codex)
 
-    /// Appends a `[mcp_servers.padbuddy]` table when one isn't already present, returning
-    /// whether it added one (`false` = already configured). Append-only on purpose: it needs
-    /// no TOML parser and can never produce a duplicate table (which would be invalid TOML).
-    private static func appendCodexServer(into url: URL, executablePath: String) throws -> Bool {
+    /// Adds a `[mcp_servers.padbuddy]` table, or - when one is already there - rewrites it (after
+    /// the user confirms) so its command points at this copy of PadBuddy. Reports the outcome
+    /// itself; does nothing and shows no alert if the user cancels the update.
+    @MainActor
+    private static func upsertCodexServer(into url: URL, client: Client, executablePath: String) throws {
         var text = ""
         if FileManager.default.fileExists(atPath: url.path) {
             text = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
         }
-        guard !text.contains("[mcp_servers.padbuddy]") else { return false }
 
-        let block = """
+        let block = codexServerBlock(executablePath: executablePath)
+        if text.contains("[mcp_servers.padbuddy]") {
+            guard confirmUpdate(client) else { return }
+            let updated = replacingCodexServer(in: text, with: block)
+            try updated.write(to: url, atomically: true, encoding: .utf8)
+            showAlert(.informational, "Updated \(client.displayName)", client.restartHint)
+        } else {
+            let merged = text.isEmpty ? block : text + "\n" + block
+            try merged.write(to: url, atomically: true, encoding: .utf8)
+            showAlert(.informational, "Added to \(client.displayName)", client.restartHint)
+        }
+    }
+
+    /// The `[mcp_servers.padbuddy]` TOML table, with a trailing blank line so it stays separated
+    /// from anything that follows.
+    private static func codexServerBlock(executablePath: String) -> String {
+        """
         [mcp_servers.padbuddy]
         command = "\(executablePath)"
         args = ["--mcp"]
 
         """
-        let merged = text.isEmpty ? block : text + "\n" + block
-        try merged.write(to: url, atomically: true, encoding: .utf8)
-        return true
+    }
+
+    /// Replaces the existing `[mcp_servers.padbuddy]` table (its header through the line before
+    /// the next table header, or the end of file) with `block`, leaving every other table
+    /// untouched.
+    private static func replacingCodexServer(in text: String, with block: String) -> String {
+        let lines = text.components(separatedBy: "\n")
+        var result: [String] = []
+        var index = 0
+        while index < lines.count {
+            if lines[index].trimmingCharacters(in: .whitespaces) == "[mcp_servers.padbuddy]" {
+                result.append(contentsOf: block.components(separatedBy: "\n"))
+                index += 1
+                while index < lines.count,
+                      !lines[index].trimmingCharacters(in: .whitespaces).hasPrefix("[") {
+                    index += 1
+                }
+            } else {
+                result.append(lines[index])
+                index += 1
+            }
+        }
+        return result.joined(separator: "\n")
     }
 
     // MARK: - Access + alerts
@@ -264,6 +303,20 @@ enum MCPClientInstall {
         }
 
         return panel.runModal() == .OK ? panel.url : nil
+    }
+
+    /// Asks whether to overwrite an already-configured `padbuddy` server (e.g. its path changed).
+    /// Returns true only if the user picks Update.
+    @MainActor
+    private static func confirmUpdate(_ client: Client) -> Bool {
+        let alert = NSAlert()
+        alert.alertStyle = .informational
+        alert.messageText = "Update \(client.displayName)?"
+        alert.informativeText = "\(client.displayName) already has a \u{201C}padbuddy\u{201D} server. "
+            + "Update it to launch this copy of PadBuddy?"
+        alert.addButton(withTitle: "Update")
+        alert.addButton(withTitle: "Cancel")
+        return alert.runModal() == .alertFirstButtonReturn
     }
 
     @MainActor
