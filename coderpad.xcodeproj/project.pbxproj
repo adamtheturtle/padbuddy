@@ -34,7 +34,7 @@
 		66E3CC582FDA31CC00FE87A9 /* Highlightr in Frameworks */ = {isa = PBXBuildFile; productRef = 66E3CC572FDA31CC00FE87A9 /* Highlightr */; };
 		66E3CDBE2FDD6D1C00FE87A9 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 66E3CD092FDD5BA300FE87A9 /* WidgetKit.framework */; };
 		66E3CDBF2FDD6D1C00FE87A9 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 66E3CD0B2FDD5BA300FE87A9 /* SwiftUI.framework */; };
-		66E3CDCC2FDD6D1D00FE87A9 /* RecentPadsWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 66E3CDBD2FDD6D1C00FE87A9 /* RecentPadsWidgetExtension.appex */; platformFilters = (macos, ); settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		66E3CDCC2FDD6D1D00FE87A9 /* RecentPadsWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 66E3CDBD2FDD6D1C00FE87A9 /* RecentPadsWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		66F544052FE5EECD000214AA /* Highlightr in Frameworks */ = {isa = PBXBuildFile; productRef = 66E3CC572FDA31CC00FE87A9 /* Highlightr */; };
 		66F544082FE5EECD000214AA /* RecentPadsWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 66E3CDBD2FDD6D1C00FE87A9 /* RecentPadsWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		66F5F54A2FEC1C5400D064BD /* CoderPadToolCore in Frameworks */ = {isa = PBXBuildFile; productRef = 66F5F5492FEC1C5400D064BD /* CoderPadToolCore */; };
@@ -567,9 +567,6 @@
 		};
 		66E3CDCB2FDD6D1D00FE87A9 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			platformFilters = (
-				macos,
-			);
 			target = 66E3CDBC2FDD6D1C00FE87A9 /* RecentPadsWidgetExtension */;
 			targetProxy = 66E3CDCA2FDD6D1D00FE87A9 /* PBXContainerItemProxy */;
 		};
@@ -930,12 +927,14 @@
 				REGISTER_APP_GROUPS = YES;
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos macosx iphonesimulator";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
 				SWIFT_UPCOMING_FEATURE_EXISTENTIAL_ANY = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 2;
 			};
 			name = Debug;
 		};
@@ -966,12 +965,14 @@
 				REGISTER_APP_GROUPS = YES;
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos macosx iphonesimulator";
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_TREAT_WARNINGS_AS_ERRORS = YES;
 				SWIFT_UPCOMING_FEATURE_EXISTENTIAL_ANY = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = 2;
 			};
 			name = Release;
 		};

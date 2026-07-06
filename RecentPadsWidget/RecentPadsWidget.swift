@@ -7,7 +7,9 @@
 //
 
 import AppIntents
+#if os(macOS)
 import AppKit
+#endif
 import SwiftUI
 import WidgetKit
 
@@ -92,13 +94,25 @@ struct RecentPadsWidget: Widget {
                 // grey (dark-grey in dark mode, light-grey in light) that fills every
                 // family consistently (#456).
                 .containerBackground(for: .widget) {
-                    Color(nsColor: .windowBackgroundColor)
+                    widgetContainerBackground
                 }
         }
         .configurationDisplayName("Recent Pads")
         .description("Your most recently updated CoderPad pads.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
+}
+
+/// A solid, scheme-adaptive grey that fills every widget family consistently.
+/// See the `.containerBackground` note above for why this is an explicit opaque
+/// color rather than a semantic `BackgroundStyle` (#456). On macOS this is
+/// `windowBackgroundColor`; iOS uses the matching grouped-background system grey.
+private var widgetContainerBackground: Color {
+    #if os(macOS)
+    Color(nsColor: .windowBackgroundColor)
+    #else
+    Color(uiColor: .systemGroupedBackground)
+    #endif
 }
 
 // MARK: - Configuration
