@@ -357,27 +357,46 @@ struct RecentPadsWidgetEntryView: View {
 
     /// Medium/large families: a New Pad header plus a tappable list, one deep link
     /// per row.
+    ///
+    /// The row count adapts to the widget's actual height via `ViewThatFits`, which
+    /// picks the first candidate (most rows) whose content fits the space. This
+    /// matters on iPad, where the medium and large widget frames are shorter than
+    /// their iPhone counterparts, so the family-fixed maximum (three on medium) would
+    /// otherwise clip the last row off the bottom (#659). Candidates run from the
+    /// configured maximum down to one, and the outer `.topLeading` frame pins the
+    /// chosen list to the top so any slack sits at the bottom.
     private var listView: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            listHeader
-            ForEach(visiblePads) { pad in
-                Link(destination: URL(string: "coderpad://pad/\(pad.id)") ?? fallbackURL) {
-                    RecentPadRow(pad: pad)
-                }
+        ViewThatFits(in: .vertical) {
+            ForEach(rowCountCandidates, id: \.self) { count in
+                listStack(rowCount: count)
             }
-            Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
-    private var fallbackURL: URL {
-        URL(string: "coderpad://pads") ?? URL(filePath: "/")
+    /// Row counts to try, largest first: the configured maximum for the family down
+    /// to one. `ViewThatFits` renders the first that fits, or the last (one row) if
+    /// none do.
+    private var rowCountCandidates: [Int] {
+        let maximum = entry.rowCount.maxRows(for: family)
+        return Array(stride(from: maximum, through: 1, by: -1))
     }
 
-    private var visiblePads: [WidgetPadSnapshot] {
-        // The chosen row count, clamped to what the family can show beneath the
-        // New Pad header (seven on large, three on medium).
-        Array(entry.pads.prefix(entry.rowCount.maxRows(for: family)))
+    /// The header plus `rowCount` pad rows, sized to its content (no trailing spacer)
+    /// so `ViewThatFits` can measure each candidate's true height.
+    private func listStack(rowCount: Int) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            listHeader
+            ForEach(entry.pads.prefix(rowCount)) { pad in
+                Link(destination: URL(string: "coderpad://pad/\(pad.id)") ?? fallbackURL) {
+                    RecentPadRow(pad: pad)
+                }
+            }
+        }
+    }
+
+    private var fallbackURL: URL {
+        URL(string: "coderpad://pads") ?? URL(filePath: "/")
     }
 }
 
