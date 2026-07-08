@@ -1594,6 +1594,7 @@
       }
     },
     "Check for Updates…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2023,6 +2024,9 @@
         }
       }
     },
+    "Copy Campaign Name" : {
+
+    },
     "Copy code" : {
       "localizations" : {
         "es" : {
@@ -2098,6 +2102,9 @@
           }
         }
       }
+    },
+    "Copy Test Session" : {
+
     },
     "Copy Title" : {
       "localizations" : {
@@ -2670,6 +2677,9 @@
       }
     },
     "Delete Test Session" : {
+
+    },
+    "Delete Test Session…" : {
 
     },
     "Delete this account?" : {
@@ -3713,6 +3723,9 @@
           }
         }
       }
+    },
+    "Invite Candidate…" : {
+
     },
     "Invited" : {
 
@@ -4886,6 +4899,9 @@
           }
         }
       }
+    },
+    "Open Test Session in New Window" : {
+
     },
     "Open the activity window" : {
 
