@@ -26,6 +26,7 @@ struct RecentPadsEntry: TimelineEntry {
     /// when the button should just create a blank pad.
     var newPadAccountID: String?
     var newPadQuestionID: Int?
+    var openPadAccountID: String?
 }
 
 /// Feeds the widget from the shared App Group snapshots the app maintains, scoped to
@@ -58,7 +59,8 @@ struct RecentPadsProvider: AppIntentTimelineProvider {
                        configuration: RecentPadsConfigurationIntent) -> RecentPadsEntry {
         RecentPadsEntry(date: Date(), pads: pads, rowCount: configuration.rowCount,
                         newPadAccountID: configuration.newPadQuestion?.accountID,
-                        newPadQuestionID: configuration.newPadQuestion?.questionID)
+                        newPadQuestionID: configuration.newPadQuestion?.questionID,
+                        openPadAccountID: configuration.account?.id)
     }
 
     /// Loads the snapshot for the configured account, or the default (current-account)
@@ -321,38 +323,64 @@ struct RecentPadsWidgetEntryView: View {
         }
     }
 
-    /// Small family: the most recent pad fills the widget, the whole tile opens it
-    /// (`widgetURL`), and a compact New Pad button is pinned top-right as its own tap
-    /// target. The button is an interactive `Button(intent:)`, which (unlike `Link`)
-    /// works on systemSmall and coexists with `widgetURL` — taps on the button create a
-    /// pad, taps elsewhere open the pad (#456).
+    /// Small family: the most recent pad fills the widget and a compact New Pad button
+    /// is pinned top-right as its own tap target. iPadOS uses an interactive intent for
+    /// the pad tap too, because custom-scheme widget links can show the right affordance
+    /// without delivering the URL to the app (#660). macOS keeps the existing `widgetURL`
+    /// path, which works there and preserves the whole-tile link behavior.
+    @ViewBuilder
     private var smallView: some View {
+        if let first = entry.pads.first {
+            smallPadView(first)
+        }
+    }
+
+    @ViewBuilder
+    private func smallPadView(_ pad: WidgetPadSnapshot) -> some View {
+        #if os(iOS)
+        ZStack(alignment: .topTrailing) {
+            Button(intent: OpenPadIntent(id: pad.id, account: entry.openPadAccountID)) {
+                smallPadContent(pad)
+            }
+            .buttonStyle(.plain)
+
+            NewPadButton(accountID: entry.newPadAccountID,
+                         questionID: entry.newPadQuestionID, compact: true)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        #else
+        smallPadContent(pad, showsNewPadButton: true)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .widgetURL(URL(string: "coderpad://pad/\(pad.id)"))
+        #endif
+    }
+
+    private func smallPadContent(_ pad: WidgetPadSnapshot,
+                                 showsNewPadButton: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            if let first = entry.pads.first {
-                HStack(alignment: .top, spacing: 6) {
-                    Text(first.title)
-                        .font(.headline)
-                        .lineLimit(3)
-                    Spacer(minLength: 4)
+            HStack(alignment: .top, spacing: 6) {
+                Text(pad.title)
+                    .font(.headline)
+                    .lineLimit(3)
+                Spacer(minLength: 4)
+                if showsNewPadButton {
                     NewPadButton(accountID: entry.newPadAccountID,
                                  questionID: entry.newPadQuestionID, compact: true)
                 }
+            }
+            Spacer(minLength: 0)
+            HStack(spacing: 6) {
+                if let language = pad.languageLabel {
+                    LanguageBadge(text: language, tint: languageTint(for: pad.language))
+                }
                 Spacer(minLength: 0)
-                HStack(spacing: 6) {
-                    if let language = first.languageLabel {
-                        LanguageBadge(text: language, tint: languageTint(for: first.language))
-                    }
-                    Spacer(minLength: 0)
-                    if let updated = first.relativeUpdated {
-                        Text(updated)
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
+                if let updated = pad.relativeUpdated {
+                    Text(updated)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
                 }
             }
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .widgetURL(entry.pads.first.flatMap { URL(string: "coderpad://pad/\($0.id)") })
     }
 
     /// Medium/large families: a New Pad header plus a tappable list, one deep link
@@ -388,9 +416,16 @@ struct RecentPadsWidgetEntryView: View {
         VStack(alignment: .leading, spacing: 8) {
             listHeader
             ForEach(entry.pads.prefix(rowCount)) { pad in
+                #if os(iOS)
+                Button(intent: OpenPadIntent(id: pad.id, account: entry.openPadAccountID)) {
+                    RecentPadRow(pad: pad)
+                }
+                .buttonStyle(.plain)
+                #else
                 Link(destination: URL(string: "coderpad://pad/\(pad.id)") ?? fallbackURL) {
                     RecentPadRow(pad: pad)
                 }
+                #endif
             }
         }
     }

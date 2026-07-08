@@ -47,6 +47,15 @@ struct WidgetNewPadRequest: Codable {
     let question: Int?
 }
 
+/// A pending "open an existing pad" request the iPad widget records for the app to
+/// perform when it next activates. Recent-pad taps use this instead of a custom-scheme
+/// `Link` on iPadOS, where the widget can show the link affordance without delivering
+/// the URL to the app reliably (#660). Kept in lock-step with the app's copy.
+struct WidgetOpenPadRequest: Codable {
+    let id: String
+    let account: String?
+}
+
 /// Reads the recent-pads snapshots from the App Group container shared with the app.
 /// The app writes one snapshot per account (`recent-pads-<id>.json`), a default
 /// snapshot for the current account (`recent-pads.json`), and the account index
@@ -63,6 +72,7 @@ enum WidgetSharedStore {
     private static let defaultPadsFile = "recent-pads.json"
     private static let accountsFile = "widget-accounts.json"
     private static let newPadRequestFile = "pending-new-pad.json"
+    private static let openPadRequestFile = "pending-open-pad.json"
 
     /// Darwin notification posted when a New Pad request is recorded, so a running app
     /// drains it immediately — even while it's already frontmost, where a widget/control
@@ -124,6 +134,15 @@ enum WidgetSharedStore {
 
         try? data.write(to: url, options: .atomic)
         postNewPadRequestNotification()
+    }
+
+    /// Records a recent-pad tap for the iPad app to route after `OpenPadIntent` opens it.
+    static func requestOpenPad(id: String, account: String?) {
+        guard let url = fileURL(openPadRequestFile),
+              let data = try? JSONEncoder().encode(WidgetOpenPadRequest(id: id, account: account))
+        else { return }
+
+        try? data.write(to: url, options: .atomic)
     }
 
     /// Nudges a running app to drain the just-recorded request right away.

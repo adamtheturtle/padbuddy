@@ -53,6 +53,14 @@ nonisolated struct WidgetNewPadRequest: Codable {
     let question: Int?
 }
 
+/// A pending "open an existing pad" request the iPad widget records for the app to
+/// perform on its next activation (custom-scheme widget links are unreliable there,
+/// #660). Kept in lock-step with the widget's copy.
+nonisolated struct WidgetOpenPadRequest: Codable {
+    let id: String
+    let account: String?
+}
+
 /// Writes the recent-pads snapshots into the App Group container shared with the
 /// widget (the widget reads them back through its own parallel `WidgetSharedStore`
 /// in `RecentPadsWidget/WidgetSharedSnapshot.swift`). All members are `nonisolated`
@@ -71,6 +79,7 @@ nonisolated enum WidgetSharedStore {
     private static let defaultPadsFile = "recent-pads.json"
     private static let accountsFile = "widget-accounts.json"
     private static let newPadRequestFile = "pending-new-pad.json"
+    private static let openPadRequestFile = "pending-open-pad.json"
 
     /// Darwin notification posted when a New Pad request is recorded, so a running app
     /// drains it immediately — even while it's already frontmost, where a widget/control
@@ -140,6 +149,15 @@ nonisolated enum WidgetSharedStore {
         postNewPadRequestNotification()
     }
 
+    /// Records an iPad widget recent-pad tap for the app to route after the intent opens it.
+    static func requestOpenPad(id: String, account: String?) {
+        guard let url = fileURL(openPadRequestFile),
+              let data = try? JSONEncoder().encode(WidgetOpenPadRequest(id: id, account: account))
+        else { return }
+
+        try? data.write(to: url, options: .atomic)
+    }
+
     /// Nudges a running app to drain the just-recorded request right away.
     /// `applicationDidBecomeActive` covers cold launch and background→foreground, but
     /// not the case where the app is already frontmost (a control/widget tap then causes
@@ -160,6 +178,14 @@ nonisolated enum WidgetSharedStore {
 
         try? FileManager.default.removeItem(at: url)
         return try? JSONDecoder().decode(WidgetNewPadRequest.self, from: data)
+    }
+
+    /// Returns and clears any pending iPad widget request to open an existing pad.
+    static func takePendingOpenPad() -> WidgetOpenPadRequest? {
+        guard let url = fileURL(openPadRequestFile), let data = try? Data(contentsOf: url) else { return nil }
+
+        try? FileManager.default.removeItem(at: url)
+        return try? JSONDecoder().decode(WidgetOpenPadRequest.self, from: data)
     }
 
     /// Removes a removed account's per-account snapshot and favourites so they stop

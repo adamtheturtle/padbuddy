@@ -24,6 +24,7 @@
             WindowGroup {
                 ContentView()
                     .modifier(ScreenshotTextSize(size: Self.screenshotTextSize))
+                    .modifier(IPadWidgetIntentDrain())
                     .preferredColorScheme(appearance.colorScheme)
                     .onContinueUserActivity(CSSearchableItemActionType) { activity in
                         guard let id = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String else { return }
@@ -102,6 +103,41 @@
                             Button("Done") { SettingsPresentation.shared.isPresented = false }
                         }
                     }
+            }
+        }
+    }
+
+    /// Drains pending widget intents on iPad. Widget buttons cannot rely on the app's
+    /// custom URL scheme there, so intents write requests into the App Group and open
+    /// the app; this consumes those requests once the scene is active.
+    private struct IPadWidgetIntentDrain: ViewModifier {
+        @Environment(\.scenePhase) private var scenePhase
+
+        func body(content: Content) -> some View {
+            content
+                .task {
+                    drainPendingWidgetRequests()
+                }
+                .onChange(of: scenePhase) { _, phase in
+                    guard phase == .active else { return }
+
+                    drainPendingWidgetRequests()
+                }
+        }
+
+        @MainActor
+        private func drainPendingWidgetRequests() {
+            if let request = WidgetSharedStore.takePendingOpenPad() {
+                if let account = request.account,
+                   let uuid = UUID(uuidString: account),
+                   AccountsStore.shared.accounts.contains(where: { $0.id == uuid }) {
+                    AccountsStore.shared.showAllAccounts = false
+                    AccountsStore.shared.currentAccountID = uuid
+                }
+                AppNavigation.shared.showPads(PadsRequest(selectPadID: request.id))
+            }
+            if let request = WidgetSharedStore.takePendingNewPad() {
+                AppNavigation.shared.routeNewPad(account: request.account, seedQuestionID: request.question)
             }
         }
     }

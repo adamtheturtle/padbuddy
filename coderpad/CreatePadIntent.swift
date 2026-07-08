@@ -30,6 +30,41 @@ import AppIntents
 /// working New Pad button on every family and on the control.
 /// Computed (not stored) statics so they're concurrency-safe under Swift 6 strict
 /// checking, matching `RecentPadsConfigurationIntent`.
+struct OpenPadIntent: AppIntent {
+    static var title: LocalizedStringResource {
+        "Open Pad"
+    }
+
+    static var description: IntentDescription {
+        IntentDescription("Open a CoderPad pad.")
+    }
+
+    static var openAppWhenRun: Bool {
+        true
+    }
+
+    @Parameter(title: "Pad ID")
+    var id: String
+
+    @Parameter(title: "Account")
+    var account: String?
+
+    init() {
+        id = ""
+        account = nil
+    }
+
+    init(id: String, account: String?) {
+        self.id = id
+        self.account = account
+    }
+
+    func perform() async throws -> some IntentResult {
+        WidgetSharedStore.requestOpenPad(id: id, account: account)
+        return .result()
+    }
+}
+
 struct CreatePadIntent: AppIntent {
     static var title: LocalizedStringResource {
         "New Pad"
