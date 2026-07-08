@@ -243,6 +243,51 @@ extension FocusedValues {
     @Entry var focusedQuestionURL: URL?
 }
 
+// MARK: - Focused scene values for Screen commands
+
+struct ScreenCampaignAction: Equatable {
+    let id: String
+    let copyName: () -> Void
+    let showTests: () -> Void
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.id == rhs.id
+    }
+}
+
+struct ScreenTestAction: Equatable {
+    let id: Int
+    let status: String
+    let copySummary: () -> Void
+    let openWindow: () -> Void
+    let resend: () -> Void
+    let cancel: () -> Void
+    let delete: () -> Void
+
+    var canResendOrCancel: Bool {
+        status == "waiting"
+    }
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.id == rhs.id && lhs.status == rhs.status
+    }
+}
+
+struct ScreenInviteAction: Equatable {
+    let id: Int
+    let perform: () -> Void
+
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.id == rhs.id
+    }
+}
+
+extension FocusedValues {
+    @Entry var focusedScreenCampaignAction: ScreenCampaignAction?
+    @Entry var focusedScreenTestAction: ScreenTestAction?
+    @Entry var focusedScreenInviteAction: ScreenInviteAction?
+}
+
 // MARK: - Copy command for list selections
 
 /// Builds the optional action for `View.onCopyCommand` from the selected row's

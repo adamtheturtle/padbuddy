@@ -336,7 +336,7 @@ extension QuestionsView {
     func toggleFavorite(_ question: Question) {
         guard let account = accounts.currentAccountID else { return }
 
-        favorites.toggle(question.id, title: question.displayTitle, account: account)
+        favorites.toggle(question.id, title: question.displayTitle, account: account, undoManager: undoManager)
         // Unstarring the last favorite hides the Favorites chip, so drop the
         // filter too — otherwise it would strand the list on an empty result with
         // no visible control to turn it back off.

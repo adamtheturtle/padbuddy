@@ -12,6 +12,7 @@ struct Sidebar: View {
     /// Snap the favourites drop spacer instead of sliding it when Reduce Motion is on (#614).
     /// Not `private`: read from the `favoriteDropSpacer` in the sidebar-favourites extension.
     @Environment(\.accessibilityReduceMotion) var reduceMotion
+    @Environment(\.undoManager) var undoManager
     // Native sidebar rows desaturate when their window stops being the active one;
     // the custom unlimited-quota row has to read this state to dim in step (#347).
     #if os(macOS)
@@ -238,11 +239,9 @@ struct Sidebar: View {
             .opacity(inactiveDimming)
         }
         .buttonStyle(.plain)
-        // Highlight the row under the iPad trackpad/Magic Keyboard pointer, following
-        // its rounded-rect content shape. A plain-style button gets no pointer effect on
-        // its own, so these custom sidebar rows (Saved Searches, Favorites, My Pads/
-        // Questions) otherwise stayed inert to the pointer; a no-op on macOS (#586).
-        .pointerHoverEffect()
+        // No explicit hover platter here: this button can be hosted as a List row's
+        // root view, and SwiftUI may otherwise try to add `_UIPointerEffectPlatterView`
+        // directly to `UIHostingController.view`, logging a hierarchy fault.
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }

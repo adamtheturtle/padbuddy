@@ -41,7 +41,8 @@ extension MergedPadsView {
             },
             .button(title: starred ? String(localized: "Remove from Favorites")
                 : String(localized: "Add to Favorites")) {
-                    favoritePads.toggle(row.item.id, title: row.item.title, account: row.account.id)
+                    favoritePads.toggle(row.item.id, title: row.item.title, account: row.account.id,
+                                        undoManager: undoManager)
                 },
             .separator,
             .button(title: String(localized: "Copy Pad ID")) { Clipboard.copy(row.item.id) },

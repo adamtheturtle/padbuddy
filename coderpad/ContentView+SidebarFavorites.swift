@@ -214,7 +214,7 @@ extension Sidebar {
             .contextMenu {
                 removeFavoriteButton {
                     if let account = item.account ?? accountID {
-                        favoritePads.remove(padID, account: account)
+                        favoritePads.remove(padID, account: account, undoManager: undoManager)
                     }
                 }
             }
@@ -230,7 +230,7 @@ extension Sidebar {
             .contextMenu {
                 removeFavoriteButton {
                     if let account = item.account ?? accountID {
-                        favorites.toggle(questionID, title: item.title, account: account)
+                        favorites.toggle(questionID, title: item.title, account: account, undoManager: undoManager)
                     }
                 }
             }

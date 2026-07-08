@@ -34,6 +34,7 @@ struct ScreenCampaignsView: View {
                 ScreenCampaignRow(campaign: campaign)
                     .tag(campaign.id)
                     .contextMenu { campaignActions(campaign) }
+                    .draggable(campaign.name)
             }
         }
         .overlay { statusOverlay }
@@ -42,6 +43,12 @@ struct ScreenCampaignsView: View {
         // count instead (published by the tests view via AppNavigation) (#448/#475).
         .reportsSectionCount(selectedCampaignID == nil ? countSubtitle : nav.screenTestsSubtitle)
         .toolbar(id: "screen-campaigns") { campaignsToolbar }
+        .focusedSceneValue(\.focusedScreenCampaignAction, selectedCampaignAction)
+        #if os(macOS)
+            .onCopyCommand(perform: copyLinkCommand(hasSelection: selectedCampaign != nil) {
+                selectedCampaign?.name ?? ""
+            })
+        #endif
         .sheet(isPresented: $showWebhook) {
             ScreenWebhookSheet(client: client)
         }
@@ -83,6 +90,20 @@ struct ScreenCampaignsView: View {
     private func campaignActions(_ campaign: ScreenCampaign) -> some View {
         Button("Show Test Sessions") { selectedCampaignID = campaign.id }
         Button("Copy Name") { Clipboard.copy(campaign.name) }
+    }
+
+    private var selectedCampaign: ScreenCampaign? {
+        selectedCampaignID.flatMap { id in campaigns.first { $0.id == id } }
+    }
+
+    private var selectedCampaignAction: ScreenCampaignAction? {
+        guard let selectedCampaign else { return nil }
+
+        return ScreenCampaignAction(id: "screen-campaign-\(selectedCampaign.id)") {
+            Clipboard.copy(selectedCampaign.name)
+        } showTests: {
+            selectedCampaignID = selectedCampaign.id
+        }
     }
 
     /// The campaigns-list toolbar. An identified, customizable toolbar (so Customize

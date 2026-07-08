@@ -15,6 +15,7 @@ struct QuestionDetailView: View {
     @Environment(\.openWindow) var openWindow
     @Environment(\.orgDirectory) var directory
     @Environment(\.colorScheme) var colorScheme
+    @Environment(\.undoManager) var undoManager
     /// While offline the app is read-only, so create/edit/delete actions disable (#321).
     @Environment(\.isReadOnly) var isReadOnly
     /// Snap the undo-deletion banner instead of springing it when Reduce Motion is on (#614).
@@ -226,7 +227,7 @@ struct QuestionDetailView: View {
     private func toggleFavorite() {
         guard let account = accounts.currentAccountID else { return }
 
-        favorites.toggle(question.id, title: question.displayTitle, account: account)
+        favorites.toggle(question.id, title: question.displayTitle, account: account, undoManager: undoManager)
     }
 
     /// Honors a "New Pad from Question" request routed via `AppNavigation` (e.g.

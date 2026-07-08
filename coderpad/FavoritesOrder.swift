@@ -93,30 +93,35 @@ final class FavoritesOrderStore {
     /// the result, seeding from the reconciled `present` order so the saved blob captures
     /// any not-yet-recorded favourites too (drag-to-reorder in the sidebar, #299). A no-op
     /// if either ref is absent or they're the same.
-    func move(_ ref: FavoriteRef, before target: FavoriteRef, present: [FavoriteRef], account: UUID) {
+    func move(_ ref: FavoriteRef, before target: FavoriteRef, present: [FavoriteRef], account: UUID,
+              undoManager: UndoManager? = nil) {
         guard ref != target else { return }
 
         var ordered = order(present: present, account: account)
         guard let from = ordered.firstIndex(of: ref), ordered.contains(target) else { return }
 
+        let before = byAccount[account] ?? []
         ordered.remove(at: from)
         let insertAt = ordered.firstIndex(of: target) ?? ordered.count
         ordered.insert(ref, at: insertAt)
         byAccount[account] = ordered
         save()
+        registerUndo(to: before, account: account, undoManager: undoManager, actionName: "Move Favorite")
     }
 
     /// Moves `ref` to the end of the combined order. This backs drops into the empty
     /// space below the final favorite row, where there is no row to use as a `before`
     /// target.
-    func moveToEnd(_ ref: FavoriteRef, present: [FavoriteRef], account: UUID) {
+    func moveToEnd(_ ref: FavoriteRef, present: [FavoriteRef], account: UUID, undoManager: UndoManager? = nil) {
         var ordered = order(present: present, account: account)
         guard let from = ordered.firstIndex(of: ref), let last = ordered.indices.last, from != last else { return }
 
+        let before = byAccount[account] ?? []
         ordered.remove(at: from)
         ordered.append(ref)
         byAccount[account] = ordered
         save()
+        registerUndo(to: before, account: account, undoManager: undoManager, actionName: "Move Favorite")
     }
 
     /// The combined-view favourites in their stored cross-account order. This is separate
@@ -129,27 +134,32 @@ final class FavoritesOrderStore {
         return result
     }
 
-    func moveMerged(_ ref: MergedFavoriteRef, before target: MergedFavoriteRef, present: [MergedFavoriteRef]) {
+    func moveMerged(_ ref: MergedFavoriteRef, before target: MergedFavoriteRef, present: [MergedFavoriteRef],
+                    undoManager: UndoManager? = nil) {
         guard ref != target else { return }
 
         var ordered = merged(present: present)
         guard let from = ordered.firstIndex(of: ref), ordered.contains(target) else { return }
 
+        let before = mergedOrder
         ordered.remove(at: from)
         let insertAt = ordered.firstIndex(of: target) ?? ordered.count
         ordered.insert(ref, at: insertAt)
         mergedOrder = ordered
         saveMerged()
+        registerMergedUndo(to: before, undoManager: undoManager, actionName: "Move Favorite")
     }
 
-    func moveMergedToEnd(_ ref: MergedFavoriteRef, present: [MergedFavoriteRef]) {
+    func moveMergedToEnd(_ ref: MergedFavoriteRef, present: [MergedFavoriteRef], undoManager: UndoManager? = nil) {
         var ordered = merged(present: present)
         guard let from = ordered.firstIndex(of: ref), let last = ordered.indices.last, from != last else { return }
 
+        let before = mergedOrder
         ordered.remove(at: from)
         ordered.append(ref)
         mergedOrder = ordered
         saveMerged()
+        registerMergedUndo(to: before, undoManager: undoManager, actionName: "Move Favorite")
     }
 
     /// Drops an account's saved order, called when the account is removed or re-keyed so
@@ -185,6 +195,38 @@ final class FavoritesOrderStore {
             let reason = error.localizedDescription
             persistenceLogger.error("Failed to encode merged favorites order: \(reason, privacy: .public)")
         }
+    }
+
+    private func restore(_ entries: [FavoriteRef], account: UUID, undoManager: UndoManager?, actionName: String) {
+        let before = byAccount[account] ?? []
+        byAccount[account] = entries
+        save()
+        registerUndo(to: before, account: account, undoManager: undoManager, actionName: actionName)
+    }
+
+    private func restoreMerged(_ entries: [MergedFavoriteRef], undoManager: UndoManager?, actionName: String) {
+        let before = mergedOrder
+        mergedOrder = entries
+        saveMerged()
+        registerMergedUndo(to: before, undoManager: undoManager, actionName: actionName)
+    }
+
+    private func registerUndo(to entries: [FavoriteRef], account: UUID, undoManager: UndoManager?, actionName: String) {
+        guard let undoManager else { return }
+
+        undoManager.registerUndo(withTarget: self) { store in
+            store.restore(entries, account: account, undoManager: undoManager, actionName: actionName)
+        }
+        undoManager.setActionName(actionName)
+    }
+
+    private func registerMergedUndo(to entries: [MergedFavoriteRef], undoManager: UndoManager?, actionName: String) {
+        guard let undoManager else { return }
+
+        undoManager.registerUndo(withTarget: self) { store in
+            store.restoreMerged(entries, undoManager: undoManager, actionName: actionName)
+        }
+        undoManager.setActionName(actionName)
     }
 
     /// Pushes the current order up to iCloud, keyed by each account's stable sync id.

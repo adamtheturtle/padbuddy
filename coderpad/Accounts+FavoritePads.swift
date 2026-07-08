@@ -78,47 +78,58 @@ final class FavoritePadsStore {
 
     /// Pins the pad if it isn't already, preserving order. Used by the sidebar drop
     /// target, where a drop should only ever add (never remove) a favorite.
-    func add(_ id: String, title: String, account: UUID) {
+    func add(_ id: String, title: String, account: UUID, undoManager: UndoManager? = nil) {
         var entries = byAccount[account] ?? []
         guard !entries.contains(where: { $0.id == id }) else { return }
 
+        let before = entries
         entries.append(FavoritePad(id: id, title: title))
         byAccount[account] = entries
         save()
+        registerUndo(to: before, account: account, undoManager: undoManager, actionName: "Add Favorite")
     }
 
     /// Toggles the pad's pinned state, appending when newly pinned so order holds.
-    func toggle(_ id: String, title: String, account: UUID) {
+    func toggle(_ id: String, title: String, account: UUID, undoManager: UndoManager? = nil) {
         var entries = byAccount[account] ?? []
+        let before = entries
+        let actionName: String
         if let index = entries.firstIndex(where: { $0.id == id }) {
             entries.remove(at: index)
+            actionName = "Remove Favorite"
         } else {
             entries.append(FavoritePad(id: id, title: title))
+            actionName = "Add Favorite"
         }
         byAccount[account] = entries
         save()
+        registerUndo(to: before, account: account, undoManager: undoManager, actionName: actionName)
     }
 
-    func remove(_ id: String, account: UUID) {
+    func remove(_ id: String, account: UUID, undoManager: UndoManager? = nil) {
         guard var entries = byAccount[account], let index = entries.firstIndex(where: { $0.id == id }) else { return }
 
+        let before = entries
         entries.remove(at: index)
         byAccount[account] = entries
         save()
+        registerUndo(to: before, account: account, undoManager: undoManager, actionName: "Remove Favorite")
     }
 
     /// Reorders `id` to sit immediately before `targetID`, persisting the new order
     /// (drag-to-reorder in the sidebar, #299). A no-op if either id isn't present.
-    func move(_ id: String, before targetID: String, account: UUID) {
+    func move(_ id: String, before targetID: String, account: UUID, undoManager: UndoManager? = nil) {
         var entries = byAccount[account] ?? []
         guard let from = entries.firstIndex(where: { $0.id == id }),
               entries.contains(where: { $0.id == targetID }), id != targetID else { return }
 
+        let before = entries
         let moved = entries.remove(at: from)
         let insertAt = entries.firstIndex(where: { $0.id == targetID }) ?? entries.count
         entries.insert(moved, at: insertAt)
         byAccount[account] = entries
         save()
+        registerUndo(to: before, account: account, undoManager: undoManager, actionName: "Move Favorite")
     }
 
     /// Updates stored titles from a freshly loaded pad list, so a favourite's name
@@ -164,6 +175,22 @@ final class FavoritePadsStore {
             persistenceLogger.error("Failed to encode favorite pads: \(reason, privacy: .public)")
         }
         mirrorToCloud()
+    }
+
+    private func restore(_ entries: [FavoritePad], account: UUID, undoManager: UndoManager?, actionName: String) {
+        let before = byAccount[account] ?? []
+        byAccount[account] = entries
+        save()
+        registerUndo(to: before, account: account, undoManager: undoManager, actionName: actionName)
+    }
+
+    private func registerUndo(to entries: [FavoritePad], account: UUID, undoManager: UndoManager?, actionName: String) {
+        guard let undoManager else { return }
+
+        undoManager.registerUndo(withTarget: self) { store in
+            store.restore(entries, account: account, undoManager: undoManager, actionName: actionName)
+        }
+        undoManager.setActionName(actionName)
     }
 
     /// Pushes the current favourites up to iCloud, keyed by each account's stable sync

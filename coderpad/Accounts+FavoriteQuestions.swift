@@ -89,46 +89,55 @@ final class FavoriteQuestionsStore {
 
     /// Adds the question to favorites if absent, removes it if present. New
     /// favorites append to the end so the existing order is preserved.
-    func toggle(_ id: Int, title: String, account: UUID) {
+    func toggle(_ id: Int, title: String, account: UUID, undoManager: UndoManager? = nil) {
         var entries = byAccount[account] ?? []
+        let before = entries
+        let actionName: String
         if let index = entries.firstIndex(where: { $0.id == id }) {
             entries.remove(at: index)
+            actionName = "Remove Favorite"
         } else {
             entries.append(FavoriteQuestion(id: id, title: title))
+            actionName = "Add Favorite"
         }
         byAccount[account] = entries
         save()
         // Keep the New Pad widget button's question picker in step with this account's
         // favourites.
         WidgetSync.syncFavorites(account: account)
+        registerUndo(to: before, account: account, undoManager: undoManager, actionName: actionName)
     }
 
     /// Favorites the question if it isn't already, preserving order. Used by the
     /// sidebar drop target, where a drop should only ever add a favorite (never
     /// remove one), so a no-op when it's already starred.
-    func add(_ id: Int, title: String, account: UUID) {
+    func add(_ id: Int, title: String, account: UUID, undoManager: UndoManager? = nil) {
         var entries = byAccount[account] ?? []
         guard !entries.contains(where: { $0.id == id }) else { return }
 
+        let before = entries
         entries.append(FavoriteQuestion(id: id, title: title))
         byAccount[account] = entries
         save()
         WidgetSync.syncFavorites(account: account)
+        registerUndo(to: before, account: account, undoManager: undoManager, actionName: "Add Favorite")
     }
 
     /// Reorders `id` to sit immediately before `targetID`, persisting the new order
     /// (drag-to-reorder in the sidebar, #299). A no-op if either id isn't present.
-    func move(_ id: Int, before targetID: Int, account: UUID) {
+    func move(_ id: Int, before targetID: Int, account: UUID, undoManager: UndoManager? = nil) {
         var entries = byAccount[account] ?? []
         guard let from = entries.firstIndex(where: { $0.id == id }),
               entries.contains(where: { $0.id == targetID }), id != targetID else { return }
 
+        let before = entries
         let moved = entries.remove(at: from)
         let insertAt = entries.firstIndex(where: { $0.id == targetID }) ?? entries.count
         entries.insert(moved, at: insertAt)
         byAccount[account] = entries
         save()
         WidgetSync.syncFavorites(account: account)
+        registerUndo(to: before, account: account, undoManager: undoManager, actionName: "Move Favorite")
     }
 
     /// Drops every starred question for an account, called when the account is
@@ -177,6 +186,23 @@ final class FavoriteQuestionsStore {
             persistenceLogger.error("Failed to encode favorite questions: \(reason, privacy: .public)")
         }
         mirrorToCloud()
+    }
+
+    private func restore(_ entries: [FavoriteQuestion], account: UUID, undoManager: UndoManager?, actionName: String) {
+        let before = byAccount[account] ?? []
+        byAccount[account] = entries
+        save()
+        WidgetSync.syncFavorites(account: account)
+        registerUndo(to: before, account: account, undoManager: undoManager, actionName: actionName)
+    }
+
+    private func registerUndo(to entries: [FavoriteQuestion], account: UUID, undoManager: UndoManager?, actionName: String) {
+        guard let undoManager else { return }
+
+        undoManager.registerUndo(withTarget: self) { store in
+            store.restore(entries, account: account, undoManager: undoManager, actionName: actionName)
+        }
+        undoManager.setActionName(actionName)
     }
 
     /// Pushes the current favourites up to iCloud, keyed by each account's stable sync

@@ -35,11 +35,11 @@ extension Sidebar {
         let account: UUID
         switch drop {
         case let .pad(dropAccount, id, title):
-            favoritePads.add(id, title: title, account: dropAccount)
+            favoritePads.add(id, title: title, account: dropAccount, undoManager: undoManager)
             dropped = .pad(id)
             account = dropAccount
         case let .question(dropAccount, id, title):
-            favorites.add(id, title: title, account: dropAccount)
+            favorites.add(id, title: title, account: dropAccount, undoManager: undoManager)
             dropped = .question(id)
             account = dropAccount
         }
@@ -47,14 +47,16 @@ extension Sidebar {
             favoritesOrder.moveMerged(
                 MergedFavoriteRef(account: account, ref: dropped),
                 before: MergedFavoriteRef(account: targetAccount, ref: item.ref),
-                present: presentMergedRefs()
+                present: presentMergedRefs(),
+                undoManager: undoManager
             )
             return
         }
 
         guard let target = item.account ?? accountID, target == account else { return }
 
-        favoritesOrder.move(dropped, before: item.ref, present: presentRefs(account: account), account: account)
+        favoritesOrder.move(dropped, before: item.ref, present: presentRefs(account: account), account: account,
+                            undoManager: undoManager)
     }
 
     /// Decodes a within-sidebar `FavoriteReorder` from a provider and applies the move.
@@ -83,11 +85,11 @@ extension Sidebar {
         for drop in drops {
             switch drop {
             case let .pad(account, id, title):
-                favoritePads.add(id, title: title, account: account)
+                favoritePads.add(id, title: title, account: account, undoManager: undoManager)
                 accepted = true
 
             case let .question(account, id, title):
-                favorites.add(id, title: title, account: account)
+                favorites.add(id, title: title, account: account, undoManager: undoManager)
                 accepted = true
             }
         }
@@ -165,7 +167,8 @@ extension Sidebar {
             favoritesOrder.moveMerged(
                 MergedFavoriteRef(account: resolved.account, ref: resolved.ref),
                 before: MergedFavoriteRef(account: targetAccount, ref: item.ref),
-                present: presentMergedRefs()
+                present: presentMergedRefs(),
+                undoManager: undoManager
             )
             return
         }
@@ -173,7 +176,8 @@ extension Sidebar {
         guard let targetAccount = item.account ?? accountID, resolved.account == targetAccount else { return }
 
         favoritesOrder.move(resolved.ref, before: item.ref,
-                            present: presentRefs(account: resolved.account), account: resolved.account)
+                            present: presentRefs(account: resolved.account), account: resolved.account,
+                            undoManager: undoManager)
     }
 
     /// Reorders a dragged favourite to the bottom of the visible shared order. In merged
@@ -185,13 +189,15 @@ extension Sidebar {
         if isMergedView {
             favoritesOrder.moveMergedToEnd(
                 MergedFavoriteRef(account: resolved.account, ref: resolved.ref),
-                present: presentMergedRefs()
+                present: presentMergedRefs(),
+                undoManager: undoManager
             )
             return
         }
 
         favoritesOrder.moveToEnd(resolved.ref,
-                                 present: presentRefs(account: resolved.account), account: resolved.account)
+                                 present: presentRefs(account: resolved.account), account: resolved.account,
+                                 undoManager: undoManager)
     }
 
     private func favoriteReorderRef(_ dropped: FavoriteReorder) -> (ref: FavoriteRef, account: UUID)? {

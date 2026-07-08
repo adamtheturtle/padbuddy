@@ -14,6 +14,7 @@ struct QuestionsView: View {
     @Environment(\.orgDirectory) var directory
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.openWindow) var openWindow
+    @Environment(\.undoManager) var undoManager
     /// While offline the app is read-only, so create/edit/delete controls disable (#321).
     @Environment(\.isReadOnly) var isReadOnly
     @State var accounts = AccountsStore.shared

@@ -76,6 +76,7 @@
                 ViewCommands()
                 PadCommands()
                 QuestionCommands()
+                ScreenCommands()
                 TemplateCommands()
                 WindowCommands()
             }

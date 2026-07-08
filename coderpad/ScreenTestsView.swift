@@ -7,6 +7,9 @@
 //  a session's report opens in its own window on double-click (#474). Read-only.
 //
 
+#if os(macOS)
+    import AppKit
+#endif
 import SwiftUI
 
 /// The test sessions for one campaign (`GET /tests`, all pages via
@@ -70,6 +73,9 @@ struct ScreenTestsView: View {
         .onDoubleClick { openTestWindow($0) }
         .onReturnKey { openTestWindow($0) }
         .rowContextMenu { testTableMenuItems($0) }
+        #if os(macOS)
+            .onRowDrag { testPasteboardItem($0) }
+        #endif
         .overlay { statusOverlay }
         .task(id: campaign.id) { await load() }
         // The date range is a server-side filter, so changing it re-fetches (onChange,
@@ -87,6 +93,15 @@ struct ScreenTestsView: View {
         .onChange(of: countSubtitle, initial: true) { _, new in publishCountSubtitle(new) }
         // Deselecting the campaign tears this view down; reset the published candidate count.
         .onDisappear { publishCountSubtitle("") }
+        .focusedSceneValue(\.focusedScreenInviteAction, ScreenInviteAction(id: campaign.id) {
+            showInvite = true
+        })
+        .focusedSceneValue(\.focusedScreenTestAction, selectedTestAction)
+        #if os(macOS)
+            .onCopyCommand(perform: copyLinkCommand(hasSelection: !selectedIDs.isEmpty) {
+                selectedTestCopyText
+            })
+        #endif
     }
 
     private func publishCountSubtitle(_ subtitle: String) {
@@ -175,6 +190,18 @@ struct ScreenTestsView: View {
             : String(localized: "\(count) candidates")
     }
 
+    private var selectedTestsInOrder: [ScreenTestSession] {
+        filtered.filter { selectedIDs.contains($0.id) }
+    }
+
+    private var selectedTest: ScreenTestSession? {
+        selectedTestsInOrder.first
+    }
+
+    private var selectedTestCopyText: String {
+        selectedTestsInOrder.map(\.screenCopyText).joined(separator: "\n")
+    }
+
     @ViewBuilder
     private var statusOverlay: some View {
         if let loadError, tests.isEmpty {
@@ -219,6 +246,7 @@ struct ScreenTestsView: View {
     private func testTableMenuItems(_ test: ScreenTestSession) -> [MenuItem] {
         var items: [MenuItem] = [
             .button(title: String(localized: "Open in New Window")) { openTestWindow(test) },
+            .button(title: String(localized: "Copy Test Session")) { Clipboard.copy(test.screenCopyText) },
             .separator
         ]
         if test.status == "waiting" {
@@ -231,6 +259,33 @@ struct ScreenTestsView: View {
         })
         return items
     }
+
+    private var selectedTestAction: ScreenTestAction? {
+        guard let selectedTest else { return nil }
+
+        return ScreenTestAction(id: selectedTest.id, status: selectedTest.status) {
+            Clipboard.copy(selectedTest.screenCopyText)
+        } openWindow: {
+            openTestWindow(selectedTest)
+        } resend: {
+            Task { await resend(selectedTest) }
+        } cancel: {
+            Task { await cancel(selectedTest) }
+        } delete: {
+            testPendingDelete = selectedTest
+        }
+    }
+
+    #if os(macOS)
+    private func testPasteboardItem(_ test: ScreenTestSession) -> NSPasteboardItem? {
+        let item = NSPasteboardItem()
+        if let url = test.screenURL {
+            item.setString(url.absoluteString, forType: .URL)
+        }
+        item.setString(test.screenCopyText, forType: .string)
+        return item
+    }
+    #endif
 
     /// Opens a test session's report in its own window (#474). The owning account is
     /// the explicit `accountID` in the combined view (#442), else the current account.
@@ -269,6 +324,29 @@ struct ScreenTestsView: View {
 
     private func message(for error: any Error) -> String {
         (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
+    }
+}
+
+extension ScreenTestSession {
+    var screenCandidateDisplay: String {
+        if let name = candidateName, !name.isEmpty { return name }
+        if let email = candidateEmail, !email.isEmpty { return email }
+        return String(localized: "Unknown candidate")
+    }
+
+    var screenURL: URL? {
+        (url ?? testURL).flatMap(URL.init(string:))
+    }
+
+    var screenCopyText: String {
+        [
+            screenCandidateDisplay,
+            candidateEmail ?? "",
+            ScreenTestStatus.label(status),
+            report?.score.map { String(Int($0.rounded())) } ?? "",
+            lastActivityDate?.formatted(date: .abbreviated, time: .shortened) ?? "",
+            screenURL?.absoluteString ?? ""
+        ].joined(separator: "\t")
     }
 }
 

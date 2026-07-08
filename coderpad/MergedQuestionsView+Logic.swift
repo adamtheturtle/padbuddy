@@ -349,7 +349,8 @@ extension MergedQuestionsView {
     // MARK: - Actions
 
     func toggleFavorite(_ row: MergedQuestionRow) {
-        favorites.toggle(row.item.id, title: row.item.displayTitle, account: row.account.id)
+        favorites.toggle(row.item.id, title: row.item.displayTitle, account: row.account.id,
+                         undoManager: undoManager)
         if favoritesOnly, !hasAnyFavorites { favoritesOnly = false }
     }
 }

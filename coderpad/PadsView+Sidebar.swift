@@ -208,7 +208,7 @@ extension PadsView {
                 onToggleFavorite: {
                     guard let account = accounts.currentAccountID else { return }
 
-                    favoritePads.toggle(pad.id, title: pad.title, account: account)
+                    favoritePads.toggle(pad.id, title: pad.title, account: account, undoManager: undoManager)
                 }
             )
             .fastListRowManualSelection(id: pad.id, selection: $selectedIDs)
@@ -231,7 +231,7 @@ extension PadsView {
             ) {
                 guard let account = accounts.currentAccountID else { return }
 
-                favoritePads.toggle(pad.id, title: pad.title, account: account)
+                favoritePads.toggle(pad.id, title: pad.title, account: account, undoManager: undoManager)
             }]
         }
         .swipeActions(edge: .trailing) { pad in
@@ -333,7 +333,7 @@ extension PadsView {
                 : String(localized: "Add to Favorites")) {
                     guard let account = accounts.currentAccountID else { return }
 
-                    favoritePads.toggle(pad.id, title: pad.title, account: account)
+                    favoritePads.toggle(pad.id, title: pad.title, account: account, undoManager: undoManager)
                 },
             .separator,
             .button(title: String(localized: "Copy Pad ID")) { Clipboard.copy(pad.id) },

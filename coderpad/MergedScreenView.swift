@@ -48,6 +48,7 @@ struct MergedScreenView: View {
                 MergedScreenCampaignRow(scoped: scoped)
                     .tag(scoped.id)
                     .contextMenu { campaignActions(scoped) }
+                    .draggable(scoped.copyText)
             }
         }
         .overlay { statusOverlay }
@@ -55,6 +56,12 @@ struct MergedScreenView: View {
         // count once chosen (published by the tests list via AppNavigation, #475).
         .reportsSectionCount(selectedScopedID == nil ? countSubtitle : nav.screenTestsSubtitle)
         .toolbar(id: "merged-screen") { toolbar }
+        .focusedSceneValue(\.focusedScreenCampaignAction, selectedCampaignAction)
+        #if os(macOS)
+            .onCopyCommand(perform: copyLinkCommand(hasSelection: selectedCampaign != nil) {
+                selectedCampaign?.copyText ?? ""
+            })
+        #endif
         .task(id: accountKey) { await load() }
         // Reload on ⌘R like the other lists (AppRouter.requestReload()).
         .task {
@@ -100,7 +107,21 @@ struct MergedScreenView: View {
     @ViewBuilder
     private func campaignActions(_ scoped: ScopedScreenCampaign) -> some View {
         Button("Show Test Sessions") { selectedScopedID = scoped.id }
-        Button("Copy Name") { Clipboard.copy(scoped.campaign.name) }
+        Button("Copy Name") { Clipboard.copy(scoped.copyText) }
+    }
+
+    private var selectedCampaign: ScopedScreenCampaign? {
+        scopedCampaign(id: selectedScopedID)
+    }
+
+    private var selectedCampaignAction: ScreenCampaignAction? {
+        guard let selectedCampaign else { return nil }
+
+        return ScreenCampaignAction(id: "merged-screen-campaign-\(selectedCampaign.id)") {
+            Clipboard.copy(selectedCampaign.copyText)
+        } showTests: {
+            selectedScopedID = selectedCampaign.id
+        }
     }
 
     /// Resolves a namespaced row id back to its account-scoped campaign across the loaded
@@ -259,6 +280,12 @@ struct MergedScreenView: View {
         if let id = selectedScopedID, scopedCampaign(id: id) == nil {
             selectedScopedID = nil
         }
+    }
+}
+
+extension ScopedScreenCampaign {
+    var copyText: String {
+        "\(campaign.name)\t\(account.name)"
     }
 }
 

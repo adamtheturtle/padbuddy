@@ -27,6 +27,7 @@ struct MergedPadsView: View {
     /// While offline the app is read-only, so create/delete controls disable (#321).
     @Environment(\.isReadOnly) var isReadOnly
     @Environment(\.openWindow) var openWindow
+    @Environment(\.undoManager) var undoManager
     /// Cross-platform Settings opener (macOS window / iPad sheet), so an auth-failure
     /// in the error bar can jump to the account editor (#622).
     @Environment(\.openAppSettings) var openSettings
