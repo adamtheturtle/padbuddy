@@ -35,6 +35,7 @@ struct PadDetailView: View {
     @State var showDeleteConfirm = false
     @State var isMutating = false
     @State var mutateError: String?
+    @State var titleEditRequest = 0
     #if !os(macOS)
         /// The document staged for the iPad's `.fileExporter` (Save Code / Export Markdown).
         /// `nil` dismisses the export sheet.

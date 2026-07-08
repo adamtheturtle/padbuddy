@@ -238,6 +238,10 @@ extension QuestionsView {
     /// internal `FavoriteDrop` JSON (so it drops onto the sidebar Favorites, #297).
     #if os(macOS)
     private func questionPasteboardItem(_ question: Question) -> NSPasteboardItem? {
+        if selectedQuestionIDs.count > 1, selectedQuestionIDs.contains(question.id) {
+            return multiLinkPasteboardItem(selectedQuestionURLsInOrder)
+        }
+
         let url = question.webURL(baseURL: client.baseURL)
         let item = NSPasteboardItem()
         item.setString(url.absoluteString, forType: .URL)

@@ -42,6 +42,8 @@ struct PadsView: View {
     /// Pads queued for a multi-row delete, awaiting the confirmation dialog. Separate
     /// from `padPendingDelete` (the single swipe/context delete) so the two don't clash.
     @State var padsPendingBulkDelete: [Pad]?
+    @State var pendingBulkDeleteUndo: PendingBulkDelete<Pad>?
+    @State var bulkDeleteUndoTask: Task<Void, Never>?
     /// Owned by `MainSplit` so the `.searchable` field can live on the split view
     /// (trailing window toolbar) rather than this content column. All the filter,
     /// saved-search, and persistence logic here still reads and writes it.
@@ -363,13 +365,11 @@ struct PadsView: View {
                 presenting: padsPendingBulkDelete
             ) { pads in
                 Button("Delete \(pads.count) Pads", role: .destructive) {
-                    Task { for pad in pads {
-                        await deletePad(pad)
-                    } }
+                    scheduleBulkDelete(pads)
                 }
                 Button("Cancel", role: .cancel) {}
             } message: { pads in
-                Text("These \(pads.count) pads will be permanently deleted. This can't be undone.")
+                Text("You'll have a few seconds to undo before these \(pads.count) pads are permanently deleted.")
             }
             .alert("Couldn't delete pad",
                    isPresented: .init(get: { deleteError != nil },
@@ -378,5 +378,6 @@ struct PadsView: View {
             } message: {
                 Text(deleteError ?? "")
             }
+            .overlay(alignment: .bottom) { bulkDeleteUndoBanner }
     }
 }

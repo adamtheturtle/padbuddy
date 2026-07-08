@@ -3,6 +3,9 @@
 //  coderpad
 //
 
+#if os(macOS)
+    import AppKit
+#endif
 import SwiftUI
 
 // MARK: - EmailLink
@@ -317,6 +320,20 @@ func copyLinkCommand(hasSelection: Bool,
         return [NSItemProvider(object: urlString as NSString)]
     }
 }
+
+#if os(macOS)
+func multiLinkPasteboardItem(_ urls: [String]) -> NSPasteboardItem? {
+    let links = urls.filter { !$0.isEmpty }
+    guard !links.isEmpty else { return nil }
+
+    let item = NSPasteboardItem()
+    if let first = links.first {
+        item.setString(first, forType: .URL)
+    }
+    item.setString(links.joined(separator: "\n"), forType: .string)
+    return item
+}
+#endif
 
 /// Action published by whichever pane currently owns a search field, so the
 /// global ⌘F command can focus it. Panes set this via `focusedSceneValue` while

@@ -45,6 +45,8 @@ struct QuestionsView: View {
     /// the error from a failed delete. Single-row delete is delegated to the detail
     /// view, but a bulk delete needs its own confirmation + API loop here.
     @State var questionsPendingBulkDelete: [Question]?
+    @State var pendingBulkDeleteUndo: PendingBulkDelete<Question>?
+    @State var bulkDeleteUndoTask: Task<Void, Never>?
     @State var bulkDeleteError: String?
     /// Owned by `MainSplit` so the `.searchable` field can live on the split view
     /// (trailing window toolbar) rather than this content column. All the filter,
@@ -213,11 +215,11 @@ struct QuestionsView: View {
                 presenting: questionsPendingBulkDelete
             ) { questions in
                 Button("Delete \(questions.count) Questions", role: .destructive) {
-                    Task { await bulkDelete(questions) }
+                    scheduleBulkDelete(questions)
                 }
                 Button("Cancel", role: .cancel) {}
             } message: { questions in
-                Text("These \(questions.count) questions will be permanently deleted. This can't be undone.")
+                Text("You'll have a few seconds to undo before these \(questions.count) questions are permanently deleted.")
             }
     }
 
@@ -231,6 +233,7 @@ struct QuestionsView: View {
             } message: {
                 Text(bulkDeleteError ?? "")
             }
+            .overlay(alignment: .bottom) { bulkDeleteUndoBanner }
     }
 
     /// The live question-update stream layered on the alerts.

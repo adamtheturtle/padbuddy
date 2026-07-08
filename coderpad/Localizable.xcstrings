@@ -1694,6 +1694,9 @@
         }
       }
     },
+    "Click to rename" : {
+
+    },
     "Code" : {
       "localizations" : {
         "es" : {
@@ -2752,6 +2755,12 @@
         }
       }
     },
+    "Deleting %lld pads..." : {
+
+    },
+    "Deleting %lld questions..." : {
+
+    },
     "Deleting the pad is permanent and cannot be undone." : {
       "localizations" : {
         "es" : {
@@ -3063,7 +3072,6 @@
       }
     },
     "Edit title" : {
-      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6932,10 +6940,8 @@
         }
       }
     },
-    "These %@ pads will be permanently deleted. This can't be undone." : {
-
-    },
     "These %@ questions will be permanently deleted. This can't be undone." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6946,6 +6952,7 @@
       }
     },
     "These %lld pads will be permanently deleted. This can't be undone." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "variations" : {
@@ -6968,6 +6975,7 @@
       }
     },
     "These %lld questions will be permanently deleted. This can't be undone." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "variations" : {
@@ -7673,6 +7681,12 @@
           }
         }
       }
+    },
+    "You'll have a few seconds to undo before these %lld pads are permanently deleted." : {
+
+    },
+    "You'll have a few seconds to undo before these %lld questions are permanently deleted." : {
+
     },
     "You're not authorized. Check this account's API key in Settings." : {
       "localizations" : {

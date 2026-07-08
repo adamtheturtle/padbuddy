@@ -181,11 +181,11 @@ extension MergedQuestionsView {
                 presenting: rowsPendingBulkDelete
             ) { rows in
                 Button("Delete \(rows.count) Questions", role: .destructive) {
-                    Task { await bulkDelete(rows) }
+                    scheduleBulkDelete(rows)
                 }
                 Button("Cancel", role: .cancel) {}
             } message: { rows in
-                Text("These \(rows.count) questions will be permanently deleted. This can't be undone.")
+                Text("You'll have a few seconds to undo before these \(rows.count) questions are permanently deleted.")
             }
             .alert("Couldn't delete question",
                    isPresented: .init(get: { bulkDeleteError != nil },
@@ -194,6 +194,7 @@ extension MergedQuestionsView {
             } message: {
                 Text(bulkDeleteError ?? "")
             }
+            .overlay(alignment: .bottom) { bulkDeleteUndoBanner }
     }
 
     var content: some View {

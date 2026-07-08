@@ -288,6 +288,10 @@ extension PadsView {
     /// `.draggable` there would never grab.
     #if os(macOS)
     private func padPasteboardItem(_ pad: Pad) -> NSPasteboardItem? {
+        if selectedIDs.count > 1, selectedIDs.contains(pad.id) {
+            return multiLinkPasteboardItem(selectedPadsInOrder.map(\.url))
+        }
+
         guard let url = pad.webURL else { return nil }
 
         let item = NSPasteboardItem()

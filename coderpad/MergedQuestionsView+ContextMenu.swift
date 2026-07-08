@@ -84,6 +84,12 @@ extension MergedQuestionsView {
     /// Favorites and pins to the right account, #297).
     #if os(macOS)
     func questionPasteboardItem(_ row: MergedQuestionRow) -> NSPasteboardItem? {
+        if selectedRowIDs.count > 1, selectedRowIDs.contains(row.id) {
+            return multiLinkPasteboardItem(selectedRowsInOrder.map {
+                $0.item.webURL(baseURL: $0.account.resolvedBaseURL).absoluteString
+            })
+        }
+
         let url = row.item.webURL(baseURL: row.account.resolvedBaseURL)
         let item = NSPasteboardItem()
         item.setString(url.absoluteString, forType: .URL)

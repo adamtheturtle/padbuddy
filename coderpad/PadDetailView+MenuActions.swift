@@ -36,17 +36,14 @@ extension PadDetailView {
         saveCodeLocally()
     }
 
-    /// Consumes an "Edit Pad" request routed via `AppNavigation` from the Pad menu
-    /// command. The fields are edited in place rather than through a modal sheet, and
-    /// the inline title control (`InlineEditableTitle`) is now self-owning — it holds
-    /// its own focus and exposes no programmatic "begin editing" hook — so the command
-    /// can no longer focus the title field the way it used to (`titleFocused = true`).
-    /// The request is still cleared here so the pending flag doesn't linger; the
-    /// menu command's focus effect is dropped until the control offers a focus binding.
+    /// Consumes an "Edit Pad" request routed via `AppNavigation` from the Pad menu,
+    /// returning from the inline browser when needed and opening the title editor.
     func consumePendingEdit() {
         guard nav.editPadID == pad.id else { return }
 
         nav.editPadID = nil
+        browserURL = nil
+        titleEditRequest += 1
     }
 
     /// Honors an "End Interview" request from the Pad menu by showing the same

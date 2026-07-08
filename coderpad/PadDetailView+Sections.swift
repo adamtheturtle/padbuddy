@@ -93,9 +93,11 @@ extension PadDetailView {
             // hover or click in, and commits on Return or when focus leaves. The
             // control is self-owning (it holds its own draft and focus), so it takes
             // the pad's title and an async commit that returns whether the rename saved.
-            InlineEditableTitle(title: pad.title, placeholder: "Untitled Pad",
-                                isEditable: !isReadOnly, clampsWidth: true,
-                                font: .title.bold()) { newTitle in await commitTitle(newTitle) }
+            CommandEditableTitle(title: pad.title, placeholder: "Untitled Pad",
+                                 isEditable: !isReadOnly, clampsWidth: true,
+                                 font: .title.bold(), editRequest: titleEditRequest) { newTitle in
+                await commitTitle(newTitle)
+            }
             // The owner's name links to their pads (the app's person
             // navigation); the email keeps its mailto below. When the name
             // isn't known the link falls back to showing the email itself.

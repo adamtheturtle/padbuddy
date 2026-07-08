@@ -78,6 +78,8 @@ struct MergedPadsView: View {
     /// Separate from `padPendingDelete` (the single swipe/context delete) so the two
     /// confirmations don't interfere.
     @State var padsPendingBulkDelete: [Pad]?
+    @State var pendingBulkDeleteUndo: PendingBulkDelete<Pad>?
+    @State var bulkDeleteUndoTask: Task<Void, Never>?
     @Binding var search: String
 
     @State var stateFilter: PadState?

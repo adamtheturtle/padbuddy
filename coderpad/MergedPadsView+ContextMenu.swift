@@ -83,6 +83,10 @@ extension MergedPadsView {
     /// (so it drops onto the sidebar Favorites and pins to the right account, #297).
     #if os(macOS)
     func padPasteboardItem(_ row: AccountScoped<Account, Pad>) -> NSPasteboardItem? {
+        if selectedIDs.count > 1, selectedIDs.contains(row.item.id) {
+            return multiLinkPasteboardItem(selectedPadsInOrder.map(\.url))
+        }
+
         guard let url = row.item.webURL else { return nil }
 
         let item = NSPasteboardItem()

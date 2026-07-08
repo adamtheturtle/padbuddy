@@ -68,6 +68,8 @@ struct MergedQuestionsView: View {
     /// deletes against the right client), awaiting the confirmation dialog, plus the
     /// error from a failed delete. Single-row delete is delegated to the detail view.
     @State var rowsPendingBulkDelete: [MergedQuestionRow]?
+    @State var pendingBulkDeleteUndo: PendingBulkDelete<MergedQuestionRow>?
+    @State var bulkDeleteUndoTask: Task<Void, Never>?
     @State var bulkDeleteError: String?
     @Binding var search: String
 
