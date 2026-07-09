@@ -1188,9 +1188,6 @@
         }
       }
     },
-    "Add Template" : {
-
-    },
     "Add to %@" : {
       "localizations" : {
         "es" : {
@@ -1940,9 +1937,6 @@
           }
         }
       }
-    },
-    "Comma-separated, e.g. strong, follow-up" : {
-
     },
     "Completed" : {
 
@@ -2982,6 +2976,7 @@
       }
     },
     "e.g. \"Backend phone screen\"" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3061,16 +3056,6 @@
         }
       }
     },
-    "Edit Template" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Editar plantilla"
-          }
-        }
-      }
-    },
     "Edit title" : {
       "localizations" : {
         "es" : {
@@ -3080,9 +3065,6 @@
           }
         }
       }
-    },
-    "Edit…" : {
-
     },
     "Email the candidate an invitation" : {
 
@@ -3182,16 +3164,6 @@
     },
     "Europe" : {
 
-    },
-    "Evaluation" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Evaluación"
-          }
-        }
-      }
     },
     "Events" : {
       "localizations" : {
@@ -3675,6 +3647,7 @@
       }
     },
     "Interview Templates" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4020,9 +3993,6 @@
         }
       }
     },
-    "Manage Templates…" : {
-
-    },
     "Mark All as Seen" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4253,16 +4223,6 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Nueva pregunta…"
-          }
-        }
-      }
-    },
-    "New Template" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Nueva plantilla"
           }
         }
       }
@@ -4517,6 +4477,7 @@
       }
     },
     "No templates yet" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4561,9 +4522,6 @@
           }
         }
       }
-    },
-    "Notes" : {
-
     },
     "Nothing selected" : {
       "localizations" : {
@@ -4984,9 +4942,6 @@
         }
       }
     },
-    "Optional, defaults to the question's title" : {
-
-    },
     "Optional, e.g. \"Onsite: Jane Doe\"" : {
       "localizations" : {
         "es" : {
@@ -5168,9 +5123,6 @@
           }
         }
       }
-    },
-    "Pad title" : {
-
     },
     "Pad Unavailable" : {
       "localizations" : {
@@ -5397,26 +5349,6 @@
         }
       }
     },
-    "Private notes for this pad…" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Notas privadas para este pad…"
-          }
-        }
-      }
-    },
-    "Private to you. Ratings, tags, and notes sync across your devices via iCloud and are never sent to CoderPad." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Privado para ti. Las valoraciones, etiquetas y notas se sincronizan entre tus dispositivos mediante iCloud y nunca se envían a CoderPad."
-          }
-        }
-      }
-    },
     "Proctoring warnings" : {
 
     },
@@ -5582,19 +5514,6 @@
           }
         }
       }
-    },
-    "Rate %lld of 5" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Valorar %lld de 5"
-          }
-        }
-      }
-    },
-    "Rating" : {
-
     },
     "Recent Activity" : {
       "extractionState" : "stale",
@@ -5876,16 +5795,6 @@
         }
       }
     },
-    "Resize notes" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Cambiar el tamaño de las notas"
-          }
-        }
-      }
-    },
     "Result notifications (optional)" : {
 
     },
@@ -5923,9 +5832,6 @@
       }
     },
     "Save PDF" : {
-
-    },
-    "Save Question as Template…" : {
 
     },
     "Save Search" : {
@@ -6789,6 +6695,7 @@
       }
     },
     "Template actions" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -7381,6 +7288,7 @@
       }
     },
     "Use" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -7457,9 +7365,6 @@
           }
         }
       }
-    },
-    "Used as the title of each pad created from this template." : {
-
     },
     "Users" : {
       "localizations" : {

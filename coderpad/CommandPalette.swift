@@ -21,7 +21,6 @@ enum PaletteKind: String {
     case question = "Question"
     case section = "Section"
     case account = "Account"
-    case template = "Template"
     case command = "Command"
 }
 

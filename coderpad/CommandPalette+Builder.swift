@@ -3,7 +3,7 @@
 //  coderpad
 //
 //  Builds the command palette's candidate list (#526) from the shared stores: commands,
-//  sections, interview templates, accounts, and the cached pads and questions. Split out
+//  sections, accounts, and the cached pads and questions. Split out
 //  of CommandPalette.swift to keep each file focused.
 //
 
@@ -19,7 +19,6 @@ enum CommandPaletteBuilder {
         var results: [PaletteResult] = []
         results += commands()
         results += sections()
-        results += templates()
         results += newPadFromQuestions()
         results += accounts()
         results += padsAndQuestions()
@@ -49,29 +48,7 @@ enum CommandPaletteBuilder {
                     systemImage: "plus.rectangle.on.folder",
                     searchText: "New Pad from question \(question.displayTitle)",
                     onlyWhenSearching: !favoriteIDs.contains(question.id)
-                ) { InterviewTemplateRunner.createAndOpen(question: question, account: account) })
-            }
-        }
-        return results
-    }
-
-    private static func templates() -> [PaletteResult] {
-        let store = AccountsStore.shared
-        let accounts = store.isMergedView ? store.mergeableAccounts : [store.currentAccount].compactMap(\.self)
-        let showAccount = accounts.count > 1
-
-        var results: [PaletteResult] = []
-        for account in accounts {
-            for template in InterviewTemplatesStore.shared.templates(account: account.id) {
-                results.append(PaletteResult(
-                    id: "template.\(account.id.uuidString).\(template.id.uuidString)",
-                    kind: .template,
-                    title: template.name,
-                    subtitle: subtitle(account: showAccount ? account.name : nil,
-                                       detail: "New pad from template"),
-                    systemImage: "doc.badge.plus",
-                    searchText: "\(template.name) \(template.questionTitle)"
-                ) { InterviewTemplateRunner.createAndOpen(template, account: account) })
+                ) { NewPadFromQuestionRunner.createAndOpen(question: question, account: account) })
             }
         }
         return results

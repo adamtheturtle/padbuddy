@@ -10,6 +10,33 @@
 
 import SwiftUI
 
+@MainActor
+enum NewPadFromQuestionRunner {
+    /// Creates a pad directly from `question` and opens it, honoring the in-app/external
+    /// browser preference. On failure it falls back to the in-app create sheet seeded
+    /// with the question, matching the app's other create-pad recovery paths.
+    static func createAndOpen(question: Question, account: Account) {
+        let client = account.makeClient()
+        let accountID = account.id
+        let body = PadCreate.fromQuestion(question)
+        Task { @MainActor in
+            do {
+                let pad = try await client.createPad(body)
+                guard let url = pad.webURL else { return }
+
+                AppActivator.bringToFront()
+                if BrowserSettings.openLinksIn == .external {
+                    BrowserSettings.openExternally(url)
+                } else {
+                    AppRouter.requestOpenPadInBrowser(url)
+                }
+            } catch {
+                AppNavigation.shared.routeNewPad(account: accountID.uuidString, seedQuestionID: question.id)
+            }
+        }
+    }
+}
+
 struct NewPadFromQuestionCommands: Commands {
     /// Observed so the submenu tracks the current account and its loaded questions, and
     /// disables itself while offline - mirroring the menu-bar extra.
@@ -32,7 +59,7 @@ struct NewPadFromQuestionCommands: Commands {
                     Menu("New Pad from Question") {
                         ForEach(ordered.prefix(limit)) { question in
                             Button {
-                                InterviewTemplateRunner.createAndOpen(question: question, account: account)
+                                NewPadFromQuestionRunner.createAndOpen(question: question, account: account)
                             } label: {
                                 // Starred questions lead the list and carry the star, so a
                                 // frequently used question is the first one-click pad.
