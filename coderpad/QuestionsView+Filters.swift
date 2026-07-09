@@ -29,23 +29,6 @@ extension QuestionsView {
                            selected: $draftFilter, options: ["draft", "published"],
                            formatter: { $0 == "draft" ? String(localized: "Draft") : String(localized: "Published") })
                 .measuresFilterBarWidth()
-            // On-device natural-language filtering: describe what you want and the
-            // model maps it onto these chips. A verb-style link like Save, shown
-            // only when the model is available.
-            if SearchInterpreter.isAvailable {
-                Button {
-                    smartFilterText = ""
-                    smartFilterFailed = false
-                    showSmartFilter = true
-                } label: {
-                    Label("Smart Filter…", systemImage: "sparkles")
-                        .labelStyle(.titleAndIcon)
-                }
-                #if os(macOS)
-                .linkButtonStyle()
-                #endif
-                .controlSize(.small)
-            }
             if activeFilterCount > 0 || !search.isEmpty {
                 Button {
                     saveSearchName = ""
@@ -142,30 +125,6 @@ extension QuestionsView {
             let suggestion = await SavedSearchNamer.suggestName(for: captured)
             isSuggestingName = false
             if let suggestion { saveSearchName = suggestion }
-        }
-    }
-
-    /// Interprets the typed query on device and, when it maps to a real filter set,
-    /// applies it and closes the sheet. A query the model can't turn into any
-    /// filter leaves the list untouched and surfaces a gentle hint in the sheet.
-    func applySmartFilter() async {
-        let query = smartFilterText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return }
-
-        isInterpreting = true
-        smartFilterFailed = false
-        defer { isInterpreting = false }
-        let owners = availableOwners.map {
-            SearchInterpreter.OwnerOption(email: $0, name: directory.display($0))
-        }
-        let result = await SearchInterpreter.interpretQuestions(
-            query, languages: availableLanguages, owners: owners
-        )
-        if let result {
-            apply(result)
-            showSmartFilter = false
-        } else {
-            smartFilterFailed = true
         }
     }
 

@@ -21,7 +21,7 @@ extension MergedPadsView {
     /// chips so the merged list feels of a piece with `PadsView`.
     var presetsBar: some View {
         FlowLayout(spacing: 6, lineSpacing: 6) {
-            SavedSearchChip(name: "Mine", systemImage: "person.fill", isActive: mineOnly,
+            SavedSearchChip(name: "My Pads", systemImage: "person.fill", isActive: mineOnly,
                             maxNameLength: NamedSearch.maxNameLength) {
                 mineOnly.toggle()
             }
@@ -75,21 +75,6 @@ extension MergedPadsView {
             DateRangeFilterChip(title: String(localized: "Created"), window: $createdWindow,
                                 options: PadDateRange.options)
                 .measuresFilterBarWidth()
-            // On-device natural-language filtering: describe what you want and the
-            // model maps it onto these chips. A verb-style link like Save, shown
-            // only when the model is available.
-            if SearchInterpreter.isAvailable {
-                Button {
-                    smartFilterText = ""
-                    smartFilterFailed = false
-                    showSmartFilter = true
-                } label: {
-                    Label("Smart Filter…", systemImage: "sparkles")
-                        .labelStyle(.titleAndIcon)
-                }
-                .linkButtonStyle()
-                .controlSize(.small)
-            }
             if activeFilterCount > 0 {
                 Button(role: .destructive) {
                     clearAllFilters()

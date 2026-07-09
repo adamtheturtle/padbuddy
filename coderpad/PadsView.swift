@@ -106,12 +106,6 @@ struct PadsView: View {
     @State var showSaveSearch = false
     @State var saveSearchName = ""
     @State var isSuggestingName = false
-    /// Natural-language filter entry: the sheet's visibility, the typed query, and
-    /// whether the on-device interpreter is running. See `SearchInterpreter`.
-    @State var showSmartFilter = false
-    @State var smartFilterText = ""
-    @State var isInterpreting = false
-    @State var smartFilterFailed = false
     @State var padPendingDelete: Pad?
     @State var deleteError: String?
     /// Debounces marking a pad "opened" (which clears its activity dot) until the
@@ -303,8 +297,7 @@ struct PadsView: View {
             }
     }
 
-    /// The save-search / new-pad / smart-filter sheets, delete confirmations, and
-    /// delete-error alert.
+    /// The save-search / new-pad sheets, delete confirmations, and delete-error alert.
     private var decoratedSheets: some View {
         decoratedStreams
             .sheet(isPresented: $showSaveSearch) {
@@ -329,18 +322,6 @@ struct PadsView: View {
                     showCreate = false
                     seedQuestionID = nil
                 }
-            }
-            .sheet(isPresented: $showSmartFilter) {
-                SmartFilterSheet(
-                    text: $smartFilterText,
-                    isInterpreting: isInterpreting,
-                    failed: smartFilterFailed,
-                    placeholder: "e.g. active Python pads from my team",
-                    failedMessage: "Couldn't turn that into filters. Try naming a language, owner, state, or date.",
-                    hintMessage: "Mention a language, owner, state, or date.",
-                    onSubmit: { Task { await applySmartFilter() } },
-                    onCancel: { showSmartFilter = false }
-                )
             }
             // Swipe-to-delete reaches a pad without selecting it first, so the
             // confirmation lives here at the list level rather than in the detail

@@ -2,8 +2,8 @@
 //  MergedPadsView+Dialogs.swift
 //  coderpad
 //
-//  The combined pads list's new-pad sheet, smart-filter sheet, delete confirmations,
-//  and delete-error alert. Split out of MergedPadsView+List.swift to keep each file
+//  The combined pads list's new-pad sheet, delete confirmations, and delete-error
+//  alert. Split out of MergedPadsView+List.swift to keep each file
 //  within its length budget; it's the last link in that file's `decorated` modifier
 //  chain (see the note there on why the chain is split across `some View` steps).
 //
@@ -24,18 +24,6 @@ extension MergedPadsView {
                     creatingForAccount = nil
                     creatingSeedQuestionID = nil
                 }
-            }
-            .sheet(isPresented: $showSmartFilter) {
-                SmartFilterSheet(
-                    text: $smartFilterText,
-                    isInterpreting: isInterpreting,
-                    failed: smartFilterFailed,
-                    placeholder: "e.g. active Python pads",
-                    failedMessage: "Couldn't turn that into filters. Try naming a language, owner, state, or date.",
-                    hintMessage: "Mention a language, owner, state, or date.",
-                    onSubmit: { Task { await applySmartFilter() } },
-                    onCancel: { showSmartFilter = false }
-                )
             }
             .confirmationDialog(
                 "Delete this pad?",

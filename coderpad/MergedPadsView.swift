@@ -93,13 +93,6 @@ struct MergedPadsView: View {
     @State var mineOnly = false
     @State var updatedWindow = DateWindow()
     @State var createdWindow = DateWindow()
-    /// Natural-language filter entry: the sheet's visibility, the typed query, and
-    /// whether the on-device interpreter is running. Mirrors `PadsView`; the merged
-    /// list maps the result onto the same chips, minus the team filter it doesn't show.
-    @State var showSmartFilter = false
-    @State var smartFilterText = ""
-    @State var isInterpreting = false
-    @State var smartFilterFailed = false
 
     @State var padPendingDelete: Pad?
     @State var deleteError: String?

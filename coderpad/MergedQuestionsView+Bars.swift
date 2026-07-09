@@ -25,7 +25,7 @@ extension MergedQuestionsView {
                     if favoritesOnly { mineOnly = false; clearChips() }
                 }
             }
-            SavedSearchChip(name: "Mine", systemImage: "person.fill", isActive: mineOnly,
+            SavedSearchChip(name: "My Questions", systemImage: "person.fill", isActive: mineOnly,
                             maxNameLength: NamedSearch.maxNameLength) {
                 mineOnly.toggle()
             }
@@ -75,21 +75,6 @@ extension MergedQuestionsView {
                 formatter: { $0 == "draft" ? String(localized: "Draft") : String(localized: "Published") }
             )
             .measuresFilterBarWidth()
-            // On-device natural-language filtering: describe what you want and the
-            // model maps it onto these chips. A verb-style link like Save, shown
-            // only when the model is available.
-            if SearchInterpreter.isAvailable {
-                Button {
-                    smartFilterText = ""
-                    smartFilterFailed = false
-                    showSmartFilter = true
-                } label: {
-                    Label("Smart Filter…", systemImage: "sparkles")
-                        .labelStyle(.titleAndIcon)
-                }
-                .linkButtonStyle()
-                .controlSize(.small)
-            }
             if activeFilterCount > 0 {
                 Button(role: .destructive) {
                     clearAllFilters()
