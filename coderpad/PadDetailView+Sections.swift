@@ -95,16 +95,14 @@ extension PadDetailView {
                 await commitTitle(newTitle)
             }
             // The owner's name links to their pads (the app's person
-            // navigation); the email keeps its mailto below. When a CoderPad title
-            // already carries a generated "by <owner>" subtitle, don't repeat the
-            // same name immediately below it.
+            // navigation). When a CoderPad title already carries a generated
+            // "by <owner>" subtitle, don't repeat the same name immediately below it.
             if let name = directory.name(for: pad.ownerEmail), !name.isEmpty {
                 if !titleAlreadyNamesOwner(name) {
                     OwnerPadsLink(email: pad.ownerEmail).font(.callout)
                 }
-                EmailLink(email: pad.ownerEmail).font(.caption).foregroundStyle(.secondary)
             } else {
-                OwnerPadsLink(email: pad.ownerEmail)
+                OwnerPadsLink(email: pad.ownerEmail, fallbackLabel: String(localized: "Owner"))
             }
         }
     }

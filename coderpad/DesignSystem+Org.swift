@@ -28,20 +28,24 @@ struct EmailLink: View {
 
 /// A pad or question owner's name, rendered as a link that jumps to that
 /// person's pads — the same person-navigation the Organization list and
-/// interviewer rows already use. Pairs with `EmailLink` at the call sites: the
-/// name links to their pads while the email keeps its mailto, so the owner
-/// identity gains navigation without losing the address it used to carry. When
-/// the org directory doesn't know the name, the email itself becomes the label
-/// and the mailto stays reachable from the context menu.
+/// interviewer rows already use. Pairs with `EmailLink` at call sites that still
+/// expose mailto directly. When the org directory doesn't know the name, callers
+/// may provide a non-email fallback label for privacy-sensitive surfaces.
 struct OwnerPadsLink: View {
     let email: String
+    let fallbackLabel: String?
     @Environment(\.orgDirectory) private var directory
+
+    init(email: String, fallbackLabel: String? = nil) {
+        self.email = email
+        self.fallbackLabel = fallbackLabel
+    }
 
     var body: some View {
         if email.isEmpty {
             Text("(no owner)").foregroundStyle(.secondary)
         } else {
-            let name = directory.display(email)
+            let name = directory.name(for: email) ?? fallbackLabel ?? email
             Button {
                 AppNavigation.shared.showPads(PadsRequest(ownerEmail: email))
             } label: {
