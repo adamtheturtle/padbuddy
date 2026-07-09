@@ -6,8 +6,7 @@
 import SwiftUI
 
 extension PadsView {
-    /// Built-in chips shown ahead of the user's saved searches, mirrored in the
-    /// sidebar's Defaults section.
+    /// Built-in Suggested-search chips, mirrored in the sidebar's Suggested section.
     var defaultSearches: [DefaultSearch] {
         DefaultSearch.padDefaults(me: accounts.currentAccount?.userEmail)
     }
@@ -46,28 +45,17 @@ extension PadsView {
 
     @ViewBuilder
     var savedSearchesBar: some View {
-        let saved = savedSearches.searches(account: accounts.currentAccountID, kind: .pads)
         let defaults = defaultSearches
-        if !defaults.isEmpty || !saved.isEmpty {
+        if !defaults.isEmpty {
             // A wrapping flow layout rather than a horizontal scroll, so the chips
             // reflow onto extra lines as the pane narrows instead of clipping a
-            // long saved-search name off the trailing edge.
+            // long search name off the trailing edge.
             FlowLayout(spacing: 6, lineSpacing: 6) {
                 ForEach(defaults) { item in
                     SavedSearchChip(name: item.search.name, systemImage: item.icon,
                                     isActive: isActiveSearch(item.search),
                                     maxNameLength: NamedSearch.maxNameLength) {
                         apply(item.search)
-                    }
-                }
-                ForEach(saved) { item in
-                    SavedSearchChip(name: item.name, isActive: isActiveSearch(item),
-                                    maxNameLength: NamedSearch.maxNameLength) {
-                        apply(item)
-                    } onDelete: {
-                        if let account = accounts.currentAccountID {
-                            savedSearches.remove(id: item.id, account: account, kind: .pads)
-                        }
                     }
                 }
             }
@@ -135,19 +123,6 @@ extension PadsView {
                 options: Self.dateRangeOptions
             )
             .measuresFilterBarWidth()
-            if activeFilterCount > 0 || !search.isEmpty {
-                Button {
-                    saveSearchName = ""
-                    showSaveSearch = true
-                } label: {
-                    Label("Save…", systemImage: "bookmark")
-                        .labelStyle(.titleAndIcon)
-                }
-                // A link-styled action so it reads as a verb, not another
-                // neutral capsule filter chip sitting in the same bar.
-                .linkButtonStyle()
-                .controlSize(.small)
-            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)

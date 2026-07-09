@@ -16,9 +16,9 @@ struct PadsRequest: Equatable {
     /// A question to pre-select in the create sheet when `startCreating` is set —
     /// e.g. the New Pad widget button configured to seed from a favourite question.
     var seedQuestionID: Int?
-    /// A saved search to apply wholesale when the pane appears. Carries the full
-    /// filter set so picking a saved search from the sidebar reproduces exactly
-    /// what saving it captured — the same as tapping its in-pane chip.
+    /// A search to apply wholesale when the pane appears. Carries the full filter
+    /// set so picking a Suggested search from the sidebar reproduces exactly what it
+    /// captured — the same as tapping its in-pane chip.
     var applySearch: NamedSearch?
     /// A favorite pad to select when the pane appears, addressed by id since the
     /// sidebar that routes it holds favorite ids, not the loaded `Pad`s (mirrors
@@ -30,7 +30,7 @@ struct PadsRequest: Equatable {
 struct QuestionsRequest: Equatable {
     var search: String?
     var startCreating = false
-    /// A saved search to apply wholesale when the pane appears (see `PadsRequest`).
+    /// A search to apply wholesale when the pane appears (see `PadsRequest`).
     var applySearch: NamedSearch?
     /// A favorite question to select when the pane appears, addressed by id since
     /// the sidebar that routes it holds favorite ids, not the loaded `Question`s.
@@ -86,8 +86,8 @@ final class AppNavigation {
 
     /// The live filter signature of each list, republished by its pane whenever its
     /// filters change (and on appear). The sidebar compares these against the
-    /// suggested and saved rows to highlight whichever search is currently applied,
-    /// falling back to the plain "Pads"/"Questions" row when nothing matches. Kept
+    /// suggested rows to highlight whichever search is currently applied, falling
+    /// back to the plain "Pads"/"Questions" row when nothing matches. Kept
     /// here rather than inferred from `padsRequest`/`questionsRequest` because those
     /// are transient one-shot requests, while this must track every in-pane filter
     /// edit (a chip toggle, a menu change) so the sidebar highlight never lies about
@@ -185,8 +185,8 @@ final class AppNavigation {
     }
 
     /// Switch to the list that owns `search` and apply it, routing a sidebar
-    /// saved-search tap through the same per-pane `apply` the in-list chips use.
-    func applySavedSearch(_ search: NamedSearch, kind: SavedSearchKind) {
+    /// Suggested-search tap through the same per-pane `apply` the in-list chips use.
+    func applySuggestedSearch(_ search: NamedSearch, kind: SavedSearchKind) {
         switch kind {
         case .pads: showPads(PadsRequest(applySearch: search))
         case .questions: showQuestions(QuestionsRequest(applySearch: search))

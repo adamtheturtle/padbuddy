@@ -4,7 +4,7 @@ import Foundation
 #endif
 
 /// Drafts an interview question from a short prompt using Apple's on-device
-/// FoundationModels. Additive and private like ``SavedSearchNamer``: on-device
+/// FoundationModels. Additive and private like ``PadCodeExplainer``: on-device
 /// only, macOS 26+ with an available model, opt-in, and every field it returns is
 /// a starting point the author reviews and edits before saving — nothing is
 /// persisted automatically.

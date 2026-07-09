@@ -2,8 +2,8 @@
 //  Accounts+FavoriteQuestions.swift
 //  coderpad
 //
-//  Per-account favorite ("starred") questions. Split out of Accounts+SavedSearch.swift
-//  to keep each file within its length budget once iCloud mirroring was added (#536).
+//  Per-account favorite ("starred") questions.
+//  Kept in its own file so each stays within its length budget (#536).
 //
 
 import Foundation
@@ -196,7 +196,8 @@ final class FavoriteQuestionsStore {
         registerUndo(to: before, account: account, undoManager: undoManager, actionName: actionName)
     }
 
-    private func registerUndo(to entries: [FavoriteQuestion], account: UUID, undoManager: UndoManager?, actionName: String) {
+    private func registerUndo(to entries: [FavoriteQuestion], account: UUID,
+                              undoManager: UndoManager?, actionName: String) {
         guard let undoManager else { return }
 
         undoManager.registerUndo(withTarget: self) { store in

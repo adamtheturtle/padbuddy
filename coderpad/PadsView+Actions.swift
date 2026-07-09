@@ -26,7 +26,7 @@ extension PadsView {
         guard let request = nav.padsRequest else { return }
 
         nav.padsRequest = nil
-        // Apply a saved search first so any explicit owner/search below can still
+        // Apply a suggested search first so any explicit owner/search below can still
         // override a single field of it when a request carries both.
         if let saved = request.applySearch { apply(saved) }
         if let owner = request.ownerEmail { ownerFilter = owner }
@@ -60,30 +60,6 @@ extension PadsView {
         selectedIDs = [id]
         pendingScrollToID = id
         pendingSelectPadID = nil
-    }
-
-    func suggestName() {
-        let captured = captureCurrentSearch(named: "")
-        isSuggestingName = true
-        Task {
-            let suggestion = await SavedSearchNamer.suggestName(for: captured)
-            isSuggestingName = false
-            if let suggestion { saveSearchName = suggestion }
-        }
-    }
-
-    func commitSavedSearch() {
-        // Return in the text field fires `onSubmit` and the default-action button can
-        // also fire; guarding on the still-open sheet keeps a single keypress from
-        // saving the search twice.
-        guard showSaveSearch else { return }
-
-        let trimmed = String(saveSearchName.trimmingCharacters(in: .whitespacesAndNewlines)
-            .prefix(NamedSearch.maxNameLength))
-        guard !trimmed.isEmpty, let account = accounts.currentAccountID else { return }
-
-        savedSearches.add(captureCurrentSearch(named: trimmed), account: account, kind: .pads)
-        showSaveSearch = false
     }
 
     func apply(_ saved: NamedSearch) {

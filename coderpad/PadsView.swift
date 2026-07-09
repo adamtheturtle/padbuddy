@@ -102,10 +102,6 @@ struct PadsView: View {
     /// while a filtered (small) list stayed instant (#395). Any new assignment to
     /// `pads` must bump this.
     @State var padsRevision = 0
-    @State var savedSearches = SavedSearchStore.shared
-    @State var showSaveSearch = false
-    @State var saveSearchName = ""
-    @State var isSuggestingName = false
     @State var padPendingDelete: Pad?
     @State var deleteError: String?
     /// Debounces marking a pad "opened" (which clears its activity dot) until the
@@ -297,20 +293,9 @@ struct PadsView: View {
             }
     }
 
-    /// The save-search / new-pad sheets, delete confirmations, and delete-error alert.
+    /// The new-pad sheet, delete confirmations, and delete-error alert.
     private var decoratedSheets: some View {
         decoratedStreams
-            .sheet(isPresented: $showSaveSearch) {
-                SaveSearchSheet(
-                    name: $saveSearchName,
-                    prompt: Text("e.g. Live pads, my team"),
-                    showsSuggest: SavedSearchNamer.isAvailable,
-                    isSuggesting: isSuggestingName,
-                    onSuggest: suggestName,
-                    onCommit: commitSavedSearch,
-                    onCancel: { showSaveSearch = false }
-                )
-            }
             .sheet(isPresented: $showCreate) {
                 NewPadSheet(client: client, initialQuestionID: seedQuestionID) { created in
                     pads.insert(created, at: 0)

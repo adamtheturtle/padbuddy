@@ -73,15 +73,6 @@ extension PadsView {
         return nil
     }
 
-    /// The Updated and Created date filters are independent, so each active one
-    /// counts on its own.
-    var activeFilterCount: Int {
-        (stateFilter != nil ? 1 : 0)
-            + [languageFilter, ownerFilter, teamFilter, typeFilter].compactMap(\.self).count
-            + (updatedWindow.isActive ? 1 : 0)
-            + (createdWindow.isActive ? 1 : 0)
-    }
-
     /// Resets every live filter. Shared by the toolbar Clear button and the
     /// filtered empty state so the two never drift.
     func clearAllFilters() {

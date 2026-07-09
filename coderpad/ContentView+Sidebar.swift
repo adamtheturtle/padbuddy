@@ -19,7 +19,6 @@ struct Sidebar: View {
     @Environment(\.controlActiveState) private var controlActiveState
     #endif
     @State var accounts = AccountsStore.shared
-    @State var savedSearches = SavedSearchStore.shared
     @State var favorites = FavoriteQuestionsStore.shared
     @State var favoritePads = FavoritePadsStore.shared
     @State var favoritesOrder = FavoritesOrderStore.shared
@@ -42,12 +41,11 @@ struct Sidebar: View {
             // A native `List(selection:)` so the section rows get the framework's
             // selection model and arrow-key navigation for free, instead of the old
             // hand-rolled VStack of buttons that had to re-add ↑/↓ via `.onMoveCommand`
-            // (#281, #288). The List scrolls, so the saved-search and favorites groups
+            // (#281, #288). The List scrolls, so the Suggested and Favorites groups
             // can still grow past the window height while the account footer stays
             // pinned below. Selection covers only the top-level sections; the Suggested
-            // / Saved Searches / Favorites groups stay custom rows so their applied-
-            // search highlight, drag-to-reorder, drop-to-pin, and context menus are
-            // unchanged.
+            // / Favorites groups stay custom rows so their applied-search highlight,
+            // drag-to-reorder, drop-to-pin, and context menus are unchanged.
             List(selection: sectionSelection) {
                 Section {
                     ForEach(sectionOrder, id: \.self) { value in
@@ -62,7 +60,6 @@ struct Sidebar: View {
                 }
 
                 defaultsSection
-                savedSearchesSection
                 favoritesSection
             }
             .listStyle(.sidebar)
@@ -191,7 +188,7 @@ struct Sidebar: View {
 
     // MARK: Row chrome
 
-    /// A search-recall row for the Suggested / Saved Searches / Favorites groups. Unlike
+    /// A search-recall row for the Suggested / Favorites groups. Unlike
     /// the top-level section rows (which the `List` selects and styles natively), these
     /// stay custom buttons so they can paint the applied-search highlight, carry context
     /// menus, and be dragged — and they don't feed `SidebarRowWidthKey`, so long names
@@ -212,7 +209,7 @@ struct Sidebar: View {
                     .frame(width: 22)
                 Text(label)
                     // No explicit font: inherit the native sidebar row size so the
-                    // favourites / saved searches read as full navigation rows, equal
+                    // favourites / suggested searches read as full navigation rows, equal
                     // in weight to the top-level section rows (#572). Hierarchy is
                     // carried by the section headers and selection highlight, not size.
                     .lineLimit(1)
@@ -247,7 +244,7 @@ struct Sidebar: View {
 }
 
 extension View {
-    /// Renders a custom sidebar group (Suggested / Saved Searches / Favorites) as a
+    /// Renders a custom sidebar group (Suggested / Favorites) as a
     /// single, full-width `List` row: clears the framework's row insets, background, and
     /// separator so the group's own padding and highlights show through unchanged, and so
     /// these rows never pick up the native selection chrome reserved for the section rows.

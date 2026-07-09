@@ -29,42 +29,25 @@ extension QuestionsView {
                            selected: $draftFilter, options: ["draft", "published"],
                            formatter: { $0 == "draft" ? String(localized: "Draft") : String(localized: "Published") })
                 .measuresFilterBarWidth()
-            if activeFilterCount > 0 || !search.isEmpty {
-                Button {
-                    saveSearchName = ""
-                    showSaveSearch = true
-                } label: {
-                    Label("Save…", systemImage: "bookmark")
-                        .labelStyle(.titleAndIcon)
-                }
-                // A link-styled action so it reads as a verb, not another
-                // neutral capsule filter chip sitting in the same bar.
-                #if os(macOS)
-                .linkButtonStyle()
-                #endif
-                .controlSize(.small)
-            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// Built-in chips shown ahead of the user's saved searches, mirrored in the
-    /// sidebar's Defaults section.
+    /// Built-in Suggested-search chips, mirrored in the sidebar's Suggested section.
     var defaultSearches: [DefaultSearch] {
         DefaultSearch.questionDefaults(me: accounts.currentAccount?.userEmail)
     }
 
     @ViewBuilder
     var savedSearchesBar: some View {
-        let saved = savedSearches.searches(account: accounts.currentAccountID, kind: .questions)
         let defaults = defaultSearches
         let hasFavorites = !favoriteIDSet.isEmpty
-        if hasFavorites || !defaults.isEmpty || !saved.isEmpty {
+        if hasFavorites || !defaults.isEmpty {
             // A wrapping flow layout rather than a horizontal scroll, so the chips
             // reflow onto extra lines as the pane narrows instead of clipping a
-            // long saved-search name off the trailing edge.
+            // long search name off the trailing edge.
             FlowLayout(spacing: 6, lineSpacing: 6) {
                 // A toggle, unlike the recall chips beside it: tapping filters the
                 // list to starred questions and tapping again clears it. Shown only
@@ -92,48 +75,14 @@ extension QuestionsView {
                         apply(item.search)
                     }
                 }
-                ForEach(saved) { item in
-                    SavedSearchChip(name: item.name, isActive: isActiveSearch(item),
-                                    maxNameLength: NamedSearch.maxNameLength) {
-                        apply(item)
-                    } onDelete: {
-                        if let account = accounts.currentAccountID {
-                            savedSearches.remove(id: item.id, account: account, kind: .questions)
-                        }
-                    }
-                }
             }
             .padding(.horizontal, 12).padding(.top, 6)
         }
     }
 
-    func suggestName() {
-        let captured = captureCurrentSearch(named: "")
-        isSuggestingName = true
-        Task {
-            let suggestion = await SavedSearchNamer.suggestName(for: captured)
-            isSuggestingName = false
-            if let suggestion { saveSearchName = suggestion }
-        }
-    }
-
-    func commitSavedSearch() {
-        // Return in the text field fires `onSubmit` and the default-action button can
-        // also fire; guarding on the still-open sheet keeps a single keypress from
-        // saving the search twice.
-        guard showSaveSearch else { return }
-
-        let trimmed = String(saveSearchName.trimmingCharacters(in: .whitespacesAndNewlines)
-            .prefix(NamedSearch.maxNameLength))
-        guard !trimmed.isEmpty, let account = accounts.currentAccountID else { return }
-
-        savedSearches.add(captureCurrentSearch(named: trimmed), account: account, kind: .questions)
-        showSaveSearch = false
-    }
-
     func apply(_ saved: NamedSearch) {
         // Applying a recall chip turns Favorites off; the two are mutually
-        // exclusive presets in the saved-search bar.
+        // exclusive presets in the search bar.
         favoritesOnly = false
         search = saved.search
         languageFilter = saved.languageFilter

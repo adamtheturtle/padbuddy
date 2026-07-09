@@ -18,8 +18,8 @@ struct CodeExplanation {
 }
 
 /// Explains a single code file from a pad in plain language using Apple's
-/// on-device FoundationModels. Additive and private like ``SavedSearchNamer`` /
-/// ``PadSummarizer``: on-device only, macOS 26+ with an available model, and the
+/// on-device FoundationModels. Additive and private like ``PadSummarizer``:
+/// on-device only, macOS 26+ with an available model, and the
 /// caller shows nothing when it can't help. Aimed at an interviewer skimming a
 /// candidate's submission in an unfamiliar language, who also wants a quick read
 /// on the code's quality and efficiency.

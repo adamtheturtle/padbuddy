@@ -44,7 +44,6 @@ enum AppLaunch {
         FavoritePadsStore.shared.syncFromCloud()
         FavoriteQuestionsStore.shared.syncFromCloud()
         FavoritesOrderStore.shared.syncFromCloud()
-        SavedSearchStore.shared.syncFromCloud()
         PadOpenedStore.shared.syncFromCloud()
         PreferenceCloudSync.shared.start()
         // Keep the current account's pads fresh on a timer even when no window is open

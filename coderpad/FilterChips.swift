@@ -6,7 +6,7 @@
 //  a `DateWindow`. The generic chip primitives — the focus-ring suppressor, the
 //  menu-backed `ChipMenuShell`, and the categorical `FilterChipMenu` — now live in
 //  CoderPadDesignSystem (#515); this chip builds on the public `ChipMenuShell`. The
-//  saved-search chips live in FilterChips+SavedSearch / +Searchable.
+//  built-in Suggested-search chips live in FilterChips+Suggested / +Searchable.
 //
 
 import SwiftUI

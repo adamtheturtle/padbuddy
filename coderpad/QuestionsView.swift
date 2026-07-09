@@ -59,10 +59,6 @@ struct QuestionsView: View {
     @State var favoritesOnly = false
     @AppStorage(QuestionSort.storageKey) var sort: QuestionSort = .lastUsedDesc
     @State var showCreate = false
-    @State var savedSearches = SavedSearchStore.shared
-    @State var showSaveSearch = false
-    @State var saveSearchName = ""
-    @State var isSuggestingName = false
     /// A favorite picked from the sidebar before the list had loaded it. Held so
     /// the selection can be made once the matching question arrives.
     @State var pendingSelectQuestionID: Int?
@@ -168,17 +164,6 @@ struct QuestionsView: View {
                     showCreate = false
                 } onCancel: { showCreate = false }
             }
-            .sheet(isPresented: $showSaveSearch) {
-                SaveSearchSheet(
-                    name: $saveSearchName,
-                    prompt: Text("e.g. My drafts, Python"),
-                    showsSuggest: SavedSearchNamer.isAvailable,
-                    isSuggesting: isSuggestingName,
-                    onSuggest: suggestName,
-                    onCommit: commitSavedSearch,
-                    onCancel: { showSaveSearch = false }
-                )
-            }
     }
 
     // The bulk-delete confirmation, error alert, and update/deletion streams are
@@ -201,7 +186,8 @@ struct QuestionsView: View {
                 }
                 Button("Cancel", role: .cancel) {}
             } message: { questions in
-                Text("You'll have a few seconds to undo before these \(questions.count) questions are permanently deleted.")
+                let count = questions.count
+                Text("You'll have a few seconds to undo before these \(count) questions are permanently deleted.")
             }
     }
 

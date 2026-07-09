@@ -3,8 +3,8 @@
 //  coderpad
 //
 //  iCloud sync for the plain app-global preferences (#536). The per-account
-//  collections (favourites, saved searches, templates) ride their own stores'
-//  sync-id-keyed mirrors; this handles the flat scalar UserDefaults the Settings
+//  collections (favourites) ride their own stores' sync-id-keyed mirrors; this
+//  handles the flat scalar UserDefaults the Settings
 //  window writes - appearance, sort order, browser choice, and so on.
 //
 //  Model: last-writer-wins per key. For a single user's preferences that's the right

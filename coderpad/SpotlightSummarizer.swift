@@ -3,7 +3,7 @@ import Foundation
 /// Generates a handful of concise search keywords for a question from its text,
 /// using Apple's on-device FoundationModels, so the Spotlight index surfaces it
 /// for terms that don't appear verbatim in its title. Additive and private like
-/// ``SavedSearchNamer``: on-device only, macOS 26+ with an available model, and
+/// ``PadCodeExplainer``: on-device only, macOS 26+ with an available model, and
 /// it rides on top of the existing **opt-in** Spotlight indexing — nothing new is
 /// indexed that wasn't already, the keywords just enrich items the user chose to
 /// index. See ``SpotlightIndexer``.

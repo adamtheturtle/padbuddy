@@ -2652,27 +2652,6 @@
         }
       }
     },
-    "Delete Saved Search" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Eliminar búsqueda guardada"
-          }
-        }
-      }
-    },
-    "Delete saved search %@" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Eliminar la búsqueda guardada %@"
-          }
-        }
-      }
-    },
     "Delete Test Session" : {
 
     },
@@ -2982,26 +2961,6 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "p. ej. «Entrevista telefónica de backend»"
-          }
-        }
-      }
-    },
-    "e.g. Live pads, my team" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "p. ej. Pads en vivo, mi equipo"
-          }
-        }
-      }
-    },
-    "e.g. My drafts, Python" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "p. ej. Mis borradores, Python"
           }
         }
       }
@@ -5787,36 +5746,6 @@
     "Save PDF" : {
 
     },
-    "Save Search" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Guardar búsqueda"
-          }
-        }
-      }
-    },
-    "Save…" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Guardar…"
-          }
-        }
-      }
-    },
-    "Saved Searches" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Búsquedas guardadas"
-          }
-        }
-      }
-    },
     "Scope to Account" : {
 
     },
@@ -6509,26 +6438,6 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Estado"
-          }
-        }
-      }
-    },
-    "Suggest a name" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Sugerir un nombre"
-          }
-        }
-      }
-    },
-    "Suggest a name from the current filters" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Sugerir un nombre a partir de los filtros actuales"
           }
         }
       }

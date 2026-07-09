@@ -37,10 +37,6 @@ extension QuestionsView {
         return account == accounts.currentAccountID
     }
 
-    var activeFilterCount: Int {
-        [languageFilter, ownerFilter, typeFilter, draftFilter].compactMap(\.self).count
-    }
-
     /// How many questions the current filters resolve to, shown as the window's
     /// toolbar subtitle beneath the "Questions" title. Empty when the org has no
     /// questions at all, where a "0 questions" line would just restate the empty list.

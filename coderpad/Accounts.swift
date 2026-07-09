@@ -123,7 +123,7 @@ extension Account: StorableAccount {
 
 /// Drops everything keyed by a removed or re-keyed account: the network caches, the
 /// Spotlight index, the cached unauthorized verdict, and the personal data (favorites,
-/// saved searches, pad-open history) — so a removed key leaves nothing behind
+/// pad-open history) — so a removed key leaves nothing behind
 /// and a re-keyed account (possibly a different org) can't re-attach stale per-org data
 /// (a leftover favorite id could even reattach to an unrelated question). #379
 @MainActor private func tearDownAccountData(_ id: UUID) {
@@ -136,6 +136,5 @@ extension Account: StorableAccount {
     FavoritePadsStore.shared.remove(account: id)
     FavoriteQuestionsStore.shared.remove(account: id)
     FavoritesOrderStore.shared.remove(account: id)
-    SavedSearchStore.shared.remove(account: id)
     PadOpenedStore.shared.remove(account: id)
 }

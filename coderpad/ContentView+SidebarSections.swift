@@ -6,11 +6,10 @@
 import SwiftUI
 
 extension Sidebar {
-    // MARK: Saved searches
+    // MARK: Suggested searches
 
-    /// One pad or question search, tagged with its list so a tap can route to the
-    /// right pane and with the icon to show beside it. `id` is unique per row across
-    /// both the built-in defaults and the user's saved searches.
+    /// One built-in pad or question search, tagged with its list so a tap can route
+    /// to the right pane and with the icon to show beside it. `id` is unique per row.
     private struct SavedItem: Identifiable {
         let id: String
         let search: NamedSearch
@@ -18,26 +17,8 @@ extension Sidebar {
         let icon: String
     }
 
-    /// Both lists' saved searches, pads first, so the sidebar mirrors the section
-    /// order above. The built-in defaults are surfaced separately in `defaultItems`.
-    private var savedItems: [SavedItem] {
-        let pads = savedSearches.searches(account: accountID, kind: .pads)
-            .map { SavedItem(id: "pads-\($0.id.uuidString)", search: $0, kind: .pads, icon: "doc.text") }
-        let questions = savedSearches.searches(account: accountID, kind: .questions)
-            .map {
-                SavedItem(
-                    id: "questions-\($0.id.uuidString)",
-                    search: $0,
-                    kind: .questions,
-                    icon: "questionmark.bubble"
-                )
-            }
-        return pads + questions
-    }
-
     /// The built-in pad and question searches mirrored from the chip bars,
-    /// recomputed per account so "My Pads"/"My Questions" track whoever is signed
-    /// in. Unlike the user's saved searches, defaults can't be deleted.
+    /// recomputed per account so "My Pads"/"My Questions" track whoever is signed in.
     private var defaultItems: [SavedItem] {
         let currentEmail = accounts.currentAccount?.userEmail
         let pads = DefaultSearch.padDefaults(me: currentEmail)
@@ -51,7 +32,7 @@ extension Sidebar {
 
     //
     // The sidebar shows a single selection across every row, the way Mail and
-    // Reminders do: tapping a suggested or saved search highlights that row and the
+    // Reminders do: tapping a suggested search highlights that row and the
     // parent "Pads"/"Questions" row deselects, so the highlight always names exactly
     // what the content pane is showing. Selection is *derived* from each pane's live
     // filter signature (published into `AppNavigation`) rather than stored, so it
@@ -73,9 +54,9 @@ extension Sidebar {
         }
     }
 
-    /// In the combined view the per-account saved searches don't apply; the sidebar
-    /// instead surfaces each merged list's "Mine" preset, which it toggles and
-    /// reflects through `AppNavigation`.
+    /// In the combined view the per-account Suggested searches don't apply; the
+    /// sidebar instead surfaces each merged list's "Mine" preset, which it toggles
+    /// and reflects through `AppNavigation`.
     var isMergedView: Bool {
         accounts.isMergedView
     }
@@ -94,10 +75,10 @@ extension Sidebar {
             && liveFilter(for: item.kind).hasSameFilters(as: item.search)
     }
 
-    /// Every suggested and saved row for one list kind, used to decide whether the
-    /// plain top-level row should claim the selection.
+    /// Every suggested row for one list kind, used to decide whether the plain
+    /// top-level row should claim the selection.
     private func items(for kind: SavedSearchKind) -> [SavedItem] {
-        (defaultItems + savedItems).filter { $0.kind == kind }
+        defaultItems.filter { $0.kind == kind }
     }
 
     /// Whether a top-level row owns the selection. Pads/Questions are selected only
@@ -133,8 +114,8 @@ extension Sidebar {
 
     /// Drives the section `List`'s selection. The getter is *derived* from each pane's
     /// live state (via `isRootSelected`) rather than stored, so it falls back to `nil`
-    /// — no section highlighted — the instant a saved search is applied or a filter is
-    /// edited in-pane, with no separate invalidation step. The setter routes through
+    /// — no section highlighted — the instant a suggested search is applied or a filter
+    /// is edited in-pane, with no separate invalidation step. The setter routes through
     /// `selectRoot`, so a click or an arrow-key move onto Pads/Questions shows their
     /// plain list exactly as tapping the row did. `List` handles ↑/↓ navigation and the
     /// selection styling itself, replacing the old `.onMoveCommand` handler.
@@ -226,7 +207,7 @@ extension Sidebar {
                             let nav = nav
                             sidebarSubRow(label: item.search.name, icon: item.icon,
                                           isSelected: isItemSelected(item)) {
-                                nav.applySavedSearch(item.search, kind: item.kind)
+                                nav.applySuggestedSearch(item.search, kind: item.kind)
                             }
                         }
                     }
@@ -257,40 +238,6 @@ extension Sidebar {
                 }
             }
             .sidebarGroupRow()
-        }
-    }
-
-    @ViewBuilder
-    var savedSearchesSection: some View {
-        let items = savedItems
-        if !items.isEmpty {
-            Section("Saved Searches") {
-                VStack(spacing: 2) {
-                    ForEach(items) { item in
-                        // Capture the stores (not `self`) in the row's tap and delete
-                        // closures — see the note in `defaultsSection`: capturing the
-                        // whole `Sidebar` struct faults in `swift_retain` while SwiftUI
-                        // copies the row value on the iPad layout path.
-                        let nav = nav
-                        let savedSearches = savedSearches
-                        let accountID = accountID
-                        sidebarSubRow(label: item.search.name, icon: item.icon,
-                                      isSelected: isItemSelected(item)) {
-                            nav.applySavedSearch(item.search, kind: item.kind)
-                        }
-                        .contextMenu {
-                            Button(role: .destructive) {
-                                if let account = accountID {
-                                    savedSearches.remove(id: item.search.id, account: account, kind: item.kind)
-                                }
-                            } label: {
-                                Label("Delete Saved Search", systemImage: "trash")
-                            }
-                        }
-                    }
-                }
-                .sidebarGroupRow()
-            }
         }
     }
 }

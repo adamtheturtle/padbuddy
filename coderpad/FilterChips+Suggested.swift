@@ -1,16 +1,16 @@
 //
-//  FilterChips+SavedSearch.swift
+//  FilterChips+Suggested.swift
 //  coderpad
 //
-//  The saved-search chips and their built-in defaults. Split out of
-//  FilterChips.swift so each chip family keeps its own file.
+//  The built-in Suggested-search chips. Split out of FilterChips.swift so each
+//  chip family keeps its own file.
 //
 
 import SwiftUI
 
-/// A built-in saved search shown as a chip ahead of the user's own. Defaults
-/// aren't persisted or deletable — they're recomputed per account so "My Pads"
-/// and "My Questions" track whoever is signed in.
+/// A built-in Suggested search shown as a chip. Defaults aren't persisted or
+/// deletable — they're recomputed per account so "My Pads" and "My Questions"
+/// track whoever is signed in.
 struct DefaultSearch: Identifiable {
     let id: String
     let icon: String
@@ -18,8 +18,8 @@ struct DefaultSearch: Identifiable {
 }
 
 extension DefaultSearch {
-    /// Built-in pad searches shown ahead of the user's saved searches, recomputed
-    /// per account. "My Pads" appears only when the account knows its user's email;
+    /// Built-in Suggested pad searches, recomputed per account. "My Pads" appears
+    /// only when the account knows its user's email;
     /// "Active" filters to in-progress sessions (the API's "started" state). Shared
     /// by the pad chip bar and the sidebar so the two never drift.
     static func padDefaults(me currentUserEmail: String?) -> [DefaultSearch] {
@@ -35,8 +35,8 @@ extension DefaultSearch {
         return result
     }
 
-    /// Built-in question searches shown ahead of the user's saved searches,
-    /// recomputed per account. "My Questions" appears only when the account knows
+    /// Built-in Suggested question searches, recomputed per account. "My Questions"
+    /// appears only when the account knows
     /// its user's email; "Drafts" filters to unpublished questions. Shared by the
     /// question chip bar and the sidebar so the two never drift.
     static func questionDefaults(me currentUserEmail: String?) -> [DefaultSearch] {
