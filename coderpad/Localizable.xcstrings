@@ -1625,6 +1625,7 @@
       }
     },
     "Clear" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1655,6 +1656,7 @@
       }
     },
     "Clear Filters" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3616,17 +3618,6 @@
         }
       }
     },
-    "Interview Templates" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Plantillas de entrevista"
-          }
-        }
-      }
-    },
     "Interviewer" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4427,17 +4418,6 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Aún no hay informe"
-          }
-        }
-      }
-    },
-    "No templates yet" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Aún no hay plantillas"
           }
         }
       }
@@ -6383,17 +6363,6 @@
         }
       }
     },
-    "Smart Filter" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Filtro inteligente"
-          }
-        }
-      }
-    },
     "Solution" : {
       "localizations" : {
         "es" : {
@@ -6650,17 +6619,6 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Equipos"
-          }
-        }
-      }
-    },
-    "Template actions" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Acciones de plantilla"
           }
         }
       }
