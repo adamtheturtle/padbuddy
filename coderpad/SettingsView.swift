@@ -46,7 +46,7 @@ struct SettingsView: View {
     // Browser and menu-bar preferences live in UserDefaults under the keys defined
     // in `BrowserSettings.Key`; `@AppStorage` reads/writes those same keys so the
     // app-wide static getters on `BrowserSettings` stay in sync.
-    @AppStorage(BrowserSettings.Key.openLinksIn) var openLinksIn: LinkDestination = .inApp
+    @AppStorage(BrowserSettings.Key.openLinksIn) var openLinksIn: LinkDestination = .external
     @AppStorage(BrowserSettings.Key.defaultBrowserBundleID) var defaultBrowserBundleID: String?
     @AppStorage(BrowserSettings.Key.openInBackground) var openInBackground = false
     @AppStorage("menuBarTopN") var menuBarTopN = 3

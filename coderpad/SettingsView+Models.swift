@@ -48,7 +48,7 @@ enum BrowserSettings {
     }
 
     static var openLinksIn: LinkDestination {
-        LinkDestination(rawValue: UserDefaults.standard.string(forKey: Key.openLinksIn) ?? "") ?? .inApp
+        LinkDestination(rawValue: UserDefaults.standard.string(forKey: Key.openLinksIn) ?? "") ?? .external
     }
 
     static var defaultBrowserBundleID: String? {
