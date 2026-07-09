@@ -374,8 +374,6 @@ extension MergedQuestionsView {
                 Label("No Matching Questions", systemImage: "line.3.horizontal.decrease.circle")
             } description: {
                 Text("No questions match the current filters.")
-            } actions: {
-                Button("Clear Filters") { clearAllFilters() }
             }
         } else if scoped.isEmpty, !isLoading {
             // Spell out that this account set is genuinely empty, so it doesn't read as

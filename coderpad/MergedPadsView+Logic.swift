@@ -160,12 +160,6 @@ extension MergedPadsView {
             + (createdWindow.isActive ? 1 : 0)
     }
 
-    func clearAllFilters() {
-        stateFilter = nil; languageFilter = nil; ownerFilter = nil; typeFilter = nil
-        accountFilter = nil; mineOnly = false
-        updatedWindow = DateWindow(); createdWindow = DateWindow()
-    }
-
     /// Applies a request queued by `AppNavigation`, matching the single-account Pads
     /// pane so person links work the same way in the combined "All Accounts" list.
     func applyPendingRequest() {

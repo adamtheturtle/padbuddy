@@ -203,14 +203,9 @@ extension MergedQuestionsView {
         [languageFilter, ownerFilter, typeFilter, draftFilter].compactMap(\.self).count
             + (accountFilter != nil ? 1 : 0)
             + (mineOnly ? 1 : 0)
-            // Favorites narrows the list and is reset by `clearAllFilters`, so it
-            // counts as an active filter — matching the result-count bar's label.
+            // Favorites narrows the list, so it counts as an active filter,
+            // matching the result-count bar's label.
             + (favoritesOnly ? 1 : 0)
-    }
-
-    func clearAllFilters() {
-        languageFilter = nil; ownerFilter = nil; typeFilter = nil; draftFilter = nil
-        accountFilter = nil; mineOnly = false; favoritesOnly = false
     }
 
     var filterSignature: String {

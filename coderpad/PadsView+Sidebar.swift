@@ -155,8 +155,6 @@ extension PadsView {
                         Label("No Matching Pads", systemImage: "line.3.horizontal.decrease.circle")
                     } description: {
                         Text("No pads match the current filters.")
-                    } actions: {
-                        Button("Clear Filters") { clearAllFilters() }
                     }
                 }
             }

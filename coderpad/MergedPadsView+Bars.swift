@@ -75,16 +75,6 @@ extension MergedPadsView {
             DateRangeFilterChip(title: String(localized: "Created"), window: $createdWindow,
                                 options: PadDateRange.options)
                 .measuresFilterBarWidth()
-            if activeFilterCount > 0 {
-                Button(role: .destructive) {
-                    clearAllFilters()
-                } label: {
-                    Label("Clear", systemImage: "xmark.circle.fill")
-                        .labelStyle(.titleAndIcon)
-                }
-                .buttonStyle(.borderless)
-                .controlSize(.small)
-            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)

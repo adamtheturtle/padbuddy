@@ -51,16 +51,6 @@ extension QuestionsView {
         return count == 1 ? String(localized: "\(count) question") : String(localized: "\(count) questions")
     }
 
-    /// Resets the question filter chips, mirroring `MergedQuestionsView.clearAllFilters`
-    /// and the single-account Pads list, so the no-match overlay's Clear Filters button
-    /// has a target (#617). The search field (owned by `MainSplit`) is left untouched,
-    /// matching the Pads list.
-    func clearAllFilters() {
-        languageFilter = nil; ownerFilter = nil
-        typeFilter = nil; draftFilter = nil
-        favoritesOnly = false
-    }
-
     var sidebar: some View {
         FilterableListView(
             isLoading: isLoading,
@@ -193,8 +183,6 @@ extension QuestionsView {
                     Label("No Matching Questions", systemImage: "line.3.horizontal.decrease.circle")
                 } description: {
                     Text("No questions match the current filters.")
-                } actions: {
-                    Button("Clear Filters") { clearAllFilters() }
                 }
             }
         }

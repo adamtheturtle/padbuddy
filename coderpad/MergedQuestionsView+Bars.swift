@@ -75,16 +75,6 @@ extension MergedQuestionsView {
                 formatter: { $0 == "draft" ? String(localized: "Draft") : String(localized: "Published") }
             )
             .measuresFilterBarWidth()
-            if activeFilterCount > 0 {
-                Button(role: .destructive) {
-                    clearAllFilters()
-                } label: {
-                    Label("Clear", systemImage: "xmark.circle.fill")
-                        .labelStyle(.titleAndIcon)
-                }
-                .buttonStyle(.borderless)
-                .controlSize(.small)
-            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)

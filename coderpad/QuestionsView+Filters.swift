@@ -44,17 +44,6 @@ extension QuestionsView {
                 #endif
                 .controlSize(.small)
             }
-            if activeFilterCount > 0 {
-                Button(role: .destructive) {
-                    languageFilter = nil; ownerFilter = nil
-                    typeFilter = nil; draftFilter = nil
-                } label: {
-                    Label("Clear", systemImage: "xmark.circle.fill")
-                        .labelStyle(.titleAndIcon)
-                }
-                .buttonStyle(.borderless)
-                .controlSize(.small)
-            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
