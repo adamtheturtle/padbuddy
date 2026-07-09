@@ -28,6 +28,16 @@
                     AppNavigation.shared.showQuestions(QuestionsRequest(startCreating: true))
                 }
                 .keyboardShortcut("n", modifiers: [.command, .shift])
+
+                Button("Open Pad by URL…") {
+                    AppRouter.requestOpenPadByURL()
+                }
+                .keyboardShortcut("o", modifiers: [.command])
+
+                Button("Reload") {
+                    AppRouter.requestReload()
+                }
+                .keyboardShortcut("r", modifiers: [.command])
             }
 
             // A `.searchable` field already gives iOS its own ⌘F "Find"; adding ours
@@ -66,7 +76,37 @@
                     .keyboardShortcut("2", modifiers: [.command])
                 Button("Organization") { AppNavigation.shared.show(.organization) }
                     .keyboardShortcut("3", modifiers: [.command])
+                Button("Quota") { postIfNavigable(.quota) }
+                    .keyboardShortcut("4", modifiers: [.command])
+                    .disabled(!AppSection.navigable.contains(.quota))
+                Button("Screen") { postIfNavigable(.screen) }
+                    .keyboardShortcut("5", modifiers: [.command])
+                    .disabled(!AppSection.navigable.contains(.screen))
+
+                Divider()
+
+                Button("Next Section") { cycleSection(by: 1) }
+                    .keyboardShortcut("]", modifiers: [.command, .shift])
+                Button("Previous Section") { cycleSection(by: -1) }
+                    .keyboardShortcut("[", modifiers: [.command, .shift])
             }
+        }
+
+        private func postIfNavigable(_ section: AppSection) {
+            guard AppSection.navigable.contains(section) else { return }
+
+            AppNavigation.shared.show(section)
+        }
+
+        private func cycleSection(by delta: Int) {
+            let order = AppSection.navigable
+            guard !order.isEmpty else { return }
+
+            let current = AppNavigation.shared.section
+            let index = order.firstIndex(of: current) ?? 0
+            let count = order.count
+            let next = order[((index + delta) % count + count) % count]
+            AppNavigation.shared.show(next)
         }
     }
 #endif

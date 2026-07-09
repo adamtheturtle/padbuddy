@@ -199,6 +199,12 @@
                 Button("Pads") { post(.pads) }.keyboardShortcut("1", modifiers: [.command])
                 Button("Questions") { post(.questions) }.keyboardShortcut("2", modifiers: [.command])
                 Button("Organization") { post(.organization) }.keyboardShortcut("3", modifiers: [.command])
+                Button("Quota") { postIfNavigable(.quota) }
+                    .keyboardShortcut("4", modifiers: [.command])
+                    .disabled(!AppSection.navigable.contains(.quota))
+                Button("Screen") { postIfNavigable(.screen) }
+                    .keyboardShortcut("5", modifiers: [.command])
+                    .disabled(!AppSection.navigable.contains(.screen))
                 Divider()
                 Button("Next Section") { cycleSection(by: 1) }
                     .keyboardShortcut("]", modifiers: [.command, .shift])

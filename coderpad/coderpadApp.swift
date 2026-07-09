@@ -151,6 +151,12 @@ struct CoderpadApp: App {
         AppNavigation.shared.show(section)
     }
 
+    func postIfNavigable(_ section: AppSection) {
+        guard AppSection.navigable.contains(section) else { return }
+
+        post(section)
+    }
+
     /// Routes a `coderpad://` deep link from the widget. `coderpad://pad/<id>` opens
     /// that pad in the user's browser; `coderpad://pads` just brings the Pads list
     /// forward. Reuses the same durable navigation as the Spotlight and intent paths.
