@@ -3,8 +3,7 @@
 //  coderpad
 //
 //  Hosts a question's detail in its own window, opened by double-clicking a
-//  question row (#292) — the native-detail counterpart to opening a pad in the
-//  `pad-browser` window (#291). The window carries only an identifier so it can be
+//  question row (#292). The window carries only an identifier so it can be
 //  restored across launches; the heavyweight `Question` is resolved from the cache
 //  (or fetched) on appear.
 //

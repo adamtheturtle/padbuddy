@@ -12,7 +12,6 @@ struct QuestionDetailView: View {
     /// scoped to it — per-org question ids collide across accounts in the combined
     /// view. `nil` when unknown (consumers then fall back to id-only matching).
     var accountID: UUID?
-    @Environment(\.openWindow) var openWindow
     @Environment(\.orgDirectory) var directory
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.undoManager) var undoManager
@@ -30,8 +29,6 @@ struct QuestionDetailView: View {
     @State private var deletionTask: Task<Void, Never>?
     @State private var isCreatingPad = false
     @State private var createPadError: String?
-    @State var showBrowser = false
-    @State var createdPadURL: URL?
     // Inline metadata drafts (title, language, type), seeded from the question and
     // committed one field at a time, mirroring the pad detail editor. The long-form
     // content (description, instructions, solution) is edited in place too (#335).
@@ -115,13 +112,7 @@ struct QuestionDetailView: View {
     }
 
     private var core: some View {
-        Group {
-            if showBrowser, let url = createdPadURL {
-                padBrowser(url: url)
-            } else {
-                detailScroll
-            }
-        }
+        detailScroll
         .overlay(alignment: .bottom) { undoDeletionBanner }
         .animation(reduceMotion ? nil : .spring(duration: 0.3), value: deletionTask == nil)
         // Publish the favorite state so the Question menu's Favorite command can
@@ -231,26 +222,16 @@ struct QuestionDetailView: View {
     }
 
     /// Honors a "New Pad from Question" request routed via `AppNavigation` (e.g.
-    /// from the Questions list's context menu): create the pad and open it inline,
-    /// exactly as the in-pane "New Pad" button does.
+    /// from the Questions list's context menu): create the pad and open it in the
+    /// user's browser.
     private func consumePendingPadCreation() {
         guard nav.createPadForQuestionID == question.id else { return }
 
         nav.createPadForQuestionID = nil
-        // A routed request can outlive this detail pane — the user may select
-        // another question before creation finishes, recreating the view (`.id`)
-        // and discarding its inline-browser state. Open the result in the standard
-        // pad-browser window instead (captured `openWindow` survives the teardown),
-        // matching how pads open elsewhere.
-        let openWindow = openWindow
         Task {
             guard let url = await makePadFromQuestion() else { return }
 
-            if BrowserSettings.openLinksIn == .external {
-                BrowserSettings.openExternally(url)
-            } else {
-                openWindow(id: "pad-browser", value: url)
-            }
+            BrowserSettings.openExternally(url)
         }
     }
 
@@ -264,21 +245,15 @@ struct QuestionDetailView: View {
         showDeleteConfirm = true
     }
 
-    /// The `userInfo` attached to edit/delete notifications, carrying the owning
-    /// account so combined-view consumers scope the change correctly. Empty when
-    /// the account is unknown.
-    /// Creates a pad from this question and browses it inline in this pane. Used by
-    /// the in-pane "New Pad" button, where the user is looking at this detail.
+    /// Creates a pad from this question and opens it in the user's browser.
     private func createPadInline() async {
         if let url = await makePadFromQuestion() {
-            createdPadURL = url
-            showBrowser = true
+            BrowserSettings.openExternally(url)
         }
     }
 
     /// Creates a pad from this question, returning its web URL (or nil on failure,
-    /// after recording the error). Presentation is left to the caller so a routed
-    /// request can open a durable window while the in-pane button browses inline.
+    /// after recording the error).
     private func makePadFromQuestion() async -> URL? {
         isCreatingPad = true
         defer { isCreatingPad = false }

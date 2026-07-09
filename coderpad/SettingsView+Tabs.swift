@@ -300,13 +300,6 @@ extension SettingsView {
 
     var browserTab: some View {
         Form {
-            Section {
-                Picker("Open links", selection: $openLinksIn) {
-                    ForEach(LinkDestination.allCases) { destination in
-                        Text(destination.label).tag(destination)
-                    }
-                }
-            }
             // Choosing a specific external browser app and opening it in the background
             // are macOS-only; on iPad external links always go to the system default.
             #if os(macOS)

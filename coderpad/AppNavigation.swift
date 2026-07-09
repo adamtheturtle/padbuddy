@@ -72,9 +72,17 @@ final class AppNavigation {
     /// `SectionCountKey` SwiftUI preference, which SwiftUICore faulted on ("tried to
     /// update multiple times per frame"): a list's count can change across the several
     /// `body` passes that settle one frame, and the preference wrote each intermediate
-    /// value straight into the tree. Routing it through the guarded, async setter below
-    /// defers every update out of the current transaction, so it can't churn in a frame.
+    /// value straight into the tree. Routing it through the guarded ``publishSectionCount(_:)``
+    /// (an `onChange` side effect, which fires once per settled value) keeps that safety
+    /// without a preference.
     var sectionCountSubtitle = ""
+
+    /// The section ``sectionCountSubtitle`` was published for, so `MainSplit` can ignore a
+    /// count left over from the section just navigated away from — otherwise that stale
+    /// count would linger under the new title until the new pane republishes its own,
+    /// which lands a frame later and reads as a flash (the old title's count, then the
+    /// new one). Set alongside the subtitle by ``publishSectionCount(_:)``.
+    var sectionCountSection: AppSection?
 
     /// The live filter signature of each list, republished by its pane whenever its
     /// filters change (and on appear). The sidebar compares these against the
@@ -151,16 +159,17 @@ final class AppNavigation {
         self.section = section
     }
 
-    /// Publish the active list section's result-count subtitle. Guarded and dispatched
-    /// async (mirroring the tests list's ``screenTestsSubtitle`` publish) so a value
-    /// arrived at over a frame's several body passes lands once, on the next runloop,
-    /// instead of mutating the toolbar subtitle repeatedly mid-transaction.
+    /// Publish the active list section's result-count subtitle, tagged with the current
+    /// section so `MainSplit` can tell it apart from a stale count. Called as an
+    /// `onChange` side effect (see `reportsSectionCount`), which already fires once per
+    /// settled value, so the set is synchronous: deferring it to the next runloop is
+    /// what left the toolbar blank for a frame when switching sections (the new pane's
+    /// count arrived after the section change had already cleared the old one).
     func publishSectionCount(_ subtitle: String) {
-        guard sectionCountSubtitle != subtitle else { return }
+        guard sectionCountSubtitle != subtitle || sectionCountSection != section else { return }
 
-        DispatchQueue.main.async {
-            if self.sectionCountSubtitle != subtitle { self.sectionCountSubtitle = subtitle }
-        }
+        sectionCountSubtitle = subtitle
+        sectionCountSection = section
     }
 
     /// Switch to Pads and queue a request for the list to apply on appear.
@@ -216,7 +225,7 @@ final class AppNavigation {
         showPads(PadsRequest(selectPadID: id))
     }
 
-    /// Queue a pad id to open in the in-app browser, consumed by ContentView.
+    /// Queue a pad id to open in the user's browser, consumed by ContentView.
     func openPad(id: String) {
         openPadID = id
     }

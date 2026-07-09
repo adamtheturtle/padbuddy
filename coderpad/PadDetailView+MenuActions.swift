@@ -12,19 +12,14 @@ import SwiftUI
 
 extension PadDetailView {
     /// Honors a "Watch Playback" request from the Pad menu, opening the session
-    /// playback exactly as the toolbar's Watch button does — in-app or external
-    /// per the browser preference.
+    /// playback exactly as the toolbar's Watch button does.
     func consumePendingWatch() {
         guard nav.watchPlaybackPadID == pad.id else { return }
 
         nav.watchPlaybackPadID = nil
         guard let playbackURL = pad.playbackURL else { return }
 
-        if BrowserSettings.openLinksIn == .external {
-            BrowserSettings.openExternally(playbackURL)
-        } else {
-            browserURL = playbackURL
-        }
+        BrowserSettings.openExternally(playbackURL)
     }
 
     /// Honors a "Save Code" request from the Pad menu by running the same save
@@ -37,12 +32,11 @@ extension PadDetailView {
     }
 
     /// Consumes an "Edit Pad" request routed via `AppNavigation` from the Pad menu,
-    /// returning from the inline browser when needed and opening the title editor.
+    /// opening the title editor.
     func consumePendingEdit() {
         guard nav.editPadID == pad.id else { return }
 
         nav.editPadID = nil
-        browserURL = nil
         titleEditRequest += 1
     }
 

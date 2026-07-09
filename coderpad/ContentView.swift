@@ -45,7 +45,6 @@ struct ContentView: View {
     @State private var openPadURLDraft: String = ""
     @State private var showOpenPadURL = false
     @State private var showCommandPalette = false
-    @Environment(\.openWindow) private var openWindow
     @Environment(\.openAppSettings) private var openSettings
 
     var body: some View {
@@ -120,11 +119,6 @@ struct ContentView: View {
             // appear, and react to any value set afterwards.
             .task { scheduleConsumeOpenPadID() }
             .onChange(of: nav.openPadID) { _, _ in scheduleConsumeOpenPadID() }
-            .task {
-                for await url in AppRouter.openPadInBrowserRequests {
-                    openWindow(id: "pad-browser", value: url)
-                }
-            }
     }
 
     private func presentedSheets(_ content: some View) -> some View {
@@ -133,7 +127,7 @@ struct ContentView: View {
                 OpenPadURLSheet(
                     urlString: $openPadURLDraft,
                     onSubmit: { url in
-                        openWindow(id: "pad-browser", value: url)
+                        BrowserSettings.openExternally(url)
                         openPadURLDraft = ""
                         showOpenPadURL = false
                     },
@@ -159,7 +153,7 @@ struct ContentView: View {
 
         nav.openPadID = nil
         if let url = URL(string: "https://app.coderpad.io/\(id)") {
-            openWindow(id: "pad-browser", value: url)
+            BrowserSettings.openExternally(url)
         }
     }
 

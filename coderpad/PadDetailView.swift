@@ -20,7 +20,6 @@ struct PadDetailView: View {
     // Starts true so the Events section shows its spinner on the first frame
     // rather than flashing "No events yet." before `load()` begins.
     @State var isLoading = true
-    @State var browserURL: URL?
     // Inline-editable field drafts, seeded from the pad and committed one field at
     // a time. Each control binds to its draft for an immediate, optimistic update;
     // a failed save reverts the draft to the pad's value (see PadDetailView+Edit).
@@ -42,7 +41,6 @@ struct PadDetailView: View {
         @State var pendingExport: PadExportDocument?
     #endif
     @State var nav = AppNavigation.shared
-    @Environment(\.openWindow) private var openWindow
     @Environment(\.orgDirectory) var directory
     @Environment(\.colorScheme) var colorScheme
     /// While offline the app is read-only, so the destructive/edit actions disable (#321).
@@ -95,11 +93,7 @@ struct PadDetailView: View {
             }
             ToolbarItem(id: "open", placement: detailToolbarLeadingPlacement) {
                 Button {
-                    if BrowserSettings.openLinksIn == .external {
-                        BrowserSettings.openExternally(url)
-                    } else {
-                        browserURL = url
-                    }
+                    BrowserSettings.openExternally(url)
                 } label: {
                     // Short title ("Open", not "Open Pad") so it doesn't truncate
                     // to "O…" when the detail column is narrow and the toolbar is
@@ -113,11 +107,7 @@ struct PadDetailView: View {
         if let playbackURL = pad.playbackURL {
             ToolbarItem(id: "watch", placement: detailToolbarLeadingPlacement) {
                 Button {
-                    if BrowserSettings.openLinksIn == .external {
-                        BrowserSettings.openExternally(playbackURL)
-                    } else {
-                        browserURL = playbackURL
-                    }
+                    BrowserSettings.openExternally(playbackURL)
                 } label: {
                     Label("Watch", systemImage: "play.rectangle")
                 }
@@ -178,48 +168,8 @@ struct PadDetailView: View {
         presentationState(coreContent.toolbar(id: "pad-detail") { detailToolbar })
     }
 
-    @ViewBuilder
     private var coreContent: some View {
-        if let url = browserURL {
-            browserContent(url)
-        } else {
-            detailScroll
-        }
-    }
-
-    private func browserContent(_ url: URL) -> some View {
-        VStack(spacing: 0) {
-            browserHeader(url)
-            Divider()
-            PadBrowserView(url: url)
-        }
-    }
-
-    private func browserHeader(_ url: URL) -> some View {
-        HStack(spacing: 8) {
-            Button {
-                browserURL = nil
-            } label: {
-                Label("Back to Details", systemImage: "chevron.left")
-            }
-            .buttonStyle(.borderless)
-            Spacer()
-            Button {
-                openWindow(id: "pad-browser", value: url)
-            } label: {
-                #if os(macOS)
-                    Image(systemName: "macwindow.badge.plus")
-                #else
-                    Image(systemName: "rectangle.badge.plus")
-                #endif
-            }
-            .help("Open in separate window")
-            .buttonStyle(.borderless)
-            .accessibilityLabel("Open in separate window")
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .glassEffect(.regular, in: Rectangle())
+        detailScroll
     }
 
     // Split into two sub-chains (publishers, then dialogs) rather than one long chain:

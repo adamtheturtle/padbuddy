@@ -36,41 +36,6 @@ extension QuestionDetailView {
         }
     }
 
-    /// The freshly created pad shown in the in-pane browser, mirroring
-    /// `PadDetailView` so creating a pad here behaves like opening one there:
-    /// inline by default, with buttons to break out to a separate window or
-    /// the default browser.
-    func padBrowser(url: URL) -> some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 8) {
-                Button {
-                    showBrowser = false
-                } label: {
-                    Label("Back to Question", systemImage: "chevron.left")
-                }
-                .buttonStyle(.borderless)
-                Spacer()
-                Button {
-                    openWindow(id: "pad-browser", value: url)
-                } label: {
-                    #if os(macOS)
-                        Image(systemName: "macwindow.badge.plus")
-                    #else
-                        Image(systemName: "rectangle.badge.plus")
-                    #endif
-                }
-                .help("Open in separate window")
-                .buttonStyle(.borderless)
-                .accessibilityLabel("Open in separate window")
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
-            .glassEffect(.regular, in: Rectangle())
-            Divider()
-            PadBrowserView(url: url)
-        }
-    }
-
     var header: some View {
         VStack(alignment: .leading, spacing: 10) {
             // Actions now live in the window toolbar, so the header only carries

@@ -30,14 +30,14 @@ extension EnvironmentCodeCard {
                 MetaLabel(text: language.coderPadLanguageDisplayName)
             }
             Spacer()
-            // The per-file actions live in the header rather than floating over
-            // the code so they never overlap the source.
+            // These per-file actions live in the header rather than over the code.
+            // Copy is the exception: it's overlaid inside the code block (top-right,
+            // hover-revealed) since that's the conventional place users look for it.
             if PadCodeExplainer.isAvailable {
                 explainButton
             }
             expandButton
             downloadButton
-            copyButton
         }
     }
 
@@ -59,21 +59,6 @@ extension EnvironmentCodeCard {
         .pointerHoverEffect()
         .help("View code full screen")
         .accessibilityLabel("View code full screen")
-    }
-
-    /// Header button that copies the selected file's contents.
-    private var copyButton: some View {
-        Button {
-            copy(selected.contents)
-        } label: {
-            Image(systemName: "doc.on.doc")
-        }
-        .buttonStyle(.borderless)
-        .controlSize(.small)
-        .touchTarget() // 44pt touch floor on iPad, no-op on macOS (#597)
-        .pointerHoverEffect() // pointer hover highlight on iPad (#586)
-        .help("Copy code")
-        .accessibilityLabel("Copy code")
     }
 
     /// Header button that saves the environment to disk via a save panel. A
@@ -281,19 +266,6 @@ extension EnvironmentCodeCard {
             return String(localized: "Code preview of \(environmentName) in pad \(padID)")
         }
         return String(localized: "Code preview of pad \(padID)")
-    }
-
-    private func copy(_ text: String) {
-        // A syntax-highlighted RTF representation rides along, so pasting into Pages,
-        // Mail, or a doc keeps the colours; plain `.string` stays the fallback for
-        // editors and the terminal. The RTF is produced off the main actor (#372),
-        // so write to the pasteboard once it's ready.
-        let language = selected.language
-        let dark = dark
-        Task {
-            let rtf = await SyntaxHighlighter.rtf(text, language: language, dark: dark)
-            Clipboard.copy(text, rtf: rtf)
-        }
     }
 
     /// Writes the file's contents to a user-chosen location. The save panel

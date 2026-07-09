@@ -64,15 +64,6 @@ enum AppRouter {
         voidStream(.commandPaletteRequested)
     }
 
-    /// Ask the app to open `url` in a Pad Browser window.
-    static func requestOpenPadInBrowser(_ url: URL) {
-        center.post(name: .openPadInBrowserRequested, object: url)
-    }
-
-    static var openPadInBrowserRequests: AsyncStream<URL> {
-        payloadStream(.openPadInBrowserRequested) { $0.object as? URL }
-    }
-
     // MARK: - Pad mutations
 
     /// Broadcast that a pad changed, so every list showing it updates in place.
@@ -164,5 +155,4 @@ private extension Notification.Name {
     static let padDeleted = Notification.Name("coderpad.padDeleted")
     static let questionUpdated = Notification.Name("coderpad.questionUpdated")
     static let questionDeleted = Notification.Name("coderpad.questionDeleted")
-    static let openPadInBrowserRequested = Notification.Name("coderpad.openPadInBrowserRequested")
 }

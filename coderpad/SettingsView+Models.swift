@@ -10,23 +10,6 @@
 #endif
 import SwiftUI
 
-/// Where a pad link opens when you activate it.
-enum LinkDestination: String, CaseIterable, Identifiable {
-    case inApp
-    case external
-
-    var id: String {
-        rawValue
-    }
-
-    var label: String {
-        switch self {
-        case .inApp: String(localized: "In-app browser")
-        case .external: String(localized: "Default browser")
-        }
-    }
-}
-
 /// An installed app that can open http(s) links, shown in the "Default browser" picker.
 struct InstalledBrowser: Identifiable, Hashable {
     let bundleID: String
@@ -42,13 +25,8 @@ struct InstalledBrowser: Identifiable, Hashable {
 /// the per-location "open in default browser" buttons are no longer needed.
 enum BrowserSettings {
     enum Key {
-        static let openLinksIn = "browser.openLinksIn"
         static let defaultBrowserBundleID = "browser.defaultBrowserBundleID"
         static let openInBackground = "browser.openInBackground"
-    }
-
-    static var openLinksIn: LinkDestination {
-        LinkDestination(rawValue: UserDefaults.standard.string(forKey: Key.openLinksIn) ?? "") ?? .external
     }
 
     static var defaultBrowserBundleID: String? {
@@ -81,29 +59,6 @@ enum BrowserSettings {
             // user's default browser. The browser-choice/background preferences are
             // macOS-only affordances and don't apply here.
             UIApplication.shared.open(url)
-        #endif
-    }
-
-    /// Bundle identifier of the standalone Passwords app that ships with macOS 15+.
-    private static let passwordsAppBundleID = "com.apple.Passwords"
-
-    /// Open the macOS Passwords app so the user can look up and copy a login to paste
-    /// into the in-app pad browser, where native autofill is unavailable. Falls back to
-    /// the Passwords pane in System Settings on systems without the standalone app.
-    @MainActor
-    static func openPasswordsApp() {
-        #if os(macOS)
-            if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: passwordsAppBundleID) {
-                NSWorkspace.shared.openApplication(at: appURL, configuration: NSWorkspace.OpenConfiguration())
-            } else if let settingsURL = URL(
-                string: "x-apple.systempreferences:com.apple.Passwords-Settings.extension"
-            ) {
-                NSWorkspace.shared.open(settingsURL)
-            }
-        #else
-            // iOS: there's no way to launch the Passwords app by bundle id, and the
-            // in-app browser gets native AutoFill anyway, so this affordance is unneeded.
-            _ = passwordsAppBundleID
         #endif
     }
 

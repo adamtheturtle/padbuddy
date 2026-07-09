@@ -116,8 +116,6 @@ struct PadCommands: Commands {
     /// Shares the Pads list's persisted sort key, so the menu's "Sort By" submenu
     /// and the list toolbar's Sort picker stay in lockstep (#415).
     @AppStorage(PadSort.storageKey) private var sort: PadSort = .updatedDesc
-    @Environment(\.openWindow) private var openWindow
-
     /// Mirrors `PadDetailView.isEnded`, so "End Interview" disables once the pad
     /// is already ended instead of routing a no-op confirmation.
     private var isEnded: Bool {
@@ -131,18 +129,9 @@ struct PadCommands: Commands {
             Button("Open Pad in Browser") {
                 guard let pad, let url = pad.webURL else { return }
 
-                AppRouter.requestOpenPadInBrowser(url)
+                BrowserSettings.openExternally(url)
             }
             .keyboardShortcut(.return, modifiers: [.command])
-            .disabled(pad == nil)
-
-            Button("Open Pad in New Window") {
-                guard let pad, let url = pad.webURL else { return }
-
-                AppActivator.bringToFront()
-                openWindow(id: "pad-browser", value: url)
-            }
-            .keyboardShortcut(.return, modifiers: [.command, .option])
             .disabled(pad == nil)
 
             Button("Watch Playback") {

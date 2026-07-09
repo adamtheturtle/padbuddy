@@ -5,8 +5,7 @@
 //  The iPad scene graph for `CoderpadApp`, split out of coderpadApp.swift (#580) so
 //  the `@main` file keeps only the entry point, `App` conformance, `init()`, `body`,
 //  and the shared helpers. `iOSScenes` stays internal so `body` (in the main file)
-//  can reach it; the pad-browser scene and Settings sheet it composes stay private
-//  to this file.
+//  can reach it; the Settings sheet it composes stays private to this file.
 //
 
 #if !os(macOS)
@@ -38,11 +37,11 @@
                             AppNavigation.shared.showFavoriteQuestion(id: ref.id)
                         }
                     }
-                    // Resume a pad handed off from another device / Siri Suggestion (#596),
-                    // reopening it in the in-app browser window the rest of the app uses.
+                    // Resume a pad handed off from another device / Siri Suggestion (#596)
+                    // by opening it in the user's browser.
                     .onContinueUserActivity(PadActivity.type) { activity in
                         if let url = padActivityURL(activity) {
-                            AppRouter.requestOpenPadInBrowser(url)
+                            BrowserSettings.openExternally(url)
                         }
                     }
                     .onOpenURL { url in
@@ -62,33 +61,6 @@
             }
             .commands {
                 IPadCommands()
-            }
-
-            iOSPadBrowserScene
-        }
-
-        /// A pad opened in its own window on iPad — the multi-window counterpart to the
-        /// detail browser's "Open in separate window" button. With Stage Manager or Split
-        /// View this places the pad's live web view in a second window beside the main one;
-        /// it is keyed by URL so the system can restore it. Mirrors the macOS
-        /// ``padBrowserScene`` (#292/#354) within iPad's single-`WindowGroup` model.
-        private var iOSPadBrowserScene: some Scene {
-            // swiftformat:disable:next unusedArguments
-            WindowGroup("Pad", id: "pad-browser", for: URL.self) { $url in
-                if let url {
-                    NavigationStack {
-                        PadBrowserView(url: url)
-                            .navigationTitle(url.host ?? "Pad")
-                            .navigationBarTitleDisplayMode(.inline)
-                    }
-                    .preferredColorScheme(appearance.colorScheme)
-                } else {
-                    // A restored window can arrive without its URL; show a placeholder
-                    // rather than a blank window.
-                    ContentUnavailableView("No Pad", systemImage: "rectangle.on.rectangle",
-                                           description: Text("Open a pad to view it here."))
-                        .preferredColorScheme(appearance.colorScheme)
-                }
             }
         }
 

@@ -12,8 +12,8 @@ import SwiftUI
 
 @MainActor
 enum NewPadFromQuestionRunner {
-    /// Creates a pad directly from `question` and opens it, honoring the in-app/external
-    /// browser preference. On failure it falls back to the in-app create sheet seeded
+    /// Creates a pad directly from `question` and opens it in the user's browser.
+    /// On failure it falls back to the in-app create sheet seeded
     /// with the question, matching the app's other create-pad recovery paths.
     static func createAndOpen(question: Question, account: Account) {
         let client = account.makeClient()
@@ -24,12 +24,7 @@ enum NewPadFromQuestionRunner {
                 let pad = try await client.createPad(body)
                 guard let url = pad.webURL else { return }
 
-                AppActivator.bringToFront()
-                if BrowserSettings.openLinksIn == .external {
-                    BrowserSettings.openExternally(url)
-                } else {
-                    AppRouter.requestOpenPadInBrowser(url)
-                }
+                BrowserSettings.openExternally(url)
             } catch {
                 AppNavigation.shared.routeNewPad(account: accountID.uuidString, seedQuestionID: question.id)
             }

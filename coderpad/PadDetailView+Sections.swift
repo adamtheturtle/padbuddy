@@ -169,14 +169,9 @@ extension PadDetailView {
         }
     }
 
-    /// Open a URL the same way the pad and playback links do: in the default
-    /// browser or the in-pane web view, per the user's preference.
+    /// Open a URL the same way the pad and playback links do: in the user's browser.
     private func openExternalOrInApp(_ url: URL) {
-        if BrowserSettings.openLinksIn == .external {
-            BrowserSettings.openExternally(url)
-        } else {
-            browserURL = url
-        }
+        BrowserSettings.openExternally(url)
     }
 
     /// How many environments actually render a code card (i.e. have files to

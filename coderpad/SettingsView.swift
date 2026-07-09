@@ -46,7 +46,6 @@ struct SettingsView: View {
     // Browser and menu-bar preferences live in UserDefaults under the keys defined
     // in `BrowserSettings.Key`; `@AppStorage` reads/writes those same keys so the
     // app-wide static getters on `BrowserSettings` stay in sync.
-    @AppStorage(BrowserSettings.Key.openLinksIn) var openLinksIn: LinkDestination = .external
     @AppStorage(BrowserSettings.Key.defaultBrowserBundleID) var defaultBrowserBundleID: String?
     @AppStorage(BrowserSettings.Key.openInBackground) var openInBackground = false
     @AppStorage("menuBarTopN") var menuBarTopN = 3
@@ -88,14 +87,12 @@ struct SettingsView: View {
             accountsTab
                 .tabItem { Label("Accounts", systemImage: "person.crop.circle") }
                 .tag(SettingsTab.accounts)
-            browserTab
-                .tabItem { Label("Browser", systemImage: "safari") }
-                .tag(SettingsTab.browser)
-            // The Menu Bar pane configures the macOS menu-bar extra, and the MCP Server
-            // pane configures the macOS headless `--mcp` server / desktop-client install -
-            // both are macOS-only, so neither tab appears on iPad. (Menu Bar is further
-            // hidden in Dock-only mode where its icon never shows, #453.)
+            // Browser app selection, the menu-bar extra, and the MCP Server are macOS-only,
+            // so these tabs do not appear on iPad.
             #if os(macOS)
+                browserTab
+                    .tabItem { Label("Browser", systemImage: "safari") }
+                    .tag(SettingsTab.browser)
                 // Always present so the Settings layout doesn't shift as the menu-bar icon
                 // is toggled (#608); the tab explains and disables itself in Dock-only mode.
                 menuBarTab

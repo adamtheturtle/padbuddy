@@ -8,78 +8,75 @@ import AppKit
 import SwiftUI
 
 extension MenuBarView {
-    /// Opens the main window and switches it to `section`. The section is durable
-    /// navigation state, so this works whether or not the window is already open.
-    func go(_ section: AppSection) {
-        AppNavigation.shared.show(section)
-        openMain()
-    }
-
     func padLabel(_ pad: Pad) -> String {
         let title = pad.title.isEmpty ? pad.id : pad.title
         let language = pad.language.flatMap { $0.isEmpty ? nil : " · \($0.coderPadLanguageDisplayName)" } ?? ""
         return "\(title)\(language)"
     }
 
-    /// Pads owned by the account's configured email, if the user set one in Settings.
-    /// Otherwise falls back to the most-frequent owner email in the fetched list, since
-    /// the CoderPad API doesn't tell us which user the key belongs to.
-    private var myOwnedPads: [Pad] {
-        if let mine = store.currentAccount?.userEmail, !mine.isEmpty {
-            return pads.filter { $0.ownerEmail == mine }
+    func padRowLabel(_ row: MenuBarPadRow) -> String {
+        let label = padLabel(row.pad)
+        return store.isMergedView ? "\(label) · \(row.account.name)" : label
+    }
+
+    func questionRowLabel(_ row: MenuBarQuestionRow) -> String {
+        let title = row.question.title.isEmpty ? "#\(row.question.id)" : row.question.title
+        return store.isMergedView ? "\(title) · \(row.account.name)" : title
+    }
+
+    /// Pads owned by each row's source account. In merged mode ownership is resolved
+    /// per account, matching `MergedPadsView.isMine`; single-account mode keeps the
+    /// previous fallback for accounts without a configured user email (#674).
+    private var myOwnedPads: [MenuBarPadRow] {
+        if store.isMergedView {
+            return padRows.filter { $0.account.owns($0.pad.ownerEmail) }
         }
-        let owners = pads
-            .map(\.ownerEmail)
+        guard let account = store.currentAccount else { return [] }
+        if !account.userEmail.isEmpty {
+            return padRows.filter { $0.account.owns($0.pad.ownerEmail) }
+        }
+        let owners = padRows
+            .map(\.pad.ownerEmail)
             .filter { !$0.isEmpty }
             .reduce(into: [String: Int]()) { $0[$1, default: 0] += 1 }
         if let mine = owners.max(by: { $0.value < $1.value })?.key {
-            return pads.filter { $0.ownerEmail == mine }
+            return padRows.filter { $0.pad.ownerEmail == mine }
         }
-        return pads
+        return padRows
     }
 
     /// The user's pads, optionally narrowed to active interviews when the user enables
     /// it in Settings.
-    var myPads: [Pad] {
-        startedOnly ? myOwnedPads.filter { $0.status == .active } : myOwnedPads
+    var myPads: [MenuBarPadRow] {
+        startedOnly ? myOwnedPads.filter { $0.pad.status == .active } : myOwnedPads
     }
 
     /// The user's pads with a live session in progress right now (#593), newest first.
     /// Drawn from the same cached list the rest of the menu reads, so it costs nothing
     /// extra, and scoped to the signed-in user so the section surfaces the user's own
     /// in-progress interviews.
-    var activePads: [Pad] {
-        myOwnedPads.filter { $0.status == .active }
+    var activePads: [MenuBarPadRow] {
+        myOwnedPads.filter { $0.pad.status == .active }
     }
 
-    /// Opens `pad` in the in-app browser window, bringing the app forward first so the
-    /// window appears even from a windowless menu-bar-only state.
-    func openPadBrowser(_ pad: Pad) {
+    /// Opens `pad` in the user's configured browser.
+    func openPad(_ pad: Pad) {
         guard let url = pad.webURL else { return }
 
         openPadURL(url)
     }
 
-    /// Opens a pad URL from the menu bar, honoring the app-wide browser preference.
-    /// The in-app default avoids handing a newly-created pad to an unrelated system
-    /// browser session, which may be signed into a different CoderPad account (#602).
+    /// Opens a pad URL from the menu bar in the user's configured browser.
     func openPadURL(_ url: URL) {
-        if BrowserSettings.openLinksIn == .external {
-            BrowserSettings.openExternally(url)
-        } else {
-            AppActivator.bringToFront()
-            openWindow(id: "pad-browser", value: url)
-        }
+        BrowserSettings.openExternally(url)
     }
 
     /// Questions for the "New Pad from Question" submenu, with favorites floated to
     /// the top (keeping the underlying most-recently-updated order within each
     /// group) so the user's starred questions lead the one-click pad list.
-    func questionsForMenu(favoriteIDs: Set<Int>) -> [Question] {
-        guard !favoriteIDs.isEmpty else { return questions }
-
-        return questions.filter { favoriteIDs.contains($0.id) }
-            + questions.filter { !favoriteIDs.contains($0.id) }
+    func questionsForMenu() -> [MenuBarQuestionRow] {
+        questionRows.filter { favorites.favorites(account: $0.account.id).contains($0.question.id) }
+            + questionRows.filter { !favorites.favorites(account: $0.account.id).contains($0.question.id) }
     }
 
     func createPad(_ body: PadCreate, account: Account) async {
@@ -94,11 +91,6 @@ extension MenuBarView {
         }
     }
 
-    func openMain() {
-        AppActivator.bringToFront()
-        openWindow(id: "main")
-    }
-
     /// Opens the Settings window directly, without also opening the main window — a
     /// menu-bar "Settings…" click should surface only Settings, not the app window
     /// (#463). Activates the app first so the panel comes forward even when no
@@ -108,10 +100,39 @@ extension MenuBarView {
         openSettings()
     }
 
+    func loadMenu(activeAccount: Account) async {
+        if store.isMergedView {
+            await loadMergedAccounts()
+        } else {
+            await load(account: activeAccount)
+        }
+    }
+
     func load(account: Account) async {
         isLoading = true
         errorMessage = nil
         defer { isLoading = false }
+        errorMessage = await loadData(for: account)
+    }
+
+    private func loadMergedAccounts() async {
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        var errors: [String] = []
+        for account in store.mergeableAccounts {
+            if let error = await loadData(for: account) {
+                errors.append(error)
+            }
+        }
+        if !errors.isEmpty {
+            errorMessage = errors.joined(separator: "\n")
+        }
+    }
+
+    @discardableResult
+    private func loadData(for account: Account) async -> String? {
         let client = account.makeClient()
         do {
             // Use the same "updated_at,desc" sort as every other loader writing into
@@ -129,8 +150,9 @@ extension MenuBarView {
             if let fetchedQuestions = try? await qsTask {
                 QuestionsCacheStore.shared.set(account.id, questions: fetchedQuestions)
             }
+            return nil
         } catch {
-            errorMessage = error.localizedDescription
+            return "\(account.name): \(error.localizedDescription)"
         }
     }
 }

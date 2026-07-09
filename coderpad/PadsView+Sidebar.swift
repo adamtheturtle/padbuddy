@@ -161,7 +161,7 @@ extension PadsView {
                 }
             }
             // ↑/↓ move the selection natively; Return opens the selected pad in the
-            // in-app browser (honoring the user's browser preference).
+            // user's browser.
             .onKeyPress(.return) {
                 guard let selection else { return .ignored }
 
@@ -353,18 +353,11 @@ extension PadsView {
         ]
     }
 
-    /// Open a pad honoring the user's browser preference: externally when chosen,
-    /// otherwise in a dedicated in-app browser window. The list has no inline
-    /// browser pane of its own, so the in-app case opens a separate window —
-    /// matching the "Open Pad in Browser" menu command.
+    /// Open a pad in the user's configured browser.
     func openPad(_ pad: Pad) {
         guard let url = pad.webURL else { return }
 
-        if BrowserSettings.openLinksIn == .external {
-            BrowserSettings.openExternally(url)
-        } else {
-            openWindow(id: "pad-browser", value: url)
-        }
+        BrowserSettings.openExternally(url)
     }
 
     /// Opens a pad's native detail in its own window (#354), the pad counterpart to

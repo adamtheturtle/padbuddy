@@ -5,10 +5,8 @@
 //  Advertises the pad you're currently viewing as an `NSUserActivity` (#596), so the
 //  system can Hand Off the live pad to another device, surface it in Spotlight, and
 //  predict it with Siri Suggestions. A pad is web content, so the activity carries the
-//  page URL as `webpageURL`: another device hands off straight into PadBuddy's in-app
-//  browser when it's installed, and falls back to opening the URL in Safari when it
-//  isn't. Restoration routes through the same `pad-browser` window the rest of the app
-//  opens pads into (see the scene `onContinueUserActivity` handlers).
+//  page URL as `webpageURL`: another device can hand the pad back to PadBuddy when
+//  it's installed, and the app opens the URL in the user's browser.
 //
 
 import SwiftUI

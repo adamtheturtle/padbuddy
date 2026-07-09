@@ -144,7 +144,7 @@ struct CoderpadApp: App {
     // gated by its own platform `#if`:
     //   - `macOSScenes` + the per-window scenes, `appCommands`, `showAbout`
     //     -> coderpadApp+MacScenes.swift
-    //   - `iOSScenes` + `iOSPadBrowserScene`, `iPadSettingsSheet`
+    //   - `iOSScenes` + `iPadSettingsSheet`
     //     -> coderpadApp+iOSScenes.swift
 
     func post(_ section: AppSection) {
@@ -152,7 +152,7 @@ struct CoderpadApp: App {
     }
 
     /// Routes a `coderpad://` deep link from the widget. `coderpad://pad/<id>` opens
-    /// that pad in the in-app browser; `coderpad://pads` just brings the Pads list
+    /// that pad in the user's browser; `coderpad://pads` just brings the Pads list
     /// forward. Reuses the same durable navigation as the Spotlight and intent paths.
     func handleDeepLink(_ url: URL) {
         guard url.scheme == "coderpad" else { return }

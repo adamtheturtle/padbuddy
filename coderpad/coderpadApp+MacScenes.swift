@@ -49,11 +49,11 @@
                             AppNavigation.shared.showFavoriteQuestion(id: ref.id)
                         }
                     }
-                    // Resume a pad handed off from another device / Siri Suggestion (#596),
-                    // reopening it in the in-app browser window the rest of the app uses.
+                    // Resume a pad handed off from another device / Siri Suggestion (#596)
+                    // by opening it in the user's browser.
                     .onContinueUserActivity(PadActivity.type) { activity in
                         if let url = padActivityURL(activity) {
-                            AppRouter.requestOpenPadInBrowser(url)
+                            BrowserSettings.openExternally(url)
                         }
                     }
                     // Open a pad tapped in the Recent Pads widget (coderpad://pad/<id>).
@@ -80,7 +80,6 @@
                 WindowCommands()
             }
 
-            padBrowserScene
             questionScene
             padScene
             screenTestScene
@@ -94,31 +93,8 @@
             menuBarScene
         }
 
-        /// A pad opened in its own window (`coderpad://pad/<id>` or the Open action).
-        /// Split out of `body` so each scene type-checks independently and the main
-        /// scene builder stays under the long-body diagnostic budget.
-        private var padBrowserScene: some Scene {
-            // swiftformat:disable:next unusedArguments
-            WindowGroup("Pad Browser", id: "pad-browser", for: URL.self) { $url in
-                if let url {
-                    PadBrowserView(url: url)
-                        .frame(minWidth: 900, minHeight: 700)
-                        .navigationTitle(url.host ?? "Pad")
-                        .preferredColorScheme(appearance.colorScheme)
-                } else {
-                    // The system can restore this window without a persisted URL; show a
-                    // placeholder rather than a blank, zero-content window.
-                    ContentUnavailableView("No Pad", systemImage: "macwindow",
-                                           description: Text("Open a pad to view it here."))
-                        .frame(minWidth: 900, minHeight: 700)
-                        .preferredColorScheme(appearance.colorScheme)
-                }
-            }
-        }
-
-        /// Double-clicking a question row opens its detail here, in its own window -
-        /// the native-detail counterpart to opening a pad in the `pad-browser` window
-        /// (#292). Keyed by a lightweight id so it survives state restoration.
+        /// Double-clicking a question row opens its detail here, in its own window.
+        /// Keyed by a lightweight id so it survives state restoration.
         private var questionScene: some Scene {
             // swiftformat:disable:next unusedArguments
             WindowGroup("Question", id: "question", for: QuestionWindowID.self) { $value in

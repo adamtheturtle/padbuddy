@@ -19,7 +19,7 @@ struct MenuBarView: View {
     /// When offline the app is read-only, so the menu's create actions disable and a
     /// small note explains why (#321).
     @State private var network = NetworkMonitor.shared
-    @State private var favorites = FavoriteQuestionsStore.shared
+    @State var favorites = FavoriteQuestionsStore.shared
     // Read the pads/questions from the same shared, disk-backed caches the main window
     // uses, rather than refetching into private state on every open. That's what kept
     // the menu showing "Loading…" so often: each open cleared its own copy and waited
@@ -35,7 +35,6 @@ struct MenuBarView: View {
     @State private var listCache = MenuBarListCache()
     @AppStorage("menuBarTopN") private var topN: Int = 3
     @AppStorage("menuBarStartedOnly") var startedOnly = false
-    @Environment(\.openWindow) var openWindow
     @Environment(\.openSettings) var openSettings
 
     /// The settings Stepper bounds this to 0…30, but a corrupted/externally-edited
@@ -45,32 +44,48 @@ struct MenuBarView: View {
         max(0, topN)
     }
 
-    /// The current account's pads, newest first. Read from the per-render memo
-    /// (`refreshLists()`), so the menu's several readers don't each re-sort the
-    /// full cached list. Empty until the account has ever loaded (cold cache),
-    /// which is the only time the menu shows "Loading…".
-    var pads: [Pad] {
-        listCache.pads
+    /// Pads shown by the menu, tagged with their source account. In single-account
+    /// mode this is just the current account; in merged mode it fans in every
+    /// mergeable account so the menu matches the main window (#674).
+    var padRows: [MenuBarPadRow] {
+        listCache.padRows
     }
 
-    /// The current account's questions, newest first, from the per-render memo.
-    var questions: [Question] {
-        listCache.questions
+    /// Questions shown by the menu, tagged with their source account so "New Pad
+    /// from Question" creates against the account that owns the question in merged
+    /// mode (#674).
+    var questionRows: [MenuBarQuestionRow] {
+        listCache.questionRows
     }
 
-    /// Sort the current account's cached pads/questions once per render into
-    /// `listCache`. Mirrors the list views' memo pattern; called at the top of
-    /// `accountMenu` before any reader touches `pads`/`questions` (#370).
+    /// Sort cached pads/questions once per render into `listCache`. Mirrors the
+    /// list views' memo pattern; called at the top of `accountMenu` before any
+    /// reader touches menu data (#370/#674).
     private func refreshLists() {
-        guard let id = store.currentAccountID else {
-            listCache.pads = []
-            listCache.questions = []
+        let accounts = store.isMergedView ? store.mergeableAccounts : store.currentAccount.map { [$0] } ?? []
+        guard !accounts.isEmpty else {
+            listCache.padRows = []
+            listCache.questionRows = []
             return
         }
 
-        listCache.pads = padsCache.get(id).sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
-        listCache.questions = questionsCache.get(id)
-            .sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
+        let padRows = accounts.flatMap { account in
+            padsCache.get(account.id).map { MenuBarPadRow(account: account, pad: $0) }
+        }
+        listCache.padRows = padRows.sorted { ($0.pad.updatedAt ?? .distantPast) > ($1.pad.updatedAt ?? .distantPast) }
+
+        let questionRows = accounts.flatMap { account in
+            questionsCache.get(account.id).map { MenuBarQuestionRow(account: account, question: $0) }
+        }
+        listCache.questionRows = questionRows
+            .sorted { ($0.question.updatedAt ?? .distantPast) > ($1.question.updatedAt ?? .distantPast) }
+    }
+
+    private var menuLoadKey: String {
+        if store.isMergedView {
+            return "merged:" + store.mergeableAccounts.map(\.id.uuidString).joined(separator: ",")
+        }
+        return store.currentAccountID?.uuidString ?? "none"
     }
 
     var body: some View {
@@ -111,7 +126,7 @@ struct MenuBarView: View {
     /// A glanceable list of interviews that are live right now (#593), pinned near the
     /// top of the menu so an in-progress session is the first thing you see. Hidden
     /// entirely when nothing is active so the menu stays compact. Click-through opens
-    /// the pad in the in-app browser. Drawn from the same cached list as the rest of
+    /// the pad in the user's browser. Drawn from the same cached list as the rest of
     /// the menu, so it adds no network work.
     @ViewBuilder
     private func activeInterviewItems() -> some View {
@@ -119,11 +134,11 @@ struct MenuBarView: View {
         if !live.isEmpty {
             Text("Active Interviews")
                 .font(.caption).foregroundStyle(.secondary)
-            ForEach(live.prefix(topCount)) { pad in
+            ForEach(live.prefix(topCount)) { row in
                 Button {
-                    openPadBrowser(pad)
+                    openPad(row.pad)
                 } label: {
-                    Label(padLabel(pad), systemImage: "dot.radiowaves.left.and.right")
+                    Label(padRowLabel(row), systemImage: "dot.radiowaves.left.and.right")
                 }
             }
             if live.count > topCount {
@@ -153,29 +168,27 @@ struct MenuBarView: View {
         .disabled((account.isMock == false && account.apiKey.isEmpty) || network.isOffline)
         // Load the menu's data here (a stable, always-present action) keyed on the
         // active account, rather than hanging it off an unrelated leaf button.
-        .task(id: store.currentAccountID) { await load(account: account) }
+        .task(id: menuLoadKey) { await loadMenu(activeAccount: account) }
 
         // Both New Pad and New Pad from Question create the pad under this account;
         // when the user has chosen the external browser, that browser may be signed
         // into a different CoderPad account, so warn first (#602).
         newPadAccountWarning
 
-        if !questions.isEmpty {
+        if !questionRows.isEmpty {
             Menu("New Pad from Question") {
                 // The submenu is its own menu, so repeat the warning inside it.
                 newPadAccountWarning
-                let favoriteIDs = Set(favorites.favorites(account: store.currentAccountID))
-                ForEach(questionsForMenu(favoriteIDs: favoriteIDs).prefix(topCount)) { question in
+                ForEach(questionsForMenu().prefix(topCount)) { row in
                     Button {
-                        Task { await createPad(.fromQuestion(question), account: account) }
+                        Task { await createPad(.fromQuestion(row.question), account: row.account) }
                     } label: {
                         // Starred questions lead the list and carry the star so
                         // a frequently used question is the first one-click pad.
-                        if favoriteIDs.contains(question.id) {
-                            Label(question.title.isEmpty ? "#\(question.id)" : question.title,
-                                  systemImage: "star.fill")
+                        if favorites.favorites(account: row.account.id).contains(row.question.id) {
+                            Label(questionRowLabel(row), systemImage: "star.fill")
                         } else {
-                            Text(question.title.isEmpty ? "#\(question.id)" : question.title)
+                            Text(questionRowLabel(row))
                         }
                     }
                 }
@@ -186,35 +199,30 @@ struct MenuBarView: View {
 
     /// Caption note warning that a newly created pad opens in the default
     /// browser's signed-in CoderPad account, which may differ from this account.
-    @ViewBuilder
     private var newPadAccountWarning: some View {
-        if BrowserSettings.openLinksIn == .external {
-            Text("Opens in your browser's signed-in account")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
+        Text("Opens in your browser's signed-in account")
+            .font(.caption)
+            .foregroundStyle(.secondary)
     }
 
     /// "My Pads" header and the user's recent pads (or a status line).
     @ViewBuilder
     private func myPadsItems(account: Account) -> some View {
-        Text("My Pads · \(account.name)")
+        Text("My Pads · \(store.isMergedView ? "All Accounts" : account.name)")
             .font(.caption).foregroundStyle(.secondary)
 
-        if isLoading, pads.isEmpty {
+        if isLoading, padRows.isEmpty {
             Text("Loading…").foregroundStyle(.secondary)
         } else if let errorMessage {
             Text(errorMessage).foregroundStyle(.red).lineLimit(2)
         } else if myPads.isEmpty {
             Text("No pads").foregroundStyle(.secondary)
         } else {
-            ForEach(myPads.prefix(topCount)) { pad in
+            ForEach(myPads.prefix(topCount)) { row in
                 Button {
-                    if let url = pad.webURL {
-                        openPadURL(url)
-                    }
+                    openPad(row.pad)
                 } label: {
-                    Text(padLabel(pad))
+                    Text(padRowLabel(row))
                 }
             }
             if myPads.count > topCount {
@@ -223,23 +231,11 @@ struct MenuBarView: View {
         }
     }
 
-    /// Navigation into the main window's sections, plus reload, settings, and
-    /// account switching.
+    /// Reload, settings, and account switching.
     @ViewBuilder
     private func navigationItems(account: Account) -> some View {
-        Menu("Navigate") {
-            Button("Pads") { go(.pads) }
-            Button("Questions") { go(.questions) }
-            Button("Organization") { go(.organization) }
-            Button("Quota") { go(.quota) }
-            Divider()
-            Button("Settings…") {
-                openSettingsPanel()
-            }
-        }
-
         Button("Reload") {
-            Task { await load(account: account) }
+            Task { await loadMenu(activeAccount: account) }
         }
         .keyboardShortcut("r")
 
@@ -324,7 +320,25 @@ struct MenuBarView: View {
 /// (not `@Observable`) so `accountMenu` can refresh it without mutating SwiftUI
 /// state mid-evaluation, mirroring the list views' filtered/sorted caches (#370).
 final class MenuBarListCache {
-    var pads: [Pad] = []
-    var questions: [Question] = []
+    var padRows: [MenuBarPadRow] = []
+    var questionRows: [MenuBarQuestionRow] = []
+}
+
+struct MenuBarPadRow: Identifiable {
+    let account: Account
+    let pad: Pad
+
+    var id: String {
+        "\(account.id.uuidString):\(pad.id)"
+    }
+}
+
+struct MenuBarQuestionRow: Identifiable {
+    let account: Account
+    let question: Question
+
+    var id: String {
+        "\(account.id.uuidString):\(question.id)"
+    }
 }
 #endif

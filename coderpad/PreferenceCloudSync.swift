@@ -42,7 +42,6 @@ final class PreferenceCloudSync {
         "general.refreshSeconds",
         "general.spotlightIndexing",
         "general.notifyOnPadUpdates",
-        "browser.openLinksIn",
         "browser.defaultBrowserBundleID",
         "browser.openInBackground"
     ]

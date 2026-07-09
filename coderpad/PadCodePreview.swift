@@ -315,6 +315,15 @@ struct HighlightedCode: View, Equatable {
     /// renders until it lands so the main thread isn't blocked tokenizing (#372).
     @State private var highlighted: AttributedString?
 
+    /// Whether the pointer is over the code block. On macOS the copy button only
+    /// appears while hovering so it doesn't clutter the code at rest; on iPad,
+    /// which has no hover, the button is always shown.
+    @State private var isHovering = false
+
+    /// Briefly flips the copy button to a checkmark after a successful copy, so a
+    /// click gives visible confirmation. Reset after a short delay.
+    @State private var didCopy = false
+
     /// Compare only the inputs (not the @State result) so SwiftUI keeps skipping
     /// re-renders for unrelated reasons, e.g. the file sidebar's resize drag.
     static func == (lhs: Self, rhs: Self) -> Bool {
@@ -343,10 +352,61 @@ struct HighlightedCode: View, Equatable {
         // renegotiate against.
         .frame(maxWidth: .infinity, maxHeight: fillsHeight ? .infinity : nil, alignment: .topLeading)
         .frame(height: fillsHeight ? nil : 360)
+        // The copy control sits inside the code block, pinned to the top-right
+        // corner and floating above the source, the way GitHub and docs sites
+        // place it. On macOS it fades in on hover so it stays out of the way when
+        // reading; on iPad (no hover) it's always visible.
+        .overlay(alignment: .topTrailing) {
+            copyButton
+                .padding(8)
+        }
+        #if os(macOS)
+        .onHover { isHovering = $0 }
+        #endif
         // Re-run only when the inputs change; a same-id task isn't restarted, so
         // an unrelated re-render won't re-highlight.
         .task(id: HighlightInput(contents: contents, language: language, dark: dark)) {
             highlighted = await SyntaxHighlighter.highlight(contents, language: language, dark: dark)
+        }
+    }
+
+    /// The copy button overlaid on the code block. Backed by a material so it
+    /// stays legible over any syntax colours, and confirms with a brief checkmark.
+    private var copyButton: some View {
+        Button {
+            copy()
+        } label: {
+            Image(systemName: didCopy ? "checkmark" : "doc.on.doc")
+                .padding(5)
+        }
+        .buttonStyle(.borderless)
+        .controlSize(.small)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
+        .touchTarget() // 44pt touch floor on iPad, no-op on macOS (#597)
+        .pointerHoverEffect() // pointer hover highlight on iPad (#586)
+        .help("Copy code")
+        .accessibilityLabel("Copy code")
+        // Reveal on hover on macOS; opacity (not `hidden`) keeps it clickable and
+        // in the accessibility tree. On iPad it's always shown.
+        #if os(macOS)
+        .opacity(isHovering ? 1 : 0)
+        .animation(.easeInOut(duration: 0.12), value: isHovering)
+        #endif
+    }
+
+    /// Copies the file's contents to the clipboard. A syntax-highlighted RTF
+    /// representation rides along so pasting into Pages, Mail, or a doc keeps the
+    /// colours; plain text stays the fallback for editors and the terminal. The
+    /// RTF is produced off the main actor (#372), so the write happens once ready.
+    private func copy() {
+        Task {
+            let rtf = await SyntaxHighlighter.rtf(contents, language: language, dark: dark)
+            Clipboard.copy(contents, rtf: rtf)
+        }
+        didCopy = true
+        Task {
+            try? await Task.sleep(for: .seconds(1.2))
+            didCopy = false
         }
     }
 }

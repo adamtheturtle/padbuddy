@@ -39,7 +39,7 @@ struct OpenPadByIDIntent: AppIntent {
     static let title: LocalizedStringResource = "Open Pad by ID"
     // Read by the AppIntents framework (Shortcuts metadata), not Swift.
     // periphery:ignore
-    static let description = IntentDescription("Open a specific CoderPad pad in the in-app browser.")
+    static let description = IntentDescription("Open a specific CoderPad pad in your browser.")
     static let openAppWhenRun: Bool = true
 
     @Parameter(title: "Pad ID", description: "The 8-character pad identifier.")

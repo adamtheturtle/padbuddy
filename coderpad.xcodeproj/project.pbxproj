@@ -25,6 +25,7 @@
 		668E402A2FE2F7DC00AA8228 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; platformFilters = (macos, ); productRef = 668E40292FE2F7DC00AA8228 /* Sparkle */; };
 		6693DA532FE9D021005CA3CE /* CoderPadToolCore in Frameworks */ = {isa = PBXBuildFile; productRef = 6693DA522FE9D021005CA3CE /* CoderPadToolCore */; };
 		6693DA5C2FE9F08F005CA3CE /* MCP in Frameworks */ = {isa = PBXBuildFile; productRef = 6693DA5B2FE9F08F005CA3CE /* MCP */; };
+		66AE7B552FFFF798003A66B1 /* MacPullToRefresh in Frameworks */ = {isa = PBXBuildFile; productRef = 66AE7B542FFFF798003A66B1 /* MacPullToRefresh */; };
 		66BDDD422FF63E06008224BE /* MCPKit in Frameworks */ = {isa = PBXBuildFile; productRef = 66BDDD412FF63E06008224BE /* MCPKit */; };
 		66C6A3392FEA84E300731E7E /* BuddyDesignSystem in Frameworks */ = {isa = PBXBuildFile; productRef = 66C6A3382FEA84E300731E7E /* BuddyDesignSystem */; };
 		66C6A33D2FEA883500731E7E /* MCP in Frameworks */ = {isa = PBXBuildFile; productRef = 66C6A33C2FEA883500731E7E /* MCP */; };
@@ -220,6 +221,7 @@
 				6693DA532FE9D021005CA3CE /* CoderPadToolCore in Frameworks */,
 				66C6A33F2FEA883500731E7E /* BuddyAppKit in Frameworks */,
 				663806CE2FF67B47004A9FCE /* PrintableView in Frameworks */,
+				66AE7B552FFFF798003A66B1 /* MacPullToRefresh in Frameworks */,
 				6676A3A42FEF95500023907A /* CoderPadKitMock in Frameworks */,
 				66C6A33D2FEA883500731E7E /* MCP in Frameworks */,
 				66C6A3412FEA883500731E7E /* BuddyDesignSystem in Frameworks */,
@@ -407,6 +409,7 @@
 				6638FF672FF64481004A9FCE /* MCPKit */,
 				6638044E2FF655B0004A9FCE /* AsyncAlgorithms */,
 				663806CD2FF67B47004A9FCE /* PrintableView */,
+				66AE7B542FFFF798003A66B1 /* MacPullToRefresh */,
 			);
 			productName = coderpad;
 			productReference = 66F5440C2FE5EECD000214AA /* PadBuddy.app */;
@@ -1337,6 +1340,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 6693DA5A2FE9F08F005CA3CE /* XCRemoteSwiftPackageReference "swift-sdk" */;
 			productName = MCP;
+		};
+		66AE7B542FFFF798003A66B1 /* MacPullToRefresh */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 663804452FF64ACC004A9FCE /* XCRemoteSwiftPackageReference "MacPullToRefresh" */;
+			productName = MacPullToRefresh;
 		};
 		66BDDD412FF63E06008224BE /* MCPKit */ = {
 			isa = XCSwiftPackageProductDependency;

@@ -240,9 +240,15 @@ struct MainSplit: View {
     /// SwiftUI preference, which faulted when a count changed across a single frame's
     /// body passes. Pads/Questions report a count; the merged variants already name the
     /// account span, so their count supersedes the "All accounts" cue while empty-count
-    /// sections (Organization, Quota) fall back to it.
+    /// sections (Organization, Quota) fall back to it. A count published for a different
+    /// section is ignored: when switching sections the outgoing count outlives the change
+    /// until the new pane republishes, and showing it under the new title reads as a flash.
     var displaySubtitle: String {
-        nav.sectionCountSubtitle.isEmpty ? sectionSubtitle : nav.sectionCountSubtitle
+        guard nav.sectionCountSection == section, !nav.sectionCountSubtitle.isEmpty else {
+            return sectionSubtitle
+        }
+
+        return nav.sectionCountSubtitle
     }
 
     // `body` is split across `splitLayout` + two observer groups rather than one long
