@@ -229,8 +229,7 @@ nonisolated struct QuotaPace {
     }
 
     var accessibilityLabel: String {
-        let percent = Int((fractionElapsed * 100).rounded())
-        return String(localized: "\(used) of \(limit) pads used, \(percent)% through the cycle. \(headline).")
+        return String(localized: "\(used) of \(limit) pads used, \(fractionElapsed, format: .percent.precision(.fractionLength(0))) through the cycle. \(headline).")
     }
 }
 

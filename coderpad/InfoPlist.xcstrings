@@ -78,6 +78,12 @@
             "state" : "new",
             "value" : "PadBuddy reads your calendar to show upcoming interviews and open the pad linked to each one."
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "PadBuddy lee tu calendario para mostrar próximas entrevistas y abrir el pad vinculado a cada una."
+          }
         }
       }
     },
@@ -89,6 +95,12 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "PadBuddy reads your calendar to show upcoming interviews and open the pad linked to each one."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "PadBuddy lee tu calendario para mostrar próximas entrevistas y abrir el pad vinculado a cada una."
           }
         }
       }
@@ -103,7 +115,8 @@
             "value" : ""
           }
         }
-      }
+      },
+      "shouldTranslate" : false
     }
   },
   "version" : "1.3"

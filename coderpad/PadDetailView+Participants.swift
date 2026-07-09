@@ -33,17 +33,14 @@ extension PadDetailView {
                 if let roles = participantRoles {
                     if !roles.candidates.isEmpty {
                         participantGroup(
-                            // Automatic plural agreement (#625): `inflect` adapts the noun to
-                            // the count across every locale's plural rules, replacing the
-                            // hand-built two-form English ternary.
-                            title: "^[\(roles.candidates.count) Candidate](inflect: true)",
+                            title: roles.candidates.count == 1 ? "Candidate" : "Candidates",
                             systemImage: "person.crop.circle.badge.questionmark",
                             names: roles.candidates, tint: .blue
                         )
                     }
                     if !roles.interviewers.isEmpty {
                         participantGroup(
-                            title: "^[\(roles.interviewers.count) Interviewer](inflect: true)",
+                            title: roles.interviewers.count == 1 ? "Interviewer" : "Interviewers",
                             systemImage: "person.crop.circle.badge.checkmark",
                             names: roles.interviewers, tint: .purple, clickable: true
                         )
@@ -70,12 +67,9 @@ extension PadDetailView {
         }
     }
 
-    /// A single full-width column of participant rows. An earlier
-    /// `LazyVGrid(.adaptive(minimum: 180))` reflowed into two columns once the detail
-    /// pane grew past ~368pt, which made a role with a single participant (the common
-    /// case) suddenly drop to half-width — its grey row background appeared to shrink
-    /// as the window got bigger (#476). A single column keeps every row flush-width and
-    /// stable across resizes; the rows already stack compactly enough for many names.
+    /// A single column of compact participant rows. Rows hug their content instead of
+    /// filling the detail pane, avoiding oversized backgrounds when a role has only
+    /// one participant while still keeping names stacked predictably.
     private func participantList(names: [String], tint: Color, clickable: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             // Key by position rather than the name itself: two participants can
@@ -108,8 +102,10 @@ extension PadDetailView {
     private func participantRow(name: String, tint: Color, clickable: Bool = false) -> some View {
         HStack(spacing: 8) {
             AvatarCircle(label: name, diameter: 26, tint: tint)
-            Text(name).font(.callout)
-            Spacer(minLength: 0)
+            Text(name)
+                .font(.callout)
+                .lineLimit(1)
+                .frame(maxWidth: 260, alignment: .leading)
             // A trailing chevron marks the row as a link to the member's pads, so
             // a clickable interviewer reads differently from a plain candidate row
             // that only carries the same name and avatar.

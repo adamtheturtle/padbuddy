@@ -35,51 +35,6 @@ extension QuestionsView {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    /// Built-in Suggested-search chips, mirrored in the sidebar's Suggested section.
-    var defaultSearches: [DefaultSearch] {
-        DefaultSearch.questionDefaults(me: accounts.currentAccount?.userEmail)
-    }
-
-    @ViewBuilder
-    var savedSearchesBar: some View {
-        let defaults = defaultSearches
-        let hasFavorites = !favoriteIDSet.isEmpty
-        if hasFavorites || !defaults.isEmpty {
-            // A wrapping flow layout rather than a horizontal scroll, so the chips
-            // reflow onto extra lines as the pane narrows instead of clipping a
-            // long search name off the trailing edge.
-            FlowLayout(spacing: 6, lineSpacing: 6) {
-                // A toggle, unlike the recall chips beside it: tapping filters the
-                // list to starred questions and tapping again clears it. Shown only
-                // once at least one question is starred.
-                if hasFavorites {
-                    SavedSearchChip(name: "Favorites", systemImage: "star.fill",
-                                    isActive: favoritesOnly,
-                                    maxNameLength: NamedSearch.maxNameLength) {
-                        favoritesOnly.toggle()
-                        // Favorites and the recall chips beside it are mutually
-                        // exclusive presets, so turning Favorites on clears the
-                        // active filters — otherwise a chip like "My Questions"
-                        // would stay highlighted alongside it.
-                        if favoritesOnly {
-                            search = ""
-                            languageFilter = nil; ownerFilter = nil
-                            typeFilter = nil; draftFilter = nil
-                        }
-                    }
-                }
-                ForEach(defaults) { item in
-                    SavedSearchChip(name: item.search.name, systemImage: item.icon,
-                                    isActive: isActiveSearch(item.search),
-                                    maxNameLength: NamedSearch.maxNameLength) {
-                        apply(item.search)
-                    }
-                }
-            }
-            .padding(.horizontal, 12).padding(.top, 6)
-        }
-    }
-
     func apply(_ saved: NamedSearch) {
         // Applying a recall chip turns Favorites off; the two are mutually
         // exclusive presets in the search bar.
@@ -89,18 +44,6 @@ extension QuestionsView {
         ownerFilter = saved.ownerFilter
         typeFilter = saved.typeFilter
         draftFilter = saved.draftFilter
-    }
-
-    /// Whether the list's live filters exactly match `saved`, so its chip can show
-    /// as active. Mirrors `apply` field-for-field — including `draftFilter`, which
-    /// the question list has but pads don't — so editing any filter drops the
-    /// highlight immediately.
-    func isActiveSearch(_ saved: NamedSearch) -> Bool {
-        search == saved.search &&
-            languageFilter == saved.languageFilter &&
-            ownerFilter == saved.ownerFilter &&
-            typeFilter == saved.typeFilter &&
-            draftFilter == saved.draftFilter
     }
 
     func captureCurrentSearch(named name: String) -> NamedSearch {

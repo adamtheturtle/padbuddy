@@ -55,7 +55,7 @@ extension QuestionsView {
             loadingMessage: "Loading questions…",
             onReload: { await reload() },
             errorView: { error, retry in APIErrorView(error: error, onRetry: retry) },
-            savedSearches: { savedSearchesBar },
+            savedSearches: { EmptyView() },
             filters: { filterBar },
             list: { questionsList }
         )

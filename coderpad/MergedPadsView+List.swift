@@ -87,6 +87,12 @@ extension MergedPadsView {
             .onChange(of: nav.mergedPadsMineRequest, initial: true) { _, request in
                 consumeMergedPadsMineRequest(request)
             }
+            // The same publish/consume dance for the "Active Pads" preset, which the
+            // sidebar drives through `stateFilter` rather than a dedicated flag.
+            .onChange(of: stateFilter, initial: true) { _, state in publishMergedPadsActiveOnly(state == .active) }
+            .onChange(of: nav.mergedPadsActiveRequest, initial: true) { _, request in
+                consumeMergedPadsActiveRequest(request)
+            }
             // A favourite pad tapped in the merged sidebar arrives here by id (pad ids
             // are globally unique, so no account need travel with it). Cleared once
             // consumed; left as the selection if the row hasn't loaded yet — the same
@@ -137,6 +143,28 @@ extension MergedPadsView {
         }
     }
 
+    private func publishMergedPadsActiveOnly(_ isOn: Bool) {
+        guard nav.mergedPadsActiveOnly != isOn else { return }
+
+        DispatchQueue.main.async {
+            if nav.mergedPadsActiveOnly != isOn { nav.mergedPadsActiveOnly = isOn }
+        }
+    }
+
+    private func consumeMergedPadsActiveRequest(_ request: Bool?) {
+        guard let request else { return }
+
+        DispatchQueue.main.async {
+            guard nav.mergedPadsActiveRequest != nil else { return }
+
+            nav.mergedPadsActiveRequest = nil
+            // Turning it off only clears an Active filter — a different state the user
+            // set by hand (e.g. Ended) is left untouched.
+            let target: PadState? = request ? .active : (stateFilter == .active ? nil : stateFilter)
+            if stateFilter != target { stateFilter = target }
+        }
+    }
+
     private func scheduleApplyPendingRequest() {
         DispatchQueue.main.async { applyPendingRequest() }
     }
@@ -182,7 +210,6 @@ extension MergedPadsView {
                     .id("loading")
             } else {
                 VStack(spacing: 0) {
-                    presetsBar
                     filterBar
                     errorBar
                     Divider()

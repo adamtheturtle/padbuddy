@@ -10,6 +10,25 @@
 
 import SwiftUI
 
+@MainActor
+final class TopRowPersistenceDebouncer {
+    private var task: Task<Void, Never>?
+
+    deinit {
+        task?.cancel()
+    }
+
+    func schedule(_ action: @escaping @MainActor () -> Void) {
+        task?.cancel()
+        task = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(350))
+            guard !Task.isCancelled else { return }
+
+            action()
+        }
+    }
+}
+
 extension MergedPadsView {
     // MARK: - Filter persistence
 
@@ -111,11 +130,7 @@ extension MergedPadsView {
     }
 
     func scheduleTopRowPersistence(_ id: String?) {
-        topRowPersistTask?.cancel()
-        topRowPersistTask = Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(350))
-            guard !Task.isCancelled else { return }
-
+        topRowPersistence.schedule {
             persistTopRow(id)
         }
     }

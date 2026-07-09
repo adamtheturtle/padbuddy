@@ -33,6 +33,7 @@ extension PadDetailView {
                     SearchableOwnerPicker(ownerEmail: ownerBinding,
                                           users: orgUsers,
                                           keyOwnerEmail: AccountsStore.shared.currentAccount?.userEmail)
+                        .fixedSize(horizontal: true, vertical: false)
                 }
                 propertyRow("Private", alignment: .center) {
                     Toggle("", isOn: privateBinding)

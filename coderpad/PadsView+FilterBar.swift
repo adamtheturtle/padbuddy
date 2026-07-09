@@ -6,11 +6,6 @@
 import SwiftUI
 
 extension PadsView {
-    /// Built-in Suggested-search chips, mirrored in the sidebar's Suggested section.
-    var defaultSearches: [DefaultSearch] {
-        DefaultSearch.padDefaults(me: accounts.currentAccount?.userEmail)
-    }
-
     var availableStates: [PadState] {
         chipOptionsCache.states
     }
@@ -41,26 +36,6 @@ extension PadsView {
         chipOptionsCache.owners = Array(Set(pads.map(\.ownerEmail)).filter { !$0.isEmpty }).sorted()
         chipOptionsCache.teams = Array(Set(pads.compactMap { $0.team?.name })).sorted()
         chipOptionsCache.padsRevision = padsRevision
-    }
-
-    @ViewBuilder
-    var savedSearchesBar: some View {
-        let defaults = defaultSearches
-        if !defaults.isEmpty {
-            // A wrapping flow layout rather than a horizontal scroll, so the chips
-            // reflow onto extra lines as the pane narrows instead of clipping a
-            // long search name off the trailing edge.
-            FlowLayout(spacing: 6, lineSpacing: 6) {
-                ForEach(defaults) { item in
-                    SavedSearchChip(name: item.search.name, systemImage: item.icon,
-                                    isActive: isActiveSearch(item.search),
-                                    maxNameLength: NamedSearch.maxNameLength) {
-                        apply(item.search)
-                    }
-                }
-            }
-            .padding(.horizontal, 12).padding(.top, 6)
-        }
     }
 
     var filterBar: some View {

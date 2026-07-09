@@ -31,28 +31,14 @@ extension Sidebar {
     // MARK: Selection
 
     //
-    // The sidebar shows a single selection across every row, the way Mail and
-    // Reminders do: tapping a suggested search highlights that row and the
-    // parent "Pads"/"Questions" row deselects, so the highlight always names exactly
-    // what the content pane is showing. Selection is *derived* from each pane's live
-    // filter signature (published into `AppNavigation`) rather than stored, so it
-    // falls back to the plain top-level row the instant a filter is edited in-pane —
-    // no separate invalidation step. Favorites stay plain jump-actions: selecting one
-    // changes the detail, not the list's filter, so the "Questions" row stays current.
-
-    private func appSection(for kind: SavedSearchKind) -> AppSection {
-        switch kind {
-        case .pads: .pads
-        case .questions: .questions
-        }
-    }
-
-    private func liveFilter(for kind: SavedSearchKind) -> NamedSearch {
-        switch kind {
-        case .pads: nav.padsFilter
-        case .questions: nav.questionsFilter
-        }
-    }
+    // The sidebar keeps a single selection on the active top-level row, the way Mail
+    // and Reminders do. The "Pads"/"Questions" row stays highlighted for as long as
+    // its list is the active section. Suggested searches are momentary actions rather
+    // than a selection: tapping one applies its filter but never highlights the row,
+    // and the parent row keeps the highlight so the selection never vanishes. Favorites
+    // stay plain jump-actions too: selecting one changes the detail, not the list's
+    // filter, so the "Questions" row stays current. Selection is *derived* from the
+    // active section (published into `AppNavigation`) rather than stored.
 
     /// In the combined view the per-account Suggested searches don't apply; the
     /// sidebar instead surfaces each merged list's "Mine" preset, which it toggles
@@ -61,44 +47,13 @@ extension Sidebar {
         accounts.isMergedView
     }
 
-    private func mergedMineOnly(for kind: SavedSearchKind) -> Bool {
-        switch kind {
-        case .pads: nav.mergedPadsMineOnly
-        case .questions: nav.mergedQuestionsMineOnly
-        }
-    }
-
-    /// Whether `item` is the search currently applied in its list. True only while
-    /// that list is the active section, so switching sections clears the highlight.
-    private func isItemSelected(_ item: SavedItem) -> Bool {
-        nav.section == appSection(for: item.kind)
-            && liveFilter(for: item.kind).hasSameFilters(as: item.search)
-    }
-
-    /// Every suggested row for one list kind, used to decide whether the plain
-    /// top-level row should claim the selection.
-    private func items(for kind: SavedSearchKind) -> [SavedItem] {
-        defaultItems.filter { $0.kind == kind }
-    }
-
-    /// Whether a top-level row owns the selection. Pads/Questions are selected only
-    /// when their list shows its plain, unfiltered contents — i.e. no suggested or
-    /// saved row matches the live filter — so tapping a suggested search moves the
-    /// highlight off the parent onto that row. Organization/Quota are simple toggles.
+    /// Whether a top-level row owns the selection. Each row stays highlighted for as
+    /// long as it is the active section — including while a suggested search (or, in
+    /// merged mode, a "Mine"/"Active" preset) is applied, since those are momentary
+    /// actions rather than a selection. The highlight always names the active pane
+    /// instead of vanishing onto a suggested row.
     private func isRootSelected(_ value: AppSection) -> Bool {
-        switch value {
-        case .pads, .questions:
-            guard nav.section == value else { return false }
-
-            let kind: SavedSearchKind = value == .pads ? .pads : .questions
-            // In merged mode the only suggested row is "Mine"; the root owns the
-            // selection whenever that preset is off.
-            if isMergedView { return !mergedMineOnly(for: kind) }
-            return !items(for: kind).contains { liveFilter(for: kind).hasSameFilters(as: $0.search) }
-
-        case .organization, .quota, .screen:
-            return nav.section == value
-        }
+        nav.section == value
     }
 
     /// The top-to-bottom order of the navigable top-level sections, shared by the
@@ -205,8 +160,12 @@ extension Sidebar {
                             // `NavigationSplitView` layout path (EXC_BAD_ACCESS on first
                             // layout, so the app shows only a black screen).
                             let nav = nav
-                            sidebarSubRow(label: item.search.name, icon: item.icon,
-                                          isSelected: isItemSelected(item)) {
+                            // Suggested searches are momentary actions, not a sticky
+                            // selection: clicking one applies its filter but never leaves
+                            // the row highlighted. The parent Pads/Questions row also
+                            // deselects while a suggested filter is applied (see
+                            // `isRootSelected`), so nothing in the sidebar stays lit.
+                            sidebarSubRow(label: item.search.name, icon: item.icon) {
                                 nav.applySuggestedSearch(item.search, kind: item.kind)
                             }
                         }
@@ -219,8 +178,9 @@ extension Sidebar {
 
     /// The combined view's suggested rows: "My Pads"/"My Questions" toggle each
     /// merged list's per-account "Mine" preset (the in-list chip's sidebar twin).
-    /// Tapping one switches to that list and flips the preset; the highlight tracks
-    /// the live state `MergedPadsView`/`MergedQuestionsView` publish back.
+    /// Tapping one switches to that list and flips the preset. Like the per-account
+    /// suggested searches these are momentary actions, not a selection, so the rows
+    /// never highlight — the parent "Pads"/"Questions" row keeps the selection.
     private var mergedDefaultsSection: some View {
         Section("Suggested") {
             VStack(spacing: 2) {
@@ -228,12 +188,13 @@ extension Sidebar {
                 // `defaultsSection`: capturing the whole `Sidebar` struct faults in
                 // `swift_retain` while SwiftUI copies the row value on the iPad layout path.
                 let nav = nav
-                sidebarSubRow(label: String(localized: "My Pads"), icon: "person.fill",
-                              isSelected: nav.section == .pads && nav.mergedPadsMineOnly) {
+                sidebarSubRow(label: String(localized: "My Pads"), icon: "person.fill") {
                     nav.toggleMergedMine(kind: .pads)
                 }
-                sidebarSubRow(label: String(localized: "My Questions"), icon: "person.fill",
-                              isSelected: nav.section == .questions && nav.mergedQuestionsMineOnly) {
+                sidebarSubRow(label: String(localized: "Active Pads"), icon: "bolt.fill") {
+                    nav.toggleMergedPadsActive()
+                }
+                sidebarSubRow(label: String(localized: "My Questions"), icon: "person.fill.questionmark") {
                     nav.toggleMergedMine(kind: .questions)
                 }
             }

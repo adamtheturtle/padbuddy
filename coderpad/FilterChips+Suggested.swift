@@ -31,7 +31,7 @@ extension DefaultSearch {
             ))
         }
         result.append(DefaultSearch(id: "active", icon: "bolt.fill",
-                                    search: NamedSearch(name: String(localized: "Active"), stateFilter: .active)))
+                                    search: NamedSearch(name: String(localized: "Active Pads"), stateFilter: .active)))
         return result
     }
 
@@ -43,7 +43,7 @@ extension DefaultSearch {
         var result: [DefaultSearch] = []
         if let currentUserEmail, !currentUserEmail.isEmpty {
             result.append(DefaultSearch(
-                id: "my-questions", icon: "person.fill",
+                id: "my-questions", icon: "person.fill.questionmark",
                 search: NamedSearch(name: String(localized: "My Questions"), ownerFilter: currentUserEmail)
             ))
         }

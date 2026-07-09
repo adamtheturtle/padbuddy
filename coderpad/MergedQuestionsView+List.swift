@@ -194,7 +194,6 @@ extension MergedQuestionsView {
                     .id("loading")
             } else {
                 VStack(spacing: 0) {
-                    presetsBar
                     filterBar
                     errorBar
                     Divider()

@@ -51,6 +51,7 @@ struct SearchableQuestionPicker: View {
                     .accessibilityHidden(true)
             }
         }
+        .frame(maxWidth: 280, alignment: .leading)
         .buttonStyle(.bordered)
         .popover(isPresented: $isPresented, arrowEdge: .bottom) {
             VStack(spacing: 0) {

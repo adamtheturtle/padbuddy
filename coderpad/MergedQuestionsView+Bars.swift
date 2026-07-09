@@ -16,30 +16,6 @@ extension MergedQuestionsView {
         return { names[$0] ?? "Account" }
     }
 
-    var presetsBar: some View {
-        FlowLayout(spacing: 6, lineSpacing: 6) {
-            if hasAnyFavorites {
-                SavedSearchChip(name: "Favorites", systemImage: "star.fill", isActive: favoritesOnly,
-                                maxNameLength: NamedSearch.maxNameLength) {
-                    favoritesOnly.toggle()
-                    if favoritesOnly { mineOnly = false; clearChips() }
-                }
-            }
-            SavedSearchChip(name: "My Questions", systemImage: "person.fill", isActive: mineOnly,
-                            maxNameLength: NamedSearch.maxNameLength) {
-                mineOnly.toggle()
-            }
-        }
-        .padding(.horizontal, 12).padding(.top, 6)
-    }
-
-    /// Clear the categorical chips (not the presets), shared by the Favorites toggle
-    /// so turning it on doesn't leave a stale language/owner filter applied.
-    private func clearChips() {
-        languageFilter = nil; ownerFilter = nil; typeFilter = nil
-        draftFilter = nil; accountFilter = nil; search = ""
-    }
-
     var filterBar: some View {
         FlowLayout(spacing: 8, lineSpacing: 8) {
             FilterChipMenu(

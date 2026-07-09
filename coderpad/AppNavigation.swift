@@ -108,6 +108,13 @@ final class AppNavigation {
     var mergedQuestionsMineOnly = false
     var mergedQuestionsMineRequest: Bool?
 
+    /// The live "Active" preset of the combined pads list — its `stateFilter` set to
+    /// the in-progress session state — mirrored by the sidebar's "Active Pads" row.
+    /// Follows the same publish/one-shot-request split as `mergedPadsMineOnly`, since
+    /// the combined view owns its `stateFilter` locally.
+    var mergedPadsActiveOnly = false
+    var mergedPadsActiveRequest: Bool?
+
     /// A question id whose detail pane should immediately create a pad and open it
     /// inline (the in-pane browser), matching the detail view's "New Pad" button.
     /// Set by the Questions list's context menu (after selecting that question) and
@@ -203,11 +210,19 @@ final class AppNavigation {
         }
     }
 
+    /// Toggle the combined pads list's "Active" preset from the sidebar, switching to
+    /// Pads first. The pad counterpart to `toggleMergedMine` — independent of "Mine",
+    /// so both presets can apply together, matching the removed in-list chips.
+    func toggleMergedPadsActive() {
+        section = .pads
+        mergedPadsActiveRequest = !mergedPadsActiveOnly
+    }
+
     /// Switch to a combined list's plain, unfiltered root, clearing its "Mine"
     /// preset — the merged counterpart to tapping the "Pads"/"Questions" row.
     func showMergedRoot(kind: SavedSearchKind) {
         switch kind {
-        case .pads: section = .pads; mergedPadsMineRequest = false
+        case .pads: section = .pads; mergedPadsMineRequest = false; mergedPadsActiveRequest = false
         case .questions: section = .questions; mergedQuestionsMineRequest = false
         }
     }

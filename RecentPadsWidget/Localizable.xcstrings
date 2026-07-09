@@ -122,13 +122,34 @@
       }
     },
     "Open a CoderPad pad." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Abrir un pad de CoderPad."
+          }
+        }
+      }
     },
     "Open Pad" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Abrir pad"
+          }
+        }
+      }
     },
     "Pad ID" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "ID del pad"
+          }
+        }
+      }
     },
     "Question" : {
       "localizations" : {
@@ -136,17 +157,6 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Pregunta"
-          }
-        }
-      }
-    },
-    "Recent pad, %@" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Pad reciente, %@"
           }
         }
       }

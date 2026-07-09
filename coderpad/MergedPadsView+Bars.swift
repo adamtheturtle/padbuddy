@@ -16,24 +16,6 @@ extension MergedPadsView {
         return { names[$0] ?? "Account" }
     }
 
-    /// Cross-account quick presets: "Mine" (owned by each account's own user) and
-    /// "Active" (in-progress sessions), styled like the single-account saved-search
-    /// chips so the merged list feels of a piece with `PadsView`.
-    var presetsBar: some View {
-        FlowLayout(spacing: 6, lineSpacing: 6) {
-            SavedSearchChip(name: "My Pads", systemImage: "person.fill", isActive: mineOnly,
-                            maxNameLength: NamedSearch.maxNameLength) {
-                mineOnly.toggle()
-            }
-            SavedSearchChip(name: "Active", systemImage: "bolt.fill",
-                            isActive: stateFilter == .active,
-                            maxNameLength: NamedSearch.maxNameLength) {
-                stateFilter = stateFilter == .active ? nil : .active
-            }
-        }
-        .padding(.horizontal, 12).padding(.top, 6)
-    }
-
     var filterBar: some View {
         FlowLayout(spacing: 8, lineSpacing: 8) {
             FilterChipMenu(
