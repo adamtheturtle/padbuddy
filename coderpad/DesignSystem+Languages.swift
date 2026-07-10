@@ -117,6 +117,15 @@ enum CoderPadLanguages {
         "plaintext"
     ]
 
+    /// Returns whether `language` can be used with CoderPad's pad-creation API.
+    /// Project environments are displayed for existing pads/questions, but new ones
+    /// must be created in the web app.
+    static func canCreatePad(with language: String?) -> Bool {
+        guard let language, !language.isEmpty else { return false }
+
+        return !language.lowercased().hasPrefix("multifile_")
+    }
+
     /// Where to create the project and framework environments (React, Django, Rails,
     /// and so on) that this list omits. CoderPad's pad-creation API only mints
     /// single-file language environments, so those can't be made from here; they're

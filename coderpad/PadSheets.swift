@@ -140,7 +140,10 @@ struct NewPadSheet: View {
     /// Pre-select the organization's default language, unless the user has already
     /// chosen one. Driven by `OrgDirectory`, which is loaded app-wide.
     private func applyOrgDefaultLanguage() {
-        guard !languageEdited, let def = directory.defaultLanguage, !def.isEmpty else { return }
+        guard !languageEdited,
+              let def = directory.defaultLanguage,
+              CoderPadLanguages.canCreatePad(with: def)
+        else { return }
 
         language = def
     }
@@ -167,7 +170,9 @@ struct NewPadSheet: View {
               let question = questions.first(where: { $0.id == id }) else { return }
 
         if title.isEmpty { title = question.title }
-        if !languageEdited, let lang = question.language, !lang.isEmpty {
+        if !languageEdited,
+           let lang = question.language,
+           CoderPadLanguages.canCreatePad(with: lang) {
             language = lang
             // Treat the question's language as a deliberate choice so a late-arriving
             // org default (applied from `.task`/`.onChange`) can't clobber it.
