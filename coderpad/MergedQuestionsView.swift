@@ -60,7 +60,7 @@ struct MergedQuestionsView: View {
     /// Debounces free-scroll-position persistence. `FastList` reports each new top
     /// row during scroll; writing every one to `UserDefaults` makes scrolling hitch
     /// on large pad/question lists (#633).
-    @State var topRowPersistTask: Task<Void, Never>?
+    @State var topRowPersistence = TopRowPersistenceDebouncer()
     /// Whether the saved filters have been restored this session. Gates persistence
     /// so the empty startup state never clobbers a saved snapshot, mirroring `QuestionsView`.
     @State var didRestoreFilters = false

@@ -124,11 +124,7 @@ extension MergedQuestionsView {
     }
 
     func scheduleTopRowPersistence(_ rowID: String?) {
-        topRowPersistTask?.cancel()
-        topRowPersistTask = Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(350))
-            guard !Task.isCancelled else { return }
-
+        topRowPersistence.schedule {
             persistTopRow(rowID)
         }
     }
