@@ -68,8 +68,8 @@ Xcode Cloud automatically runs these if present (must live next to the
 - `ci_post_clone.sh` — runs right after clone, before dependency resolution.
   Most common hook. Currently a no-op (project has no external deps or codegen).
 - `ci_pre_xcodebuild.sh` — runs before each xcodebuild action. Placeholder.
-- `ci_post_xcodebuild.sh` — (not present) add if you need to process build
-  output, e.g. upload dSYMs to a crash reporter.
+- `ci_post_xcodebuild.sh` — verifies App Store archives are Sparkle-free before
+  upload, so an accidentally selected Developer ID target fails early.
 
 Useful env vars inside these scripts: `$CI_PRIMARY_REPOSITORY_PATH`,
 `$CI_BUILD_NUMBER`, `$CI_WORKFLOW`, `$CI_XCODEBUILD_ACTION`. Full list:

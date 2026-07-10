@@ -80,23 +80,14 @@ extension QuestionDetailView {
                 InlineEditableTitle(title: question.title, placeholder: "Untitled Question",
                                     isEditable: !isReadOnly, clampsWidth: true,
                                     font: .title.bold()) { newTitle in await commitTitle(newTitle) }
-                if let author = question.authorName {
-                    Text("by \(author)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                // The owner's name links to their pads (the app's person
-                // navigation); the email keeps its mailto below. When the name
-                // isn't known the link falls back to showing the email itself.
+                // Keep the question identity to one owner line under the title. When
+                // the org directory has not resolved the name, avoid exposing the raw
+                // email in the header and use the link's generic fallback label.
                 if let name = directory.name(for: question.ownerEmail), !name.isEmpty {
                     OwnerPadsLink(email: question.ownerEmail)
                         .font(.caption)
-                    EmailLink(email: question.ownerEmail)
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
-                        .lineLimit(1)
                 } else {
-                    OwnerPadsLink(email: question.ownerEmail)
+                    OwnerPadsLink(email: question.ownerEmail, fallbackLabel: String(localized: "Owner"))
                         .font(.caption)
                         .lineLimit(1)
                 }
