@@ -581,6 +581,27 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		669DA4BC3001A0C0001E39FB /* AppStoreRelease */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = coderpad;
+			};
+			name = AppStoreRelease;
+		};
+		669DA4BD3001A0C0001E39FB /* AppStoreRelease */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = coderpadTests;
+			};
+			name = AppStoreRelease;
+		};
+		669DA4BE3001A0C0001E39FB /* AppStoreRelease */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				PRODUCT_NAME = coderpadUITests;
+			};
+			name = AppStoreRelease;
+		};
 		66C8C52C2FA73AB2009B720C /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1255,6 +1276,7 @@
 			buildConfigurations = (
 				66C8C52F2FA73AB2009B720C /* Debug */,
 				66C8C5302FA73AB2009B720C /* Release */,
+				669DA4BC3001A0C0001E39FB /* AppStoreRelease */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -1264,6 +1286,7 @@
 			buildConfigurations = (
 				66C8C5322FA73AB2009B720C /* Debug */,
 				66C8C5332FA73AB2009B720C /* Release */,
+				669DA4BD3001A0C0001E39FB /* AppStoreRelease */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -1273,6 +1296,7 @@
 			buildConfigurations = (
 				66C8C5352FA73AB2009B720C /* Debug */,
 				66C8C5362FA73AB2009B720C /* Release */,
+				669DA4BE3001A0C0001E39FB /* AppStoreRelease */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -1384,7 +1408,7 @@
 			repositoryURL = "https://github.com/adamtheturtle/buddy-kit";
 			requirement = {
 				kind = exactVersion;
-				version = 0.14.2;
+				version = 0.14.3;
 			};
 		};
 		66E3CC562FDA31CC00FE87A9 /* XCRemoteSwiftPackageReference "Highlightr" */ = {
