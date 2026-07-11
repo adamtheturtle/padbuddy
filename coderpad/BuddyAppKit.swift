@@ -10,3 +10,7 @@
 // using them unqualified, with no per-file import, mirroring how `DesignSystem.swift`
 // re-exports `CoderPadDesignSystem`.
 @_exported import BuddyAppKit
+
+#if !APP_STORE && canImport(BuddySparkleUpdater)
+    @_exported import BuddySparkleUpdater
+#endif

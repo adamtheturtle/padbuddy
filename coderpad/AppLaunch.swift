@@ -58,7 +58,7 @@ enum AppLaunch {
         PadUpdateNotifier.shared.register()
         // Start Sparkle's updater so scheduled background update checks run from
         // launch (#28). App Store builds must not link or embed Sparkle.
-        #if !APP_STORE && canImport(Sparkle)
+        #if !APP_STORE && canImport(BuddySparkleUpdater)
             SoftwareUpdater.shared.start()
         #endif
     }

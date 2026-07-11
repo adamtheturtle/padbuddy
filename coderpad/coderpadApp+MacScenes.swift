@@ -159,10 +159,10 @@
                 Button("About PadBuddy") { showAbout() }
             }
             // "Check for Updates…" sits just below About, its conventional home. The
-            // item only appears once the Sparkle package is linked (#28). App Store
-            // builds must not link or embed Sparkle.
+            // item only appears once the BuddySparkleUpdater package product is linked
+            // (#28). App Store builds must not link or embed Sparkle.
             CommandGroup(after: .appInfo) {
-                #if !APP_STORE && canImport(Sparkle)
+                #if !APP_STORE && canImport(BuddySparkleUpdater)
                     CheckForUpdatesButton()
                 #endif
             }
