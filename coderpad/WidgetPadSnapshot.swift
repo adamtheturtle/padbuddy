@@ -71,10 +71,16 @@ nonisolated struct WidgetOpenPadRequest: Codable {
 /// by an unconfigured widget), and an account index (`widget-accounts.json`) that
 /// backs the configuration picker.
 nonisolated enum WidgetSharedStore {
-    /// Shared container identifier. Declared in both targets' entitlements. Uses the
-    /// team-ID-prefixed form so notarized Developer-ID builds (no provisioning profile)
-    /// are authorized for the App Group without the per-launch access prompt (#451).
-    static let appGroupID = "6L9H6Q8CUF.group.com.adamdangoor.padbuddy"
+    /// Shared container identifier. The App Store build uses the provisioned `group.`
+    /// form; Developer ID keeps the Team-ID-prefixed form to avoid requiring a
+    /// provisioning profile (#451).
+    static let appGroupID: String = {
+        #if APP_STORE
+        "group.com.adamdangoor.padbuddy"
+        #else
+        "6L9H6Q8CUF.group.com.adamdangoor.padbuddy"
+        #endif
+    }()
 
     private static let defaultPadsFile = "recent-pads.json"
     private static let accountsFile = "widget-accounts.json"
@@ -86,7 +92,7 @@ nonisolated enum WidgetSharedStore {
     /// tap triggers no activation and so `applicationDidBecomeActive` never fires (#485).
     /// A global Darwin name, prefixed with the App Group id for uniqueness. Must match
     /// the widget target's copy (`RecentPadsWidget/WidgetSharedSnapshot.swift`).
-    static let newPadRequestNotification = "6L9H6Q8CUF.group.com.adamdangoor.padbuddy.new-pad-requested"
+    static let newPadRequestNotification = "\(appGroupID).new-pad-requested"
 
     /// File holding `account`'s pads, or the default (current-account) snapshot when
     /// `account` is nil — the file an unconfigured widget reads.
