@@ -57,8 +57,8 @@ enum AppLaunch {
         // back into the app. Posting itself is opt-in (see `PadUpdateNotifier`).
         PadUpdateNotifier.shared.register()
         // Start Sparkle's updater so scheduled background update checks run from
-        // launch (#28). No-op until the Sparkle package is linked.
-        #if canImport(Sparkle)
+        // launch (#28). App Store builds must not link or embed Sparkle.
+        #if !APP_STORE && canImport(Sparkle)
             SoftwareUpdater.shared.start()
         #endif
     }
