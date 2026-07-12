@@ -125,12 +125,12 @@ extension EnvironmentCodeCard {
                 Color.clear
                     .frame(width: 10)
                     .contentShape(Rectangle())
-                    // Declarative cursor for a horizontal divider drag, replacing manual
-                    // NSCursor push/pop on hover (#287). macOS-only: iPadOS has no
-                    // equivalent pointer-shape API here.
-                    #if os(macOS)
+                // Declarative cursor for a horizontal divider drag, replacing manual
+                // NSCursor push/pop on hover (#287). macOS-only: iPadOS has no
+                // equivalent pointer-shape API here.
+                #if os(macOS)
                     .pointerStyle(.columnResize)
-                    #endif
+                #endif
                     .gesture(
                         DragGesture()
                             .onChanged { value in
@@ -306,27 +306,27 @@ extension EnvironmentCodeCard {
     }
 
     #if os(macOS)
-    /// Writes the files into a fresh folder at `destination`, recreating each
-    /// file's relative path beneath it.
-    private func writeFolder(of files: [CodeFile], to destination: URL) throws {
-        let fileManager = FileManager.default
-        if fileManager.fileExists(atPath: destination.path) {
-            try fileManager.removeItem(at: destination)
-        }
-        try fileManager.createDirectory(at: destination, withIntermediateDirectories: true)
+        /// Writes the files into a fresh folder at `destination`, recreating each
+        /// file's relative path beneath it.
+        private func writeFolder(of files: [CodeFile], to destination: URL) throws {
+            let fileManager = FileManager.default
+            if fileManager.fileExists(atPath: destination.path) {
+                try fileManager.removeItem(at: destination)
+            }
+            try fileManager.createDirectory(at: destination, withIntermediateDirectories: true)
 
-        for file in files {
-            // Keep the file's relative path, dropping any `.`/`..` segments so a
-            // crafted path can't escape the destination folder.
-            let relative = (file.path ?? file.name)
-                .split(separator: "/")
-                .filter { $0 != "." && $0 != ".." }
-                .joined(separator: "/")
-            let fileURL = destination.appendingPathComponent(relative.isEmpty ? file.name : relative)
-            try fileManager.createDirectory(at: fileURL.deletingLastPathComponent(),
-                                            withIntermediateDirectories: true)
-            try file.contents.write(to: fileURL, atomically: true, encoding: .utf8)
+            for file in files {
+                // Keep the file's relative path, dropping any `.`/`..` segments so a
+                // crafted path can't escape the destination folder.
+                let relative = (file.path ?? file.name)
+                    .split(separator: "/")
+                    .filter { $0 != "." && $0 != ".." }
+                    .joined(separator: "/")
+                let fileURL = destination.appendingPathComponent(relative.isEmpty ? file.name : relative)
+                try fileManager.createDirectory(at: fileURL.deletingLastPathComponent(),
+                                                withIntermediateDirectories: true)
+                try file.contents.write(to: fileURL, atomically: true, encoding: .utf8)
+            }
         }
-    }
     #endif
 }

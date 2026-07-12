@@ -162,16 +162,16 @@ extension PadsView {
             // Open in Browser) should stay enabled whenever this window is frontmost and
             // a pad is selected — not only while the list itself holds keyboard focus.
             .focusedSceneValue(\.focusedPad, selection)
-            // Edit ▸ Copy / ⌘C copies the selected pads' web URLs (one per line) while
-            // the list holds focus, matching the row's "Copy Pad URL" action and
-            // extending it to a multi-row selection. The O(N) `selectedPadsInOrder` scan
-            // is built lazily (only on an actual copy); the per-render gate is the O(1)
-            // empty-selection check, so it stays off the click path.
-            #if os(macOS)
+        // Edit ▸ Copy / ⌘C copies the selected pads' web URLs (one per line) while
+        // the list holds focus, matching the row's "Copy Pad URL" action and
+        // extending it to a multi-row selection. The O(N) `selectedPadsInOrder` scan
+        // is built lazily (only on an actual copy); the per-render gate is the O(1)
+        // empty-selection check, so it stays off the click path.
+        #if os(macOS)
             .onCopyCommand(perform: copyLinkCommand(hasSelection: !selectedIDs.isEmpty) {
                 selectedPadsInOrder.map(\.url).joined(separator: "\n")
             })
-            #endif
+        #endif
     }
 
     /// The selected pads in the order they appear in the list (not the selection
@@ -243,12 +243,12 @@ extension PadsView {
         .onTopRowChange { scheduleTopRowPersistence($0) }
         .scrollToRow(id: pendingScrollToID) { pendingScrollToID = nil }
         #if os(macOS)
-        .onDragSession(began: FavoriteDragLifecycle.onBegan, ended: FavoriteDragLifecycle.onEnded)
+            .onDragSession(began: FavoriteDragLifecycle.onBegan, ended: FavoriteDragLifecycle.onEnded)
         #endif
         #if DEBUG
             // Still prints the per-selection stall; row evals should now be ~0 since
             // NSTableView doesn't re-host rows on a selection change (#439).
-        .onChange(of: selectedIDs) { SelectionProfiler.selectionChanged() }
+            .onChange(of: selectedIDs) { SelectionProfiler.selectionChanged() }
         #endif
     }
 
@@ -270,30 +270,30 @@ extension PadsView {
         )
     }
 
-    /// The drag payload for a pad row in the `NSTableView`-backed list: the pad's web
-    /// URL (so external apps receive a link) plus the internal `FavoriteDrop` JSON (so
-    /// it can be dropped on the sidebar Favorites to pin it, #297). Built at the AppKit
-    /// layer because the hosted SwiftUI content is hit-transparent — a SwiftUI
-    /// `.draggable` there would never grab.
+    // The drag payload for a pad row in the `NSTableView`-backed list: the pad's web
+    // URL (so external apps receive a link) plus the internal `FavoriteDrop` JSON (so
+    // it can be dropped on the sidebar Favorites to pin it, #297). Built at the AppKit
+    // layer because the hosted SwiftUI content is hit-transparent — a SwiftUI
+    // `.draggable` there would never grab.
     #if os(macOS)
-    private func padPasteboardItem(_ pad: Pad) -> NSPasteboardItem? {
-        if selectedIDs.count > 1, selectedIDs.contains(pad.id) {
-            return multiLinkPasteboardItem(selectedPadsInOrder.map(\.url))
-        }
+        private func padPasteboardItem(_ pad: Pad) -> NSPasteboardItem? {
+            if selectedIDs.count > 1, selectedIDs.contains(pad.id) {
+                return multiLinkPasteboardItem(selectedPadsInOrder.map(\.url))
+            }
 
-        guard let url = pad.webURL else { return nil }
+            guard let url = pad.webURL else { return nil }
 
-        let item = NSPasteboardItem()
-        item.setString(url.absoluteString, forType: .URL)
-        item.setString(url.absoluteString, forType: .string)
-        if let account = accounts.currentAccountID,
-           let data = try? JSONEncoder().encode(
-               FavoriteDrop.pad(account: account, id: pad.id, title: pad.title.isEmpty ? pad.id : pad.title)
-           ) {
-            item.setData(data, forType: NSPasteboard.PasteboardType(UTType.coderpadFavorite.identifier))
+            let item = NSPasteboardItem()
+            item.setString(url.absoluteString, forType: .URL)
+            item.setString(url.absoluteString, forType: .string)
+            if let account = accounts.currentAccountID,
+               let data = try? JSONEncoder().encode(
+                   FavoriteDrop.pad(account: account, id: pad.id, title: pad.title.isEmpty ? pad.id : pad.title)
+               ) {
+                item.setData(data, forType: NSPasteboard.PasteboardType(UTType.coderpadFavorite.identifier))
+            }
+            return item
         }
-        return item
-    }
     #endif
 
     /// The right-click menu for a pad row in the `NSTableView`-backed list, built as

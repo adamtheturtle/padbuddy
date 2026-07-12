@@ -146,20 +146,20 @@ struct AccountEditor: View {
                     ScrollView {
                         editorContent
                     }
-                        .navigationTitle("Add account")
-                        .navigationBarTitleDisplayMode(.inline)
-                        .toolbar {
-                            ToolbarItem(placement: .cancellationAction) {
-                                Button("Cancel", action: onCancel)
-                            }
-                            ToolbarItem(placement: .confirmationAction) {
-                                Button("Save") {
-                                    finalizeNameIfNeeded()
-                                    onSave(draft)
-                                }
-                                .disabled(!canSave)
-                            }
+                    .navigationTitle("Add account")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .cancellationAction) {
+                            Button("Cancel", action: onCancel)
                         }
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Save") {
+                                finalizeNameIfNeeded()
+                                onSave(draft)
+                            }
+                            .disabled(!canSave)
+                        }
+                    }
                 }
             } else {
                 editorContent
@@ -201,7 +201,6 @@ struct AccountEditor: View {
 
     /// The bottom action row: Delete, Cancel, Validate, and Save, each shown
     /// according to the editor's mode (embedded / modal / iPad nav-bar actions).
-    @ViewBuilder
     private var actionRow: some View {
         HStack {
             if onDelete != nil {

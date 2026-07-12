@@ -17,9 +17,9 @@ extension MainSplit {
     @ViewBuilder
     var sidebarColumn: some View {
         Sidebar(section: $section)
-            #if os(macOS)
+        #if os(macOS)
             .toolbar(removing: .sidebarToggle)
-            #endif
+        #endif
             // Grow the sidebar's minimum to fit the widest row label. Rounded
             // and only reassigned on a real change, so feeding the measured
             // width back into the same column's min doesn't thrash layout.
@@ -29,17 +29,17 @@ extension MainSplit {
                 ideal: max(280, sidebarMinWidth),
                 max: max(340, sidebarMinWidth)
             )
-            // Pin the iPad sidebar to one fixed width. `macColumnWidth` is a no-op on
-            // iOS (#599), so without this the system re-derives the sidebar width
-            // whenever the split swaps between its three-column (Pads/Questions/Screen)
-            // and two-column (Organization/Quota) forms — making the leftmost column
-            // visibly jump width as the user taps between those sections. The sidebar's
-            // content (the section labels) is identical in both, so a fixed width sizes
-            // it the same way every time while the content/detail columns stay natively
-            // sized, keeping the #599 detail-clipping fix intact.
-            #if os(iOS)
+        // Pin the iPad sidebar to one fixed width. `macColumnWidth` is a no-op on
+        // iOS (#599), so without this the system re-derives the sidebar width
+        // whenever the split swaps between its three-column (Pads/Questions/Screen)
+        // and two-column (Organization/Quota) forms — making the leftmost column
+        // visibly jump width as the user taps between those sections. The sidebar's
+        // content (the section labels) is identical in both, so a fixed width sizes
+        // it the same way every time while the content/detail columns stay natively
+        // sized, keeping the #599 detail-clipping fix intact.
+        #if os(iOS)
             .navigationSplitViewColumnWidth(Self.iPadSidebarWidth)
-            #endif
+        #endif
             .navigationTitle("")
     }
 
@@ -103,7 +103,7 @@ extension MainSplit {
         // `navigationSubtitle` is macOS (and iOS 26+) only; on iPad 18 the section
         // subtitle is simply omitted from the navigation bar.
         #if os(macOS)
-        .navigationSubtitle(displaySubtitle)
+            .navigationSubtitle(displaySubtitle)
         #endif
     }
 
@@ -129,7 +129,7 @@ extension MainSplit {
         // `navigationSubtitle` is macOS (and iOS 26+) only; on iPad 18 the section
         // subtitle is simply omitted from the navigation bar.
         #if os(macOS)
-        .navigationSubtitle(displaySubtitle)
+            .navigationSubtitle(displaySubtitle)
         #endif
     }
 
@@ -179,7 +179,6 @@ extension MainSplit {
             if contentMinWidth != clamped { contentMinWidth = clamped }
         }
     }
-
 }
 
 extension View {

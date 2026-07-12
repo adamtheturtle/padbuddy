@@ -38,6 +38,7 @@ extension Sidebar {
             favoritePads.add(id, title: title, account: dropAccount, undoManager: undoManager)
             dropped = .pad(id)
             account = dropAccount
+
         case let .question(dropAccount, id, title):
             favorites.add(id, title: title, account: dropAccount, undoManager: undoManager)
             dropped = .question(id)
@@ -202,8 +203,8 @@ extension Sidebar {
 
     private func favoriteReorderRef(_ dropped: FavoriteReorder) -> (ref: FavoriteRef, account: UUID)? {
         switch dropped {
-        case let .pad(account, id): return (.pad(id), account)
-        case let .question(account, id): return (.question(id), account)
+        case let .pad(account, id): (.pad(id), account)
+        case let .question(account, id): (.question(id), account)
         }
     }
 }

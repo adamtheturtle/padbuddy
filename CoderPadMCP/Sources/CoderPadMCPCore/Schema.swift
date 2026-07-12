@@ -9,9 +9,9 @@
 //  CoderPad-specific selection of which descriptors to advertise.
 //
 
-import MCPKit
 import CoderPadToolCore
 import MCP
+import MCPKit
 
 /// The tools to advertise, built from the shared catalog: Screen tools appear only when
 /// Screen is configured, write tools only when writes are opted in.

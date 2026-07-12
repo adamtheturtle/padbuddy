@@ -20,9 +20,9 @@
 //  CoderPad `MCPTools` over the SDK.
 //
 
-import MCPKit
 import Foundation
 import MCP
+import MCPKit
 
 /// CoderPad-specific entry glue for the `--mcp` headless mode.
 nonisolated enum MCPServer {

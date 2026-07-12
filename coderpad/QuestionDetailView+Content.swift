@@ -142,9 +142,9 @@ extension QuestionDetailView {
         }
     }
 
-    // One candidate-instruction part. Extracted from `instructionsCard` so neither
-    // view's getter type-checks the whole nested ForEach at once and trips the
-    // 250ms budget (warnings-as-errors makes an overrun fatal).
+    /// One candidate-instruction part. Extracted from `instructionsCard` so neither
+    /// view's getter type-checks the whole nested ForEach at once and trips the
+    /// 250ms budget (warnings-as-errors makes an overrun fatal).
     @ViewBuilder
     private func instructionPartRow(index: Int, item: CandidateInstruction, total: Int) -> some View {
         VStack(alignment: .leading, spacing: 6) {

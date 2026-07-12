@@ -85,18 +85,18 @@ struct MCPActivityView: View {
 }
 
 #if os(macOS)
-extension CoderpadApp {
-    /// The MCP activity log in its own window (#523), opened from the MCP settings pane.
-    /// Defined here (not in the App's main scene file) so that file stays within its length
-    /// budget; follows the system appearance. The standalone `Window` scene is macOS-only;
-    /// on iPad the activity log opens as a sheet/inline instead.
-    var mcpActivityScene: some Scene {
-        Window("MCP Activity", id: MCPActivityWindowID.value) {
-            MCPActivityView()
+    extension CoderpadApp {
+        /// The MCP activity log in its own window (#523), opened from the MCP settings pane.
+        /// Defined here (not in the App's main scene file) so that file stays within its length
+        /// budget; follows the system appearance. The standalone `Window` scene is macOS-only;
+        /// on iPad the activity log opens as a sheet/inline instead.
+        var mcpActivityScene: some Scene {
+            Window("MCP Activity", id: MCPActivityWindowID.value) {
+                MCPActivityView()
+            }
+            .defaultSize(width: 480, height: 460)
         }
-        .defaultSize(width: 480, height: 460)
     }
-}
 #endif
 
 /// Opens the MCP activity window from the settings pane.

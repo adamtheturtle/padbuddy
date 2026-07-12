@@ -276,8 +276,13 @@ extension FocusedValues {
     /// throws "a file with the same name already exists" when a prior export of the same
     /// pad lingers there. Zipping keeps every export on the robust single-file path.
     struct PadExportDocument: FileDocument {
-        static var readableContentTypes: [UTType] { [] }
-        static var writableContentTypes: [UTType] { [.plainText, .zip] }
+        static var readableContentTypes: [UTType] {
+            []
+        }
+
+        static var writableContentTypes: [UTType] {
+            [.plainText, .zip]
+        }
 
         /// The content type handed to `.fileExporter` — `.plainText` for a single file,
         /// `.zip` for a multi-file pad.
@@ -298,16 +303,17 @@ extension FocusedValues {
         /// `nil` if the archive can't be built (the caller surfaces an error).
         init?(zipName: String, files: [(path: String, contents: String)]) {
             guard let archive = Self.zipData(folderName: zipName, files: files) else { return nil }
+
             contentType = .zip
             defaultName = "\(zipName).zip"
             data = archive
         }
 
-        init(configuration: ReadConfiguration) throws {
+        init(configuration _: ReadConfiguration) throws {
             throw CocoaError(.featureUnsupported)
         }
 
-        func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        func fileWrapper(configuration _: WriteConfiguration) throws -> FileWrapper {
             FileWrapper(regularFileWithContents: data)
         }
 

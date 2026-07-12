@@ -35,7 +35,7 @@
 
 import Foundation
 
-// Locales that must be fully translated. See the policy note above before adding.
+/// Locales that must be fully translated. See the policy note above before adding.
 let requiredLanguages = ["es"]
 
 struct Violation {
@@ -45,7 +45,7 @@ struct Violation {
     let reason: String
 }
 
-// Directory names never worth scanning for catalogs (build output, VCS, vendored).
+/// Directory names never worth scanning for catalogs (build output, VCS, vendored).
 let skippedDirectories: Set<String> = ["DerivedData", "build_release", ".build", ".git", "cmark-gfm"]
 
 /// Repo-relative path for readable output and GitHub file annotations.
@@ -86,7 +86,7 @@ func incompleteReason(_ unit: [String: Any]) -> String? {
 
     if let stringSet = unit["stringSet"] as? [String: Any] {
         let values = stringSet["values"] as? [String] ?? []
-        if values.isEmpty || values.contains(where: { $0.isEmpty }) { return "empty stringSet" }
+        if values.isEmpty || values.contains(where: \.isEmpty) { return "empty stringSet" }
         if stringSet["state"] as? String == "new" { return "state=new" }
         return nil
     }
@@ -95,8 +95,10 @@ func incompleteReason(_ unit: [String: Any]) -> String? {
         // e.g. { "plural": { "one": { "stringUnit": ... }, "other": { ... } } }
         for (_, axis) in variations {
             guard let cases = axis as? [String: Any] else { continue }
+
             for (_, caseValue) in cases {
                 guard let caseUnit = caseValue as? [String: Any] else { continue }
+
                 if let reason = incompleteReason(caseUnit) { return reason }
             }
         }
@@ -119,6 +121,7 @@ func check(catalog url: URL, root: URL) -> [Violation] {
     var violations: [Violation] = []
     for (key, rawEntry) in strings {
         guard let entry = rawEntry as? [String: Any] else { continue }
+
         if entry["extractionState"] as? String == "stale" { continue }
         if entry["shouldTranslate"] as? Bool == false { continue }
 
@@ -128,6 +131,7 @@ func check(catalog url: URL, root: URL) -> [Violation] {
                 violations.append(Violation(file: path, key: key, language: language, reason: "missing"))
                 continue
             }
+
             if let reason = incompleteReason(unit) {
                 violations.append(Violation(file: path, key: key, language: language, reason: reason))
             }
@@ -146,7 +150,7 @@ if violations.isEmpty {
     exit(0)
 }
 
-// Group by file for a readable report, and emit a GitHub annotation per file.
+/// Group by file for a readable report, and emit a GitHub annotation per file.
 let grouped = Dictionary(grouping: violations, by: { $0.file }).sorted { $0.key < $1.key }
 print("Localization gate FAILED: \(violations.count) untranslated string(s).\n")
 for (file, fileViolations) in grouped {
@@ -159,5 +163,6 @@ for (file, fileViolations) in grouped {
     let summary = "\(fileViolations.count) string(s) missing a complete translation for a required locale"
     print("::error file=\(file)::\(summary)")
 }
+
 print("Add the missing translations to the String Catalog(s) above, then re-run.")
 exit(1)

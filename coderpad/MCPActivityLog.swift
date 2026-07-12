@@ -16,8 +16,8 @@
 //  app (a single, main-actor reader) when it loads, avoiding multi-process rewrite races.
 //
 
-import MCPKit
 import Foundation
+import MCPKit
 
 /// One recorded MCP server event. `launch` marks a `--mcp` process starting; `call` marks
 /// one tool invocation.

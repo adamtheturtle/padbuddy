@@ -49,20 +49,20 @@ struct ScreenCampaignsView: View {
                 selectedCampaign?.name ?? ""
             })
         #endif
-        .sheet(isPresented: $showWebhook) {
-            ScreenWebhookSheet(client: client)
-        }
-        .task(id: client.apiKey) { await load() }
-        // Reload on ⌘R like the other lists (AppRouter.requestReload()).
-        .task {
-            for await _ in AppRouter.reloads {
-                await load()
+            .sheet(isPresented: $showWebhook) {
+                ScreenWebhookSheet(client: client)
             }
-        }
-        // Restore the published selection on appear, and publish each change onward so
-        // the detail column can show the selected campaign's test sessions (#448).
-        .onAppear { restoreSelectedCampaign() }
-        .onChange(of: selectedCampaignID) { _, id in publishSelectedCampaign(id) }
+            .task(id: client.apiKey) { await load() }
+            // Reload on ⌘R like the other lists (AppRouter.requestReload()).
+            .task {
+                for await _ in AppRouter.reloads {
+                    await load()
+                }
+            }
+            // Restore the published selection on appear, and publish each change onward so
+            // the detail column can show the selected campaign's test sessions (#448).
+            .onAppear { restoreSelectedCampaign() }
+            .onChange(of: selectedCampaignID) { _, id in publishSelectedCampaign(id) }
     }
 
     private func restoreSelectedCampaign() {

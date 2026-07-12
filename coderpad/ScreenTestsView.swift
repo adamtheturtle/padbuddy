@@ -76,27 +76,27 @@ struct ScreenTestsView: View {
         #if os(macOS)
             .onRowDrag { testPasteboardItem($0) }
         #endif
-        .overlay { statusOverlay }
-        .task(id: campaign.id) { await load() }
-        // The date range is a server-side filter, so changing it re-fetches (onChange,
-        // not a second .task, so it doesn't double-fetch alongside the campaign task).
-        .onChange(of: dateRange) { _, _ in Task { await load() } }
-        .task {
-            for await _ in AppRouter.reloads {
-                await load()
+            .overlay { statusOverlay }
+            .task(id: campaign.id) { await load() }
+            // The date range is a server-side filter, so changing it re-fetches (onChange,
+            // not a second .task, so it doesn't double-fetch alongside the campaign task).
+            .onChange(of: dateRange) { _, _ in Task { await load() } }
+            .task {
+                for await _ in AppRouter.reloads {
+                    await load()
+                }
             }
-        }
-        // This list lives in the detail column (#448); publish the candidate count so the
-        // campaigns column can show it as the window subtitle while a campaign is selected
-        // (#475) — see `AppNavigation.screenTestsSubtitle`. A test session's report opens
-        // in its own window on double-click / Return (#474); there's no inline report here.
-        .onChange(of: countSubtitle, initial: true) { _, new in publishCountSubtitle(new) }
-        // Deselecting the campaign tears this view down; reset the published candidate count.
-        .onDisappear { publishCountSubtitle("") }
-        .focusedSceneValue(\.focusedScreenInviteAction, ScreenInviteAction(id: campaign.id) {
-            showInvite = true
-        })
-        .focusedSceneValue(\.focusedScreenTestAction, selectedTestAction)
+            // This list lives in the detail column (#448); publish the candidate count so the
+            // campaigns column can show it as the window subtitle while a campaign is selected
+            // (#475) — see `AppNavigation.screenTestsSubtitle`. A test session's report opens
+            // in its own window on double-click / Return (#474); there's no inline report here.
+            .onChange(of: countSubtitle, initial: true) { _, new in publishCountSubtitle(new) }
+            // Deselecting the campaign tears this view down; reset the published candidate count.
+            .onDisappear { publishCountSubtitle("") }
+            .focusedSceneValue(\.focusedScreenInviteAction, ScreenInviteAction(id: campaign.id) {
+                showInvite = true
+            })
+            .focusedSceneValue(\.focusedScreenTestAction, selectedTestAction)
         #if os(macOS)
             .onCopyCommand(perform: copyLinkCommand(hasSelection: !selectedIDs.isEmpty) {
                 selectedTestCopyText
@@ -277,14 +277,14 @@ struct ScreenTestsView: View {
     }
 
     #if os(macOS)
-    private func testPasteboardItem(_ test: ScreenTestSession) -> NSPasteboardItem? {
-        let item = NSPasteboardItem()
-        if let url = test.screenURL {
-            item.setString(url.absoluteString, forType: .URL)
+        private func testPasteboardItem(_ test: ScreenTestSession) -> NSPasteboardItem? {
+            let item = NSPasteboardItem()
+            if let url = test.screenURL {
+                item.setString(url.absoluteString, forType: .URL)
+            }
+            item.setString(test.screenCopyText, forType: .string)
+            return item
         }
-        item.setString(test.screenCopyText, forType: .string)
-        return item
-    }
     #endif
 
     /// Opens a test session's report in its own window (#474). The owning account is

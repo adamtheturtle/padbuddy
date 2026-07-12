@@ -10,24 +10,24 @@ extension SettingsView {
         Form {
             // Launch-at-login is macOS-only (SMAppService); no iPad equivalent.
             #if os(macOS)
-            Section {
-                Toggle("Launch at login", isOn: $launchAtLogin)
-                    .onChange(of: launchAtLogin) { _, enabled in
-                        do {
-                            try LoginItem.setEnabled(enabled)
-                            loginItemError = nil
-                        } catch {
-                            // Registration failed: snap the toggle back to the real
-                            // state and surface why.
-                            launchAtLogin = LoginItem.isEnabled
-                            loginItemError = error.localizedDescription
+                Section {
+                    Toggle("Launch at login", isOn: $launchAtLogin)
+                        .onChange(of: launchAtLogin) { _, enabled in
+                            do {
+                                try LoginItem.setEnabled(enabled)
+                                loginItemError = nil
+                            } catch {
+                                // Registration failed: snap the toggle back to the real
+                                // state and surface why.
+                                launchAtLogin = LoginItem.isEnabled
+                                loginItemError = error.localizedDescription
+                            }
                         }
+                } footer: {
+                    if let loginItemError {
+                        Text(loginItemError).foregroundStyle(.red)
                     }
-            } footer: {
-                if let loginItemError {
-                    Text(loginItemError).foregroundStyle(.red)
                 }
-            }
             #endif
 
             Section {
@@ -38,36 +38,36 @@ extension SettingsView {
 
             // Dock / menu-bar presence and the Dock-icon badge are macOS-only surfaces.
             #if os(macOS)
-            Section {
-                Picker("Show PadBuddy in", selection: $presence) {
-                    ForEach(AppPresence.allCases) { mode in
-                        Text(mode.label).tag(mode)
+                Section {
+                    Picker("Show PadBuddy in", selection: $presence) {
+                        ForEach(AppPresence.allCases) { mode in
+                            Text(mode.label).tag(mode)
+                        }
+                    }
+                    .onChange(of: presence) { _, _ in
+                        // Switch the activation policy immediately; the menu-bar icon follows
+                        // the same preference via the MenuBarExtra's isInserted binding.
+                        GeneralSettings.applyDockVisibility()
                     }
                 }
-                .onChange(of: presence) { _, _ in
-                    // Switch the activation policy immediately; the menu-bar icon follows
-                    // the same preference via the MenuBarExtra's isInserted binding.
-                    GeneralSettings.applyDockVisibility()
-                }
-            }
 
-            Section {
-                Picker("Show my active pads on the Dock icon", selection: $dockBadgeScope) {
-                    ForEach(DockBadgeScope.allCases) { scope in
-                        Text(scope.label).tag(scope)
+                Section {
+                    Picker("Show my active pads on the Dock icon", selection: $dockBadgeScope) {
+                        ForEach(DockBadgeScope.allCases) { scope in
+                            Text(scope.label).tag(scope)
+                        }
                     }
+                    .onChange(of: dockBadgeScope) { _, scope in
+                        // The Dock badge only renders once the app holds the `.badge`
+                        // capability (macOS Monterey+, #317), so ask for it the moment the
+                        // user switches the badge on — when the prompt is expected.
+                        if scope != .off { PadUpdateNotifier.shared.requestBadgeAuthorization() }
+                        // Apply or clear the badge immediately rather than waiting for the
+                        // next pad refresh.
+                        DockBadgeController.refresh()
+                    }
+                    .disabled(!presence.showsDockIcon)
                 }
-                .onChange(of: dockBadgeScope) { _, scope in
-                    // The Dock badge only renders once the app holds the `.badge`
-                    // capability (macOS Monterey+, #317), so ask for it the moment the
-                    // user switches the badge on — when the prompt is expected.
-                    if scope != .off { PadUpdateNotifier.shared.requestBadgeAuthorization() }
-                    // Apply or clear the badge immediately rather than waiting for the
-                    // next pad refresh.
-                    DockBadgeController.refresh()
-                }
-                .disabled(!presence.showsDockIcon)
-            }
             #endif
 
             Section {
@@ -164,25 +164,25 @@ extension SettingsView {
 
     var accountsTab: some View {
         accountsSplit
-        // Land on the active account so its settings are visible on open.
-        .onAppear {
-            if selectedAccountID == nil {
-                selectedAccountID = store.currentAccountID
+            // Land on the active account so its settings are visible on open.
+            .onAppear {
+                if selectedAccountID == nil {
+                    selectedAccountID = store.currentAccountID
+                }
             }
-        }
-        // Adding a new account happens in a modal sheet; on Save it's committed to the
-        // store and selected so it lands on its own row.
-        .sheet(item: $addingAccount) { account in
-            AccountEditor(
-                initial: account,
-                onSave: { updated in
-                    store.add(updated)
-                    addingAccount = nil
-                    selectedAccountID = updated.id
-                },
-                onCancel: { addingAccount = nil }
-            )
-        }
+            // Adding a new account happens in a modal sheet; on Save it's committed to the
+            // store and selected so it lands on its own row.
+            .sheet(item: $addingAccount) { account in
+                AccountEditor(
+                    initial: account,
+                    onSave: { updated in
+                        store.add(updated)
+                        addingAccount = nil
+                        selectedAccountID = updated.id
+                    },
+                    onCancel: { addingAccount = nil }
+                )
+            }
     }
 
     var accountsSidebar: some View {
@@ -303,21 +303,21 @@ extension SettingsView {
             // Choosing a specific external browser app and opening it in the background
             // are macOS-only; on iPad external links always go to the system default.
             #if os(macOS)
-            Section {
-                Picker("Default browser", selection: $defaultBrowserBundleID) {
-                    Text("Use system default (\(BrowserSettings.systemDefaultBrowserName()))")
-                        .tag(String?.none)
-                    ForEach(BrowserSettings.installedBrowsers()) { browser in
-                        Text(browser.name).tag(Optional(browser.bundleID))
+                Section {
+                    Picker("Default browser", selection: $defaultBrowserBundleID) {
+                        Text("Use system default (\(BrowserSettings.systemDefaultBrowserName()))")
+                            .tag(String?.none)
+                        ForEach(BrowserSettings.installedBrowsers()) { browser in
+                            Text(browser.name).tag(Optional(browser.bundleID))
+                        }
                     }
                 }
-            }
-            Section {
-                Toggle("Open links in background", isOn: $openInBackground)
-            } footer: {
-                Text("Some third-party browsers don't support this.")
-                    .foregroundStyle(.secondary)
-            }
+                Section {
+                    Toggle("Open links in background", isOn: $openInBackground)
+                } footer: {
+                    Text("Some third-party browsers don't support this.")
+                        .foregroundStyle(.secondary)
+                }
             #endif
         }
         .formStyle(.grouped)

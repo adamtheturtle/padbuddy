@@ -17,8 +17,8 @@ struct PadDetailView: View {
     @State var events: [PadEvent] = []
     @State var environments: [PadEnvironment] = []
     @State var loadError: (any Error)?
-    // Starts true so the Events section shows its spinner on the first frame
-    // rather than flashing "No events yet." before `load()` begins.
+    /// Starts true so the Events section shows its spinner on the first frame
+    /// rather than flashing "No events yet." before `load()` begins.
     @State var isLoading = true
     // Inline-editable field drafts, seeded from the pad and committed one field at
     // a time. Each control binds to its draft for an immediate, optimistic update;
@@ -172,10 +172,10 @@ struct PadDetailView: View {
         detailScroll
     }
 
-    // Split into two sub-chains (publishers, then dialogs) rather than one long chain:
-    // the combined chain tips the Swift type-checker over its 250ms per-expression budget
-    // on the iOS SDK, which warnings-as-errors turns into a hard build failure. Each half
-    // type-checks comfortably under the limit.
+    /// Split into two sub-chains (publishers, then dialogs) rather than one long chain:
+    /// the combined chain tips the Swift type-checker over its 250ms per-expression budget
+    /// on the iOS SDK, which warnings-as-errors turns into a hard build failure. Each half
+    /// type-checks comfortably under the limit.
     private func presentationState(_ content: some View) -> some View {
         presentationDialogs(presentationPublishers(content))
     }

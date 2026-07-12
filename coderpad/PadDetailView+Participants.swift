@@ -89,9 +89,9 @@ extension PadDetailView {
                     }
                     .buttonStyle(.plain)
                     #if os(macOS)
-                    .pointerStyle(.link)
+                        .pointerStyle(.link)
                     #endif
-                    .help("Show pads from \(name)")
+                        .help("Show pads from \(name)")
                 } else {
                     participantRow(name: name, tint: tint)
                 }

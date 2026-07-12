@@ -16,20 +16,15 @@ import SwiftUI
 struct OpenAppSettingsAction {
     let perform: @MainActor () -> Void
 
-    @MainActor func callAsFunction() { perform() }
-}
-
-private struct OpenAppSettingsKey: EnvironmentKey {
-    static let defaultValue = OpenAppSettingsAction(perform: {})
+    @MainActor func callAsFunction() {
+        perform()
+    }
 }
 
 extension EnvironmentValues {
     /// The cross-platform settings action. Defaults to a no-op until a scene provides the
     /// real one via ``SwiftUI/View/provideAppSettingsAction()``.
-    var openAppSettings: OpenAppSettingsAction {
-        get { self[OpenAppSettingsKey.self] }
-        set { self[OpenAppSettingsKey.self] = newValue }
-    }
+    @Entry var openAppSettings: OpenAppSettingsAction = .init(perform: {})
 }
 
 #if !os(macOS)

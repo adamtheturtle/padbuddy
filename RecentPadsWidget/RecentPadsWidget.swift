@@ -8,7 +8,7 @@
 
 import AppIntents
 #if os(macOS)
-import AppKit
+    import AppKit
 #endif
 import SwiftUI
 import WidgetKit
@@ -111,9 +111,9 @@ struct RecentPadsWidget: Widget {
 /// `windowBackgroundColor`; iOS uses the matching grouped-background system grey.
 private var widgetContainerBackground: Color {
     #if os(macOS)
-    Color(nsColor: .windowBackgroundColor)
+        Color(nsColor: .windowBackgroundColor)
     #else
-    Color(uiColor: .systemGroupedBackground)
+        Color(uiColor: .systemGroupedBackground)
     #endif
 }
 
@@ -338,20 +338,20 @@ struct RecentPadsWidgetEntryView: View {
     @ViewBuilder
     private func smallPadView(_ pad: WidgetPadSnapshot) -> some View {
         #if os(iOS)
-        ZStack(alignment: .topTrailing) {
-            Button(intent: OpenPadIntent(id: pad.id, account: entry.openPadAccountID)) {
-                smallPadContent(pad)
-            }
-            .buttonStyle(.plain)
+            ZStack(alignment: .topTrailing) {
+                Button(intent: OpenPadIntent(id: pad.id, account: entry.openPadAccountID)) {
+                    smallPadContent(pad)
+                }
+                .buttonStyle(.plain)
 
-            NewPadButton(accountID: entry.newPadAccountID,
-                         questionID: entry.newPadQuestionID, compact: true)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        #else
-        smallPadContent(pad, showsNewPadButton: true)
+                NewPadButton(accountID: entry.newPadAccountID,
+                             questionID: entry.newPadQuestionID, compact: true)
+            }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .widgetURL(URL(string: "coderpad://pad/\(pad.id)"))
+        #else
+            smallPadContent(pad, showsNewPadButton: true)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .widgetURL(URL(string: "coderpad://pad/\(pad.id)"))
         #endif
     }
 
@@ -417,14 +417,14 @@ struct RecentPadsWidgetEntryView: View {
             listHeader
             ForEach(entry.pads.prefix(rowCount)) { pad in
                 #if os(iOS)
-                Button(intent: OpenPadIntent(id: pad.id, account: entry.openPadAccountID)) {
-                    RecentPadRow(pad: pad)
-                }
-                .buttonStyle(.plain)
+                    Button(intent: OpenPadIntent(id: pad.id, account: entry.openPadAccountID)) {
+                        RecentPadRow(pad: pad)
+                    }
+                    .buttonStyle(.plain)
                 #else
-                Link(destination: URL(string: "coderpad://pad/\(pad.id)") ?? fallbackURL) {
-                    RecentPadRow(pad: pad)
-                }
+                    Link(destination: URL(string: "coderpad://pad/\(pad.id)") ?? fallbackURL) {
+                        RecentPadRow(pad: pad)
+                    }
                 #endif
             }
         }

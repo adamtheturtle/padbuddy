@@ -104,8 +104,8 @@ struct HighlightedCode: View, Equatable {
         // Reveal on hover on macOS; opacity (not `hidden`) keeps it clickable and
         // in the accessibility tree. On iPad it's always shown.
         #if os(macOS)
-        .opacity(isHovering ? 1 : 0)
-        .animation(.easeInOut(duration: 0.12), value: isHovering)
+            .opacity(isHovering ? 1 : 0)
+            .animation(.easeInOut(duration: 0.12), value: isHovering)
         #endif
     }
 

@@ -21,8 +21,13 @@ final class AccountHealthMonitor {
 
     private let monitor: BuddyAppKit.AccountHealthMonitor<UUID>
 
-    var unauthorizedAccountIDs: Set<UUID> { monitor.unauthorizedAccountIDs }
-    var lastChecked: Date? { monitor.lastChecked }
+    var unauthorizedAccountIDs: Set<UUID> {
+        monitor.unauthorizedAccountIDs
+    }
+
+    var lastChecked: Date? {
+        monitor.lastChecked
+    }
 
     private init() {
         monitor = BuddyAppKit.AccountHealthMonitor<UUID>(
@@ -32,10 +37,12 @@ final class AccountHealthMonitor {
                 guard let account = AccountsStore.shared.currentAccount,
                       account.isBadKeyDemo || (!account.isMock && !account.apiKey.isEmpty)
                 else { return nil }
+
                 return account.id
             },
             probe: { id in
                 guard let account = AccountsStore.shared.accounts.first(where: { $0.id == id }) else { return }
+
                 // A liveness probe only needs to learn whether the key still authenticates,
                 // so hit the tiny `/api/quota` endpoint rather than downloading the whole
                 // org (teams + every user) every interval just to read its status code (#374).

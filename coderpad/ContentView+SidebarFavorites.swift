@@ -96,6 +96,7 @@ extension Sidebar {
                 account: namespaced ? account : nil,
                 title: padTitles[padID] ?? (storedPad.isEmpty ? padID : storedPad)
             )
+
         case let .question(questionID):
             guard favorites.favorites(account: account).contains(questionID) else { return nil }
 
@@ -218,6 +219,7 @@ extension Sidebar {
                     }
                 }
             }
+
         case let .question(questionID):
             sidebarSubRow(label: item.title, icon: "questionmark.bubble") {
                 if let account = item.account {

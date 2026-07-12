@@ -141,6 +141,7 @@ extension AccountEditor {
     func commitLiveEdit() {
         guard commitsLive, canSave,
               !draft.name.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+
         onSave(draft)
     }
 

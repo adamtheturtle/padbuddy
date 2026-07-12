@@ -9,8 +9,8 @@
 //  layout built from those primitives.
 //
 
-import SwiftUI
 import PrintableView
+import SwiftUI
 
 // MARK: - Question
 

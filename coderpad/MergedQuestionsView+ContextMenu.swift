@@ -78,30 +78,30 @@ extension MergedQuestionsView {
         )
     }
 
-    /// The drag payload for a combined-questions row: its web URL (resolved against the
-    /// originating account's server, external link drops) plus the internal
-    /// `FavoriteDrop` JSON carrying that account (so it drops onto the sidebar
-    /// Favorites and pins to the right account, #297).
+    // The drag payload for a combined-questions row: its web URL (resolved against the
+    // originating account's server, external link drops) plus the internal
+    // `FavoriteDrop` JSON carrying that account (so it drops onto the sidebar
+    // Favorites and pins to the right account, #297).
     #if os(macOS)
-    func questionPasteboardItem(_ row: MergedQuestionRow) -> NSPasteboardItem? {
-        if selectedRowIDs.count > 1, selectedRowIDs.contains(row.id) {
-            return multiLinkPasteboardItem(selectedRowsInOrder.map {
-                $0.item.webURL(baseURL: $0.account.resolvedBaseURL).absoluteString
-            })
-        }
+        func questionPasteboardItem(_ row: MergedQuestionRow) -> NSPasteboardItem? {
+            if selectedRowIDs.count > 1, selectedRowIDs.contains(row.id) {
+                return multiLinkPasteboardItem(selectedRowsInOrder.map {
+                    $0.item.webURL(baseURL: $0.account.resolvedBaseURL).absoluteString
+                })
+            }
 
-        let url = row.item.webURL(baseURL: row.account.resolvedBaseURL)
-        let item = NSPasteboardItem()
-        item.setString(url.absoluteString, forType: .URL)
-        item.setString(url.absoluteString, forType: .string)
-        if let data = try? JSONEncoder().encode(FavoriteDrop.question(
-            account: row.account.id,
-            id: row.item.id,
-            title: row.item.displayTitle
-        )) {
-            item.setData(data, forType: NSPasteboard.PasteboardType(UTType.coderpadFavorite.identifier))
+            let url = row.item.webURL(baseURL: row.account.resolvedBaseURL)
+            let item = NSPasteboardItem()
+            item.setString(url.absoluteString, forType: .URL)
+            item.setString(url.absoluteString, forType: .string)
+            if let data = try? JSONEncoder().encode(FavoriteDrop.question(
+                account: row.account.id,
+                id: row.item.id,
+                title: row.item.displayTitle
+            )) {
+                item.setData(data, forType: NSPasteboard.PasteboardType(UTType.coderpadFavorite.identifier))
+            }
+            return item
         }
-        return item
-    }
     #endif
 }

@@ -70,8 +70,8 @@ struct InlineEditableText: View {
                 #else
                     .opacity(1)
                 #endif
-                .help("Edit \(label)")
-                .accessibilityLabel("Edit \(label)")
+                    .help("Edit \(label)")
+                    .accessibilityLabel("Edit \(label)")
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

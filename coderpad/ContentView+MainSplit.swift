@@ -148,12 +148,12 @@ struct MainSplit: View {
     /// selection pill's edge. Added to the measured label width.
     static let sidebarRowChrome: CGFloat = 110
 
-    /// Fixed width of the iPad sidebar column. iPad gets no `navigationSplitViewColumnWidth`
-    /// from `macColumnWidth` (the #599 fix), so this single value pins the leftmost column
-    /// so it doesn't jump width as the split swaps between its two- and three-column forms.
-    /// Matches the standard iOS regular-width sidebar size and the macOS ideal.
+    // Fixed width of the iPad sidebar column. iPad gets no `navigationSplitViewColumnWidth`
+    // from `macColumnWidth` (the #599 fix), so this single value pins the leftmost column
+    // so it doesn't jump width as the split swaps between its two- and three-column forms.
+    // Matches the standard iOS regular-width sidebar size and the macOS ideal.
     #if os(iOS)
-    static let iPadSidebarWidth: CGFloat = 320
+        static let iPadSidebarWidth: CGFloat = 320
     #endif
 
     /// Minimum width of the detail column. A single source shared by the column
@@ -264,14 +264,16 @@ struct MainSplit: View {
     // ContentView+MainSplit+Layout.swift (split out for file length).
 }
 
-// Construct `ContentView` inside a dedicated host rather than directly in the
-// `#Preview` closure. As one expression, `#Preview { ContentView() }` sits right on
-// the 250ms `-warn-long-expression-type-checking` budget under the Release build's
-// whole-module type-checking and flakily trips warnings-as-errors. Splitting it lets
-// the `#Preview` closure type-check a bare `init` while `ContentView()` is checked in
-// this view's own `body` in isolation, keeping both well under budget. (#427)
+/// Construct `ContentView` inside a dedicated host rather than directly in the
+/// `#Preview` closure. As one expression, `#Preview { ContentView() }` sits right on
+/// the 250ms `-warn-long-expression-type-checking` budget under the Release build's
+/// whole-module type-checking and flakily trips warnings-as-errors. Splitting it lets
+/// the `#Preview` closure type-check a bare `init` while `ContentView()` is checked in
+/// this view's own `body` in isolation, keeping both well under budget. (#427)
 private struct ContentViewPreviewHost: View {
-    var body: some View { ContentView() }
+    var body: some View {
+        ContentView()
+    }
 }
 
 #Preview { ContentViewPreviewHost() }

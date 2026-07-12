@@ -6,83 +6,83 @@
 import CoreSpotlight
 import SwiftUI
 #if os(macOS)
-import AppKit
+    import AppKit
 #endif
 
 #if os(macOS)
-final class AppDelegate: NSObject, NSApplicationDelegate {
-    /// Backs the "Open Pad in CoderPad" macOS Service; retained for the app's
-    /// lifetime so `NSApp.servicesProvider` keeps a live target.
-    private let servicesProvider = ServicesProvider()
+    final class AppDelegate: NSObject, NSApplicationDelegate {
+        /// Backs the "Open Pad in CoderPad" macOS Service; retained for the app's
+        /// lifetime so `NSApp.servicesProvider` keeps a live target.
+        private let servicesProvider = ServicesProvider()
 
-    func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
-        false
+        func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
+            false
+        }
+
+        func applicationDidFinishLaunching(_: Notification) {
+            // Honor the presence preference from the moment the app launches. The migration
+            // that may set it ran earlier in `AppLaunch.run()` (from `CoderpadApp.init()`).
+            // This stays here, not in `AppLaunch`, because it sets `NSApp`'s activation
+            // policy and must run after the app has finished launching.
+            GeneralSettings.applyDockVisibility()
+            // Offer the "Open Pad in CoderPad" Service (declared in Info.plist) to other
+            // apps. NSUpdateDynamicServices refreshes the registry so the item appears
+            // without needing a log-out/in during development. Stays here because it wires
+            // up the delegate-retained `servicesProvider`.
+            NSApp.servicesProvider = servicesProvider
+            NSUpdateDynamicServices()
+            registerNewPadRequestObserver()
+        }
+
+        /// Perform any New Pad request the widget or Control Center button recorded. They
+        /// can't open the app's custom URL scheme (`OpenURLIntent` is https-only) or use a
+        /// `Link` on the small widget, so `CreatePadIntent` writes the request to the App
+        /// Group and brings the app forward; this consumes it once the app is active
+        /// (#456, #485). Reading on activation (rather than via `onOpenURL`) also covers a
+        /// cold launch, since the app activates after launching.
+        func applicationDidBecomeActive(_: Notification) {
+            // When driving the seeded demo for screenshots/UI tests, grow the main window
+            // to fill the screen so captures show the full three-column layout (and meet
+            // the App Store's minimum screenshot size, #62) rather than a cold-launch
+            // sliver. Test-only: gated on `-uiTesting`, so it never affects real users.
+            UITestingWindow.sizeToScreenIfNeeded()
+
+            Self.drainPendingNewPad()
+        }
+
+        /// The menu shown when right-clicking the Dock icon. Offers the same quick
+        /// actions as the app's New menu, routed through the app's own `coderpad://`
+        /// deep links so they work - and reopen the main window - whether or not a
+        /// window is currently open. macOS appends its standard items (Show All Windows,
+        /// Quit, …) below these.
+        func applicationDockMenu(_: NSApplication) -> NSMenu? {
+            let menu = NSMenu()
+            addDockItem(to: menu, title: "New Pad", urlString: "coderpad://new-pad")
+            addDockItem(to: menu, title: "New Question", urlString: "coderpad://new-question")
+            menu.addItem(.separator())
+            addDockItem(to: menu, title: "Show Pads", urlString: "coderpad://pads")
+            addDockItem(to: menu, title: "Show Questions", urlString: "coderpad://questions")
+            return menu
+        }
+
+        private func addDockItem(to menu: NSMenu, title: String, urlString: String) {
+            let item = NSMenuItem(title: title, action: #selector(openDockURL(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = urlString
+            menu.addItem(item)
+        }
+
+        @objc private func openDockURL(_ sender: NSMenuItem) {
+            guard let urlString = sender.representedObject as? String,
+                  let url = URL(string: urlString) else { return }
+
+            AppActivator.bringToFront()
+            // Route through LaunchServices to our own scheme: this both delivers the deep
+            // link and brings up a main window when none is open, the same path widget
+            // taps use.
+            URLOpener.open(url)
+        }
     }
-
-    func applicationDidFinishLaunching(_: Notification) {
-        // Honor the presence preference from the moment the app launches. The migration
-        // that may set it ran earlier in `AppLaunch.run()` (from `CoderpadApp.init()`).
-        // This stays here, not in `AppLaunch`, because it sets `NSApp`'s activation
-        // policy and must run after the app has finished launching.
-        GeneralSettings.applyDockVisibility()
-        // Offer the "Open Pad in CoderPad" Service (declared in Info.plist) to other
-        // apps. NSUpdateDynamicServices refreshes the registry so the item appears
-        // without needing a log-out/in during development. Stays here because it wires
-        // up the delegate-retained `servicesProvider`.
-        NSApp.servicesProvider = servicesProvider
-        NSUpdateDynamicServices()
-        registerNewPadRequestObserver()
-    }
-
-    /// Perform any New Pad request the widget or Control Center button recorded. They
-    /// can't open the app's custom URL scheme (`OpenURLIntent` is https-only) or use a
-    /// `Link` on the small widget, so `CreatePadIntent` writes the request to the App
-    /// Group and brings the app forward; this consumes it once the app is active
-    /// (#456, #485). Reading on activation (rather than via `onOpenURL`) also covers a
-    /// cold launch, since the app activates after launching.
-    func applicationDidBecomeActive(_: Notification) {
-        // When driving the seeded demo for screenshots/UI tests, grow the main window
-        // to fill the screen so captures show the full three-column layout (and meet
-        // the App Store's minimum screenshot size, #62) rather than a cold-launch
-        // sliver. Test-only: gated on `-uiTesting`, so it never affects real users.
-        UITestingWindow.sizeToScreenIfNeeded()
-
-        Self.drainPendingNewPad()
-    }
-
-    /// The menu shown when right-clicking the Dock icon. Offers the same quick
-    /// actions as the app's New menu, routed through the app's own `coderpad://`
-    /// deep links so they work - and reopen the main window - whether or not a
-    /// window is currently open. macOS appends its standard items (Show All Windows,
-    /// Quit, …) below these.
-    func applicationDockMenu(_: NSApplication) -> NSMenu? {
-        let menu = NSMenu()
-        addDockItem(to: menu, title: "New Pad", urlString: "coderpad://new-pad")
-        addDockItem(to: menu, title: "New Question", urlString: "coderpad://new-question")
-        menu.addItem(.separator())
-        addDockItem(to: menu, title: "Show Pads", urlString: "coderpad://pads")
-        addDockItem(to: menu, title: "Show Questions", urlString: "coderpad://questions")
-        return menu
-    }
-
-    private func addDockItem(to menu: NSMenu, title: String, urlString: String) {
-        let item = NSMenuItem(title: title, action: #selector(openDockURL(_:)), keyEquivalent: "")
-        item.target = self
-        item.representedObject = urlString
-        menu.addItem(item)
-    }
-
-    @objc private func openDockURL(_ sender: NSMenuItem) {
-        guard let urlString = sender.representedObject as? String,
-              let url = URL(string: urlString) else { return }
-
-        AppActivator.bringToFront()
-        // Route through LaunchServices to our own scheme: this both delivers the deep
-        // link and brings up a main window when none is open, the same path widget
-        // taps use.
-        URLOpener.open(url)
-    }
-}
 #endif
 
 /// Process entry point. Before the SwiftUI app starts, check for the `--mcp` flag: in
@@ -218,6 +218,7 @@ struct CoderpadApp: App {
         guard let index = args.firstIndex(of: "-uiTestingTextSize"), index + 1 < args.count else {
             return nil
         }
+
         switch args[index + 1] {
         case "large": return .large
         case "xLarge": return .xLarge

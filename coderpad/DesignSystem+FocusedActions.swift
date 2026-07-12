@@ -120,17 +120,17 @@ func copyLinkCommand(hasSelection: Bool,
 }
 
 #if os(macOS)
-func multiLinkPasteboardItem(_ urls: [String]) -> NSPasteboardItem? {
-    let links = urls.filter { !$0.isEmpty }
-    guard !links.isEmpty else { return nil }
+    func multiLinkPasteboardItem(_ urls: [String]) -> NSPasteboardItem? {
+        let links = urls.filter { !$0.isEmpty }
+        guard !links.isEmpty else { return nil }
 
-    let item = NSPasteboardItem()
-    if let first = links.first {
-        item.setString(first, forType: .URL)
+        let item = NSPasteboardItem()
+        if let first = links.first {
+            item.setString(first, forType: .URL)
+        }
+        item.setString(links.joined(separator: "\n"), forType: .string)
+        return item
     }
-    item.setString(links.joined(separator: "\n"), forType: .string)
-    return item
-}
 #endif
 
 /// Action published by whichever pane currently owns a search field, so the

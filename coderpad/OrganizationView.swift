@@ -152,21 +152,21 @@ struct OrganizationView: View {
     @ViewBuilder
     private var periodPicker: some View {
         #if os(macOS)
-        Picker("Period", selection: $period) {
-            ForEach(StatsPeriod.allCases) { Text($0.rawValue).tag($0) }
-        }
-        .pickerStyle(.menu)
-        .help("Stats period")
-        #else
-        Menu {
             Picker("Period", selection: $period) {
                 ForEach(StatsPeriod.allCases) { Text($0.rawValue).tag($0) }
             }
-            .pickerStyle(.inline)
-        } label: {
-            Label("Period", systemImage: "calendar")
-        }
-        .help("Stats period")
+            .pickerStyle(.menu)
+            .help("Stats period")
+        #else
+            Menu {
+                Picker("Period", selection: $period) {
+                    ForEach(StatsPeriod.allCases) { Text($0.rawValue).tag($0) }
+                }
+                .pickerStyle(.inline)
+            } label: {
+                Label("Period", systemImage: "calendar")
+            }
+            .help("Stats period")
         #endif
     }
 

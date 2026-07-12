@@ -109,6 +109,7 @@ extension View {
                             Text(buttonTitle)
                         }
                         .disabled(!isEnabled)
+
                     case .separator:
                         Divider()
                     }

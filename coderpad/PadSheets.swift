@@ -120,15 +120,15 @@ struct NewPadSheet: View {
         // macOS sizes the sheet with a fixed frame; iPad sizes to a resizable detent and
         // shows a drag indicator so the form reads as dismissible (#610).
         #if os(macOS)
-        .frame(minWidth: 460, minHeight: 360)
+            .frame(minWidth: 460, minHeight: 360)
         #else
-        .presentationDetents([.large])
-        .presentationDragIndicator(.visible)
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
         #endif
-        .task { await loadQuestions() }
-        .task { await loadOrganization() }
-        .task { applyOrgDefaultLanguage() }
-        .onChange(of: directory.defaultLanguage) { _, _ in applyOrgDefaultLanguage() }
+            .task { await loadQuestions() }
+            .task { await loadOrganization() }
+            .task { applyOrgDefaultLanguage() }
+            .onChange(of: directory.defaultLanguage) { _, _ in applyOrgDefaultLanguage() }
     }
 
     /// The language picker's binding, marking the choice as user-made so the org

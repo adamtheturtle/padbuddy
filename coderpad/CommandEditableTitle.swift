@@ -35,6 +35,7 @@ struct CommandEditableTitle: View {
 
     private var showsPencil: Bool {
         guard editingAllowed else { return false }
+
         #if os(macOS)
             return isHovering
         #else
@@ -44,6 +45,7 @@ struct CommandEditableTitle: View {
 
     private var fieldWidth: CGFloat? {
         guard clampsWidth, naturalWidth > 0, availableWidth > 0 else { return nil }
+
         return min(naturalWidth, max(0, availableWidth - Self.pencilReserve))
     }
 
@@ -131,6 +133,7 @@ struct CommandEditableTitle: View {
 
     private func beginEditing() {
         guard editingAllowed else { return }
+
         draft = title
         isEditing = true
         fieldFocused = true

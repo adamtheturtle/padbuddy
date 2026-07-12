@@ -169,30 +169,30 @@ extension QuestionsView {
         .onTopRowChange { scheduleTopRowPersistence($0) }
         .scrollToRow(id: pendingScrollToID) { pendingScrollToID = nil }
         #if os(macOS)
-        .onDragSession(began: FavoriteDragLifecycle.onBegan, ended: FavoriteDragLifecycle.onEnded)
+            .onDragSession(began: FavoriteDragLifecycle.onBegan, ended: FavoriteDragLifecycle.onEnded)
         #endif
-        // When filters exclude every question, explain why and offer a reset rather than
-        // leaving a blank list that reads like a load failure — matching the Pads list (#617).
-        .overlay {
-            if sorted.isEmpty, !questions.isEmpty {
-                ContentUnavailableView {
-                    Label("No Matching Questions", systemImage: "line.3.horizontal.decrease.circle")
-                } description: {
-                    Text("No questions match the current filters.")
+            // When filters exclude every question, explain why and offer a reset rather than
+            // leaving a blank list that reads like a load failure — matching the Pads list (#617).
+            .overlay {
+                if sorted.isEmpty, !questions.isEmpty {
+                    ContentUnavailableView {
+                        Label("No Matching Questions", systemImage: "line.3.horizontal.decrease.circle")
+                    } description: {
+                        Text("No questions match the current filters.")
+                    }
                 }
             }
-        }
-        // Scene-scoped, mirroring PadsView: the Question menu commands stay enabled
-        // whenever this window is frontmost and a question is selected.
-        .focusedSceneValue(\.focusedQuestion, selection)
+            // Scene-scoped, mirroring PadsView: the Question menu commands stay enabled
+            // whenever this window is frontmost and a question is selected.
+            .focusedSceneValue(\.focusedQuestion, selection)
         // Edit ▸ Copy / ⌘C copies the selected questions' web URLs (one per line).
         // `onCopyCommand` is macOS-only (Edit-menu driven); iPad has no equivalent here.
         #if os(macOS)
-        .onCopyCommand(perform: copyLinkCommand(hasSelection: !selectedQuestionIDs.isEmpty) {
-            selectedQuestionURLsInOrder.joined(separator: "\n")
-        })
+            .onCopyCommand(perform: copyLinkCommand(hasSelection: !selectedQuestionIDs.isEmpty) {
+                selectedQuestionURLsInOrder.joined(separator: "\n")
+            })
         #endif
-        .macPullToRefresh { await reload() }
+            .macPullToRefresh { await reload() }
     }
 
     private var questionListReloadID: [Int] {
@@ -218,26 +218,26 @@ extension QuestionsView {
         )
     }
 
-    /// The drag payload for a question row: its web URL (external link drops) plus the
-    /// internal `FavoriteDrop` JSON (so it drops onto the sidebar Favorites, #297).
+    // The drag payload for a question row: its web URL (external link drops) plus the
+    // internal `FavoriteDrop` JSON (so it drops onto the sidebar Favorites, #297).
     #if os(macOS)
-    private func questionPasteboardItem(_ question: Question) -> NSPasteboardItem? {
-        if selectedQuestionIDs.count > 1, selectedQuestionIDs.contains(question.id) {
-            return multiLinkPasteboardItem(selectedQuestionURLsInOrder)
-        }
+        private func questionPasteboardItem(_ question: Question) -> NSPasteboardItem? {
+            if selectedQuestionIDs.count > 1, selectedQuestionIDs.contains(question.id) {
+                return multiLinkPasteboardItem(selectedQuestionURLsInOrder)
+            }
 
-        let url = question.webURL(baseURL: client.baseURL)
-        let item = NSPasteboardItem()
-        item.setString(url.absoluteString, forType: .URL)
-        item.setString(url.absoluteString, forType: .string)
-        if let account = accounts.currentAccountID,
-           let data = try? JSONEncoder().encode(
-               FavoriteDrop.question(account: account, id: question.id, title: question.displayTitle)
-           ) {
-            item.setData(data, forType: NSPasteboard.PasteboardType(UTType.coderpadFavorite.identifier))
+            let url = question.webURL(baseURL: client.baseURL)
+            let item = NSPasteboardItem()
+            item.setString(url.absoluteString, forType: .URL)
+            item.setString(url.absoluteString, forType: .string)
+            if let account = accounts.currentAccountID,
+               let data = try? JSONEncoder().encode(
+                   FavoriteDrop.question(account: account, id: question.id, title: question.displayTitle)
+               ) {
+                item.setData(data, forType: NSPasteboard.PasteboardType(UTType.coderpadFavorite.identifier))
+            }
+            return item
         }
-        return item
-    }
     #endif
 
     /// The selected questions' web URLs in the order they appear in the list (not

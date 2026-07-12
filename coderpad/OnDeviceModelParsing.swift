@@ -54,6 +54,7 @@ enum OnDeviceModelParsing {
             value = value.trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
             let lowered = value.lowercased()
             guard !value.isEmpty, !["nil", "none", "n/a", "null", "-"].contains(lowered) else { continue }
+
             result[key] = value
         }
         return result

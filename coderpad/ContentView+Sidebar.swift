@@ -16,7 +16,7 @@ struct Sidebar: View {
     // Native sidebar rows desaturate when their window stops being the active one;
     // the custom unlimited-quota row has to read this state to dim in step (#347).
     #if os(macOS)
-    @Environment(\.controlActiveState) private var controlActiveState
+        @Environment(\.controlActiveState) private var controlActiveState
     #endif
     @State var accounts = AccountsStore.shared
     @State var favorites = FavoriteQuestionsStore.shared

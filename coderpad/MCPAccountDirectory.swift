@@ -16,7 +16,7 @@ import Foundation
 /// and the account's identity (id, display name, resolved user email) for identity tools
 /// like `whoami` / `list_accounts`. The id / name / email are NOT secrets; the API key is
 /// the only sensitive field and tools never return it.
-nonisolated struct MCPCredentials: Sendable {
+nonisolated struct MCPCredentials {
     let id: String
     let apiKey: String
     let baseURL: URL
@@ -50,7 +50,7 @@ nonisolated struct MCPCredentials: Sendable {
 /// All the accounts the server can act as, plus which one is the default. Lets the server
 /// serve any configured account, not just the selected one: tools take an optional
 /// `account` argument and `resolve(_:)` maps it to one account.
-nonisolated struct MCPAccountDirectory: Sendable {
+nonisolated struct MCPAccountDirectory {
     let accounts: [MCPCredentials]
     /// The id of the account selected in the app, used when no `account` argument is given.
     let currentID: String?

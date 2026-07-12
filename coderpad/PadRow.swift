@@ -278,9 +278,9 @@ struct FavoriteStarButton: View {
         #else
             .opacity(1)
         #endif
-        .help(isFavorite ? "Remove from Favorites" : "Add to Favorites")
-        .accessibilityLabel(isFavorite ? "Remove \(title) from Favorites"
-            : "Add \(title) to Favorites")
+            .help(isFavorite ? "Remove from Favorites" : "Add to Favorites")
+            .accessibilityLabel(isFavorite ? "Remove \(title) from Favorites"
+                : "Add \(title) to Favorites")
     }
 }
 

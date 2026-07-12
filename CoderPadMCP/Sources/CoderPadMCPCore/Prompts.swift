@@ -9,9 +9,9 @@
 //  it is unit-tested without a server.
 //
 
-import MCPKit
 import Foundation
 import MCP
+import MCPKit
 
 /// The prompt catalog advertised by `prompts/list`.
 public let interviewPrompts: [Prompt] = [

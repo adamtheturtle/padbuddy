@@ -8,7 +8,7 @@
 
 import SwiftUI
 #if !os(iOS)
-import Textual
+    import Textual
 #endif
 
 /// Renders GitHub-flavored Markdown via Textual, themed to match the app's
@@ -30,11 +30,11 @@ public struct MarkdownText: View {
             Text("(empty)").foregroundStyle(.secondary)
         } else {
             #if os(iOS)
-            iosMarkdown
+                iosMarkdown
             #else
-            StructuredText(markdown: raw)
-                .textual.textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                StructuredText(markdown: raw)
+                    .textual.textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             #endif
         }
     }

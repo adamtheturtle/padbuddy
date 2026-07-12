@@ -110,13 +110,13 @@ struct NewQuestionSheet: View {
         // macOS sizes the sheet with a fixed frame; iPad sizes to a resizable detent and
         // shows a drag indicator so the form reads as dismissible (#610).
         #if os(macOS)
-        .frame(minWidth: 520, minHeight: 540)
+            .frame(minWidth: 520, minHeight: 540)
         #else
-        .presentationDetents([.large])
-        .presentationDragIndicator(.visible)
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
         #endif
-        .task { applyOrgDefaultLanguage() }
-        .onChange(of: directory.defaultLanguage) { _, _ in applyOrgDefaultLanguage() }
+            .task { applyOrgDefaultLanguage() }
+            .onChange(of: directory.defaultLanguage) { _, _ in applyOrgDefaultLanguage() }
     }
 
     /// The language picker's binding, marking the choice as user-made so the org

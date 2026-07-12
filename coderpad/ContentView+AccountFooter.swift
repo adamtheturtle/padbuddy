@@ -121,8 +121,8 @@ struct AccountFooter: View {
             #if os(iOS)
                 .hoverEffectDisabled(true)
             #endif
-            .menuIndicator(.hidden)
-            .accessibilityLabel("Switch account")
+                .menuIndicator(.hidden)
+                .accessibilityLabel("Switch account")
         }
     }
 

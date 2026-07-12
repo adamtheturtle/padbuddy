@@ -62,25 +62,24 @@ struct MergedScreenView: View {
                 selectedCampaign?.copyText ?? ""
             })
         #endif
-        .task(id: accountKey) { await load() }
-        // Reload on ⌘R like the other lists (AppRouter.requestReload()).
-        .task {
-            for await _ in AppRouter.reloads {
-                await load()
+            .task(id: accountKey) { await load() }
+            // Reload on ⌘R like the other lists (AppRouter.requestReload()).
+            .task {
+                for await _ in AppRouter.reloads {
+                    await load()
+                }
             }
-        }
-        // Restore the published selection on appear, and publish each change onward so the
-        // detail column shows the campaign's tests, routed to the right account (#448).
-        .onAppear { restoreSelectedCampaign() }
-        .onChange(of: selectedScopedID) { _, id in publishSelectedCampaign(id) }
+            // Restore the published selection on appear, and publish each change onward so the
+            // detail column shows the campaign's tests, routed to the right account (#448).
+            .onAppear { restoreSelectedCampaign() }
+            .onChange(of: selectedScopedID) { _, id in publishSelectedCampaign(id) }
     }
 
     private func restoreSelectedCampaign() {
-        let id: String?
-        if let account = routing.selectedScreenAccountID, let campaign = nav.screenCampaignSelection {
-            id = "\(account.uuidString):\(campaign.id)"
+        let id: String? = if let account = routing.selectedScreenAccountID, let campaign = nav.screenCampaignSelection {
+            "\(account.uuidString):\(campaign.id)"
         } else {
-            id = nil
+            nil
         }
         guard selectedScopedID != id else { return }
 

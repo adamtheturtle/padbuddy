@@ -66,9 +66,9 @@ enum WidgetSharedStore {
     /// avoid requiring a provisioning profile (#451).
     static let appGroupID: String = {
         #if APP_STORE
-        "group.com.adamdangoor.padbuddy"
+            "group.com.adamdangoor.padbuddy"
         #else
-        "6L9H6Q8CUF.group.com.adamdangoor.padbuddy"
+            "6L9H6Q8CUF.group.com.adamdangoor.padbuddy"
         #endif
     }()
 

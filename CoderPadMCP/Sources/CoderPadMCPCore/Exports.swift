@@ -10,5 +10,5 @@
 //  transforms and the generic helpers unqualified, as before the moves.
 //
 
-@_exported import MCPKit
 @_exported import CoderPadToolCore
+@_exported import MCPKit

@@ -113,39 +113,39 @@ struct QuestionDetailView: View {
 
     private var core: some View {
         detailScroll
-        .overlay(alignment: .bottom) { undoDeletionBanner }
-        .animation(reduceMotion ? nil : .spring(duration: 0.3), value: deletionTask == nil)
-        // Publish the favorite state so the Question menu's Favorite command can
-        // show the matching "Add to"/"Remove from Favorites" title and toggle it.
-        .focusedSceneValue(\.focusedQuestionIsFavorite, isFavorite)
-        // Publish the question's web URL so the Question menu's Share/Copy URL
-        // commands act on the same link, built from this account's server URL.
-        .focusedSceneValue(\.focusedQuestionURL, question.webURL(baseURL: client.baseURL))
-        // Publish a print rendering so File ▸ Print (⌘P) can produce a hard copy
-        // or PDF of the prompt, instructions, and solution.
-        .focusedSceneValue(\.printAction, PrintAction(id: "question-\(question.id)") {
-            printDocument(QuestionPrintDocument(question: question),
-                          jobTitle: question.displayTitle)
-        })
-        .toolbar(id: "question-detail") { detailToolbar }
-        .confirmationDialog("Delete \(question.title.isEmpty ? "this question" : question.title)?",
-                            isPresented: $showDeleteConfirm) {
-            Button("Delete", role: .destructive) { startDeletion() }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("You'll have a few seconds to undo before it's permanently deleted.")
-        }
-        .modifier(QuestionDetailErrorAlerts(createPadError: $createPadError,
-                                            editError: $editError,
-                                            deleteError: $deleteError))
-        .onAppear {
-            consumePendingPadCreation()
-            consumePendingDelete()
-            consumePendingFavoriteToggle()
-        }
-        .onChange(of: nav.createPadForQuestionID) { _, _ in consumePendingPadCreation() }
-        .onChange(of: nav.deleteQuestionID) { _, _ in consumePendingDelete() }
-        .onChange(of: nav.toggleFavoriteQuestionID) { _, _ in consumePendingFavoriteToggle() }
+            .overlay(alignment: .bottom) { undoDeletionBanner }
+            .animation(reduceMotion ? nil : .spring(duration: 0.3), value: deletionTask == nil)
+            // Publish the favorite state so the Question menu's Favorite command can
+            // show the matching "Add to"/"Remove from Favorites" title and toggle it.
+            .focusedSceneValue(\.focusedQuestionIsFavorite, isFavorite)
+            // Publish the question's web URL so the Question menu's Share/Copy URL
+            // commands act on the same link, built from this account's server URL.
+            .focusedSceneValue(\.focusedQuestionURL, question.webURL(baseURL: client.baseURL))
+            // Publish a print rendering so File ▸ Print (⌘P) can produce a hard copy
+            // or PDF of the prompt, instructions, and solution.
+            .focusedSceneValue(\.printAction, PrintAction(id: "question-\(question.id)") {
+                printDocument(QuestionPrintDocument(question: question),
+                              jobTitle: question.displayTitle)
+            })
+            .toolbar(id: "question-detail") { detailToolbar }
+            .confirmationDialog("Delete \(question.title.isEmpty ? "this question" : question.title)?",
+                                isPresented: $showDeleteConfirm) {
+                Button("Delete", role: .destructive) { startDeletion() }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("You'll have a few seconds to undo before it's permanently deleted.")
+            }
+            .modifier(QuestionDetailErrorAlerts(createPadError: $createPadError,
+                                                editError: $editError,
+                                                deleteError: $deleteError))
+            .onAppear {
+                consumePendingPadCreation()
+                consumePendingDelete()
+                consumePendingFavoriteToggle()
+            }
+            .onChange(of: nav.createPadForQuestionID) { _, _ in consumePendingPadCreation() }
+            .onChange(of: nav.deleteQuestionID) { _, _ in consumePendingDelete() }
+            .onChange(of: nav.toggleFavoriteQuestionID) { _, _ in consumePendingFavoriteToggle() }
     }
 
     /// Honors a "Favorite" request from the Question menu by toggling the same

@@ -78,28 +78,28 @@ extension MergedPadsView {
         )
     }
 
-    /// The drag payload for a combined-pads row: the pad's web URL (external link
-    /// drops) plus the internal `FavoriteDrop` JSON carrying the *originating* account
-    /// (so it drops onto the sidebar Favorites and pins to the right account, #297).
+    // The drag payload for a combined-pads row: the pad's web URL (external link
+    // drops) plus the internal `FavoriteDrop` JSON carrying the *originating* account
+    // (so it drops onto the sidebar Favorites and pins to the right account, #297).
     #if os(macOS)
-    func padPasteboardItem(_ row: AccountScoped<Account, Pad>) -> NSPasteboardItem? {
-        if selectedIDs.count > 1, selectedIDs.contains(row.item.id) {
-            return multiLinkPasteboardItem(selectedPadsInOrder.map(\.url))
-        }
+        func padPasteboardItem(_ row: AccountScoped<Account, Pad>) -> NSPasteboardItem? {
+            if selectedIDs.count > 1, selectedIDs.contains(row.item.id) {
+                return multiLinkPasteboardItem(selectedPadsInOrder.map(\.url))
+            }
 
-        guard let url = row.item.webURL else { return nil }
+            guard let url = row.item.webURL else { return nil }
 
-        let item = NSPasteboardItem()
-        item.setString(url.absoluteString, forType: .URL)
-        item.setString(url.absoluteString, forType: .string)
-        if let data = try? JSONEncoder().encode(FavoriteDrop.pad(
-            account: row.account.id,
-            id: row.item.id,
-            title: row.item.title.isEmpty ? row.item.id : row.item.title
-        )) {
-            item.setData(data, forType: NSPasteboard.PasteboardType(UTType.coderpadFavorite.identifier))
+            let item = NSPasteboardItem()
+            item.setString(url.absoluteString, forType: .URL)
+            item.setString(url.absoluteString, forType: .string)
+            if let data = try? JSONEncoder().encode(FavoriteDrop.pad(
+                account: row.account.id,
+                id: row.item.id,
+                title: row.item.title.isEmpty ? row.item.id : row.item.title
+            )) {
+                item.setData(data, forType: NSPasteboard.PasteboardType(UTType.coderpadFavorite.identifier))
+            }
+            return item
         }
-        return item
-    }
     #endif
 }
