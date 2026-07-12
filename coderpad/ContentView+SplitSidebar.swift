@@ -54,6 +54,13 @@ extension MainSplit {
         #endif
     }
 
+    /// The column to show after choosing a sidebar section in compact width. Sections
+    /// with a list/detail pair should advance to the list; single-pane sections are
+    /// hosted in the split's detail closure and should appear directly.
+    var preferredCompactColumnForCurrentSection: NavigationSplitViewColumn {
+        sectionHasDetail ? .content : .detail
+    }
+
     /// True when the OS has forced the window narrower than its honest drag floor
     /// (``windowMinWidth``) — only reachable via Split View, tiling, Stage Manager, or a
     /// small/scaled display, since the `NSWindow`'s `contentMinSize` stops a free drag at

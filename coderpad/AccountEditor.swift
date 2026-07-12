@@ -63,6 +63,9 @@ struct AccountEditor: View {
     /// the account already has a Screen key (so it's visible), collapsed otherwise so
     /// it doesn't clutter accounts that don't use Screen.
     @State var screenExpanded: Bool
+    #if !os(macOS)
+        @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    #endif
     /// When set in General settings, revealing a saved key first requires a
     /// successful Touch ID (or password) check — see `toggleReveal`.
     @AppStorage(GeneralSettings.Key.requireBiometricsToRevealKey) var requireBiometricsToRevealKey = false
@@ -232,8 +235,9 @@ struct AccountEditor: View {
     /// are explicitly-typed locals so the `embedded ? nil : 460` ternaries don't make
     /// the checker re-infer `CGFloat?` across the whole chain.
     private var editorForm: some View {
-        let minWidth: CGFloat? = embedded ? nil : 460
+        let minWidth: CGFloat? = (embedded || usesCompactAccountEditorLayout) ? nil : 460
         let minHeight: CGFloat? = embedded ? nil : 320
+        let maxWidth: CGFloat? = usesCompactAccountEditorLayout ? .infinity : nil
         let maxHeight: CGFloat? = embedded ? .infinity : nil
         return VStack(alignment: .leading, spacing: 14) {
             headerRow
@@ -248,7 +252,8 @@ struct AccountEditor: View {
             actionRow
         }
         .padding()
-        .frame(minWidth: minWidth, minHeight: minHeight, maxHeight: maxHeight, alignment: .top)
+        .frame(minWidth: minWidth, maxWidth: maxWidth,
+               minHeight: minHeight, maxHeight: maxHeight, alignment: .top)
     }
 
     /// The form plus the credential watchers: a changed Interview/Screen key or server

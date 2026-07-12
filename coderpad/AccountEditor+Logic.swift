@@ -20,19 +20,40 @@ extension AccountEditor {
         #endif
     }
 
-    /// One Mail-style row: a right-aligned label paired with a left-aligned field.
-    /// Text fields align on the first baseline; rows whose content has no text
-    /// baseline (the icon/color pickers) pass `.center` so the label sits level
-    /// with the swatches rather than drifting to their bottom edge.
-    func fieldRow(_ label: LocalizedStringKey,
+    var usesCompactAccountEditorLayout: Bool {
+        #if os(macOS)
+            false
+        #else
+            horizontalSizeClass == .compact
+        #endif
+    }
+
+    /// One account-editor row. Regular widths use the Mail-style right-aligned label
+    /// column; compact iPhone widths stack labels over controls so fields stay inside
+    /// the sheet instead of forcing the whole editor wider than the screen.
+    @ViewBuilder
+    func fieldRow(_ label: String,
                   alignment: VerticalAlignment = .firstTextBaseline,
                   @ViewBuilder content: () -> some View) -> some View {
-        HStack(alignment: alignment, spacing: 10) {
-            Text(label)
-                .lineLimit(1)
-                .frame(width: labelColumnWidth, alignment: .trailing)
-                .foregroundStyle(.secondary)
-            content()
+        if usesCompactAccountEditorLayout {
+            VStack(alignment: .leading, spacing: 4) {
+                if !label.isEmpty {
+                    Text(LocalizedStringKey(label))
+                        .lineLimit(1)
+                        .foregroundStyle(.secondary)
+                }
+                content()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        } else {
+            HStack(alignment: alignment, spacing: 10) {
+                Text(LocalizedStringKey(label))
+                    .lineLimit(1)
+                    .frame(width: labelColumnWidth, alignment: .trailing)
+                    .foregroundStyle(.secondary)
+                content()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
     }
 

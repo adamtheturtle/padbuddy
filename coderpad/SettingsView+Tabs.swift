@@ -31,9 +31,7 @@ extension SettingsView {
             #endif
 
             Section {
-                LabeledContent("Appearance") {
-                    AppearancePicker(selection: appearanceSchemeBinding)
-                }
+                appearanceSetting
             }
 
             // Dock / menu-bar presence and the Dock-icon badge are macOS-only surfaces.
@@ -128,6 +126,27 @@ extension SettingsView {
         .onAppear { launchAtLogin = LoginItem.isEnabled }
     }
 
+    @ViewBuilder
+    var appearanceSetting: some View {
+        #if os(macOS)
+            LabeledContent("Appearance") {
+                AppearancePicker(selection: appearanceSchemeBinding)
+            }
+        #else
+            if horizontalSizeClass == .compact {
+                Picker("Appearance", selection: $appearance) {
+                    ForEach(AppAppearance.allCases) { option in
+                        Text(option.label).tag(option)
+                    }
+                }
+            } else {
+                LabeledContent("Appearance") {
+                    AppearancePicker(selection: appearanceSchemeBinding)
+                }
+            }
+        #endif
+    }
+
     /// Human-readable form of the auto-refresh interval, e.g. "90s" or "2m 30s".
     var refreshIntervalLabel: String {
         let seconds = refreshSeconds
@@ -153,11 +172,15 @@ extension SettingsView {
                     .frame(minWidth: 380, maxWidth: .infinity, maxHeight: .infinity)
             }
         #else
-            HStack(spacing: 0) {
-                accountsSidebar
-                    .frame(minWidth: 200, idealWidth: 220, maxWidth: 320)
-                accountDetail
-                    .frame(minWidth: 380, maxWidth: .infinity, maxHeight: .infinity)
+            if horizontalSizeClass == .compact {
+                compactAccountsView
+            } else {
+                HStack(spacing: 0) {
+                    accountsSidebar
+                        .frame(minWidth: 200, idealWidth: 220, maxWidth: 320)
+                    accountDetail
+                        .frame(minWidth: 380, maxWidth: .infinity, maxHeight: .infinity)
+                }
             }
         #endif
     }
@@ -183,6 +206,68 @@ extension SettingsView {
                     onCancel: { addingAccount = nil }
                 )
             }
+    }
+
+    @ViewBuilder
+    var compactAccountsView: some View {
+        if store.accounts.isEmpty {
+            accountDetailPlaceholder
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .padding(.horizontal)
+        } else {
+            List {
+                Section {
+                    ForEach(store.accounts) { account in
+                        NavigationLink {
+                            compactAccountEditor(for: account.id)
+                        } label: {
+                            AccountRow(
+                                account: account,
+                                isCurrent: account.id == store.currentAccountID && !store.isMergedView
+                            )
+                        }
+                    }
+                }
+
+                Section {
+                    Button {
+                        addingAccount = Account(name: "", apiKey: "")
+                    } label: {
+                        Label("Add Account", systemImage: "plus")
+                    }
+                }
+            }
+            .listStyle(.insetGrouped)
+            .navigationTitle("Accounts")
+        }
+    }
+
+    func compactAccountEditor(for id: UUID) -> some View {
+        ScrollView {
+            if let account = store.accounts.first(where: { $0.id == id }) {
+                AccountEditor(
+                    initial: account,
+                    embedded: true,
+                    isCurrent: id == store.currentAccountID && !store.isMergedView,
+                    onUse: { store.currentAccountID = id },
+                    onSave: { updated in store.update(updated) },
+                    onCancel: {},
+                    onDelete: { store.remove(id: id) },
+                    onAppearanceChange: { symbol, tint in
+                        guard var account = store.accounts.first(where: { $0.id == id }) else { return }
+
+                        account.iconSymbol = symbol
+                        account.tintHex = tint
+                        store.update(account)
+                    }
+                )
+                .id(id)
+            } else {
+                accountDetailPlaceholder
+            }
+        }
+        .navigationTitle("Account")
+        .navigationBarTitleDisplayMode(.inline)
     }
 
     var accountsSidebar: some View {

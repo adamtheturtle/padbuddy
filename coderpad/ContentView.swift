@@ -77,7 +77,8 @@ struct ContentView: View {
     private var rootContent: some View {
         if store.currentAccount == nil {
             noAccountView
-                .frame(minWidth: 520, minHeight: 380)
+                .frame(minHeight: 380)
+                .frame(minWidth: noAccountMinimumWidth)
         } else {
             MainSplit(
                 section: $nav.section,
@@ -99,6 +100,14 @@ struct ContentView: View {
             content.toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
         #else
             content
+        #endif
+    }
+
+    private var noAccountMinimumWidth: CGFloat? {
+        #if os(macOS)
+            520
+        #else
+            nil
         #endif
     }
 

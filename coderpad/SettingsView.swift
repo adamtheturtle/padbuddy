@@ -35,6 +35,10 @@ final class SettingsNavigation {
 }
 
 struct SettingsView: View {
+    #if !os(macOS)
+        @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    #endif
+
     @State var store = AccountsStore.shared
     @State var navigation = SettingsNavigation.shared
     @State var selectedAccountID: UUID?

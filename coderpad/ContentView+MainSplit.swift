@@ -19,6 +19,9 @@ struct MainSplit: View {
     /// and detail-pane layout transitions snap instead of sliding. Read in the
     /// `withAnimation` sites in `ContentView+SplitSidebar`.
     @Environment(\.accessibilityReduceMotion) var reduceMotion
+    #if os(iOS)
+        @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    #endif
     /// Observed so the Screen section's title/search prompt can reflect whether a
     /// campaign is drilled into (campaigns → candidates), see #467/#468/#470.
     @State var nav = AppNavigation.shared
@@ -105,6 +108,11 @@ struct MainSplit: View {
     /// the system's standard sidebar toggle (and ⌃⌘S) flips it, while the
     /// width-driven auto-collapse below shares the same state.
     @State var columnVisibility: NavigationSplitViewVisibility = .all
+
+    /// Chooses the visible column when the split collapses into one column on iPhone.
+    /// Section changes move forward to the list/content column; row selections move
+    /// forward to detail, matching the regular-width split's hierarchy.
+    @State var preferredCompactColumn: NavigationSplitViewColumn = .sidebar
 
     /// Whether the sidebar's current collapse was driven by the window becoming too
     /// narrow rather than a manual toggle. We only auto-expand what we auto-collapsed,

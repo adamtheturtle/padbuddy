@@ -29,22 +29,19 @@ extension MainSplit {
                 ideal: max(280, sidebarMinWidth),
                 max: max(340, sidebarMinWidth)
             )
-        // Pin the iPad sidebar to one fixed width. `macColumnWidth` is a no-op on
-        // iOS (#599), so without this the system re-derives the sidebar width
-        // whenever the split swaps between its three-column (Pads/Questions/Screen)
-        // and two-column (Organization/Quota) forms — making the leftmost column
-        // visibly jump width as the user taps between those sections. The sidebar's
-        // content (the section labels) is identical in both, so a fixed width sizes
-        // it the same way every time while the content/detail columns stay natively
-        // sized, keeping the #599 detail-clipping fix intact.
+        // Pin the regular-width iPad sidebar to one fixed width. In compact width
+        // (iPhone, Slide Over), let SwiftUI's collapsed stack size naturally.
         #if os(iOS)
-            .navigationSplitViewColumnWidth(Self.iPadSidebarWidth)
+            .regularWidthSidebarColumnWidth(Self.iPadSidebarWidth, horizontalSizeClass: horizontalSizeClass)
         #endif
             .navigationTitle("")
     }
 
     var threeColumnSplit: some View {
-        NavigationSplitView(columnVisibility: $columnVisibility) {
+        NavigationSplitView(
+            columnVisibility: $columnVisibility,
+            preferredCompactColumn: $preferredCompactColumn
+        ) {
             sidebarColumn
         } content: {
             SectionContent(
@@ -109,7 +106,10 @@ extension MainSplit {
 
     var twoColumnSplit: some View {
         listSearchable(
-            NavigationSplitView(columnVisibility: $columnVisibility) {
+            NavigationSplitView(
+                columnVisibility: $columnVisibility,
+                preferredCompactColumn: $preferredCompactColumn
+            ) {
                 sidebarColumn
             } detail: {
                 SectionContent(
@@ -180,6 +180,22 @@ extension MainSplit {
         }
     }
 }
+
+#if os(iOS)
+    extension View {
+        /// Applies the fixed sidebar width only when iOS has room for split columns.
+        /// Compact-width presentations collapse into a stack, where forcing the old
+        /// iPad width makes the root column wider than an iPhone screen.
+        @ViewBuilder
+        func regularWidthSidebarColumnWidth(_ width: CGFloat, horizontalSizeClass: UserInterfaceSizeClass?) -> some View {
+            if horizontalSizeClass == .compact {
+                self
+            } else {
+                navigationSplitViewColumnWidth(width)
+            }
+        }
+    }
+#endif
 
 extension View {
     /// Applies a fixed `navigationSplitViewColumnWidth` on macOS only, passing the view
