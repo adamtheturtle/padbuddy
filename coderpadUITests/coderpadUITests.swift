@@ -89,13 +89,17 @@ import XCTest
             let app = launchDemoApp()
 
             // Pads paint on launch.
-            XCTAssertTrue(row("Onsite: Senior Backend Engineer", in: app).waitForExistence(timeout: Self.listLoadTimeout),
-                          "A seeded demo pad should appear once the list loads")
+            XCTAssertTrue(
+                row("Onsite: Senior Backend Engineer", in: app).waitForExistence(timeout: Self.listLoadTimeout),
+                "A seeded demo pad should appear once the list loads"
+            )
             // Wait for the second pad rather than checking `.exists` instantaneously: the
             // rows don't all render in the same frame, so a bare existence check races the
             // list's first layout and flakes under load.
-            XCTAssertTrue(row("Phone screen: Frontend Engineer", in: app).waitForExistence(timeout: Self.listLoadTimeout),
-                          "Other seeded demo pads should be listed too")
+            XCTAssertTrue(
+                row("Phone screen: Frontend Engineer", in: app).waitForExistence(timeout: Self.listLoadTimeout),
+                "Other seeded demo pads should be listed too"
+            )
 
             // ⌘2 → Questions, and the seeded questions load there.
             app.typeKey("2", modifierFlags: .command) // View ▸ Questions
@@ -104,8 +108,10 @@ import XCTest
 
             // ⌘1 → back to Pads restores the list.
             app.typeKey("1", modifierFlags: .command) // back to Pads
-            XCTAssertTrue(row("Onsite: Senior Backend Engineer", in: app).waitForExistence(timeout: Self.listLoadTimeout),
-                          "Returning to Pads should show the pad list again")
+            XCTAssertTrue(
+                row("Onsite: Senior Backend Engineer", in: app).waitForExistence(timeout: Self.listLoadTimeout),
+                "Returning to Pads should show the pad list again"
+            )
         }
 
         /// Captures real, PII-free screenshots of the seeded demo account for the
@@ -125,8 +131,10 @@ import XCTest
 
             // Pads paint on launch; wait for them, then give the window a beat to grow
             // to full size (`applicationDidBecomeActive` resizes it under `-uiTesting`).
-            XCTAssertTrue(row("Onsite: Senior Backend Engineer", in: app).waitForExistence(timeout: Self.listLoadTimeout),
-                          "A seeded demo pad should appear once the list loads")
+            XCTAssertTrue(
+                row("Onsite: Senior Backend Engineer", in: app).waitForExistence(timeout: Self.listLoadTimeout),
+                "A seeded demo pad should appear once the list loads"
+            )
             usleep(3_000_000)
 
             // Pads list with nothing selected: the sidebar + populated list before the
@@ -167,8 +175,10 @@ import XCTest
             // layout). Same click-free rationale as testCaptureAppStoreLightDark.
             app.terminate()
             let large = launchDemoApp(textSize: "accessibility1")
-            XCTAssertTrue(row("Onsite: Senior Backend Engineer", in: large).waitForExistence(timeout: Self.listLoadTimeout),
-                          "The seeded pads should reload in the large-text launch")
+            XCTAssertTrue(
+                row("Onsite: Senior Backend Engineer", in: large).waitForExistence(timeout: Self.listLoadTimeout),
+                "The seeded pads should reload in the large-text launch"
+            )
             usleep(3_000_000)
             captureScreenshot("pads-list-large", in: large)
         }

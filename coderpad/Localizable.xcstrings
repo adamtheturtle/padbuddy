@@ -474,6 +474,12 @@
             "state" : "new",
             "value" : "%1$lld of %2$lld pads used, %3$@ through the cycle. %4$@."
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%1$lld de %2$lld pads usados, %3$@ del ciclo transcurrido. %4$@."
+          }
         }
       }
     },
@@ -982,7 +988,14 @@
       }
     },
     "Active Pads" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pads activos"
+          }
+        }
+      }
     },
     "Activity" : {
       "localizations" : {
@@ -1463,7 +1476,14 @@
       }
     },
     "Candidates" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Candidatos"
+          }
+        }
+      }
     },
     "Choose one of your saved accounts in Settings." : {
       "localizations" : {
@@ -3371,10 +3391,24 @@
       }
     },
     "Interviewer" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Entrevistador"
+          }
+        }
+      }
     },
     "Interviewers" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Entrevistadores"
+          }
+        }
+      }
     },
     "Invitation resent" : {
       "localizations" : {

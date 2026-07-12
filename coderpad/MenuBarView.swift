@@ -72,7 +72,9 @@
             let padRows = accounts.flatMap { account in
                 padsCache.get(account.id).map { MenuBarPadRow(account: account, pad: $0) }
             }
-            listCache.padRows = padRows.sorted { ($0.pad.updatedAt ?? .distantPast) > ($1.pad.updatedAt ?? .distantPast) }
+            listCache.padRows = padRows.sorted {
+                ($0.pad.updatedAt ?? .distantPast) > ($1.pad.updatedAt ?? .distantPast)
+            }
 
             let questionRows = accounts.flatMap { account in
                 questionsCache.get(account.id).map { MenuBarQuestionRow(account: account, question: $0) }
