@@ -268,7 +268,9 @@ extension MergedQuestionsView {
             // `NSMenu` path below instead).
             .favoriteRowContextMenu(questionTableMenuItems(row), title: row.item.displayTitle)
         }
+        #if os(macOS)
         .rowHeight(FastListRowMetrics.macHeight)
+        #endif
         .reloadID(mergedQuestionListReloadID)
         // Double-click / Return open the question in its own window with the
         // originating account (the first click selects it).

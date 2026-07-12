@@ -110,6 +110,15 @@ private struct PadRowInfo: View, Equatable {
     /// would otherwise hide an environment read from memoization); compared in `==` so
     /// toggling the setting re-renders the dot (#616).
     let highContrast: Bool
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private var expandsForDynamicType: Bool {
+        #if os(iOS)
+            dynamicTypeSize.isAccessibilitySize
+        #else
+            false
+        #endif
+    }
 
     static func == (lhs: Self, rhs: Self) -> Bool {
         let lpad = lhs.pad, rpad = rhs.pad
@@ -144,25 +153,12 @@ private struct PadRowInfo: View, Equatable {
                 Text(pad.title.isEmpty ? pad.id : pad.title)
                     .font(.callout.weight(.medium))
                     .foregroundStyle(Color.fastListRowPrimaryLabel)
-                    .lineLimit(1)
-                HStack(spacing: 8) {
-                    StateBadge(state: pad.status)
-                    if let account {
-                        AccountMetaLabel(account: account)
-                    }
-                    if let language = pad.language, !language.isEmpty {
-                        MetaLabel(text: language.coderPadLanguageDisplayName)
-                    }
-                    if pad.interviewType == .takeHome {
-                        InterviewType.takeHome.chip
-                    }
-                }
-                .lineLimit(1)
-                .clipsMetadataOverflow()
+                    .lineLimit(expandsForDynamicType ? 2 : 1)
+                metadata
                 Text(ownerDisplay)
                     .font(.caption)
                     .foregroundStyle(Color.fastListRowSecondaryLabel)
-                    .lineLimit(1)
+                    .lineLimit(expandsForDynamicType ? 2 : 1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .clipped()
@@ -173,6 +169,35 @@ private struct PadRowInfo: View, Equatable {
         // favorite star stays its own action.
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
+    }
+
+    @ViewBuilder
+    private var metadata: some View {
+        if expandsForDynamicType {
+            VStack(alignment: .leading, spacing: 4) {
+                metadataItems
+            }
+        } else {
+            HStack(spacing: 8) {
+                metadataItems
+            }
+            .lineLimit(1)
+            .clipsMetadataOverflow()
+        }
+    }
+
+    @ViewBuilder
+    private var metadataItems: some View {
+        StateBadge(state: pad.status)
+        if let account {
+            AccountMetaLabel(account: account)
+        }
+        if let language = pad.language, !language.isEmpty {
+            MetaLabel(text: language.coderPadLanguageDisplayName)
+        }
+        if pad.interviewType == .takeHome {
+            InterviewType.takeHome.chip
+        }
     }
 
     /// The "updated since last refresh" dot, shown only when the pad changed since

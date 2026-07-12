@@ -12,6 +12,15 @@ import SwiftUI
 private struct QuestionRowInfo: View, Equatable {
     let question: Question
     let account: RowAccount?
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
+    private var expandsForDynamicType: Bool {
+        #if os(iOS)
+            dynamicTypeSize.isAccessibilitySize
+        #else
+            false
+        #endif
+    }
 
     static func == (lhs: Self, rhs: Self) -> Bool {
         let lhsq = lhs.question, rhsq = rhs.question
@@ -38,28 +47,13 @@ private struct QuestionRowInfo: View, Equatable {
                 Text(question.displayTitle)
                     .font(.callout.weight(.medium))
                     .foregroundStyle(Color.fastListRowPrimaryLabel)
-                    .lineLimit(1)
-                HStack(spacing: 8) {
-                    if let account {
-                        AccountMetaLabel(account: account)
-                    }
-                    if let lang = question.language, !lang.isEmpty {
-                        MetaLabel(text: lang.coderPadLanguageDisplayName)
-                    }
-                    if question.interviewType == .takeHome {
-                        InterviewType.takeHome.chip
-                    }
-                    if let used = question.used, used > 0 {
-                        MetaLabel(text: String(localized: "Used \(used)×"), systemImage: "chart.bar")
-                    }
-                    if question.isDraft == true {
-                        Chip(text: String(localized: "Draft"), systemImage: "doc.badge.ellipsis", tint: .orange)
-                    }
-                }
-                .lineLimit(1)
-                .clipsMetadataOverflow()
+                    .lineLimit(expandsForDynamicType ? 2 : 1)
+                metadata
                 if let author = question.authorName {
-                    Text(author).font(.caption).foregroundStyle(Color.fastListRowSecondaryLabel)
+                    Text(author)
+                        .font(.caption)
+                        .foregroundStyle(Color.fastListRowSecondaryLabel)
+                        .lineLimit(expandsForDynamicType ? 2 : 1)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -70,6 +64,40 @@ private struct QuestionRowInfo: View, Equatable {
         // and label separately; the favorite star stays its own action.
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
+    }
+
+    @ViewBuilder
+    private var metadata: some View {
+        if expandsForDynamicType {
+            VStack(alignment: .leading, spacing: 4) {
+                metadataItems
+            }
+        } else {
+            HStack(spacing: 8) {
+                metadataItems
+            }
+            .lineLimit(1)
+            .clipsMetadataOverflow()
+        }
+    }
+
+    @ViewBuilder
+    private var metadataItems: some View {
+        if let account {
+            AccountMetaLabel(account: account)
+        }
+        if let lang = question.language, !lang.isEmpty {
+            MetaLabel(text: lang.coderPadLanguageDisplayName)
+        }
+        if question.interviewType == .takeHome {
+            InterviewType.takeHome.chip
+        }
+        if let used = question.used, used > 0 {
+            MetaLabel(text: String(localized: "Used \(used)×"), systemImage: "chart.bar")
+        }
+        if question.isDraft == true {
+            Chip(text: String(localized: "Draft"), systemImage: "doc.badge.ellipsis", tint: .orange)
+        }
     }
 
     /// The row's title and metadata composed into one VoiceOver phrase, matching

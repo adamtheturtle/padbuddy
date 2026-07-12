@@ -125,7 +125,9 @@ extension QuestionsView {
             // `NSMenu` path below instead).
             .favoriteRowContextMenu(questionTableMenuItems(question), title: question.displayTitle)
         }
+        #if os(macOS)
         .rowHeight(FastListRowMetrics.macHeight)
+        #endif
         .reloadID(questionListReloadID)
         .onDoubleClick { openQuestionWindow($0) }
         .onReturnKey { openQuestionWindow($0) }
