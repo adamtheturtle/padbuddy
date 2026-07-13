@@ -34,6 +34,15 @@ struct MergedOrganizationView: View {
     @State private var customStart = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
     @State private var customEnd = Date()
 
+    init() {
+        let cachedOrgs = AccountsStore.shared.mergeableAccounts.compactMap { account -> (UUID, Organization)? in
+            guard let organization = OrganizationCacheStore.shared.get(account.id) else { return nil }
+
+            return (account.id, organization)
+        }
+        _orgByAccount = State(initialValue: Dictionary(uniqueKeysWithValues: cachedOrgs))
+    }
+
     /// Resolved (start, end) window for the active period, falling back to the
     /// custom pickers when no preset range applies.
     private var window: (start: Date, end: Date) {

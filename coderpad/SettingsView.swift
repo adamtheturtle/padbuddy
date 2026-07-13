@@ -71,8 +71,6 @@ struct SettingsView: View {
     // General preferences, backed by the keys in `GeneralSettings.Key`.
     @AppStorage(GeneralSettings.Key.appearance) var appearance: AppAppearance = .system
     @AppStorage(GeneralSettings.Key.presence) var presence: AppPresence = .dockAndMenuBar
-    @AppStorage(GeneralSettings.Key.refreshSeconds) var refreshSeconds = GeneralSettings.defaultRefreshSeconds
-    @AppStorage(GeneralSettings.Key.requireBiometricsToRevealKey) var requireBiometricsToRevealKey = false
     @AppStorage(GeneralSettings.Key.spotlightIndexing) var spotlightIndexing = false
     @AppStorage(GeneralSettings.Key.notifyOnPadUpdates) var notifyOnPadUpdates = false
     @AppStorage(DockBadgeController.Key.scope) var dockBadgeScope: DockBadgeScope = .allAccounts
@@ -136,33 +134,6 @@ struct SettingsView: View {
                 case .light: appearance = .light
                 case .dark: appearance = .dark
                 default: appearance = .system
-                }
-            }
-        )
-    }
-
-    /// Binding for the "Require Touch ID to reveal API keys" toggle. Turning the gate
-    /// *on* is free, but turning it *off* removes the protection, so the disable path is
-    /// itself gated behind a Touch ID (or password) check — otherwise anyone at an
-    /// unlocked Mac could simply switch it off and then reveal the key, defeating the
-    /// point. The value flips to off only once authentication succeeds; a failed or
-    /// cancelled prompt leaves it on. If the device can't evaluate the policy (no
-    /// biometrics and no passcode), allow the change rather than trap the user.
-    var biometricGateBinding: Binding<Bool> {
-        Binding(
-            get: { requireBiometricsToRevealKey },
-            set: { newValue in
-                guard !newValue else {
-                    requireBiometricsToRevealKey = true
-                    return
-                }
-
-                Task {
-                    if await BiometricGate.authenticateToDisableGate(
-                        reason: "Turn off Touch ID protection for your saved API key"
-                    ) {
-                        requireBiometricsToRevealKey = false
-                    }
                 }
             }
         )

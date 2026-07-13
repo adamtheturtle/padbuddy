@@ -66,35 +66,76 @@ extension QuestionsView {
         // (trailing window toolbar, Finder-style); this column only owns the section
         // actions below.
         .toolbar(id: "questions") {
-            ToolbarItem(id: "reload", placement: .automatic) {
-                ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
-            }
-            .defaultCustomization(.hidden)
-            // Grouped beside Reload at the list column's leading edge rather
-            // than floating at the trailing edge: a `.primaryAction` here shares the
-            // window's trailing region with the detail pane's actions, so selecting
-            // a question would shove this button leftward. Anchoring it left keeps it put.
-            // (#337 tried `.navigation` to reclaim the collapsed-sidebar inset, but
-            // that anchors the cluster left of the title — reverted.)
-            ToolbarItem(id: "new-question", placement: .automatic) {
-                Button { showCreate = true } label: {
-                    Label("New Question", systemImage: "plus")
+            #if os(iOS)
+                ToolbarItem(id: "questions-actions", placement: .topBarTrailing) {
+                    HStack(spacing: 8) {
+                        Button { showCreate = true } label: {
+                            Label("New Question", systemImage: "plus")
+                        }
+                        .help("Create a new question (⇧⌘N)")
+                        .accessibilityLabel("New Question")
+                        .disabled(client.apiKey.isEmpty || isReadOnly)
+
+                        Menu {
+                            Button {
+                                clearAllFilters()
+                            } label: {
+                                Label("All Questions", systemImage: hasActiveFilters ? "tray" : "checkmark")
+                            }
+
+                            ForEach(DefaultSearch.questionDefaults(me: accounts.currentAccount?.userEmail)) { item in
+                                Button {
+                                    apply(item.search)
+                                } label: {
+                                    Label(item.search.name, systemImage: isActiveSearch(item.search) ? "checkmark" : item.icon)
+                                }
+                            }
+                        } label: {
+                            Label("Suggestions", systemImage: "line.3.horizontal.decrease.circle")
+                        }
+                        .help("Apply a suggested question filter")
+                        .accessibilityLabel("Suggested question filters")
+
+                        Menu {
+                            QuestionSortMenuContent(sort: $sort)
+                        } label: {
+                            Label("Sort", systemImage: "arrow.up.arrow.down")
+                        }
+                        .help("Sort questions")
+                        .accessibilityLabel("Sort questions")
+                    }
                 }
-                .help("Create a new question (⇧⌘N)")
-                .accessibilityLabel("New Question")
-                .disabled(client.apiKey.isEmpty || isReadOnly)
-            }
-            ToolbarItem(id: "sort", placement: .automatic) {
-                Menu {
-                    QuestionSortMenuContent(sort: $sort)
-                } label: {
-                    Label("Sort", systemImage: "arrow.up.arrow.down")
+            #else
+                ToolbarItem(id: "reload", placement: .automatic) {
+                    ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
                 }
-                .help("Sort questions")
-                .accessibilityLabel("Sort questions")
-            }
-            // Opt-in detail-pane toggle, hidden by default (#404).
-            DetailPaneToggleToolbarContent()
+                .defaultCustomization(.hidden)
+                // Grouped beside Reload at the list column's leading edge rather
+                // than floating at the trailing edge: a `.primaryAction` here shares the
+                // window's trailing region with the detail pane's actions, so selecting
+                // a question would shove this button leftward. Anchoring it left keeps it put.
+                // (#337 tried `.navigation` to reclaim the collapsed-sidebar inset, but
+                // that anchors the cluster left of the title — reverted.)
+                ToolbarItem(id: "new-question", placement: .automatic) {
+                    Button { showCreate = true } label: {
+                        Label("New Question", systemImage: "plus")
+                    }
+                    .help("Create a new question (⇧⌘N)")
+                    .accessibilityLabel("New Question")
+                    .disabled(client.apiKey.isEmpty || isReadOnly)
+                }
+                ToolbarItem(id: "sort", placement: .automatic) {
+                    Menu {
+                        QuestionSortMenuContent(sort: $sort)
+                    } label: {
+                        Label("Sort", systemImage: "arrow.up.arrow.down")
+                    }
+                    .help("Sort questions")
+                    .accessibilityLabel("Sort questions")
+                }
+                // Opt-in detail-pane toggle, hidden by default (#404).
+                DetailPaneToggleToolbarContent()
+            #endif
         }
     }
 

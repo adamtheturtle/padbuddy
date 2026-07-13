@@ -12,6 +12,7 @@ import SwiftUI
 struct MCPInstallTabs: View {
     let executablePath: String
     @State private var client: MCPClientInstall.Client = .claudeDesktop
+    @State private var isManualInstructionsExpanded = false
 
     var body: some View {
         Picker("Assistant", selection: $client) {
@@ -38,8 +39,15 @@ struct MCPInstallTabs: View {
                 .foregroundStyle(.secondary)
         }
 
-        DisclosureGroup("Prefer to edit the file yourself?") {
+        DisclosureGroup(isExpanded: $isManualInstructionsExpanded) {
             manualInstructions
+        } label: {
+            Text("Prefer to edit the file yourself?")
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    isManualInstructionsExpanded.toggle()
+                }
         }
         .font(.callout)
     }

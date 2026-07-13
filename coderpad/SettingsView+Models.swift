@@ -169,11 +169,10 @@ enum AppPresence: String, CaseIterable, Identifiable {
     }
 }
 
-/// General app preferences (appearance, Dock visibility, auto-refresh cadence)
-/// stored in `UserDefaults`. Mirrors `BrowserSettings`: the keys are shared by the
-/// settings UI (via `@AppStorage`) and by the app-wide static getters here, so a
-/// single source of truth backs both. Launch-at-login state lives with the system
-/// (`SMAppService`) rather than here — see `LoginItem`.
+/// General app preferences stored in `UserDefaults`. Mirrors `BrowserSettings`: the
+/// keys are shared by the settings UI (via `@AppStorage`) and by the app-wide static
+/// getters here, so a single source of truth backs both. Launch-at-login state lives
+/// with the system (`SMAppService`) rather than here — see `LoginItem`.
 enum GeneralSettings {
     enum Key {
         static let appearance = "general.appearance"
@@ -181,8 +180,6 @@ enum GeneralSettings {
         /// Legacy boolean ("Hide Dock icon") superseded by `presence`. Read once at
         /// launch to migrate the user's choice, then removed. See `migratePresenceIfNeeded`.
         static let hideDockIcon = "general.hideDockIcon"
-        static let refreshSeconds = "general.refreshSeconds"
-        static let requireBiometricsToRevealKey = "general.requireBiometricsToRevealKey"
         static let spotlightIndexing = "general.spotlightIndexing"
         static let notifyOnPadUpdates = "general.notifyOnPadUpdates"
     }
@@ -194,14 +191,6 @@ enum GeneralSettings {
         UserDefaults.standard.bool(forKey: Key.notifyOnPadUpdates)
     }
 
-    // Deliberate non-SwiftUI accessor, symmetric with the other GeneralSettings flags.
-    // periphery:ignore
-    /// Whether revealing a saved API key in Settings must be unlocked with Touch ID
-    /// (falling back to the login password). Off by default.
-    static var requireBiometricsToRevealKey: Bool {
-        UserDefaults.standard.bool(forKey: Key.requireBiometricsToRevealKey)
-    }
-
     /// Whether pads and questions are mirrored into the on-device Spotlight index so
     /// they're findable system-wide. Off by default — pad titles can carry candidate
     /// names, so it's opt-in. See `SpotlightIndexer`.
@@ -209,12 +198,9 @@ enum GeneralSettings {
         UserDefaults.standard.bool(forKey: Key.spotlightIndexing)
     }
 
-    /// Default auto-refresh cadence. Kept tight (15s) so pads and questions stay
-    /// close to live without a manual reload (#412); users can dial it back up to
-    /// 10 minutes in Settings.
+    /// Fixed auto-refresh cadence. Kept tight (15s) so pads and questions stay
+    /// close to live without a manual reload (#412).
     static let defaultRefreshSeconds = 15
-    static let minRefreshSeconds = 15
-    static let maxRefreshSeconds = 600
 
     static var appearance: AppAppearance {
         AppAppearance(rawValue: UserDefaults.standard.string(forKey: Key.appearance) ?? "") ?? .system
@@ -238,17 +224,8 @@ enum GeneralSettings {
         defaults.removeObject(forKey: Key.hideDockIcon)
     }
 
-    /// Auto-refresh cadence in seconds, clamped to a sane range. A never-set value
-    /// reads back as 0 from `UserDefaults`, which we treat as "use the default".
-    static var refreshSeconds: Int {
-        let stored = UserDefaults.standard.integer(forKey: Key.refreshSeconds)
-        guard stored != 0 else { return defaultRefreshSeconds }
-
-        return min(max(stored, minRefreshSeconds), maxRefreshSeconds)
-    }
-
     static var refreshInterval: Duration {
-        .seconds(refreshSeconds)
+        .seconds(defaultRefreshSeconds)
     }
 
     /// Reflect the presence preference by switching the activation policy:

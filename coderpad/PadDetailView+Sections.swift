@@ -8,12 +8,9 @@ import SwiftUI
 extension PadDetailView {
     var detailScroll: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
+            VStack(alignment: .leading, spacing: detailSectionSpacing) {
                 header
                 propertiesCard
-                if hasTimestamps {
-                    metaCards
-                }
                 if !pad.participants.isEmpty {
                     participantsCard
                 }
@@ -42,11 +39,43 @@ extension PadDetailView {
                 }
                 eventsCard
             }
-            .padding(.horizontal, Spacing.paneH)
-            .padding(.top, Spacing.paneV)
-            .padding(.bottom, Spacing.paneV)
+            .padding(.horizontal, detailHorizontalPadding)
+            .padding(.top, detailTopPadding)
+            .padding(.bottom, detailBottomPadding)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    private var detailSectionSpacing: CGFloat {
+        #if os(iOS)
+            horizontalSizeClass == .compact ? 14 : 18
+        #else
+            18
+        #endif
+    }
+
+    private var detailHorizontalPadding: CGFloat {
+        #if os(iOS)
+            horizontalSizeClass == .compact ? 16 : Spacing.paneH
+        #else
+            Spacing.paneH
+        #endif
+    }
+
+    private var detailTopPadding: CGFloat {
+        #if os(iOS)
+            horizontalSizeClass == .compact ? 10 : Spacing.paneV
+        #else
+            Spacing.paneV
+        #endif
+    }
+
+    private var detailBottomPadding: CGFloat {
+        #if os(iOS)
+            horizontalSizeClass == .compact ? Spacing.paneV + 160 : Spacing.paneV
+        #else
+            Spacing.paneV
+        #endif
     }
 
     private var header: some View {
@@ -84,60 +113,27 @@ extension PadDetailView {
     }
 
     private var identity: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            // The title is edited in place: it reads as the heading until you
-            // hover or click in, and commits on Return or when focus leaves. The
-            // control is self-owning (it holds its own draft and focus), so it takes
-            // the pad's title and an async commit that returns whether the rename saved.
-            CommandEditableTitle(title: pad.title, placeholder: "Untitled Pad",
-                                 isEditable: !isReadOnly, clampsWidth: true,
-                                 font: .title.bold(), editRequest: titleEditRequest) { newTitle in
-                await commitTitle(newTitle)
-            }
-            // The owner's name links to their pads (the app's person
-            // navigation). When a CoderPad title already carries a generated
-            // "by <owner>" subtitle, don't repeat the same name immediately below it.
-            if let name = directory.name(for: pad.ownerEmail), !name.isEmpty {
-                if !titleAlreadyNamesOwner(name) {
-                    OwnerPadsLink(email: pad.ownerEmail).font(.callout)
-                }
-            } else {
-                OwnerPadsLink(email: pad.ownerEmail, fallbackLabel: String(localized: "Owner"))
-            }
+        // The title is edited in place: it reads as the heading until you
+        // hover or click in, and commits on Return or when focus leaves. The
+        // control is self-owning (it holds its own draft and focus), so it takes
+        // the pad's title and an async commit that returns whether the rename saved.
+        CommandEditableTitle(title: pad.title, placeholder: "Untitled Pad",
+                             isEditable: !isReadOnly, clampsWidth: !isCompactPhone,
+                             font: detailTitleFont, editRequest: titleEditRequest) { newTitle in
+            await commitTitle(newTitle)
         }
     }
 
-    /// Whether the pad title already includes CoderPad's generated owner byline.
-    private func titleAlreadyNamesOwner(_ ownerName: String) -> Bool {
-        let normalizedTitle = pad.title.trimmingCharacters(in: .whitespacesAndNewlines)
-        let normalizedOwner = ownerName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !normalizedTitle.isEmpty, !normalizedOwner.isEmpty else { return false }
-
-        return normalizedTitle.localizedCaseInsensitiveContains("by \(normalizedOwner)")
+    var isCompactPhone: Bool {
+        #if os(iOS)
+            horizontalSizeClass == .compact
+        #else
+            false
+        #endif
     }
 
-    /// Whether the pad carries any of the timestamps the Details section shows, so an
-    /// empty section (a bare header) is never rendered.
-    private var hasTimestamps: Bool {
-        pad.createdAt != nil || pad.informativeUpdatedAt != nil || pad.endedAt != nil
-    }
-
-    /// The pad's routine bookkeeping dates, as a native grouped section of labeled
-    /// rows rather than free-floating tinted tiles.
-    private var metaCards: some View {
-        DetailSection(title: "Details", systemImage: "info.circle") {
-            VStack(alignment: .leading, spacing: 6) {
-                if let createdAt = pad.createdAt {
-                    LabeledRow(label: "Created", value: createdAt.formatted(date: .long, time: .shortened))
-                }
-                if let updatedAt = pad.informativeUpdatedAt {
-                    LabeledRow(label: "Updated", value: updatedAt.formatted(date: .long, time: .shortened))
-                }
-                if let endedAt = pad.endedAt {
-                    LabeledRow(label: "Ended", value: endedAt.formatted(date: .long, time: .shortened))
-                }
-            }
-        }
+    private var detailTitleFont: Font {
+        isCompactPhone ? .title2.bold() : .title.bold()
     }
 
     /// The pad's whiteboard drawing, when it has one. Parsed once so the card and

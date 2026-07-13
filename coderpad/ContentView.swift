@@ -3,6 +3,9 @@
 //  coderpad
 //
 
+#if os(iOS)
+    import UIKit
+#endif
 import SwiftUI
 import WhatsNewKit
 
@@ -46,6 +49,9 @@ struct ContentView: View {
     @State private var showOpenPadURL = false
     @State private var showCommandPalette = false
     @Environment(\.openAppSettings) private var openSettings
+    #if os(iOS)
+        @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    #endif
 
     var body: some View {
         presentedSheets(routing(windowContent))
@@ -79,6 +85,10 @@ struct ContentView: View {
             noAccountView
                 .frame(minHeight: 380)
                 .frame(minWidth: noAccountMinimumWidth)
+        } else if shouldUsePhoneLayout {
+            #if os(iOS)
+                PhoneContentView(directory: directory, monitor: monitor)
+            #endif
         } else {
             MainSplit(
                 section: $nav.section,
@@ -108,6 +118,14 @@ struct ContentView: View {
             520
         #else
             nil
+        #endif
+    }
+
+    private var shouldUsePhoneLayout: Bool {
+        #if os(iOS)
+            UIDevice.current.userInterfaceIdiom == .phone && horizontalSizeClass == .compact
+        #else
+            false
         #endif
     }
 

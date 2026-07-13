@@ -100,6 +100,11 @@ extension PadsView {
 
     // MARK: - Live filter persistence
 
+    var hasActiveFilters: Bool {
+        !search.isEmpty || stateFilter != nil || languageFilter != nil || ownerFilter != nil
+            || teamFilter != nil || typeFilter != nil || updatedWindow.isActive || createdWindow.isActive
+    }
+
     /// A change-detection token for the live filters, so they can be re-persisted
     /// the instant any one of them changes without observing each `@State` var.
     var filterSignature: String {

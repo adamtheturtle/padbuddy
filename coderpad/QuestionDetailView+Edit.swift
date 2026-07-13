@@ -16,38 +16,43 @@ extension QuestionDetailView {
     /// edited in the header; language and type live here.
     var propertiesCard: some View {
         DetailSection(title: "Properties", systemImage: "slider.horizontal.3") {
-            VStack(alignment: .leading, spacing: 10) {
-                propertyRow("Language") {
-                    Picker("", selection: languageBinding) {
-                        ForEach(CoderPadLanguages.pickerOptions, id: \.self) {
-                            Text($0.coderPadLanguageDisplayName).tag($0)
-                        }
-                        // Keep the question's current language selectable even when it
-                        // isn't one of the common picker options.
-                        if !CoderPadLanguages.pickerOptions.contains(draftLanguage) {
-                            Text(draftLanguage.coderPadLanguageDisplayName).tag(draftLanguage)
-                        }
-                    }
-                    .labelsHidden()
-                    .fixedSize()
-                }
-                propertyRow("Type") {
-                    Picker("", selection: typeBinding) {
-                        ForEach(InterviewType.allCases, id: \.rawValue) {
-                            Text($0.label).tag($0.rawValue)
-                        }
-                        if InterviewType(rawValue: draftPadType) == nil {
-                            Text(draftPadType.replacingOccurrences(of: "_", with: " ").capitalized)
-                                .tag(draftPadType)
-                        }
-                    }
-                    .labelsHidden()
-                    .fixedSize()
-                }
-            }
+            propertiesRows
         }
         // Offline → read-only: disable the inline metadata editors so a field change
         // can't fire a doomed PUT against an unreachable server (#321).
+        .disabled(isReadOnly)
+    }
+
+    var propertiesRows: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            propertyRow("Language") {
+                Picker("", selection: languageBinding) {
+                    ForEach(CoderPadLanguages.pickerOptions, id: \.self) {
+                        Text($0.coderPadLanguageDisplayName).tag($0)
+                    }
+                    // Keep the question's current language selectable even when it
+                    // isn't one of the common picker options.
+                    if !CoderPadLanguages.pickerOptions.contains(draftLanguage) {
+                        Text(draftLanguage.coderPadLanguageDisplayName).tag(draftLanguage)
+                    }
+                }
+                .labelsHidden()
+                .fixedSize()
+            }
+            propertyRow("Type") {
+                Picker("", selection: typeBinding) {
+                    ForEach(InterviewType.allCases, id: \.rawValue) {
+                        Text($0.label).tag($0.rawValue)
+                    }
+                    if InterviewType(rawValue: draftPadType) == nil {
+                        Text(draftPadType.replacingOccurrences(of: "_", with: " ").capitalized)
+                            .tag(draftPadType)
+                    }
+                }
+                .labelsHidden()
+                .fixedSize()
+            }
+        }
         .disabled(isReadOnly)
     }
 

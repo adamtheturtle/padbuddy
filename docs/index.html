@@ -3,9 +3,9 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PadBuddy, a native macOS app for CoderPad</title>
+  <title>PadBuddy, a native app for CoderPad on Mac, iPhone, and iPad</title>
   <meta name="description"
-        content="PadBuddy is a fast, native macOS app for your CoderPad pads and questions, with a built-in MCP server so AI assistants can answer questions about your interviews. Unofficial, third-party client." />
+        content="PadBuddy is a fast, native app for your CoderPad pads and questions on Mac, iPhone, and iPad, with a built-in MCP server on macOS so AI assistants can answer questions about your interviews. Unofficial, third-party client." />
   <link rel="canonical" href="https://padbuddy.app/" />
 
   <!-- Icons -->
@@ -22,20 +22,20 @@
   <!-- Open Graph -->
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="PadBuddy" />
-  <meta property="og:title" content="PadBuddy, a native macOS app for CoderPad" />
+  <meta property="og:title" content="PadBuddy, a native app for CoderPad on Mac, iPhone, and iPad" />
   <meta property="og:description"
-        content="A fast, native macOS app for your CoderPad pads and questions." />
+        content="A fast, native app for your CoderPad pads and questions on Mac, iPhone, and iPad." />
   <meta property="og:url" content="https://padbuddy.app/" />
   <meta property="og:image" content="https://padbuddy.app/assets/og-image.png" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
-  <meta property="og:image:alt" content="PadBuddy app icon and name, with the tagline: a native macOS app for CoderPad." />
+  <meta property="og:image:alt" content="PadBuddy app icon and name, with the tagline: a native app for CoderPad." />
 
   <!-- Twitter -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="PadBuddy, a native macOS app for CoderPad" />
+  <meta name="twitter:title" content="PadBuddy, a native app for CoderPad on Mac, iPhone, and iPad" />
   <meta name="twitter:description"
-        content="A fast, native macOS app for your CoderPad pads and questions." />
+        content="A fast, native app for your CoderPad pads and questions on Mac, iPhone, and iPad." />
   <meta name="twitter:image" content="https://padbuddy.app/assets/og-image.png" />
 
   <link rel="stylesheet" href="style.css" />
@@ -46,7 +46,7 @@
       <img class="hero-icon reveal" src="assets/app-icon.svg" width="120" height="120"
            alt="PadBuddy app icon: a white code glyph on an indigo tile." />
       <h1 class="reveal" data-delay="1">PadBuddy</h1>
-      <p class="tagline reveal" data-delay="2">Your CoderPad pads and questions in a fast, native, unofficial Mac app.</p>
+      <p class="tagline reveal" data-delay="2">Your CoderPad pads and questions in a fast, native, unofficial app for Mac, iPhone, and iPad.</p>
       <p class="cta reveal" data-delay="3">
         <a class="button js-download-link" href="https://github.com/adamtheturtle/coderpad-macos-releases/releases/latest">
           Download for macOS
@@ -87,6 +87,24 @@
   </header>
 
   <main>
+    <section class="device-shots wrap-wide" aria-labelledby="device-shots-title">
+      <div class="device-shots__header reveal" data-delay="1">
+        <h2 id="device-shots-title">Mac, iPad, and iPhone</h2>
+      </div>
+      <div class="device-shots__grid">
+        <figure class="device-shot device-shot--ipad reveal" data-delay="2">
+          <img src="assets/screenshot-ipad.png" width="1032" height="1376" loading="lazy" decoding="async"
+               alt="PadBuddy on iPad showing a split view with a pads list, selected pad details, participants, and code." />
+          <figcaption>iPad</figcaption>
+        </figure>
+        <figure class="device-shot device-shot--iphone reveal" data-delay="3">
+          <img src="assets/screenshot-iphone.png" width="440" height="956" loading="lazy" decoding="async"
+               alt="PadBuddy on iPhone showing the Pads tab with search, filters, and recent interview pads." />
+          <figcaption>iPhone</figcaption>
+        </figure>
+      </div>
+    </section>
+
     <!-- Feature grid (Mimestream-style): a colourful glyph, a title, and a short
          line per feature, 3-up and reflowing to 1-up on narrow screens. No card
          chrome, so nothing reads as clickable. -->
@@ -97,6 +115,7 @@
             <rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18" />
           </svg></span>Menu bar</h2>
         <p>Quickly start a new pad or jump to a recent one.</p>
+        <p class="feature__note">macOS only</p>
       </div>
 
       <div class="feature reveal" data-delay="2">
@@ -105,6 +124,7 @@
             <path d="M4 4h16v12H8l-4 4z" /><path d="M8 9h8" /><path d="M8 12.5h5" />
           </svg></span>Built-in MCP server</h2>
         <p>Ask Claude, Codex, or any MCP client about your pads, questions, and quota.</p>
+        <p class="feature__note">macOS only</p>
       </div>
 
       <div class="feature reveal" data-delay="3">
@@ -137,7 +157,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <rect x="4.5" y="10" width="15" height="10" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" />
           </svg></span>Private by design</h2>
-        <p>Your API key lives only in the macOS Keychain and talks only to CoderPad's own API. No
+        <p>Your API key lives only in the local Keychain and talks only to CoderPad's own API. No
           analytics, no ads, no server of ours.</p>
       </div>
     </section>

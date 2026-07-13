@@ -42,6 +42,47 @@ extension Spacing {
     static let overlayInset: CGFloat = 32
 }
 
+extension AppSection {
+    var label: LocalizedStringKey {
+        switch self {
+        case .pads: "Pads"
+        case .questions: "Questions"
+        case .organization: "Organization"
+        case .quota: "Quota"
+        case .screen: "Screen"
+        }
+    }
+
+    var shortLabel: LocalizedStringKey {
+        switch self {
+        case .organization: "Org"
+        default: label
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .pads: "doc.text"
+        case .questions: "questionmark.bubble"
+        case .organization: "building.2"
+        case .quota: "gauge.with.dots.needle.67percent"
+        case .screen: "person.crop.rectangle.stack"
+        }
+    }
+
+    /// Keep colour tied to navigation meaning. These tints are intentionally used only
+    /// where the platform already expects accenting, such as sidebar glyphs and phone tabs.
+    var navigationTint: Color {
+        switch self {
+        case .pads: .accentColor
+        case .questions: .purple
+        case .organization: .teal
+        case .quota: .green
+        case .screen: .indigo
+        }
+    }
+}
+
 /// A pad's lifecycle state. A live pad is the one status that genuinely benefits
 /// from standing out, so it keeps a subtle green capsule; every other state reads
 /// as restrained secondary metadata (an SF Symbol + text, see ``MetaLabel``) so the

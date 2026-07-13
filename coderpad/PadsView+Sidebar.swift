@@ -100,37 +100,79 @@ extension PadsView {
         // (trailing window toolbar, Finder-style); this column only owns the section
         // actions below.
         .toolbar(id: "pads") {
-            // Hidden by default — reachable via View ▸ Customize Toolbar…, the
-            // File ▸ Reload command (⌘R), or pull-to-refresh (#413).
-            ToolbarItem(id: "reload", placement: .automatic) {
-                ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
-            }
-            .defaultCustomization(.hidden)
-            // Grouped beside Reload at the list column's leading edge rather than
-            // floating at the trailing edge: a `.primaryAction` here shares the
-            // window's trailing region with the detail pane's actions, so selecting
-            // a pad would shove this button leftward. Anchoring it left keeps it put.
-            // (#337 tried `.navigation` to reclaim the collapsed-sidebar inset, but
-            // that anchors the cluster left of the title — reverted.)
-            ToolbarItem(id: "new-pad", placement: .automatic) {
-                Button { showCreate = true } label: {
-                    Label("New Pad", systemImage: "plus")
+            #if os(iOS)
+                ToolbarItem(id: "pads-actions", placement: .topBarTrailing) {
+                    HStack(spacing: 8) {
+                        Button { showCreate = true } label: {
+                            Label("New Pad", systemImage: "plus")
+                        }
+                        .help("Create a new pad (⌘N)")
+                        .accessibilityLabel("New Pad")
+                        .disabled(client.apiKey.isEmpty || isReadOnly)
+
+                        Menu {
+                            Button {
+                                search = ""
+                                clearAllFilters()
+                            } label: {
+                                Label("All Pads", systemImage: hasActiveFilters ? "tray" : "checkmark")
+                            }
+
+                            ForEach(DefaultSearch.padDefaults(me: accounts.currentAccount?.userEmail)) { item in
+                                Button {
+                                    apply(item.search)
+                                } label: {
+                                    Label(item.search.name, systemImage: isActiveSearch(item.search) ? "checkmark" : item.icon)
+                                }
+                            }
+                        } label: {
+                            Label("Suggestions", systemImage: "line.3.horizontal.decrease.circle")
+                        }
+                        .help("Apply a suggested pad filter")
+                        .accessibilityLabel("Suggested pad filters")
+
+                        Menu {
+                            PadSortMenuContent(sort: $sort)
+                        } label: {
+                            Label("Sort", systemImage: "arrow.up.arrow.down")
+                        }
+                        .help("Sort pads")
+                        .accessibilityLabel("Sort pads")
+                    }
                 }
-                .help("Create a new pad (⌘N)")
-                .accessibilityLabel("New Pad")
-                .disabled(client.apiKey.isEmpty || isReadOnly)
-            }
-            ToolbarItem(id: "sort", placement: .automatic) {
-                Menu {
-                    PadSortMenuContent(sort: $sort)
-                } label: {
-                    Label("Sort", systemImage: "arrow.up.arrow.down")
+            #else
+                // Hidden by default — reachable via View ▸ Customize Toolbar…, the
+                // File ▸ Reload command (⌘R), or pull-to-refresh (#413).
+                ToolbarItem(id: "reload", placement: .automatic) {
+                    ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
                 }
-                .help("Sort pads")
-                .accessibilityLabel("Sort pads")
-            }
-            // Opt-in detail-pane toggle, hidden by default (#404).
-            DetailPaneToggleToolbarContent()
+                .defaultCustomization(.hidden)
+                // Grouped beside Reload at the list column's leading edge rather than
+                // floating at the trailing edge: a `.primaryAction` here shares the
+                // window's trailing region with the detail pane's actions, so selecting
+                // a pad would shove this button leftward. Anchoring it left keeps it put.
+                // (#337 tried `.navigation` to reclaim the collapsed-sidebar inset, but
+                // that anchors the cluster left of the title — reverted.)
+                ToolbarItem(id: "new-pad", placement: .automatic) {
+                    Button { showCreate = true } label: {
+                        Label("New Pad", systemImage: "plus")
+                    }
+                    .help("Create a new pad (⌘N)")
+                    .accessibilityLabel("New Pad")
+                    .disabled(client.apiKey.isEmpty || isReadOnly)
+                }
+                ToolbarItem(id: "sort", placement: .automatic) {
+                    Menu {
+                        PadSortMenuContent(sort: $sort)
+                    } label: {
+                        Label("Sort", systemImage: "arrow.up.arrow.down")
+                    }
+                    .help("Sort pads")
+                    .accessibilityLabel("Sort pads")
+                }
+                // Opt-in detail-pane toggle, hidden by default (#404).
+                DetailPaneToggleToolbarContent()
+            #endif
         }
     }
 

@@ -33,7 +33,7 @@ extension PadDetailView {
                     SearchableOwnerPicker(ownerEmail: ownerBinding,
                                           users: orgUsers,
                                           keyOwnerEmail: AccountsStore.shared.currentAccount?.userEmail)
-                        .fixedSize(horizontal: true, vertical: false)
+                        .fixedSize(horizontal: !isCompactPhone, vertical: false)
                 }
                 propertyRow("Private", alignment: .center) {
                     Toggle("", isOn: privateBinding)
@@ -60,15 +60,26 @@ extension PadDetailView {
     /// text baseline. Toggle rows pass `.center`: a switch has no meaningful text
     /// baseline, and the taller iOS switch otherwise leaves the label stranded at
     /// the top of the control rather than centered beside it.
+    @ViewBuilder
     private func propertyRow(_ label: LocalizedStringKey,
                              alignment: VerticalAlignment = .firstTextBaseline,
                              @ViewBuilder control: () -> some View) -> some View {
-        HStack(alignment: alignment) {
-            Text(label)
-                .foregroundStyle(.secondary)
-                .frame(minWidth: 110, alignment: .leading)
-            control()
-            Spacer(minLength: 0)
+        if isCompactPhone {
+            VStack(alignment: .leading, spacing: 5) {
+                Text(label)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                control()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        } else {
+            HStack(alignment: alignment) {
+                Text(label)
+                    .foregroundStyle(.secondary)
+                    .frame(minWidth: 110, alignment: .leading)
+                control()
+                Spacer(minLength: 0)
+            }
         }
     }
 

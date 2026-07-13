@@ -37,8 +37,7 @@ extension MergedPadsView {
                 // Reopen the pad selected last session, once the seeded cache (or the
                 // reload below) provides a list to resolve it against.
                 restoreSelectedPadIfNeeded()
-                // Initial load, then refresh on a timer rebuilt each cycle so an interval
-                // change in Settings takes effect on the next tick without restarting the task.
+                // Initial load, then refresh on the fixed app cadence.
                 await reload()
                 while !Task.isCancelled {
                     let interval = max(GeneralSettings.refreshInterval, .milliseconds(1))
@@ -236,40 +235,90 @@ extension MergedPadsView {
 
     @ToolbarContentBuilder
     var padsToolbar: some CustomizableToolbarContent {
-        // Hidden by default — reachable via View ▸ Customize Toolbar…, the
-        // File ▸ Reload command (⌘R), or pull-to-refresh (#413).
-        ToolbarItem(id: "reload", placement: .automatic) {
-            ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
-        }
-        .defaultCustomization(.hidden)
-        // Grouped beside Reload at the list column's leading edge rather than
-        // floating at the trailing edge: a `.primaryAction` here shares the window's
-        // trailing region with the detail pane's actions, so selecting a pad would
-        // shove this button leftward. Anchoring it left keeps it put.
-        ToolbarItem(id: "new-pad", placement: .automatic) {
-            Menu {
-                ForEach(accounts.mergeableAccounts) { account in
-                    Button(account.name) { creatingForAccount = account }
-                        .disabled(account.apiKey.isEmpty)
+        #if os(iOS)
+            ToolbarItem(id: "pads-actions", placement: .topBarTrailing) {
+                HStack(spacing: 8) {
+                    Menu {
+                        ForEach(accounts.mergeableAccounts) { account in
+                            Button(account.name) { creatingForAccount = account }
+                                .disabled(account.apiKey.isEmpty)
+                        }
+                    } label: {
+                        Label("New Pad", systemImage: "plus")
+                    }
+                    .disabled(isReadOnly)
+                    .help("Create a new pad in one of your accounts")
+                    .accessibilityLabel("New Pad")
+
+                    Menu {
+                        Button {
+                            clearAllFilters()
+                        } label: {
+                            Label("All Pads", systemImage: hasActiveFilters ? "tray" : "checkmark")
+                        }
+
+                        Button {
+                            mineOnly = true
+                        } label: {
+                            Label("My Pads", systemImage: mineOnly ? "checkmark" : "person.fill")
+                        }
+
+                        Button {
+                            stateFilter = .active
+                        } label: {
+                            Label("Active Pads", systemImage: stateFilter == .active ? "checkmark" : "bolt.fill")
+                        }
+                    } label: {
+                        Label("Suggestions", systemImage: "line.3.horizontal.decrease.circle")
+                    }
+                    .help("Apply a suggested pad filter")
+                    .accessibilityLabel("Suggested pad filters")
+
+                    Menu {
+                        PadSortMenuContent(sort: $sort)
+                    } label: {
+                        Label("Sort", systemImage: "arrow.up.arrow.down")
+                    }
+                    .help("Sort pads")
+                    .accessibilityLabel("Sort pads")
                 }
-            } label: {
-                Label("New Pad", systemImage: "plus")
             }
-            .disabled(isReadOnly)
-            .help("Create a new pad in one of your accounts")
-            .accessibilityLabel("New Pad")
-        }
-        ToolbarItem(id: "sort", placement: .automatic) {
-            Menu {
-                PadSortMenuContent(sort: $sort)
-            } label: {
-                Label("Sort", systemImage: "arrow.up.arrow.down")
+        #else
+            // Hidden by default — reachable via View ▸ Customize Toolbar…, the
+            // File ▸ Reload command (⌘R), or pull-to-refresh (#413).
+            ToolbarItem(id: "reload", placement: .automatic) {
+                ReloadToolbarButton(isLoading: isLoading) { Task { await reload() } }
             }
-            .help("Sort pads")
-            .accessibilityLabel("Sort pads")
-        }
-        // Opt-in detail-pane toggle, hidden by default (#404).
-        DetailPaneToggleToolbarContent()
+            .defaultCustomization(.hidden)
+            // Grouped beside Reload at the list column's leading edge rather than
+            // floating at the trailing edge: a `.primaryAction` here shares the window's
+            // trailing region with the detail pane's actions, so selecting a pad would
+            // shove this button leftward. Anchoring it left keeps it put.
+            ToolbarItem(id: "new-pad", placement: .automatic) {
+                Menu {
+                    ForEach(accounts.mergeableAccounts) { account in
+                        Button(account.name) { creatingForAccount = account }
+                            .disabled(account.apiKey.isEmpty)
+                    }
+                } label: {
+                    Label("New Pad", systemImage: "plus")
+                }
+                .disabled(isReadOnly)
+                .help("Create a new pad in one of your accounts")
+                .accessibilityLabel("New Pad")
+            }
+            ToolbarItem(id: "sort", placement: .automatic) {
+                Menu {
+                    PadSortMenuContent(sort: $sort)
+                } label: {
+                    Label("Sort", systemImage: "arrow.up.arrow.down")
+                }
+                .help("Sort pads")
+                .accessibilityLabel("Sort pads")
+            }
+            // Opt-in detail-pane toggle, hidden by default (#404).
+            DetailPaneToggleToolbarContent()
+        #endif
     }
 
     private var padCollection: some View {

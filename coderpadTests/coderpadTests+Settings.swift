@@ -73,7 +73,7 @@ struct GeneralSettingsTests {
         GeneralSettings.Key.appearance,
         GeneralSettings.Key.presence,
         GeneralSettings.Key.hideDockIcon,
-        GeneralSettings.Key.refreshSeconds
+        "general.refreshSeconds"
     ]
 
     /// Snapshots the `general.*` defaults, clears them, runs the block, then restores
@@ -96,30 +96,10 @@ struct GeneralSettingsTests {
     }
 
     @Test
-    func `refreshSeconds falls back to the default when unset`() {
+    func `refreshInterval uses the fixed default cadence`() {
         withCleanDefaults {
-            #expect(GeneralSettings.refreshSeconds == GeneralSettings.defaultRefreshSeconds)
+            UserDefaults.standard.set(120, forKey: "general.refreshSeconds")
             #expect(GeneralSettings.refreshInterval == .seconds(GeneralSettings.defaultRefreshSeconds))
-        }
-    }
-
-    @Test
-    func `refreshSeconds passes a valid stored value through`() {
-        withCleanDefaults {
-            UserDefaults.standard.set(120, forKey: GeneralSettings.Key.refreshSeconds)
-            #expect(GeneralSettings.refreshSeconds == 120)
-            #expect(GeneralSettings.refreshInterval == .seconds(120))
-        }
-    }
-
-    @Test
-    func `refreshSeconds clamps below the minimum and above the maximum`() {
-        withCleanDefaults {
-            UserDefaults.standard.set(1, forKey: GeneralSettings.Key.refreshSeconds)
-            #expect(GeneralSettings.refreshSeconds == GeneralSettings.minRefreshSeconds)
-
-            UserDefaults.standard.set(99999, forKey: GeneralSettings.Key.refreshSeconds)
-            #expect(GeneralSettings.refreshSeconds == GeneralSettings.maxRefreshSeconds)
         }
     }
 

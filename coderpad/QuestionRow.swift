@@ -168,25 +168,48 @@ struct QuestionRowHostableContent: View {
     /// Toggles the favorite via the owning view's method (which may also clear the
     /// Favorites filter when the last star is removed), rather than the store directly.
     var onToggleFavorite: () -> Void
+    #if os(iOS)
+        @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    #endif
 
     var body: some View {
         HStack(alignment: .center, spacing: 8) {
+            if let rowAccount {
+                AccountTintRail(account: rowAccount)
+            }
             QuestionRowInfo(question: question, account: rowAccount)
                 .equatable()
                 .allowsHitTesting(false)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .clipped()
                 .layoutPriority(0)
-            FavoriteStarButton(
-                isFavorite: isFavorite,
-                title: question.displayTitle,
-                onToggle: onToggleFavorite
-            )
-            QuestionRowDateLabel(lastUsed: question.updatedAt)
+            if usesTrailingFavoriteAction {
+                QuestionRowDateLabel(lastUsed: question.updatedAt)
+                favoriteButton
+            } else {
+                favoriteButton
+                QuestionRowDateLabel(lastUsed: question.updatedAt)
+            }
         }
         .padding(.vertical, 4)
-        .padding(.trailing, 24)
+        .padRowTrailingActionInset(enabled: !usesTrailingFavoriteAction)
         .fixedFastListRowHeight()
         .fastListRowInsets()
+    }
+
+    private var favoriteButton: some View {
+        FavoriteStarButton(
+            isFavorite: isFavorite,
+            title: question.displayTitle,
+            onToggle: onToggleFavorite
+        )
+    }
+
+    private var usesTrailingFavoriteAction: Bool {
+        #if os(iOS)
+            horizontalSizeClass == .compact
+        #else
+            false
+        #endif
     }
 }

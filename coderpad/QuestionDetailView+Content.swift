@@ -9,25 +9,9 @@ extension QuestionDetailView {
     var detailScroll: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
-                header
-                propertiesCard
-                if hasMeta {
-                    metaCards
-                }
-                // The editable long-form fields (description, candidate
-                // instructions, solution) are always shown, even when empty, so
-                // they can be filled in place — there's no separate edit window
-                // anymore (#333, #335).
-                descriptionCard
-                instructionsCard
-                if !question.testCases.isEmpty {
-                    testCasesCard
-                }
-                if !question.customFiles.isEmpty {
-                    filesCard
-                }
-                starterCodeCards
-                solutionCard
+                summaryCard
+                contentModePicker
+                selectedPaneContent
             }
             .padding(.horizontal, Spacing.paneH)
             .padding(.top, Spacing.paneV)
@@ -36,37 +20,143 @@ extension QuestionDetailView {
         }
     }
 
+    var contentModePicker: some View {
+        Picker("Question detail section", selection: $selectedPane) {
+            ForEach(QuestionDetailPane.allCases) { pane in
+                Text(pane.label).tag(pane)
+            }
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+    }
+
+    @ViewBuilder
+    var selectedPaneContent: some View {
+        switch selectedPane {
+        case .prompt:
+            promptPane
+        case .materials:
+            materialsPane
+        case .solution:
+            solutionCard
+        }
+    }
+
+    var promptPane: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            // The editable prompt fields are always shown, even when empty, so
+            // they can be filled in place — there's no separate edit window
+            // anymore (#333, #335).
+            descriptionCard
+            instructionsCard
+        }
+    }
+
+    @ViewBuilder
+    var materialsPane: some View {
+        if hasMaterials {
+            VStack(alignment: .leading, spacing: 18) {
+                if !question.testCases.isEmpty {
+                    testCasesCard
+                }
+                if !question.customFiles.isEmpty {
+                    filesCard
+                }
+                starterCodeCards
+            }
+        } else {
+            Card {
+                ContentUnavailableView("No code, tests, or files", systemImage: "tray")
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
+        }
+    }
+
+    var hasMaterials: Bool {
+        !question.testCases.isEmpty
+            || !question.customFiles.isEmpty
+            || (question.contents?.isEmpty == false)
+            || (question.contentsForTestCases?.isEmpty == false && question.contentsForTestCases != question.contents)
+    }
+
+    var summaryCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            header
+            Divider()
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: 28) {
+                    summaryGroup(title: "Properties", systemImage: "slider.horizontal.3") {
+                        propertiesRows
+                    }
+                    if hasMeta {
+                        summaryGroup(title: "Activity", systemImage: "clock") {
+                            metaRows
+                        }
+                    }
+                }
+                VStack(alignment: .leading, spacing: 14) {
+                    summaryGroup(title: "Properties", systemImage: "slider.horizontal.3") {
+                        propertiesRows
+                    }
+                    if hasMeta {
+                        Divider()
+                        summaryGroup(title: "Activity", systemImage: "clock") {
+                            metaRows
+                        }
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .glassEffect(.regular, in: .rect(cornerRadius: 18))
+    }
+
     var header: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             // Actions now live in the window toolbar, so the header only carries
             // identity and the metadata chips below.
             headerIdentity
+            headerChips
+        }
+    }
+
+    var headerChips: some View {
+        ViewThatFits(in: .horizontal) {
             HStack(spacing: 8) {
-                if let lang = question.language, !lang.isEmpty {
-                    MetaLabel(text: lang.coderPadLanguageDisplayName)
-                }
-                question.interviewType.chip
-                if question.shared == true {
-                    MetaLabel(text: String(localized: "Shared"), systemImage: "person.2")
-                }
-                if question.testCasesEnabled == true {
-                    MetaLabel(text: String(localized: "Test cases"), systemImage: "checkmark.seal")
-                }
-                if question.isDraft == true {
-                    Chip(text: String(localized: "Draft"), systemImage: "doc.badge.ellipsis", tint: .orange)
-                }
-                if question.publicTakeHomeSettingID != nil {
-                    // The API exposes only the setting's ID, not the candidate-facing
-                    // public take-home URL (that link is created and copied inside
-                    // CoderPad's web app and isn't derivable from this ID). So we
-                    // surface the fact that a public link is configured, rather than
-                    // fabricating a URL that might not resolve.
-                    MetaLabel(text: String(localized: "Public link"), systemImage: "globe")
-                        .help("This question has a public take-home link configured in CoderPad. "
-                            + "Copy the link from CoderPad's web app to share it.")
-                        .accessibilityLabel("Public take-home link configured")
-                }
+                headerChipContent
             }
+            VStack(alignment: .leading, spacing: 8) {
+                headerChipContent
+            }
+        }
+    }
+
+    @ViewBuilder
+    var headerChipContent: some View {
+        if let lang = question.language, !lang.isEmpty {
+            MetaLabel(text: lang.coderPadLanguageDisplayName)
+        }
+        question.interviewType.chip
+        if question.shared == true {
+            MetaLabel(text: String(localized: "Shared"), systemImage: "person.2")
+        }
+        if question.testCasesEnabled == true {
+            MetaLabel(text: String(localized: "Test cases"), systemImage: "checkmark.seal")
+        }
+        if question.isDraft == true {
+            Chip(text: String(localized: "Draft"), systemImage: "doc.badge.ellipsis", tint: .orange)
+        }
+        if question.publicTakeHomeSettingID != nil {
+            // The API exposes only the setting's ID, not the candidate-facing
+            // public take-home URL (that link is created and copied inside
+            // CoderPad's web app and isn't derivable from this ID). So we
+            // surface the fact that a public link is configured, rather than
+            // fabricating a URL that might not resolve.
+            MetaLabel(text: String(localized: "Public link"), systemImage: "globe")
+                .help("This question has a public take-home link configured in CoderPad. "
+                    + "Copy the link from CoderPad's web app to share it.")
+                .accessibilityLabel("Public take-home link configured")
         }
     }
 
@@ -78,16 +168,16 @@ extension QuestionDetailView {
                 // control is self-owning (it holds its own draft and focus), so it takes
                 // the question's title and an async commit returning whether it saved.
                 InlineEditableTitle(title: question.title, placeholder: "Untitled Question",
-                                    isEditable: !isReadOnly, clampsWidth: true,
+                                    isEditable: !isReadOnly,
                                     font: .title.bold()) { newTitle in await commitTitle(newTitle) }
                 // Keep the question identity to one owner line under the title. When
                 // the org directory has not resolved the name, avoid exposing the raw
-                // email in the header and use the link's generic fallback label.
+                // email in the header and use the generic fallback label.
                 if let name = directory.name(for: question.ownerEmail), !name.isEmpty {
-                    OwnerPadsLink(email: question.ownerEmail)
+                    OwnerName(email: question.ownerEmail)
                         .font(.caption)
                 } else {
-                    OwnerPadsLink(email: question.ownerEmail, fallbackLabel: String(localized: "Owner"))
+                    OwnerName(email: question.ownerEmail, fallbackLabel: String(localized: "Owner"))
                         .font(.caption)
                         .lineLimit(1)
                 }
@@ -106,18 +196,32 @@ extension QuestionDetailView {
     /// than the tall, free-floating tinted tiles this used to be (#332).
     var metaCards: some View {
         DetailSection(title: "Details", systemImage: "info.circle") {
-            VStack(alignment: .leading, spacing: 6) {
-                if let used = question.used {
-                    LabeledRow(label: "Times used", value: "\(used)")
-                }
-                if let createdAt = question.createdAt {
-                    LabeledRow(label: "Created", value: createdAt.formatted(date: .long, time: .omitted))
-                }
-                if let updatedAt = question.updatedAt {
-                    LabeledRow(label: "Updated", value: updatedAt.formatted(date: .long, time: .omitted))
-                }
+            metaRows
+        }
+    }
+
+    var metaRows: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if let used = question.used {
+                LabeledRow(label: "Times used", value: "\(used)")
+            }
+            if let createdAt = question.createdAt {
+                LabeledRow(label: "Created", value: createdAt.formatted(date: .long, time: .omitted))
+            }
+            if let updatedAt = question.updatedAt {
+                LabeledRow(label: "Updated", value: updatedAt.formatted(date: .long, time: .omitted))
             }
         }
+    }
+
+    func summaryGroup(title: LocalizedStringKey, systemImage: String, @ViewBuilder content: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label(title, systemImage: systemImage)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            content()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     var instructionsCard: some View {

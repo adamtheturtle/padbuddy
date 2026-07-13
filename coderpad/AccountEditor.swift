@@ -4,6 +4,7 @@
 //
 
 import BuddyDesignSystem
+import LocalAuthentication
 import SwiftUI
 
 /// The validation status type now lives in BuddyDesignSystem (shared with RankBuddy's
@@ -66,10 +67,6 @@ struct AccountEditor: View {
     #if !os(macOS)
         @Environment(\.horizontalSizeClass) var horizontalSizeClass
     #endif
-    /// When set in General settings, revealing a saved key first requires a
-    /// successful Touch ID (or password) check — see `toggleReveal`.
-    @AppStorage(GeneralSettings.Key.requireBiometricsToRevealKey) var requireBiometricsToRevealKey = false
-
     init(initial: Account,
          embedded: Bool = false,
          isCurrent: Bool = false,
@@ -95,7 +92,7 @@ struct AccountEditor: View {
     }
 
     /// Reveals or hides the Interview API key. Hiding is immediate; revealing is gated
-    /// behind a Touch ID / password check when the user enabled that in General settings.
+    /// behind a Touch ID / password check.
     func toggleReveal() {
         toggleReveal(of: $revealKey, reason: "Reveal your saved CoderPad API key")
     }
@@ -106,19 +103,29 @@ struct AccountEditor: View {
     }
 
     /// Shared reveal/hide logic for a secure key field. Hiding is immediate; revealing
-    /// is gated behind a Touch ID / password check when the user enabled that in General
-    /// settings. If the device can't evaluate the policy (no biometrics and no passcode
-    /// set), reveal anyway rather than lock the user out of their own key.
+    /// requires a successful device owner authentication check.
     private func toggleReveal(of revealed: Binding<Bool>, reason: String) {
         if revealed.wrappedValue { revealed.wrappedValue = false; return }
 
         Task {
-            if await BiometricGate.authenticateForReveal(
-                settingEnabled: requireBiometricsToRevealKey,
-                reason: reason
-            ) {
+            if await authenticateForReveal(reason: reason) {
                 revealed.wrappedValue = true
             }
+        }
+    }
+
+    private func authenticateForReveal(reason: String) async -> Bool {
+        let context = LAContext()
+        var error: NSError?
+
+        guard context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) else {
+            return false
+        }
+
+        do {
+            return try await context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason)
+        } catch {
+            return false
         }
     }
 

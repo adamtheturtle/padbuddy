@@ -76,6 +76,23 @@ struct AccountMetaLabel: View {
     }
 }
 
+struct AccountTintRail: View {
+    let account: RowAccount
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    var body: some View {
+        Capsule(style: .continuous)
+            .fill(account.tint.opacity(contrast == .increased ? 0.95 : 0.75))
+            .frame(width: 4, height: 36)
+            .overlay {
+                if contrast == .increased {
+                    Capsule(style: .continuous).strokeBorder(Color.primary.opacity(0.35), lineWidth: 1)
+                }
+            }
+            .accessibilityHidden(true)
+    }
+}
+
 extension Color {
     static var fastListRowPrimaryLabel: Color {
         #if os(iOS)
@@ -283,16 +300,17 @@ struct FavoriteStarButton: View {
             onToggle()
         } label: {
             Image(systemName: isFavorite ? "star.fill" : "star")
-                .font(.caption)
+                .font(starFont)
                 .foregroundStyle(isFavorite ? AnyShapeStyle(.yellow) : AnyShapeStyle(.secondary))
                 .contentTransition(.symbolEffect(.replace))
+                .frame(width: minimumTouchTarget, height: minimumTouchTarget)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         // Light tactile confirmation on touch devices; a no-op on macOS (#611).
         .sensoryFeedback(.impact(flexibility: .soft), trigger: feedbackTrigger)
-        // The caption-size star is a ~15pt target tuned for a pointer; on iPad it's
-        // always shown (no hover) so it must also be comfortably tappable - give it a
-        // 44pt hit area on touch (no-op on macOS, #597).
+        // The star is small visually, but its layout slot is the 44pt touch minimum on
+        // touch devices so the tappable area matches where the control appears.
         .touchTarget()
         // Highlight the star under the iPad trackpad/Magic Keyboard pointer (#586).
         .pointerHoverEffect()
@@ -306,6 +324,22 @@ struct FavoriteStarButton: View {
             .help(isFavorite ? "Remove from Favorites" : "Add to Favorites")
             .accessibilityLabel(isFavorite ? "Remove \(title) from Favorites"
                 : "Add \(title) to Favorites")
+    }
+
+    private var starFont: Font {
+        #if os(iOS)
+            .body
+        #else
+            .caption
+        #endif
+    }
+
+    private var minimumTouchTarget: CGFloat {
+        #if os(iOS)
+            44
+        #else
+            18
+        #endif
     }
 }
 
@@ -344,9 +378,15 @@ struct PadRowHostableContent: View {
     /// invisible to memoization) and threaded in as a compared value, so the
     /// recently-updated dot gains a contrasting outline under Increase Contrast (#616).
     @Environment(\.colorSchemeContrast) private var contrast
+    #if os(iOS)
+        @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    #endif
 
     var body: some View {
         HStack(alignment: .center, spacing: 8) {
+            if let rowAccount {
+                AccountTintRail(account: rowAccount)
+            }
             PadRowInfo(
                 pad: pad,
                 isChanged: isChanged,
@@ -359,16 +399,33 @@ struct PadRowHostableContent: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .clipped()
             .layoutPriority(0)
-            FavoriteStarButton(
-                isFavorite: isFavorite,
-                title: pad.title.isEmpty ? pad.id : pad.title,
-                onToggle: onToggleFavorite
-            )
-            PadRowDateLabel(updated: pad.informativeUpdatedAt)
+            if usesTrailingFavoriteAction {
+                PadRowDateLabel(updated: pad.informativeUpdatedAt)
+                favoriteButton
+            } else {
+                favoriteButton
+                PadRowDateLabel(updated: pad.informativeUpdatedAt)
+            }
         }
         .padding(.vertical, 4)
-        .padding(.trailing, 24)
+        .padRowTrailingActionInset(enabled: !usesTrailingFavoriteAction)
         .fixedFastListRowHeight()
         .fastListRowInsets()
+    }
+
+    private var favoriteButton: some View {
+        FavoriteStarButton(
+            isFavorite: isFavorite,
+            title: pad.title.isEmpty ? pad.id : pad.title,
+            onToggle: onToggleFavorite
+        )
+    }
+
+    private var usesTrailingFavoriteAction: Bool {
+        #if os(iOS)
+            horizontalSizeClass == .compact
+        #else
+            false
+        #endif
     }
 }

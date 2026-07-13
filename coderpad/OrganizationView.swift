@@ -60,6 +60,13 @@ struct OrganizationView: View {
     @State private var customStart = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
     @State private var customEnd = Date()
 
+    init(client: CoderPadClient) {
+        self.client = client
+        let accountID = AccountsStore.shared.currentAccountID
+        _organization = State(initialValue: accountID.flatMap { OrganizationCacheStore.shared.get($0) })
+        _quota = State(initialValue: accountID.flatMap { QuotaCacheStore.shared.get($0) })
+    }
+
     /// Resolved (start, end) window for the active period, falling back to the
     /// custom pickers when no preset range applies.
     private var window: (start: Date, end: Date) {
@@ -247,29 +254,22 @@ struct OrganizationView: View {
                     .focused($userSearchFocused)
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 240), spacing: 10)], alignment: .leading, spacing: 10) {
                     ForEach(users) { user in
-                        Button {
-                            AppNavigation.shared.showPads(PadsRequest(ownerEmail: user.email))
-                        } label: {
-                            HStack(spacing: 10) {
-                                AvatarCircle(label: user.name ?? user.email, diameter: 32)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(user.name ?? user.email)
-                                        .font(.callout.weight(.medium))
-                                        .lineLimit(1)
-                                    Text(user.email)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(1)
-                                }
-                                Spacer(minLength: 0)
+                        HStack(spacing: 10) {
+                            AvatarCircle(label: user.name ?? user.email, diameter: 32)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(user.name ?? user.email)
+                                    .font(.callout.weight(.medium))
+                                    .lineLimit(1)
+                                Text(user.email)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
                             }
-                            .padding(10)
-                            .background(Color.subtleStroke.opacity(0.5),
-                                        in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
-                            .contentShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
+                            Spacer(minLength: 0)
                         }
-                        .buttonStyle(.plain)
-                        .help("Show pads owned by \(user.name ?? user.email)")
+                        .padding(10)
+                        .background(Color.subtleStroke.opacity(0.5),
+                                    in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
                     }
                 }
             }

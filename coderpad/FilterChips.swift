@@ -23,6 +23,9 @@ struct DateRangeFilterChip: View {
     @State private var showCustom = false
     @State private var draftStart = Date()
     @State private var draftEnd = Date()
+    #if os(iOS)
+        @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    #endif
 
     private var isCustom: Bool {
         window.customStart != nil || window.customEnd != nil
@@ -42,6 +45,14 @@ struct DateRangeFilterChip: View {
 
     private var labelColor: Color {
         chipLabelColor(isActive: isActive)
+    }
+
+    private var isCompactWidth: Bool {
+        #if os(iOS)
+            horizontalSizeClass == .compact
+        #else
+            false
+        #endif
     }
 
     /// No dashes in user-facing copy (house style): join the two dates with "to".
@@ -96,23 +107,86 @@ struct DateRangeFilterChip: View {
                 }
             }
         )
-        .popover(isPresented: $showCustom, arrowEdge: .top) { customPopover }
+        .popover(isPresented: $showCustom, arrowEdge: .top) {
+            #if os(iOS)
+                customPopover
+                    .presentationDetents(isCompactWidth ? [.medium, .large] : [.large])
+                    .presentationDragIndicator(isCompactWidth ? .visible : .hidden)
+            #else
+                customPopover
+            #endif
+        }
     }
 
+    @ViewBuilder
     private var customPopover: some View {
+        if isCompactWidth {
+            #if os(iOS)
+                NavigationStack {
+                    compactCustomPopover
+                        .navigationTitle("Custom \(title) Range")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar { compactCustomToolbar }
+                }
+            #else
+                compactCustomPopover
+            #endif
+        } else {
+            regularCustomPopover
+        }
+    }
+
+    private var regularCustomPopover: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Custom \(title) Range").font(.headline)
-            DatePicker("From", selection: $draftStart, displayedComponents: .date)
-            DatePicker("To", selection: $draftEnd, in: draftStart..., displayedComponents: .date)
+            dateFields
             HStack {
                 Spacer()
-                Button("Cancel") { showCustom = false }
-                Button("Apply") { applyCustom() }
-                    .keyboardShortcut(.defaultAction)
+                actionButtons
             }
         }
         .padding(16)
         .frame(width: 280)
+    }
+
+    private var compactCustomPopover: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            VStack(spacing: 0) {
+                dateFields
+                    .padding(.vertical, 4)
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 16)
+
+            Spacer(minLength: 0)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    @ToolbarContentBuilder
+    private var compactCustomToolbar: some ToolbarContent {
+        ToolbarItem(placement: .cancellationAction) {
+            Button("Cancel", role: .cancel) { showCustom = false }
+        }
+        ToolbarItem(placement: .confirmationAction) {
+            Button("Apply") { applyCustom() }
+                .keyboardShortcut(.defaultAction)
+        }
+    }
+
+    private var dateFields: some View {
+        VStack(spacing: 10) {
+            DatePicker("From", selection: $draftStart, displayedComponents: .date)
+            DatePicker("To", selection: $draftEnd, in: draftStart..., displayedComponents: .date)
+        }
+    }
+
+    private var actionButtons: some View {
+        HStack(spacing: 12) {
+            Button("Cancel") { showCustom = false }
+            Button("Apply") { applyCustom() }
+                .keyboardShortcut(.defaultAction)
+        }
     }
 
     /// Seed the picker from the active custom range, or default to the last seven

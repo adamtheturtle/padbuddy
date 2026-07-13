@@ -5,6 +5,23 @@
 
 import SwiftUI
 
+enum QuestionDetailPane: String, CaseIterable, Identifiable {
+    case prompt
+    case materials
+    case solution
+
+    var id: Self { self }
+
+    var label: LocalizedStringKey {
+        switch self {
+        case .prompt: "Prompt"
+        case .materials: "Materials"
+        case .solution: "Solution"
+        }
+    }
+
+}
+
 struct QuestionDetailView: View {
     let client: CoderPadClient
     let question: Question
@@ -36,6 +53,7 @@ struct QuestionDetailView: View {
     @State var draftLanguage = "python3"
     @State var draftPadType = "live"
     @State var editError: String?
+    @State var selectedPane: QuestionDetailPane = .prompt
     @FocusState var titleFocused: Bool
 
     private var detailToolbarLeadingPlacement: ToolbarItemPlacement {

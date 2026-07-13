@@ -27,9 +27,27 @@ struct ScreenInviteSheet: View {
     @State private var result: ScreenInvitationResult?
 
     var body: some View {
+        #if os(iOS)
+            NavigationStack {
+                sheetContent
+                    .padding()
+                    .navigationTitle(result == nil ? "Invite Candidate" : "Invitation Sent")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar { sheetToolbar }
+            }
+        #else
+            VStack(alignment: .leading, spacing: 16) {
+                Text(result == nil ? "Invite Candidate" : "Invitation Sent")
+                    .font(.title3.bold())
+                sheetContent
+            }
+            .padding(20)
+            .frame(width: 420)
+        #endif
+    }
+
+    private var sheetContent: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(result == nil ? "Invite Candidate" : "Invitation Sent")
-                .font(.title3.bold())
             Text(campaign.name)
                 .font(.callout)
                 .foregroundStyle(.secondary)
@@ -40,8 +58,6 @@ struct ScreenInviteSheet: View {
                 form
             }
         }
-        .padding(20)
-        .frame(width: 420)
     }
 
     private var form: some View {
@@ -64,22 +80,13 @@ struct ScreenInviteSheet: View {
                     .foregroundStyle(.red)
             }
 
-            HStack {
-                Spacer()
-                Button("Cancel", role: .cancel) { dismiss() }
-                Button {
-                    Task { await send() }
-                } label: {
-                    if isSending {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Text("Send")
-                    }
+            #if os(macOS)
+                HStack {
+                    Spacer()
+                    Button("Cancel", role: .cancel) { dismiss() }
+                    sendButton
                 }
-                .buttonStyle(.borderedProminent)
-                .keyboardShortcut(.defaultAction)
-                .disabled(isSending || sendDisabled)
-            }
+            #endif
         }
     }
 
@@ -112,16 +119,57 @@ struct ScreenInviteSheet: View {
                     .foregroundStyle(.secondary)
             }
 
-            HStack {
-                Spacer()
-                Button("Done") {
-                    onSent()
-                    dismiss()
+            #if os(macOS)
+                HStack {
+                    Spacer()
+                    doneButton
                 }
-                .buttonStyle(.borderedProminent)
-                .keyboardShortcut(.defaultAction)
+            #endif
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var sheetToolbar: some ToolbarContent {
+        if result == nil {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel", role: .cancel) { dismiss() }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                sendButton
+            }
+        } else {
+            ToolbarItem(placement: .confirmationAction) {
+                doneButton
             }
         }
+    }
+
+    private var sendButton: some View {
+        Button {
+            Task { await send() }
+        } label: {
+            if isSending {
+                ProgressView().controlSize(.small)
+            } else {
+                Text("Send")
+            }
+        }
+        #if os(macOS)
+            .buttonStyle(.borderedProminent)
+        #endif
+        .keyboardShortcut(.defaultAction)
+        .disabled(isSending || sendDisabled)
+    }
+
+    private var doneButton: some View {
+        Button("Done") {
+            onSent()
+            dismiss()
+        }
+        #if os(macOS)
+            .buttonStyle(.borderedProminent)
+        #endif
+        .keyboardShortcut(.defaultAction)
     }
 
     /// When emailing the candidate, an address is required; without the email toggle the

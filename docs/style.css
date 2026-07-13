@@ -164,6 +164,62 @@ section { margin: 0 0 40px; }
 
 h2 { font-size: 1.4rem; margin: 0 0 .6em; }
 
+/* --- Device screenshots --------------------------------------------------- */
+
+.device-shots {
+  margin: 32px auto 64px;
+}
+
+.device-shots__header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.device-shots__header h2 {
+  font-size: 2rem;
+  letter-spacing: -0.01em;
+  margin-bottom: .2em;
+}
+
+.device-shots__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(190px, .32fr);
+  align-items: end;
+  gap: clamp(24px, 5vw, 56px);
+}
+
+.device-shot {
+  margin: 0;
+}
+
+.device-shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--line);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.30);
+}
+
+.device-shot--ipad img {
+  border-radius: 18px;
+}
+
+.device-shot--iphone {
+  max-width: 260px;
+}
+
+.device-shot--iphone img {
+  border-radius: 34px;
+}
+
+.device-shot figcaption {
+  color: var(--muted);
+  font-size: .86rem;
+  font-weight: 600;
+  margin-top: .8rem;
+  text-align: center;
+}
+
 /* --- Feature grid --------------------------------------------------------- */
 
 /* Mimestream-style: each feature is a colourful glyph + title on one row, with
@@ -186,6 +242,14 @@ h2 { font-size: 1.4rem; margin: 0 0 .6em; }
   margin: 0 0 .5em;
 }
 .feature p { color: var(--muted); margin: 0; }
+.feature__note {
+  font-size: .78rem;
+  font-weight: 600;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  opacity: .78;
+  margin-top: .65rem !important;
+}
 
 /* The glyph carries its colour via an ic-* class (svg stroke is currentColor). */
 .feature__icon {
@@ -202,6 +266,20 @@ h2 { font-size: 1.4rem; margin: 0 0 .6em; }
 .ic-teal { color: #35c2c2; }
 
 @media (max-width: 880px) {
+  .device-shots__grid {
+    grid-template-columns: 1fr;
+    justify-items: center;
+  }
+
+  .device-shot--ipad {
+    width: min(100%, 680px);
+  }
+
+  .device-shot--iphone {
+    width: min(72vw, 300px);
+    max-width: none;
+  }
+
   .features-grid { grid-template-columns: repeat(2, 1fr); }
 }
 

@@ -157,48 +157,110 @@ private struct SearchableFilterPopover: View {
     @Binding var search: String
     var meEmail: String?
 
+    #if os(iOS)
+        @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    #endif
+
+    private var isCompactWidth: Bool {
+        #if os(iOS)
+            horizontalSizeClass == .compact
+        #else
+            false
+        #endif
+    }
+
     var body: some View {
+        #if os(iOS)
+            popoverContent
+                .presentationDetents(isCompactWidth ? [.medium, .large] : [.large])
+                .presentationDragIndicator(isCompactWidth ? .visible : .hidden)
+        #else
+            popoverContent
+        #endif
+    }
+
+    @ViewBuilder
+    private var popoverContent: some View {
+        if isCompactWidth {
+            compactContent
+        } else {
+            regularContent
+        }
+    }
+
+    private var regularContent: some View {
         VStack(spacing: 0) {
-            TextField("Search \(title.lowercased())", text: $search)
-                .textFieldStyle(.roundedBorder)
+            searchField
                 .padding(Spacing.popoverInset)
             Divider()
             ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    if let meEmail {
-                        PopoverSelectionRow(
-                            label: String(localized: "Me"),
-                            subtitle: formatter(meEmail) == meEmail ? meEmail : formatter(meEmail),
-                            isSelected: selected == meEmail
-                        ) {
-                            selected = meEmail
-                            presented = false
-                        }
-                        Divider()
-                    }
-                    PopoverSelectionRow(label: String(localized: "All"), subtitle: nil, isSelected: selected == nil) {
-                        selected = nil
-                        presented = false
-                    }
-                    Divider()
-                    ForEach(options, id: \.self) { option in
-                        PopoverSelectionRow(
-                            label: formatter(option),
-                            subtitle: formatter(option) == option ? nil : option,
-                            isSelected: option == selected
-                        ) {
-                            selected = option
-                            presented = false
-                        }
-                    }
-                    if options.isEmpty {
-                        Text("No matches")
-                            .font(.callout).foregroundStyle(.secondary)
-                            .padding(Spacing.popoverInset)
-                    }
-                }
+                rows
             }
             .frame(width: 320, height: 320)
+        }
+    }
+
+    private var compactContent: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(title)
+                .font(.headline)
+                .padding(.horizontal, 16)
+                .padding(.top, 16)
+                .padding(.bottom, 10)
+
+            searchField
+                .padding(.horizontal, 16)
+                .padding(.bottom, 12)
+
+            Divider()
+
+            ScrollView {
+                rows
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+    }
+
+    private var searchField: some View {
+        TextField("Search \(title.lowercased())", text: $search)
+            .textFieldStyle(.roundedBorder)
+    }
+
+    private var rows: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            if let meEmail {
+                PopoverSelectionRow(
+                    label: String(localized: "Me"),
+                    subtitle: formatter(meEmail) == meEmail ? meEmail : formatter(meEmail),
+                    isSelected: selected == meEmail
+                ) {
+                    selected = meEmail
+                    presented = false
+                }
+                Divider()
+            }
+            PopoverSelectionRow(label: String(localized: "All"), subtitle: nil, isSelected: selected == nil) {
+                selected = nil
+                presented = false
+            }
+            Divider()
+            ForEach(options, id: \.self) { option in
+                PopoverSelectionRow(
+                    label: formatter(option),
+                    subtitle: formatter(option) == option ? nil : option,
+                    isSelected: option == selected
+                ) {
+                    selected = option
+                    presented = false
+                }
+            }
+            if options.isEmpty {
+                Text("No matches")
+                    .font(.callout).foregroundStyle(.secondary)
+                    .padding(Spacing.popoverInset)
+            }
         }
     }
 }

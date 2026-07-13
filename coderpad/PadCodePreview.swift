@@ -171,6 +171,9 @@ struct EnvironmentCodeCard: View {
     /// without the card's fixed 360-tall viewport. Tap/click the expand button to
     /// open it; the file list and selection carry over.
     @State var showFullCode = false
+    #if os(iOS)
+        @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    #endif
 
     var selected: CodeFile {
         files.first { $0.id == selectedFileID } ?? files.first ?? .placeholder

@@ -9,27 +9,58 @@
 import SwiftUI
 
 extension EnvironmentCodeCard {
+    @ViewBuilder
     var header: some View {
-        HStack {
-            // Keep the title on one line: on iPad the trailing action buttons can
-            // claim the whole row, and without this SwiftUI compresses the header
-            // label to a one-character-wide column that reads as vertical text.
-            SectionHeader(title: "Code", systemImage: "chevron.left.slash.chevron.right")
-                .fixedSize()
-            // When several environments are stacked, flag the active one so the
-            // cards don't blur together — the one state here that genuinely needs
-            // to pop, so it keeps the green capsule (matching an active pad's
-            // StateBadge). The language label below names each.
-            if showActiveBadge, isActive {
-                Chip(text: String(localized: "Active"), systemImage: "checkmark.seal", tint: .green)
+        if isCompactPhone {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack {
+                    codeTitle
+                    if showActiveBadge, isActive {
+                        activeChip
+                    }
+                    Spacer()
+                    headerActions
+                }
+                if let language, !language.isEmpty {
+                    MetaLabel(text: language.coderPadLanguageDisplayName)
+                }
             }
-            // The language is informational, so it sits with the title and badge
-            // on the left rather than among the action buttons — otherwise the
-            // gray label reads as a fourth tappable control next to them.
-            if let language, !language.isEmpty {
-                MetaLabel(text: language.coderPadLanguageDisplayName)
+        } else {
+            HStack {
+                codeTitle
+                if showActiveBadge, isActive {
+                    activeChip
+                }
+                // The language is informational, so it sits with the title and badge
+                // on the left rather than among the action buttons — otherwise the
+                // gray label reads as a fourth tappable control next to them.
+                if let language, !language.isEmpty {
+                    MetaLabel(text: language.coderPadLanguageDisplayName)
+                }
+                Spacer()
+                headerActions
             }
-            Spacer()
+        }
+    }
+
+    private var codeTitle: some View {
+        // Keep the title on one line: on iPad the trailing action buttons can
+        // claim the whole row, and without this SwiftUI compresses the header
+        // label to a one-character-wide column that reads as vertical text.
+        SectionHeader(title: "Code", systemImage: "chevron.left.slash.chevron.right")
+            .fixedSize()
+    }
+
+    private var activeChip: some View {
+        // When several environments are stacked, flag the active one so the
+        // cards don't blur together — the one state here that genuinely needs
+        // to pop, so it keeps the green capsule (matching an active pad's
+        // StateBadge). The language label below names each.
+        Chip(text: String(localized: "Active"), systemImage: "checkmark.seal", tint: .green)
+    }
+
+    private var headerActions: some View {
+        HStack(spacing: isCompactPhone ? 2 : 8) {
             // These per-file actions live in the header rather than over the code.
             // Copy is the exception: it's overlaid inside the code block (top-right,
             // hover-revealed) since that's the conventional place users look for it.
@@ -39,6 +70,14 @@ extension EnvironmentCodeCard {
             expandButton
             downloadButton
         }
+    }
+
+    private var isCompactPhone: Bool {
+        #if os(iOS)
+            horizontalSizeClass == .compact
+        #else
+            false
+        #endif
     }
 
     /// Header button that opens the code in a large, full-screen viewer. The
@@ -232,6 +271,7 @@ extension EnvironmentCodeCard {
                 // rather than showing the raw `**…**`/backtick markers as text (#342).
                 MarkdownText(text)
                     .font(.callout)
+                    .environment(\.isRasterizedForPrint, true)
             }
         }
     }

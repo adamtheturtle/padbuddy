@@ -227,10 +227,10 @@ struct CloudSyncTests {
     }
 
     @Test
-    func `device-local and sensitive preferences are excluded from sync`() {
-        // The biometric reveal gate is a per-device security choice and must never sync;
-        // a representative continuity preference must.
-        #expect(!PreferenceCloudSync.syncedKeys.contains("general.requireBiometricsToRevealKey"))
+    func `sensitive preferences are excluded from sync`() {
+        // A representative legacy credential preference must never sync; a representative
+        // continuity preference must.
+        #expect(!PreferenceCloudSync.syncedKeys.contains("coderPadAPIKey"))
         #expect(PreferenceCloudSync.syncedKeys.contains("general.appearance"))
     }
 }

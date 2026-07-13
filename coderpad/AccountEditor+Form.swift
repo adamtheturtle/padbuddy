@@ -92,8 +92,7 @@ extension AccountEditor {
                     VStack(alignment: .leading, spacing: 4) {
                         OrgMemberPicker(
                             selection: $draft.userEmail,
-                            options: emailOptions,
-                            label: emailLabel,
+                            users: orgUsers,
                             isLoading: isLoadingMembers,
                             // Fetch the org's member list only when the user opens the
                             // picker to choose a different member, rather than eagerly on

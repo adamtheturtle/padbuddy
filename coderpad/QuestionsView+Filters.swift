@@ -46,6 +46,26 @@ extension QuestionsView {
         draftFilter = saved.draftFilter
     }
 
+    func clearAllFilters() {
+        search = ""
+        languageFilter = nil
+        ownerFilter = nil
+        typeFilter = nil
+        draftFilter = nil
+        favoritesOnly = false
+    }
+
+    var hasActiveFilters: Bool {
+        !search.isEmpty || languageFilter != nil || ownerFilter != nil || typeFilter != nil
+            || draftFilter != nil || favoritesOnly
+    }
+
+    func isActiveSearch(_ saved: NamedSearch) -> Bool {
+        !favoritesOnly && search == saved.search && languageFilter == saved.languageFilter
+            && ownerFilter == saved.ownerFilter && typeFilter == saved.typeFilter
+            && draftFilter == saved.draftFilter
+    }
+
     func captureCurrentSearch(named name: String) -> NamedSearch {
         NamedSearch(
             name: name, search: search,

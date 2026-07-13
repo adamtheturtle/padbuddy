@@ -43,9 +43,40 @@ struct NewPadSheet: View {
     @State private var users: [OrganizationUser] = []
 
     var body: some View {
-        VStack(alignment: .leading, spacing: Spacing.sheetGap) {
-            Text("New Pad").font(.title3.bold())
+        sheetContent
+            .task { await loadQuestions() }
+            .task { await loadOrganization() }
+            .task { applyOrgDefaultLanguage() }
+            .onChange(of: directory.defaultLanguage) { _, _ in applyOrgDefaultLanguage() }
+    }
 
+    @ViewBuilder
+    private var sheetContent: some View {
+        #if os(iOS)
+            NavigationStack {
+                formContent
+                    .padding()
+                    .navigationTitle("New Pad")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar { sheetToolbar }
+            }
+            // iPad sizes to a resizable detent and shows a drag indicator so the form
+            // reads as dismissible (#610).
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+        #else
+            VStack(alignment: .leading, spacing: Spacing.sheetGap) {
+                Text("New Pad").font(.title3.bold())
+                formContent
+                actionButtons
+            }
+            .padding()
+            .frame(minWidth: 460, minHeight: 360)
+        #endif
+    }
+
+    private var formContent: some View {
+        VStack(alignment: .leading, spacing: Spacing.sheetGap) {
             Form {
                 TextField("Title", text: $title, prompt: Text("Optional, e.g. \"Onsite: Jane Doe\""))
 
@@ -99,36 +130,39 @@ struct NewPadSheet: View {
                     .foregroundStyle(.orange)
                     .font(.callout)
             }
+        }
+    }
 
-            HStack {
-                Spacer()
-                Button("Cancel", role: .cancel, action: onCancel)
-                Button {
-                    Task { await submit() }
-                } label: {
-                    if isSubmitting {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Text("Create")
-                    }
-                }
-                .keyboardShortcut(.defaultAction)
-                .disabled(isSubmitting)
+    private var actionButtons: some View {
+        HStack {
+            Spacer()
+            Button("Cancel", role: .cancel, action: onCancel)
+            createButton
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var sheetToolbar: some ToolbarContent {
+        ToolbarItem(placement: .cancellationAction) {
+            Button("Cancel", role: .cancel, action: onCancel)
+        }
+        ToolbarItem(placement: .confirmationAction) {
+            createButton
+        }
+    }
+
+    private var createButton: some View {
+        Button {
+            Task { await submit() }
+        } label: {
+            if isSubmitting {
+                ProgressView().controlSize(.small)
+            } else {
+                Text("Create")
             }
         }
-        .padding()
-        // macOS sizes the sheet with a fixed frame; iPad sizes to a resizable detent and
-        // shows a drag indicator so the form reads as dismissible (#610).
-        #if os(macOS)
-            .frame(minWidth: 460, minHeight: 360)
-        #else
-            .presentationDetents([.large])
-            .presentationDragIndicator(.visible)
-        #endif
-            .task { await loadQuestions() }
-            .task { await loadOrganization() }
-            .task { applyOrgDefaultLanguage() }
-            .onChange(of: directory.defaultLanguage) { _, _ in applyOrgDefaultLanguage() }
+        .keyboardShortcut(.defaultAction)
+        .disabled(isSubmitting)
     }
 
     /// The language picker's binding, marking the choice as user-made so the org

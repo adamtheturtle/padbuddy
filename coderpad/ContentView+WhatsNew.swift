@@ -71,26 +71,60 @@ struct OpenPadURLSheet: View {
     }
 
     var body: some View {
+        #if os(iOS)
+            NavigationStack {
+                sheetFields
+                    .padding()
+                    .navigationTitle("Open Pad by URL")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar { sheetToolbar }
+            }
+        #else
+            VStack(alignment: .leading, spacing: 14) {
+                Text("Open Pad by URL").font(.title3.bold())
+                    .accessibilityAddTraits(.isHeader)
+                sheetFields
+                actionButtons
+            }
+            .padding()
+            .frame(minWidth: 480)
+        #endif
+    }
+
+    private var sheetFields: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Open Pad by URL").font(.title3.bold())
-                .accessibilityAddTraits(.isHeader)
             Text("Paste a CoderPad pad URL. It opens in your browser.")
                 .foregroundStyle(.secondary)
                 .font(.callout)
             TextField("https://app.coderpad.io/…", text: $urlString)
                 .textFieldStyle(.roundedBorder)
                 .onSubmit { if let url = parsedURL { onSubmit(url) } }
-            HStack {
-                Spacer()
-                Button("Cancel", role: .cancel, action: onCancel)
-                Button("Open") {
-                    if let url = parsedURL { onSubmit(url) }
-                }
-                .keyboardShortcut(.defaultAction)
-                .disabled(parsedURL == nil)
-            }
         }
-        .padding()
-        .frame(minWidth: 480)
+    }
+
+    private var actionButtons: some View {
+        HStack {
+            Spacer()
+            Button("Cancel", role: .cancel, action: onCancel)
+            openButton
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var sheetToolbar: some ToolbarContent {
+        ToolbarItem(placement: .cancellationAction) {
+            Button("Cancel", role: .cancel, action: onCancel)
+        }
+        ToolbarItem(placement: .confirmationAction) {
+            openButton
+        }
+    }
+
+    private var openButton: some View {
+        Button("Open") {
+            if let url = parsedURL { onSubmit(url) }
+        }
+        .keyboardShortcut(.defaultAction)
+        .disabled(parsedURL == nil)
     }
 }

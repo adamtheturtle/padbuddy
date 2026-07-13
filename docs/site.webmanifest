@@ -1,7 +1,7 @@
 {
   "name": "PadBuddy",
   "short_name": "PadBuddy",
-  "description": "A native macOS app for your CoderPad pads and questions, with a built-in MCP server.",
+  "description": "A native app for your CoderPad pads and questions on Mac, iPhone, and iPad.",
   "icons": [
     { "src": "assets/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "assets/icon-512.png", "sizes": "512x512", "type": "image/png" },

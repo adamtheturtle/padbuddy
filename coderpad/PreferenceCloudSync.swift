@@ -15,8 +15,9 @@
 //  the subsequent push a no-op and the system converges.
 //
 //  A no-op whenever iCloud is unavailable, so the Developer ID build (which can't carry
-//  the ubiquity entitlement) behaves exactly as before. Credentials and device-local
-//  choices (the biometric reveal gate, launch-at-login) are deliberately excluded.
+//  the ubiquity entitlement) behaves exactly as before. Credentials deliberately stay
+//  out of this KVS mirror; saved accounts use the system iCloud Keychain path instead
+//  (#678). Device-local choices such as launch-at-login are also excluded.
 //
 
 import Foundation
@@ -27,8 +28,7 @@ final class PreferenceCloudSync {
 
     /// The UserDefaults keys that sync, gathered here so the policy is auditable in one
     /// place against the #536 inventory. Anything not listed stays device-local - most
-    /// importantly the keychain (credentials), `general.requireBiometricsToRevealKey`
-    /// (a per-device security choice), and window/UI state.
+    /// importantly credentials (handled by iCloud Keychain, not KVS) and window/UI state.
     static let syncedKeys: [String] = [
         // Continuity preferences.
         "pads.sort",
@@ -39,7 +39,6 @@ final class PreferenceCloudSync {
         "general.appearance",
         "general.presence",
         "general.dockBadgeScope",
-        "general.refreshSeconds",
         "general.spotlightIndexing",
         "general.notifyOnPadUpdates",
         "browser.defaultBrowserBundleID",

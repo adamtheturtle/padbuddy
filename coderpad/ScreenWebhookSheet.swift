@@ -22,28 +22,54 @@ struct ScreenWebhookSheet: View {
     @State private var confirmRemove = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Screen Webhook")
-                .font(.title3.bold())
-            Text("CoderPad Screen sends test-session events (started, completed, …) to this URL.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
-
-            if isLoading {
-                ProgressView().frame(maxWidth: .infinity)
-            } else {
-                content
+        sheetContent
+            .task { await load() }
+            .confirmationDialog("Remove the webhook?",
+                                isPresented: $confirmRemove, titleVisibility: .visible) {
+                Button("Remove Webhook", role: .destructive) { Task { await remove() } }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Screen will stop sending event callbacks until a new webhook is set.")
             }
-        }
-        .padding(20)
-        .frame(width: 440)
-        .task { await load() }
-        .confirmationDialog("Remove the webhook?",
-                            isPresented: $confirmRemove, titleVisibility: .visible) {
-            Button("Remove Webhook", role: .destructive) { Task { await remove() } }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("Screen will stop sending event callbacks until a new webhook is set.")
+    }
+
+    @ViewBuilder
+    private var sheetContent: some View {
+        #if os(iOS)
+            NavigationStack {
+                VStack(alignment: .leading, spacing: 16) {
+                    description
+                    loadingOrContent
+                }
+                .padding()
+                .navigationTitle("Screen Webhook")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar { sheetToolbar }
+            }
+        #else
+            VStack(alignment: .leading, spacing: 16) {
+                Text("Screen Webhook")
+                    .font(.title3.bold())
+                description
+                loadingOrContent
+            }
+            .padding(20)
+            .frame(width: 440)
+        #endif
+    }
+
+    private var description: some View {
+        Text("CoderPad Screen sends test-session events (started, completed, …) to this URL.")
+            .font(.callout)
+            .foregroundStyle(.secondary)
+    }
+
+    @ViewBuilder
+    private var loadingOrContent: some View {
+        if isLoading {
+            ProgressView().frame(maxWidth: .infinity)
+        } else {
+            content
         }
     }
 
@@ -73,22 +99,40 @@ struct ScreenWebhookSheet: View {
                     Button("Remove", role: .destructive) { confirmRemove = true }
                         .disabled(isSaving)
                 }
-                Spacer()
-                Button("Cancel", role: .cancel) { dismiss() }
-                Button {
-                    Task { await save() }
-                } label: {
-                    if isSaving {
-                        ProgressView().controlSize(.small)
-                    } else {
-                        Text("Save")
-                    }
-                }
-                .buttonStyle(.borderedProminent)
-                .keyboardShortcut(.defaultAction)
-                .disabled(isSaving || !isValidHTTPS)
+                #if os(macOS)
+                    Spacer()
+                    Button("Cancel", role: .cancel) { dismiss() }
+                    saveButton
+                #endif
             }
         }
+    }
+
+    @ToolbarContentBuilder
+    private var sheetToolbar: some ToolbarContent {
+        ToolbarItem(placement: .cancellationAction) {
+            Button("Cancel", role: .cancel) { dismiss() }
+        }
+        ToolbarItem(placement: .confirmationAction) {
+            saveButton
+        }
+    }
+
+    private var saveButton: some View {
+        Button {
+            Task { await save() }
+        } label: {
+            if isSaving {
+                ProgressView().controlSize(.small)
+            } else {
+                Text("Save")
+            }
+        }
+        #if os(macOS)
+            .buttonStyle(.borderedProminent)
+        #endif
+        .keyboardShortcut(.defaultAction)
+        .disabled(isSaving || !isValidHTTPS)
     }
 
     /// Whether the trimmed URL is a syntactically valid https URL with a host.

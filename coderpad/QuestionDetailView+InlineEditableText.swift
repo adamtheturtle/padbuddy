@@ -46,14 +46,14 @@ struct InlineEditableText: View {
                         .font(.callout)
                         .foregroundStyle(.tertiary)
                 } else {
-                    // `MarkdownText` already enables Textual's cross-block text
-                    // selection internally; layering a second native
-                    // `.textSelection(.enabled)` here wraps those many blocks in a
-                    // duplicate selection scope whose internal layout-collection
-                    // observer fires multiple times per frame (a SwiftUICore fault).
+                    // Textual's selectable-markdown overlay observes SwiftUI text
+                    // layout internally. In this inline editor shell the hover/edit
+                    // controls can rebuild the block tree repeatedly in one frame,
+                    // which trips SwiftUICore's layout-collection fault.
                     MarkdownText(text)
                         .font(.callout)
                         .foregroundStyle(.primary)
+                        .environment(\.isRasterizedForPrint, true)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

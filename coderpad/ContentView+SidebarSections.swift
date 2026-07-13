@@ -85,29 +85,15 @@ extension Sidebar {
 
     /// A top-level section row in the `List`. Carries its `AppSection` as the selection
     /// tag and reports its label width so the column floor still fits the longest label
-    /// (`SidebarRowWidthKey`). The native sidebar list paints the selection highlight, so
-    /// the row is a plain `Label` rather than the old hand-painted button.
+    /// (`SidebarRowWidthKey`). The native sidebar list paints the selection highlight; the
+    /// section tint is restricted to the glyph via `listItemTint`, matching platform sidebar
+    /// conventions without turning the row into a coloured tile.
     func sectionRow(_ value: AppSection) -> some View {
-        let meta = Self.sectionMeta(value)
-        // Plain native sidebar `Label` — a subtle monochrome glyph, the standard
-        // source-list look — rather than the tinted icon tile that read as too
-        // jazzy (#398, reverting #352's tile experiment).
-        return Label(meta.label, systemImage: meta.icon)
+        Label(value.label, systemImage: value.systemImage)
             .tag(value)
-            .measuresSidebarRowWidth(meta.label)
+            .listItemTint(.fixed(value.navigationTint))
+            .measuresSidebarRowWidth(value.label)
             .accessibilityAddTraits(isRootSelected(value) ? .isSelected : [])
-    }
-
-    /// The label and SF Symbol for each navigable top-level section, in one place so the
-    /// rows and any width measurement agree.
-    private static func sectionMeta(_ value: AppSection) -> (label: LocalizedStringKey, icon: String) {
-        switch value {
-        case .pads: ("Pads", "doc.text")
-        case .questions: ("Questions", "questionmark.bubble")
-        case .organization: ("Organization", "building.2")
-        case .quota: ("Quota", "gauge.with.dots.needle.67percent")
-        case .screen: ("Screen", "person.crop.rectangle.stack")
-        }
     }
 
     /// Reset to the plain, unfiltered list for a top-level row, so tapping "Pads" or

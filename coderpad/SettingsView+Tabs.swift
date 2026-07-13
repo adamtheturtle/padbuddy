@@ -69,16 +69,6 @@ extension SettingsView {
             #endif
 
             Section {
-                // macOS has Touch ID; iPads may use Face ID or Touch ID, so keep the
-                // iPad label inclusive of both.
-                #if os(macOS)
-                    Toggle("Require Touch ID to reveal API keys", isOn: biometricGateBinding)
-                #else
-                    Toggle("Require Face ID or Touch ID to reveal API keys", isOn: biometricGateBinding)
-                #endif
-            }
-
-            Section {
                 Toggle("Make pads and questions searchable in Spotlight", isOn: $spotlightIndexing)
                     .onChange(of: spotlightIndexing) { _, isOn in
                         if isOn {
@@ -108,18 +98,6 @@ extension SettingsView {
                     .foregroundStyle(.secondary)
             }
 
-            Section {
-                Stepper(value: $refreshSeconds,
-                        in: GeneralSettings.minRefreshSeconds ... GeneralSettings.maxRefreshSeconds,
-                        step: 15) {
-                    HStack {
-                        Text("Auto-refresh interval")
-                        Spacer()
-                        Text(refreshIntervalLabel)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
         }
         .formStyle(.grouped)
         // Re-sync with the system in case the login item changed outside the app.
@@ -147,16 +125,6 @@ extension SettingsView {
         #endif
     }
 
-    /// Human-readable form of the auto-refresh interval, e.g. "90s" or "2m 30s".
-    var refreshIntervalLabel: String {
-        let seconds = refreshSeconds
-        if seconds < 60 { return String(localized: "\(seconds)s") }
-        let minutes = seconds / 60
-        let remainder = seconds % 60
-        return remainder == 0
-            ? String(localized: "\(minutes)m")
-            : String(localized: "\(minutes)m \(remainder)s")
-    }
 
     /// Mail-style master-detail layout: a sidebar listing the accounts with `+`/`−`
     /// controls at its foot, and a detail pane showing the selected account's settings
@@ -208,67 +176,69 @@ extension SettingsView {
             }
     }
 
-    @ViewBuilder
-    var compactAccountsView: some View {
-        if store.accounts.isEmpty {
-            accountDetailPlaceholder
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .padding(.horizontal)
-        } else {
-            List {
-                Section {
-                    ForEach(store.accounts) { account in
-                        NavigationLink {
-                            compactAccountEditor(for: account.id)
+    #if !os(macOS)
+        @ViewBuilder
+        var compactAccountsView: some View {
+            if store.accounts.isEmpty {
+                accountDetailPlaceholder
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .padding(.horizontal)
+            } else {
+                List {
+                    Section {
+                        ForEach(store.accounts) { account in
+                            NavigationLink {
+                                compactAccountEditor(for: account.id)
+                            } label: {
+                                AccountRow(
+                                    account: account,
+                                    isCurrent: account.id == store.currentAccountID && !store.isMergedView
+                                )
+                            }
+                        }
+                    }
+
+                    Section {
+                        Button {
+                            addingAccount = Account(name: "", apiKey: "")
                         } label: {
-                            AccountRow(
-                                account: account,
-                                isCurrent: account.id == store.currentAccountID && !store.isMergedView
-                            )
+                            Label("Add Account", systemImage: "plus")
                         }
                     }
                 }
+                .listStyle(.insetGrouped)
+                .navigationTitle("Accounts")
+            }
+        }
 
-                Section {
-                    Button {
-                        addingAccount = Account(name: "", apiKey: "")
-                    } label: {
-                        Label("Add Account", systemImage: "plus")
-                    }
+        func compactAccountEditor(for id: UUID) -> some View {
+            ScrollView {
+                if let account = store.accounts.first(where: { $0.id == id }) {
+                    AccountEditor(
+                        initial: account,
+                        embedded: true,
+                        isCurrent: id == store.currentAccountID && !store.isMergedView,
+                        onUse: { store.currentAccountID = id },
+                        onSave: { updated in store.update(updated) },
+                        onCancel: {},
+                        onDelete: { store.remove(id: id) },
+                        onAppearanceChange: { symbol, tint in
+                            guard var account = store.accounts.first(where: { $0.id == id }) else { return }
+
+                            account.iconSymbol = symbol
+                            account.tintHex = tint
+                            store.update(account)
+                        }
+                    )
+                    .id(id)
+                } else {
+                    accountDetailPlaceholder
                 }
             }
-            .listStyle(.insetGrouped)
-            .navigationTitle("Accounts")
+            .navigationTitle("Account")
+            .navigationBarTitleDisplayMode(.inline)
         }
-    }
-
-    func compactAccountEditor(for id: UUID) -> some View {
-        ScrollView {
-            if let account = store.accounts.first(where: { $0.id == id }) {
-                AccountEditor(
-                    initial: account,
-                    embedded: true,
-                    isCurrent: id == store.currentAccountID && !store.isMergedView,
-                    onUse: { store.currentAccountID = id },
-                    onSave: { updated in store.update(updated) },
-                    onCancel: {},
-                    onDelete: { store.remove(id: id) },
-                    onAppearanceChange: { symbol, tint in
-                        guard var account = store.accounts.first(where: { $0.id == id }) else { return }
-
-                        account.iconSymbol = symbol
-                        account.tintHex = tint
-                        store.update(account)
-                    }
-                )
-                .id(id)
-            } else {
-                accountDetailPlaceholder
-            }
-        }
-        .navigationTitle("Account")
-        .navigationBarTitleDisplayMode(.inline)
-    }
+    #endif
 
     var accountsSidebar: some View {
         VStack(spacing: 0) {

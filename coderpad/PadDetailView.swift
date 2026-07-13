@@ -43,6 +43,9 @@ struct PadDetailView: View {
     @State var nav = AppNavigation.shared
     @Environment(\.orgDirectory) var directory
     @Environment(\.colorScheme) var colorScheme
+    #if os(iOS)
+        @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    #endif
     /// While offline the app is read-only, so the destructive/edit actions disable (#321).
     @Environment(\.isReadOnly) var isReadOnly
 

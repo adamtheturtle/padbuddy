@@ -144,9 +144,7 @@ struct QuestionsView: View {
                     questions = cache.get(id)
                     questionsRevision += 1
                 }
-                // Initial load, then refresh on a timer rebuilt each cycle so a change to
-                // the interval in Settings takes effect on the next tick without restarting
-                // the task.
+                // Initial load, then refresh on the fixed app cadence.
                 await reload()
                 while !Task.isCancelled {
                     let interval = max(GeneralSettings.refreshInterval, .milliseconds(1))

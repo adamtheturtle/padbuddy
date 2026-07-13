@@ -65,6 +65,22 @@ extension MergedPadsView {
         createdWindow = saved.createdWindow ?? DateWindow()
     }
 
+    func clearAllFilters() {
+        search = ""
+        stateFilter = nil
+        languageFilter = nil
+        ownerFilter = nil
+        typeFilter = nil
+        accountFilter = nil
+        mineOnly = false
+        updatedWindow = DateWindow()
+        createdWindow = DateWindow()
+    }
+
+    var hasActiveFilters: Bool {
+        activeFilterCount > 0 || !search.isEmpty
+    }
+
     /// Persist the current filters so the merged list reopens with the same view.
     /// Skipped until the initial restore has run, so the empty startup state never
     /// clobbers a saved snapshot.

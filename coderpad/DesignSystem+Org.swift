@@ -24,14 +24,12 @@ struct EmailLink: View {
     }
 }
 
-// MARK: - OwnerPadsLink
+// MARK: - OwnerName
 
-/// A pad or question owner's name, rendered as a link that jumps to that
-/// person's pads — the same person-navigation the Organization list and
-/// interviewer rows already use. Pairs with `EmailLink` at call sites that still
-/// expose mailto directly. When the org directory doesn't know the name, callers
-/// may provide a non-email fallback label for privacy-sensitive surfaces.
-struct OwnerPadsLink: View {
+/// A pad or question owner's name, rendered as inert display text. When the org
+/// directory doesn't know the name, callers may provide a non-email fallback
+/// label for privacy-sensitive surfaces.
+struct OwnerName: View {
     let email: String
     let fallbackLabel: String?
     @Environment(\.orgDirectory) private var directory
@@ -46,27 +44,9 @@ struct OwnerPadsLink: View {
             Text("(no owner)").foregroundStyle(.secondary)
         } else {
             let name = directory.name(for: email) ?? fallbackLabel ?? email
-            Button {
-                AppNavigation.shared.showPads(PadsRequest(ownerEmail: email))
-            } label: {
-                Text(name)
-            }
-            .linkButtonStyle()
-            .help("Show pads from \(name)")
-            .contextMenu {
-                Button {
-                    AppNavigation.shared.showPads(PadsRequest(ownerEmail: email))
-                } label: {
-                    Label("Show Pads from \(name)", systemImage: "person")
-                }
-                if let url = URL(string: "mailto:\(email)") {
-                    Link(destination: url) {
-                        Label("Send Email", systemImage: "envelope")
-                    }
-                }
-            }
-            .accessibilityLabel("Owner \(name)")
-            .accessibilityHint("Shows pads from \(name)")
+            Text(name)
+                .foregroundStyle(.secondary)
+                .accessibilityLabel("Owner \(name)")
         }
     }
 }

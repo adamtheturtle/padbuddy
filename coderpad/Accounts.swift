@@ -70,7 +70,11 @@ extension Account: StorableAccount {
 /// service and cache keys, the UI-testing seed, the legacy migration, and the
 /// widget/cache side-effects the generic store fires.
 @MainActor private func makeCoderpadConfig() -> KeychainAccountStore<Account>.Config {
-    KeychainAccountStore<Account>.Config(
+    if !coderpadIsUITesting {
+        Keychain.reconcileSyncedAccounts()
+    }
+
+    return KeychainAccountStore<Account>.Config(
         keychain: KeychainStore(service: Keychain.service, logger: persistenceLogger),
         accountsKey: Keychain.accountsAccount,
         currentIDDefaultsKey: "currentAccountID",
@@ -83,6 +87,9 @@ extension Account: StorableAccount {
         seedForTesting: { [.demo()] },
         migrateIfEmpty: migrateLegacyAccounts,
         onAccountsChanged: { accounts in
+            if !coderpadIsUITesting {
+                Keychain.mirrorAccountsToiCloudKeychain(try? JSONEncoder().encode(accounts))
+            }
             // Keep the widget's configuration picker in step with adds, removes, and
             // renames. Takes the array directly — the Observation macro fires this during
             // the store's init, where reaching back into the singleton would deadlock.

@@ -75,6 +75,19 @@ extension View {
     }
 
     @ViewBuilder
+    func padRowTrailingActionInset(enabled: Bool) -> some View {
+        #if os(iOS)
+            if enabled {
+                padding(.trailing, 24)
+            } else {
+                self
+            }
+        #else
+            padding(.trailing, 24)
+        #endif
+    }
+
+    @ViewBuilder
     func fastListRowManualSelection<ID: Hashable>(id: ID, selection: Binding<Set<ID>>) -> some View {
         #if os(iOS)
             contentShape(Rectangle())

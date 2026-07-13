@@ -1,8 +1,8 @@
 # Privacy Policy
 
-_Last updated: 2026-06-12_
+_Last updated: 2026-07-13_
 
-This privacy policy describes how the **PadBuddy** macOS app
+This privacy policy describes how the **PadBuddy** app for Mac, iPhone, and iPad
 ("the app") handles your information. The app is an unofficial, third-party
 client for [CoderPad](https://coderpad.io); it is not affiliated with,
 endorsed by, or operated by CoderPad, Inc.
@@ -15,17 +15,17 @@ app talks only to CoderPad's own API, using an API key that you supply.
 
 ## What the app stores, and where
 
-- **Your CoderPad API key** is stored only in the **local macOS Keychain** on
-  your Mac. It never leaves your device except in requests sent directly to
+- **Your CoderPad API key** is stored only in the **local Keychain** on
+  your device. It never leaves your device except in requests sent directly to
   CoderPad's API to fetch and manage your own data.
 - **App preferences and a local cache** (for example, your selected account,
   the last-viewed section, saved searches, favorite questions, and a cache of
-  pads/questions so the app opens quickly) are stored locally on your Mac in
+  pads/questions so the app opens quickly) are stored locally on your device in
   standard app storage. None of this is uploaded anywhere by the app.
 
 ## What the app sends, and to whom
 
-When you use the app, it makes requests directly from your Mac to CoderPad's
+When you use the app, it makes requests directly from your device to CoderPad's
 API (`https://app.coderpad.io`, or a self-hosted/regional URL if you configure
 one) to read and manage the pads, questions, organization, and quota that your
 CoderPad account already has access to. Those requests are authenticated with

@@ -42,6 +42,21 @@ extension MergedQuestionsView {
         draftFilter = saved.draftFilter
     }
 
+    func clearAllFilters() {
+        search = ""
+        languageFilter = nil
+        ownerFilter = nil
+        typeFilter = nil
+        draftFilter = nil
+        accountFilter = nil
+        mineOnly = false
+        favoritesOnly = false
+    }
+
+    var hasActiveFilters: Bool {
+        activeFilterCount > 0 || !search.isEmpty
+    }
+
     /// Persist the current filters so the merged list reopens with the same view.
     /// Skipped until the initial restore has run, so the empty startup state never
     /// clobbers a saved snapshot.

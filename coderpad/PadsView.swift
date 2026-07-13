@@ -135,8 +135,8 @@ struct PadsView: View {
     /// backs off as the list grows, so large orgs poll far less often while small orgs keep
     /// the snappy refresh. It also backs off further when no pad is *started*, biasing
     /// refresh effort toward when live interviews are actually in progress. The base cadence
-    /// is the user's configured auto-refresh interval; manual reload and the focused detail
-    /// refresh are unaffected.
+    /// is the app's fixed auto-refresh interval; manual reload and the focused detail refresh
+    /// are unaffected.
     private var nextRefreshInterval: Duration {
         PadListLogic.refreshInterval(
             base: GeneralSettings.refreshInterval,
@@ -173,8 +173,7 @@ struct PadsView: View {
                 // to resolve it against (the cache above, or the reload below).
                 restoreSelectedPadIfNeeded()
                 // Initial load, then refresh on a timer rebuilt each cycle so the adaptive
-                // pad-count cadence (and any Settings change) takes effect on the next tick
-                // without restarting the task.
+                // pad-count cadence takes effect on the next tick without restarting the task.
                 await reload()
                 while !Task.isCancelled {
                     let interval = max(nextRefreshInterval, .milliseconds(1))

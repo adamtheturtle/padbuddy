@@ -9,11 +9,9 @@ import SwiftUI
 /// current selection as a button; tapping opens a popover with a search field that
 /// filters the (potentially large) member list so you don't scroll a huge menu.
 struct OrgMemberPicker: View {
-    /// Empty means no member is picked yet — shown as "Unset" on the button, but the
-    /// list offers no way to re-blank a selection since the email is required to save.
+    /// Empty means no member is picked yet — shown as "Unset" on the button.
     @Binding var selection: String
-    let options: [String]
-    let label: (String) -> String
+    let users: [OrganizationUser]
     /// Whether the org's member list is still being fetched. Shown as a row inside
     /// the popover rather than beside the field, so opening the editor doesn't shift
     /// the layout while the list loads (#497).
@@ -26,11 +24,76 @@ struct OrgMemberPicker: View {
     @State private var query = ""
     @FocusState private var searchFocused: Bool
 
-    private var filtered: [String] {
-        let trimmedQuery = query.trimmingCharacters(in: .whitespaces)
-        guard !trimmedQuery.isEmpty else { return options }
+    private struct MemberOption: Identifiable {
+        var email: String
+        var name: String?
 
-        return options.filter { label($0).localizedCaseInsensitiveContains(trimmedQuery) }
+        var id: String { email.lowercased() }
+
+        var primary: String {
+            name?.nilIfEmpty ?? email
+        }
+
+        var secondary: String? {
+            name?.nilIfEmpty == nil ? nil : email
+        }
+
+        func matches(_ query: String) -> Bool {
+            email.localizedCaseInsensitiveContains(query)
+                || (name?.localizedCaseInsensitiveContains(query) ?? false)
+        }
+    }
+
+    private var trimmedSelection: String {
+        selection.trimmingCharacters(in: .whitespaces)
+    }
+
+    private var memberOptions: [MemberOption] {
+        var seenEmails = Set<String>()
+        var options: [MemberOption] = []
+
+        for user in users where !user.email.isEmpty {
+            let key = user.email.lowercased()
+            guard seenEmails.insert(key).inserted else { continue }
+            options.append(MemberOption(email: user.email, name: user.name))
+        }
+
+        if !trimmedSelection.isEmpty {
+            let key = trimmedSelection.lowercased()
+            if seenEmails.insert(key).inserted {
+                options.append(MemberOption(email: trimmedSelection, name: nil))
+            }
+        }
+
+        return options.sorted { lhs, rhs in
+            lhs.primary.localizedCaseInsensitiveCompare(rhs.primary) == .orderedAscending
+        }
+    }
+
+    private var selectedOption: MemberOption? {
+        memberOptions.first { $0.email.caseInsensitiveCompare(trimmedSelection) == .orderedSame }
+    }
+
+    private var selectedLabel: String {
+        guard !trimmedSelection.isEmpty else { return String(localized: "Unset") }
+        return selectedOption?.primary ?? trimmedSelection
+    }
+
+    private var filtered: [MemberOption] {
+        let trimmedQuery = query.trimmingCharacters(in: .whitespaces)
+        guard !trimmedQuery.isEmpty else { return memberOptions }
+
+        return memberOptions.filter { $0.matches(trimmedQuery) }
+    }
+
+    /// A typed address that isn't already an existing member — offered as a
+    /// "Use …" row so the field still works before the org member list is loaded.
+    private var customEmailCandidate: String? {
+        let trimmedQuery = query.trimmingCharacters(in: .whitespaces)
+        guard !trimmedQuery.isEmpty, trimmedQuery.contains("@") else { return nil }
+        guard !memberOptions.contains(where: { $0.email.caseInsensitiveCompare(trimmedQuery) == .orderedSame }) else { return nil }
+
+        return trimmedQuery
     }
 
     var body: some View {
@@ -39,8 +102,8 @@ struct OrgMemberPicker: View {
             onOpen?()
         } label: {
             HStack {
-                Text(selection.isEmpty ? String(localized: "Unset") : label(selection))
-                    .foregroundStyle(selection.isEmpty ? .secondary : .primary)
+                Text(selectedLabel)
+                    .foregroundStyle(trimmedSelection.isEmpty ? .secondary : .primary)
                     .lineLimit(1)
                 Spacer()
                 Image(systemName: "chevron.up.chevron.down")
@@ -54,7 +117,7 @@ struct OrgMemberPicker: View {
         .buttonStyle(.bordered)
         .popover(isPresented: $isPresented, arrowEdge: .bottom) {
             VStack(spacing: 0) {
-                TextField("Search members", text: $query)
+                TextField("Search members or enter email", text: $query)
                     .textFieldStyle(.roundedBorder)
                     .focused($searchFocused)
                     .padding(8)
@@ -63,11 +126,22 @@ struct OrgMemberPicker: View {
 
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 0) {
-                        ForEach(filtered, id: \.self) { email in
-                            memberRow(email: email, title: label(email))
+                        ForEach(filtered) { option in
+                            memberRow(email: option.email,
+                                      primary: option.primary,
+                                      secondary: option.secondary,
+                                      isMuted: false)
                         }
+
+                        if let custom = customEmailCandidate {
+                            memberRow(email: custom,
+                                      primary: String(localized: "Use “\(custom)”"),
+                                      secondary: nil,
+                                      isMuted: false)
+                        }
+
                         // While the full member list is still loading, the only option
-                        // is the saved email, so tell the user more are on the way.
+                        // may be the saved email, so tell the user more are on the way.
                         if isLoading {
                             HStack(spacing: 6) {
                                 ProgressView().controlSize(.small)
@@ -76,7 +150,7 @@ struct OrgMemberPicker: View {
                                     .font(.callout)
                             }
                             .padding(8)
-                        } else if filtered.isEmpty {
+                        } else if filtered.isEmpty, customEmailCandidate == nil {
                             Text("No members match “\(query)”")
                                 .foregroundStyle(.secondary)
                                 .font(.callout)
@@ -92,16 +166,25 @@ struct OrgMemberPicker: View {
     }
 
     @ViewBuilder
-    private func memberRow(email: String, title: String) -> some View {
-        let isSelected = email == selection
+    private func memberRow(email: String, primary: String, secondary: String?, isMuted: Bool) -> some View {
+        let isSelected = email.caseInsensitiveCompare(trimmedSelection) == .orderedSame
         Button {
             selection = email
+            query = ""
             isPresented = false
         } label: {
             HStack {
-                Text(title)
-                    .foregroundStyle(email.isEmpty ? .secondary : .primary)
-                    .lineLimit(1)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(primary)
+                        .foregroundStyle(isMuted ? .secondary : .primary)
+                        .lineLimit(1)
+                    if let secondary {
+                        Text(secondary)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
                 Spacer()
                 if isSelected {
                     Image(systemName: "checkmark")
@@ -115,5 +198,11 @@ struct OrgMemberPicker: View {
         }
         .buttonStyle(.plain)
         .background(isSelected ? Color.accentColor.opacity(0.12) : .clear)
+    }
+}
+
+private extension String {
+    var nilIfEmpty: String? {
+        isEmpty ? nil : self
     }
 }

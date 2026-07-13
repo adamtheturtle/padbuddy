@@ -34,15 +34,13 @@ extension PadDetailView {
                     if !roles.candidates.isEmpty {
                         participantGroup(
                             title: roles.candidates.count == 1 ? "Candidate" : "Candidates",
-                            systemImage: "person.crop.circle.badge.questionmark",
                             names: roles.candidates, tint: .blue
                         )
                     }
                     if !roles.interviewers.isEmpty {
                         participantGroup(
                             title: roles.interviewers.count == 1 ? "Interviewer" : "Interviewers",
-                            systemImage: "person.crop.circle.badge.checkmark",
-                            names: roles.interviewers, tint: .purple, clickable: true
+                            names: roles.interviewers, tint: .purple
                         )
                     }
                 } else {
@@ -54,82 +52,39 @@ extension PadDetailView {
 
     private func participantGroup(
         title: LocalizedStringKey,
-        systemImage: String,
         names: [String],
-        tint: Color,
-        clickable: Bool = false
+        tint: Color
     ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Label(title, systemImage: systemImage)
+            Text(title)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(tint)
-            participantList(names: names, tint: tint, clickable: clickable)
+            participantList(names: names, tint: tint)
         }
     }
 
     /// A single column of compact participant rows. Rows hug their content instead of
     /// filling the detail pane, avoiding oversized backgrounds when a role has only
     /// one participant while still keeping names stacked predictably.
-    private func participantList(names: [String], tint: Color, clickable: Bool = false) -> some View {
+    private func participantList(names: [String], tint: Color) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             // Key by position rather than the name itself: two participants can
             // share a display name (or the same name can appear twice), and
             // `id: \.self` would then hand the list duplicate IDs.
             ForEach(Array(names.enumerated()), id: \.offset) { _, name in
-                // Interviewers are org members, so we can resolve their email and
-                // make the row a button that jumps to their pads, mirroring the
-                // Organization users list. Candidates aren't members, so they
-                // stay as plain rows.
-                if clickable, let email = memberEmail(forName: name) {
-                    Button {
-                        AppNavigation.shared.showPads(PadsRequest(ownerEmail: email))
-                    } label: {
-                        participantRow(name: name, tint: tint, clickable: true)
-                            .contentShape(RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                    #if os(macOS)
-                        .pointerStyle(.link)
-                    #endif
-                        .help("Show pads from \(name)")
-                } else {
-                    participantRow(name: name, tint: tint)
-                }
+                participantRow(name: name)
             }
         }
     }
 
-    private func participantRow(name: String, tint: Color, clickable: Bool = false) -> some View {
-        HStack(spacing: 8) {
-            AvatarCircle(label: name, diameter: 26, tint: tint)
-            Text(name)
-                .font(.callout)
-                .lineLimit(1)
-                .frame(maxWidth: 260, alignment: .leading)
-            // A trailing chevron marks the row as a link to the member's pads, so
-            // a clickable interviewer reads differently from a plain candidate row
-            // that only carries the same name and avatar.
-            if clickable {
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(tint)
-                    // Purely a visual affordance: the row is already a button with a
-                    // "Show pads from …" help/hint, so VoiceOver shouldn't read the
-                    // bare symbol name on top of the participant's name.
-                    .accessibilityHidden(true)
-            }
-        }
-        .padding(.vertical, 4)
-        .padding(.horizontal, 8)
-        .background(Color.subtleStroke.opacity(0.6),
-                    in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
-    }
-
-    /// The org email for a participant matched by display name, used to turn an
-    /// interviewer row into a link to their pads. Names can collide in theory, so
-    /// this returns the first match; `nil` when no member carries that name.
-    func memberEmail(forName name: String) -> String? {
-        let lowered = name.lowercased()
-        return directory.nameByEmail.first { $0.value.lowercased() == lowered }?.key
+    private func participantRow(name: String) -> some View {
+        Text(name)
+            .font(.callout)
+            .lineLimit(1)
+            .frame(maxWidth: 260, alignment: .leading)
+            .padding(.vertical, 8)
+            .padding(.horizontal, 12)
+            .background(Color.subtleStroke.opacity(0.6),
+                        in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
     }
 }

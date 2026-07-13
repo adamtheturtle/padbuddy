@@ -778,6 +778,7 @@
       }
     },
     "%lldm" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -788,6 +789,7 @@
       }
     },
     "%lldm %llds" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -804,6 +806,7 @@
       }
     },
     "%llds" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -904,6 +907,9 @@
           }
         }
       }
+    },
+    "Account and settings" : {
+
     },
     "Accounts" : {
       "localizations" : {
@@ -1043,6 +1049,9 @@
         }
       }
     },
+    "Add Account..." : {
+
+    },
     "Add Account…" : {
       "localizations" : {
         "es" : {
@@ -1159,6 +1168,12 @@
         }
       }
     },
+    "All Pads" : {
+
+    },
+    "All Questions" : {
+
+    },
     "All Statuses" : {
       "localizations" : {
         "es" : {
@@ -1249,6 +1264,12 @@
         }
       }
     },
+    "Apply a suggested pad filter" : {
+
+    },
+    "Apply a suggested question filter" : {
+
+    },
     "Archived" : {
       "localizations" : {
         "es" : {
@@ -1301,16 +1322,6 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Rellenado automáticamente desde tu organización"
-          }
-        }
-      }
-    },
-    "Auto-refresh interval" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Intervalo de actualización automática"
           }
         }
       }
@@ -3746,6 +3757,9 @@
         }
       }
     },
+    "Manage Accounts..." : {
+
+    },
     "Manage Accounts…" : {
       "localizations" : {
         "es" : {
@@ -3755,6 +3769,9 @@
           }
         }
       }
+    },
+    "Materials" : {
+
     },
     "MCP Activity" : {
       "localizations" : {
@@ -4085,6 +4102,9 @@
           }
         }
       }
+    },
+    "No code, tests, or files" : {
+
     },
     "No events yet." : {
       "localizations" : {
@@ -4676,6 +4696,9 @@
         }
       }
     },
+    "Org" : {
+
+    },
     "Organization" : {
       "localizations" : {
         "en-GB" : {
@@ -5091,6 +5114,9 @@
         }
       }
     },
+    "Prompt" : {
+
+    },
     "Properties" : {
       "localizations" : {
         "es" : {
@@ -5160,6 +5186,9 @@
           }
         }
       }
+    },
+    "Question detail section" : {
+
     },
     "Question prompt" : {
       "localizations" : {
@@ -5423,26 +5452,6 @@
         }
       }
     },
-    "Require Face ID or Touch ID to reveal API keys" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Requerir Face ID o Touch ID para mostrar las claves de API"
-          }
-        }
-      }
-    },
-    "Require Touch ID to reveal API keys" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Requerir Touch ID para mostrar las claves de API"
-          }
-        }
-      }
-    },
     "Required: pick which member you are to finish." : {
       "localizations" : {
         "es" : {
@@ -5674,6 +5683,7 @@
       }
     },
     "Search members" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5794,6 +5804,7 @@
       }
     },
     "Send Email" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6004,6 +6015,7 @@
       }
     },
     "Show pads from %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6024,6 +6036,7 @@
       }
     },
     "Show pads owned by %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6104,6 +6117,7 @@
       }
     },
     "Shows pads from %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6282,6 +6296,15 @@
           }
         }
       }
+    },
+    "Suggested pad filters" : {
+
+    },
+    "Suggested question filters" : {
+
+    },
+    "Suggestions" : {
+
     },
     "Switch account" : {
       "localizations" : {
