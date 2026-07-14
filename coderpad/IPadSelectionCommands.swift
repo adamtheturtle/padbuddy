@@ -96,7 +96,7 @@
 
                 Divider()
 
-                Button("Save Code…") {
+                Button("Save All Code…") {
                     guard let pad else { return }
 
                     AppNavigation.shared.saveCodePadID = pad.id

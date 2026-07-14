@@ -67,7 +67,7 @@ extension PadDetailView {
     /// The pad's code as printable sections — one per file, titled by its path,
     /// namespaced by environment so identically-named files across environments
     /// don't collide. Falls back to the legacy inline `contents` when no
-    /// environment carries files, mirroring Save Code. Shared by File ▸ Print and
+    /// environment carries files, mirroring Save All Code. Shared by File ▸ Print and
     /// the Markdown export (#524).
     func printFiles() -> [PadPrintFile] {
         var result: [PadPrintFile] = []
@@ -260,7 +260,7 @@ extension PadDetailView {
 
 extension FocusedValues {
     /// Whether the focused pad's detail pane has any code to save yet, published by
-    /// `PadDetailView` so the Pad menu's "Save Code…" command disables until at least
+    /// `PadDetailView` so the Pad menu's "Save All Code…" command disables until at least
     /// one environment (or a legacy pad's inline contents) has loaded. `nil` when no
     /// pad detail is frontmost.
     @Entry var padHasSavableCode: Bool?

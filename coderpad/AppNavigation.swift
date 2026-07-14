@@ -146,7 +146,7 @@ final class AppNavigation {
     /// external browser preference as the detail view's Watch button.
     var watchPlaybackPadID: String?
 
-    /// A pad id whose detail pane should run its "Save Code" panel, routed from
+    /// A pad id whose detail pane should run its "Save All Code" panel, routed from
     /// the Pad menu so the menu command and the toolbar button share the same
     /// save logic (and the same knowledge of which files have loaded).
     var saveCodePadID: String?

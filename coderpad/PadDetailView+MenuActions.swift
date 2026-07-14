@@ -22,7 +22,7 @@ extension PadDetailView {
         BrowserSettings.openExternally(playbackURL)
     }
 
-    /// Honors a "Save Code" request from the Pad menu by running the same save
+    /// Honors a "Save All Code" request from the Pad menu by running the same save
     /// panel as the in-pane button (which knows which environments have loaded).
     func consumePendingSaveCode() {
         guard nav.saveCodePadID == pad.id else { return }
@@ -95,7 +95,7 @@ extension PadDetailView {
             async let events = client.padEvents(padID: pad.id)
             async let envs = loadEnvironments()
             // Assign environments first — `loadEnvironments` can't throw — so a
-            // failing events fetch doesn't leave environments (and the Save Code
+            // failing events fetch doesn't leave environments (and the Save All Code
             // availability that depends on them) stale. Both still run concurrently.
             let loadedEnvironments = await envs
             environments = loadedEnvironments

@@ -2810,6 +2810,9 @@
         }
       }
     },
+    "Email" : {
+
+    },
     "Email the candidate an invitation" : {
       "localizations" : {
         "es" : {
@@ -5612,7 +5615,11 @@
         }
       }
     },
+    "Save All Code…" : {
+
+    },
     "Save Code" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5623,6 +5630,7 @@
       }
     },
     "Save Code…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {

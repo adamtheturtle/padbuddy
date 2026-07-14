@@ -36,7 +36,7 @@ struct PadDetailView: View {
     @State var mutateError: String?
     @State var titleEditRequest = 0
     #if !os(macOS)
-        /// The document staged for the iPad's `.fileExporter` (Save Code / Export Markdown).
+        /// The document staged for the iPad's `.fileExporter` (Save All Code / Export Markdown).
         /// `nil` dismisses the export sheet.
         @State var pendingExport: PadExportDocument?
     #endif
@@ -130,7 +130,7 @@ struct PadDetailView: View {
         }
         #if !os(macOS)
             // iPad has no menu bar, so the File-menu document actions (Print, Export as
-            // Markdown, Save Code) live in a detail-pane overflow menu instead.
+            // Markdown, Save All Code) live in a detail-pane overflow menu instead.
             ToolbarItem(id: "documents", placement: detailToolbarTrailingPlacement) {
                 Menu {
                     Button { printPadDocument() } label: {
@@ -140,7 +140,7 @@ struct PadDetailView: View {
                         Label("Export as Markdown", systemImage: "doc.richtext")
                     }
                     Button { saveCodeLocally() } label: {
-                        Label("Save Code", systemImage: "square.and.arrow.down")
+                        Label("Save All Code", systemImage: "square.and.arrow.down")
                     }
                     .disabled(!hasSavableCode)
                 } label: {
@@ -197,7 +197,7 @@ struct PadDetailView: View {
             .focusedSceneValue(\.exportMarkdownAction, PrintAction(id: "pad-\(pad.id)") {
                 exportMarkdown()
             })
-            // Publish whether there's anything to save so File ▸ Save Code… can disable
+            // Publish whether there's anything to save so File ▸ Save All Code… can disable
             // until the pad's code (environments or legacy inline contents) has loaded.
             .focusedSceneValue(\.padHasSavableCode, hasSavableCode)
             .task(id: pad.id) { await load() }
@@ -245,7 +245,7 @@ struct PadDetailView: View {
         #endif
     }
 
-    /// Wires the Pad menu commands (Edit, End, Delete, Watch, Save Code), which
+    /// Wires the Pad menu commands (Edit, End, Delete, Watch, Save All Code), which
     /// arrive via `AppNavigation`, to their in-pane equivalents. Split out of `body`
     /// so the modifier chain stays within the type-checker's reach.
     private func menuRouting(_ content: some View) -> some View {

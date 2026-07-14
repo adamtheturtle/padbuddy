@@ -109,7 +109,7 @@
         /// Mirrors the window's read-only state (offline) so the mutating items disable
         /// to match the in-window controls (#321). `nil`/`false` means editable.
         @FocusedValue(\.isReadOnly) private var isReadOnly
-        /// Whether the focused pad has any code to save yet, so "Save Code…" disables
+        /// Whether the focused pad has any code to save yet, so "Save All Code…" disables
         /// until its environments (or legacy inline contents) have loaded. `nil` when
         /// no pad detail is frontmost.
         @FocusedValue(\.padHasSavableCode) private var padHasSavableCode
@@ -201,7 +201,7 @@
 
                 Divider()
 
-                Button("Save Code…") {
+                Button("Save All Code…") {
                     guard let pad else { return }
 
                     AppNavigation.shared.saveCodePadID = pad.id

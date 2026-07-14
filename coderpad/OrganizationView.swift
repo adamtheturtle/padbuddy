@@ -252,29 +252,51 @@ struct OrganizationView: View {
                 TextField("Search users…", text: $userSearch)
                     .textFieldStyle(.roundedBorder)
                     .focused($userSearchFocused)
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 240), spacing: 10)], alignment: .leading, spacing: 10) {
-                    ForEach(users) { user in
-                        HStack(spacing: 10) {
-                            AvatarCircle(label: user.name ?? user.email, diameter: 32)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(user.name ?? user.email)
-                                    .font(.callout.weight(.medium))
-                                    .lineLimit(1)
-                                Text(user.email)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
-                            }
-                            Spacer(minLength: 0)
-                        }
-                        .padding(10)
-                        .background(Color.subtleStroke.opacity(0.5),
-                                    in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
-                    }
-                }
+                usersList(users)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    @ViewBuilder
+    private func usersList(_ users: [OrganizationUser]) -> some View {
+        #if os(macOS)
+            VStack(spacing: 0) {
+                HStack(spacing: 12) {
+                    Text("Name")
+                        .frame(minWidth: 180, maxWidth: .infinity, alignment: .leading)
+                    Text("Email")
+                        .frame(minWidth: 220, maxWidth: .infinity, alignment: .leading)
+                }
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+                .padding(.horizontal, 10)
+                .padding(.top, 8)
+                .padding(.bottom, 6)
+
+                Divider()
+
+                LazyVStack(spacing: 0) {
+                    ForEach(users) { user in
+                        CompactUserRow(user: user)
+                        Divider()
+                    }
+                }
+            }
+            .background(Color.subtleStroke.opacity(0.22),
+                        in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                    .stroke(Color.subtleStroke, lineWidth: 1)
+            )
+        #else
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 240), spacing: 10)], alignment: .leading, spacing: 10) {
+                ForEach(users) { user in
+                    TouchUserCard(user: user)
+                }
+            }
+        #endif
     }
 
     private func filteredUsers(_ org: Organization) -> [OrganizationUser] {
@@ -337,6 +359,65 @@ struct OrganizationView: View {
         stats = result
     }
 }
+
+#if os(macOS)
+private struct CompactUserRow: View {
+    let user: OrganizationUser
+
+    private var displayName: String {
+        user.name ?? user.email
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            HStack(spacing: 8) {
+                AvatarCircle(label: displayName, diameter: 24)
+                Text(displayName)
+                    .font(.callout.weight(.medium))
+                    .lineLimit(1)
+            }
+            .frame(minWidth: 180, maxWidth: .infinity, alignment: .leading)
+
+            Text(user.email)
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .textSelection(.enabled)
+                .frame(minWidth: 220, maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .contentShape(Rectangle())
+    }
+}
+#else
+private struct TouchUserCard: View {
+    let user: OrganizationUser
+
+    private var displayName: String {
+        user.name ?? user.email
+    }
+
+    var body: some View {
+        HStack(spacing: 10) {
+            AvatarCircle(label: displayName, diameter: 32)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(displayName)
+                    .font(.callout.weight(.medium))
+                    .lineLimit(1)
+                Text(user.email)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(10)
+        .background(Color.subtleStroke.opacity(0.5),
+                    in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
+    }
+}
+#endif
 
 #Preview("Period picker") {
     @Previewable @State var period: StatsPeriod = .days7
