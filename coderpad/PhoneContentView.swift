@@ -255,8 +255,8 @@
             if store.isMergedView {
                 Image(systemName: "person.2.circle.fill")
                     .font(.title3)
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(.purple)
+                    .symbolRenderingMode(.monochrome)
+                    .foregroundStyle(.secondary)
             } else if let account = store.currentAccount {
                 toolbarAccountAvatar(for: account)
                     .overlay(alignment: .bottomTrailing) {

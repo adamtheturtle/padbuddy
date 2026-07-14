@@ -4,11 +4,14 @@
 //
 
 import SwiftUI
+#if os(iOS)
+    import UniformTypeIdentifiers
+#endif
 
 /// One displayable file in an environment's code preview, carrying the
 /// language used to highlight it (derived from the file's own extension, with
 /// the environment language as a fallback).
-struct CodeFile: Identifiable, Hashable {
+nonisolated struct CodeFile: Identifiable, Hashable {
     /// A stable identifier derived from the file's path (not its array position), so a
     /// reload that reorders or changes the environment's files doesn't silently remap
     /// which file a retained selection points at.
@@ -172,6 +175,8 @@ struct EnvironmentCodeCard: View {
     /// open it; the file list and selection carry over.
     @State var showFullCode = false
     #if os(iOS)
+        @State var exportDocument: CodeExportDocument?
+        @State var showCodeExporter = false
         @Environment(\.horizontalSizeClass) var horizontalSizeClass
     #endif
 
@@ -247,6 +252,16 @@ struct EnvironmentCodeCard: View {
         .sheet(isPresented: $showFullCode) {
             fullCodeViewer
         }
+        #if os(iOS)
+            .fileExporter(
+                isPresented: $showCodeExporter,
+                document: exportDocument,
+                contentType: exportDocument?.contentType ?? .utf8PlainText,
+                defaultFilename: exportDocument?.defaultFilename
+            ) { _ in
+                exportDocument = nil
+            }
+        #endif
         // When the environment's files change (added/removed/renamed — ids are
         // path-based), clear the retained selection so `selected` falls back to the
         // first file rather than pointing at a stale or wrong file. An in-place
@@ -309,3 +324,95 @@ struct FileTreeNode: Identifiable {
         file == nil
     }
 }
+
+#if os(iOS)
+    nonisolated struct CodeExportDocument: FileDocument {
+        static var readableContentTypes: [UTType] { [.utf8PlainText, .folder] }
+        static var writableContentTypes: [UTType] { [.utf8PlainText, .folder] }
+
+        let files: [CodeFile]
+        let defaultFilename: String
+        let contentType: UTType
+
+        init(files: [CodeFile], defaultFilename: String, contentType: UTType) {
+            self.files = files
+            self.defaultFilename = defaultFilename
+            self.contentType = contentType
+        }
+
+        init(configuration: ReadConfiguration) throws {
+            throw CocoaError(.fileReadUnsupportedScheme)
+        }
+
+        func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+            if contentType == .folder || files.count > 1 {
+                return CodeExportDirectory(files: files).fileWrapper()
+            }
+
+            let file = files.first ?? .placeholder
+            let wrapper = FileWrapper(regularFileWithContents: Data(file.contents.utf8))
+            wrapper.preferredFilename = file.name
+            return wrapper
+        }
+    }
+
+    private nonisolated final class CodeExportDirectory {
+        private var filesByName: [String: FileWrapper] = [:]
+        private var directoriesByName: [String: CodeExportDirectory] = [:]
+
+        init(files: [CodeFile] = []) {
+            for file in files {
+                insert(file, components: Self.pathComponents(for: file))
+            }
+        }
+
+        func fileWrapper() -> FileWrapper {
+            var children: [String: FileWrapper] = filesByName
+            for (name, directory) in directoriesByName {
+                let wrapper = directory.fileWrapper()
+                wrapper.preferredFilename = name
+                children[name] = wrapper
+            }
+            return FileWrapper(directoryWithFileWrappers: children)
+        }
+
+        private func insert(_ file: CodeFile, components: [String]) {
+            guard let name = components.first else { return }
+
+            if components.count == 1 {
+                let unique = uniqueName(name)
+                let wrapper = FileWrapper(regularFileWithContents: Data(file.contents.utf8))
+                wrapper.preferredFilename = unique
+                filesByName[unique] = wrapper
+                return
+            }
+
+            let directory = directoriesByName[name] ?? CodeExportDirectory()
+            directoriesByName[name] = directory
+            directory.insert(file, components: Array(components.dropFirst()))
+        }
+
+        private func uniqueName(_ preferred: String) -> String {
+            var candidate = preferred
+            var index = 2
+            while filesByName[candidate] != nil || directoriesByName[candidate] != nil {
+                candidate = "\(preferred) \(index)"
+                index += 1
+            }
+            return candidate
+        }
+
+        private static func pathComponents(for file: CodeFile) -> [String] {
+            let path = file.path ?? file.name
+            var components: [String] = []
+
+            for component in path.split(separator: "/") {
+                let name = String(component)
+                guard !name.isEmpty, name != ".", name != ".." else { continue }
+                components.append(name)
+            }
+
+            return components.isEmpty ? [file.name] : components
+        }
+    }
+#endif

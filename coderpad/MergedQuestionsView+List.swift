@@ -306,78 +306,84 @@ extension MergedQuestionsView {
     }
 
     private var questionsList: some View {
-        // NSTableView-backed (#439): recycles only visible rows, so selection is
-        // instant on large combined lists — see `FastList`.
-        FastList(sorted, selection: $selectedRowIDs) { row in
-            QuestionRowHostableContent(
-                question: row.item,
-                rowAccount: row.rowAccount,
-                isFavorite: isFavorite(row),
-                onToggleFavorite: { toggleFavorite(row) }
-            )
-            .fastListRowManualSelection(id: row.id, selection: $selectedRowIDs)
-            // iPad: drag onto the sidebar Favorites to pin, or out to Safari/Notes/Split View.
-            .favoriteDraggable(questionFavoritePayload(row), title: row.item.displayTitle)
-            // iPad: the row's context menu with a compact preview (macOS uses the FastList
-            // `NSMenu` path below instead).
-            .favoriteRowContextMenu(questionTableMenuItems(row), title: row.item.displayTitle)
-        }
         #if os(macOS)
-        .rowHeight(FastListRowMetrics.macHeight)
-        #endif
-        .reloadID(mergedQuestionListReloadID)
-        // Double-click / Return open the question in its own window with the
-        // originating account (the first click selects it).
-        .onDoubleClick { openQuestionWindow($0) }
-        .onReturnKey { openQuestionWindow($0) }
-        .swipeActions(edge: .leading) { row in
-            let starred = isFavorite(row)
-            return [SwipeAction(
-                title: starred ? String(localized: "Unfavorite") : String(localized: "Favorite"),
-                tint: Color(platformColor: .systemYellow),
-                systemImage: starred ? "star.slash" : "star.fill"
-            ) { toggleFavorite(row) }]
-        }
-        .swipeActions(edge: .trailing) { row in
-            guard !isReadOnly else { return [] }
+            MacQuestionTable(
+                items: sorted,
+                selection: $selectedRowIDs,
+                reloadID: mergedQuestionListReloadID,
+                scrollToID: pendingScrollToRowID,
+                onScrolledToID: { pendingScrollToRowID = nil },
+                presentation: { $0.presentation },
+                rowAccount: { $0.rowAccount },
+                isFavorite: { isFavorite($0) },
+                toggleFavorite: { toggleFavorite($0) },
+                onDoubleClick: { openQuestionWindow($0) },
+                onReturn: { openQuestionWindow($0) },
+                leadingActions: { row in
+                    let starred = isFavorite(row)
+                    return [SwipeAction(
+                        title: starred ? String(localized: "Unfavorite") : String(localized: "Favorite"),
+                        tint: Color(platformColor: .systemYellow),
+                        systemImage: starred ? "star.slash" : "star.fill"
+                    ) { toggleFavorite(row) }]
+                },
+                trailingActions: { row in
+                    guard !isReadOnly else { return [] }
 
-            // Same path as the context-menu "Delete Question…": select the row,
-            // then let its detail pane run the undoable delete.
-            return [SwipeAction(title: String(localized: "Delete"), role: .destructive,
-                                systemImage: "trash") {
-                    select(row)
-                    nav.deleteQuestionID = row.item.id
-                }]
-        }
-        #if os(macOS)
-        .onRowDrag { questionPasteboardItem($0) }
-        #endif
-        // iPad drag is attached to the row content above via `.favoriteDraggable` so it can
-        // carry the favorite payload alongside the URL; `FastList.onRowDragURL` (URL only)
-        // would add a second, conflicting `.draggable`. The iPad context menu is likewise
-        // attached to the row content (`.favoriteRowContextMenu`) so its long-press preview
-        // stays compact; `FastList`'s `NSMenu` path here is macOS-only.
-        #if os(macOS)
-        .rowContextMenu { questionTableMenuItems($0) }
-        #endif
-        .onTopRowChange { scheduleTopRowPersistence($0) }
-        .scrollToRow(id: pendingScrollToRowID) { pendingScrollToRowID = nil }
-        #if os(macOS)
-            .onDragSession(began: FavoriteDragLifecycle.onBegan, ended: FavoriteDragLifecycle.onEnded)
-        #endif
+                    return [SwipeAction(title: String(localized: "Delete"), role: .destructive,
+                                        systemImage: "trash") {
+                        select(row)
+                        nav.deleteQuestionID = row.item.id
+                    }]
+                },
+                pasteboardItem: { questionPasteboardItem($0) },
+                menuItems: { questionTableMenuItems($0) },
+                onTopRowChange: { scheduleTopRowPersistence($0) }
+            )
             .overlay { questionsOverlay }
             .macPullToRefresh { await reload() }
             .focusedSceneValue(\.focusedQuestion, selection)
-        // Edit ▸ Copy / ⌘C copies the selected questions' web URLs (one per line)
-        // while the list holds focus, matching the row's "Copy Question URL" action
-        // and extending it to a multi-row selection. Each link is built from its
-        // originating account's server URL, so a merged-list copy honors custom domains.
-        // The O(N) `selectedQuestionURLsInOrder` scan is built lazily (only on an actual
-        // copy); the per-render gate is the O(1) empty-selection check, off the click path.
-        #if os(macOS)
             .onCopyCommand(perform: copyLinkCommand(hasSelection: !selectedRowIDs.isEmpty) {
                 selectedQuestionURLsInOrder.joined(separator: "\n")
             })
+        #else
+            FastList(sorted, selection: $selectedRowIDs) { row in
+                QuestionRowHostableContent(
+                    question: row.item,
+                    presentation: row.presentation,
+                    rowAccount: row.rowAccount,
+                    isFavorite: isFavorite(row),
+                    onToggleFavorite: { toggleFavorite(row) }
+                )
+                .fastListRowManualSelection(id: row.id, selection: $selectedRowIDs)
+                .favoriteDraggable(questionFavoritePayload(row), title: row.item.displayTitle)
+                .favoriteRowContextMenu(questionTableMenuItems(row), title: row.item.displayTitle)
+            }
+            .reloadID(mergedQuestionListReloadID)
+            .onDoubleClick { openQuestionWindow($0) }
+            .onReturnKey { openQuestionWindow($0) }
+            .swipeActions(edge: .leading) { row in
+                let starred = isFavorite(row)
+                return [SwipeAction(
+                    title: starred ? String(localized: "Unfavorite") : String(localized: "Favorite"),
+                    tint: Color(platformColor: .systemYellow),
+                    systemImage: starred ? "star.slash" : "star.fill"
+                ) { toggleFavorite(row) }]
+            }
+            .swipeActions(edge: .trailing) { row in
+                guard !isReadOnly else { return [] }
+
+                return [SwipeAction(title: String(localized: "Delete"), role: .destructive,
+                                    systemImage: "trash") {
+                    select(row)
+                    nav.deleteQuestionID = row.item.id
+                }]
+            }
+            .onTopRowChange { scheduleTopRowPersistence($0) }
+            .scrollToRow(id: pendingScrollToRowID) { pendingScrollToRowID = nil }
+            .overlay { questionsOverlay }
+            .macPullToRefresh { await reload() }
+            .focusedSceneValue(\.focusedQuestion, selection)
         #endif
     }
 

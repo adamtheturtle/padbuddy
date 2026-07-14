@@ -69,6 +69,9 @@ struct Sidebar: View {
             .scrollContentBackground(.hidden)
             .accessibilityLabel("Sections")
             .id(sidebarListIdentity)
+            #if os(macOS)
+                .onMoveCommand(perform: moveSectionSelection)
+            #endif
 
             Divider()
             AccountFooter()
@@ -123,7 +126,7 @@ struct Sidebar: View {
     /// one; the hand-built rows mirror that by reading `controlActiveState`. That env
     /// value is macOS-only, so on iOS (no active/inactive window state) there's no
     /// inactive dimming and the rows stay at full opacity.
-    private var inactiveDimming: Double {
+    var inactiveDimming: Double {
         #if os(macOS)
             controlActiveState == .inactive ? 0.5 : 1
         #else

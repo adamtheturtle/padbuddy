@@ -7,6 +7,7 @@
     import AppKit
 #endif
 import SwiftUI
+import UniformTypeIdentifiers
 
 extension EnvironmentCodeCard {
     @ViewBuilder
@@ -106,11 +107,20 @@ extension EnvironmentCodeCard {
     /// name so its extension carries over.
     private var downloadButton: some View {
         Button {
-            if isMultiFile {
-                downloadAll(files)
-            } else {
-                download(selected)
-            }
+            #if os(macOS)
+                if isMultiFile {
+                    downloadAll(files)
+                } else {
+                    download(selected)
+                }
+            #else
+                exportDocument = CodeExportDocument(
+                    files: isMultiFile ? files : [selected],
+                    defaultFilename: isMultiFile ? "pad-\(padID)" : selected.name,
+                    contentType: isMultiFile ? .folder : .utf8PlainText
+                )
+                showCodeExporter = true
+            #endif
         } label: {
             Image(systemName: "square.and.arrow.down")
         }

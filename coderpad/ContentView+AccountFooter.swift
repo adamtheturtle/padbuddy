@@ -165,8 +165,9 @@ struct AccountFooter: View {
         return HStack(spacing: 10) {
             if isMerged {
                 Image(systemName: "person.2.circle.fill")
+                    .symbolRenderingMode(.monochrome)
                     .font(.system(size: mergedIconSize))
-                    .foregroundStyle(.purple)
+                    .foregroundStyle(.secondary)
             } else if let account = store.currentAccount {
                 AvatarCircle(account: account, diameter: 30)
                     .overlay(alignment: .bottomTrailing) {

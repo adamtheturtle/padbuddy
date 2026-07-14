@@ -69,6 +69,11 @@ extension QuestionsView {
                     || (question.authorName ?? "").localizedCaseInsensitiveContains(search))
         }
         listCache.sorted = applySort(filtered)
+        listCache.rowPresentations = Dictionary(
+            uniqueKeysWithValues: listCache.sorted.map { question in
+                (question.id, QuestionRowPresentation(question: question, account: nil))
+            }
+        )
         // The chip-option lists change only with `questions`, but recompute them in
         // the same pass so the filter bar's several reads don't each rebuild a Set.
         listCache.languages = Array(Set(questions.compactMap { $0.language?.lowercased() })
@@ -88,6 +93,7 @@ extension QuestionsView {
 /// mid-evaluation, mirroring the other list views' caches (#365).
 final class QuestionsListCache {
     var sorted: [Question] = []
+    var rowPresentations: [Int: QuestionRowPresentation] = [:]
     var favoriteIDSet: Set<Int> = []
     var languages: [String] = []
     var owners: [String] = []

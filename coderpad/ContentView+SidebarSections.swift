@@ -83,18 +83,68 @@ extension Sidebar {
         )
     }
 
-    /// A top-level section row in the `List`. Carries its `AppSection` as the selection
-    /// tag and reports its label width so the column floor still fits the longest label
-    /// (`SidebarRowWidthKey`). The native sidebar list paints the selection highlight; the
-    /// section tint is restricted to the glyph via `listItemTint`, matching platform sidebar
-    /// conventions without turning the row into a coloured tile.
+    /// A top-level section row in the `List`. Reports its label width so the column
+    /// floor still fits the longest label (`SidebarRowWidthKey`). On macOS the root rows
+    /// paint their own stable selection, because the native source-list highlight flips
+    /// from emphasized blue to inactive grey when focus moves into the selected pane.
+    @ViewBuilder
     func sectionRow(_ value: AppSection) -> some View {
-        Label(value.label, systemImage: value.systemImage)
-            .tag(value)
-            .listItemTint(.fixed(value.navigationTint))
+        #if os(macOS)
+            let isSelected = isRootSelected(value)
+            Button { selectRoot(value) } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: value.systemImage)
+                        .imageScale(.large)
+                        .foregroundStyle(isSelected ? Color.white : Color.secondary)
+                        .accessibilityHidden(true)
+                        .frame(width: 22)
+                    Text(value.label)
+                        .lineLimit(1)
+                        .foregroundStyle(isSelected ? Color.white : Color.primary)
+                    Spacer(minLength: 0)
+                }
+                .padding(.vertical, 5)
+                .padding(.horizontal, 6)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(
+                    isSelected ? Color.accentColor : Color.clear,
+                    in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
+                )
+                .contentShape(RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
+                .opacity(inactiveDimming)
+            }
+            .buttonStyle(.plain)
+            .selectionDisabled()
             .measuresSidebarRowWidth(value.label)
-            .accessibilityAddTraits(isRootSelected(value) ? .isSelected : [])
+            .accessibilityAddTraits(isSelected ? .isSelected : [])
+        #else
+            Label(value.label, systemImage: value.systemImage)
+                .tag(value)
+                .listItemTint(.monochrome)
+                .measuresSidebarRowWidth(value.label)
+                .accessibilityAddTraits(isRootSelected(value) ? .isSelected : [])
+        #endif
     }
+
+    #if os(macOS)
+        /// Replaces the native `List(selection:)` arrow handling for the custom macOS root
+        /// rows, keeping Next/Previous section movement on the real top-level destinations.
+        func moveSectionSelection(_ direction: MoveCommandDirection) {
+            let delta: Int
+            switch direction {
+            case .up: delta = -1
+            case .down: delta = 1
+            default: return
+            }
+
+            let order = sectionOrder
+            guard !order.isEmpty else { return }
+
+            let currentIndex = order.firstIndex(of: nav.section) ?? 0
+            let nextIndex = (currentIndex + delta + order.count) % order.count
+            selectRoot(order[nextIndex])
+        }
+    #endif
 
     /// Reset to the plain, unfiltered list for a top-level row, so tapping "Pads" or
     /// "Questions" clears any applied search and the highlight returns to that row.

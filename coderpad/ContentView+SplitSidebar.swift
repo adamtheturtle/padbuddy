@@ -61,6 +61,26 @@ extension MainSplit {
         sectionHasDetail ? .content : .detail
     }
 
+    /// Queues a compact-column change for the next main-actor turn, replacing any
+    /// earlier request made during the same update pass. Section changes can also
+    /// adjust column visibility, and row restoration can immediately request detail;
+    /// coalescing keeps those from tripping SwiftUI's navigation update guard.
+    func requestPreferredCompactColumn(_ column: NavigationSplitViewColumn) {
+        pendingPreferredCompactColumn = column
+        guard !preferredCompactColumnUpdateScheduled else { return }
+
+        preferredCompactColumnUpdateScheduled = true
+        DispatchQueue.main.async {
+            preferredCompactColumnUpdateScheduled = false
+            guard let column = pendingPreferredCompactColumn else { return }
+
+            pendingPreferredCompactColumn = nil
+            if preferredCompactColumn != column {
+                preferredCompactColumn = column
+            }
+        }
+    }
+
     /// True when the OS has forced the window narrower than its honest drag floor
     /// (``windowMinWidth``) — only reachable via Split View, tiling, Stage Manager, or a
     /// small/scaled display, since the `NSWindow`'s `contentMinSize` stops a free drag at

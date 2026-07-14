@@ -210,9 +210,9 @@ extension MergedPadsView {
         publishRoutes()
     }
 
-    /// Fan out a fresh fetch across every account concurrently. Each account's
-    /// result is applied as it lands (so fast accounts show first), and one
-    /// account's failure is recorded without disturbing the others.
+    /// Fan out a fresh fetch across every account concurrently. Results are applied
+    /// together after every account has answered, so the merged list does not first
+    /// render one account and then visibly insert later accounts as they finish.
     func reload() async {
         let mergeable = accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }
         guard !mergeable.isEmpty else { return }
@@ -222,6 +222,9 @@ extension MergedPadsView {
         // Build the clients on the main actor; each is Sendable, so the concurrent
         // children below can hold one without crossing isolation to build it.
         let targets = mergeable.map { (id: $0.id, client: $0.makeClient()) }
+        var fetchedByAccount: [UUID: [Pad]] = [:]
+        var fetchedErrors: [UUID: String] = [:]
+
         await withTaskGroup(of: (UUID, [Pad]?, String?).self) { group in
             for target in targets {
                 group.addTask {
@@ -235,16 +238,22 @@ extension MergedPadsView {
             }
             for await (id, pads, errorText) in group {
                 if let pads {
-                    padsByAccount[id] = pads
-                    accountErrors[id] = nil
-                    cache.set(id, pads: pads)
+                    fetchedByAccount[id] = pads
                 } else {
-                    accountErrors[id] = errorText
+                    fetchedErrors[id] = errorText
                 }
-                publishRoutes()
-                isLoading = false
             }
         }
+
+        for (id, pads) in fetchedByAccount {
+            padsByAccount[id] = pads
+            accountErrors[id] = nil
+            cache.set(id, pads: pads)
+        }
+        for (id, errorText) in fetchedErrors {
+            accountErrors[id] = errorText
+        }
+        publishRoutes()
         // Stamp the refresh time for the "Updated X ago" freshness cue (#619).
         lastRefreshed = Date()
         // Cold start with empty caches: the list first appears here, so this is the

@@ -5,12 +5,58 @@
 
 import SwiftUI
 
+/// Strings and badges the question row renders, precomputed when the list cache changes
+/// rather than while `NSTableView` is recycling hosted SwiftUI cells during scroll.
+struct QuestionRowPresentation: Hashable {
+    let title: String
+    let languageDisplayName: String?
+    let interviewType: InterviewType
+    let usedLabel: String?
+    let isDraft: Bool
+    let authorName: String?
+    let lastUsedRelative: String?
+    let lastUsedTooltip: String?
+    let accessibilityLabel: String
+
+    init(question: Question, account: RowAccount?) {
+        title = question.displayTitle
+        languageDisplayName = question.language.flatMap { language in
+            language.isEmpty ? nil : language.coderPadLanguageDisplayName
+        }
+        interviewType = question.interviewType
+        usedLabel = question.used.flatMap { used in
+            used > 0 ? String(localized: "Used \(used)×") : nil
+        }
+        isDraft = question.isDraft == true
+        authorName = question.authorName
+
+        if let lastUsed = question.updatedAt {
+            let labels = RelativeDateLabel.labels(for: lastUsed)
+            lastUsedRelative = labels.relative
+            lastUsedTooltip = labels.tooltip
+        } else {
+            lastUsedRelative = nil
+            lastUsedTooltip = nil
+        }
+
+        var parts = [title]
+        if let account { parts.append(account.name) }
+        if let languageDisplayName { parts.append(languageDisplayName) }
+        if interviewType == .takeHome { parts.append("Take-home") }
+        if let used = question.used, used > 0 { parts.append("used \(used) times") }
+        if isDraft { parts.append("Draft") }
+        if let authorName { parts.append(authorName) }
+        if let lastUsedRelative { parts.append("last used \(lastUsedRelative)") }
+        accessibilityLabel = parts.joined(separator: ", ")
+    }
+}
+
 /// The question row's static title/metadata/date block — the bulk of the row's
 /// render cost — memoized via `.equatable()` by ``QuestionRowHostableContent`` (#439). It holds no
 /// interaction and no closures, so wrapping it in an `EquatableView` can't affect the
 /// row's hit-testing or selection. `==` compares only the fields it renders.
 private struct QuestionRowInfo: View, Equatable {
-    let question: Question
+    let presentation: QuestionRowPresentation
     let account: RowAccount?
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -23,16 +69,7 @@ private struct QuestionRowInfo: View, Equatable {
     }
 
     static func == (lhs: Self, rhs: Self) -> Bool {
-        let lhsq = lhs.question, rhsq = rhs.question
-        return lhsq.id == rhsq.id
-            && lhsq.title == rhsq.title
-            && lhsq.language == rhsq.language
-            && lhsq.interviewType == rhsq.interviewType
-            && lhsq.used == rhsq.used
-            && lhsq.isDraft == rhsq.isDraft
-            && lhsq.authorName == rhsq.authorName
-            && lhsq.updatedAt == rhsq.updatedAt
-            && lhs.account == rhs.account
+        lhs.presentation == rhs.presentation && lhs.account == rhs.account
     }
 
     var body: some View {
@@ -44,12 +81,12 @@ private struct QuestionRowInfo: View, Equatable {
         #endif
         HStack(alignment: .top, spacing: 10) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(question.displayTitle)
+                Text(presentation.title)
                     .font(.callout.weight(.medium))
                     .foregroundStyle(Color.fastListRowPrimaryLabel)
                     .lineLimit(expandsForDynamicType ? 2 : 1)
                 metadata
-                if let author = question.authorName {
+                if let author = presentation.authorName {
                     Text(author)
                         .font(.caption)
                         .foregroundStyle(Color.fastListRowSecondaryLabel)
@@ -63,7 +100,7 @@ private struct QuestionRowInfo: View, Equatable {
         // coherent label (mirroring PadRow), rather than stopping on each chip
         // and label separately; the favorite star stays its own action.
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(accessibilityLabel)
+        .accessibilityLabel(presentation.accessibilityLabel)
     }
 
     @ViewBuilder
@@ -83,40 +120,54 @@ private struct QuestionRowInfo: View, Equatable {
 
     @ViewBuilder
     private var metadataItems: some View {
-        if let account {
-            AccountMetaLabel(account: account)
-        }
-        if let lang = question.language, !lang.isEmpty {
-            MetaLabel(text: lang.coderPadLanguageDisplayName)
-        }
-        if question.interviewType == .takeHome {
-            InterviewType.takeHome.chip
-        }
-        if let used = question.used, used > 0 {
-            MetaLabel(text: String(localized: "Used \(used)×"), systemImage: "chart.bar")
-        }
-        if question.isDraft == true {
-            Chip(text: String(localized: "Draft"), systemImage: "doc.badge.ellipsis", tint: .orange)
-        }
-    }
-
-    /// The row's title and metadata composed into one VoiceOver phrase, matching
-    /// PadRow so the two lists read consistently. The favorite toggle keeps its own
-    /// label, so it isn't folded in here.
-    private var accessibilityLabel: String {
-        var parts = [question.displayTitle]
-        if let account { parts.append(account.name) }
-        if let lang = question.language, !lang.isEmpty {
-            parts.append(lang.coderPadLanguageDisplayName)
-        }
-        if question.interviewType == .takeHome { parts.append("Take-home") }
-        if let used = question.used, used > 0 { parts.append("used \(used) times") }
-        if question.isDraft == true { parts.append("Draft") }
-        if let author = question.authorName { parts.append(author) }
-        if let lastUsed = question.updatedAt {
-            parts.append("last used \(RelativeDateLabel.labels(for: lastUsed).relative)")
-        }
-        return parts.joined(separator: ", ")
+        #if os(macOS)
+            if let account {
+                Text(account.name)
+                    .font(.caption)
+                    .foregroundStyle(Color.fastListRowSecondaryLabel)
+                    .lineLimit(1)
+            }
+            if let languageDisplayName = presentation.languageDisplayName {
+                Text(languageDisplayName)
+                    .font(.caption)
+                    .foregroundStyle(Color.fastListRowSecondaryLabel)
+                    .lineLimit(1)
+            }
+            if presentation.interviewType == .takeHome {
+                Text(InterviewType.takeHome.label)
+                    .font(.caption)
+                    .foregroundStyle(Color.fastListRowSecondaryLabel)
+                    .lineLimit(1)
+            }
+            if let usedLabel = presentation.usedLabel {
+                Text(usedLabel)
+                    .font(.caption)
+                    .foregroundStyle(Color.fastListRowSecondaryLabel)
+                    .lineLimit(1)
+            }
+            if presentation.isDraft {
+                Text("Draft")
+                    .font(.caption)
+                    .foregroundStyle(Color.fastListRowSecondaryLabel)
+                    .lineLimit(1)
+            }
+        #else
+            if let account {
+                AccountMetaLabel(account: account)
+            }
+            if let languageDisplayName = presentation.languageDisplayName {
+                MetaLabel(text: languageDisplayName)
+            }
+            if presentation.interviewType == .takeHome {
+                InterviewType.takeHome.chip
+            }
+            if let usedLabel = presentation.usedLabel {
+                MetaLabel(text: usedLabel, systemImage: "chart.bar")
+            }
+            if presentation.isDraft {
+                Chip(text: String(localized: "Draft"), systemImage: "doc.badge.ellipsis", tint: .orange)
+            }
+        #endif
     }
 }
 
@@ -126,19 +177,18 @@ private struct QuestionRowInfo: View, Equatable {
 /// right of the date on questions but to its left on pads (#650). Reserves the shared
 /// column width even when a question has never been used so the star stays aligned.
 private struct QuestionRowDateLabel: View {
-    let lastUsed: Date?
+    let relative: String?
+    let tooltip: String?
 
     var body: some View {
         Group {
-            if let lastUsed {
-                // Cached labels rather than `.formatted` per render — see PadRow (#439).
-                let labels = RelativeDateLabel.labels(for: lastUsed)
-                Text(labels.relative)
+            if let relative {
+                Text(relative)
                     .font(.caption)
                     .foregroundStyle(Color.fastListRowSecondaryLabel)
                     .lineLimit(1)
                     .fixedSize()
-                    .help("Last used \(labels.tooltip)")
+                    .help(tooltip.map { "Last used \($0)" } ?? "")
                     .frame(minWidth: FastListRowMetrics.dateColumnWidth, alignment: .trailing)
             } else {
                 // Reserve exactly the column width so unused questions keep the
@@ -159,6 +209,9 @@ private struct QuestionRowDateLabel: View {
 /// and the context menu are the table's job.
 struct QuestionRowHostableContent: View {
     let question: Question
+    /// Precomputed row strings/badges. The list cache supplies this on macOS hot paths;
+    /// falling back keeps previews and incidental call sites correct.
+    var presentation: QuestionRowPresentation?
     /// The account this row belongs to, named on the row only in the merged list
     /// (`nil` in the per-account list). (#604)
     var rowAccount: RowAccount?
@@ -173,39 +226,49 @@ struct QuestionRowHostableContent: View {
     #endif
 
     var body: some View {
+        let rowPresentation = presentation ?? QuestionRowPresentation(question: question, account: rowAccount)
         HStack(alignment: .center, spacing: 8) {
-            if let rowAccount {
+            if usesInlineAccountTintRail, let rowAccount {
                 AccountTintRail(account: rowAccount)
             }
-            QuestionRowInfo(question: question, account: rowAccount)
+            QuestionRowInfo(presentation: rowPresentation, account: rowAccount)
                 .equatable()
                 .allowsHitTesting(false)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .clipped()
                 .layoutPriority(0)
             if usesTrailingFavoriteAction {
-                QuestionRowDateLabel(lastUsed: question.updatedAt)
-                favoriteButton
+                QuestionRowDateLabel(relative: rowPresentation.lastUsedRelative, tooltip: rowPresentation.lastUsedTooltip)
+                favoriteButton(title: rowPresentation.title)
             } else {
-                favoriteButton
-                QuestionRowDateLabel(lastUsed: question.updatedAt)
+                favoriteButton(title: rowPresentation.title)
+                QuestionRowDateLabel(relative: rowPresentation.lastUsedRelative, tooltip: rowPresentation.lastUsedTooltip)
             }
         }
         .padding(.vertical, 4)
         .padRowTrailingActionInset(enabled: !usesTrailingFavoriteAction)
         .fixedFastListRowHeight()
+        .accountTintRailOverlay(rowAccount, enabled: !usesInlineAccountTintRail)
         .fastListRowInsets()
     }
 
-    private var favoriteButton: some View {
+    private func favoriteButton(title: String) -> some View {
         FavoriteStarButton(
             isFavorite: isFavorite,
-            title: question.displayTitle,
+            title: title,
             onToggle: onToggleFavorite
         )
     }
 
     private var usesTrailingFavoriteAction: Bool {
+        #if os(iOS)
+            horizontalSizeClass == .compact
+        #else
+            false
+        #endif
+    }
+
+    private var usesInlineAccountTintRail: Bool {
         #if os(iOS)
             horizontalSizeClass == .compact
         #else

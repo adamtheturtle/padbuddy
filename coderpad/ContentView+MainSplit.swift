@@ -114,6 +114,11 @@ struct MainSplit: View {
     /// forward to detail, matching the regular-width split's hierarchy.
     @State var preferredCompactColumn: NavigationSplitViewColumn = .sidebar
 
+    /// Coalesces programmatic compact-column requests so SwiftUI's navigation observer
+    /// sees at most one preferred-column write per update turn.
+    @State var pendingPreferredCompactColumn: NavigationSplitViewColumn?
+    @State var preferredCompactColumnUpdateScheduled = false
+
     /// Whether the sidebar's current collapse was driven by the window becoming too
     /// narrow rather than a manual toggle. We only auto-expand what we auto-collapsed,
     /// so a deliberate choice is never overridden by a resize.

@@ -75,6 +75,18 @@ extension View {
     }
 
     @ViewBuilder
+    func accountTintRailOverlay(_ account: RowAccount?, enabled: Bool) -> some View {
+        if enabled, let account {
+            padding(.leading, 12)
+                .overlay(alignment: .leading) {
+                    AccountTintRail(account: account)
+                }
+        } else {
+            self
+        }
+    }
+
+    @ViewBuilder
     func padRowTrailingActionInset(enabled: Bool) -> some View {
         #if os(iOS)
             if enabled {

@@ -151,71 +151,49 @@ extension QuestionsView {
     }
 
     private var questionsList: some View {
-        // NSTableView-backed (#439): recycles only visible rows, so selection is
-        // instant on large lists — see `FastList` and the pads list.
-        FastList(sorted, selection: $selectedQuestionIDs) { question in
-            QuestionRowHostableContent(
-                question: question,
-                isFavorite: favoriteIDSet.contains(question.id),
-                onToggleFavorite: { toggleFavorite(question) }
-            )
-            .fastListRowManualSelection(id: question.id, selection: $selectedQuestionIDs)
-            // iPad: drag onto the sidebar Favorites to pin, or out to Safari/Notes/Split View.
-            .favoriteDraggable(questionFavoritePayload(question), title: question.displayTitle)
-            // iPad: the row's context menu with a compact preview (macOS uses the FastList
-            // `NSMenu` path below instead).
-            .favoriteRowContextMenu(questionTableMenuItems(question), title: question.displayTitle)
-        }
         #if os(macOS)
-        .rowHeight(FastListRowMetrics.macHeight)
-        #endif
-        .reloadID(questionListReloadID)
-        .onDoubleClick { openQuestionWindow($0) }
-        .onReturnKey { openQuestionWindow($0) }
-        .swipeActions(edge: .leading) { question in
-            let starred = favoriteIDSet.contains(question.id)
-            return [SwipeAction(
-                title: starred ? String(localized: "Unfavorite") : String(localized: "Favorite"),
-                tint: Color(platformColor: .systemYellow),
-                systemImage: starred ? "star.slash" : "star.fill"
-            ) { toggleFavorite(question) }]
-        }
-        .swipeActions(edge: .trailing) { question in
-            guard !isReadOnly else { return [] }
-
-            return [
-                // Same path as the context-menu "Delete Question…": select the row,
-                // then let its detail pane run the undoable delete.
-                SwipeAction(title: String(localized: "Delete"), role: .destructive,
-                            systemImage: "trash") {
-                    selectedQuestionIDs = [question.id]
-                    nav.deleteQuestionID = question.id
+            MacQuestionTable(
+                items: sorted,
+                selection: $selectedQuestionIDs,
+                reloadID: questionListReloadID,
+                scrollToID: pendingScrollToID,
+                onScrolledToID: { pendingScrollToID = nil },
+                presentation: { question in
+                    listCache.rowPresentations[question.id] ?? QuestionRowPresentation(question: question, account: nil)
                 },
-                SwipeAction(title: String(localized: "New Pad"), tint: newPadSwipeTint,
-                            systemImage: "plus.rectangle.on.rectangle") {
-                    selectedQuestionIDs = [question.id]
-                    nav.createPadForQuestionID = question.id
-                }
-            ]
-        }
-        #if os(macOS)
-        .onRowDrag { questionPasteboardItem($0) }
-        #endif
-        // iPad drag is attached to the row content above via `.favoriteDraggable` so it can
-        // carry the favorite payload alongside the URL; `FastList.onRowDragURL` (URL only)
-        // would add a second, conflicting `.draggable`. The iPad context menu is likewise
-        // attached to the row content (`.favoriteRowContextMenu`) so its long-press preview
-        // stays compact; `FastList`'s `NSMenu` path here is macOS-only.
-        #if os(macOS)
-        .rowContextMenu { questionTableMenuItems($0) }
-        #endif
-        .onTopRowChange { scheduleTopRowPersistence($0) }
-        .scrollToRow(id: pendingScrollToID) { pendingScrollToID = nil }
-        #if os(macOS)
-            .onDragSession(began: FavoriteDragLifecycle.onBegan, ended: FavoriteDragLifecycle.onEnded)
-        #endif
-            // When filters exclude every question, explain why and offer a reset rather than
-            // leaving a blank list that reads like a load failure — matching the Pads list (#617).
+                rowAccount: { _ in nil },
+                isFavorite: { favoriteIDSet.contains($0.id) },
+                toggleFavorite: { toggleFavorite($0) },
+                onDoubleClick: { openQuestionWindow($0) },
+                onReturn: { openQuestionWindow($0) },
+                leadingActions: { question in
+                    let starred = favoriteIDSet.contains(question.id)
+                    return [SwipeAction(
+                        title: starred ? String(localized: "Unfavorite") : String(localized: "Favorite"),
+                        tint: Color(platformColor: .systemYellow),
+                        systemImage: starred ? "star.slash" : "star.fill"
+                    ) { toggleFavorite(question) }]
+                },
+                trailingActions: { question in
+                    guard !isReadOnly else { return [] }
+
+                    return [
+                        SwipeAction(title: String(localized: "Delete"), role: .destructive,
+                                    systemImage: "trash") {
+                            selectedQuestionIDs = [question.id]
+                            nav.deleteQuestionID = question.id
+                        },
+                        SwipeAction(title: String(localized: "New Pad"), tint: newPadSwipeTint,
+                                    systemImage: "plus.rectangle.on.rectangle") {
+                            selectedQuestionIDs = [question.id]
+                            nav.createPadForQuestionID = question.id
+                        }
+                    ]
+                },
+                pasteboardItem: { questionPasteboardItem($0) },
+                menuItems: { questionTableMenuItems($0) },
+                onTopRowChange: { scheduleTopRowPersistence($0) }
+            )
             .overlay {
                 if sorted.isEmpty, !questions.isEmpty {
                     ContentUnavailableView {
@@ -225,17 +203,64 @@ extension QuestionsView {
                     }
                 }
             }
-            // Scene-scoped, mirroring PadsView: the Question menu commands stay enabled
-            // whenever this window is frontmost and a question is selected.
             .focusedSceneValue(\.focusedQuestion, selection)
-        // Edit ▸ Copy / ⌘C copies the selected questions' web URLs (one per line).
-        // `onCopyCommand` is macOS-only (Edit-menu driven); iPad has no equivalent here.
-        #if os(macOS)
             .onCopyCommand(perform: copyLinkCommand(hasSelection: !selectedQuestionIDs.isEmpty) {
                 selectedQuestionURLsInOrder.joined(separator: "\n")
             })
-        #endif
             .macPullToRefresh { await reload() }
+        #else
+            FastList(sorted, selection: $selectedQuestionIDs) { question in
+                QuestionRowHostableContent(
+                    question: question,
+                    presentation: listCache.rowPresentations[question.id],
+                    isFavorite: favoriteIDSet.contains(question.id),
+                    onToggleFavorite: { toggleFavorite(question) }
+                )
+                .fastListRowManualSelection(id: question.id, selection: $selectedQuestionIDs)
+                .favoriteDraggable(questionFavoritePayload(question), title: question.displayTitle)
+                .favoriteRowContextMenu(questionTableMenuItems(question), title: question.displayTitle)
+            }
+            .reloadID(questionListReloadID)
+            .onDoubleClick { openQuestionWindow($0) }
+            .onReturnKey { openQuestionWindow($0) }
+            .swipeActions(edge: .leading) { question in
+                let starred = favoriteIDSet.contains(question.id)
+                return [SwipeAction(
+                    title: starred ? String(localized: "Unfavorite") : String(localized: "Favorite"),
+                    tint: Color(platformColor: .systemYellow),
+                    systemImage: starred ? "star.slash" : "star.fill"
+                ) { toggleFavorite(question) }]
+            }
+            .swipeActions(edge: .trailing) { question in
+                guard !isReadOnly else { return [] }
+
+                return [
+                    SwipeAction(title: String(localized: "Delete"), role: .destructive,
+                                systemImage: "trash") {
+                        selectedQuestionIDs = [question.id]
+                        nav.deleteQuestionID = question.id
+                    },
+                    SwipeAction(title: String(localized: "New Pad"), tint: newPadSwipeTint,
+                                systemImage: "plus.rectangle.on.rectangle") {
+                        selectedQuestionIDs = [question.id]
+                        nav.createPadForQuestionID = question.id
+                    }
+                ]
+            }
+            .onTopRowChange { scheduleTopRowPersistence($0) }
+            .scrollToRow(id: pendingScrollToID) { pendingScrollToID = nil }
+            .overlay {
+                if sorted.isEmpty, !questions.isEmpty {
+                    ContentUnavailableView {
+                        Label("No Matching Questions", systemImage: "line.3.horizontal.decrease.circle")
+                    } description: {
+                        Text("No questions match the current filters.")
+                    }
+                }
+            }
+            .focusedSceneValue(\.focusedQuestion, selection)
+            .macPullToRefresh { await reload() }
+        #endif
     }
 
     private var questionListReloadID: [Int] {

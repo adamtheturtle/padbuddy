@@ -90,7 +90,7 @@ extension MainSplit {
             // A section change moves the threshold (three columns vs. two), so
             // re-evaluate against the width we already know.
             .onChange(of: section) { _, _ in
-                preferredCompactColumn = preferredCompactColumnForCurrentSection
+                requestPreferredCompactColumn(preferredCompactColumnForCurrentSection)
                 updateSidebarCollapse(for: containerWidth)
                 // The toolbar count subtitle no longer needs clearing here: it's tagged
                 // with the section it was published for (`AppNavigation.sectionCountSection`),
@@ -165,11 +165,11 @@ extension MainSplit {
             // (#273). Re-runs when the section is restored at launch and when rows arrive.
             .onChange(of: restoreProbe, initial: true) { _, _ in scheduleRestoreSelectionIfNeeded() }
             .onChange(of: padSelection) { _, sel in
-                if sel != nil { preferredCompactColumn = .detail }
+                if sel != nil { requestPreferredCompactColumn(.detail) }
                 persistSelection(padID: sel?.id, questionID: nil)
             }
             .onChange(of: questionSelection) { _, sel in
-                if sel != nil { preferredCompactColumn = .detail }
+                if sel != nil { requestPreferredCompactColumn(.detail) }
                 persistSelection(padID: nil, questionID: sel?.id)
             }
             // Settle the live selection into the detail pane, debouncing arrow-key

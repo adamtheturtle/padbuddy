@@ -384,7 +384,7 @@ struct PadRowHostableContent: View {
 
     var body: some View {
         HStack(alignment: .center, spacing: 8) {
-            if let rowAccount {
+            if usesInlineAccountTintRail, let rowAccount {
                 AccountTintRail(account: rowAccount)
             }
             PadRowInfo(
@@ -410,6 +410,7 @@ struct PadRowHostableContent: View {
         .padding(.vertical, 4)
         .padRowTrailingActionInset(enabled: !usesTrailingFavoriteAction)
         .fixedFastListRowHeight()
+        .accountTintRailOverlay(rowAccount, enabled: !usesInlineAccountTintRail)
         .fastListRowInsets()
     }
 
@@ -422,6 +423,14 @@ struct PadRowHostableContent: View {
     }
 
     private var usesTrailingFavoriteAction: Bool {
+        #if os(iOS)
+            horizontalSizeClass == .compact
+        #else
+            false
+        #endif
+    }
+
+    private var usesInlineAccountTintRail: Bool {
         #if os(iOS)
             horizontalSizeClass == .compact
         #else

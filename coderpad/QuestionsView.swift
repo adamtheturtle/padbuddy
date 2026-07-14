@@ -76,8 +76,9 @@ struct QuestionsView: View {
     @State var pendingScrollToID: Int?
     /// Debounces free-scroll-position persistence. `FastList` reports each new top
     /// row during scroll; writing every one to `UserDefaults` makes scrolling hitch
-    /// on large pad/question lists (#633).
-    @State var topRowPersistTask: Task<Void, Never>?
+    /// on large pad/question lists (#633). Kept as a reference so scroll ticks do not
+    /// mutate SwiftUI state just to cancel and replace the pending write.
+    @State var topRowPersistence = TopRowPersistenceDebouncer()
     /// Per-render memo of the filtered/sorted rows, favorite ids, and chip options,
     /// refreshed once at the top of `body` so the list's readers share one pass (#365).
     @State var listCache = QuestionsListCache()

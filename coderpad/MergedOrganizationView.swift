@@ -169,17 +169,17 @@ struct MergedOrganizationView: View {
     }
 
     private var aggregateTiles: some View {
-        HStack(spacing: 12) {
-            StatTile(title: "Organizations", value: "\(loadedOrgs.count)",
-                     systemImage: "building.2.fill", tint: .purple)
-            StatTile(title: "Users", value: "\(totalUsers)",
-                     systemImage: "person.3.fill", tint: .blue)
-            StatTile(title: "Teams", value: "\(totalTeams)",
-                     systemImage: "rectangle.stack.person.crop", tint: .indigo)
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], alignment: .leading, spacing: 12) {
+            AggregateStatTile(title: "Organizations", value: "\(loadedOrgs.count)",
+                              systemImage: "building.2.fill", tint: .purple)
+            AggregateStatTile(title: "Users", value: "\(totalUsers)",
+                              systemImage: "person.3.fill", tint: .blue)
+            AggregateStatTile(title: "Teams", value: "\(totalTeams)",
+                              systemImage: "rectangle.stack.person.crop", tint: .indigo)
             // No timeframe in the title: the toolbar's period picker already states
             // the window these pad counts cover, so repeating it here is redundant.
-            StatTile(title: "Pads", value: "\(totalPads)",
-                     systemImage: "doc.text.fill", tint: .teal)
+            AggregateStatTile(title: "Pads", value: "\(totalPads)",
+                              systemImage: "doc.text.fill", tint: .teal)
         }
     }
 
@@ -321,5 +321,39 @@ struct MergedOrganizationView: View {
                 if let stats { statsByAccount[id] = stats }
             }
         }
+    }
+}
+
+private struct AggregateStatTile: View {
+    let title: LocalizedStringKey
+    let value: String
+    let systemImage: String
+    let tint: Color
+
+    var body: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 6) {
+                Image(systemName: systemImage)
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(tint)
+                    .accessibilityHidden(true)
+                Text(title)
+                    .font(.caption2.weight(.semibold))
+                    .tracking(0.6)
+                    .foregroundStyle(.secondary)
+                    .textCase(.uppercase)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+                    .allowsTightening(true)
+                Text(value)
+                    .font(.title2.weight(.semibold))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(title)
+        .accessibilityValue(value)
     }
 }

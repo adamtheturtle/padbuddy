@@ -109,12 +109,14 @@ struct MergedQuestionRow: Identifiable, Hashable {
     let account: Account
     let rowAccount: RowAccount
     let item: Question
+    let presentation: QuestionRowPresentation
     let id: String
 
     init(account: Account, item: Question) {
         self.account = account
         rowAccount = RowAccount(account)
         self.item = item
+        presentation = QuestionRowPresentation(question: item, account: rowAccount)
         id = MergedQuestionsView.rowID(account: account.id, question: item.id)
     }
 }

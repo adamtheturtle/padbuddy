@@ -13,18 +13,35 @@ import SwiftUI
 @MainActor
 final class TopRowPersistenceDebouncer {
     private var task: Task<Void, Never>?
+    private var pendingAction: (@MainActor () -> Void)?
+    private var generation = 0
 
     deinit {
         task?.cancel()
     }
 
     func schedule(_ action: @escaping @MainActor () -> Void) {
-        task?.cancel()
-        task = Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(350))
-            guard !Task.isCancelled else { return }
+        pendingAction = action
+        generation += 1
+        guard task == nil else { return }
 
-            action()
+        task = Task { @MainActor in
+            var observedGeneration = generation
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(350))
+                guard !Task.isCancelled else { return }
+
+                if observedGeneration != generation {
+                    observedGeneration = generation
+                    continue
+                }
+
+                let action = pendingAction
+                pendingAction = nil
+                task = nil
+                action?()
+                return
+            }
         }
     }
 }

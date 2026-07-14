@@ -104,7 +104,6 @@ A living roadmap. Items are grouped by theme and roughly ordered by impact. Anyt
 ## Security
 
 - [x] Periodic key health check: `AccountHealthMonitor` calls `/api/organization` every 30 minutes; an orange banner at the top of the window appears if the key returns 401/403, with Open Settings / Recheck buttons.
-- [ ] Option to require Touch ID before revealing a saved key in Settings.
 - [ ] Audit the Keychain item's access group; currently uses the default Generic Password class.
 
 ## App Store submission
