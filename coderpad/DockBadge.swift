@@ -9,9 +9,12 @@
 //
 
 import SwiftUI
+#if !os(macOS)
+    import UserNotifications
+#endif
 
-/// What the Dock badge counts: nothing, the current account's started pads, or
-/// every account's. Persisted by its raw value via `@AppStorage` (#399).
+/// What the app badge counts: nothing, the current account's started pads, or
+/// every account's. Persisted by its raw value via `@AppStorage` (#399/#679).
 enum DockBadgeScope: String, CaseIterable, Identifiable {
     case off
     case currentAccount
@@ -73,56 +76,82 @@ enum DockBadgeController {
         Task { @MainActor in apply() }
     }
 
-    /// Resolve the count and write the badge via `BuddyAppKit`'s `DockBadge`. A zero
-    /// count clears the badge, so "nothing to show" (or the badge being off) leaves a
-    /// clean icon rather than a "0".
+    /// Resolve the count and write the platform badge. A zero count clears the badge,
+    /// so "nothing to show" (or the badge being off) leaves a clean icon rather than a
+    /// "0".
     @MainActor
     static func apply() {
-        // iOS has no Dock, so `DockBadge.set(count:)` is a no-op there. The scope/count
-        // derivation below still compiles and works; only the tile rendering is macOS-only.
-        #if os(macOS)
-            let store = AccountsStore.shared
-            // The accounts whose started pads the badge counts, per the chosen scope.
-            let countedAccounts: [Account]
-            switch scope {
-            case .off:
-                DockBadge.set(count: 0)
-                return
+        setPlatformBadge(count: activePadCount())
+    }
 
-            case .currentAccount:
-                // No single current account (e.g. the combined "All Accounts" view) means
-                // there's nothing to scope to, so clear the badge rather than guess.
-                guard let current = store.currentAccount else {
-                    DockBadge.set(count: 0)
+    @MainActor
+    private static func activePadCount() -> Int {
+        let store = AccountsStore.shared
+        // The accounts whose started pads the badge counts, per the chosen scope.
+        let countedAccounts: [Account]
+        switch scope {
+        case .off:
+            return 0
+
+        case .currentAccount:
+            // No single current account (e.g. the combined "All Accounts" view) means
+            // there's nothing to scope to, so clear the badge rather than guess.
+            guard let current = store.currentAccount else { return 0 }
+
+            countedAccounts = [current]
+
+        case .allAccounts:
+            countedAccounts = store.accounts
+        }
+
+        // Only the user's own started pads, scoped per account: ownership is compared
+        // against each account's configured email (matching `MergedPadsView.isMine`),
+        // so other interviewers' live pads don't count. Emails are canonicalized once
+        // per account (case- and plus-addressing-folded; see `String.canonicalOwnerEmail`)
+        // so a pad owned via a sub-address alias still counts as the account user's.
+        let canonicalEmails = Dictionary(
+            countedAccounts
+                .filter { !$0.userEmail.isEmpty }
+                .map { ($0.id, $0.userEmail.canonicalOwnerEmail) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        return PadsCacheStore.shared.padsByAccount.reduce(0) { running, entry in
+            let (accountID, pads) = entry
+            guard let email = canonicalEmails[accountID] else { return running }
+
+            return running + pads.count(where: {
+                $0.status == .active && $0.ownerEmail.canonicalOwnerEmail == email
+            })
+        }
+    }
+
+    private static func setPlatformBadge(count: Int) {
+        #if os(macOS)
+            DockBadge.set(count: count)
+        #else
+            let center = UNUserNotificationCenter.current()
+            Task {
+                let settings = await center.notificationSettings()
+                switch settings.authorizationStatus {
+                case .notDetermined:
+                    guard count > 0 else { return }
+                    guard await (try? center.requestAuthorization(options: [.badge])) == true else { return }
+
+                case .denied:
                     return
+
+                default:
+                    break
                 }
 
-                countedAccounts = [current]
+                guard await center.notificationSettings().badgeSetting == .enabled else { return }
 
-            case .allAccounts:
-                countedAccounts = store.accounts
+                center.setBadgeCount(count) { error in
+                    if let error {
+                        print("Failed to update app icon badge: \(error.localizedDescription)")
+                    }
+                }
             }
-
-            // Only the user's own started pads, scoped per account: ownership is compared
-            // against each account's configured email (matching `MergedPadsView.isMine`),
-            // so other interviewers' live pads don't count. Emails are canonicalized once
-            // per account (case- and plus-addressing-folded; see `String.canonicalOwnerEmail`)
-            // so a pad owned via a sub-address alias still counts as the account user's.
-            let canonicalEmails = Dictionary(
-                countedAccounts
-                    .filter { !$0.userEmail.isEmpty }
-                    .map { ($0.id, $0.userEmail.canonicalOwnerEmail) },
-                uniquingKeysWith: { first, _ in first }
-            )
-            let activePadTotal = PadsCacheStore.shared.padsByAccount.reduce(0) { running, entry in
-                let (accountID, pads) = entry
-                guard let email = canonicalEmails[accountID] else { return running }
-
-                return running + pads.count(where: {
-                    $0.status == .active && $0.ownerEmail.canonicalOwnerEmail == email
-                })
-            }
-            DockBadge.set(count: activePadTotal)
         #endif
     }
 }

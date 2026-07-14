@@ -73,19 +73,14 @@ final class PadUpdateNotifier: NSObject {
         Task { _ = try? await center.requestAuthorization(options: [.alert, .sound]) }
     }
 
-    /// Ask the system for permission to put a count on the Dock icon. Since macOS
+    /// Ask the system for permission to put a count on the app icon. Since macOS
     /// Monterey, `NSDockTile.badgeLabel` only renders for an app granted the `.badge`
-    /// capability — without it the label sets and reads back but never draws, and the
-    /// app never even appears with a "Badge app icon" toggle in System Settings ▸
-    /// Notifications (#317). Requesting it is idempotent: the system prompts at most
-    /// once and otherwise just returns the standing decision, so it's safe to call on
-    /// every launch and whenever the Dock-badge scope is switched on.
+    /// capability; iOS app-icon badges use the same authorization option (#317/#679).
+    /// Requesting it is idempotent: the system prompts at most once and otherwise just
+    /// returns the standing decision, so it's safe to call on every launch and whenever
+    /// the badge scope is switched on.
     func requestBadgeAuthorization() {
-        // The Dock badge is macOS-only (iOS has no Dock and the badge logic is a no-op
-        // there), so there's nothing to authorize on iOS.
-        #if os(macOS)
-            Task { _ = try? await center.requestAuthorization(options: [.badge]) }
-        #endif
+        Task { _ = try? await center.requestAuthorization(options: [.badge]) }
     }
 
     /// Post an alert summarizing pads that just gained activity. A no-op unless the

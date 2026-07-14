@@ -5964,6 +5964,16 @@
         }
       }
     },
+    "Show my active pads on the app icon" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mostrar mis pads activos en el icono de la app"
+          }
+        }
+      }
+    },
     "Show my active pads on the Dock icon" : {
       "localizations" : {
         "es" : {

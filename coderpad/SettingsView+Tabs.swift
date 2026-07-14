@@ -34,7 +34,8 @@ extension SettingsView {
                 appearanceSetting
             }
 
-            // Dock / menu-bar presence and the Dock-icon badge are macOS-only surfaces.
+            // Dock / menu-bar presence is macOS-only. The active-pad badge is shared,
+            // but each platform names the surface users actually see.
             #if os(macOS)
                 Section {
                     Picker("Show PadBuddy in", selection: $presence) {
@@ -48,25 +49,9 @@ extension SettingsView {
                         GeneralSettings.applyDockVisibility()
                     }
                 }
-
-                Section {
-                    Picker("Show my active pads on the Dock icon", selection: $dockBadgeScope) {
-                        ForEach(DockBadgeScope.allCases) { scope in
-                            Text(scope.label).tag(scope)
-                        }
-                    }
-                    .onChange(of: dockBadgeScope) { _, scope in
-                        // The Dock badge only renders once the app holds the `.badge`
-                        // capability (macOS Monterey+, #317), so ask for it the moment the
-                        // user switches the badge on — when the prompt is expected.
-                        if scope != .off { PadUpdateNotifier.shared.requestBadgeAuthorization() }
-                        // Apply or clear the badge immediately rather than waiting for the
-                        // next pad refresh.
-                        DockBadgeController.refresh()
-                    }
-                    .disabled(!presence.showsDockIcon)
-                }
             #endif
+
+            badgeSettingsSection
 
             Section {
                 Toggle("Make pads and questions searchable in Spotlight", isOn: $spotlightIndexing)
@@ -97,7 +82,6 @@ extension SettingsView {
                 Text("Alerts when pads gain activity while PadBuddy is in the background.")
                     .foregroundStyle(.secondary)
             }
-
         }
         .formStyle(.grouped)
         // Re-sync with the system in case the login item changed outside the app.
@@ -124,7 +108,6 @@ extension SettingsView {
             }
         #endif
     }
-
 
     /// Mail-style master-detail layout: a sidebar listing the accounts with `+`/`−`
     /// controls at its foot, and a detail pane showing the selected account's settings
