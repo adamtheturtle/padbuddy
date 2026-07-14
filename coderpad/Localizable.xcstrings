@@ -3036,6 +3036,26 @@
         }
       }
     },
+    "Favorite Question" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pregunta favorita"
+          }
+        }
+      }
+    },
+    "Favorite Question Pad" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pad desde pregunta favorita"
+          }
+        }
+      }
+    },
     "Favorited" : {
       "localizations" : {
         "en-GB" : {
@@ -3943,6 +3963,16 @@
         }
       }
     },
+    "New Pad from Favorite Question" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Nuevo Pad desde una pregunta favorita"
+          }
+        }
+      }
+    },
     "New Pad from Question" : {
       "localizations" : {
         "es" : {
@@ -4416,6 +4446,16 @@
         }
       }
     },
+    "Open Active Pads" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Abrir pads activos"
+          }
+        }
+      }
+    },
     "Open in New Window" : {
       "localizations" : {
         "es" : {
@@ -4516,6 +4556,16 @@
         }
       }
     },
+    "Open PadBuddy and create a new pad from a favorite question." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Abre PadBuddy y crea un nuevo pad a partir de una pregunta favorita."
+          }
+        }
+      }
+    },
     "Open PadBuddy and search pads matching a query." : {
       "localizations" : {
         "es" : {
@@ -4536,6 +4586,26 @@
         }
       }
     },
+    "Open PadBuddy to active interview pads." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Abre PadBuddy en los pads de entrevistas activas."
+          }
+        }
+      }
+    },
+    "Open PadBuddy to your recent pads." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Abre PadBuddy en tus pads recientes."
+          }
+        }
+      }
+    },
     "Open Pads" : {
       "localizations" : {
         "es" : {
@@ -4552,6 +4622,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Abrir PDF"
+          }
+        }
+      }
+    },
+    "Open Recent Pads" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Abrir pads recientes"
           }
         }
       }
@@ -5256,6 +5336,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Cuota, plan ilimitado"
+          }
+        }
+      }
+    },
+    "Recent Pads" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pads recientes"
           }
         }
       }

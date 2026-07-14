@@ -21,6 +21,27 @@ struct CoderPadShortcuts: AppShortcutsProvider {
             systemImageName: "doc.text"
         )
         AppShortcut(
+            intent: OpenRecentPadsIntent(),
+            phrases: ["Open recent pads in \(.applicationName)", "Show recent pads in \(.applicationName)"],
+            shortTitle: "Recent Pads",
+            systemImageName: "clock"
+        )
+        AppShortcut(
+            intent: OpenActivePadsIntent(),
+            phrases: ["Open active pads in \(.applicationName)", "Show active interviews in \(.applicationName)"],
+            shortTitle: "Active Pads",
+            systemImageName: "bolt.fill"
+        )
+        AppShortcut(
+            intent: NewPadFromFavoriteQuestionIntent(),
+            phrases: [
+                "New pad from favorite question in \(.applicationName)",
+                "Create pad from favorite question in \(.applicationName)"
+            ],
+            shortTitle: "Favorite Question Pad",
+            systemImageName: "star.square.on.square"
+        )
+        AppShortcut(
             intent: SearchPadsIntent(),
             phrases: ["Search \(.applicationName)", "Find pads in \(.applicationName)"],
             shortTitle: "Search Pads",
@@ -94,6 +115,27 @@ struct NewPadIntent: AppIntent {
     }
 }
 
+struct NewPadFromFavoriteQuestionIntent: AppIntent {
+    static let title: LocalizedStringResource = "New Pad from Favorite Question"
+    // Read by the AppIntents framework (Shortcuts metadata), not Swift.
+    // periphery:ignore
+    static let description = IntentDescription("Open PadBuddy and create a new pad from a favorite question.")
+    static let openAppWhenRun: Bool = true
+
+    @Parameter(title: "Question")
+    var question: FavoriteQuestionEntity
+
+    func perform() async -> some IntentResult {
+        try? await Task.sleep(for: .milliseconds(400))
+        let accountID = question.accountID
+        let questionID = question.questionID
+        await MainActor.run {
+            AppNavigation.shared.routeNewPad(account: accountID, seedQuestionID: questionID)
+        }
+        return .result()
+    }
+}
+
 struct OpenPadsIntent: AppIntent {
     static let title: LocalizedStringResource = "Open Pads"
     // Read by the AppIntents framework (Shortcuts metadata), not Swift.
@@ -107,5 +149,94 @@ struct OpenPadsIntent: AppIntent {
             AppNavigation.shared.show(.pads)
         }
         return .result()
+    }
+}
+
+struct OpenRecentPadsIntent: AppIntent {
+    static let title: LocalizedStringResource = "Open Recent Pads"
+    // Read by the AppIntents framework (Shortcuts metadata), not Swift.
+    // periphery:ignore
+    static let description = IntentDescription("Open PadBuddy to your recent pads.")
+    static let openAppWhenRun: Bool = true
+
+    func perform() async -> some IntentResult {
+        try? await Task.sleep(for: .milliseconds(200))
+        await MainActor.run {
+            if AccountsStore.shared.showAllAccounts {
+                AppNavigation.shared.showMergedRoot(kind: .pads)
+            } else {
+                AppNavigation.shared.showPads(PadsRequest(applySearch: NamedSearch(name: "")))
+            }
+        }
+        return .result()
+    }
+}
+
+struct OpenActivePadsIntent: AppIntent {
+    static let title: LocalizedStringResource = "Open Active Pads"
+    // Read by the AppIntents framework (Shortcuts metadata), not Swift.
+    // periphery:ignore
+    static let description = IntentDescription("Open PadBuddy to active interview pads.")
+    static let openAppWhenRun: Bool = true
+
+    func perform() async -> some IntentResult {
+        try? await Task.sleep(for: .milliseconds(200))
+        await MainActor.run {
+            if AccountsStore.shared.showAllAccounts {
+                AppNavigation.shared.section = .pads
+                AppNavigation.shared.mergedPadsActiveRequest = true
+            } else {
+                let active = NamedSearch(name: String(localized: "Active Pads"), stateFilter: .active)
+                AppNavigation.shared.showPads(PadsRequest(applySearch: active))
+            }
+        }
+        return .result()
+    }
+}
+
+struct FavoriteQuestionEntity: AppEntity {
+    let id: String
+    let accountID: String
+    let questionID: Int
+    let title: String
+
+    static var typeDisplayRepresentation: TypeDisplayRepresentation {
+        "Favorite Question"
+    }
+
+    var displayRepresentation: DisplayRepresentation {
+        DisplayRepresentation(title: "\(title)")
+    }
+
+    static let defaultQuery = FavoriteQuestionQuery()
+}
+
+struct FavoriteQuestionQuery: EntityQuery {
+    func entities(for identifiers: [String]) async throws -> [FavoriteQuestionEntity] {
+        await MainActor.run {
+            all().filter { identifiers.contains($0.id) }
+        }
+    }
+
+    func suggestedEntities() async throws -> [FavoriteQuestionEntity] {
+        await MainActor.run {
+            all()
+        }
+    }
+
+    @MainActor
+    private func all() -> [FavoriteQuestionEntity] {
+        let accounts = AccountsStore.shared.accounts
+        let qualify = accounts.count > 1
+        return accounts.flatMap { account in
+            FavoriteQuestionsStore.shared.titledFavorites(account: account.id).map { favorite in
+                let title = favorite.title.isEmpty ? "#\(favorite.id)" : favorite.title
+                let label = qualify ? "\(title) · \(account.name)" : title
+                return FavoriteQuestionEntity(id: "\(account.id.uuidString):\(favorite.id)",
+                                              accountID: account.id.uuidString,
+                                              questionID: favorite.id,
+                                              title: label)
+            }
+        }
     }
 }

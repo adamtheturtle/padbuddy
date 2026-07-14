@@ -1,6 +1,29 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "New pad from favorite question in ${applicationName}" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringSet" : {
+            "state" : "new",
+            "values" : [
+              "New pad from favorite question in ${applicationName}",
+              "Create pad from favorite question in ${applicationName}"
+            ]
+          }
+        },
+        "es" : {
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "Nuevo pad desde una pregunta favorita en ${applicationName}",
+              "Crear pad desde una pregunta favorita en ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
     "New pad in ${applicationName}" : {
       "extractionState" : "extracted_with_value",
       "localizations" : {
@@ -20,6 +43,29 @@
               "Nuevo pad en ${applicationName}",
               "Crear pad en ${applicationName}",
               "Crear un pad en ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Open active pads in ${applicationName}" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringSet" : {
+            "state" : "new",
+            "values" : [
+              "Open active pads in ${applicationName}",
+              "Show active interviews in ${applicationName}"
+            ]
+          }
+        },
+        "es" : {
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "Abrir pads activos en ${applicationName}",
+              "Mostrar entrevistas activas en ${applicationName}"
             ]
           }
         }
@@ -68,6 +114,29 @@
               "Abrir pad en ${applicationName}",
               "Mostrar pad en ${applicationName}",
               "Abrir un pad en ${applicationName}"
+            ]
+          }
+        }
+      }
+    },
+    "Open recent pads in ${applicationName}" : {
+      "extractionState" : "extracted_with_value",
+      "localizations" : {
+        "en" : {
+          "stringSet" : {
+            "state" : "new",
+            "values" : [
+              "Open recent pads in ${applicationName}",
+              "Show recent pads in ${applicationName}"
+            ]
+          }
+        },
+        "es" : {
+          "stringSet" : {
+            "state" : "machine_translated",
+            "values" : [
+              "Abrir pads recientes en ${applicationName}",
+              "Mostrar pads recientes en ${applicationName}"
             ]
           }
         }
