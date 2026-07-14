@@ -61,6 +61,9 @@
             }
             .commands {
                 IPadCommands()
+                PadCommands()
+                QuestionCommands()
+                ScreenCommands()
             }
         }
 
