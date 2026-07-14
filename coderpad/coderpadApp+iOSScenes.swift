@@ -16,9 +16,10 @@
         /// The iPad scene graph. A single primary `WindowGroup` hosting the same
         /// three-column `ContentView`; the macOS-only menu-bar extra, Dock menu,
         /// per-window `Window`/`WindowGroup` scenes, and `Settings` scene have no iPad
-        /// analog, so iPad reaches Settings in-app and opens pads/questions inline. The
-        /// Spotlight continuation and `coderpad://` deep-link handling are shared with
-        /// macOS so widget taps and search results route the same way.
+        /// analog, so iPad reaches Settings in-app. Pads/questions still open inline on
+        /// compact layouts, with optional separate scenes registered below for iPad
+        /// multi-window workflows. The Spotlight continuation and `coderpad://` deep-link
+        /// handling are shared with macOS so widget taps and search results route the same way.
         @SceneBuilder var iOSScenes: some Scene {
             WindowGroup {
                 ContentView()
@@ -64,6 +65,31 @@
                 PadCommands()
                 QuestionCommands()
                 ScreenCommands()
+            }
+
+            questionScene
+            padScene
+            screenTestScene
+        }
+
+        private var questionScene: some Scene {
+            WindowGroup("Question", id: "question", for: QuestionWindowID.self) { $value in
+                QuestionWindow(value: value)
+                    .preferredColorScheme(appearance.colorScheme)
+            }
+        }
+
+        private var padScene: some Scene {
+            WindowGroup("Pad", id: "pad", for: PadWindowID.self) { $value in
+                PadWindow(value: value)
+                    .preferredColorScheme(appearance.colorScheme)
+            }
+        }
+
+        private var screenTestScene: some Scene {
+            WindowGroup("Test Session", id: "screen-test", for: ScreenTestWindowID.self) { $value in
+                ScreenTestWindow(value: value)
+                    .preferredColorScheme(appearance.colorScheme)
             }
         }
 
