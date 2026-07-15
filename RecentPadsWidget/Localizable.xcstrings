@@ -72,7 +72,14 @@
       }
     },
     "Couldn't hand this request to PadBuddy. Check that widgets and App Groups are available, then try again." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudo pasar esta solicitud a PadBuddy. Comprueba que los widgets y los App Groups estén disponibles e inténtalo de nuevo."
+          }
+        }
+      }
     },
     "Create a new CoderPad pad." : {
       "localizations" : {
@@ -95,10 +102,24 @@
       }
     },
     "Creates a blank pad in PadBuddy." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Crea un pad en blanco en PadBuddy."
+          }
+        }
+      }
     },
     "Creates a pad seeded from the selected favorite question." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Crea un pad a partir de la pregunta favorita seleccionada."
+          }
+        }
+      }
     },
     "New Pad" : {
       "localizations" : {
@@ -111,7 +132,14 @@
       }
     },
     "New Pad from Favorite Question" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Nuevo pad desde una pregunta favorita"
+          }
+        }
+      }
     },
     "New Pad question" : {
       "localizations" : {
@@ -154,10 +182,24 @@
       }
     },
     "Open pad, %@" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Abrir pad, %@"
+          }
+        }
+      }
     },
     "Opens this pad in PadBuddy." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Abre este pad en PadBuddy."
+          }
+        }
+      }
     },
     "Pad ID" : {
       "localizations" : {
@@ -200,7 +242,14 @@
       }
     },
     "Updated %@" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Actualizado %@"
+          }
+        }
+      }
     },
     "Your most recently updated CoderPad pads." : {
       "localizations" : {

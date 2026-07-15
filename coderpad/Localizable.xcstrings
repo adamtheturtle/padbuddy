@@ -909,7 +909,14 @@
       }
     },
     "Account and settings" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Cuenta y ajustes"
+          }
+        }
+      }
     },
     "Accounts" : {
       "localizations" : {
@@ -1050,7 +1057,14 @@
       }
     },
     "Add Account..." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Añadir cuenta..."
+          }
+        }
+      }
     },
     "Add Account…" : {
       "localizations" : {
@@ -1088,6 +1102,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Añadir o gestionar cuentas en Ajustes"
+          }
+        }
+      }
+    },
+    "Add the reference solution or key implementation notes." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Añade la solución de referencia o las notas clave de implementación."
           }
         }
       }
@@ -1169,10 +1193,24 @@
       }
     },
     "All Pads" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Todos los pads"
+          }
+        }
+      }
     },
     "All Questions" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Todas las preguntas"
+          }
+        }
+      }
     },
     "All Statuses" : {
       "localizations" : {
@@ -1265,10 +1303,24 @@
       }
     },
     "Apply a suggested pad filter" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Aplicar un filtro de pad sugerido"
+          }
+        }
+      }
     },
     "Apply a suggested question filter" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Aplicar un filtro de pregunta sugerido"
+          }
+        }
+      }
     },
     "Archived" : {
       "localizations" : {
@@ -1332,6 +1384,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Clave no válida"
+          }
+        }
+      }
+    },
+    "Brief" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Resumen"
           }
         }
       }
@@ -1472,6 +1534,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Nombre del candidato"
+          }
+        }
+      }
+    },
+    "Candidate Prompt" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Consigna para candidato"
           }
         }
       }
@@ -1619,13 +1691,34 @@
       }
     },
     "CoderPad couldn't find the API endpoint at this Server URL. Hosted accounts should use https://app.coderpad.io." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "CoderPad no pudo encontrar el endpoint de la API en esta URL del servidor. Las cuentas alojadas deben usar https://app.coderpad.io."
+          }
+        }
+      }
     },
     "CoderPad couldn't validate this key (HTTP %lld)." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "CoderPad no pudo validar esta clave (HTTP %lld)."
+          }
+        }
+      }
     },
     "CoderPad couldn't validate this key: %@" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "CoderPad no pudo validar esta clave: %@"
+          }
+        }
+      }
     },
     "CoderPad couldn't verify the key right now. Try again in a moment." : {
       "extractionState" : "stale",
@@ -1639,7 +1732,14 @@
       }
     },
     "CoderPad had a server error while validating this key. Try again shortly." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "CoderPad tuvo un error del servidor al validar esta clave. Inténtalo de nuevo en breve."
+          }
+        }
+      }
     },
     "CoderPad had a server error. Please try again shortly." : {
       "localizations" : {
@@ -1662,7 +1762,14 @@
       }
     },
     "CoderPad is rate-limiting validation right now. Try again in a moment." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "CoderPad está limitando las validaciones en este momento. Inténtalo de nuevo dentro de un momento."
+          }
+        }
+      }
     },
     "CoderPad is unreachable, so editing is paused until you reconnect." : {
       "localizations" : {
@@ -2030,6 +2137,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "No se pudo eliminar la pregunta"
+          }
+        }
+      }
+    },
+    "Couldn't hand this request to PadBuddy. Check that widgets and App Groups are available, then try again." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudo pasar esta solicitud a PadBuddy. Comprueba que los widgets y los App Groups estén disponibles e inténtalo de nuevo."
           }
         }
       }
@@ -2446,6 +2563,16 @@
         }
       }
     },
+    "Delete account" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Eliminar cuenta"
+          }
+        }
+      }
+    },
     "Delete Account" : {
       "localizations" : {
         "es" : {
@@ -2627,6 +2754,7 @@
       }
     },
     "Describe a question, e.g. reverse a linked list" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2737,6 +2865,7 @@
       }
     },
     "Draft fields" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2746,7 +2875,28 @@
         }
       }
     },
+    "Draft Question" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Redactar pregunta"
+          }
+        }
+      }
+    },
+    "Draft the title, brief, candidate prompt, and solution" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Redacta el título, el resumen, la consigna para el candidato y la solución"
+          }
+        }
+      }
+    },
     "Draft the title, description, instructions, and solution" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2757,6 +2907,7 @@
       }
     },
     "Draft with AI" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2827,7 +2978,14 @@
       }
     },
     "Email" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Correo electrónico"
+          }
+        }
+      }
     },
     "Email the candidate an invitation" : {
       "localizations" : {
@@ -3798,7 +3956,14 @@
       }
     },
     "Manage Accounts..." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Gestionar cuentas..."
+          }
+        }
+      }
     },
     "Manage Accounts…" : {
       "localizations" : {
@@ -3811,7 +3976,14 @@
       }
     },
     "Materials" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Materiales"
+          }
+        }
+      }
     },
     "MCP Activity" : {
       "localizations" : {
@@ -4154,7 +4326,14 @@
       }
     },
     "No code, tests, or files" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Sin código, pruebas ni archivos"
+          }
+        }
+      }
     },
     "No events yet." : {
       "localizations" : {
@@ -4797,7 +4976,14 @@
       }
     },
     "Org" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Org."
+          }
+        }
+      }
     },
     "Organization" : {
       "localizations" : {
@@ -5215,7 +5401,14 @@
       }
     },
     "Prompt" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Consigna"
+          }
+        }
+      }
     },
     "Properties" : {
       "localizations" : {
@@ -5288,7 +5481,14 @@
       }
     },
     "Question detail section" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Sección de detalles de la pregunta"
+          }
+        }
+      }
     },
     "Question prompt" : {
       "localizations" : {
@@ -5296,6 +5496,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Descripción de la pregunta"
+          }
+        }
+      }
+    },
+    "Question title" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Título de la pregunta"
           }
         }
       }
@@ -5406,6 +5616,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Correo del reclutador"
+          }
+        }
+      }
+    },
+    "Reference Solution" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Solución de referencia"
           }
         }
       }
@@ -5583,6 +5803,7 @@
       }
     },
     "Reset" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -5622,6 +5843,16 @@
         }
       }
     },
+    "Reverse a linked list in place" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Invertir una lista enlazada in situ"
+          }
+        }
+      }
+    },
     "Save" : {
       "localizations" : {
         "es" : {
@@ -5633,10 +5864,24 @@
       }
     },
     "Save All Code" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Guardar todo el código"
+          }
+        }
+      }
     },
     "Save All Code…" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Guardar todo el código…"
+          }
+        }
+      }
     },
     "Save Code" : {
       "extractionState" : "stale",
@@ -5857,6 +6102,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Buscar usuarios…"
+          }
+        }
+      }
+    },
+    "Section" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Sección"
           }
         }
       }
@@ -6426,13 +6681,44 @@
       }
     },
     "Suggested pad filters" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Filtros de pad sugeridos"
+          }
+        }
+      }
     },
     "Suggested question filters" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Filtros de pregunta sugeridos"
+          }
+        }
+      }
     },
     "Suggestions" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Sugerencias"
+          }
+        }
+      }
+    },
+    "Summarize the problem an interviewer should understand before opening a pad." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Resume el problema que un entrevistador debe entender antes de abrir un pad."
+          }
+        }
+      }
     },
     "Switch account" : {
       "localizations" : {
@@ -6455,7 +6741,14 @@
       }
     },
     "Switch from All Accounts or another account to this account." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Cambiar de Todas las cuentas u otra cuenta a esta cuenta."
+          }
+        }
+      }
     },
     "Switch the app to this account." : {
       "extractionState" : "stale",
@@ -6469,7 +6762,14 @@
       }
     },
     "Switch to This Account" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Cambiar a esta cuenta"
+          }
+        }
+      }
     },
     "System" : {
       "localizations" : {
@@ -6917,6 +7217,16 @@
         }
       }
     },
+    "Two Sum with Constraints" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Dos sumas con restricciones"
+          }
+        }
+      }
+    },
     "Type" : {
       "localizations" : {
         "es" : {
@@ -7094,6 +7404,7 @@
       }
     },
     "Use the default initials and color." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en-GB" : {
           "stringUnit" : {
@@ -7339,6 +7650,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Pizarra"
+          }
+        }
+      }
+    },
+    "Write the prompt candidates will see, including inputs, outputs, constraints, and examples." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Escribe la consigna que verán los candidatos, incluidos entradas, salidas, restricciones y ejemplos."
           }
         }
       }
