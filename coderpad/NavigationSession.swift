@@ -60,9 +60,14 @@ enum NavigationSessionLoader {
         active section: AppSection
     ) async {
         if store.isMergedView {
-            await directory.loadMerged(for: store.mergeableAccounts)
+            let accounts = store.mergeableAccounts
+            // Warm inactive merged sections right away - concurrently with directory and
+            // health checks - so the first switch can render cached rows instead of spinners.
+            async let warmed: Void = prefetchInactiveMergedSections(accounts: accounts, active: section)
+            await directory.loadMerged(for: accounts)
             await monitor.checkCurrentAccount()
             monitor.start()
+            await warmed
         } else if let account = store.currentAccount {
             // Warm the list(s) not currently on screen right away - concurrently with
             // the directory and health checks rather than queued behind them - so the
@@ -72,6 +77,87 @@ enum NavigationSessionLoader {
             await monitor.checkCurrentAccount()
             monitor.start()
             await warmed
+        }
+    }
+
+    @MainActor
+    static func warmInactiveSections(store: AccountsStore, active section: AppSection) async {
+        if store.isMergedView {
+            await prefetchInactiveMergedSections(accounts: store.mergeableAccounts, active: section)
+        } else if let account = store.currentAccount {
+            await prefetchInactiveSections(account: account, active: section)
+        }
+    }
+
+    /// Fetches inactive merged sections and stores successful results in the shared
+    /// per-account caches. The visible section loads itself, so each branch skips its
+    /// own active case to avoid duplicate requests.
+    private static func prefetchInactiveMergedSections(accounts: [Account], active: AppSection) async {
+        let targets = accounts
+            .filter { $0.isMock || !$0.apiKey.isEmpty }
+            .map { (id: $0.id, client: $0.makeClient()) }
+        guard !targets.isEmpty else { return }
+
+        async let pads: Void = active == .pads ? () : prefetchMergedPads(targets)
+        async let questions: Void = active == .questions ? () : prefetchMergedQuestions(targets)
+        async let quota: Void = active == .quota ? () : prefetchMergedQuota(targets)
+        _ = await (pads, questions, quota)
+    }
+
+    private static func prefetchMergedPads(_ targets: [(id: UUID, client: CoderPadClient)]) async {
+        await withTaskGroup(of: (UUID, [Pad]?).self) { group in
+            for target in targets {
+                group.addTask {
+                    do {
+                        let pads = try await target.client.listPads(sort: "updated_at,desc")
+                        return (target.id, pads)
+                    } catch {
+                        return (target.id, nil)
+                    }
+                }
+            }
+
+            for await (id, pads) in group {
+                if let pads { PadsCacheStore.shared.set(id, pads: pads) }
+            }
+        }
+    }
+
+    private static func prefetchMergedQuestions(_ targets: [(id: UUID, client: CoderPadClient)]) async {
+        await withTaskGroup(of: (UUID, [Question]?).self) { group in
+            for target in targets {
+                group.addTask {
+                    do {
+                        let questions = try await target.client.listQuestions(sort: "updated_at,desc")
+                        return (target.id, questions)
+                    } catch {
+                        return (target.id, nil)
+                    }
+                }
+            }
+
+            for await (id, questions) in group {
+                if let questions { QuestionsCacheStore.shared.set(id, questions: questions) }
+            }
+        }
+    }
+
+    private static func prefetchMergedQuota(_ targets: [(id: UUID, client: CoderPadClient)]) async {
+        await withTaskGroup(of: (UUID, Quota?).self) { group in
+            for target in targets {
+                group.addTask {
+                    do {
+                        let quota = try await target.client.quota()
+                        return (target.id, quota)
+                    } catch {
+                        return (target.id, nil)
+                    }
+                }
+            }
+
+            for await (id, quota) in group {
+                if let quota { QuotaCacheStore.shared.set(id, quota: quota) }
+            }
         }
     }
 
@@ -98,8 +184,17 @@ enum NavigationSessionLoader {
             }
         }
 
-        if active != .questions, let questions = try? await client.listQuestions(sort: "updated_at,desc") {
-            QuestionsCacheStore.shared.set(id, questions: questions)
+        if active != .questions {
+            var latest: [Question] = []
+            do {
+                for try await snapshot in client.listQuestionsIncrementally() {
+                    latest = snapshot
+                    QuestionsCacheStore.shared.set(id, questions: snapshot, persist: false)
+                }
+                QuestionsCacheStore.shared.set(id, questions: latest)
+            } catch {
+                if !latest.isEmpty { QuestionsCacheStore.shared.set(id, questions: latest) }
+            }
         }
 
         // Warm the quota too, so the sidebar/tab set knows up front whether the plan

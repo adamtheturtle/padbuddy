@@ -121,6 +121,14 @@ struct QuestionsView: View {
                 persistFilters()
                 publishLiveFilter()
             }
+            .onChange(of: cache.questionsByAccount) { _, _ in
+                guard questions.isEmpty, let id = accounts.currentAccountID else { return }
+                let warm = cache.cached(id)
+                guard !warm.isEmpty else { return }
+
+                questions = warm
+                questionsRevision += 1
+            }
             // A favorite tapped in the sidebar may arrive before the list has loaded;
             // resolve the deferred selection as soon as the questions land. The
             // last-open question is likewise restored once a list exists for it.
@@ -337,10 +345,16 @@ struct QuestionsView: View {
             let isInitialLoad = questions.isEmpty
             var fetched: [Question] = []
             for try await snapshot in client.listQuestionsIncrementally() {
+                if isLoading {
+                    isLoading = false
+                }
                 fetched = snapshot
                 if isInitialLoad {
                     questions = snapshot
                     questionsRevision += 1
+                    if let id = accounts.currentAccountID {
+                        cache.set(id, questions: snapshot, persist: false)
+                    }
                 }
             }
             questions = fetched

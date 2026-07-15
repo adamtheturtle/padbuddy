@@ -69,6 +69,12 @@ struct MacQuestionTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
         scroll.drawsBackground = false
         NotificationCenter.default.addObserver(
             context.coordinator,
+            selector: #selector(Coordinator.liveScrollChanged),
+            name: NSScrollView.didLiveScrollNotification,
+            object: scroll
+        )
+        NotificationCenter.default.addObserver(
+            context.coordinator,
             selector: #selector(Coordinator.liveScrollEnded),
             name: NSScrollView.didEndLiveScrollNotification,
             object: scroll
@@ -177,12 +183,26 @@ struct MacQuestionTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
             parent.onReturn(items[row])
         }
 
+        @objc func liveScrollChanged() {
+            syncVisibleHoverStates()
+        }
+
         @objc func liveScrollEnded() {
+            syncVisibleHoverStates()
             guard let tableView else { return }
 
             let visible = tableView.rows(in: tableView.visibleRect)
             guard visible.length > 0, items.indices.contains(visible.location) else { return }
             parent.onTopRowChange(items[visible.location].id)
+        }
+
+        private func syncVisibleHoverStates() {
+            guard let tableView else { return }
+
+            let visibleRows = tableView.rows(in: tableView.visibleRect)
+            for row in visibleRows.location..<NSMaxRange(visibleRows) {
+                (tableView.view(atColumn: 0, row: row, makeIfNecessary: false) as? MacQuestionCellView)?.updateHoverStateFromMouseLocation()
+            }
         }
 
         func tableView(_: NSTableView, rowActionsForRow row: Int, edge: NSTableView.RowActionEdge) -> [NSTableViewRowAction] {
@@ -376,6 +396,10 @@ private final class MacQuestionCellView: NSTableCellView {
 
     override func mouseExited(with _: NSEvent) {
         isHovering = false
+    }
+
+    func updateHoverStateFromMouseLocation() {
+        isHovering = containsMouse
     }
 
     private func updateStarAppearance() {

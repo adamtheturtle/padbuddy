@@ -149,9 +149,14 @@ final class QuestionsCacheStore {
         return []
     }
 
-    func set(_ accountID: UUID, questions: [Question]) {
+    /// `persist: false` updates only the in-memory snapshot, skipping disk, Spotlight,
+    /// favorites, and widget side effects. Used while streaming pages so a canceled view
+    /// load still leaves warm rows for a quick section switch back.
+    func set(_ accountID: UUID, questions: [Question], persist: Bool = true) {
         questionsByAccount[accountID] = questions
         diskConsulted.insert(accountID)
+        guard persist else { return }
+
         SpotlightIndexer.updateQuestions(questions, account: accountID)
         // Keep stored favourite titles current now that fresh questions (and their
         // titles) are in hand — this upgrades legacy id-only favourites and tracks

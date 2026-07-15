@@ -210,6 +210,18 @@ extension MergedPadsView {
         publishRoutes()
     }
 
+    func hydrateFromCacheIfEmpty() {
+        var changed = false
+        for account in accounts.mergeableAccounts where padsByAccount[account.id]?.isEmpty != false {
+            let warm = cache.cached(account.id)
+            guard !warm.isEmpty else { continue }
+
+            padsByAccount[account.id] = warm
+            changed = true
+        }
+        if changed { publishRoutes() }
+    }
+
     /// Fan out a fresh fetch across every account concurrently. Results are applied
     /// together after every account has answered, so the merged list does not first
     /// render one account and then visibly insert later accounts as they finish.

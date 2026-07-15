@@ -49,10 +49,10 @@ extension QuestionsView {
 
     var sidebar: some View {
         FilterableListView(
-            isLoading: isLoading,
-            isEmpty: questions.isEmpty,
+            isLoading: isLoading && !questions.isEmpty,
+            isEmpty: questions.isEmpty && !isLoading,
             error: error,
-            loadingMessage: "Loading questions…",
+            loadingMessage: "",
             onReload: { await reload() },
             errorView: { error, retry in APIErrorView(error: error, onRetry: retry) },
             savedSearches: { EmptyView() },
@@ -198,8 +198,8 @@ extension QuestionsView {
                 if sorted.isEmpty, !questions.isEmpty {
                     ContentUnavailableView {
                         Label("No Matching Questions", systemImage: "line.3.horizontal.decrease.circle")
-                    } description: {
-                        Text("No questions match the current filters.")
+                    } actions: {
+                        Button("Clear Filters") { clearAllFilters() }
                     }
                 }
             }
@@ -253,8 +253,8 @@ extension QuestionsView {
                 if sorted.isEmpty, !questions.isEmpty {
                     ContentUnavailableView {
                         Label("No Matching Questions", systemImage: "line.3.horizontal.decrease.circle")
-                    } description: {
-                        Text("No questions match the current filters.")
+                    } actions: {
+                        Button("Clear Filters") { clearAllFilters() }
                     }
                 }
             }

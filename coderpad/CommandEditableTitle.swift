@@ -97,7 +97,7 @@ struct CommandEditableTitle: View {
         .onHover { isHovering = $0 }
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.12), value: showsPencil)
         .onTapGesture { beginEditing() }
-        .help("Click to rename")
+        .help("Rename")
         .accessibilityAddTraits(.isButton)
         .accessibilityHint("Edit title")
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { availableWidth = $0 }

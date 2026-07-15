@@ -28,8 +28,8 @@ public struct FilterableListView<
     /// The last load error, surfaced (via the injected error view) only when nothing
     /// is loaded.
     let error: (any Error)?
-    /// The spinner's label, e.g. "Loading pads…".
-    let loadingMessage: LocalizedStringKey
+    /// Optional context for the spinner. Keep empty for generic first-load states.
+    let loadingMessage: String
     /// Retry handler for the error view's button.
     let onReload: () async -> Void
     /// The host's error view, given the error and a retry action (the host wires the
@@ -44,7 +44,7 @@ public struct FilterableListView<
         isLoading: Bool,
         isEmpty: Bool,
         error: (any Error)?,
-        loadingMessage: LocalizedStringKey,
+        loadingMessage: String,
         onReload: @escaping () async -> Void,
         @ViewBuilder errorView: @escaping (any Error, @escaping () -> Void) -> ErrorContent,
         @ViewBuilder savedSearches: @escaping () -> SavedSearches,
@@ -64,8 +64,13 @@ public struct FilterableListView<
 
     public var body: some View {
         if isLoading, isEmpty {
-            ProgressView(loadingMessage)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            if loadingMessage.isEmpty {
+                ProgressView()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            } else {
+                ProgressView(loadingMessage)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
         } else if let error, isEmpty {
             errorView(error) { Task { await onReload() } }
         } else {

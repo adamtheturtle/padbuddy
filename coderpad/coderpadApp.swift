@@ -109,6 +109,8 @@ enum AppEntryPoint {
 struct CoderpadApp: App {
     #if os(macOS)
         @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    #else
+        @UIApplicationDelegateAdaptor(IPadQuickActionAppDelegate.self) var appDelegate
     #endif
 
     /// Observed so the File ▸ New commands disable while the app is offline (#321),

@@ -218,6 +218,14 @@ struct PadsView: View {
     private var decoratedObservers: some View {
         decoratedLifecycle
             .onChange(of: nav.padsRequest) { _, _ in applyPendingRequest() }
+            .onChange(of: cache.padsByAccount) { _, _ in
+                guard pads.isEmpty, let id = accounts.currentAccountID else { return }
+                let warm = cache.cached(id)
+                guard !warm.isEmpty else { return }
+
+                pads = warm
+                padsRevision += 1
+            }
             // The account id is often nil on first appear; restore once it lands, and
             // swap to the new account's saved filters whenever the account changes.
             .onChange(of: accounts.currentAccountID) { _, _ in restoreFiltersForAccountChange() }

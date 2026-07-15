@@ -118,6 +118,19 @@ struct MergedPadsView: View {
     /// once at the top of `body` so its many readers share a single sort.
     @State var scopedCache = ScopedPadsCache()
 
+    init(selection: Binding<Pad?>, search: Binding<String>) {
+        _selection = selection
+        _search = search
+
+        let cache = PadsCacheStore.shared
+        var seeded: [UUID: [Pad]] = [:]
+        for account in AccountsStore.shared.mergeableAccounts {
+            let pads = cache.get(account.id)
+            if !pads.isEmpty { seeded[account.id] = pads }
+        }
+        _padsByAccount = State(initialValue: seeded)
+    }
+
     var body: some View {
         // Recompute the sorted rows and the filtered rows once per render; every
         // read below (filter pass, chip options, counts) hits the memos.

@@ -153,7 +153,7 @@ struct OrgMemberPicker: View {
                         if isLoading {
                             HStack(spacing: 6) {
                                 ProgressView().controlSize(.small)
-                                Text("Loading members…")
+                                Text("Fetching members…")
                                     .foregroundStyle(.secondary)
                                     .font(.callout)
                             }

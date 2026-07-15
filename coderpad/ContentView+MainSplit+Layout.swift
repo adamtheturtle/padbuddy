@@ -89,6 +89,9 @@ extension MainSplit {
 
                 requestPreferredCompactColumn(preferredCompactColumnForCurrentSection)
                 updateSidebarCollapse(for: containerWidth)
+                Task {
+                    await NavigationSessionLoader.warmInactiveSections(store: store, active: newValue)
+                }
                 // The toolbar count subtitle no longer needs clearing here: it's tagged
                 // with the section it was published for (`AppNavigation.sectionCountSection`),
                 // so `displaySubtitle` ignores a count left over from the section we left

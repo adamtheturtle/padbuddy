@@ -52,7 +52,11 @@
                 )
             }
             .onChange(of: nav.section) { _, section in
-                nav.section = NavigationSessionLoader.availableSection(from: section)
+                let available = NavigationSessionLoader.availableSection(from: section)
+                nav.section = available
+                Task {
+                    await NavigationSessionLoader.warmInactiveSections(store: store, active: available)
+                }
             }
         }
 

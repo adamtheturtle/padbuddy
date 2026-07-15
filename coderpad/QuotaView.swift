@@ -17,7 +17,7 @@ struct QuotaView: View {
     var body: some View {
         Group {
             if isLoading, quota == nil {
-                ProgressView("Loading quota…").frame(maxWidth: .infinity, maxHeight: .infinity)
+                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if let error, quota == nil {
                 APIErrorView(error: error) { Task { await reload() } }
             } else {

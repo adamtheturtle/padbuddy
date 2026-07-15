@@ -300,7 +300,6 @@ public struct ReloadToolbarButton: View {
                 .symbolEffect(.rotate, options: .repeat(.continuous), isActive: isLoading)
         }
         .help("Reload")
-        .accessibilityLabel("Reload")
         .disabled(isLoading)
     }
 }

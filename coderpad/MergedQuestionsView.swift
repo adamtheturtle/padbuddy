@@ -92,6 +92,19 @@ struct MergedQuestionsView: View {
     /// every read — the hitch the pads view was already rewritten to avoid.
     @State var sortedCache = SortedQuestionsCache()
 
+    init(selection: Binding<Question?>, search: Binding<String>) {
+        _selection = selection
+        _search = search
+
+        let cache = QuestionsCacheStore.shared
+        var seeded: [UUID: [Question]] = [:]
+        for account in AccountsStore.shared.mergeableAccounts {
+            let questions = cache.get(account.id)
+            if !questions.isEmpty { seeded[account.id] = questions }
+        }
+        _questionsByAccount = State(initialValue: seeded)
+    }
+
     var body: some View {
         // Recompute the combined rows and the filtered+sorted rows once per render;
         // every read below hits the memos.

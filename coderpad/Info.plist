@@ -13,6 +13,41 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>UIApplicationShortcutItems</key>
+	<array>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>com.adamdangoor.padbuddy.new-pad</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>New Pad</string>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>plus.square.on.square</string>
+		</dict>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>com.adamdangoor.padbuddy.new-question</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>New Question</string>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>questionmark.square</string>
+		</dict>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>com.adamdangoor.padbuddy.show-pads</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Show Pads</string>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>doc.text</string>
+		</dict>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>com.adamdangoor.padbuddy.show-questions</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Show Questions</string>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>list.bullet.rectangle</string>
+		</dict>
+	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<!-- Sparkle in-app updates (#28). SUFeedURL points at the appcast on the latest

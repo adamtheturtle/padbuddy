@@ -228,6 +228,18 @@ extension MergedQuestionsView {
         publishRoutes()
     }
 
+    func hydrateFromCacheIfEmpty() {
+        var changed = false
+        for account in accounts.mergeableAccounts where questionsByAccount[account.id]?.isEmpty != false {
+            let warm = cache.cached(account.id)
+            guard !warm.isEmpty else { continue }
+
+            questionsByAccount[account.id] = warm
+            changed = true
+        }
+        if changed { publishRoutes() }
+    }
+
     func reload() async {
         let mergeable = accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }
         guard !mergeable.isEmpty else { return }

@@ -145,7 +145,7 @@
                 // Write fetched results straight into the shared caches (no clearing
                 // first): the menu — and every other view reading these stores — keeps
                 // showing the previous data until the fresh data lands, so switching
-                // accounts shows the new account's cache rather than a blank "Loading…".
+                // accounts shows the new account's cache rather than an initial fetch status.
                 let fetched = try await padsTask
                 PadsCacheStore.shared.set(account.id, pads: fetched)
                 if let fetchedQuestions = try? await qsTask {

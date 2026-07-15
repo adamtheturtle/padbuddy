@@ -69,6 +69,12 @@
         }
       }
     },
+    "New Pad" : {
+
+    },
+    "New Question" : {
+
+    },
     "NSCalendarsFullAccessUsageDescription" : {
       "comment" : "Privacy - Calendars Full Access Usage Description",
       "extractionState" : "extracted_with_value",
@@ -117,6 +123,12 @@
         }
       },
       "shouldTranslate" : false
+    },
+    "Show Pads" : {
+
+    },
+    "Show Questions" : {
+
     }
   },
   "version" : "1.3"

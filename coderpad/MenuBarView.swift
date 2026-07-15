@@ -22,8 +22,8 @@
         @State var favorites = FavoriteQuestionsStore.shared
         // Read the pads/questions from the same shared, disk-backed caches the main window
         // uses, rather than refetching into private state on every open. That's what kept
-        // the menu showing "Loading…" so often: each open cleared its own copy and waited
-        // on the network (#327). Now the menu shows cached data instantly and `load`
+        // the menu showing an initial fetch status so often: each open cleared its own
+        // copy and waited on the network (#327). Now the menu shows cached data instantly and `load`
         // refreshes it in the background without clearing.
         @State private var padsCache = PadsCacheStore.shared
         @State private var questionsCache = QuestionsCacheStore.shared
@@ -214,7 +214,7 @@
                 .font(.caption).foregroundStyle(.secondary)
 
             if isLoading, padRows.isEmpty {
-                Text("Loading…").foregroundStyle(.secondary)
+                Text("Fetching recent pads…").foregroundStyle(.secondary)
             } else if let errorMessage {
                 Text(errorMessage).foregroundStyle(.red).lineLimit(2)
             } else if myPads.isEmpty {

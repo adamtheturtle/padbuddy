@@ -194,6 +194,9 @@ extension PadsView {
                 if isInitialLoad {
                     pads = snapshot
                     padsRevision += 1
+                    if let id = accounts.currentAccountID {
+                        cache.set(id, pads: snapshot, persist: false)
+                    }
                 }
             }
             pads = fetched

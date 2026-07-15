@@ -83,10 +83,10 @@ extension PadsView {
 
     var sidebar: some View {
         FilterableListView(
-            isLoading: isLoading,
-            isEmpty: pads.isEmpty,
+            isLoading: isLoading && !pads.isEmpty,
+            isEmpty: pads.isEmpty && !isLoading,
             error: error,
-            loadingMessage: "Loading pads…",
+            loadingMessage: "",
             onReload: { await reload() },
             errorView: { error, retry in APIErrorView(error: error, onRetry: retry) },
             savedSearches: { EmptyView() },
@@ -107,7 +107,6 @@ extension PadsView {
                             Label("New Pad", systemImage: "plus")
                         }
                         .help("Create a new pad (⌘N)")
-                        .accessibilityLabel("New Pad")
                         .disabled(client.apiKey.isEmpty || isReadOnly)
 
                         Menu {
@@ -186,8 +185,11 @@ extension PadsView {
                 if filtered.isEmpty, !pads.isEmpty {
                     ContentUnavailableView {
                         Label("No Matching Pads", systemImage: "line.3.horizontal.decrease.circle")
-                    } description: {
-                        Text("No pads match the current filters.")
+                    } actions: {
+                        Button("Clear Filters") {
+                            search = ""
+                            clearAllFilters()
+                        }
                     }
                 }
             }

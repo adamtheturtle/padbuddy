@@ -55,6 +55,7 @@ extension MergedPadsView {
                 applyPendingRequest()
                 selectedIDs = selection.map { [$0.id] } ?? []
             }
+            .onChange(of: cache.padsByAccount) { _, _ in hydrateFromCacheIfEmpty() }
             // Re-persist whenever any filter changes; `filterSignature` shifts for
             // every filter control, so one observer covers them all.
             .onChange(of: filterSignature) { _, _ in persistFilters() }
@@ -201,24 +202,15 @@ extension MergedPadsView {
     }
 
     var content: some View {
-        Group {
-            if isLoading, scoped.isEmpty {
-                ProgressView("Loading pads…")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .transition(.opacity)
-                    .id("loading")
-            } else {
-                VStack(spacing: 0) {
-                    filterBar
-                    errorBar
-                    Divider()
-                    padCollection
-                }
-                .transition(.opacity)
-                .id("content")
-            }
+        VStack(spacing: 0) {
+            filterBar
+            errorBar
+            Divider()
+            padCollection
         }
-        .animation(reduceMotion ? nil : .easeInOut(duration: 0.18), value: isLoading && scoped.isEmpty)
+        .transition(.opacity)
+        .id("content")
+        .animation(reduceMotion ? nil : .easeInOut(duration: 0.18), value: isLoading && !scoped.isEmpty)
         // Surface the count beneath the "Pads" title in the window toolbar rather
         // than as an inline bar above the list.
         .reportsSectionCount(countSubtitle)
@@ -327,8 +319,8 @@ extension MergedPadsView {
                 if filtered.isEmpty, !scoped.isEmpty {
                     ContentUnavailableView {
                         Label("No Matching Pads", systemImage: "line.3.horizontal.decrease.circle")
-                    } description: {
-                        Text("No pads match the current filters.")
+                    } actions: {
+                        Button("Clear Filters") { clearAllFilters() }
                     }
                 } else if scoped.isEmpty, !isLoading {
                     // Spell out that this account set is genuinely empty, so it doesn't

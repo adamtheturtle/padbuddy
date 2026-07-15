@@ -1608,12 +1608,12 @@
         }
       }
     },
-    "Click to rename" : {
+    "Clear Filters" : {
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
-            "value" : "Haz clic para renombrar"
+            "value" : "Borrar filtros"
           }
         }
       }
@@ -3275,6 +3275,12 @@
         }
       }
     },
+    "Fetching members…" : {
+
+    },
+    "Fetching recent pads…" : {
+
+    },
     "Files" : {
       "localizations" : {
         "es" : {
@@ -3876,6 +3882,7 @@
       }
     },
     "Loading members…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3886,6 +3893,7 @@
       }
     },
     "Loading pads…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3896,6 +3904,7 @@
       }
     },
     "Loading questions…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3906,6 +3915,7 @@
       }
     },
     "Loading quota…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3916,6 +3926,7 @@
       }
     },
     "Loading…" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4425,16 +4436,6 @@
         }
       }
     },
-    "No pads match the current filters." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Ningún pad coincide con los filtros actuales."
-          }
-        }
-      }
-    },
     "No Questions" : {
       "localizations" : {
         "es" : {
@@ -4451,16 +4452,6 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Ninguna pregunta coincide con «%@»"
-          }
-        }
-      }
-    },
-    "No questions match the current filters." : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Ninguna pregunta coincide con los filtros actuales."
           }
         }
       }
@@ -5758,6 +5749,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Eliminar webhook"
+          }
+        }
+      }
+    },
+    "Rename" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Renombrar"
           }
         }
       }
