@@ -117,17 +117,18 @@
         func body(content: Content) -> some View {
             content
                 .task {
-                    drainPendingWidgetRequests()
+                    IPadWidgetIntentObserver.shared.start()
+                    Self.drainPendingWidgetRequests()
                 }
                 .onChange(of: scenePhase) { _, phase in
                     guard phase == .active else { return }
 
-                    drainPendingWidgetRequests()
+                    Self.drainPendingWidgetRequests()
                 }
         }
 
         @MainActor
-        private func drainPendingWidgetRequests() {
+        static func drainPendingWidgetRequests() {
             if let request = WidgetSharedStore.takePendingOpenPad() {
                 if let account = request.account,
                    let uuid = UUID(uuidString: account),
@@ -140,6 +141,36 @@
             if let request = WidgetSharedStore.takePendingNewPad() {
                 AppNavigation.shared.routeNewPad(account: request.account, seedQuestionID: request.question)
             }
+        }
+    }
+
+    @MainActor
+    private final class IPadWidgetIntentObserver {
+        static let shared = IPadWidgetIntentObserver()
+
+        private var isRegistered = false
+
+        func start() {
+            guard !isRegistered else { return }
+
+            isRegistered = true
+            register(notification: WidgetSharedStore.newPadRequestNotification)
+            register(notification: WidgetSharedStore.openPadRequestNotification)
+        }
+
+        private func register(notification: String) {
+            CFNotificationCenterAddObserver(
+                CFNotificationCenterGetDarwinNotifyCenter(),
+                Unmanaged.passUnretained(self).toOpaque(),
+                { _, _, _, _, _ in
+                    Task { @MainActor in
+                        IPadWidgetIntentDrain.drainPendingWidgetRequests()
+                    }
+                },
+                notification as CFString,
+                nil,
+                .deliverImmediately
+            )
         }
     }
 #endif

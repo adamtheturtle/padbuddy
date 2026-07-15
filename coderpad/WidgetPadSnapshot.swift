@@ -96,6 +96,10 @@ nonisolated enum WidgetSharedStore {
     /// the widget target's copy (`RecentPadsWidget/WidgetSharedSnapshot.swift`).
     static let newPadRequestNotification = "\(appGroupID).new-pad-requested"
 
+    /// Darwin notification posted when an iPad/iPhone widget recent-pad tap records an
+    /// Open Pad request. Mirrors `newPadRequestNotification` for the separate request file.
+    static let openPadRequestNotification = "\(appGroupID).open-pad-requested"
+
     /// File holding `account`'s pads, or the default (current-account) snapshot when
     /// `account` is nil — the file an unconfigured widget reads.
     private static func padsFileName(account: String?) -> String {
@@ -219,6 +223,7 @@ nonisolated enum WidgetSharedStore {
             return false
         }
 
+        postOpenPadRequestNotification()
         logger.info("Recorded open pad handoff request accountScoped=\((account?.isEmpty == false), privacy: .public)")
         return true
     }
@@ -232,6 +237,14 @@ nonisolated enum WidgetSharedStore {
         CFNotificationCenterPostNotification(
             CFNotificationCenterGetDarwinNotifyCenter(),
             CFNotificationName(newPadRequestNotification as CFString),
+            nil, nil, true
+        )
+    }
+
+    private static func postOpenPadRequestNotification() {
+        CFNotificationCenterPostNotification(
+            CFNotificationCenterGetDarwinNotifyCenter(),
+            CFNotificationName(openPadRequestNotification as CFString),
             nil, nil, true
         )
     }
