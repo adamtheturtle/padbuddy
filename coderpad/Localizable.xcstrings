@@ -1618,7 +1618,17 @@
         }
       }
     },
+    "CoderPad couldn't find the API endpoint at this Server URL. Hosted accounts should use https://app.coderpad.io." : {
+
+    },
+    "CoderPad couldn't validate this key (HTTP %lld)." : {
+
+    },
+    "CoderPad couldn't validate this key: %@" : {
+
+    },
     "CoderPad couldn't verify the key right now. Try again in a moment." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1627,6 +1637,9 @@
           }
         }
       }
+    },
+    "CoderPad had a server error while validating this key. Try again shortly." : {
+
     },
     "CoderPad had a server error. Please try again shortly." : {
       "localizations" : {
@@ -1647,6 +1660,9 @@
           }
         }
       }
+    },
+    "CoderPad is rate-limiting validation right now. Try again in a moment." : {
+
     },
     "CoderPad is unreachable, so editing is paused until you reconnect." : {
       "localizations" : {
@@ -3631,6 +3647,7 @@
       }
     },
     "Last used %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6248,6 +6265,16 @@
         }
       }
     },
+    "Smart Lists" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Listas inteligentes"
+          }
+        }
+      }
+    },
     "Solution" : {
       "localizations" : {
         "es" : {
@@ -6398,16 +6425,6 @@
         }
       }
     },
-    "Suggested" : {
-      "localizations" : {
-        "es" : {
-          "stringUnit" : {
-            "state" : "machine_translated",
-            "value" : "Sugeridos"
-          }
-        }
-      }
-    },
     "Suggested pad filters" : {
 
     },
@@ -6437,7 +6454,11 @@
         }
       }
     },
+    "Switch from All Accounts or another account to this account." : {
+
+    },
     "Switch the app to this account." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -6446,6 +6467,9 @@
           }
         }
       }
+    },
+    "Switch to This Account" : {
+
     },
     "System" : {
       "localizations" : {
@@ -7086,6 +7110,7 @@
       }
     },
     "Use This Account" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -7096,6 +7121,7 @@
       }
     },
     "Used %lld×" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "variations" : {

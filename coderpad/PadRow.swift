@@ -52,6 +52,11 @@ struct RowAccount: Equatable, Hashable {
     }
 }
 
+struct FavoriteRowHoverIdentity: Equatable {
+    let itemID: String
+    let account: RowAccount?
+}
+
 /// Names the account a merged-list row came from, using the account's own avatar
 /// (its tint + chosen symbol, or its initials) rather than a generic person glyph —
 /// so multi-account users can tell at a glance which account a pad/question belongs
@@ -282,18 +287,18 @@ private struct PadRowDateLabel: View {
     }
 }
 
-/// Inline favorite toggle on a pad/question row, à la Mail's flag: filled once
-/// pinned, faint otherwise so it stays available without row-hover state. The
-/// button always occupies its slot, so rows don't shift as the pointer moves.
+/// Inline favorite toggle on a pad/question row, à la Mail's flag: visible when pinned
+/// or when the pointer is over the row. The button always occupies its slot, so rows
+/// don't shift as the pointer moves.
 struct FavoriteStarButton: View {
     let isFavorite: Bool
     /// The row's display title, used only to phrase the accessibility label.
     let title: String
     let onToggle: () -> Void
+    var isRowHovered = false
     /// Bumped on each tap to drive a light haptic on the toggle (#611). Tied to the tap,
     /// not `isFavorite`, so a favorite changed elsewhere doesn't buzz this row.
     @State private var feedbackTrigger = 0
-
     var body: some View {
         Button {
             feedbackTrigger += 1
@@ -314,10 +319,8 @@ struct FavoriteStarButton: View {
         .touchTarget()
         // Highlight the star under the iPad trackpad/Magic Keyboard pointer (#586).
         .pointerHoverEffect()
-        // Keep non-favorite stars faint but present on macOS; row-hover state in
-        // recycled hosting cells adds scroll-time churn on large lists (#633).
         #if os(macOS)
-            .opacity(isFavorite ? 1 : 0.35)
+            .opacity(isFavorite || isRowHovered ? 1 : 0)
         #else
             .opacity(1)
         #endif
@@ -378,6 +381,7 @@ struct PadRowHostableContent: View {
     /// invisible to memoization) and threaded in as a compared value, so the
     /// recently-updated dot gains a contrasting outline under Increase Contrast (#616).
     @Environment(\.colorSchemeContrast) private var contrast
+    @State private var isHovering = false
     #if os(iOS)
         @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     #endif
@@ -412,14 +416,23 @@ struct PadRowHostableContent: View {
         .fixedFastListRowHeight()
         .accountTintRailOverlay(rowAccount, enabled: !usesInlineAccountTintRail)
         .fastListRowInsets()
+        #if os(macOS)
+            .onHover { isHovering = $0 }
+            .onChange(of: hoverIdentity) { _, _ in isHovering = false }
+        #endif
     }
 
     private var favoriteButton: some View {
         FavoriteStarButton(
             isFavorite: isFavorite,
             title: pad.title.isEmpty ? pad.id : pad.title,
-            onToggle: onToggleFavorite
+            onToggle: onToggleFavorite,
+            isRowHovered: isHovering
         )
+    }
+
+    private var hoverIdentity: FavoriteRowHoverIdentity {
+        FavoriteRowHoverIdentity(itemID: pad.id, account: rowAccount)
     }
 
     private var usesTrailingFavoriteAction: Bool {

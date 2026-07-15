@@ -32,6 +32,9 @@ struct Sidebar: View {
     /// Drives the empty-Favourites drop zone to appear only while a favorite drag is in
     /// flight, so an empty section keeps no resting gap (#444).
     @State var favoriteDragMonitor = FavoriteDragMonitor.shared
+    /// Whether the Favorites sidebar section is expanded. Kept as view state so the
+    /// collapsed/expanded choice follows the current sidebar instance.
+    @State var favoritesSectionExpanded = true
     /// The favorite row id a reorder drag is currently hovering, so an insertion line
     /// can be drawn above it (#299). Nil when no reorder drag is in flight.
     @State var reorderTargetID: String?

@@ -201,7 +201,10 @@ extension SettingsView {
                         initial: account,
                         embedded: true,
                         isCurrent: id == store.currentAccountID && !store.isMergedView,
-                        onUse: { store.currentAccountID = id },
+                        onUse: {
+                            store.showAllAccounts = false
+                            store.currentAccountID = id
+                        },
                         onSave: { updated in store.update(updated) },
                         onCancel: {},
                         onDelete: { store.remove(id: id) },
@@ -289,7 +292,10 @@ extension SettingsView {
                     initial: account,
                     embedded: true,
                     isCurrent: id == store.currentAccountID && !store.isMergedView,
-                    onUse: { store.currentAccountID = id },
+                    onUse: {
+                        store.showAllAccounts = false
+                        store.currentAccountID = id
+                    },
                     onSave: { updated in store.update(updated) },
                     onCancel: {},
                     onDelete: {

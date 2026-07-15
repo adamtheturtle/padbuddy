@@ -10,6 +10,7 @@ extension QuestionDetailView {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 summaryCard
+                Divider()
                 contentModePicker
                 selectedPaneContent
             }
@@ -137,9 +138,7 @@ extension QuestionDetailView {
                 }
             }
         }
-        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .glassEffect(.regular, in: .rect(cornerRadius: 18))
     }
 
     var header: some View {

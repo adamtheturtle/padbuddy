@@ -27,26 +27,30 @@ extension PadDetailView {
         return (interviewers, candidates)
     }
 
+    var participantsContent: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let roles = participantRoles {
+                if !roles.candidates.isEmpty {
+                    participantGroup(
+                        title: roles.candidates.count == 1 ? "Candidate" : "Candidates",
+                        names: roles.candidates, tint: .blue
+                    )
+                }
+                if !roles.interviewers.isEmpty {
+                    participantGroup(
+                        title: roles.interviewers.count == 1 ? "Interviewer" : "Interviewers",
+                        names: roles.interviewers, tint: .purple
+                    )
+                }
+            } else {
+                participantList(names: pad.participants, tint: .purple)
+            }
+        }
+    }
+
     var participantsCard: some View {
         DetailSection(title: "Participants", systemImage: "person.2") {
-            VStack(alignment: .leading, spacing: 12) {
-                if let roles = participantRoles {
-                    if !roles.candidates.isEmpty {
-                        participantGroup(
-                            title: roles.candidates.count == 1 ? "Candidate" : "Candidates",
-                            names: roles.candidates, tint: .blue
-                        )
-                    }
-                    if !roles.interviewers.isEmpty {
-                        participantGroup(
-                            title: roles.interviewers.count == 1 ? "Interviewer" : "Interviewers",
-                            names: roles.interviewers, tint: .purple
-                        )
-                    }
-                } else {
-                    participantList(names: pad.participants, tint: .purple)
-                }
-            }
+            participantsContent
         }
     }
 

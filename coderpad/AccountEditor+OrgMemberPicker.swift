@@ -22,6 +22,7 @@ struct OrgMemberPicker: View {
 
     @State private var isPresented = false
     @State private var query = ""
+    @State private var memberOptions: [MemberOption] = []
     @FocusState private var searchFocused: Bool
 
     private struct MemberOption: Identifiable {
@@ -48,7 +49,12 @@ struct OrgMemberPicker: View {
         selection.trimmingCharacters(in: .whitespaces)
     }
 
-    private var memberOptions: [MemberOption] {
+    private var usersSignature: String {
+        users.map { "\($0.email)\u{1F}\($0.name ?? "")" }
+            .joined(separator: "\u{1E}")
+    }
+
+    private static func makeMemberOptions(users: [OrganizationUser], selection: String) -> [MemberOption] {
         var seenEmails = Set<String>()
         var options: [MemberOption] = []
 
@@ -58,6 +64,7 @@ struct OrgMemberPicker: View {
             options.append(MemberOption(email: user.email, name: user.name))
         }
 
+        let trimmedSelection = selection.trimmingCharacters(in: .whitespaces)
         if !trimmedSelection.isEmpty {
             let key = trimmedSelection.lowercased()
             if seenEmails.insert(key).inserted {
@@ -98,6 +105,7 @@ struct OrgMemberPicker: View {
 
     var body: some View {
         Button {
+            refreshMemberOptions()
             isPresented = true
             onOpen?()
         } label: {
@@ -158,11 +166,24 @@ struct OrgMemberPicker: View {
                         }
                     }
                 }
-                .frame(maxHeight: 240)
+                .frame(height: 240)
             }
             .frame(width: 320)
-            .onAppear { searchFocused = true }
+            .onAppear {
+                refreshMemberOptions()
+                searchFocused = true
+            }
         }
+        .onAppear { refreshMemberOptions() }
+        .onChange(of: usersSignature) { _, _ in refreshMemberOptions() }
+        .onChange(of: selection) { _, _ in refreshMemberOptions() }
+        .onChange(of: isLoading) { _, loading in
+            if !loading { refreshMemberOptions() }
+        }
+    }
+
+    private func refreshMemberOptions() {
+        memberOptions = Self.makeMemberOptions(users: users, selection: selection)
     }
 
     @ViewBuilder

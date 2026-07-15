@@ -4,6 +4,7 @@
 //
 
 import BuddyDesignSystem
+import Foundation
 import SwiftUI
 
 extension AccountEditor {
@@ -138,30 +139,36 @@ extension AccountEditor {
         return isValidated || (isEditing && draft.apiKey == initialAPIKey && draft.baseURL == initialBaseURL)
     }
 
-    /// On iPad the embedded editor lives inside the Settings sheet, whose nav bar
-    /// already carries a "Done" button. A second inline "Save" beside it read as a
-    /// confusing peer - which one commits, which one closes? - and tapping "Done"
-    /// silently dropped any unsaved field edits. So on iPad the embedded saved-account
-    /// editor commits its edits live (the way the icon/tint already do) and drops the
-    /// inline "Save" entirely, leaving "Done" as the single, unambiguous way out.
-    /// macOS keeps its explicit inline "Save": its Settings is a window with no "Done"
-    /// to collide with. (#601)
+    /// Saved accounts are managed like settings: changes autosave in the embedded
+    /// editor instead of waiting for an explicit Save button. Adding a new account stays
+    /// modal and explicit, because it is a multi-step validation flow.
     var commitsLive: Bool {
-        #if os(macOS)
-            false
-        #else
-            embedded && isEditing
-        #endif
+        embedded && isEditing
     }
 
-    /// Persists the current draft to the saved account immediately, for the iPad
-    /// live-commit path. A no-op unless the draft is in a saveable state (`canSave` -
-    /// e.g. a changed key still awaiting validation, or a missing email, holds the
-    /// commit) and carries a non-blank description, so a half-finished edit never
-    /// overwrites the stored account.
+    /// Schedules a debounced autosave for saved-account edits. Credential changes still
+    /// respect `canSave`, so a changed API key or server URL waits for validation before
+    /// the stored account is updated.
     func commitLiveEdit() {
-        guard commitsLive, canSave,
-              !draft.name.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        guard commitsLive else { return }
+
+        liveCommitTask?.cancel()
+        liveCommitTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(450))
+            guard !Task.isCancelled else { return }
+
+            persistLiveEditIfPossible()
+        }
+    }
+
+    /// Persists the current draft when autosave is allowed and the draft is in a valid
+    /// saveable state. Called after the debounce and when the editor disappears, so a
+    /// quick navigation away does not drop the latest valid edit.
+    func persistLiveEditIfPossible() {
+        guard commitsLive, canSave else { return }
+
+        finalizeNameIfNeeded()
+        guard !draft.name.trimmingCharacters(in: .whitespaces).isEmpty else { return }
 
         onSave(draft)
     }
@@ -367,8 +374,8 @@ extension AccountEditor {
             case .missingAPIKey:
                 return String(localized: "Paste your CoderPad API key above.")
 
-            case .http:
-                return String(localized: "CoderPad couldn't verify the key right now. Try again in a moment.")
+            case let .http(code, body):
+                return friendlyHTTPValidationMessage(status: code, body: body)
 
             case .decode:
                 return String(localized: """
@@ -387,5 +394,43 @@ extension AccountEditor {
             return String(localized: "Couldn't reach CoderPad. Check your internet connection and try again.")
         }
         return String(localized: "Couldn't validate this key. Try again.")
+    }
+
+    private func friendlyHTTPValidationMessage(status code: Int, body: String) -> String {
+        switch code {
+        case 404:
+            return String(localized: """
+            CoderPad couldn't find the API endpoint at this Server URL. Hosted accounts should use https://app.coderpad.io.
+            """)
+
+        case 429:
+            return String(localized: "CoderPad is rate-limiting validation right now. Try again in a moment.")
+
+        case 500 ... 599:
+            return String(localized: "CoderPad had a server error while validating this key. Try again shortly.")
+
+        default:
+            if let apiMessage = validationAPIMessage(from: body) {
+                return String(localized: "CoderPad couldn't validate this key: \(apiMessage)")
+            }
+            return String(localized: "CoderPad couldn't validate this key (HTTP \(code)).")
+        }
+    }
+
+    private func validationAPIMessage(from body: String) -> String? {
+        guard let data = body.data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
+        else {
+            return nil
+        }
+
+        for key in ["message", "error_description", "error"] {
+            guard let value = object[key] as? String else { continue }
+            let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty, trimmed.lowercased() != "not found" {
+                return trimmed
+            }
+        }
+        return nil
     }
 }

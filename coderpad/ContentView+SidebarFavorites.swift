@@ -123,7 +123,7 @@ extension Sidebar {
     var favoritesSection: some View {
         let entries = favoriteEntries
         if !entries.isEmpty || favoriteDragMonitor.isDragging {
-            Section("Favorites") {
+            Section("Favorites", isExpanded: $favoritesSectionExpanded) {
                 favoritesBody(entries).sidebarGroupRow()
             }
         }

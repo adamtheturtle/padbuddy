@@ -264,3 +264,33 @@ struct CodeFileTests {
         #expect(CodeFile(id: "3", path: "", contents: "", language: nil).name == "untitled")
     }
 }
+
+@Suite("Account validation messages")
+@MainActor
+struct AccountValidationMessageTests {
+    private func editor() -> AccountEditor {
+        AccountEditor(
+            initial: Account(name: "", apiKey: "test-key"),
+            onSave: { _ in },
+            onCancel: {}
+        )
+    }
+
+    @Test
+    func `validation 404 points at the Server URL instead of saying retry`() {
+        let message = editor().friendlyValidationMessage(for: CoderPadError.http(404, "Not Found"))
+
+        #expect(message.contains("Server URL"))
+        #expect(message.contains("https://app.coderpad.io"))
+        #expect(!message.contains("Try again in a moment"))
+    }
+
+    @Test
+    func `validation includes API message for unexpected HTTP status`() {
+        let body = #"{"message":"API access is disabled for this organization"}"#
+        let message = editor().friendlyValidationMessage(for: CoderPadError.http(451, body))
+
+        #expect(message.contains("API access is disabled for this organization"))
+        #expect(message.contains("couldn't validate this key"))
+    }
+}

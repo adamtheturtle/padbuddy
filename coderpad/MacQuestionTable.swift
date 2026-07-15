@@ -255,11 +255,14 @@ private final class MacQuestionCellView: NSTableCellView {
     private let leadingGutterView = NSView()
     private let titleField = NSTextField(labelWithString: "")
     private let metadataField = NSTextField(labelWithString: "")
-    private let authorField = NSTextField(labelWithString: "")
     private let starButton = NSButton()
-    private let dateField = NSTextField(labelWithString: "")
     private var railWidthConstraint: NSLayoutConstraint?
     private var textLeadingConstraint: NSLayoutConstraint?
+    private var trackingArea: NSTrackingArea?
+    private var isFavorite = false
+    private var isHovering = false {
+        didSet { updateStarAppearance() }
+    }
     private var onToggleFavorite: (() -> Void)?
 
     init(identifier: NSUserInterfaceItemIdentifier) {
@@ -281,24 +284,16 @@ private final class MacQuestionCellView: NSTableCellView {
     ) {
         titleField.stringValue = presentation.title
         metadataField.stringValue = metadataText(presentation: presentation, account: account)
-        authorField.stringValue = presentation.authorName ?? " "
-        authorField.isHidden = false
-        dateField.stringValue = presentation.lastUsedRelative ?? ""
-        dateField.toolTip = presentation.lastUsedTooltip.map { "Last used \($0)" }
         self.onToggleFavorite = onToggleFavorite
+        self.isFavorite = isFavorite
+        isHovering = containsMouse
 
         let showsAccountRail = account != nil
         railView.isHidden = !showsAccountRail
         railWidthConstraint?.constant = showsAccountRail ? 4 : 0
         textLeadingConstraint?.constant = 10
         railView.layer?.backgroundColor = account.map { NSColor($0.tint).withAlphaComponent(0.75).cgColor }
-        starButton.image = NSImage(
-            systemSymbolName: isFavorite ? "star.fill" : "star",
-            accessibilityDescription: isFavorite ? "Remove from Favorites" : "Add to Favorites"
-        )
-        starButton.contentTintColor = isFavorite ? .systemYellow : .secondaryLabelColor
-        starButton.alphaValue = isFavorite ? 1 : 0.35
-        starButton.toolTip = isFavorite ? "Remove from Favorites" : "Add to Favorites"
+        updateStarAppearance()
         setAccessibilityLabel(presentation.accessibilityLabel)
     }
 
@@ -313,22 +308,12 @@ private final class MacQuestionCellView: NSTableCellView {
         titleField.textColor = .labelColor
         metadataField.font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
         metadataField.textColor = .secondaryLabelColor
-        authorField.font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
-        authorField.textColor = .secondaryLabelColor
-        dateField.font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
-        dateField.textColor = .secondaryLabelColor
-        dateField.alignment = .right
-
-        for field in [titleField, metadataField, authorField] {
+        for field in [titleField, metadataField] {
             field.lineBreakMode = .byTruncatingTail
             field.maximumNumberOfLines = 1
             field.translatesAutoresizingMaskIntoConstraints = false
             field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         }
-        dateField.translatesAutoresizingMaskIntoConstraints = false
-        dateField.setContentHuggingPriority(.required, for: .horizontal)
-        dateField.setContentCompressionResistancePriority(.required, for: .horizontal)
-
         starButton.isBordered = false
         starButton.imagePosition = .imageOnly
         starButton.imageScaling = .scaleProportionallyDown
@@ -336,7 +321,7 @@ private final class MacQuestionCellView: NSTableCellView {
         starButton.action = #selector(toggleFavorite)
         starButton.translatesAutoresizingMaskIntoConstraints = false
 
-        let textStack = NSStackView(views: [titleField, metadataField, authorField])
+        let textStack = NSStackView(views: [titleField, metadataField])
         textStack.orientation = .vertical
         textStack.alignment = .leading
         textStack.spacing = 2
@@ -344,7 +329,7 @@ private final class MacQuestionCellView: NSTableCellView {
         textStack.setContentHuggingPriority(.defaultLow, for: .horizontal)
         textStack.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
-        for view in [railView, leadingGutterView, textStack, starButton, dateField] {
+        for view in [railView, leadingGutterView, textStack, starButton] {
             addSubview(view)
         }
 
@@ -369,14 +354,44 @@ private final class MacQuestionCellView: NSTableCellView {
             textStack.trailingAnchor.constraint(lessThanOrEqualTo: starButton.leadingAnchor, constant: -8),
 
             starButton.centerYAnchor.constraint(equalTo: centerYAnchor),
-            starButton.trailingAnchor.constraint(equalTo: dateField.leadingAnchor, constant: -8),
+            starButton.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -(FastListRowMetrics.dateColumnWidth + 32)),
             starButton.widthAnchor.constraint(equalToConstant: 18),
-            starButton.heightAnchor.constraint(equalToConstant: 18),
-
-            dateField.centerYAnchor.constraint(equalTo: centerYAnchor),
-            dateField.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
-            dateField.widthAnchor.constraint(equalToConstant: FastListRowMetrics.dateColumnWidth)
+            starButton.heightAnchor.constraint(equalToConstant: 18)
         ])
+    }
+
+    override func updateTrackingAreas() {
+        if let trackingArea { removeTrackingArea(trackingArea) }
+
+        let options: NSTrackingArea.Options = [.mouseEnteredAndExited, .activeInKeyWindow, .inVisibleRect]
+        let area = NSTrackingArea(rect: .zero, options: options, owner: self)
+        addTrackingArea(area)
+        trackingArea = area
+        super.updateTrackingAreas()
+    }
+
+    override func mouseEntered(with _: NSEvent) {
+        isHovering = true
+    }
+
+    override func mouseExited(with _: NSEvent) {
+        isHovering = false
+    }
+
+    private func updateStarAppearance() {
+        let description = isFavorite ? "Remove from Favorites" : "Add to Favorites"
+        let starImage = NSImage(systemSymbolName: isFavorite ? "star.fill" : "star", accessibilityDescription: description)
+        starButton.image = starImage?.withSymbolConfiguration(.init(pointSize: NSFont.smallSystemFontSize, weight: .regular))
+        starButton.contentTintColor = isFavorite ? .systemYellow : .secondaryLabelColor
+        starButton.alphaValue = isFavorite || isHovering ? 1 : 0
+        starButton.toolTip = description
+    }
+
+    private var containsMouse: Bool {
+        guard let window else { return false }
+
+        let point = convert(window.mouseLocationOutsideOfEventStream, from: nil)
+        return bounds.contains(point)
     }
 
     private func metadataText(presentation: QuestionRowPresentation, account: RowAccount?) -> String {
@@ -384,7 +399,6 @@ private final class MacQuestionCellView: NSTableCellView {
         if let account { parts.append(account.name) }
         if let language = presentation.languageDisplayName { parts.append(language) }
         if presentation.interviewType == .takeHome { parts.append(InterviewType.takeHome.label) }
-        if let used = presentation.usedLabel { parts.append(used) }
         if presentation.isDraft { parts.append(String(localized: "Draft")) }
         return parts.joined(separator: " · ")
     }

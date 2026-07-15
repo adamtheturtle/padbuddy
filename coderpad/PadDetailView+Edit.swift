@@ -12,45 +12,49 @@ import SwiftUI
 extension PadDetailView {
     /// The editable pad properties, presented as labeled rows of inline controls.
     /// Title is edited in the header; language, owner, and the two flags live here.
-    var propertiesCard: some View {
-        DetailSection(title: "Properties", systemImage: "slider.horizontal.3") {
-            VStack(alignment: .leading, spacing: 10) {
-                propertyRow("Language") {
-                    Picker("", selection: languageBinding) {
-                        ForEach(CoderPadLanguages.pickerOptions, id: \.self) {
-                            Text($0.coderPadLanguageDisplayName).tag($0)
-                        }
-                        // Keep the pad's current language selectable even when it
-                        // isn't one of the common picker options.
-                        if !CoderPadLanguages.pickerOptions.contains(draftLanguage) {
-                            Text(draftLanguage.coderPadLanguageDisplayName).tag(draftLanguage)
-                        }
+    var propertyRows: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            propertyRow("Language") {
+                Picker("", selection: languageBinding) {
+                    ForEach(CoderPadLanguages.pickerOptions, id: \.self) {
+                        Text($0.coderPadLanguageDisplayName).tag($0)
                     }
+                    // Keep the pad's current language selectable even when it
+                    // isn't one of the common picker options.
+                    if !CoderPadLanguages.pickerOptions.contains(draftLanguage) {
+                        Text(draftLanguage.coderPadLanguageDisplayName).tag(draftLanguage)
+                    }
+                }
+                .labelsHidden()
+                .fixedSize()
+            }
+            propertyRow("Owner") {
+                SearchableOwnerPicker(ownerEmail: ownerBinding,
+                                      users: orgUsers,
+                                      keyOwnerEmail: AccountsStore.shared.currentAccount?.userEmail)
+                    .fixedSize(horizontal: !isCompactPhone, vertical: false)
+            }
+            propertyRow("Private", alignment: .center) {
+                Toggle("", isOn: privateBinding)
                     .labelsHidden()
-                    .fixedSize()
-                }
-                propertyRow("Owner") {
-                    SearchableOwnerPicker(ownerEmail: ownerBinding,
-                                          users: orgUsers,
-                                          keyOwnerEmail: AccountsStore.shared.currentAccount?.userEmail)
-                        .fixedSize(horizontal: !isCompactPhone, vertical: false)
-                }
-                propertyRow("Private", alignment: .center) {
-                    Toggle("", isOn: privateBinding)
-                        .labelsHidden()
-                        .toggleStyle(.switch)
-                }
-                propertyRow("Execution enabled", alignment: .center) {
-                    Toggle("", isOn: executionBinding)
-                        .labelsHidden()
-                        .toggleStyle(.switch)
-                }
+                    .toggleStyle(.switch)
+            }
+            propertyRow("Execution enabled", alignment: .center) {
+                Toggle("", isOn: executionBinding)
+                    .labelsHidden()
+                    .toggleStyle(.switch)
             }
         }
         // Offline → read-only: disable the inline property editors so a field change
         // can't fire a doomed PUT against an unreachable server (#321).
         .disabled(isReadOnly)
         .task(id: pad.id) { await loadOrgUsers() }
+    }
+
+    var propertiesCard: some View {
+        DetailSection(title: "Properties", systemImage: "slider.horizontal.3") {
+            propertyRows
+        }
     }
 
     /// A labeled row pairing a property name with its inline control, matching the

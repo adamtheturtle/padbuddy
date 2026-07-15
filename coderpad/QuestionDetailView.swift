@@ -85,7 +85,9 @@ struct QuestionDetailView: View {
     /// automatically, and the header stays free for identity and metadata. A
     /// leading spacer separates them from the Questions list's own toolbar
     /// items (Sort, Reload, New Question) so "New Pad" doesn't read as a
-    /// sibling of "New Question".
+    /// sibling of "New Question". Delete stays out of the default toolbar, but
+    /// remains available through the Question menu and as an opt-in customizable
+    /// toolbar item.
     @ToolbarContentBuilder
     private var detailToolbar: some CustomizableToolbarContent {
         ToolbarSpacer(.fixed)
@@ -128,6 +130,7 @@ struct QuestionDetailView: View {
             .help("Delete question")
             .accessibilityLabel("Delete question")
         }
+        .defaultCustomization(.hidden)
     }
 
     var body: some View {

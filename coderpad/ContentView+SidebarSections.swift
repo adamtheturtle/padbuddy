@@ -185,7 +185,7 @@ extension Sidebar {
         } else {
             let items = defaultItems
             if !items.isEmpty {
-                Section("Suggested") {
+                Section("Smart Lists") {
                     VStack(spacing: 2) {
                         ForEach(items) { item in
                             // Bind `nav` to a local so the row's tap closure captures
@@ -218,7 +218,7 @@ extension Sidebar {
     /// suggested searches these are momentary actions, not a selection, so the rows
     /// never highlight — the parent "Pads"/"Questions" row keeps the selection.
     private var mergedDefaultsSection: some View {
-        Section("Suggested") {
+        Section("Smart Lists") {
             VStack(spacing: 2) {
                 // Capture `nav` (not `self`) in the row tap closures — see the note in
                 // `defaultsSection`: capturing the whole `Sidebar` struct faults in

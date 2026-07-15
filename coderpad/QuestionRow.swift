@@ -11,11 +11,7 @@ struct QuestionRowPresentation: Hashable {
     let title: String
     let languageDisplayName: String?
     let interviewType: InterviewType
-    let usedLabel: String?
     let isDraft: Bool
-    let authorName: String?
-    let lastUsedRelative: String?
-    let lastUsedTooltip: String?
     let accessibilityLabel: String
 
     init(question: Question, account: RowAccount?) {
@@ -24,29 +20,12 @@ struct QuestionRowPresentation: Hashable {
             language.isEmpty ? nil : language.coderPadLanguageDisplayName
         }
         interviewType = question.interviewType
-        usedLabel = question.used.flatMap { used in
-            used > 0 ? String(localized: "Used \(used)×") : nil
-        }
         isDraft = question.isDraft == true
-        authorName = question.authorName
-
-        if let lastUsed = question.updatedAt {
-            let labels = RelativeDateLabel.labels(for: lastUsed)
-            lastUsedRelative = labels.relative
-            lastUsedTooltip = labels.tooltip
-        } else {
-            lastUsedRelative = nil
-            lastUsedTooltip = nil
-        }
-
         var parts = [title]
         if let account { parts.append(account.name) }
         if let languageDisplayName { parts.append(languageDisplayName) }
         if interviewType == .takeHome { parts.append("Take-home") }
-        if let used = question.used, used > 0 { parts.append("used \(used) times") }
         if isDraft { parts.append("Draft") }
-        if let authorName { parts.append(authorName) }
-        if let lastUsedRelative { parts.append("last used \(lastUsedRelative)") }
         accessibilityLabel = parts.joined(separator: ", ")
     }
 }
@@ -89,7 +68,6 @@ private struct QuestionRowInfo: View, Equatable {
                     .foregroundStyle(Color.fastListRowPrimaryLabel)
                     .lineLimit(expandsForDynamicType ? 2 : 1)
                 metadata
-                authorLine
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .clipped()
@@ -99,23 +77,6 @@ private struct QuestionRowInfo: View, Equatable {
         // and label separately; the favorite star stays its own action.
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(presentation.accessibilityLabel)
-    }
-
-    @ViewBuilder
-    private var authorLine: some View {
-        #if os(macOS)
-            Text(presentation.authorName ?? " ")
-                .font(.caption)
-                .foregroundStyle(Color.fastListRowSecondaryLabel)
-                .lineLimit(1)
-        #else
-            if let author = presentation.authorName {
-                Text(author)
-                    .font(.caption)
-                    .foregroundStyle(Color.fastListRowSecondaryLabel)
-                    .lineLimit(expandsForDynamicType ? 2 : 1)
-            }
-        #endif
     }
 
     @ViewBuilder
@@ -154,12 +115,6 @@ private struct QuestionRowInfo: View, Equatable {
                     .foregroundStyle(Color.fastListRowSecondaryLabel)
                     .lineLimit(1)
             }
-            if let usedLabel = presentation.usedLabel {
-                Text(usedLabel)
-                    .font(.caption)
-                    .foregroundStyle(Color.fastListRowSecondaryLabel)
-                    .lineLimit(1)
-            }
             if presentation.isDraft {
                 Text("Draft")
                     .font(.caption)
@@ -176,44 +131,10 @@ private struct QuestionRowInfo: View, Equatable {
             if presentation.interviewType == .takeHome {
                 InterviewType.takeHome.chip
             }
-            if let usedLabel = presentation.usedLabel {
-                MetaLabel(text: usedLabel, systemImage: "chart.bar")
-            }
             if presentation.isDraft {
                 Chip(text: String(localized: "Draft"), systemImage: "doc.badge.ellipsis", tint: .orange)
             }
         #endif
-    }
-}
-
-/// The question row's right-aligned "last used" date column, mirroring
-/// ``PadRowDateLabel`` so the favorite star lands in the same slot on both lists —
-/// info, then star, then a fixed date column — rather than the star sitting to the
-/// right of the date on questions but to its left on pads (#650). Reserves the shared
-/// column width even when a question has never been used so the star stays aligned.
-private struct QuestionRowDateLabel: View {
-    let relative: String?
-    let tooltip: String?
-
-    var body: some View {
-        Group {
-            if let relative {
-                Text(relative)
-                    .font(.caption)
-                    .foregroundStyle(Color.fastListRowSecondaryLabel)
-                    .lineLimit(1)
-                    .fixedSize()
-                    .help(tooltip.map { "Last used \($0)" } ?? "")
-                    .frame(minWidth: FastListRowMetrics.dateColumnWidth, alignment: .trailing)
-            } else {
-                // Reserve exactly the column width so unused questions keep the
-                // star/date column aligned with used ones (mirrors PadRowDateLabel, #635).
-                Color.clear
-                    .frame(width: FastListRowMetrics.dateColumnWidth)
-            }
-        }
-        .layoutPriority(1)
-        .allowsHitTesting(false)
     }
 }
 
@@ -236,6 +157,7 @@ struct QuestionRowHostableContent: View {
     /// Toggles the favorite via the owning view's method (which may also clear the
     /// Favorites filter when the last star is removed), rather than the store directly.
     var onToggleFavorite: () -> Void
+    @State private var isHovering = false
     #if os(iOS)
         @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     #endif
@@ -253,11 +175,10 @@ struct QuestionRowHostableContent: View {
                 .clipped()
                 .layoutPriority(0)
             if usesTrailingFavoriteAction {
-                QuestionRowDateLabel(relative: rowPresentation.lastUsedRelative, tooltip: rowPresentation.lastUsedTooltip)
                 favoriteButton(title: rowPresentation.title)
             } else {
                 favoriteButton(title: rowPresentation.title)
-                QuestionRowDateLabel(relative: rowPresentation.lastUsedRelative, tooltip: rowPresentation.lastUsedTooltip)
+                trailingDatePlaceholder
             }
         }
         .padding(.vertical, 4)
@@ -265,14 +186,30 @@ struct QuestionRowHostableContent: View {
         .fixedFastListRowHeight()
         .accountTintRailOverlay(rowAccount, enabled: !usesInlineAccountTintRail)
         .fastListRowInsets()
+        #if os(macOS)
+            .onHover { isHovering = $0 }
+            .onChange(of: hoverIdentity) { _, _ in isHovering = false }
+        #endif
     }
 
     private func favoriteButton(title: String) -> some View {
         FavoriteStarButton(
             isFavorite: isFavorite,
             title: title,
-            onToggle: onToggleFavorite
+            onToggle: onToggleFavorite,
+            isRowHovered: isHovering
         )
+    }
+
+    private var hoverIdentity: FavoriteRowHoverIdentity {
+        FavoriteRowHoverIdentity(itemID: String(question.id), account: rowAccount)
+    }
+
+    private var trailingDatePlaceholder: some View {
+        Color.clear
+            .frame(width: FastListRowMetrics.dateColumnWidth)
+            .layoutPriority(1)
+            .allowsHitTesting(false)
     }
 
     private var usesTrailingFavoriteAction: Bool {

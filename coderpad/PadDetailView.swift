@@ -75,14 +75,10 @@ struct PadDetailView: View {
     /// the content header: there they float on the system Liquid Glass layer
     /// automatically, and the header stays free for identity and metadata. A
     /// leading spacer separates them from the Pads list's own toolbar items
-    /// (Reload, New Pad). Delete Pad sits in its own trailing group behind a
-    /// second spacer; it requires a confirmation dialog, so surfacing it
-    /// directly can't trigger an irreversible action from a stray click. Save
-    /// Code stays out of the toolbar (menu-only) to keep it uncrowded. End
-    /// Interview is offered as an opt-in customizable item, hidden by default
-    /// (see `.defaultCustomization(.hidden)`), so it never crowds the toolbar
-    /// unless the user adds it via Customize Toolbar; it also stays on the Pad
-    /// menu.
+    /// (Reload, New Pad). Destructive actions stay out of the default toolbar:
+    /// Delete Pad remains available from the Pad menu and as an opt-in customizable
+    /// toolbar item, while End Interview is also hidden by default. Save Code stays
+    /// out of the toolbar (menu-only) to keep it uncrowded.
     @ToolbarContentBuilder
     private var detailToolbar: some CustomizableToolbarContent {
         ToolbarSpacer(.fixed)
@@ -128,6 +124,7 @@ struct PadDetailView: View {
             .disabled(isMutating || isReadOnly)
             .help("Delete this pad")
         }
+        .defaultCustomization(.hidden)
         #if !os(macOS)
             // iPad has no menu bar, so the File-menu document actions (Print, Export as
             // Markdown, Save All Code) live in a detail-pane overflow menu instead.

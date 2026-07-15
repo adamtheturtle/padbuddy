@@ -9,11 +9,8 @@ extension PadDetailView {
     var detailScroll: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: detailSectionSpacing) {
-                header
-                propertiesCard
-                if !pad.participants.isEmpty {
-                    participantsCard
-                }
+                summaryCard
+                Divider()
                 // One code card per environment. A pad can carry several
                 // environments (e.g. a candidate and reference solution, or
                 // multiple languages); showing only the active one silently hid
@@ -78,10 +75,52 @@ extension PadDetailView {
         #endif
     }
 
+    private var summaryCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            header
+            Divider()
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: 28) {
+                    summaryGroup(title: "Properties", systemImage: "slider.horizontal.3") {
+                        propertyRows
+                    }
+                    if !pad.participants.isEmpty {
+                        summaryGroup(title: "Participants", systemImage: "person.2") {
+                            participantsContent
+                        }
+                    }
+                    if hasActivity {
+                        summaryGroup(title: "Activity", systemImage: "clock") {
+                            activityRows
+                        }
+                    }
+                }
+                VStack(alignment: .leading, spacing: 14) {
+                    summaryGroup(title: "Properties", systemImage: "slider.horizontal.3") {
+                        propertyRows
+                    }
+                    if !pad.participants.isEmpty {
+                        Divider()
+                        summaryGroup(title: "Participants", systemImage: "person.2") {
+                            participantsContent
+                        }
+                    }
+                    if hasActivity {
+                        Divider()
+                        summaryGroup(title: "Activity", systemImage: "clock") {
+                            activityRows
+                        }
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
     private var header: some View {
-        VStack(alignment: .leading, spacing: Spacing.contentGroupGap) {
+        VStack(alignment: .leading, spacing: 12) {
             // Actions now live in the window toolbar, so the header only carries
-            // identity, the metadata chips, and the raw ID below.
+            // identity and the metadata chips below.
             identity
             // A flow layout instead of an HStack so the badges wrap onto a new
             // row when the detail pane is too narrow to fit them side by side. A
@@ -110,6 +149,34 @@ extension PadDetailView {
                 }
             }
         }
+    }
+
+    private var hasActivity: Bool {
+        pad.createdAt != nil || pad.updatedAt != nil || pad.endedAt != nil
+    }
+
+    private var activityRows: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            if let createdAt = pad.createdAt {
+                LabeledRow(label: "Created", value: createdAt.formatted(date: .long, time: .shortened))
+            }
+            if let updatedAt = pad.updatedAt {
+                LabeledRow(label: "Updated", value: updatedAt.formatted(date: .long, time: .shortened))
+            }
+            if let endedAt = pad.endedAt {
+                LabeledRow(label: "Ended", value: endedAt.formatted(date: .long, time: .shortened))
+            }
+        }
+    }
+
+    private func summaryGroup(title: LocalizedStringKey, systemImage: String, @ViewBuilder content: () -> some View) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Label(title, systemImage: systemImage)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            content()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var identity: some View {

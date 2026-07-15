@@ -17,7 +17,7 @@ struct AccountEditor: View {
     let initialName: String
     /// When true, the editor is embedded inline in the Accounts pane (Mail-style)
     /// rather than presented as a modal sheet: it drops the fixed sheet frame, hides
-    /// Cancel for saved accounts, and shows the "Use This Account" header control.
+    /// Cancel for saved accounts, and shows the "Switch to This Account" header control.
     let embedded: Bool
     /// Whether this account is the app's active one, shown as a badge in the header.
     let isCurrent: Bool
@@ -64,6 +64,9 @@ struct AccountEditor: View {
     /// the account already has a Screen key (so it's visible), collapsed otherwise so
     /// it doesn't clutter accounts that don't use Screen.
     @State var screenExpanded: Bool
+    /// Debounces autosave for saved-account edits so typing in text fields does not
+    /// write the account store on every keystroke.
+    @State var liveCommitTask: Task<Void, Never>?
     #if !os(macOS)
         @Environment(\.horizontalSizeClass) var horizontalSizeClass
     #endif
@@ -198,8 +201,8 @@ struct AccountEditor: View {
                             .foregroundStyle(.green)
                             .font(.callout)
                     } else {
-                        Button("Use This Account", action: onUse)
-                            .help("Switch the app to this account.")
+                        Button("Switch to This Account", action: onUse)
+                            .help("Switch from All Accounts or another account to this account.")
                     }
                 }
             }
@@ -228,8 +231,8 @@ struct AccountEditor: View {
                 }
             }
             validateButton
-            // On iPad the embedded editor commits live and relies on the Settings
-            // sheet's "Done", so it omits the inline Save; macOS keeps it. (#601)
+            // Saved embedded accounts autosave their edits, so Add-account is the only
+            // account flow that still needs an explicit Save button.
             if !usesNavigationBarActions, !commitsLive {
                 saveButton
             }
@@ -272,12 +275,12 @@ struct AccountEditor: View {
             .onChange(of: draft.apiKey) { _, _ in validation = .idle; scopeWarning = nil }
             .onChange(of: draft.baseURL) { _, _ in validation = .idle }
             // A changed Screen key or region invalidates any prior Screen validation result.
-            // Screen credentials don't gate `canSave`, so commit them live on iPad too (#601).
+            // Screen credentials don't gate `canSave`, so saved accounts autosave them too.
             .onChange(of: draft.screenApiKey) { _, _ in screenValidation = .idle; commitLiveEdit() }
             .onChange(of: draft.screenRegion) { _, _ in screenValidation = .idle; commitLiveEdit() }
-            // iPad live-commit: persist Description / Your Email edits the moment they change,
-            // and persist a re-validated key or server URL the moment validation flips to
-            // `.valid` (which re-enables `canSave`). A no-op on macOS and the modal Add sheet.
+            // Saved-account autosave: persist Description / Your Email edits after typing
+            // settles, and persist a re-validated key or server URL when validation flips
+            // to `.valid` (which re-enables `canSave`). A no-op for the modal Add sheet.
             .onChange(of: draft.name) { _, _ in commitLiveEdit() }
     }
 
@@ -289,6 +292,10 @@ struct AccountEditor: View {
             // than waiting for Save (which gates on validation/email for the credentials).
             .onChange(of: draft.iconSymbol) { _, _ in onAppearanceChange?(draft.iconSymbol, draft.tintHex) }
             .onChange(of: draft.tintHex) { _, _ in onAppearanceChange?(draft.iconSymbol, draft.tintHex) }
+            .onDisappear {
+                liveCommitTask?.cancel()
+                persistLiveEditIfPossible()
+            }
             .confirmationDialog("Delete this account?",
                                 isPresented: $showDeleteConfirmation,
                                 titleVisibility: .visible) {
