@@ -15,6 +15,9 @@ struct SearchableQuestionPicker: View {
     @State private var isPresented = false
     @State private var query = ""
     @FocusState private var searchFocused: Bool
+    #if os(iOS)
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    #endif
 
     private func title(for question: Question) -> String {
         question.title.isEmpty ? "#\(question.id)" : question.title
@@ -34,7 +37,43 @@ struct SearchableQuestionPicker: View {
         return questions.filter { title(for: $0).localizedCaseInsensitiveContains(trimmed) }
     }
 
+    #if os(iOS)
+    private var usesSheetPresentation: Bool {
+        horizontalSizeClass == .compact
+    }
+    #else
+    private var usesSheetPresentation: Bool { false }
+    #endif
+
     var body: some View {
+        if usesSheetPresentation {
+            button
+                .sheet(isPresented: $isPresented) {
+                    NavigationStack {
+                        pickerContent(maxListHeight: nil)
+                            .navigationTitle("Question")
+                            .navigationBarTitleDisplayMode(.inline)
+                            .toolbar {
+                                ToolbarItem(placement: .cancellationAction) {
+                                    Button("Done") { isPresented = false }
+                                }
+                            }
+                    }
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
+                    .onAppear { searchFocused = true }
+                }
+        } else {
+            button
+                .popover(isPresented: $isPresented, arrowEdge: .bottom) {
+                    pickerContent(maxListHeight: 240)
+                        .frame(width: 320)
+                        .onAppear { searchFocused = true }
+                }
+        }
+    }
+
+    private var button: some View {
         Button {
             isPresented = true
         } label: {
@@ -53,33 +92,32 @@ struct SearchableQuestionPicker: View {
         }
         .frame(maxWidth: 280, alignment: .leading)
         .buttonStyle(.bordered)
-        .popover(isPresented: $isPresented, arrowEdge: .bottom) {
-            VStack(spacing: 0) {
-                TextField("Search questions", text: $query)
-                    .textFieldStyle(.roundedBorder)
-                    .focused($searchFocused)
-                    .padding(8)
+    }
 
-                Divider()
+    private func pickerContent(maxListHeight: CGFloat?) -> some View {
+        VStack(spacing: 0) {
+            TextField("Search questions", text: $query)
+                .textFieldStyle(.roundedBorder)
+                .focused($searchFocused)
+                .padding(8)
 
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 0) {
-                        questionRow(id: nil, title: String(localized: "None"))
-                        ForEach(filtered) { question in
-                            questionRow(id: question.id, title: title(for: question))
-                        }
-                        if filtered.isEmpty {
-                            Text("No questions match “\(query)”")
-                                .foregroundStyle(.secondary)
-                                .font(.callout)
-                                .padding(8)
-                        }
+            Divider()
+
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    questionRow(id: nil, title: String(localized: "None"))
+                    ForEach(filtered) { question in
+                        questionRow(id: question.id, title: title(for: question))
+                    }
+                    if filtered.isEmpty {
+                        Text("No questions match “\(query)”")
+                            .foregroundStyle(.secondary)
+                            .font(.callout)
+                            .padding(8)
                     }
                 }
-                .frame(maxHeight: 240)
             }
-            .frame(width: 320)
-            .onAppear { searchFocused = true }
+            .frame(maxHeight: maxListHeight)
         }
     }
 
@@ -102,8 +140,8 @@ struct SearchableQuestionPicker: View {
                 }
             }
             .contentShape(Rectangle())
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .padding(.horizontal, 16)
+            .padding(.vertical, usesSheetPresentation ? 12 : 6)
         }
         .buttonStyle(.plain)
         .background(isSelected ? Color.accentColor.opacity(0.12) : .clear)
@@ -138,6 +176,9 @@ struct SearchableOwnerPicker: View {
     @State private var query = ""
     @FocusState private var searchFocused: Bool
     @Environment(\.orgDirectory) private var directory
+    #if os(iOS)
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    #endif
 
     private var trimmedOwner: String {
         ownerEmail.trimmingCharacters(in: .whitespaces)
@@ -214,7 +255,43 @@ struct SearchableOwnerPicker: View {
         return trimmed
     }
 
+    #if os(iOS)
+    private var usesSheetPresentation: Bool {
+        horizontalSizeClass == .compact
+    }
+    #else
+    private var usesSheetPresentation: Bool { false }
+    #endif
+
     var body: some View {
+        if usesSheetPresentation {
+            button
+                .sheet(isPresented: $isPresented) {
+                    NavigationStack {
+                        pickerContent(maxListHeight: nil)
+                            .navigationTitle("Owner")
+                            .navigationBarTitleDisplayMode(.inline)
+                            .toolbar {
+                                ToolbarItem(placement: .cancellationAction) {
+                                    Button("Done") { isPresented = false }
+                                }
+                            }
+                    }
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
+                    .onAppear { searchFocused = true }
+                }
+        } else {
+            button
+                .popover(isPresented: $isPresented, arrowEdge: .bottom) {
+                    pickerContent(maxListHeight: 240)
+                        .frame(width: 320)
+                        .onAppear { searchFocused = true }
+                }
+        }
+    }
+
+    private var button: some View {
         Button {
             isPresented = true
         } label: {
@@ -231,54 +308,53 @@ struct SearchableOwnerPicker: View {
             }
         }
         .buttonStyle(.bordered)
-        .popover(isPresented: $isPresented, arrowEdge: .bottom) {
-            VStack(spacing: 0) {
-                TextField("Search members or enter email", text: $query)
-                    .textFieldStyle(.roundedBorder)
-                    .focused($searchFocused)
-                    .padding(8)
+    }
 
-                Divider()
+    private func pickerContent(maxListHeight: CGFloat?) -> some View {
+        VStack(spacing: 0) {
+            TextField("Search members or enter email", text: $query)
+                .textFieldStyle(.roundedBorder)
+                .focused($searchFocused)
+                .padding(8)
 
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 0) {
-                        // Pinned, always-present "Me" shortcut. An empty owner makes
-                        // the server assign the pad to the key owner — you — so this
-                        // works even when the account's email was never detected.
-                        ownerRow(email: "",
-                                 primary: meLabel,
-                                 secondary: meSubtitle,
+            Divider()
+
+            ScrollView {
+                LazyVStack(alignment: .leading, spacing: 0) {
+                    // Pinned, always-present "Me" shortcut. An empty owner makes
+                    // the server assign the pad to the key owner — you — so this
+                    // works even when the account's email was never detected.
+                    ownerRow(email: "",
+                             primary: meLabel,
+                             secondary: meSubtitle,
+                             isMuted: false)
+
+                    Divider()
+
+                    ForEach(filteredUsers) { user in
+                        ownerRow(email: user.email,
+                                 primary: user.name?.nilIfEmpty ?? user.email,
+                                 secondary: user.name?.nilIfEmpty == nil ? nil : user.email,
                                  isMuted: false)
+                    }
 
-                        Divider()
+                    if let custom = customEmailCandidate {
+                        ownerRow(email: custom,
+                                 primary: String(localized: "Use “\(custom)”"),
+                                 secondary: nil,
+                                 isMuted: false)
+                    }
 
-                        ForEach(filteredUsers) { user in
-                            ownerRow(email: user.email,
-                                     primary: user.name?.nilIfEmpty ?? user.email,
-                                     secondary: user.name?.nilIfEmpty == nil ? nil : user.email,
-                                     isMuted: false)
-                        }
-
-                        if let custom = customEmailCandidate {
-                            ownerRow(email: custom,
-                                     primary: String(localized: "Use “\(custom)”"),
-                                     secondary: nil,
-                                     isMuted: false)
-                        }
-
-                        if filteredUsers.isEmpty, customEmailCandidate == nil,
-                           !query.trimmingCharacters(in: .whitespaces).isEmpty {
-                            Text("No members match “\(query)”")
-                                .foregroundStyle(.secondary)
-                                .font(.callout)
-                                .padding(8)
-                        }
+                    if filteredUsers.isEmpty, customEmailCandidate == nil,
+                       !query.trimmingCharacters(in: .whitespaces).isEmpty {
+                        Text("No members match “\(query)”")
+                            .foregroundStyle(.secondary)
+                            .font(.callout)
+                            .padding(8)
                     }
                 }
-                .frame(maxHeight: 240)
             }
-            .frame(width: 320)
-            .onAppear { searchFocused = true }
+            .frame(maxHeight: maxListHeight)
         }
     }
 
@@ -310,8 +386,8 @@ struct SearchableOwnerPicker: View {
                 }
             }
             .contentShape(Rectangle())
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
+            .padding(.horizontal, 16)
+            .padding(.vertical, usesSheetPresentation ? 12 : 6)
         }
         .buttonStyle(.plain)
         .background(isSelected ? Color.accentColor.opacity(0.12) : .clear)
