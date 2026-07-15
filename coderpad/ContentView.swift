@@ -3,9 +3,6 @@
 //  coderpad
 //
 
-#if os(iOS)
-    import UIKit
-#endif
 import SwiftUI
 import WhatsNewKit
 
@@ -123,7 +120,7 @@ struct ContentView: View {
 
     private var shouldUsePhoneLayout: Bool {
         #if os(iOS)
-            UIDevice.current.userInterfaceIdiom == .phone && horizontalSizeClass == .compact
+            horizontalSizeClass == .compact
         #else
             false
         #endif
