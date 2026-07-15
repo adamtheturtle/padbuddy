@@ -120,14 +120,18 @@ enum SpotlightIndexer {
 
     /// Removes all indexed items for an account (e.g. when it's deleted).
     static func removeAccount(_ account: UUID) {
-        CSSearchableIndex.default().deleteSearchableItems(withDomainIdentifiers: [domain(account)])
+        CSSearchableIndex.default().deleteSearchableItems(withDomainIdentifiers: [domain(account)]) { error in
+            logDeletionFailure(error, operation: "remove account domain")
+        }
     }
 
     /// Removes a single pad from the index (e.g. when it's deleted). Re-indexing
     /// the remaining list only adds/updates items, so a dropped pad needs an
     /// explicit delete by identifier or it lingers in system search.
     static func removePad(id: String) {
-        CSSearchableIndex.default().deleteSearchableItems(withIdentifiers: [padPrefix + id])
+        CSSearchableIndex.default().deleteSearchableItems(withIdentifiers: [padPrefix + id]) { error in
+            logDeletionFailure(error, operation: "remove pad item")
+        }
     }
 
     /// Removes a single question from the index (e.g. when it's deleted). Scoped to
@@ -135,12 +139,16 @@ enum SpotlightIndexer {
     /// same-id question from system search (#378).
     static func removeQuestion(id: Int, account: UUID) {
         CSSearchableIndex.default()
-            .deleteSearchableItems(withIdentifiers: [questionIdentifier(id: id, account: account)])
+            .deleteSearchableItems(withIdentifiers: [questionIdentifier(id: id, account: account)]) { error in
+                logDeletionFailure(error, operation: "remove question item")
+            }
     }
 
     /// Clears everything this app indexed — used when the user turns the feature off.
     static func clearAll() {
-        CSSearchableIndex.default().deleteAllSearchableItems()
+        CSSearchableIndex.default().deleteAllSearchableItems { error in
+            logDeletionFailure(error, operation: "clear all items")
+        }
     }
 
     private static func index(_ items: [CSSearchableItem]) {
@@ -151,6 +159,15 @@ enum SpotlightIndexer {
                 logger.error("Spotlight index failed: \(error.localizedDescription, privacy: .public)")
             }
         }
+    }
+
+    private nonisolated static func logDeletionFailure(_ error: (any Error)?, operation: String) {
+        guard let error else { return }
+
+        logger.error("""
+        Spotlight delete failed for \(operation, privacy: .public): \
+        \(error.localizedDescription, privacy: .public)
+        """)
     }
 
     /// The pad id encoded in a Spotlight result identifier, or `nil` if it isn't a pad.
