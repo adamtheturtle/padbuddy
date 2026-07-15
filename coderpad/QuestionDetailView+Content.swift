@@ -21,13 +21,43 @@ extension QuestionDetailView {
     }
 
     var contentModePicker: some View {
-        Picker("Question detail section", selection: $selectedPane) {
+        HStack(spacing: 4) {
             ForEach(QuestionDetailPane.allCases) { pane in
-                Text(pane.label).tag(pane)
+                contentModeButton(for: pane)
             }
         }
-        .pickerStyle(.segmented)
-        .labelsHidden()
+        .padding(4)
+        .glassEffect(.regular, in: .rect(cornerRadius: 16))
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Question detail section")
+    }
+
+    private func contentModeButton(for pane: QuestionDetailPane) -> some View {
+        let isSelected = selectedPane == pane
+
+        return Button {
+            withAnimation(.snappy(duration: 0.18)) {
+                selectedPane = pane
+            }
+        } label: {
+            Label {
+                Text(pane.label)
+                    .lineLimit(1)
+            } icon: {
+                Image(systemName: pane.systemImage)
+            }
+            .font(.callout.weight(isSelected ? .semibold : .medium))
+            .foregroundStyle(isSelected ? Color.primary : Color.secondary)
+            .frame(maxWidth: .infinity)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .contentShape(.rect(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
+        .glassEffect(isSelected ? .regular.tint(.accentColor.opacity(0.24)) : .regular.interactive(),
+                     in: .rect(cornerRadius: 12))
+        .accessibilityLabel(pane.label)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     @ViewBuilder

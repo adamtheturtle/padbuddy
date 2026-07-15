@@ -20,6 +20,14 @@ enum QuestionDetailPane: String, CaseIterable, Identifiable {
         }
     }
 
+    var systemImage: String {
+        switch self {
+        case .prompt: "text.alignleft"
+        case .materials: "shippingbox"
+        case .solution: "checkmark.seal"
+        }
+    }
+
 }
 
 struct QuestionDetailView: View {

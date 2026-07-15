@@ -252,11 +252,14 @@ private final class MacQuestionTableView: NSTableView {
 
 private final class MacQuestionCellView: NSTableCellView {
     private let railView = NSView()
+    private let leadingGutterView = NSView()
     private let titleField = NSTextField(labelWithString: "")
     private let metadataField = NSTextField(labelWithString: "")
     private let authorField = NSTextField(labelWithString: "")
     private let starButton = NSButton()
     private let dateField = NSTextField(labelWithString: "")
+    private var railWidthConstraint: NSLayoutConstraint?
+    private var textLeadingConstraint: NSLayoutConstraint?
     private var onToggleFavorite: (() -> Void)?
 
     init(identifier: NSUserInterfaceItemIdentifier) {
@@ -278,13 +281,16 @@ private final class MacQuestionCellView: NSTableCellView {
     ) {
         titleField.stringValue = presentation.title
         metadataField.stringValue = metadataText(presentation: presentation, account: account)
-        authorField.stringValue = presentation.authorName ?? ""
-        authorField.isHidden = presentation.authorName == nil
+        authorField.stringValue = presentation.authorName ?? " "
+        authorField.isHidden = false
         dateField.stringValue = presentation.lastUsedRelative ?? ""
         dateField.toolTip = presentation.lastUsedTooltip.map { "Last used \($0)" }
         self.onToggleFavorite = onToggleFavorite
 
-        railView.isHidden = account == nil
+        let showsAccountRail = account != nil
+        railView.isHidden = !showsAccountRail
+        railWidthConstraint?.constant = showsAccountRail ? 4 : 0
+        textLeadingConstraint?.constant = 10
         railView.layer?.backgroundColor = account.map { NSColor($0.tint).withAlphaComponent(0.75).cgColor }
         starButton.image = NSImage(
             systemSymbolName: isFavorite ? "star.fill" : "star",
@@ -301,10 +307,7 @@ private final class MacQuestionCellView: NSTableCellView {
         railView.wantsLayer = true
         railView.layer?.cornerRadius = 2
         railView.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            railView.widthAnchor.constraint(equalToConstant: 4),
-            railView.heightAnchor.constraint(equalToConstant: 36)
-        ])
+        leadingGutterView.translatesAutoresizingMaskIntoConstraints = false
 
         titleField.font = NSFont.systemFont(ofSize: NSFont.systemFontSize, weight: .medium)
         titleField.textColor = .labelColor
@@ -319,40 +322,60 @@ private final class MacQuestionCellView: NSTableCellView {
         for field in [titleField, metadataField, authorField] {
             field.lineBreakMode = .byTruncatingTail
             field.maximumNumberOfLines = 1
+            field.translatesAutoresizingMaskIntoConstraints = false
             field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         }
+        dateField.translatesAutoresizingMaskIntoConstraints = false
         dateField.setContentHuggingPriority(.required, for: .horizontal)
         dateField.setContentCompressionResistancePriority(.required, for: .horizontal)
 
         starButton.isBordered = false
+        starButton.imagePosition = .imageOnly
+        starButton.imageScaling = .scaleProportionallyDown
         starButton.target = self
         starButton.action = #selector(toggleFavorite)
         starButton.translatesAutoresizingMaskIntoConstraints = false
-        NSLayoutConstraint.activate([
-            starButton.widthAnchor.constraint(equalToConstant: 18),
-            starButton.heightAnchor.constraint(equalToConstant: 18),
-            dateField.widthAnchor.constraint(equalToConstant: FastListRowMetrics.dateColumnWidth)
-        ])
 
         let textStack = NSStackView(views: [titleField, metadataField, authorField])
         textStack.orientation = .vertical
         textStack.alignment = .leading
         textStack.spacing = 2
+        textStack.translatesAutoresizingMaskIntoConstraints = false
         textStack.setContentHuggingPriority(.defaultLow, for: .horizontal)
         textStack.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
-        let rowStack = NSStackView(views: [railView, textStack, starButton, dateField])
-        rowStack.orientation = .horizontal
-        rowStack.alignment = .centerY
-        rowStack.spacing = 8
-        rowStack.edgeInsets = NSEdgeInsets(top: 4, left: 8, bottom: 4, right: 8)
-        rowStack.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(rowStack)
+        for view in [railView, leadingGutterView, textStack, starButton, dateField] {
+            addSubview(view)
+        }
+
+        let railWidth = railView.widthAnchor.constraint(equalToConstant: 0)
+        let textLeading = textStack.leadingAnchor.constraint(equalTo: leadingGutterView.trailingAnchor, constant: 10)
+        railWidthConstraint = railWidth
+        textLeadingConstraint = textLeading
+
         NSLayoutConstraint.activate([
-            rowStack.leadingAnchor.constraint(equalTo: leadingAnchor),
-            rowStack.trailingAnchor.constraint(equalTo: trailingAnchor),
-            rowStack.topAnchor.constraint(equalTo: topAnchor),
-            rowStack.bottomAnchor.constraint(equalTo: bottomAnchor)
+            railView.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
+            railView.centerYAnchor.constraint(equalTo: centerYAnchor),
+            railWidth,
+            railView.heightAnchor.constraint(equalToConstant: 36),
+
+            leadingGutterView.leadingAnchor.constraint(equalTo: railView.trailingAnchor),
+            leadingGutterView.centerYAnchor.constraint(equalTo: centerYAnchor),
+            leadingGutterView.widthAnchor.constraint(equalToConstant: 8),
+            leadingGutterView.heightAnchor.constraint(equalToConstant: 8),
+
+            textLeading,
+            textStack.centerYAnchor.constraint(equalTo: centerYAnchor),
+            textStack.trailingAnchor.constraint(lessThanOrEqualTo: starButton.leadingAnchor, constant: -8),
+
+            starButton.centerYAnchor.constraint(equalTo: centerYAnchor),
+            starButton.trailingAnchor.constraint(equalTo: dateField.leadingAnchor, constant: -8),
+            starButton.widthAnchor.constraint(equalToConstant: 18),
+            starButton.heightAnchor.constraint(equalToConstant: 18),
+
+            dateField.centerYAnchor.constraint(equalTo: centerYAnchor),
+            dateField.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
+            dateField.widthAnchor.constraint(equalToConstant: FastListRowMetrics.dateColumnWidth)
         ])
     }
 

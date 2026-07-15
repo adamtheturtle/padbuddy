@@ -80,18 +80,16 @@ private struct QuestionRowInfo: View, Equatable {
             let _ = SelectionProfiler.memoizedTick()
         #endif
         HStack(alignment: .top, spacing: 10) {
+            Color.clear
+                .frame(width: 8, height: 8)
+                .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 4) {
                 Text(presentation.title)
                     .font(.callout.weight(.medium))
                     .foregroundStyle(Color.fastListRowPrimaryLabel)
                     .lineLimit(expandsForDynamicType ? 2 : 1)
                 metadata
-                if let author = presentation.authorName {
-                    Text(author)
-                        .font(.caption)
-                        .foregroundStyle(Color.fastListRowSecondaryLabel)
-                        .lineLimit(expandsForDynamicType ? 2 : 1)
-                }
+                authorLine
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .clipped()
@@ -101,6 +99,23 @@ private struct QuestionRowInfo: View, Equatable {
         // and label separately; the favorite star stays its own action.
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(presentation.accessibilityLabel)
+    }
+
+    @ViewBuilder
+    private var authorLine: some View {
+        #if os(macOS)
+            Text(presentation.authorName ?? " ")
+                .font(.caption)
+                .foregroundStyle(Color.fastListRowSecondaryLabel)
+                .lineLimit(1)
+        #else
+            if let author = presentation.authorName {
+                Text(author)
+                    .font(.caption)
+                    .foregroundStyle(Color.fastListRowSecondaryLabel)
+                    .lineLimit(expandsForDynamicType ? 2 : 1)
+            }
+        #endif
     }
 
     @ViewBuilder
