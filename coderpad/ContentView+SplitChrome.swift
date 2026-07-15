@@ -8,13 +8,6 @@
 #endif
 import SwiftUI
 
-/// Restart key for the per-session load task: the chosen account plus whether the
-/// combined view is active, so the task re-runs when either changes.
-struct SessionKey: Hashable {
-    let accountID: UUID?
-    let merged: Bool
-}
-
 // These three customize the macOS window/toolbar/sidebar chrome via AppKit. iPad has
 // no analog, so on iOS each is a no-op `View` (returns `EmptyView`) with the same name
 // and initializer so the cross-platform `MainSplit` `.background(...)` call sites keep
