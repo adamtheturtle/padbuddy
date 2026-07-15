@@ -10,6 +10,7 @@
 //
 
 import Foundation
+import OSLog
 
 /// A minimal, dependency-free projection of a pad for display in the widget.
 struct WidgetPadSnapshot: Codable, Identifiable, Hashable {
@@ -79,6 +80,7 @@ enum WidgetSharedStore {
     private static let accountsFile = "widget-accounts.json"
     private static let newPadRequestFile = "pending-new-pad.json"
     private static let openPadRequestFile = "pending-open-pad.json"
+    private static let logger = Logger(subsystem: "com.coderpad.app", category: "widget-shared-store")
 
     /// Darwin notification posted when a New Pad request is recorded, so a running app
     /// drains it immediately — even while it's already frontmost, where a widget/control
@@ -100,55 +102,134 @@ enum WidgetSharedStore {
         "widget-favorites-\(account).json"
     }
 
-    private static func fileURL(_ name: String) -> URL? {
-        FileManager.default
-            .containerURL(forSecurityApplicationGroupIdentifier: appGroupID)?
-            .appending(path: name, directoryHint: .notDirectory)
+    private static func fileURL(_ name: String, purpose: String) -> URL? {
+        guard let container = FileManager.default
+            .containerURL(forSecurityApplicationGroupIdentifier: appGroupID) else {
+            logger.error("Widget shared container unavailable for \(purpose, privacy: .public)")
+            return nil
+        }
+
+        return container.appending(path: name, directoryHint: .notDirectory)
+    }
+
+    private static func loadData(fileName: String, purpose: String) -> Data? {
+        guard let url = fileURL(fileName, purpose: purpose) else { return nil }
+
+        do {
+            return try Data(contentsOf: url)
+        } catch let error as CocoaError where error.code == .fileReadNoSuchFile {
+            return nil
+        } catch {
+            logger.error("""
+            Widget shared store read failed for \(purpose, privacy: .public): \
+            \(error.localizedDescription, privacy: .public)
+            """)
+            return nil
+        }
+    }
+
+    @discardableResult
+    private static func write(_ value: some Encodable, fileName: String, purpose: String) -> Bool {
+        guard let url = fileURL(fileName, purpose: purpose) else { return false }
+
+        do {
+            let data = try JSONEncoder().encode(value)
+            try data.write(to: url, options: .atomic)
+            return true
+        } catch EncodingError.invalidValue(_, _) {
+            logger.error("Widget shared store encode failed for \(purpose, privacy: .public)")
+        } catch {
+            logger.error("""
+            Widget shared store write failed for \(purpose, privacy: .public): \
+            \(error.localizedDescription, privacy: .public)
+            """)
+        }
+        return false
     }
 
     /// Pads for the configured `account`, or the default snapshot when `account` is
     /// nil. Empty when the file is missing.
     static func load(account: String? = nil) -> [WidgetPadSnapshot] {
-        guard let url = fileURL(padsFileName(account: account)),
-              let data = try? Data(contentsOf: url) else { return [] }
+        guard let data = loadData(fileName: padsFileName(account: account), purpose: "recent pads snapshot") else {
+            return []
+        }
 
-        return (try? JSONDecoder().decode([WidgetPadSnapshot].self, from: data)) ?? []
+        do {
+            return try JSONDecoder().decode([WidgetPadSnapshot].self, from: data)
+        } catch {
+            logger.error("""
+            Widget shared store decode failed for recent pads snapshot: \
+            \(error.localizedDescription, privacy: .public)
+            """)
+            return []
+        }
     }
 
     /// The mirrored account list backing the configuration picker.
     static func loadAccounts() -> [WidgetAccount] {
-        guard let url = fileURL(accountsFile), let data = try? Data(contentsOf: url) else { return [] }
+        guard let data = loadData(fileName: accountsFile, purpose: "widget account index") else { return [] }
 
-        return (try? JSONDecoder().decode([WidgetAccount].self, from: data)) ?? []
+        do {
+            return try JSONDecoder().decode([WidgetAccount].self, from: data)
+        } catch {
+            logger.error("""
+            Widget shared store decode failed for account index: \
+            \(error.localizedDescription, privacy: .public)
+            """)
+            return []
+        }
     }
 
     /// `account`'s mirrored favourite questions, for the New Pad button picker.
     static func loadFavorites(account: String) -> [WidgetQuestion] {
-        guard let url = fileURL(favoritesFileName(account: account)),
-              let data = try? Data(contentsOf: url) else { return [] }
+        guard let data = loadData(
+            fileName: favoritesFileName(account: account),
+            purpose: "widget favorite questions"
+        ) else {
+            return []
+        }
 
-        return (try? JSONDecoder().decode([WidgetQuestion].self, from: data)) ?? []
+        do {
+            return try JSONDecoder().decode([WidgetQuestion].self, from: data)
+        } catch {
+            logger.error("""
+            Widget shared store decode failed for favorite questions: \
+            \(error.localizedDescription, privacy: .public)
+            """)
+            return []
+        }
     }
 
     /// Records a New Pad request for the app to pick up on its next activation. Written
     /// as a file (not `UserDefaults`) so the app process sees it immediately across the
     /// App Group, with no suite-cache delay. A no-op when the container is unavailable.
-    static func requestNewPad(account: String?, question: Int?) {
-        guard let url = fileURL(newPadRequestFile),
-              let data = try? JSONEncoder().encode(WidgetNewPadRequest(account: account, question: question))
-        else { return }
+    @discardableResult
+    static func requestNewPad(account: String?, question: Int?) -> Bool {
+        guard write(WidgetNewPadRequest(account: account, question: question),
+                    fileName: newPadRequestFile,
+                    purpose: "new pad handoff request") else {
+            return false
+        }
 
-        try? data.write(to: url, options: .atomic)
         postNewPadRequestNotification()
+        logger.info("""
+        Recorded new pad handoff request accountScoped=\((account?.isEmpty == false), privacy: .public) \
+        questionSeeded=\(question != nil, privacy: .public)
+        """)
+        return true
     }
 
     /// Records a recent-pad tap for the iPad app to route after `OpenPadIntent` opens it.
-    static func requestOpenPad(id: String, account: String?) {
-        guard let url = fileURL(openPadRequestFile),
-              let data = try? JSONEncoder().encode(WidgetOpenPadRequest(id: id, account: account))
-        else { return }
+    @discardableResult
+    static func requestOpenPad(id: String, account: String?) -> Bool {
+        guard write(WidgetOpenPadRequest(id: id, account: account),
+                    fileName: openPadRequestFile,
+                    purpose: "open pad handoff request") else {
+            return false
+        }
 
-        try? data.write(to: url, options: .atomic)
+        logger.info("Recorded open pad handoff request accountScoped=\((account?.isEmpty == false), privacy: .public)")
+        return true
     }
 
     /// Nudges a running app to drain the just-recorded request right away.

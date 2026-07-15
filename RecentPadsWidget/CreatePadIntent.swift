@@ -6,6 +6,17 @@
 //
 
 import AppIntents
+import Foundation
+
+private enum WidgetIntentError: LocalizedError {
+    case handoffFailed
+
+    var errorDescription: String? {
+        String(localized: """
+        Couldn't hand this request to PadBuddy. Check that widgets and App Groups are available, then try again.
+        """)
+    }
+}
 
 /// Creates a new pad straight from the widget or the Control Center / menu-bar
 /// control. It records the request in the shared App Group and opens the app, which
@@ -48,7 +59,10 @@ struct OpenPadIntent: AppIntent {
     }
 
     func perform() async throws -> some IntentResult {
-        WidgetSharedStore.requestOpenPad(id: id, account: account)
+        guard WidgetSharedStore.requestOpenPad(id: id, account: account) else {
+            throw WidgetIntentError.handoffFailed
+        }
+
         return .result()
     }
 }
@@ -84,7 +98,10 @@ struct CreatePadIntent: AppIntent {
     }
 
     func perform() async throws -> some IntentResult {
-        WidgetSharedStore.requestNewPad(account: account, question: question)
+        guard WidgetSharedStore.requestNewPad(account: account, question: question) else {
+            throw WidgetIntentError.handoffFailed
+        }
+
         return .result()
     }
 }

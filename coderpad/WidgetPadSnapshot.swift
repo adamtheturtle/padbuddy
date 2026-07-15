@@ -14,6 +14,7 @@
 //
 
 import Foundation
+import OSLog
 
 /// A minimal, dependency-free projection of a `Pad` for display in the widget.
 nonisolated struct WidgetPadSnapshot: Codable, Identifiable, Hashable {
@@ -86,6 +87,7 @@ nonisolated enum WidgetSharedStore {
     private static let accountsFile = "widget-accounts.json"
     private static let newPadRequestFile = "pending-new-pad.json"
     private static let openPadRequestFile = "pending-open-pad.json"
+    private static let logger = Logger(subsystem: "com.coderpad.app", category: "widget-shared-store")
 
     /// Darwin notification posted when a New Pad request is recorded, so a running app
     /// drains it immediately — even while it's already frontmost, where a widget/control
@@ -107,35 +109,81 @@ nonisolated enum WidgetSharedStore {
         "widget-favorites-\(account).json"
     }
 
-    private static func fileURL(_ name: String) -> URL? {
-        FileManager.default
-            .containerURL(forSecurityApplicationGroupIdentifier: appGroupID)?
-            .appending(path: name, directoryHint: .notDirectory)
+    private static func fileURL(_ name: String, purpose: String) -> URL? {
+        guard let container = FileManager.default
+            .containerURL(forSecurityApplicationGroupIdentifier: appGroupID) else {
+            logger.error("Widget shared container unavailable for \(purpose, privacy: .public)")
+            return nil
+        }
+
+        return container.appending(path: name, directoryHint: .notDirectory)
+    }
+
+    @discardableResult
+    private static func save(_ value: some Encodable, fileName: String, purpose: String) -> Bool {
+        guard let url = fileURL(fileName, purpose: purpose) else { return false }
+
+        do {
+            let data = try JSONEncoder().encode(value)
+            try data.write(to: url, options: .atomic)
+            return true
+        } catch EncodingError.invalidValue(_, _) {
+            logger.error("Widget shared store encode failed for \(purpose, privacy: .public)")
+        } catch {
+            logger.error("""
+            Widget shared store write failed for \(purpose, privacy: .public): \
+            \(error.localizedDescription, privacy: .public)
+            """)
+        }
+        return false
+    }
+
+    private static func loadData(fileName: String, purpose: String) -> Data? {
+        guard let url = fileURL(fileName, purpose: purpose) else { return nil }
+
+        do {
+            return try Data(contentsOf: url)
+        } catch let error as CocoaError where error.code == .fileReadNoSuchFile {
+            return nil
+        } catch {
+            logger.error("""
+            Widget shared store read failed for \(purpose, privacy: .public): \
+            \(error.localizedDescription, privacy: .public)
+            """)
+            return nil
+        }
+    }
+
+    private static func remove(_ fileName: String, purpose: String) {
+        guard let url = fileURL(fileName, purpose: purpose) else { return }
+
+        do {
+            try FileManager.default.removeItem(at: url)
+        } catch let error as CocoaError where error.code == .fileNoSuchFile {
+            return
+        } catch {
+            logger.error("""
+            Widget shared store remove failed for \(purpose, privacy: .public): \
+            \(error.localizedDescription, privacy: .public)
+            """)
+        }
     }
 
     /// Atomically replaces `account`'s snapshot (or the default snapshot when nil). A
     /// no-op when the shared container is unavailable, so callers needn't guard the
     /// entitlement themselves.
     static func save(_ pads: [WidgetPadSnapshot], account: String? = nil) {
-        guard let url = fileURL(padsFileName(account: account)),
-              let data = try? JSONEncoder().encode(pads) else { return }
-
-        try? data.write(to: url, options: .atomic)
+        save(pads, fileName: padsFileName(account: account), purpose: "recent pads snapshot")
     }
 
     /// Atomically replaces the account index read by the configuration picker.
     static func saveAccounts(_ accounts: [WidgetAccount]) {
-        guard let url = fileURL(accountsFile), let data = try? JSONEncoder().encode(accounts) else { return }
-
-        try? data.write(to: url, options: .atomic)
+        save(accounts, fileName: accountsFile, purpose: "widget account index")
     }
 
     /// Atomically replaces `account`'s favourite-questions list.
     static func saveFavorites(_ favorites: [WidgetQuestion], account: String) {
-        guard let url = fileURL(favoritesFileName(account: account)),
-              let data = try? JSONEncoder().encode(favorites) else { return }
-
-        try? data.write(to: url, options: .atomic)
+        save(favorites, fileName: favoritesFileName(account: account), purpose: "widget favorite questions")
     }
 
     /// Records a New Pad request for the app to pick up on its next activation, written
@@ -146,22 +194,33 @@ nonisolated enum WidgetSharedStore {
     /// (`RecentPadsWidget/WidgetSharedSnapshot.swift`); it lives here too so the app-target
     /// twin of `CreatePadIntent` — the one that lets the Control Center button open the
     /// app (#485) — compiles against it.
-    static func requestNewPad(account: String?, question: Int?) {
-        guard let url = fileURL(newPadRequestFile),
-              let data = try? JSONEncoder().encode(WidgetNewPadRequest(account: account, question: question))
-        else { return }
+    @discardableResult
+    static func requestNewPad(account: String?, question: Int?) -> Bool {
+        guard save(WidgetNewPadRequest(account: account, question: question),
+                   fileName: newPadRequestFile,
+                   purpose: "new pad handoff request") else {
+            return false
+        }
 
-        try? data.write(to: url, options: .atomic)
         postNewPadRequestNotification()
+        logger.info("""
+        Recorded new pad handoff request accountScoped=\((account?.isEmpty == false), privacy: .public) \
+        questionSeeded=\(question != nil, privacy: .public)
+        """)
+        return true
     }
 
     /// Records an iPad widget recent-pad tap for the app to route after the intent opens it.
-    static func requestOpenPad(id: String, account: String?) {
-        guard let url = fileURL(openPadRequestFile),
-              let data = try? JSONEncoder().encode(WidgetOpenPadRequest(id: id, account: account))
-        else { return }
+    @discardableResult
+    static func requestOpenPad(id: String, account: String?) -> Bool {
+        guard save(WidgetOpenPadRequest(id: id, account: account),
+                   fileName: openPadRequestFile,
+                   purpose: "open pad handoff request") else {
+            return false
+        }
 
-        try? data.write(to: url, options: .atomic)
+        logger.info("Recorded open pad handoff request accountScoped=\((account?.isEmpty == false), privacy: .public)")
+        return true
     }
 
     /// Nudges a running app to drain the just-recorded request right away.
@@ -180,28 +239,50 @@ nonisolated enum WidgetSharedStore {
     /// Returns and clears any pending New Pad request the widget/Control Center button
     /// recorded, so the app performs it once on activation. Nil when none is pending.
     static func takePendingNewPad() -> WidgetNewPadRequest? {
-        guard let url = fileURL(newPadRequestFile), let data = try? Data(contentsOf: url) else { return nil }
+        guard let data = loadData(fileName: newPadRequestFile, purpose: "new pad handoff request") else { return nil }
 
-        try? FileManager.default.removeItem(at: url)
-        return try? JSONDecoder().decode(WidgetNewPadRequest.self, from: data)
+        remove(newPadRequestFile, purpose: "new pad handoff request")
+        do {
+            let request = try JSONDecoder().decode(WidgetNewPadRequest.self, from: data)
+            logger.info("""
+            Drained new pad handoff request accountScoped=\((request.account?.isEmpty == false), privacy: .public) \
+            questionSeeded=\(request.question != nil, privacy: .public)
+            """)
+            return request
+        } catch {
+            logger.error("""
+            Widget shared store decode failed for new pad handoff request: \
+            \(error.localizedDescription, privacy: .public)
+            """)
+            return nil
+        }
     }
 
     /// Returns and clears any pending iPad widget request to open an existing pad.
     static func takePendingOpenPad() -> WidgetOpenPadRequest? {
-        guard let url = fileURL(openPadRequestFile), let data = try? Data(contentsOf: url) else { return nil }
+        guard let data = loadData(fileName: openPadRequestFile, purpose: "open pad handoff request") else { return nil }
 
-        try? FileManager.default.removeItem(at: url)
-        return try? JSONDecoder().decode(WidgetOpenPadRequest.self, from: data)
+        remove(openPadRequestFile, purpose: "open pad handoff request")
+        do {
+            let request = try JSONDecoder().decode(WidgetOpenPadRequest.self, from: data)
+            logger.info("""
+            Drained open pad handoff request accountScoped=\
+            \((request.account?.isEmpty == false), privacy: .public)
+            """)
+            return request
+        } catch {
+            logger.error("""
+            Widget shared store decode failed for open pad handoff request: \
+            \(error.localizedDescription, privacy: .public)
+            """)
+            return nil
+        }
     }
 
     /// Removes a removed account's per-account snapshot and favourites so they stop
     /// lingering.
     static func deletePads(account: String) {
-        if let url = fileURL(padsFileName(account: account)) {
-            try? FileManager.default.removeItem(at: url)
-        }
-        if let url = fileURL(favoritesFileName(account: account)) {
-            try? FileManager.default.removeItem(at: url)
-        }
+        remove(padsFileName(account: account), purpose: "account recent pads snapshot")
+        remove(favoritesFileName(account: account), purpose: "account favorite questions")
     }
 }
