@@ -20,16 +20,7 @@ extension MainSplit {
     /// split, and the window-floor / separator-hider / toolbar-customization backgrounds.
     var splitLayout: some View {
         VStack(spacing: 0) {
-            // Offline takes precedence: when there's no path to CoderPad nothing can
-            // be edited regardless of the key, so show the offline banner and skip the
-            // (now moot) unauthorized one (#321).
-            if network.isOffline {
-                OfflineBanner()
-            } else if !store.isMergedView, let id = store.currentAccountID, monitor.isUnauthorized(id) {
-                // In the combined view, per-account fetch failures surface inline in the
-                // merged list, so the single-account unauthorized banner is suppressed.
-                UnauthorizedBanner(monitor: monitor)
-            }
+            navigationStatusBanner(store: store, network: network, monitor: monitor)
             Group {
                 if showsDetailColumn {
                     threeColumnSplit
@@ -89,7 +80,13 @@ extension MainSplit {
             }
             // A section change moves the threshold (three columns vs. two), so
             // re-evaluate against the width we already know.
-            .onChange(of: section) { _, _ in
+            .onChange(of: section) { _, newValue in
+                let available = NavigationSessionLoader.availableSection(from: newValue)
+                guard available == newValue else {
+                    section = available
+                    return
+                }
+
                 requestPreferredCompactColumn(preferredCompactColumnForCurrentSection)
                 updateSidebarCollapse(for: containerWidth)
                 // The toolbar count subtitle no longer needs clearing here: it's tagged
@@ -99,43 +96,19 @@ extension MainSplit {
                 // count's publish lands a frame later) is what left the subtitle blank for a
                 // frame — the flash we're avoiding.
             }
-            .task(id: SessionKey(accountID: store.currentAccountID, merged: store.isMergedView)) {
+            .task(id: NavigationSessionKey(accountID: store.currentAccountID, merged: store.isMergedView)) {
                 await Task.yield()
 
-                if store.isMergedView {
-                    if let raw = UserDefaults.standard.string(forKey: "section.merged"),
-                       let restored = AppSection(rawValue: raw),
-                       restored != .screen
-                       || store.mergeableAccounts.contains(where: { $0.makeScreenClient() != nil }) {
-                        // Screen now applies in the combined view when ≥1 account has a
-                        // Screen key (#442); don't land on it when none do.
-                        section = restored
-                    }
-                    // Section is settled, so the collapse can map to the right column count.
-                    restoreSidebarCollapsedIfNeeded()
-                    // The owner column spans every org in the merged view, so load and
-                    // union all the real accounts' member directories at once.
-                    await directory.loadMerged(for: store.mergeableAccounts)
-                    await monitor.checkCurrentAccount()
-                    monitor.start()
-                } else if let account = store.currentAccount {
-                    if let raw = UserDefaults.standard.string(forKey: "section.\(account.id.uuidString)"),
-                       let restored = AppSection(rawValue: raw),
-                       restored != .screen || account.makeScreenClient() != nil {
-                        // Don't land on Screen if the account no longer has a Screen key (#432).
-                        section = restored
-                    }
-                    // Section is settled, so the collapse can map to the right column count.
-                    restoreSidebarCollapsedIfNeeded()
-                    // Warm the list(s) not currently on screen right away — concurrently with
-                    // the directory and health checks rather than queued behind them — so the
-                    // first switch to Pads/Questions has data ready instead of a spinner.
-                    async let warmed: Void = prefetchInactiveSections(account: account, active: section)
-                    await directory.load(for: account)
-                    await monitor.checkCurrentAccount()
-                    monitor.start()
-                    await warmed
-                }
+                section = NavigationSessionLoader.persistedSection(for: store)
+                    ?? NavigationSessionLoader.availableSection(from: section)
+                // Section is settled, so the collapse can map to the right column count.
+                restoreSidebarCollapsedIfNeeded()
+                await NavigationSessionLoader.load(
+                    store: store,
+                    directory: directory,
+                    monitor: monitor,
+                    active: section
+                )
             }
             .onChange(of: section) { _, newValue in
                 let key = store.isMergedView

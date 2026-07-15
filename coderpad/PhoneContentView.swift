@@ -2,8 +2,8 @@
 //  PhoneContentView.swift
 //  coderpad
 //
-//  A compact-width iPhone shell for the main app. The Mac/iPad split view stays in
-//  MainSplit; phone gets task-first tabs with a NavigationStack per tab.
+//  A compact-width iOS shell for the main app. Regular-width iPad/macOS stay in
+//  MainSplit; compact iPhone/iPad gets task-first tabs with a NavigationStack per tab.
 //
 
 #if os(iOS)
@@ -27,12 +27,7 @@
 
         var body: some View {
             VStack(spacing: 0) {
-                if network.isOffline {
-                    OfflineBanner()
-                } else if !store.isMergedView, let id = store.currentAccountID, monitor.isUnauthorized(id) {
-                    UnauthorizedBanner(monitor: monitor)
-                }
-
+                navigationStatusBanner(store: store, network: network, monitor: monitor)
                 TabView(selection: $nav.section) {
                     padsTab
                     questionsTab
@@ -47,14 +42,17 @@
                     }
                 }
             }
-            .task(id: PhoneSessionKey(accountID: store.currentAccountID, merged: store.isMergedView)) {
-                await loadSessionContext()
+            .task(id: NavigationSessionKey(accountID: store.currentAccountID, merged: store.isMergedView)) {
+                nav.section = NavigationSessionLoader.availableSection(from: nav.section)
+                await NavigationSessionLoader.load(
+                    store: store,
+                    directory: directory,
+                    monitor: monitor,
+                    active: nav.section
+                )
             }
             .onChange(of: nav.section) { _, section in
-                guard AppSection.navigable.contains(section) else {
-                    nav.section = .pads
-                    return
-                }
+                nav.section = NavigationSessionLoader.availableSection(from: section)
             }
         }
 
@@ -70,7 +68,11 @@
                 )
                 .navigationTitle("Pads")
                 .phoneAccountToolbar(accountMenu)
-                .searchable(text: $padSearch, placement: .navigationBarDrawer(displayMode: .automatic), prompt: Text("Search pads"))
+                .searchable(
+                    text: $padSearch,
+                    placement: .navigationBarDrawer(displayMode: .automatic),
+                    prompt: Text("Search pads")
+                )
                 .navigationDestination(for: PhoneRoute.self) { routeDestination($0) }
             }
             .tabItem { Label(AppSection.pads.shortLabel, systemImage: AppSection.pads.systemImage) }
@@ -95,7 +97,11 @@
                 )
                 .navigationTitle("Questions")
                 .phoneAccountToolbar(accountMenu)
-                .searchable(text: $questionSearch, placement: .navigationBarDrawer(displayMode: .automatic), prompt: Text("Search questions"))
+                .searchable(
+                    text: $questionSearch,
+                    placement: .navigationBarDrawer(displayMode: .automatic),
+                    prompt: Text("Search questions")
+                )
                 .navigationDestination(for: PhoneRoute.self) { routeDestination($0) }
             }
             .tabItem { Label(AppSection.questions.shortLabel, systemImage: AppSection.questions.systemImage) }
@@ -154,7 +160,11 @@
                 )
                 .navigationTitle("Screen")
                 .phoneAccountToolbar(accountMenu)
-                .searchable(text: $screenSearch, placement: .navigationBarDrawer(displayMode: .automatic), prompt: Text("Search campaigns"))
+                .searchable(
+                    text: $screenSearch,
+                    placement: .navigationBarDrawer(displayMode: .automatic),
+                    prompt: Text("Search campaigns")
+                )
             }
             .tabItem { Label(AppSection.screen.shortLabel, systemImage: AppSection.screen.systemImage) }
             .tag(AppSection.screen)
@@ -186,7 +196,9 @@
                 .phoneAccountToolbar(accountMenu)
             }
         }
+    }
 
+    private extension PhoneContentView {
         private var accountMenu: some View {
             Menu {
                 accountMenuActions
@@ -257,6 +269,7 @@
                     .font(.title3)
                     .symbolRenderingMode(.monochrome)
                     .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
             } else if let account = store.currentAccount {
                 toolbarAccountAvatar(for: account)
                     .overlay(alignment: .bottomTrailing) {
@@ -265,6 +278,7 @@
                                 .font(.system(size: 10))
                                 .foregroundStyle(.red)
                                 .background(Circle().fill(.background).padding(-1))
+                                .accessibilityHidden(true)
                         }
                     }
             } else {
@@ -272,10 +286,10 @@
                     .font(.title3)
                     .symbolRenderingMode(.hierarchical)
                     .foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
             }
         }
 
-        @ViewBuilder
         private func toolbarAccountAvatar(for account: Account) -> some View {
             ZStack {
                 Circle()
@@ -285,6 +299,7 @@
                     Image(systemName: symbol)
                         .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(.primary.opacity(0.86))
+                        .accessibilityHidden(true)
                 } else {
                     Text(accountInitials(for: account))
                         .font(.system(size: 11, weight: .bold, design: .rounded))
@@ -292,6 +307,7 @@
                 }
             }
             .frame(width: 28, height: 28)
+            .accessibilityHidden(true)
         }
 
         private func accountInitials(for account: Account) -> String {
@@ -336,49 +352,6 @@
             let route = PhoneRoute.question(selection.id)
             if questionPath.last != route { questionPath = [route] }
         }
-
-        @MainActor
-        private func loadSessionContext() async {
-            if store.isMergedView {
-                await directory.loadMerged(for: store.mergeableAccounts)
-                await monitor.checkCurrentAccount()
-                monitor.start()
-            } else if let account = store.currentAccount {
-                async let warmed: Void = prefetchInactiveSections(account: account, active: nav.section)
-                await directory.load(for: account)
-                await monitor.checkCurrentAccount()
-                monitor.start()
-                await warmed
-            }
-        }
-
-        private func prefetchInactiveSections(account: Account, active: AppSection) async {
-            guard account.isMock || !account.apiKey.isEmpty else { return }
-
-            let client = account.makeClient()
-            let id = account.id
-
-            if active != .pads {
-                var latest: [Pad] = []
-                do {
-                    for try await snapshot in client.listPadsIncrementally() {
-                        latest = snapshot
-                        PadsCacheStore.shared.set(id, pads: snapshot, persist: false)
-                    }
-                    PadsCacheStore.shared.set(id, pads: latest)
-                } catch {
-                    if !latest.isEmpty { PadsCacheStore.shared.set(id, pads: latest) }
-                }
-            }
-
-            if active != .questions, let questions = try? await client.listQuestions(sort: "updated_at,desc") {
-                QuestionsCacheStore.shared.set(id, questions: questions)
-            }
-
-            if let quota = try? await client.quota() {
-                QuotaCacheStore.shared.set(id, quota: quota)
-            }
-        }
     }
 
     private enum PhoneRoute: Hashable {
@@ -386,14 +359,8 @@
         case question(Int)
     }
 
-    private struct PhoneSessionKey: Hashable {
-        let accountID: UUID?
-        let merged: Bool
-    }
-
-
     private extension View {
-        func phoneAccountToolbar<Menu: View>(_ menu: Menu) -> some View {
+        func phoneAccountToolbar(_ menu: some View) -> some View {
             toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     menu

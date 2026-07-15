@@ -129,40 +129,4 @@ extension MainSplit {
         lastDetailChange = now
         return rapid
     }
-
-    /// Fetches whichever lists aren't currently displayed and stores them in the
-    /// shared caches (which also persist to disk). The visible section loads itself,
-    /// so we skip it here to avoid a duplicate request.
-    func prefetchInactiveSections(account: Account, active: AppSection) async {
-        guard account.isMock || !account.apiKey.isEmpty else { return }
-
-        let client = account.makeClient()
-        let id = account.id
-        // Stream pages so the cache is warm from page 1 — the first switch shows the
-        // top (most-recently-updated) pads immediately while the rest fill in behind it,
-        // instead of waiting for every page of a large org to land.
-        if active != .pads {
-            var latest: [Pad] = []
-            do {
-                for try await snapshot in client.listPadsIncrementally() {
-                    latest = snapshot
-                    // Warm memory per page (cheap); persist the final list once below.
-                    PadsCacheStore.shared.set(id, pads: snapshot, persist: false)
-                }
-                PadsCacheStore.shared.set(id, pads: latest)
-            } catch {
-                // Partial results still warm the UI; persist whatever arrived.
-                if !latest.isEmpty { PadsCacheStore.shared.set(id, pads: latest) }
-            }
-        }
-        if active != .questions, let questions = try? await client.listQuestions(sort: "updated_at,desc") {
-            QuestionsCacheStore.shared.set(id, questions: questions)
-        }
-        // Warm the quota too, so the sidebar knows up front whether the plan is
-        // unlimited (and hides the unreachable Quota page) without the user having to
-        // open Quota or Organization first. See #306.
-        if let quota = try? await client.quota() {
-            QuotaCacheStore.shared.set(id, quota: quota)
-        }
-    }
 }
