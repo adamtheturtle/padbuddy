@@ -21,6 +21,11 @@ struct WidgetPadSnapshot: Codable, Identifiable, Hashable {
     let updatedAt: Date?
 }
 
+struct WidgetPadSnapshotLoad {
+    let pads: [WidgetPadSnapshot]
+    let snapshotUpdatedAt: Date?
+}
+
 /// A configurable account choice. Mirrored from the app's account list (kept in
 /// lock-step with the app's copy) so the configuration picker can populate its
 /// options from inside the widget process.
@@ -150,18 +155,44 @@ enum WidgetSharedStore {
     /// Pads for the configured `account`, or the default snapshot when `account` is
     /// nil. Empty when the file is missing.
     static func load(account: String? = nil) -> [WidgetPadSnapshot] {
+        loadSnapshot(account: account).pads
+    }
+
+    /// Pads plus the shared file's modification date, used by the widget to disclose
+    /// when its app-written snapshot was last refreshed.
+    static func loadSnapshot(account: String? = nil) -> WidgetPadSnapshotLoad {
+        let fileName = padsFileName(account: account)
+        let updatedAt = modificationDate(fileName: fileName, purpose: "recent pads snapshot")
         guard let data = loadData(fileName: padsFileName(account: account), purpose: "recent pads snapshot") else {
-            return []
+            return WidgetPadSnapshotLoad(pads: [], snapshotUpdatedAt: updatedAt)
         }
 
         do {
-            return try JSONDecoder().decode([WidgetPadSnapshot].self, from: data)
+            let pads = try JSONDecoder().decode([WidgetPadSnapshot].self, from: data)
+            return WidgetPadSnapshotLoad(pads: pads, snapshotUpdatedAt: updatedAt)
         } catch {
             logger.error("""
             Widget shared store decode failed for recent pads snapshot: \
             \(error.localizedDescription, privacy: .public)
             """)
-            return []
+            return WidgetPadSnapshotLoad(pads: [], snapshotUpdatedAt: updatedAt)
+        }
+    }
+
+    private static func modificationDate(fileName: String, purpose: String) -> Date? {
+        guard let url = fileURL(fileName, purpose: purpose) else { return nil }
+
+        do {
+            let values = try url.resourceValues(forKeys: [.contentModificationDateKey])
+            return values.contentModificationDate
+        } catch CocoaError.fileReadNoSuchFile {
+            return nil
+        } catch {
+            logger.error("""
+            Widget shared store metadata read failed for \(purpose, privacy: .public): \
+            \(error.localizedDescription, privacy: .public)
+            """)
+            return nil
         }
     }
 
@@ -272,6 +303,12 @@ extension WidgetPadSnapshot {
         if let languageLabel { parts.append(languageLabel) }
         if let relativeUpdated { parts.append("updated \(relativeUpdated)") }
         return parts.joined(separator: ", ")
+    }
+}
+
+extension Date {
+    var relativeWidgetLabel: String {
+        formatted(.relative(presentation: .numeric, unitsStyle: .abbreviated))
     }
 }
 
