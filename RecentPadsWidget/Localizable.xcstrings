@@ -71,6 +71,9 @@
         }
       }
     },
+    "Couldn't hand this request to PadBuddy. Check that widgets and App Groups are available, then try again." : {
+
+    },
     "Create a new CoderPad pad." : {
       "localizations" : {
         "es" : {
@@ -91,6 +94,12 @@
         }
       }
     },
+    "Creates a blank pad in PadBuddy." : {
+
+    },
+    "Creates a pad seeded from the selected favorite question." : {
+
+    },
     "New Pad" : {
       "localizations" : {
         "es" : {
@@ -100,6 +109,9 @@
           }
         }
       }
+    },
+    "New Pad from Favorite Question" : {
+
     },
     "New Pad question" : {
       "localizations" : {
@@ -140,6 +152,12 @@
           }
         }
       }
+    },
+    "Open pad, %@" : {
+
+    },
+    "Opens this pad in PadBuddy." : {
+
     },
     "Pad ID" : {
       "localizations" : {

@@ -294,6 +294,7 @@ struct RecentPadsWidgetEntryView: View {
             Image(systemName: "doc.text")
                 .font(.title2)
                 .foregroundStyle(.secondary)
+                .accessibilityHidden(true)
             Text("No recent pads")
                 .font(.headline)
             Text("Create one to get started.")
@@ -343,6 +344,8 @@ struct RecentPadsWidgetEntryView: View {
                     smallPadContent(pad)
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(openPadAccessibilityLabel(pad))
+                .accessibilityHint("Opens this pad in PadBuddy.")
 
                 NewPadButton(accountID: entry.newPadAccountID,
                              questionID: entry.newPadQuestionID, compact: true)
@@ -421,10 +424,14 @@ struct RecentPadsWidgetEntryView: View {
                         RecentPadRow(pad: pad)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel(openPadAccessibilityLabel(pad))
+                    .accessibilityHint("Opens this pad in PadBuddy.")
                 #else
                     Link(destination: URL(string: "coderpad://pad/\(pad.id)") ?? fallbackURL) {
                         RecentPadRow(pad: pad)
                     }
+                    .accessibilityLabel(openPadAccessibilityLabel(pad))
+                    .accessibilityHint("Opens this pad in PadBuddy.")
                 #endif
             }
         }
@@ -432,6 +439,10 @@ struct RecentPadsWidgetEntryView: View {
 
     private var fallbackURL: URL {
         URL(string: "coderpad://pads") ?? URL(filePath: "/")
+    }
+
+    private func openPadAccessibilityLabel(_ pad: WidgetPadSnapshot) -> String {
+        String(localized: "Open pad, \(pad.accessibilityDescription)")
     }
 }
 
@@ -470,6 +481,18 @@ private struct NewPadButton: View {
             }
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityLabel)
+        .accessibilityHint(accessibilityHint)
+    }
+
+    private var accessibilityLabel: String {
+        questionID == nil ? String(localized: "New Pad") : String(localized: "New Pad from Favorite Question")
+    }
+
+    private var accessibilityHint: String {
+        questionID == nil
+            ? String(localized: "Creates a blank pad in PadBuddy.")
+            : String(localized: "Creates a pad seeded from the selected favorite question.")
     }
 }
 
