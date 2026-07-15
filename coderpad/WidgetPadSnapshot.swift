@@ -72,14 +72,14 @@ nonisolated struct WidgetOpenPadRequest: Codable {
 /// by an unconfigured widget), and an account index (`widget-accounts.json`) that
 /// backs the configuration picker.
 nonisolated enum WidgetSharedStore {
-    /// Shared container identifier. The App Store build uses the provisioned `group.`
-    /// form; Developer ID keeps the Team-ID-prefixed form to avoid requiring a
+    /// Shared container identifier. iOS/iPadOS only supports the provisioned `group.`
+    /// form. Non-App-Store macOS keeps the Team-ID-prefixed form to avoid requiring a
     /// provisioning profile (#451).
     static let appGroupID: String = {
-        #if APP_STORE
-            "group.com.adamdangoor.padbuddy"
-        #else
+        #if os(macOS) && !APP_STORE
             "6L9H6Q8CUF.group.com.adamdangoor.padbuddy"
+        #else
+            "group.com.adamdangoor.padbuddy"
         #endif
     }()
 

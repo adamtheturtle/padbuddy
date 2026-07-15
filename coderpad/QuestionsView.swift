@@ -170,20 +170,19 @@ struct QuestionsView: View {
     // type-checked in 402ms, over the 250ms budget that warnings-as-errors makes
     // fatal; splitting it stops any one getter from resolving the whole chain.
 
-    /// The bulk-delete confirmation dialog.
+    /// The bulk-delete confirmation alert.
     private var decoratedConfirm: some View {
         decoratedSheets
-            .confirmationDialog(
+            .alert(
                 "Delete \(questionsPendingBulkDelete?.count ?? 0) questions?",
                 isPresented: .init(get: { questionsPendingBulkDelete != nil },
                                    set: { if !$0 { questionsPendingBulkDelete = nil } }),
-                titleVisibility: .visible,
                 presenting: questionsPendingBulkDelete
             ) { questions in
+                Button("Cancel", role: .cancel) {}
                 Button("Delete \(questions.count) Questions", role: .destructive) {
                     scheduleBulkDelete(questions)
                 }
-                Button("Cancel", role: .cancel) {}
             } message: { questions in
                 let count = questions.count
                 Text("You'll have a few seconds to undo before these \(count) questions are permanently deleted.")

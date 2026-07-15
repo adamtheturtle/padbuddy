@@ -75,11 +75,6 @@ extension AccountEditor {
         return false
     }
 
-    /// Whether the account carries a custom icon or tint, gating the Reset control.
-    var hasCustomAppearance: Bool {
-        draft.iconSymbol != nil || draft.tintHex != nil
-    }
-
     /// Whether the editor is modifying a saved account (vs. adding a new one); the
     /// Delete callback is supplied only in that case.
     var isEditing: Bool {
@@ -111,11 +106,11 @@ extension AccountEditor {
         // is the primary call to action, so only one button claims the shortcut.
         if canSave {
             Button("Validate") { Task { await validate() } }
-                .buttonStyle(.bordered)
+                .buttonStyle(.glass)
                 .disabled(validateDisabled)
         } else {
             Button("Validate") { Task { await validate() } }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.glassProminent)
                 .keyboardShortcut(.defaultAction)
                 .disabled(validateDisabled)
         }
@@ -181,11 +176,11 @@ extension AccountEditor {
         }
         if canSave {
             Button("Save", action: save)
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.glassProminent)
                 .keyboardShortcut(.defaultAction)
         } else {
             Button("Save", action: save)
-                .buttonStyle(.bordered)
+                .buttonStyle(.glass)
                 .disabled(true)
         }
     }

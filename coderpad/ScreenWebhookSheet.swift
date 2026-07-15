@@ -24,10 +24,9 @@ struct ScreenWebhookSheet: View {
     var body: some View {
         sheetContent
             .task { await load() }
-            .confirmationDialog("Remove the webhook?",
-                                isPresented: $confirmRemove, titleVisibility: .visible) {
-                Button("Remove Webhook", role: .destructive) { Task { await remove() } }
+            .alert("Remove the webhook?", isPresented: $confirmRemove) {
                 Button("Cancel", role: .cancel) {}
+                Button("Remove Webhook", role: .destructive) { Task { await remove() } }
             } message: {
                 Text("Screen will stop sending event callbacks until a new webhook is set.")
             }

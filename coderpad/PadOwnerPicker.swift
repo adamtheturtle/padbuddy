@@ -46,6 +46,7 @@ struct SearchableQuestionPicker: View {
     #endif
 
     var body: some View {
+        #if os(iOS)
         if usesSheetPresentation {
             button
                 .sheet(isPresented: $isPresented) {
@@ -64,13 +65,20 @@ struct SearchableQuestionPicker: View {
                     .onAppear { searchFocused = true }
                 }
         } else {
-            button
-                .popover(isPresented: $isPresented, arrowEdge: .bottom) {
-                    pickerContent(maxListHeight: 240)
-                        .frame(width: 320)
-                        .onAppear { searchFocused = true }
-                }
+            popoverButton
         }
+        #else
+        popoverButton
+        #endif
+    }
+
+    private var popoverButton: some View {
+        button
+            .popover(isPresented: $isPresented, arrowEdge: .bottom) {
+                pickerContent(maxListHeight: 240)
+                    .frame(width: 320)
+                    .onAppear { searchFocused = true }
+            }
     }
 
     private var button: some View {
@@ -264,6 +272,7 @@ struct SearchableOwnerPicker: View {
     #endif
 
     var body: some View {
+        #if os(iOS)
         if usesSheetPresentation {
             button
                 .sheet(isPresented: $isPresented) {
@@ -282,13 +291,20 @@ struct SearchableOwnerPicker: View {
                     .onAppear { searchFocused = true }
                 }
         } else {
-            button
-                .popover(isPresented: $isPresented, arrowEdge: .bottom) {
-                    pickerContent(maxListHeight: 240)
-                        .frame(width: 320)
-                        .onAppear { searchFocused = true }
-                }
+            popoverButton
         }
+        #else
+        popoverButton
+        #endif
+    }
+
+    private var popoverButton: some View {
+        button
+            .popover(isPresented: $isPresented, arrowEdge: .bottom) {
+                pickerContent(maxListHeight: 240)
+                    .frame(width: 320)
+                    .onAppear { searchFocused = true }
+            }
     }
 
     private var button: some View {

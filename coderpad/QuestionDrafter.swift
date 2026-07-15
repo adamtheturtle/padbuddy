@@ -21,7 +21,9 @@ enum QuestionDrafter {
     /// Whether the on-device model can draft a question right now. See
     /// ``PadSummarizer/isAvailable`` for the conditions.
     static var isAvailable: Bool {
-        #if canImport(FoundationModels)
+        #if targetEnvironment(simulator)
+            return true
+        #elseif canImport(FoundationModels)
             return SystemLanguageModel.default.availability == .available
         #else
             return false
@@ -31,11 +33,26 @@ enum QuestionDrafter {
     /// A drafted question for `prompt` in `language`, or nil when the model is
     /// unavailable, the prompt is empty, or generation fails.
     static func draft(prompt: String, language: String) async -> Draft? {
-        #if canImport(FoundationModels)
+        #if targetEnvironment(simulator)
+            return simulatorDraft(prompt: prompt, language: language)
+        #elseif canImport(FoundationModels)
             return await generate(prompt: prompt, language: language)
         #else
             return nil
         #endif
+    }
+
+    private static func simulatorDraft(prompt: String, language: String) -> Draft? {
+        let trimmed = prompt.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+
+        let languageName = language.coderPadLanguageDisplayName
+        return Draft(
+            title: "Simulator Draft",
+            description: "A simulator-only draft for: \(trimmed). Apple Intelligence model assets are not available in iPhone and iPad simulators.",
+            instructions: "Implement a clear solution in \(languageName). Replace this placeholder after testing on an Apple Intelligence-capable physical device or Mac.",
+            solution: "// Simulator placeholder: run on a supported device to generate a real \(languageName) solution."
+        )
     }
 }
 

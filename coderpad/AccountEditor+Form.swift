@@ -69,19 +69,6 @@ extension AccountEditor {
                     AccountTintPicker(selection: $draft.tintHex,
                                       defaultColor: draft.defaultTint)
                 }
-                // Reset clears both the icon and the tint, so it sits in its own
-                // row beneath them — full width, so the pickers above keep the
-                // whole pane and never wrap — rather than crammed beside either.
-                if hasCustomAppearance {
-                    fieldRow("") {
-                        Button("Reset") {
-                            draft.iconSymbol = nil
-                            draft.tintHex = nil
-                        }
-                        .buttonStyle(.borderless)
-                        .help("Use the default initials and color.")
-                    }
-                }
             }
             // Picking a *different* member needs the validated org's member list,
             // but a saved account already carries its email, so show the row when

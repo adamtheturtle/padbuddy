@@ -20,15 +20,14 @@ struct ScreenTestActionAlerts: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .confirmationDialog(
+            .alert(
                 "Delete this test session?",
                 isPresented: .init(get: { testPendingDelete != nil },
                                    set: { if !$0 { testPendingDelete = nil } }),
-                titleVisibility: .visible,
                 presenting: testPendingDelete
             ) { test in
-                Button("Delete", role: .destructive) { onDelete(test) }
                 Button("Cancel", role: .cancel) {}
+                Button("Delete", role: .destructive) { onDelete(test) }
             } message: { _ in
                 Text("This permanently removes the candidate's test session. This can't be undone.")
             }

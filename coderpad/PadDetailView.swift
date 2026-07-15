@@ -204,15 +204,15 @@ struct PadDetailView: View {
     /// file exporter.
     private func presentationDialogs(_ content: some View) -> some View {
         content
-            .confirmationDialog("End this interview?", isPresented: $showEndConfirm, titleVisibility: .visible) {
-                Button("End Interview", role: .destructive) { Task { await endInterview() } }
+            .alert("End this interview?", isPresented: $showEndConfirm) {
                 Button("Cancel", role: .cancel) {}
+                Button("End Interview", role: .destructive) { Task { await endInterview() } }
             } message: {
                 Text("Ending the interview stops the live session for all participants.")
             }
-            .confirmationDialog("Delete this pad?", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
-                Button("Delete Pad", role: .destructive) { Task { await deletePad() } }
+            .alert("Delete this pad?", isPresented: $showDeleteConfirm) {
                 Button("Cancel", role: .cancel) {}
+                Button("Delete Pad", role: .destructive) { Task { await deletePad() } }
             } message: {
                 Text("Deleting the pad is permanent and cannot be undone.")
             }

@@ -119,7 +119,7 @@ extension AccountEditor {
 
     var screenValidateButton: some View {
         Button("Validate Screen Key") { Task { await validateScreen() } }
-            .buttonStyle(.bordered)
+            .buttonStyle(.glass)
             .disabled(screenValidateDisabled)
     }
 

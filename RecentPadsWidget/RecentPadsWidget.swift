@@ -18,7 +18,6 @@ import WidgetKit
 struct RecentPadsEntry: TimelineEntry {
     let date: Date
     let pads: [WidgetPadSnapshot]
-    let snapshotUpdatedAt: Date?
     /// How many rows the user chose to show. Defaults to automatic for the
     /// placeholder/preview, matching the prior behavior.
     var rowCount: WidgetRowCount = .automatic
@@ -36,12 +35,12 @@ struct RecentPadsEntry: TimelineEntry {
 /// snapshots and nudging WidgetKit.
 struct RecentPadsProvider: AppIntentTimelineProvider {
     func placeholder(in _: Context) -> RecentPadsEntry {
-        RecentPadsEntry(date: Date(), pads: RecentPadsProvider.sample, snapshotUpdatedAt: Date())
+        RecentPadsEntry(date: Date(), pads: RecentPadsProvider.sample)
     }
 
     func snapshot(for configuration: RecentPadsConfigurationIntent, in context: Context) async -> RecentPadsEntry {
         let loaded = context.isPreview
-            ? WidgetPadSnapshotLoad(pads: RecentPadsProvider.sample, snapshotUpdatedAt: Date())
+            ? WidgetPadSnapshotLoad(pads: RecentPadsProvider.sample)
             : load(for: configuration)
         return entry(loaded: loaded, configuration: configuration)
     }
@@ -49,8 +48,8 @@ struct RecentPadsProvider: AppIntentTimelineProvider {
     func timeline(for configuration: RecentPadsConfigurationIntent,
                   in _: Context) async -> Timeline<RecentPadsEntry> {
         // The app reloads timelines whenever a snapshot changes. We still ask WidgetKit
-        // to refresh about hourly so the relative "updated" labels don't go stale between
-        // app runs; the data itself only changes when the app rewrites the snapshot.
+        // to refresh about hourly so each pad row's relative date stays roughly current
+        // between app runs; the data itself only changes when the app rewrites the snapshot.
         let entry = entry(loaded: load(for: configuration), configuration: configuration)
         let nextRefresh = Date().addingTimeInterval(60 * 60)
         return Timeline(entries: [entry], policy: .after(nextRefresh))
@@ -60,7 +59,7 @@ struct RecentPadsProvider: AppIntentTimelineProvider {
     /// row count and the New Pad button's seeded question (if any).
     private func entry(loaded: WidgetPadSnapshotLoad,
                        configuration: RecentPadsConfigurationIntent) -> RecentPadsEntry {
-        RecentPadsEntry(date: Date(), pads: loaded.pads, snapshotUpdatedAt: loaded.snapshotUpdatedAt,
+        RecentPadsEntry(date: Date(), pads: loaded.pads,
                         rowCount: configuration.rowCount,
                         newPadAccountID: configuration.newPadQuestion?.accountID,
                         newPadQuestionID: configuration.newPadQuestion?.questionID,
@@ -294,22 +293,21 @@ struct RecentPadsWidgetEntryView: View {
     }
 
     private var emptyState: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: family == .systemSmall ? 5 : 6) {
             Image(systemName: "doc.text")
-                .font(.title2)
+                .font(family == .systemSmall ? .title3 : .title2)
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
-            Text("No recent pads")
+            Text(family == .systemSmall ? "No pads" : "No recent pads")
                 .font(.headline)
-            Text("Create one to get started.")
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            Text(family == .systemSmall ? "Create one." : "Create one to get started.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
-            if let snapshotAge {
-                Text(snapshotAge)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-            }
+                .lineLimit(family == .systemSmall ? 1 : 2)
+                .minimumScaleFactor(0.85)
             // With no pads to open, creating one is the most useful action, so surface
             // the New Pad button on every family — the interactive intent button works
             // even on small, where the compact icon-only pill fits (#456).
@@ -317,7 +315,8 @@ struct RecentPadsWidgetEntryView: View {
                          compact: family == .systemSmall)
                 .padding(.top, 2)
         }
-        .padding()
+        .padding(family == .systemSmall ? 10 : 16)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .widgetURL(URL(string: "coderpad://pads"))
     }
 
@@ -328,12 +327,6 @@ struct RecentPadsWidgetEntryView: View {
             Text("Recent Pads")
                 .font(.caption2.weight(.semibold))
                 .foregroundStyle(.secondary)
-            if let snapshotAge {
-                Text(snapshotAge)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
-                    .lineLimit(1)
-            }
             Spacer(minLength: 0)
             NewPadButton(accountID: entry.newPadAccountID, questionID: entry.newPadQuestionID)
         }
@@ -454,12 +447,6 @@ struct RecentPadsWidgetEntryView: View {
 
     private var fallbackURL: URL {
         URL(string: "coderpad://pads") ?? URL(filePath: "/")
-    }
-
-    private var snapshotAge: String? {
-        entry.snapshotUpdatedAt.map { updatedAt in
-            String(localized: "Updated \(updatedAt.relativeWidgetLabel)")
-        }
     }
 
     private func openPadAccessibilityLabel(_ pad: WidgetPadSnapshot) -> String {
@@ -597,13 +584,13 @@ private func languageTint(for language: String?) -> Color {
 #Preview(as: .systemMedium) {
     RecentPadsWidget()
 } timeline: {
-    RecentPadsEntry(date: Date(), pads: RecentPadsProvider.sample, snapshotUpdatedAt: Date())
-    RecentPadsEntry(date: Date(), pads: [], snapshotUpdatedAt: Date())
+    RecentPadsEntry(date: Date(), pads: RecentPadsProvider.sample)
+    RecentPadsEntry(date: Date(), pads: [])
 }
 
 #Preview(as: .systemSmall) {
     RecentPadsWidget()
 } timeline: {
-    RecentPadsEntry(date: Date(), pads: RecentPadsProvider.sample, snapshotUpdatedAt: Date())
-    RecentPadsEntry(date: Date(), pads: [], snapshotUpdatedAt: Date())
+    RecentPadsEntry(date: Date(), pads: RecentPadsProvider.sample)
+    RecentPadsEntry(date: Date(), pads: [])
 }

@@ -202,6 +202,7 @@ struct AccountEditor: View {
                             .font(.callout)
                     } else {
                         Button("Switch to This Account", action: onUse)
+                            .buttonStyle(.glassProminent)
                             .help("Switch from All Accounts or another account to this account.")
                     }
                 }
@@ -217,8 +218,12 @@ struct AccountEditor: View {
     private var actionRow: some View {
         HStack {
             if onDelete != nil {
-                Button("Delete", role: .destructive) { showDeleteConfirmation = true }
-                    .help("Remove this account and its stored API key from this Mac.")
+                Button(role: .destructive) { showDeleteConfirmation = true } label: {
+                    Image(systemName: "trash")
+                }
+                .buttonStyle(.glass)
+                .help("Remove this account and its stored API key from this Mac.")
+                .accessibilityLabel("Delete account")
             }
             Spacer()
             // The iPad modal sheet hosts Cancel/Save in the navigation bar, so the
@@ -296,11 +301,9 @@ struct AccountEditor: View {
                 liveCommitTask?.cancel()
                 persistLiveEditIfPossible()
             }
-            .confirmationDialog("Delete this account?",
-                                isPresented: $showDeleteConfirmation,
-                                titleVisibility: .visible) {
-                Button("Delete Account", role: .destructive) { onDelete?() }
+            .alert("Delete this account?", isPresented: $showDeleteConfirmation) {
                 Button("Cancel", role: .cancel) {}
+                Button("Delete Account", role: .destructive) { onDelete?() }
             } message: {
                 Text("“\(initialName)” and its stored API key will be removed from this Mac. This can’t be undone.")
             }

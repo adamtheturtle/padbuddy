@@ -73,16 +73,16 @@ extension MergedQuestionsView {
         return base + freshnessSuffix
     }
 
-    /// A trailing " · Refreshing…" / " · Updated X ago" cue appended to the count, so the
-    /// cached-then-refreshed list shows its freshness without adding chrome (#619).
+    /// A trailing " · Refreshing…" / " · Updated just now" / " · Updated X ago" cue
+    /// appended to the count, so the cached-then-refreshed list shows its freshness
+    /// without adding chrome (#619).
     private var freshnessSuffix: String {
         if isLoading {
             return " · " + String(localized: "Refreshing…")
         }
-        if let lastRefreshed {
-            return " · " + String(localized: "Updated \(RelativeDateLabel.labels(for: lastRefreshed).relative)")
-        }
-        return ""
+        guard let lastRefreshed else { return "" }
+
+        return " · " + mergedListFreshnessText(for: lastRefreshed)
     }
 
     /// Names any accounts whose fetch failed. A rejected API key reads differently from a

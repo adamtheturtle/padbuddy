@@ -23,7 +23,6 @@ struct WidgetPadSnapshot: Codable, Identifiable, Hashable {
 
 struct WidgetPadSnapshotLoad {
     let pads: [WidgetPadSnapshot]
-    let snapshotUpdatedAt: Date?
 }
 
 /// A configurable account choice. Mirrored from the app's account list (kept in
@@ -67,14 +66,14 @@ struct WidgetOpenPadRequest: Codable {
 /// snapshot for the current account (`recent-pads.json`), and the account index
 /// (`widget-accounts.json`); this reads them back.
 enum WidgetSharedStore {
-    /// Must match the app's `WidgetSharedStore.appGroupID`. The App Store build uses
-    /// the provisioned `group.` form; Developer ID keeps the Team-ID-prefixed form to
-    /// avoid requiring a provisioning profile (#451).
+    /// Must match the app's `WidgetSharedStore.appGroupID`. iOS/iPadOS only supports
+    /// the provisioned `group.` form. Non-App-Store macOS keeps the Team-ID-prefixed
+    /// form to avoid requiring a provisioning profile (#451).
     static let appGroupID: String = {
-        #if APP_STORE
-            "group.com.adamdangoor.padbuddy"
-        #else
+        #if os(macOS) && !APP_STORE
             "6L9H6Q8CUF.group.com.adamdangoor.padbuddy"
+        #else
+            "group.com.adamdangoor.padbuddy"
         #endif
     }()
 
@@ -158,41 +157,22 @@ enum WidgetSharedStore {
         loadSnapshot(account: account).pads
     }
 
-    /// Pads plus the shared file's modification date, used by the widget to disclose
-    /// when its app-written snapshot was last refreshed.
+    /// Pads from the app-written snapshot for `account`, or the default snapshot when
+    /// no account is pinned.
     static func loadSnapshot(account: String? = nil) -> WidgetPadSnapshotLoad {
-        let fileName = padsFileName(account: account)
-        let updatedAt = modificationDate(fileName: fileName, purpose: "recent pads snapshot")
         guard let data = loadData(fileName: padsFileName(account: account), purpose: "recent pads snapshot") else {
-            return WidgetPadSnapshotLoad(pads: [], snapshotUpdatedAt: updatedAt)
+            return WidgetPadSnapshotLoad(pads: [])
         }
 
         do {
             let pads = try JSONDecoder().decode([WidgetPadSnapshot].self, from: data)
-            return WidgetPadSnapshotLoad(pads: pads, snapshotUpdatedAt: updatedAt)
+            return WidgetPadSnapshotLoad(pads: pads)
         } catch {
             logger.error("""
             Widget shared store decode failed for recent pads snapshot: \
             \(error.localizedDescription, privacy: .public)
             """)
-            return WidgetPadSnapshotLoad(pads: [], snapshotUpdatedAt: updatedAt)
-        }
-    }
-
-    private static func modificationDate(fileName: String, purpose: String) -> Date? {
-        guard let url = fileURL(fileName, purpose: purpose) else { return nil }
-
-        do {
-            let values = try url.resourceValues(forKeys: [.contentModificationDateKey])
-            return values.contentModificationDate
-        } catch CocoaError.fileReadNoSuchFile {
-            return nil
-        } catch {
-            logger.error("""
-            Widget shared store metadata read failed for \(purpose, privacy: .public): \
-            \(error.localizedDescription, privacy: .public)
-            """)
-            return nil
+            return WidgetPadSnapshotLoad(pads: [])
         }
     }
 
@@ -303,12 +283,6 @@ extension WidgetPadSnapshot {
         if let languageLabel { parts.append(languageLabel) }
         if let relativeUpdated { parts.append("updated \(relativeUpdated)") }
         return parts.joined(separator: ", ")
-    }
-}
-
-extension Date {
-    var relativeWidgetLabel: String {
-        formatted(.relative(presentation: .numeric, unitsStyle: .abbreviated))
     }
 }
 

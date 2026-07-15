@@ -27,6 +27,14 @@ private enum QuestionDraftSection: String, CaseIterable, Identifiable {
         }
     }
 
+    var editorTitle: LocalizedStringKey {
+        switch self {
+        case .description: "Brief"
+        case .instructions: "Candidate Prompt"
+        case .solution: "Reference Solution"
+        }
+    }
+
     var systemImage: String {
         switch self {
         case .description: "text.alignleft"
@@ -225,7 +233,7 @@ struct NewQuestionSheet: View {
         authorPanel {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(alignment: .center) {
-                    Label("Question Body", systemImage: selectedSection.systemImage)
+                    Label(selectedSection.editorTitle, systemImage: selectedSection.systemImage)
                         .font(.headline)
                     Spacer(minLength: 12)
                     Picker("Section", selection: $selectedSection) {

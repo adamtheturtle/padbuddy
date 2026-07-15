@@ -31,7 +31,9 @@ enum PadCodeExplainer {
     /// Whether the on-device model can explain code right now. See
     /// ``PadSummarizer/isAvailable`` for the conditions.
     static var isAvailable: Bool {
-        #if canImport(FoundationModels)
+        #if targetEnvironment(simulator)
+            return true
+        #elseif canImport(FoundationModels)
             return SystemLanguageModel.default.availability == .available
         #else
             return false
@@ -41,11 +43,25 @@ enum PadCodeExplainer {
     /// An explanation of what `file` does plus quality and optimality notes, or
     /// nil if the model is unavailable, the file is empty, or generation fails.
     static func explain(file: CodeFile) async -> CodeExplanation? {
-        #if canImport(FoundationModels)
+        #if targetEnvironment(simulator)
+            return simulatorExplanation(for: file)
+        #elseif canImport(FoundationModels)
             return await generate(file: file)
         #else
             return nil
         #endif
+    }
+
+    private static func simulatorExplanation(for file: CodeFile) -> CodeExplanation? {
+        let body = file.contents.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !body.isEmpty else { return nil }
+
+        let language = file.language?.coderPadLanguageDisplayName ?? "code"
+        return CodeExplanation(
+            summary: "Simulator preview for \(file.name). Apple Intelligence model assets are not available in iPhone and iPad simulators, so this placeholder stands in for the on-device \(language) explanation.",
+            readability: "Run on an Apple Intelligence-capable physical device or Mac to generate a real readability assessment.",
+            optimality: "Run on a supported device to generate real time and space complexity notes."
+        )
     }
 }
 

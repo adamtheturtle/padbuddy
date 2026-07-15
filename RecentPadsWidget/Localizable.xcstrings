@@ -101,6 +101,9 @@
         }
       }
     },
+    "Create one." : {
+
+    },
     "Creates a blank pad in PadBuddy." : {
       "localizations" : {
         "es" : {
@@ -150,6 +153,9 @@
           }
         }
       }
+    },
+    "No pads" : {
+
     },
     "No recent pads" : {
       "localizations" : {
@@ -242,6 +248,7 @@
       }
     },
     "Updated %@" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {

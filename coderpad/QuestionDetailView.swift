@@ -157,10 +157,9 @@ struct QuestionDetailView: View {
                               jobTitle: question.displayTitle)
             })
             .toolbar(id: "question-detail") { detailToolbar }
-            .confirmationDialog("Delete \(question.title.isEmpty ? "this question" : question.title)?",
-                                isPresented: $showDeleteConfirm) {
-                Button("Delete", role: .destructive) { startDeletion() }
+            .alert("Delete \(question.title.isEmpty ? "this question" : question.title)?", isPresented: $showDeleteConfirm) {
                 Button("Cancel", role: .cancel) {}
+                Button("Delete", role: .destructive) { startDeletion() }
             } message: {
                 Text("You'll have a few seconds to undo before it's permanently deleted.")
             }

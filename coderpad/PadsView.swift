@@ -309,30 +309,28 @@ struct PadsView: View {
             }
             // Swipe-to-delete reaches a pad without selecting it first, so the
             // confirmation lives here at the list level rather than in the detail
-            // pane. It mirrors the detail view's "Delete this pad?" dialog.
-            .confirmationDialog(
+            // pane. It mirrors the detail view's "Delete this pad?" alert.
+            .alert(
                 "Delete this pad?",
                 isPresented: .init(get: { padPendingDelete != nil },
                                    set: { if !$0 { padPendingDelete = nil } }),
-                titleVisibility: .visible,
                 presenting: padPendingDelete
             ) { pad in
-                Button("Delete Pad", role: .destructive) { Task { await deletePad(pad) } }
                 Button("Cancel", role: .cancel) {}
+                Button("Delete Pad", role: .destructive) { Task { await deletePad(pad) } }
             } message: { pad in
                 Text("“\(pad.title)” will be permanently deleted. This can't be undone.")
             }
-            .confirmationDialog(
+            .alert(
                 "Delete \(padsPendingBulkDelete?.count ?? 0) pads?",
                 isPresented: .init(get: { padsPendingBulkDelete != nil },
                                    set: { if !$0 { padsPendingBulkDelete = nil } }),
-                titleVisibility: .visible,
                 presenting: padsPendingBulkDelete
             ) { pads in
+                Button("Cancel", role: .cancel) {}
                 Button("Delete \(pads.count) Pads", role: .destructive) {
                     scheduleBulkDelete(pads)
                 }
-                Button("Cancel", role: .cancel) {}
             } message: { pads in
                 Text("You'll have a few seconds to undo before these \(pads.count) pads are permanently deleted.")
             }

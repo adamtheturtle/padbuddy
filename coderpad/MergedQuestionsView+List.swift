@@ -160,17 +160,16 @@ extension MergedQuestionsView {
                     creatingForAccount = nil
                 }
             }
-            .confirmationDialog(
+            .alert(
                 "Delete \(rowsPendingBulkDelete?.count ?? 0) questions?",
                 isPresented: .init(get: { rowsPendingBulkDelete != nil },
                                    set: { if !$0 { rowsPendingBulkDelete = nil } }),
-                titleVisibility: .visible,
                 presenting: rowsPendingBulkDelete
             ) { rows in
+                Button("Cancel", role: .cancel) {}
                 Button("Delete \(rows.count) Questions", role: .destructive) {
                     scheduleBulkDelete(rows)
                 }
-                Button("Cancel", role: .cancel) {}
             } message: { rows in
                 Text("You'll have a few seconds to undo before these \(rows.count) questions are permanently deleted.")
             }

@@ -79,16 +79,16 @@ extension MergedPadsView {
         return base + freshnessSuffix
     }
 
-    /// A trailing " · Refreshing…" / " · Updated X ago" cue appended to the count, so the
-    /// cached-then-refreshed list shows its freshness without adding chrome (#619).
+    /// A trailing " · Refreshing…" / " · Updated just now" / " · Updated X ago" cue
+    /// appended to the count, so the cached-then-refreshed list shows its freshness
+    /// without adding chrome (#619).
     private var freshnessSuffix: String {
         if isLoading {
             return " · " + String(localized: "Refreshing…")
         }
-        if let lastRefreshed {
-            return " · " + String(localized: "Updated \(RelativeDateLabel.labels(for: lastRefreshed).relative)")
-        }
-        return ""
+        guard let lastRefreshed else { return "" }
+
+        return " · " + mergedListFreshnessText(for: lastRefreshed)
     }
 
     /// A quiet note naming any accounts whose fetch failed, so the merged list
@@ -145,4 +145,13 @@ extension MergedPadsView {
         navigation.accountToEdit = account.id
         openSettings()
     }
+}
+
+func mergedListFreshnessText(for refreshedAt: Date, now: Date = .now) -> String {
+    let elapsed = now.timeIntervalSince(refreshedAt)
+    guard elapsed >= 60 else {
+        return String(localized: "Updated just now")
+    }
+
+    return String(localized: "Updated \(RelativeDateLabel.labels(for: refreshedAt).relative)")
 }

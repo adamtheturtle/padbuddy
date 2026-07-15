@@ -27,12 +27,11 @@ struct BulkDeleteUndoBanner: View {
                 .lineLimit(1)
             Spacer(minLength: 8)
             Button("Undo", action: onUndo)
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.glassProminent)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
-        .background(.thinMaterial, in: Capsule())
-        .overlay(Capsule().stroke(Color.subtleStroke, lineWidth: 1))
+        .glassEffect(.regular, in: Capsule())
         .padding(.bottom, 12)
     }
 }
