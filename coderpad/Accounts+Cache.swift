@@ -202,6 +202,7 @@ final class QuestionsCacheStore {
 @Observable
 final class OrganizationCacheStore {
     static let shared = OrganizationCacheStore()
+    private static let logger = Logger(subsystem: "com.coderpad.app", category: "cache")
     private(set) var byAccount: [UUID: Organization] = [:]
 
     /// Session cache + in-flight coalescing keyed by client identity (server + key),
@@ -247,19 +248,41 @@ final class OrganizationCacheStore {
         let task = Task { try await client.organization() }
         inFlight[key] = task
         defer { inFlight[key] = nil }
-        let org = try await task.value
-        byClient[key] = org
-        return org
+        do {
+            let org = try await task.value
+            byClient[key] = org
+            return org
+        } catch {
+            Self.logger.warning(
+                """
+                Organization fetch failed for host '\(Self.safeHost(client), privacy: .public)': \
+                \(error.localizedDescription, privacy: .public)
+                """
+            )
+            throw error
+        }
     }
 
     private func refreshInBackground(_ client: CoderPadClient, key: String) {
         guard inFlight[key] == nil else { return }
 
-        Task { _ = try? await fetch(client, key: key) }
+        Task {
+            do {
+                _ = try await fetch(client, key: key)
+            } catch {
+                // `fetch` logs the privacy-safe failure context; keep the stale copy.
+            }
+        }
     }
 
     private static func clientKey(_ client: CoderPadClient) -> String {
         "\(client.baseURL.absoluteString)|\(client.apiKey)"
+    }
+
+    private static func safeHost(_ client: CoderPadClient) -> String {
+        guard let host = client.baseURL.host, !host.isEmpty else { return "unknown" }
+
+        return host
     }
 }
 
