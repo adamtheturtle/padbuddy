@@ -106,8 +106,7 @@ private nonisolated struct CoderPadToolProvider: MCPToolProvider {
         let outcome = await MCPTools.run(name: name, arguments: arguments, directory: directory)
         // Report the call (tool name + served account + ok/error only - never arguments)
         // so the app's MCP status view can show recent activity (#523).
-        let served = directory.resolve(arguments[MCPTools.account] as? String)?.accountName
-            ?? directory.current?.accountName
+        let served = MCPActivityAttribution.accountName(arguments: arguments, directory: directory)
         MCPActivityLog.recordCall(tool: name, account: served, succeeded: !outcome.isError)
         return textResult(outcome.text, isError: outcome.isError ? true : nil)
     }
@@ -129,6 +128,21 @@ private nonisolated struct CoderPadToolProvider: MCPToolProvider {
         case let .array(array): array.map(native(from:))
         case let .object(object): object.mapValues(native(from:))
         }
+    }
+}
+
+/// Computes the account label stored in the MCP activity log. Invalid explicit
+/// selectors are recorded as requested instead of falling back to the default account,
+/// because no account actually served that failed request.
+nonisolated enum MCPActivityAttribution {
+    static func accountName(arguments: [String: Any], directory: MCPAccountDirectory) -> String? {
+        guard let selector = (arguments[MCPTools.account] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !selector.isEmpty
+        else {
+            return directory.current?.accountName
+        }
+
+        return directory.resolve(selector)?.accountName ?? selector
     }
 }
 
