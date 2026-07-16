@@ -40,25 +40,10 @@ import MCP
 private let environment = ProcessInfo.processInfo.environment
 private let screenAPIPrefix = "/assessment/api/v1.1"
 
-/// Reads and parses the JSON config file, if one is present. Returns nil when no file
-/// is configured/found so the loader falls back to the environment variables.
-private func loadConfigObject() -> [String: Any]? {
-    let path = environment["CODERPAD_MCP_CONFIG"]?.trimmingCharacters(in: .whitespacesAndNewlines)
-    let url: URL
-    if let path, !path.isEmpty {
-        url = URL(fileURLWithPath: (path as NSString).expandingTildeInPath)
-    } else {
-        let home = FileManager.default.homeDirectoryForCurrentUser
-        url = home.appending(path: ".config/coderpad-mcp/config.json")
-    }
-    guard let data = try? Data(contentsOf: url) else { return nil }
-
-    return (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
-}
-
 private let accountSet: MCPAccountSet = {
     do {
-        return try makeAccountSet(config: loadConfigObject(), environment: environment)
+        let config = try loadConfigObject(environment: environment)
+        return try makeAccountSet(config: config, environment: environment)
     } catch {
         let message = switch error {
         case MCPConfigError.noAccounts:

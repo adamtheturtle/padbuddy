@@ -102,6 +102,24 @@ public enum MCPConfigError: Error, Equatable {
     case duplicateName(String)
 }
 
+/// Why the standalone JSON config file could not be loaded.
+public enum MCPConfigLoadError: Error, Equatable, LocalizedError {
+    case unreadableConfig(path: String)
+    case malformedConfig(path: String)
+    case nonObjectConfig(path: String)
+
+    public var errorDescription: String? {
+        switch self {
+        case let .unreadableConfig(path):
+            "Could not read config file at \(path)."
+        case let .malformedConfig(path):
+            "Config file at \(path) is not valid JSON."
+        case let .nonObjectConfig(path):
+            "Config file at \(path) must contain a JSON object."
+        }
+    }
+}
+
 private func screenRegion(from raw: String?) -> String {
     raw?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "eu" ? "eu" : "us"
 }
@@ -119,6 +137,48 @@ private func parseBaseURL(_ raw: String?) -> URL {
 
 private func truthy(_ raw: String?) -> Bool {
     ["1", "true", "yes", "on"].contains(raw?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())
+}
+
+/// Reads the standalone server's JSON config file, if one is present. Missing default
+/// config falls back to env credentials; explicit config paths fail fast on any load
+/// or parse problem so the server never silently switches accounts.
+public func loadConfigObject(
+    environment: [String: String],
+    fileManager: FileManager = .default,
+    homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser
+) throws -> [String: Any]? {
+    let explicitPath = trimmedNonEmpty(environment["CODERPAD_MCP_CONFIG"])
+    let url: URL
+    if let explicitPath {
+        url = URL(fileURLWithPath: (explicitPath as NSString).expandingTildeInPath)
+    } else {
+        url = homeDirectory.appending(path: ".config/coderpad-mcp/config.json")
+    }
+
+    let path = url.path
+    guard fileManager.fileExists(atPath: path) else {
+        if explicitPath != nil { throw MCPConfigLoadError.unreadableConfig(path: path) }
+        return nil
+    }
+
+    let data: Data
+    do {
+        data = try Data(contentsOf: url)
+    } catch {
+        throw MCPConfigLoadError.unreadableConfig(path: path)
+    }
+
+    let object: Any
+    do {
+        object = try JSONSerialization.jsonObject(with: data)
+    } catch {
+        throw MCPConfigLoadError.malformedConfig(path: path)
+    }
+
+    guard let config = object as? [String: Any] else {
+        throw MCPConfigLoadError.nonObjectConfig(path: path)
+    }
+    return config
 }
 
 /// Builds the account set from a parsed JSON config object, falling back to the legacy
