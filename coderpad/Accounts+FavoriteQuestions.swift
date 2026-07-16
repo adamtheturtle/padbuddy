@@ -175,6 +175,7 @@ final class FavoriteQuestionsStore {
 
         byAccount[account] = entries
         save()
+        WidgetSync.syncFavorites(account: account)
     }
 
     private func save() {
