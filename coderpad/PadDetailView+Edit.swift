@@ -140,9 +140,8 @@ extension PadDetailView {
     // MARK: - Per-field commits
 
     /// Commits an inline title rename, returning whether it saved so the self-owning
-    /// `InlineEditableTitle` can leave edit mode. On failure the host keeps the old
-    /// title (the control reverts by just leaving edit mode), so there's no draft to
-    /// reset — hence the direct optimistic PUT rather than the `revert`-based `save`.
+    /// title control can leave edit mode. On failure the control keeps its draft open
+    /// for retry, so this path reports the error without reverting local field state.
     func commitTitle(_ newTitle: String) async -> Bool {
         guard newTitle != pad.title else { return true }
 

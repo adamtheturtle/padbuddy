@@ -147,8 +147,13 @@ struct CommandEditableTitle: View {
         }
 
         isSaving = true
-        _ = await onCommit(value)
+        let saved = await onCommit(value)
         isSaving = false
-        isEditing = false
+        if saved {
+            isEditing = false
+            fieldFocused = false
+        } else {
+            fieldFocused = true
+        }
     }
 }

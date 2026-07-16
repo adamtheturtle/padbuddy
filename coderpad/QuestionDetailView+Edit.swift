@@ -121,10 +121,8 @@ extension QuestionDetailView {
     // MARK: - Per-field commits
 
     /// Commits an inline title rename, returning whether it saved so the self-owning
-    /// `InlineEditableTitle` can leave edit mode. On failure the host keeps the old
-    /// title (the control reverts by just leaving edit mode), so there's no draft to
-    /// reset — hence the `saveContent` path (which reports success) rather than the
-    /// `revert`-based `save`.
+    /// title control can leave edit mode. On failure the control keeps its draft open,
+    /// so this uses `saveContent` to report success instead of the `revert`-based `save`.
     func commitTitle(_ newTitle: String) async -> Bool {
         guard newTitle != question.title else { return true }
 
