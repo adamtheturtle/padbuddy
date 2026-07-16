@@ -52,6 +52,10 @@ nonisolated enum MCPTools {
         }
 
         guard let credentials = directory.resolve(string(arguments, account)) else {
+            if let ambiguous = ambiguousAccountMessage(arguments: arguments, directory: directory) {
+                return Outcome(text: ambiguous, isError: true)
+            }
+
             let available = directory.accounts.map(\.accountName).joined(separator: ", ")
             return Outcome(
                 text: "No account matches \"\(string(arguments, account) ?? "")\". "
@@ -67,6 +71,15 @@ nonisolated enum MCPTools {
             return await dispatchScreen(name: name, arguments: arguments, credentials: credentials)
         }
         return await dispatch(name: name, arguments: arguments, credentials: credentials)
+    }
+
+    private static func ambiguousAccountMessage(arguments: [String: Any], directory: MCPAccountDirectory) -> String? {
+        let selector = string(arguments, account)
+        let ids = directory.ambiguousAccountIDs(for: selector)
+        guard !ids.isEmpty else { return nil }
+
+        return "Account selector \"\(selector ?? "")\" matches multiple accounts. "
+            + "Use one of these account ids instead: \(ids.joined(separator: ", "))."
     }
 
     /// Runs one account-scoped tool against the resolved credentials. The tools needing

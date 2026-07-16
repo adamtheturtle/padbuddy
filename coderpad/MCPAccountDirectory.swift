@@ -78,13 +78,29 @@ nonisolated struct MCPAccountDirectory {
 
     /// Resolves a tool's `account` argument to one account. A nil/empty selector picks the
     /// default; otherwise it matches by id (UUID string) first, then case-insensitively by
-    /// display name. Returns nil when a non-empty selector matches nothing.
+    /// display name. Returns nil when a non-empty selector matches nothing or when a name
+    /// selector matches multiple accounts.
     func resolve(_ selector: String?) -> MCPCredentials? {
         guard let selector = selector?.trimmingCharacters(in: .whitespacesAndNewlines),
               !selector.isEmpty
         else { return current }
 
         if let byID = accounts.first(where: { $0.id == selector }) { return byID }
-        return accounts.first { $0.accountName.caseInsensitiveCompare(selector) == .orderedSame }
+        let matches = nameMatches(selector)
+        return matches.count == 1 ? matches[0] : nil
+    }
+
+    func ambiguousAccountIDs(for selector: String?) -> [String] {
+        guard let selector = selector?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !selector.isEmpty,
+              accounts.allSatisfy({ $0.id != selector })
+        else { return [] }
+
+        let matches = nameMatches(selector)
+        return matches.count > 1 ? matches.map(\.id) : []
+    }
+
+    private func nameMatches(_ selector: String) -> [MCPCredentials] {
+        accounts.filter { $0.accountName.caseInsensitiveCompare(selector) == .orderedSame }
     }
 }
