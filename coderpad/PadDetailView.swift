@@ -64,7 +64,7 @@ struct PadDetailView: View {
         // Seed events and environments from the session cache when this pad has been
         // opened before, so re-selecting it shows its detail on the first frame with
         // no spinner — `load()` then refreshes silently in the background (#323).
-        if let cached = PadDetailCacheStore.shared.get(pad.id) {
+        if let cached = PadDetailCacheStore.shared.get(pad.id, client: client) {
             _events = State(initialValue: cached.events)
             _environments = State(initialValue: cached.environments)
             _isLoading = State(initialValue: false)

@@ -83,4 +83,23 @@ struct EditAndCacheTests {
         let cached = try await store.organization(via: client)
         #expect(cached.organizationName == orgA.organizationName)
     }
+
+    @Test @MainActor
+    func `pad detail cache separates same pad id by backend (#760)`() throws {
+        let store = PadDetailCacheStore.shared
+        let padID = "shared-slug-\(UUID().uuidString)"
+        let first = CoderPadClient.live(
+            apiKey: "key-a-\(UUID().uuidString)",
+            baseURL: try #require(URL(string: "https://first.example.com"))
+        )
+        let second = CoderPadClient.live(
+            apiKey: "key-b-\(UUID().uuidString)",
+            baseURL: try #require(URL(string: "https://second.example.com"))
+        )
+
+        store.set(padID, client: first, events: [], environments: [])
+
+        #expect(store.get(padID, client: first) != nil)
+        #expect(store.get(padID, client: second) == nil)
+    }
 }

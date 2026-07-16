@@ -300,6 +300,18 @@ final class OrganizationCacheStore {
 final class PadDetailCacheStore {
     static let shared = PadDetailCacheStore()
 
+    struct Key: Hashable {
+        var padID: String
+        var baseURL: URL
+        var apiKey: String
+
+        init(padID: String, client: CoderPadClient) {
+            self.padID = padID
+            baseURL = client.baseURL
+            apiKey = client.apiKey
+        }
+    }
+
     struct Entry {
         var events: [PadEvent]
         var environments: [PadEnvironment]
@@ -313,22 +325,23 @@ final class PadDetailCacheStore {
     /// the count caps the other in-process caches already use.
     private static let limit = 12
 
-    private(set) var byPad: [String: Entry] = [:]
-    /// Pad ids in least- to most-recently-opened order, so an overflow evicts the
+    private(set) var byPad: [Key: Entry] = [:]
+    /// Cache keys in least- to most-recently-opened order, so an overflow evicts the
     /// least-recently-used entry. Bookkeeping only, so it stays out of observation.
-    @ObservationIgnored private var lru: [String] = []
+    @ObservationIgnored private var lru: [Key] = []
     private init() {}
 
-    func get(_ padID: String) -> Entry? {
-        byPad[padID]
+    func get(_ padID: String, client: CoderPadClient) -> Entry? {
+        byPad[Key(padID: padID, client: client)]
     }
 
-    func set(_ padID: String, events: [PadEvent], environments: [PadEnvironment]) {
-        byPad[padID] = Entry(events: events, environments: environments)
+    func set(_ padID: String, client: CoderPadClient, events: [PadEvent], environments: [PadEnvironment]) {
+        let key = Key(padID: padID, client: client)
+        byPad[key] = Entry(events: events, environments: environments)
         // Mark this pad most-recently-used, then evict the oldest while over the cap.
         // `set` runs on every open (load() refreshes), so set-order tracks open-order.
-        lru.removeAll { $0 == padID }
-        lru.append(padID)
+        lru.removeAll { $0 == key }
+        lru.append(key)
         while lru.count > Self.limit {
             byPad[lru.removeFirst()] = nil
         }
@@ -336,9 +349,10 @@ final class PadDetailCacheStore {
 
     // Deliberate cache-eviction API, kept for lifecycle symmetry.
     // periphery:ignore
-    func remove(_ padID: String) {
-        byPad[padID] = nil
-        lru.removeAll { $0 == padID }
+    func remove(_ padID: String, client: CoderPadClient) {
+        let key = Key(padID: padID, client: client)
+        byPad[key] = nil
+        lru.removeAll { $0 == key }
     }
 }
 

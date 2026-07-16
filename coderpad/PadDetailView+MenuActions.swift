@@ -108,7 +108,7 @@ extension PadDetailView {
             }
             self.events = loadedEvents
             // Warm the session cache so a later return to this pad is instant.
-            PadDetailCacheStore.shared.set(pad.id, events: loadedEvents,
+            PadDetailCacheStore.shared.set(pad.id, client: client, events: loadedEvents,
                                            environments: loadedEnvironments)
         } catch {
             loadError = error
