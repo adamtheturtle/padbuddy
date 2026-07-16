@@ -148,11 +148,10 @@ public func loadConfigObject(
     homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser
 ) throws -> [String: Any]? {
     let explicitPath = trimmedNonEmpty(environment["CODERPAD_MCP_CONFIG"])
-    let url: URL
-    if let explicitPath {
-        url = URL(fileURLWithPath: (explicitPath as NSString).expandingTildeInPath)
+    let url: URL = if let explicitPath {
+        URL(fileURLWithPath: (explicitPath as NSString).expandingTildeInPath)
     } else {
-        url = homeDirectory.appending(path: ".config/coderpad-mcp/config.json")
+        homeDirectory.appending(path: ".config/coderpad-mcp/config.json")
     }
 
     let path = url.path
@@ -178,6 +177,7 @@ public func loadConfigObject(
     guard let config = object as? [String: Any] else {
         throw MCPConfigLoadError.nonObjectConfig(path: path)
     }
+
     return config
 }
 

@@ -62,6 +62,7 @@ struct PromptsTests {
             Issue.record("expected text content")
             return
         }
+
         #expect(text.contains("pad argument"))
     }
 
