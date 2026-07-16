@@ -17,6 +17,11 @@ struct MCPWriteToolsTests {
         MCPTools.all(allowWrites: allowWrites, screenEnabled: screenEnabled).compactMap { $0["name"] as? String }
     }
 
+    private func encodedObject(_ value: some Encodable) throws -> [String: Any] {
+        let data = try JSONEncoder().encode(value)
+        return try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+    }
+
     @Test
     func `write tools are hidden unless writing is enabled`() {
         let readOnly = toolNames(allowWrites: false)
@@ -66,5 +71,43 @@ struct MCPWriteToolsTests {
     @Test
     func `the screen tool set is the three read-only screen tools`() {
         #expect(MCPTools.screenToolNames == ["screen_list_campaigns", "screen_list_tests", "screen_get_test"])
+    }
+
+    @Test
+    func `update pad body preserves empty strings for clearing fields`() throws {
+        let body = MCPTools.padUpdateBody(id: "pad-1", arguments: [
+            "title": "",
+            "notes": "",
+            "owner_email": "",
+            "language": "python3"
+        ])
+        let object = try encodedObject(body)
+
+        #expect(MCPTools.hasAnyUpdatePadField(["notes": ""]))
+        #expect(!MCPTools.hasAnyUpdatePadField([:]))
+        #expect(object["title"] as? String == "")
+        #expect(object["notes"] as? String == "")
+        #expect(object["owner_email"] as? String == "")
+        #expect(object["language"] as? String == "python3")
+    }
+
+    @Test
+    func `update question body preserves empty strings for clearing fields`() throws {
+        let body = MCPTools.questionUpdateBody(id: 42, arguments: [
+            "title": "",
+            "language": "swift",
+            "description": "",
+            "solution": "",
+            "contents": ""
+        ])
+        let object = try encodedObject(body)
+
+        #expect(MCPTools.hasAnyUpdateQuestionField(["description": ""]))
+        #expect(!MCPTools.hasAnyUpdateQuestionField([:]))
+        #expect(object["title"] as? String == "")
+        #expect(object["language"] as? String == "swift")
+        #expect(object["description"] as? String == "")
+        #expect(object["solution"] as? String == "")
+        #expect(object["contents"] as? String == "")
     }
 }

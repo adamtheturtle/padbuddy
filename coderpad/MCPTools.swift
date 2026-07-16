@@ -208,6 +208,16 @@ nonisolated enum MCPTools {
         return nil
     }
 
+    /// Reads a string argument only when the key is present, preserving explicit empty
+    /// strings for write tools that need to clear existing text fields.
+    static func presentString(_ arguments: [String: Any], _ name: String) -> String? {
+        guard arguments.keys.contains(name) else { return nil }
+
+        if let value = arguments[name] as? String { return value }
+        if let value = arguments[name] as? Int { return String(value) }
+        return nil
+    }
+
     /// Reads an integer argument, tolerating a numeric string.
     static func int(_ arguments: [String: Any], _ name: String) -> Int? {
         if let value = arguments[name] as? Int { return value }

@@ -784,6 +784,21 @@ private func listQuestionsCompact(arguments: [String: Value]?, account: MCPAccou
 
 // MARK: - Write tools (#502, gated behind the writes opt-in)
 
+private func presentString(_ arguments: [String: Value]?, _ name: String) -> String? {
+    guard let value = arguments?[name] else { return nil }
+
+    switch value {
+    case let .string(string):
+        return string
+    case let .int(int):
+        return String(int)
+    case let .double(double):
+        return String(double)
+    default:
+        return nil
+    }
+}
+
 private func createPad(arguments: [String: Value]?, account: MCPAccount) async -> CallTool.Result {
     var body: [String: Any] = [:]
     if let title = optionalString(arguments, "title") { body["title"] = title }
@@ -799,10 +814,10 @@ private func createPad(arguments: [String: Value]?, account: MCPAccount) async -
 
 private func updatePad(id: String, arguments: [String: Value]?, account: MCPAccount) async -> CallTool.Result {
     var body: [String: Any] = [:]
-    if let title = optionalString(arguments, "title") { body["title"] = title }
-    if let notes = optionalString(arguments, "notes") { body["notes"] = notes }
-    if let owner = optionalString(arguments, "owner_email") { body["owner_email"] = owner }
-    if let language = optionalString(arguments, "language") { body["language"] = language }
+    if let title = presentString(arguments, "title") { body["title"] = title }
+    if let notes = presentString(arguments, "notes") { body["notes"] = notes }
+    if let owner = presentString(arguments, "owner_email") { body["owner_email"] = owner }
+    if let language = presentString(arguments, "language") { body["language"] = language }
     guard !body.isEmpty else {
         return missingArgument("at least one of title / notes / owner_email / language")
     }
@@ -823,13 +838,13 @@ private func createQuestion(title: String, arguments: [String: Value]?, account:
 
 private func updateQuestion(id: Int, arguments: [String: Value]?, account: MCPAccount) async -> CallTool.Result {
     var question: [String: Any] = [:]
-    if let title = optionalString(arguments, "title") { question["title"] = title }
-    if let language = optionalString(arguments, "language") { question["language"] = language }
+    if let title = presentString(arguments, "title") { question["title"] = title }
+    if let language = presentString(arguments, "language") { question["language"] = language }
     var body: [String: Any] = [:]
     if !question.isEmpty { body["question"] = question }
-    if let description = optionalString(arguments, "description") { body["description"] = description }
-    if let solution = optionalString(arguments, "solution") { body["solution"] = solution }
-    if let contents = optionalString(arguments, "contents") { body["contents"] = contents }
+    if let description = presentString(arguments, "description") { body["description"] = description }
+    if let solution = presentString(arguments, "solution") { body["solution"] = solution }
+    if let contents = presentString(arguments, "contents") { body["contents"] = contents }
     guard !body.isEmpty else {
         return missingArgument("at least one of title / language / description / solution / contents")
     }

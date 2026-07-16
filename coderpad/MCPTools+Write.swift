@@ -69,15 +69,27 @@ nonisolated extension MCPTools {
 
     private static func updatePad(arguments: [String: Any], key: String, base: URL) async -> Outcome {
         guard let pad = string(arguments, "pad") else { return missing("pad") }
+        guard hasAnyUpdatePadField(arguments) else {
+            return missing("at least one of title / notes / owner_email / language")
+        }
 
-        var body = PadUpdate(id: pad)
-        body.title = string(arguments, "title")
-        body.notes = string(arguments, "notes")
-        body.ownerEmail = string(arguments, "owner_email")
-        body.language = string(arguments, "language")
+        let body = padUpdateBody(id: pad, arguments: arguments)
         // The pad id travels in the URL path per the API (PUT /api/pads/:id).
         return await send("PUT", "/api/pads/\(pad)", key: key, base: base, body: body,
                           successText: "Updated pad \(pad).")
+    }
+
+    static func hasAnyUpdatePadField(_ arguments: [String: Any]) -> Bool {
+        ["title", "notes", "owner_email", "language"].contains { arguments.keys.contains($0) }
+    }
+
+    static func padUpdateBody(id pad: String, arguments: [String: Any]) -> PadUpdate {
+        var body = PadUpdate(id: pad)
+        body.title = presentString(arguments, "title")
+        body.notes = presentString(arguments, "notes")
+        body.ownerEmail = presentString(arguments, "owner_email")
+        body.language = presentString(arguments, "language")
+        return body
     }
 
     private static func createQuestion(arguments: [String: Any], key: String, base: URL) async -> Outcome {
@@ -93,15 +105,27 @@ nonisolated extension MCPTools {
 
     private static func updateQuestion(arguments: [String: Any], key: String, base: URL) async -> Outcome {
         guard let id = int(arguments, "question") else { return missing("question") }
+        guard hasAnyUpdateQuestionField(arguments) else {
+            return missing("at least one of title / language / description / solution / contents")
+        }
 
-        var body = QuestionUpdate(id: id)
-        body.title = string(arguments, "title")
-        body.language = string(arguments, "language")
-        body.description = string(arguments, "description")
-        body.solution = string(arguments, "solution")
-        body.contents = string(arguments, "contents")
+        let body = questionUpdateBody(id: id, arguments: arguments)
         return await send("PUT", "/api/questions/\(id)", key: key, base: base, body: body,
                           successText: "Updated question \(id).")
+    }
+
+    static func hasAnyUpdateQuestionField(_ arguments: [String: Any]) -> Bool {
+        ["title", "language", "description", "solution", "contents"].contains { arguments.keys.contains($0) }
+    }
+
+    static func questionUpdateBody(id: Int, arguments: [String: Any]) -> QuestionUpdate {
+        var body = QuestionUpdate(id: id)
+        body.title = presentString(arguments, "title")
+        body.language = presentString(arguments, "language")
+        body.description = presentString(arguments, "description")
+        body.solution = presentString(arguments, "solution")
+        body.contents = presentString(arguments, "contents")
+        return body
     }
 
     // MARK: - HTTP
