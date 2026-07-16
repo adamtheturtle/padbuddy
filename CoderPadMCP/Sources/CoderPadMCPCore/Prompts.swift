@@ -71,8 +71,8 @@ public func renderPrompt(name: String, arguments: [String: String]?) throws -> G
             messages: [userPromptMessage("""
             Review the code in CoderPad pad "\(padID)".
 
-            First call the get_pad_code tool with id "\(padID)" to read every file, and \
-            get_pad with the same id for the surrounding context (title, language, participants).
+            First call the get_pad_code tool with pad: "\(padID)" to read every file, and \
+            get_pad with pad: "\(padID)" for the surrounding context (title, language, participants).
 
             Then give a focused review covering:
             - Correctness: does it solve the stated problem? Any bugs or unhandled edge cases?
@@ -91,7 +91,7 @@ public func renderPrompt(name: String, arguments: [String: String]?) throws -> G
             messages: [userPromptMessage("""
             Summarize the CoderPad interview pad "\(padID)".
 
-            Call get_pad with id "\(padID)" (and get_pad_code for the code) and then give a short \
+            Call get_pad with pad: "\(padID)" (and get_pad_code with pad: "\(padID)" for the code) and then give a short \
             summary: the problem posed, the candidate's approach and how far they got, notable \
             strengths or struggles, and the apparent outcome. Keep it to a few tight paragraphs.
             """)]
@@ -109,7 +109,8 @@ public func renderPrompt(name: String, arguments: [String: String]?) throws -> G
             messages: [userPromptMessage("""
             Compare these CoderPad pads to help rank the candidates: \(quoted).
 
-            For each pad, call get_pad and get_pad_code to read its code and context. Then compare \
+            For each pad, call get_pad and get_pad_code with the pad argument set to that pad's id \
+            to read its code and context. Then compare \
             them on correctness, code quality, problem-solving approach, and communication signals \
             you can infer. Finish with a ranked recommendation and the reasoning behind it.
             """)]

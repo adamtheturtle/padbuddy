@@ -38,6 +38,31 @@ struct PromptsTests {
 
         #expect(text.contains("abc123"))
         #expect(text.contains("get_pad_code"))
+        #expect(text.contains("get_pad_code tool with pad: \"abc123\""))
+        #expect(text.contains("get_pad with pad: \"abc123\""))
+        #expect(!text.contains("with id"))
+    }
+
+    @Test
+    func `pad prompts name the pad tool argument`() throws {
+        let promptArguments = ["pad_id": "abc123"]
+        for name in ["review_pad_code", "summarize_pad"] {
+            let result = try renderPrompt(name: name, arguments: promptArguments)
+            guard case let .text(text) = try #require(result.messages.first).content else {
+                Issue.record("expected text content")
+                return
+            }
+
+            #expect(text.contains("pad: \"abc123\""))
+            #expect(!text.contains("with id"))
+        }
+
+        let comparison = try renderPrompt(name: "compare_pads", arguments: ["pad_ids": "abc123, def456"])
+        guard case let .text(text) = try #require(comparison.messages.first).content else {
+            Issue.record("expected text content")
+            return
+        }
+        #expect(text.contains("pad argument"))
     }
 
     @Test
