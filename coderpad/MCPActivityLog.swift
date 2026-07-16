@@ -11,13 +11,16 @@
 //  Privacy-light by design: it stores only the event time, the tool name, the account's
 //  display name, and ok/error — never tool arguments or any candidate/pad content.
 //
-//  Concurrency: several MCP clients can each launch their own `--mcp` process, so writes
-//  are append-only (atomic small appends). Trimming to the last N entries is done by the
-//  app (a single, main-actor reader) when it loads, avoiding multi-process rewrite races.
+//  Concurrency: several MCP clients can each launch their own `--mcp` process. Appends,
+//  trims, and clears are wrapped in an advisory file lock so the GUI never rewrites the
+//  log from an old snapshot while a headless process is appending (#763).
 //
 
 import Foundation
 import MCPKit
+#if canImport(Darwin)
+    import Darwin
+#endif
 
 /// One recorded MCP server event. `launch` marks a `--mcp` process starting; `call` marks
 /// one tool invocation.
@@ -57,18 +60,24 @@ nonisolated enum MCPActivityLog {
         return JSONLLog(directory: dir, fileName: "mcp-activity.jsonl", maxEntries: maxEntries)
     }()
 
+    private static let lockFileName = "mcp-activity.jsonl.lock"
+
     // MARK: - Writing (headless server)
 
     /// Record a `--mcp` process launch serving `account` (its display name, or nil).
     static func recordLaunch(account: String?) {
-        store?.append(MCPActivityEntry(id: UUID(), time: Date(), kind: .launch, tool: nil, account: account,
-                                       succeeded: nil))
+        withLockedStore { store in
+            store.append(MCPActivityEntry(id: UUID(), time: Date(), kind: .launch, tool: nil, account: account,
+                                          succeeded: nil))
+        }
     }
 
     /// Record one tool call: its name, the account served, and whether it succeeded.
     static func recordCall(tool: String, account: String?, succeeded: Bool) {
-        store?.append(MCPActivityEntry(id: UUID(), time: Date(), kind: .call, tool: tool, account: account,
-                                       succeeded: succeeded))
+        withLockedStore { store in
+            store.append(MCPActivityEntry(id: UUID(), time: Date(), kind: .call, tool: tool, account: account,
+                                          succeeded: succeeded))
+        }
     }
 
     // MARK: - Reading (app)
@@ -80,14 +89,44 @@ nonisolated enum MCPActivityLog {
     }
 
     /// Rewrite the file to only the last `maxEntries` lines, so the debug log can't grow
-    /// without bound. Called by the app (one process) after a load, so it doesn't race the
-    /// headless appenders for the rewrite.
+    /// without bound. The same lock as append/clear keeps the rewrite from dropping a
+    /// concurrent headless tool-call record.
     static func trimIfNeeded() {
-        store?.trim()
+        withLockedStore { $0.trim() }
     }
 
     /// Delete the log, e.g. so it doesn't outlive the data it describes.
     static func clear() {
-        store?.clear()
+        withLockedStore { $0.clear() }
+    }
+
+    private static func withLockedStore(_ operation: (JSONLLog<MCPActivityEntry>) -> Void) {
+        guard let store else { return }
+
+        withActivityLogLock(in: store.directory) {
+            operation(store)
+        }
+    }
+
+    private static func withActivityLogLock(in directory: URL, operation: () -> Void) {
+        #if canImport(Darwin)
+            try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let lockURL = directory.appending(path: lockFileName)
+            if !FileManager.default.fileExists(atPath: lockURL.path) {
+                FileManager.default.createFile(atPath: lockURL.path, contents: nil)
+            }
+
+            guard let handle = try? FileHandle(forWritingTo: lockURL) else {
+                operation()
+                return
+            }
+            defer { try? handle.close() }
+
+            flock(handle.fileDescriptor, LOCK_EX)
+            defer { flock(handle.fileDescriptor, LOCK_UN) }
+            operation()
+        #else
+            operation()
+        #endif
     }
 }
