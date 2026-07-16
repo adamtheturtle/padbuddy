@@ -64,6 +64,23 @@ struct AccountFocusEntityQuery: EntityQuery {
     }
 }
 
+nonisolated enum FocusFilterRestoredAccount: Equatable {
+    case missingSnapshot
+    case noAccount
+    case account(UUID)
+
+    static let noAccountMarker = ""
+
+    static func resolve(savedID: String?, accounts: [Account]) -> Self {
+        guard let savedID else { return .missingSnapshot }
+        guard !savedID.isEmpty else { return .noAccount }
+        guard let uuid = UUID(uuidString: savedID),
+              accounts.contains(where: { $0.id == uuid }) else { return .missingSnapshot }
+
+        return .account(uuid)
+    }
+}
+
 /// Limits the app to one account while a Focus is active. When the Focus turns off the
 /// system calls `perform()` again with `account == nil`, which restores the snapshot.
 struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
@@ -100,17 +117,26 @@ struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
                 // keeps the original snapshot to restore at the end.
                 if defaults.object(forKey: Self.savedShowAllKey) == nil {
                     defaults.set(store.showAllAccounts, forKey: Self.savedShowAllKey)
-                    defaults.set(store.currentAccountID?.uuidString ?? "", forKey: Self.savedCurrentKey)
+                    defaults.set(
+                        store.currentAccountID?.uuidString ?? FocusFilterRestoredAccount.noAccountMarker,
+                        forKey: Self.savedCurrentKey
+                    )
                 }
                 store.showAllAccounts = false
                 store.currentAccountID = uuid
             } else if defaults.object(forKey: Self.savedShowAllKey) != nil {
                 // Focus turned off: restore whatever was selected before it began.
                 let savedShowAll = defaults.bool(forKey: Self.savedShowAllKey)
-                if let savedID = defaults.string(forKey: Self.savedCurrentKey),
-                   let uuid = UUID(uuidString: savedID),
-                   store.accounts.contains(where: { $0.id == uuid }) {
+                switch FocusFilterRestoredAccount.resolve(
+                    savedID: defaults.string(forKey: Self.savedCurrentKey),
+                    accounts: store.accounts
+                ) {
+                case let .account(uuid):
                     store.currentAccountID = uuid
+                case .noAccount:
+                    store.currentAccountID = nil
+                case .missingSnapshot:
+                    break
                 }
                 store.showAllAccounts = savedShowAll
                 defaults.removeObject(forKey: Self.savedShowAllKey)

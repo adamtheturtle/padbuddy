@@ -8,6 +8,7 @@
 //
 
 @testable import CoderPad
+import Foundation
 import Testing
 
 @MainActor
@@ -118,5 +119,31 @@ struct SelectionRestoreTests {
             availableRowIDs: ["acct-b:42"]
         )
         #expect(target == nil)
+    }
+}
+
+struct FocusFilterRestoreTests {
+    @Test func `restores a saved nil account selection (#756)`() {
+        let account = Account(name: "Acme", apiKey: "key", userEmail: "a@example.com")
+        let restored = FocusFilterRestoredAccount.resolve(
+            savedID: FocusFilterRestoredAccount.noAccountMarker,
+            accounts: [account]
+        )
+
+        #expect(restored == .noAccount)
+    }
+
+    @Test func `restores a saved current account when it still exists`() {
+        let id = UUID()
+        let account = Account(name: "Acme", apiKey: "key", id: id, userEmail: "a@example.com")
+
+        #expect(FocusFilterRestoredAccount.resolve(savedID: id.uuidString, accounts: [account]) == .account(id))
+    }
+
+    @Test func `ignores a missing or stale saved focus account`() {
+        let account = Account(name: "Acme", apiKey: "key", userEmail: "a@example.com")
+
+        #expect(FocusFilterRestoredAccount.resolve(savedID: nil, accounts: [account]) == .missingSnapshot)
+        #expect(FocusFilterRestoredAccount.resolve(savedID: UUID().uuidString, accounts: [account]) == .missingSnapshot)
     }
 }
