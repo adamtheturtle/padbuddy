@@ -364,12 +364,60 @@ nonisolated struct ScreenTestsPage: Decodable, Hashable {
 
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        tests = (try? container.decodeIfPresent([ScreenTestSession].self, forKey: .tests)) ?? []
+        tests = Self.decodeTests(from: container)
         pagination = try? container.decodeIfPresent(ScreenPagination.self, forKey: .pagination)
     }
 
     enum CodingKeys: String, CodingKey {
         case tests, pagination
+    }
+
+    private static func decodeTests(from container: KeyedDecodingContainer<CodingKeys>) -> [ScreenTestSession] {
+        guard var testsContainer = try? container.nestedUnkeyedContainer(forKey: .tests) else { return [] }
+
+        var decoded: [ScreenTestSession] = []
+        while !testsContainer.isAtEnd {
+            if let test = try? testsContainer.decode(ScreenTestSession.self) {
+                decoded.append(test)
+            } else if (try? testsContainer.decode(DiscardedScreenValue.self)) == nil {
+                break
+            }
+        }
+        return decoded
+    }
+}
+
+private nonisolated struct DiscardedScreenValue: Decodable {
+    init(from decoder: any Decoder) throws {
+        if var array = try? decoder.unkeyedContainer() {
+            while !array.isAtEnd {
+                _ = try? array.decode(DiscardedScreenValue.self)
+            }
+            return
+        }
+
+        if let object = try? decoder.container(keyedBy: DiscardedScreenCodingKey.self) {
+            for key in object.allKeys {
+                _ = try? object.decode(DiscardedScreenValue.self, forKey: key)
+            }
+            return
+        }
+
+        _ = try? decoder.singleValueContainer()
+    }
+}
+
+private nonisolated struct DiscardedScreenCodingKey: CodingKey {
+    var stringValue: String
+    var intValue: Int?
+
+    init?(stringValue: String) {
+        self.stringValue = stringValue
+    }
+
+    init?(intValue: Int) {
+        stringValue = String(intValue)
+        self.intValue = intValue
     }
 }
 

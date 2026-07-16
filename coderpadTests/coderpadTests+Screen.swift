@@ -56,8 +56,12 @@ private final nonisolated class MockScreenURLProtocol: URLProtocol {
         case ("POST", "/campaigns/42/actions/send"):
             (200, #"{"id": 999, "test_url": "https://screen-ide.coderpad.io/?id=999abc"}"#)
         case ("GET", "/tests"):
-            // Paginate by `start`: page 1 has two of three tests, page 2 the last.
-            (200, query["start"] == "2" ? testsPage2JSON : testsPage1JSON)
+            if query["candidateEmail"] == "malformed@example.com" {
+                (200, malformedTestsPageJSON)
+            } else {
+                // Paginate by `start`: page 1 has two of three tests, page 2 the last.
+                (200, query["start"] == "2" ? testsPage2JSON : testsPage1JSON)
+            }
         case ("GET", "/tests/13188658"):
             (200, completedTestJSON)
         case ("POST", "/tests/13188658/actions/cancel"),
@@ -100,6 +104,20 @@ private final nonisolated class MockScreenURLProtocol: URLProtocol {
         {"status": "aborted", "id": 3, "id_test": 3, "campaign_id": 42, "tags": [], "questions": []}
       ],
       "pagination": {"start": 2, "limit": 2, "total": 3, "has_more_items": false, "next_start": null}
+    }
+    """#
+
+    private static let malformedTestsPageJSON = #"""
+    {
+      "tests": [
+        {"status": "completed", "id": 1, "id_test": 1, "campaign_id": 42,
+         "candidate_email": "ada@example.com", "tags": [], "questions": []},
+        {"status": "waiting", "id": "broken", "id_test": 99, "campaign_id": 42,
+         "candidate_email": "bad@example.com", "tags": [], "questions": []},
+        {"status": "aborted", "id": 2, "id_test": 2, "campaign_id": 42,
+         "candidate_email": "bob@example.com", "tags": [], "questions": []}
+      ],
+      "pagination": {"start": 0, "limit": 3, "total": 3, "has_more_items": false, "next_start": null}
     }
     """#
 
@@ -228,6 +246,14 @@ struct ScreenClientTests {
         #expect(pagination.hasMoreItems)
         #expect(pagination.nextStart == 2)
         #expect(pagination.total == 3)
+    }
+
+    @Test
+    func `listTests keeps valid sessions when one page item is malformed (#764)`() async throws {
+        let page = try await screenClient().listTests(candidateEmail: "malformed@example.com")
+
+        #expect(page.tests.map(\.id) == [1, 2])
+        #expect(page.pagination?.total == 3)
     }
 
     @Test
