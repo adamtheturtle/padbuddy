@@ -165,14 +165,14 @@ extension AccountEditor {
         finalizeNameIfNeeded()
         guard !draft.name.trimmingCharacters(in: .whitespaces).isEmpty else { return }
 
-        onSave(draft)
+        onSave(draft.normalizedForStorage)
     }
 
     @ViewBuilder
     var saveButton: some View {
         let save = {
             finalizeNameIfNeeded()
-            onSave(draft)
+            onSave(draft.normalizedForStorage)
         }
         if canSave {
             Button("Save", action: save)

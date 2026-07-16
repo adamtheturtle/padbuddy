@@ -208,6 +208,12 @@ struct Account: Identifiable, Codable, Hashable {
         isMock && apiKey == Self.badKeyMockKey
     }
 
+    var normalizedForStorage: Self {
+        var account = self
+        account.apiKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        return account
+    }
+
     /// A sandbox demo the user can summon by typing a magic word into the account
     /// editor's API-key field, the discoverable replacement for the old
     /// `wand.and.stars` menu (#549): `demo` adds the mock-data demo, `baddemo` the
@@ -231,7 +237,8 @@ struct Account: Identifiable, Codable, Hashable {
     /// (answering 401 for the bad-key demo), otherwise the live hosted client.
     func makeClient() -> CoderPadClient {
         guard isMock else {
-            return .live(apiKey: apiKey, baseURL: resolvedBaseURL)
+            return .live(apiKey: apiKey.trimmingCharacters(in: .whitespacesAndNewlines),
+                         baseURL: resolvedBaseURL)
         }
 
         // Key the mock client by the account's own apiKey so the good demo ("demo")

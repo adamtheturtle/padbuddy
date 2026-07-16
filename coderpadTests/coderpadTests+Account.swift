@@ -40,6 +40,20 @@ struct AccountRoundTripTests {
     }
 
     @Test
+    func `normalizing for storage trims the Interview API key (#771)`() {
+        let account = Account(name: "Acme", apiKey: "  live-key\n", userEmail: "me@acme.com")
+
+        #expect(account.normalizedForStorage.apiKey == "live-key")
+    }
+
+    @Test
+    func `makeClient trims a stored Interview API key defensively (#771)`() {
+        let account = Account(name: "Acme", apiKey: "  live-key\n", userEmail: "me@acme.com")
+
+        #expect(account.makeClient().apiKey == "live-key")
+    }
+
+    @Test
     func `icon symbol and tint survive the round-trip`() throws {
         let original = Account(
             name: "Acme", apiKey: "k", userEmail: "me@acme.com",
