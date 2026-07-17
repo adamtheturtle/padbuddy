@@ -217,3 +217,21 @@ struct ScreenSessionURLTests {
         #expect(ScreenTestSession(id: 1).screenURL == nil)
     }
 }
+
+@Suite("Screen invitation email validation")
+struct ScreenInviteEmailTests {
+    @Test
+    func `plausible addresses are accepted`() {
+        #expect(ScreenInviteSheet.isPlausibleEmail("ada@example.com"))
+        #expect(ScreenInviteSheet.isPlausibleEmail("a.b+tag@sub.example.co"))
+    }
+
+    @Test
+    func `malformed addresses are rejected (#874, #920)`() {
+        let bad = ["", "\n", "not-an-email", "@example.com", "a@b", "a@.com",
+                   "a@example.com.", "two words@example.com", "a@@example.com"]
+        for value in bad {
+            #expect(!ScreenInviteSheet.isPlausibleEmail(value), "\(value) should be rejected")
+        }
+    }
+}

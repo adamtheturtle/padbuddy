@@ -27,6 +27,15 @@ struct ScreenInviteSheet: View {
     @State private var result: ScreenInvitationResult?
 
     var body: some View {
+        sheetBody
+            // A send in flight must not be dismissible: the invitation could succeed
+            // after the sheet (its only success UI and refresh path) is gone, inviting
+            // a duplicate send (#865).
+            .interactiveDismissDisabled(isSending)
+    }
+
+    @ViewBuilder
+    private var sheetBody: some View {
         #if os(iOS)
             NavigationStack {
                 sheetContent
@@ -78,12 +87,17 @@ struct ScreenInviteSheet: View {
                 Label(errorText, systemImage: "xmark.octagon.fill")
                     .font(.callout)
                     .foregroundStyle(.red)
+            } else if sendEmail, !candidateEmail.isEmpty, sendDisabled {
+                Label("Enter a valid candidate email address.", systemImage: "exclamationmark.triangle")
+                    .font(.callout)
+                    .foregroundStyle(.orange)
             }
 
             #if os(macOS)
                 HStack {
                     Spacer()
                     Button("Cancel", role: .cancel) { dismiss() }
+                        .disabled(isSending)
                     sendButton
                 }
             #endif
@@ -133,6 +147,7 @@ struct ScreenInviteSheet: View {
         if result == nil {
             ToolbarItem(placement: .cancellationAction) {
                 Button("Cancel", role: .cancel) { dismiss() }
+                    .disabled(isSending)
             }
             ToolbarItem(placement: .confirmationAction) {
                 sendButton
@@ -163,7 +178,6 @@ struct ScreenInviteSheet: View {
 
     private var doneButton: some View {
         Button("Done") {
-            onSent()
             dismiss()
         }
         #if os(macOS)
@@ -172,10 +186,27 @@ struct ScreenInviteSheet: View {
         .keyboardShortcut(.defaultAction)
     }
 
-    /// When emailing the candidate, an address is required; without the email toggle the
-    /// API can create a manual (recruiter-shared) test, so an address is optional.
+    /// When emailing the candidate, a plausible address is required; without the email
+    /// toggle the API can create a manual (recruiter-shared) test, so it stays optional.
+    /// Trims newlines too, so a pasted line break can't enable Send while the request
+    /// normalizes the same value away (#874), and rejects clearly malformed addresses
+    /// instead of turning them into failed API requests (#920).
     private var sendDisabled: Bool {
-        sendEmail && candidateEmail.trimmingCharacters(in: .whitespaces).isEmpty
+        guard sendEmail else { return false }
+
+        return !Self.isPlausibleEmail(candidateEmail.trimmingCharacters(in: .whitespacesAndNewlines))
+    }
+
+    /// A light plausibility check, not full RFC validation: one @, a non-empty local
+    /// part, a dotted domain, and no whitespace. Internal for tests.
+    static func isPlausibleEmail(_ value: String) -> Bool {
+        guard !value.contains(where: \.isWhitespace) else { return false }
+
+        let parts = value.split(separator: "@", omittingEmptySubsequences: false)
+        guard parts.count == 2, !parts[0].isEmpty else { return false }
+
+        let domain = parts[1]
+        return domain.contains(".") && !domain.hasPrefix(".") && !domain.hasSuffix(".")
     }
 
     private func send() async {
@@ -191,6 +222,9 @@ struct ScreenInviteSheet: View {
         do {
             result = try await client.sendInvitation(campaignID: campaign.id, invitation)
             errorText = nil
+            // Reconcile the parent list the moment the server mutation succeeds, not
+            // from the Done button - the sheet may never reach it (#865).
+            onSent()
         } catch {
             errorText = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
         }

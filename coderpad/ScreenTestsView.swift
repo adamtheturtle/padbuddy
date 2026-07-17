@@ -45,6 +45,9 @@ struct ScreenTestsView: View {
     /// slower response can't overwrite the current date range's list (#885).
     @State private var loadGeneration = 0
     @State private var showInvite = false
+    /// Sessions with a resend in flight, so repeated Resend commands can't email
+    /// the same candidate twice (#900).
+    @State private var resendingIDs: Set<Int> = []
     @State private var testPendingDelete: ScreenTestSession?
     @State private var actionError: String?
     @State private var showResentConfirmation = false
@@ -306,6 +309,11 @@ struct ScreenTestsView: View {
     }
 
     private func resend(_ test: ScreenTestSession) async {
+        // The command can be invoked repeatedly (menu, focused commands) while a
+        // resend is in flight; each duplicate would email the candidate again (#900).
+        guard resendingIDs.insert(test.id).inserted else { return }
+
+        defer { resendingIDs.remove(test.id) }
         do {
             try await client.resendTest(id: test.id)
             showResentConfirmation = true

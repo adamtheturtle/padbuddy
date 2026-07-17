@@ -23,6 +23,9 @@ struct ScreenWebhookSheet: View {
 
     var body: some View {
         sheetContent
+            // A save/remove in flight must not be dismissible: the mutation would
+            // complete invisibly and invite a conflicting retry (#899).
+            .interactiveDismissDisabled(isSaving)
             .task { await load() }
             .alert("Remove the webhook?", isPresented: $confirmRemove) {
                 Button("Cancel", role: .cancel) {}
@@ -101,6 +104,7 @@ struct ScreenWebhookSheet: View {
                 #if os(macOS)
                     Spacer()
                     Button("Cancel", role: .cancel) { dismiss() }
+                        .disabled(isSaving)
                     saveButton
                 #endif
             }
@@ -111,6 +115,7 @@ struct ScreenWebhookSheet: View {
     private var sheetToolbar: some ToolbarContent {
         ToolbarItem(placement: .cancellationAction) {
             Button("Cancel", role: .cancel) { dismiss() }
+                .disabled(isSaving)
         }
         ToolbarItem(placement: .confirmationAction) {
             saveButton
