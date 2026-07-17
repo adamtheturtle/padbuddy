@@ -14,11 +14,35 @@ extension QuestionDetailView {
                 contentModePicker
                 selectedPaneContent
             }
-            .padding(.horizontal, Spacing.paneH)
-            .padding(.top, Spacing.paneV)
-            .padding(.bottom, Spacing.paneV)
+            .padding(.horizontal, detailHorizontalPadding)
+            .padding(.top, detailTopPadding)
+            .padding(.bottom, detailBottomPadding)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    private var detailHorizontalPadding: CGFloat {
+        #if os(iOS)
+            horizontalSizeClass == .compact ? 16 : Spacing.paneH
+        #else
+            Spacing.paneH
+        #endif
+    }
+
+    private var detailTopPadding: CGFloat {
+        #if os(iOS)
+            horizontalSizeClass == .compact ? 10 : Spacing.paneV
+        #else
+            Spacing.paneV
+        #endif
+    }
+
+    private var detailBottomPadding: CGFloat {
+        #if os(iOS)
+            horizontalSizeClass == .compact ? Spacing.paneV + 120 : Spacing.paneV
+        #else
+            Spacing.paneV
+        #endif
     }
 
     var contentModePicker: some View {
@@ -193,9 +217,14 @@ extension QuestionDetailView {
                 // hover or click in, and commits on Return or when focus leaves. The
                 // command-aware editor also lets Question > Edit Question open the
                 // same rename affordance without duplicating save logic.
-                CommandEditableTitle(title: question.title, placeholder: "Untitled Question",
-                                     isEditable: !isReadOnly, font: .title.bold(),
-                                     editRequest: titleEditRequest) { newTitle in await commitTitle(newTitle) }
+                CommandEditableTitle(
+                    title: question.title,
+                    placeholder: "Untitled Question",
+                    isEditable: !isReadOnly,
+                    clampsWidth: isCompactPhone,
+                    font: detailTitleFont,
+                    editRequest: titleEditRequest
+                ) { newTitle in await commitTitle(newTitle) }
                 // Keep the question identity to one owner line under the title. When
                 // the org directory has not resolved the name, avoid exposing the raw
                 // email in the header and use the generic fallback label.
@@ -209,6 +238,18 @@ extension QuestionDetailView {
                 }
             }
         }
+    }
+
+    var isCompactPhone: Bool {
+        #if os(iOS)
+            horizontalSizeClass == .compact
+        #else
+            false
+        #endif
+    }
+
+    private var detailTitleFont: Font {
+        isCompactPhone ? .title2.bold() : .title.bold()
     }
 
     /// Whether the question carries any of the facts the Details section shows, so an
@@ -240,7 +281,11 @@ extension QuestionDetailView {
         }
     }
 
-    func summaryGroup(title: LocalizedStringKey, systemImage: String, @ViewBuilder content: () -> some View) -> some View {
+    func summaryGroup(
+        title: LocalizedStringKey,
+        systemImage: String,
+        @ViewBuilder content: () -> some View
+    ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Label(title, systemImage: systemImage)
                 .font(.caption.weight(.semibold))

@@ -41,6 +41,9 @@ struct QuestionDetailView: View {
     @Environment(\.orgDirectory) var directory
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.undoManager) var undoManager
+    #if os(iOS)
+        @Environment(\.horizontalSizeClass) var horizontalSizeClass
+    #endif
     /// While offline the app is read-only, so create/edit/delete actions disable (#321).
     @Environment(\.isReadOnly) var isReadOnly
     /// Snap the undo-deletion banner instead of springing it when Reduce Motion is on (#614).

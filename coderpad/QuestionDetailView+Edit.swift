@@ -57,15 +57,27 @@ extension QuestionDetailView {
     }
 
     /// A labeled row pairing a property name with its inline control, matching the
-    /// alignment of the read-only rows elsewhere in the detail view.
+    /// alignment of the read-only rows elsewhere in the detail view. Compact phones
+    /// stack the control below the label so pickers are not squeezed beside it.
+    @ViewBuilder
     private func propertyRow(_ label: LocalizedStringKey,
                              @ViewBuilder control: () -> some View) -> some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text(label)
-                .foregroundStyle(.secondary)
-                .frame(minWidth: 110, alignment: .leading)
-            control()
-            Spacer(minLength: 0)
+        if isCompactPhone {
+            VStack(alignment: .leading, spacing: 5) {
+                Text(label)
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                control()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        } else {
+            HStack(alignment: .firstTextBaseline) {
+                Text(label)
+                    .foregroundStyle(.secondary)
+                    .frame(minWidth: 110, alignment: .leading)
+                control()
+                Spacer(minLength: 0)
+            }
         }
     }
 
