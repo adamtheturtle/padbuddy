@@ -255,7 +255,13 @@ extension QuestionDetailView {
     /// Whether the question carries any of the facts the Details section shows, so an
     /// empty section (a bare header) is never rendered.
     var hasMeta: Bool {
-        question.used != nil || question.createdAt != nil || question.updatedAt != nil
+        question.used != nil
+            || question.createdAt != nil
+            || question.updatedAt != nil
+            || displayableText(question.authorName) != nil
+            || displayableText(question.organizationName) != nil
+            || !question.testCases.isEmpty
+            || !question.customFiles.isEmpty
     }
 
     /// The question's usage count and bookkeeping dates, as a compact native grouped
@@ -269,8 +275,20 @@ extension QuestionDetailView {
 
     var metaRows: some View {
         VStack(alignment: .leading, spacing: 6) {
+            if let author = displayableText(question.authorName) {
+                LabeledRow(label: "Author", value: author)
+            }
+            if let organization = displayableText(question.organizationName) {
+                LabeledRow(label: "Organization", value: organization)
+            }
             if let used = question.used {
                 LabeledRow(label: "Times used", value: "\(used)")
+            }
+            if !question.testCases.isEmpty {
+                LabeledRow(label: "Test cases", value: "\(question.testCases.count)")
+            }
+            if !question.customFiles.isEmpty {
+                LabeledRow(label: "Custom files", value: "\(question.customFiles.count)")
             }
             if let createdAt = question.createdAt {
                 LabeledRow(label: "Created", value: createdAt.formatted(date: .long, time: .omitted))
@@ -279,6 +297,14 @@ extension QuestionDetailView {
                 LabeledRow(label: "Updated", value: updatedAt.formatted(date: .long, time: .omitted))
             }
         }
+    }
+
+    private func displayableText(_ value: String?) -> String? {
+        guard let text = value?.trimmingCharacters(in: .whitespacesAndNewlines), !text.isEmpty else {
+            return nil
+        }
+
+        return text
     }
 
     func summaryGroup(
