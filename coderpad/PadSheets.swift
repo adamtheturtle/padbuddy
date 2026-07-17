@@ -160,20 +160,6 @@ struct NewPadSheet: View {
         }
     }
 
-    private var loadFailureMessage: String {
-        switch (questionsLoadFailed, organizationLoadFailed) {
-        case (true, true):
-            String(localized: """
-            Questions and organization details couldn't be loaded, so the Question, Owner, and Team \
-            choices may be incomplete.
-            """)
-        case (true, false):
-            String(localized: "Questions couldn't be loaded, so the Question choices may be incomplete.")
-        default:
-            String(localized: "Organization details couldn't be loaded, so the Owner and Team choices may be incomplete.")
-        }
-    }
-
     private var actionButtons: some View {
         HStack {
             Spacer()
@@ -248,7 +234,28 @@ struct NewPadSheet: View {
         }
     }
 
-    private func loadQuestions() async {
+}
+
+// MARK: - Loading and submission
+
+private extension NewPadSheet {
+    var loadFailureMessage: String {
+        switch (questionsLoadFailed, organizationLoadFailed) {
+        case (true, true):
+            String(localized: """
+            Questions and organization details couldn't be loaded, so the Question, Owner, and Team \
+            choices may be incomplete.
+            """)
+        case (true, false):
+            String(localized: "Questions couldn't be loaded, so the Question choices may be incomplete.")
+        default:
+            String(localized: """
+            Organization details couldn't be loaded, so the Owner and Team choices may be incomplete.
+            """)
+        }
+    }
+
+    func loadQuestions() async {
         if questions.isEmpty, let id = AccountsStore.shared.currentAccountID {
             questions = QuestionsCacheStore.shared.get(id)
             fillFromSelectedQuestion()
@@ -275,7 +282,7 @@ struct NewPadSheet: View {
     /// in the loaded list. Used both when the user picks a question and when the
     /// sheet opens pre-seeded with one (where the picker's `onChange` doesn't fire).
     /// Doesn't clobber a title the user already typed or a language they chose.
-    private func fillFromSelectedQuestion() {
+    func fillFromSelectedQuestion() {
         guard let id = selectedQuestionID else {
             if titleAutofilledFromQuestionID != nil {
                 title = ""
@@ -306,7 +313,7 @@ struct NewPadSheet: View {
 
     /// One `organization()` call backs both the Team picker and the searchable
     /// Owner picker, so adding owner selection costs no extra network round-trip.
-    private func loadOrganization() async {
+    func loadOrganization() async {
         guard !client.apiKey.isEmpty else { return }
 
         do {
@@ -321,7 +328,7 @@ struct NewPadSheet: View {
         }
     }
 
-    private func submit() async {
+    func submit() async {
         isSubmitting = true
         error = nil
         defer { isSubmitting = false }
