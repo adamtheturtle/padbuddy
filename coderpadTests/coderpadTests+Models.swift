@@ -58,6 +58,16 @@ struct AppNavigationRouteTests {
             #expect(MenuBarView.canCreatePad(account: demo, isOffline: false))
             #expect(!MenuBarView.canCreatePad(account: live, isOffline: true))
         }
+
+        @Test func `create action keys are scoped by account and question seed`() {
+            let accountID = UUID()
+            let account = Account(name: "Live", apiKey: "key", id: accountID)
+
+            #expect(MenuBarView.createPadKey(PadCreate(), account: account)
+                == "\(accountID.uuidString):blank")
+            #expect(MenuBarView.createPadKey(PadCreate(questionID: 42), account: account)
+                == "\(accountID.uuidString):question:42")
+        }
     }
 #endif
 

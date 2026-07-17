@@ -29,6 +29,7 @@
         @State private var questionsCache = QuestionsCacheStore.shared
         @State var isLoading = false
         @State var errorMessage: String?
+        @State var creatingPadKeys: Set<String> = []
         /// Monotonic id of the newest `loadMenu` call. Overlapping refreshes (the
         /// automatic `.task` plus a manual Reload) each capture their generation and
         /// only the newest may publish caches, `errorMessage`, or end `isLoading`, so
@@ -176,18 +177,22 @@
                     Menu("New Pad") {
                         newPadAccountWarning
                         ForEach(store.mergeableAccounts) { target in
+                            let body = PadCreate()
                             Button("In \(target.name)…") {
-                                Task { await createPad(PadCreate(), account: target) }
+                                Task { await createPad(body, account: target) }
                             }
-                            .disabled(!Self.canCreatePad(account: target, isOffline: network.isOffline))
+                            .disabled(!Self.canCreatePad(account: target, isOffline: network.isOffline)
+                                || isCreatingPad(body, account: target))
                         }
                     }
                 } else {
+                    let body = PadCreate()
                     Button("New Pad…") {
-                        Task { await createPad(PadCreate(), account: account) }
+                        Task { await createPad(body, account: account) }
                     }
                     .keyboardShortcut("n")
-                    .disabled(!Self.canCreatePad(account: account, isOffline: network.isOffline))
+                    .disabled(!Self.canCreatePad(account: account, isOffline: network.isOffline)
+                        || isCreatingPad(body, account: account))
                 }
             }
             // Load the menu's data here (a stable, always-present action) keyed on the
@@ -204,8 +209,9 @@
                     // The submenu is its own menu, so repeat the warning inside it.
                     newPadAccountWarning
                     ForEach(questionsForMenu().prefix(topCount)) { row in
+                        let body = PadCreate.fromQuestion(row.question)
                         Button {
-                            Task { await createPad(.fromQuestion(row.question), account: row.account) }
+                            Task { await createPad(body, account: row.account) }
                         } label: {
                             // Starred questions lead the list and carry the star so
                             // a frequently used question is the first one-click pad.
@@ -215,7 +221,8 @@
                                 Text(questionRowLabel(row))
                             }
                         }
-                        .disabled(!Self.canCreatePad(account: row.account, isOffline: network.isOffline))
+                        .disabled(!Self.canCreatePad(account: row.account, isOffline: network.isOffline)
+                            || isCreatingPad(body, account: row.account))
                     }
                 }
                 .disabled(network.isOffline)

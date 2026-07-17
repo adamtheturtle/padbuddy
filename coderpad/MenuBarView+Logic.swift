@@ -12,6 +12,11 @@
             !isOffline && (account.isMock || !account.apiKey.isEmpty)
         }
 
+        static func createPadKey(_ body: PadCreate, account: Account) -> String {
+            let seed = body.questionID.map { "question:\($0)" } ?? "blank"
+            return "\(account.id.uuidString):\(seed)"
+        }
+
         func padLabel(_ pad: Pad) -> String {
             let title = pad.title.isEmpty ? pad.id : pad.title
             let language = pad.language.flatMap { $0.isEmpty ? nil : " · \($0.coderPadLanguageDisplayName)" } ?? ""
@@ -84,7 +89,17 @@
                 + questionRows.filter { !favorites.favorites(account: $0.account.id).contains($0.question.id) }
         }
 
+        func isCreatingPad(_ body: PadCreate, account: Account) -> Bool {
+            creatingPadKeys.contains(Self.createPadKey(body, account: account))
+        }
+
         func createPad(_ body: PadCreate, account: Account) async {
+            let createKey = Self.createPadKey(body, account: account)
+            guard !creatingPadKeys.contains(createKey) else { return }
+
+            creatingPadKeys.insert(createKey)
+            defer { creatingPadKeys.remove(createKey) }
+
             let client = account.makeClient()
             do {
                 let pad = try await client.createPad(body)
