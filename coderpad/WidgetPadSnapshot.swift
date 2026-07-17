@@ -222,6 +222,26 @@ nonisolated enum WidgetSharedStore {
         }
     }
 
+    /// Removes a request file to claim ownership of it. True only when this call
+    /// actually deleted the file: false when it was already gone (a concurrent drain
+    /// won the race) or when it couldn't be deleted - executing a request whose file
+    /// survives would replay it on every later drain, duplicating non-idempotent
+    /// actions like pad creation (#779).
+    private static func claim(url: URL, purpose: String) -> Bool {
+        do {
+            try FileManager.default.removeItem(at: url)
+            return true
+        } catch let error as CocoaError where error.code == .fileNoSuchFile {
+            return false
+        } catch {
+            logger.error("""
+            Widget shared store claim failed for \(purpose, privacy: .public): \
+            \(error.localizedDescription, privacy: .public)
+            """)
+            return false
+        }
+    }
+
     private static func takePendingRequest<Request: Decodable>(
         legacyFileName: String,
         prefix: String,
@@ -234,7 +254,10 @@ nonisolated enum WidgetSharedStore {
                 continue
             }
 
-            remove(url: url, purpose: purpose)
+            // Execute only requests whose file we deleted ourselves, so a request is
+            // performed at most once (#779).
+            guard claim(url: url, purpose: purpose) else { continue }
+
             do {
                 return try JSONDecoder().decode(type, from: data)
             } catch {
