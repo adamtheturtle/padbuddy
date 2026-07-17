@@ -65,13 +65,21 @@ nonisolated extension MCPTools {
             var query: [URLQueryItem] = []
             if let page { query.append(URLQueryItem(name: "page", value: page)) }
             let response = await get("/api/pads/", key: key, base: base, query: query)
-            guard !response.isError, let object = jsonObject(response.text) else {
+            guard !response.isError else {
                 scan.error = response
+                return scan
+            }
+            // A 2xx body without the required shape is an explicit error, never an
+            // empty page: silently counting zero rows would be wrong (#829, #830).
+            guard let object = jsonObject(response.text),
+                  let pads = object["pads"] as? [[String: Any]]
+            else {
+                scan.error = invalidListResponse("/api/pads/", expecting: "pads", body: response.text)
                 return scan
             }
 
             if scan.totalReported == nil { scan.totalReported = object["total"] as? Int }
-            if let pads = object["pads"] as? [[String: Any]] { scan.pads.append(contentsOf: pads) }
+            scan.pads.append(contentsOf: pads)
             scan.pagesFetched += 1
             guard let next = nextPageToken(object["next_page"]) else { return scan }
 
@@ -175,9 +183,11 @@ nonisolated extension MCPTools {
         }
 
         let response = await get("/api/pads/", key: key, base: base, query: paging(arguments))
-        guard !response.isError, let object = jsonObject(response.text) else { return response }
+        guard !response.isError else { return response }
+        guard let object = jsonObject(response.text),
+              let pads = object["pads"] as? [[String: Any]]
+        else { return invalidListResponse("/api/pads/", expecting: "pads", body: response.text) }
 
-        let pads = (object["pads"] as? [[String: Any]]) ?? []
         var result: [String: Any] = ["pads": compactPads(pads), "count": pads.count]
         if let next = object["next_page"], !(next is NSNull) { result["next_page"] = next }
         if let total = object["total"], !(total is NSNull) { result["total"] = total }

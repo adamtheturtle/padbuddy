@@ -81,13 +81,21 @@ nonisolated extension MCPTools {
             var query: [URLQueryItem] = []
             if let page { query.append(URLQueryItem(name: "page", value: page)) }
             let response = await get("/api/questions/", key: key, base: base, query: query)
-            guard !response.isError, let object = jsonObject(response.text) else {
+            guard !response.isError else {
                 scan.error = response
+                return scan
+            }
+            // A 2xx body without the required shape is an explicit error, never an
+            // empty page: silently counting zero rows would be wrong (#829, #830).
+            guard let object = jsonObject(response.text),
+                  let questions = object["questions"] as? [[String: Any]]
+            else {
+                scan.error = invalidListResponse("/api/questions/", expecting: "questions", body: response.text)
                 return scan
             }
 
             if scan.totalReported == nil { scan.totalReported = object["total"] as? Int }
-            if let questions = object["questions"] as? [[String: Any]] { scan.questions.append(contentsOf: questions) }
+            scan.questions.append(contentsOf: questions)
             scan.pagesFetched += 1
             guard let next = nextPageToken(object["next_page"]) else { return scan }
 
@@ -197,9 +205,11 @@ nonisolated extension MCPTools {
         }
 
         let response = await get("/api/questions/", key: key, base: base, query: paging(arguments))
-        guard !response.isError, let object = jsonObject(response.text) else { return response }
+        guard !response.isError else { return response }
+        guard let object = jsonObject(response.text),
+              let questions = object["questions"] as? [[String: Any]]
+        else { return invalidListResponse("/api/questions/", expecting: "questions", body: response.text) }
 
-        let questions = (object["questions"] as? [[String: Any]]) ?? []
         var result: [String: Any] = [
             "questions": compactQuestions(questions), "count": questions.count
         ]

@@ -21,6 +21,28 @@ struct MCPPadAggregationTests {
     ]
 
     @Test
+    func `a schema-invalid list response becomes an explicit error, not empty data (#829, #830)`() {
+        let outcome = MCPTools.invalidListResponse(
+            "/api/pads/", expecting: "pads",
+            body: "<html>upstream unavailable</html>"
+        )
+        #expect(outcome.isError)
+        #expect(outcome.text.contains("/api/pads/"))
+        #expect(outcome.text.contains("\"pads\""))
+        #expect(outcome.text.contains("upstream unavailable"))
+    }
+
+    @Test
+    func `the invalid-response preview is capped so an HTML page can't flood the reply`() {
+        let outcome = MCPTools.invalidListResponse(
+            "/api/pads/", expecting: "pads",
+            body: String(repeating: "x", count: 5000)
+        )
+        #expect(outcome.isError)
+        #expect(outcome.text.count < 600)
+    }
+
+    @Test
     func `nextPageToken reads strings and ints, nil when absent or empty`() {
         #expect(nextPageToken("abc") == "abc")
         #expect(nextPageToken(2) == "2")

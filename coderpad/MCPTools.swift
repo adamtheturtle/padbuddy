@@ -231,6 +231,23 @@ nonisolated enum MCPTools {
         Outcome(text: "Missing required argument: \(name)", isError: true)
     }
 
+    /// An explicit error for a 2xx list response that isn't the JSON shape the list
+    /// tools require: not JSON at all, or missing the expected records array. Without
+    /// this, a proxy page or error envelope would read as a successful zero-row page
+    /// and poison counts, aggregates, and compact lists (#829, #830). The body is
+    /// previewed rather than echoed in full so an HTML error page doesn't flood the
+    /// assistant.
+    static func invalidListResponse(_ path: String, expecting key: String, body: String) -> Outcome {
+        let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
+        let preview = trimmed.count > 200 ? String(trimmed.prefix(200)) + "…" : trimmed
+        return Outcome(
+            text: "The \(path) response wasn't the expected JSON object with a \"\(key)\" "
+                + "array; the upstream server may have returned a proxy or error page. "
+                + "Response begins: \(preview)",
+            isError: true
+        )
+    }
+
     // MARK: - Argument coercion
 
     /// Reads a string argument, tolerating a number sent where a string was expected.
