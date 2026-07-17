@@ -198,7 +198,12 @@ struct EnvironmentCodeCard: View {
     /// open it; the file list and selection carry over.
     @State var showFullCode = false
     #if os(iOS)
-        @State var exportDocument: CodeExportDocument?
+        /// The staged card export: `PadExportDocument` (shared with Save All Code),
+        /// so a multi-file environment exports as a single zip rather than a
+        /// directory FileWrapper - SwiftUI's exporter writes a directory document
+        /// to a same-named temporary path and throws when a prior export of the
+        /// same pad lingers there (#706).
+        @State var exportDocument: PadExportDocument?
         @State var showCodeExporter = false
         @Environment(\.horizontalSizeClass) var horizontalSizeClass
     #endif
@@ -279,10 +284,14 @@ struct EnvironmentCodeCard: View {
         .fileExporter(
             isPresented: $showCodeExporter,
             document: exportDocument,
-            contentType: exportDocument?.contentType ?? .utf8PlainText,
-            defaultFilename: exportDocument?.defaultFilename
-        ) { _ in
+            contentType: exportDocument?.contentType ?? .plainText,
+            defaultFilename: exportDocument?.defaultName
+        ) { result in
             exportDocument = nil
+            // Surface a failed write instead of dismissing silently (#706).
+            if case .failure(let error) = result {
+                exportError = error.localizedDescription
+            }
         }
         #endif
         // When the environment's files change (added/removed/renamed — ids are

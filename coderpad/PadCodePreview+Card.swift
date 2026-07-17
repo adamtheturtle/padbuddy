@@ -114,12 +114,27 @@ extension EnvironmentCodeCard {
                     download(selected)
                 }
             #else
-                exportDocument = CodeExportDocument(
-                    files: isMultiFile ? files : [selected],
-                    defaultFilename: isMultiFile ? "pad-\(padID)" : selected.name,
-                    contentType: isMultiFile ? .folder : .utf8PlainText
-                )
-                showCodeExporter = true
+                if isMultiFile {
+                    // Zip via the shared Save All Code document rather than exporting
+                    // a directory FileWrapper, which fails on a repeated same-name
+                    // export; a failed archive build is reported, not silent (#706).
+                    if let archive = PadExportDocument(
+                        zipName: "pad-\(padID)",
+                        files: files.map { (path: $0.path ?? $0.name, contents: $0.contents) }
+                    ) {
+                        exportDocument = archive
+                        showCodeExporter = true
+                    } else {
+                        exportError = String(localized: "Couldn't prepare the code archive to save.")
+                    }
+                } else {
+                    exportDocument = PadExportDocument(
+                        text: selected.contents,
+                        contentType: .plainText,
+                        defaultName: selected.name
+                    )
+                    showCodeExporter = true
+                }
             #endif
         } label: {
             Image(systemName: "square.and.arrow.down")

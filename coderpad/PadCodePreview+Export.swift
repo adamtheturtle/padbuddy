@@ -3,8 +3,8 @@
 //  coderpad
 //
 //  Saving an environment's code to disk: the macOS save-panel download actions
-//  (single file, or a whole multi-file project as a folder) and the iOS
-//  FileDocument used by the fileExporter. Split from PadCodePreview.swift /
+//  (single file, or a whole multi-file project as a folder) and the shared path
+//  planning the iOS zip export also uses. Split from PadCodePreview.swift /
 //  PadCodePreview+Card.swift to keep both within the lint length limit.
 //
 
@@ -143,102 +143,8 @@ extension EnvironmentCodeCard {
     #endif
 }
 
-#if os(iOS)
-    nonisolated struct CodeExportDocument: FileDocument {
-        static var readableContentTypes: [UTType] {
-            [.utf8PlainText, .folder]
-        }
-
-        static var writableContentTypes: [UTType] {
-            [.utf8PlainText, .folder]
-        }
-
-        let files: [CodeFile]
-        let defaultFilename: String
-        let contentType: UTType
-
-        init(files: [CodeFile], defaultFilename: String, contentType: UTType) {
-            self.files = files
-            self.defaultFilename = defaultFilename
-            self.contentType = contentType
-        }
-
-        init(configuration _: ReadConfiguration) throws {
-            throw CocoaError(.fileReadUnsupportedScheme)
-        }
-
-        func fileWrapper(configuration _: WriteConfiguration) throws -> FileWrapper {
-            if contentType == .folder || files.count > 1 {
-                return CodeExportDirectory(files: files).fileWrapper()
-            }
-
-            let file = files.first ?? .placeholder
-            let wrapper = FileWrapper(regularFileWithContents: Data(file.contents.utf8))
-            wrapper.preferredFilename = file.name
-            return wrapper
-        }
-    }
-
-    private final nonisolated class CodeExportDirectory {
-        private var filesByName: [String: FileWrapper] = [:]
-        private var directoriesByName: [String: CodeExportDirectory] = [:]
-        private var directoryAliasesByName: [String: String] = [:]
-
-        init(files: [CodeFile] = []) {
-            for file in files {
-                insert(file, components: Self.pathComponents(for: file))
-            }
-        }
-
-        func fileWrapper() -> FileWrapper {
-            var children: [String: FileWrapper] = filesByName
-            for (name, directory) in directoriesByName {
-                let wrapper = directory.fileWrapper()
-                wrapper.preferredFilename = name
-                children[name] = wrapper
-            }
-            return FileWrapper(directoryWithFileWrappers: children)
-        }
-
-        private func insert(_ file: CodeFile, components: [String]) {
-            guard let name = components.first else { return }
-
-            if components.count == 1 {
-                let unique = uniqueName(name)
-                let wrapper = FileWrapper(regularFileWithContents: Data(file.contents.utf8))
-                wrapper.preferredFilename = unique
-                filesByName[unique] = wrapper
-                return
-            }
-
-            let directoryName = directoryName(for: name)
-            let directory = directoriesByName[directoryName] ?? CodeExportDirectory()
-            directoriesByName[directoryName] = directory
-            directory.insert(file, components: Array(components.dropFirst()))
-        }
-
-        private func directoryName(for preferred: String) -> String {
-            if let alias = directoryAliasesByName[preferred] {
-                return alias
-            }
-
-            let alias = uniqueName(preferred)
-            directoryAliasesByName[preferred] = alias
-            return alias
-        }
-
-        private func uniqueName(_ preferred: String) -> String {
-            var candidate = preferred
-            var index = 2
-            while filesByName[candidate] != nil || directoriesByName[candidate] != nil {
-                candidate = "\(preferred) \(index)"
-                index += 1
-            }
-            return candidate
-        }
-
-        private static func pathComponents(for file: CodeFile) -> [String] {
-            CodeExportPathPlan.components(for: file)
-        }
-    }
-#endif
+// The iOS export used to stage a bespoke CodeExportDocument here that wrote a
+// directory FileWrapper for multi-file environments; it was replaced by the shared
+// zip-based PadExportDocument (see PadDetailView+SaveCode.swift), because SwiftUI's
+// fileExporter fails a repeated same-name directory export and the failure was
+// silent (#706).
