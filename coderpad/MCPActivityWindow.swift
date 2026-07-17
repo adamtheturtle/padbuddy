@@ -36,8 +36,7 @@ struct MCPActivityView: View {
                                 Label(launchLabel(launch), systemImage: "bolt.horizontal.circle")
                             }
                         } footer: {
-                            Text("Recorded on this Mac. Tool names and times only, never pad or "
-                                + "candidate content.")
+                            Text(recordedFooter)
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -50,8 +49,18 @@ struct MCPActivityView: View {
                 .formStyle(.grouped)
             }
         }
-        .frame(minWidth: 440, minHeight: 360)
-        .task { await activity.poll() }
+        #if os(macOS)
+            .frame(minWidth: 440, minHeight: 360)
+        #endif
+            .task { await activity.poll() }
+    }
+
+    private var recordedFooter: String {
+        #if os(macOS)
+            String(localized: "Recorded on this Mac. Tool names and times only, never pad or candidate content.")
+        #else
+            String(localized: "Recorded on this device. Tool names and times only, never pad or candidate content.")
+        #endif
     }
 
     private func launchLabel(_ launch: MCPActivityEntry) -> String {
@@ -99,15 +108,41 @@ struct MCPActivityView: View {
     }
 #endif
 
-/// Opens the MCP activity window from the settings pane.
+/// Opens the MCP activity log from the settings pane: the standalone window on macOS,
+/// or a sheet on iOS, where that Window scene isn't registered and openWindow would
+/// silently no-op (#835).
 struct OpenMCPActivityButton: View {
-    @Environment(\.openWindow) private var openWindow
+    #if os(macOS)
+        @Environment(\.openWindow) private var openWindow
 
-    var body: some View {
-        Button {
-            openWindow(id: MCPActivityWindowID.value)
-        } label: {
-            Label("Open the activity window", systemImage: "list.bullet.rectangle")
+        var body: some View {
+            Button {
+                openWindow(id: MCPActivityWindowID.value)
+            } label: {
+                Label("Open the activity window", systemImage: "list.bullet.rectangle")
+            }
         }
-    }
+    #else
+        @State private var showingActivity = false
+
+        var body: some View {
+            Button {
+                showingActivity = true
+            } label: {
+                Label("Show recent activity", systemImage: "list.bullet.rectangle")
+            }
+            .sheet(isPresented: $showingActivity) {
+                NavigationStack {
+                    MCPActivityView()
+                        .navigationTitle("MCP Activity")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) {
+                                Button("Done") { showingActivity = false }
+                            }
+                        }
+                }
+            }
+        }
+    #endif
 }
