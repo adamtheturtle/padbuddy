@@ -251,10 +251,12 @@ struct ScreenTestDetailView: View {
                 saveReport(data)
             } else {
                 #if os(macOS)
-                    let url = FileManager.default.temporaryDirectory
-                        .appendingPathComponent("ScreenReport-\(test.id).pdf")
-                    try data.write(to: url)
+                    // Staged in a unique, owner-only temp subdirectory (#804, #807): test
+                    // IDs collide across accounts, and reports hold candidate data, so the
+                    // file is single-use and swept again after opening / at next launch.
+                    let url = try ScreenReportFiles.stage(data, testID: test.id)
                     NSWorkspace.shared.open(url)
+                    ScreenReportFiles.scheduleRemoval(of: url)
                 #else
                     // Opening the PDF (a document preview / share sheet) can be added
                     // later on iPad; for now this is a no-op so the button stays inert.

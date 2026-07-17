@@ -53,6 +53,10 @@ enum AppLaunch {
         // Watch network reachability so the app can drop into a read-only mode while
         // CoderPad is unreachable, surfacing an offline banner and disabling edits (#321).
         NetworkMonitor.shared.start()
+        // Sweep Screen report PDFs a previous run staged for viewing but didn't get to
+        // delete (quit before the scheduled removal fired) - they hold candidate data
+        // and must not linger in temporary storage (#807).
+        ScreenReportFiles.cleanUpLeftovers()
         // Become the notification-center delegate so taps on pad-update alerts route
         // back into the app. Posting itself is opt-in (see `PadUpdateNotifier`).
         PadUpdateNotifier.shared.register()
