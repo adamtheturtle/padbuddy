@@ -115,8 +115,8 @@ enum DockBadgeController {
         // Only the user's own started pads, scoped per account: ownership is compared
         // against each account's configured email (matching `MergedPadsView.isMine`),
         // so other interviewers' live pads don't count. Emails are canonicalized once
-        // per account (case- and plus-addressing-folded; see `String.canonicalOwnerEmail`)
-        // so a pad owned via a sub-address alias still counts as the account user's.
+        // per account (case- and whitespace-normalized; see `String.canonicalOwnerEmail`)
+        // while preserving the exact mailbox local part.
         let canonicalEmails = Dictionary(
             countedAccounts
                 .filter { !$0.userEmail.isEmpty }
