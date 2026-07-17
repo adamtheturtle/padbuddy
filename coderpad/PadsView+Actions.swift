@@ -101,7 +101,8 @@ extension PadsView {
     // MARK: - Live filter persistence
 
     var hasActiveFilters: Bool {
-        !search.isEmpty || stateFilter != nil || languageFilter != nil || ownerFilter != nil
+        let hasSearch = !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return hasSearch || stateFilter != nil || languageFilter != nil || ownerFilter != nil
             || teamFilter != nil || typeFilter != nil || updatedWindow.isActive || createdWindow.isActive
     }
 
@@ -109,7 +110,7 @@ extension PadsView {
     /// the instant any one of them changes without observing each `@State` var.
     var filterSignature: String {
         FilterSignature.make([
-            search,
+            search.trimmingCharacters(in: .whitespacesAndNewlines),
             stateFilter?.rawValue,
             languageFilter,
             ownerFilter,

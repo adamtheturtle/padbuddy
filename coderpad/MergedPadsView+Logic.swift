@@ -204,7 +204,7 @@ extension MergedPadsView {
     /// filter shape changes, matching `PadsView`.
     var filterSignature: String {
         FilterSignature.make([
-            search,
+            search.trimmingCharacters(in: .whitespacesAndNewlines),
             stateFilter?.rawValue,
             languageFilter,
             ownerFilter,

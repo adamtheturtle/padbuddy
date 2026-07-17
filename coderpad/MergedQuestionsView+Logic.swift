@@ -102,6 +102,7 @@ extension MergedQuestionsView {
 
         sortedCache.key = key
         sortedCache.favoritesByAccount = favoritesByAccount
+        let searchQuery = search.trimmingCharacters(in: .whitespacesAndNewlines)
         let filtered = scoped.filter { row in
             let item = row.item
             return (accountFilter == nil || row.account.id == accountFilter)
@@ -114,11 +115,11 @@ extension MergedQuestionsView {
                     || (draftFilter == "draft" && item.isDraft == true)
                     || (draftFilter == "published" && item.isDraft != true))
                 // Locale-aware case-insensitive matching (see PadListLogic.matches).
-                && (search.isEmpty
-                    || item.title.localizedCaseInsensitiveContains(search)
-                    || item.ownerEmail.localizedCaseInsensitiveContains(search)
-                    || (item.language ?? "").localizedCaseInsensitiveContains(search)
-                    || (item.authorName ?? "").localizedCaseInsensitiveContains(search))
+                && (searchQuery.isEmpty
+                    || item.title.localizedCaseInsensitiveContains(searchQuery)
+                    || item.ownerEmail.localizedCaseInsensitiveContains(searchQuery)
+                    || (item.language ?? "").localizedCaseInsensitiveContains(searchQuery)
+                    || (item.authorName ?? "").localizedCaseInsensitiveContains(searchQuery))
         }
         sortedCache.rows = filtered
     }
@@ -210,7 +211,7 @@ extension MergedQuestionsView {
 
     var filterSignature: String {
         FilterSignature.make([
-            search,
+            search.trimmingCharacters(in: .whitespacesAndNewlines),
             languageFilter,
             ownerFilter,
             typeFilter,

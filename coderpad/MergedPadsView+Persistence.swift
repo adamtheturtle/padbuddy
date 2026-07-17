@@ -95,7 +95,7 @@ extension MergedPadsView {
     }
 
     var hasActiveFilters: Bool {
-        activeFilterCount > 0 || !search.isEmpty
+        activeFilterCount > 0 || !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     /// Persist the current filters so the merged list reopens with the same view.

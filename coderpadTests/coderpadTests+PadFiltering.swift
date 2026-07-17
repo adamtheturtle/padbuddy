@@ -105,6 +105,14 @@ struct PadFilterTests {
     }
 
     @Test
+    func `whitespace-only search behaves like empty search`() throws {
+        let pads = try samplePads()
+        let unsearched = PadListLogic.filter(pads, using: PadFilterCriteria()).map(\.id)
+        let whitespace = PadListLogic.filter(pads, using: PadFilterCriteria(search: " \n\t ")).map(\.id)
+        #expect(whitespace == unsearched)
+    }
+
+    @Test
     func `search also matches the directory-resolved owner display name`() throws {
         let pads = try samplePads()
         let display: (String) -> String = { $0 == "alex@demo.co" ? "Alex Park" : $0 }

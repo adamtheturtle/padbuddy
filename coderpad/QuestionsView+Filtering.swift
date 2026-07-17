@@ -53,6 +53,7 @@ extension QuestionsView {
 
         listCache.favoriteIDSet = favoriteIDs
         let favoriteFilter = favoritesOnly ? favoriteIDs : nil
+        let searchQuery = search.trimmingCharacters(in: .whitespacesAndNewlines)
         let filtered = questions.filter { question in
             (favoriteFilter?.contains(question.id) ?? true) &&
                 (languageFilter == nil || (question.language ?? "").lowercased() == languageFilter) &&
@@ -62,11 +63,11 @@ extension QuestionsView {
                     || (draftFilter == "draft" && question.isDraft == true)
                     || (draftFilter == "published" && question.isDraft != true)) &&
                 // Locale-aware case-insensitive matching (see PadListLogic.matches).
-                (search.isEmpty
-                    || question.title.localizedCaseInsensitiveContains(search)
-                    || question.ownerEmail.localizedCaseInsensitiveContains(search)
-                    || (question.language ?? "").localizedCaseInsensitiveContains(search)
-                    || (question.authorName ?? "").localizedCaseInsensitiveContains(search))
+                (searchQuery.isEmpty
+                    || question.title.localizedCaseInsensitiveContains(searchQuery)
+                    || question.ownerEmail.localizedCaseInsensitiveContains(searchQuery)
+                    || (question.language ?? "").localizedCaseInsensitiveContains(searchQuery)
+                    || (question.authorName ?? "").localizedCaseInsensitiveContains(searchQuery))
         }
         listCache.sorted = applySort(filtered)
         listCache.rowPresentations = Dictionary(

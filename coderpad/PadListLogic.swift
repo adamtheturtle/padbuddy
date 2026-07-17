@@ -116,7 +116,7 @@ enum PadListLogic {
                         criteria: PadFilterCriteria,
                         now: Date = Date(),
                         display: (String) -> String = \.self) -> Bool {
-        let search = criteria.search
+        let search = criteria.search.trimmingCharacters(in: .whitespacesAndNewlines)
         let language = criteria.language?.lowercased()
         // The dates each window compares against. `.distantPast` so a pad with no
         // dates is excluded by any lower bound rather than crashing on a force-unwrap.

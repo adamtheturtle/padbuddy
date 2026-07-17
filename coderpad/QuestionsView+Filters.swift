@@ -56,7 +56,8 @@ extension QuestionsView {
     }
 
     var hasActiveFilters: Bool {
-        !search.isEmpty || languageFilter != nil || ownerFilter != nil || typeFilter != nil
+        let hasSearch = !search.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        return hasSearch || languageFilter != nil || ownerFilter != nil || typeFilter != nil
             || draftFilter != nil || favoritesOnly
     }
 
@@ -78,7 +79,13 @@ extension QuestionsView {
     /// republishes the signature no matter which control edited a filter. Built from
     /// the same fields as `captureCurrentSearch`.
     var filterSignature: String {
-        FilterSignature.make([search, languageFilter, ownerFilter, typeFilter, draftFilter])
+        FilterSignature.make([
+            search.trimmingCharacters(in: .whitespacesAndNewlines),
+            languageFilter,
+            ownerFilter,
+            typeFilter,
+            draftFilter
+        ])
     }
 
     /// Publish the live filter signature for the sidebar to match against the
