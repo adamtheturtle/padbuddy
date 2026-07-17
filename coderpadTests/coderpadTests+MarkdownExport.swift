@@ -161,6 +161,13 @@ struct CodeExportPathTests {
     }
 
     @Test
+    func `sanitized export root rejects dot only names`() {
+        #expect(PadDetailView.sanitizeComponent(".") == "untitled")
+        #expect(PadDetailView.sanitizeComponent("..") == "untitled")
+        #expect(PadDetailView.sanitizeComponent(" ... ") == "untitled")
+    }
+
+    @Test
     func `path plan rejects file directory collisions`() throws {
         let files = [
             CodeFile(id: "1", path: "src", contents: "", language: nil),

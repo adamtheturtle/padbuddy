@@ -255,11 +255,15 @@ extension PadDetailView {
 
     /// Replaces characters that are unsafe in a single path component, so a pad
     /// title or file name can't break out of its folder or confuse the shell.
-    private static func sanitizeComponent(_ name: String) -> String {
+    static func sanitizeComponent(_ name: String) -> String {
         let invalid = CharacterSet(charactersIn: "/\\:?%*|\"<>")
         let cleaned = name.components(separatedBy: invalid).joined(separator: "-")
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        return cleaned.isEmpty ? "untitled" : cleaned
+        guard !cleaned.isEmpty, !cleaned.allSatisfy({ $0 == "." }) else {
+            return "untitled"
+        }
+
+        return cleaned
     }
 
     /// Maps each known language code to a file extension. A table rather than a
