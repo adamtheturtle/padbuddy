@@ -50,6 +50,65 @@ public func withinDateRange(_ record: [String: Any], after: String?, before: Str
         && passes(before) { String(created.prefix($0.count)) <= $0 }
 }
 
+/// Validates optional created_at bounds before a count/aggregate scan. Supported
+/// forms intentionally match `withinDateRange`: month (`YYYY-MM`), date
+/// (`YYYY-MM-DD`), or an ISO-8601 timestamp.
+public func dateBoundValidationError(after: String?, before: String?) -> String? {
+    if let error = dateBoundValidationError(name: "created_after", value: after) { return error }
+    if let error = dateBoundValidationError(name: "created_before", value: before) { return error }
+    return nil
+}
+
+private func dateBoundValidationError(name: String, value: String?) -> String? {
+    guard let value, !value.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+    guard isSupportedDateBound(value) else {
+        return "\(name) must be a valid YYYY-MM month, YYYY-MM-DD date, or ISO-8601 timestamp."
+    }
+
+    return nil
+}
+
+public func isSupportedDateBound(_ value: String) -> Bool {
+    let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+    if isValidMonthBound(trimmed) || isValidDateBound(trimmed) { return true }
+    return ISO8601DateFormatter().date(from: trimmed) != nil
+}
+
+private func isValidMonthBound(_ value: String) -> Bool {
+    guard value.count == 7, value[value.index(value.startIndex, offsetBy: 4)] == "-",
+          let month = Int(value.suffix(2)),
+          value.prefix(4).allSatisfy(\.isNumber),
+          (1 ... 12).contains(month)
+    else { return false }
+
+    return true
+}
+
+private func isValidDateBound(_ value: String) -> Bool {
+    guard value.count == 10,
+          value[value.index(value.startIndex, offsetBy: 4)] == "-",
+          value[value.index(value.startIndex, offsetBy: 7)] == "-",
+          value.prefix(4).allSatisfy(\.isNumber)
+    else { return false }
+
+    let parts = value.split(separator: "-")
+    guard parts.count == 3,
+          let year = Int(parts[0]),
+          let month = Int(parts[1]),
+          let day = Int(parts[2])
+    else { return false }
+
+    var calendar = Calendar(identifier: .gregorian)
+    if let utc = TimeZone(secondsFromGMT: 0) {
+        calendar.timeZone = utc
+    }
+    let components = DateComponents(calendar: calendar, timeZone: calendar.timeZone, year: year, month: month, day: day)
+    guard let date = calendar.date(from: components) else { return false }
+
+    let resolved = calendar.dateComponents([.year, .month, .day], from: date)
+    return resolved.year == year && resolved.month == month && resolved.day == day
+}
+
 /// Adds active `created_after`/`created_before` bounds to a filters echo.
 public func addDateFilters(_ filters: inout [String: Any], after: String?, before: String?) {
     if let after, !after.isEmpty { filters["created_after"] = after }

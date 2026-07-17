@@ -88,6 +88,9 @@ nonisolated extension MCPTools {
         let language = string(arguments, "language")
         let after = string(arguments, "created_after")
         let before = string(arguments, "created_before")
+        if let error = dateBoundValidationError(after: after, before: before) {
+            return Outcome(text: error, isError: true)
+        }
 
         let scan = await fetchAllPads(accountID: credentials.id, key: credentials.apiKey, base: credentials.baseURL)
         if let error = scan.error { return error }
@@ -130,6 +133,9 @@ nonisolated extension MCPTools {
         let language = string(arguments, "language")
         let after = string(arguments, "created_after")
         let before = string(arguments, "created_before")
+        if let error = dateBoundValidationError(after: after, before: before) {
+            return Outcome(text: error, isError: true)
+        }
 
         let scan = await fetchAllPads(accountID: credentials.id, key: credentials.apiKey, base: credentials.baseURL)
         if let error = scan.error { return error }

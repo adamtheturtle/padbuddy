@@ -110,6 +110,10 @@ private func toolResult(_ response: APIResponse) -> CallTool.Result {
     return CallTool.Result(content: [.text(text: text, annotations: nil, _meta: nil)], isError: response.ok ? nil : true)
 }
 
+private func errorResult(_ message: String) -> CallTool.Result {
+    CallTool.Result(content: [.text(text: message, annotations: nil, _meta: nil)], isError: true)
+}
+
 /// Performs an authenticated write (POST/PUT) against an account with a JSON body.
 private func apiSend(_ method: String, _ path: String, account: MCPAccount, body: [String: Any]) async -> APIResponse {
     guard let url = URLComponents(
@@ -573,6 +577,7 @@ private func countPads(arguments: [String: Value]?, account: MCPAccount) async -
     let language = stringArgument(arguments, "language")
     let after = stringArgument(arguments, "created_after")
     let before = stringArgument(arguments, "created_before")
+    if let error = dateBoundValidationError(after: after, before: before) { return errorResult(error) }
 
     let scan = await fetchAllPads(account: account)
     if let error = scan.error { return toolResult(error) }
@@ -614,6 +619,7 @@ private func aggregatePadsTool(groupBy: String, arguments: [String: Value]?, acc
     let language = stringArgument(arguments, "language")
     let after = stringArgument(arguments, "created_after")
     let before = stringArgument(arguments, "created_before")
+    if let error = dateBoundValidationError(after: after, before: before) { return errorResult(error) }
 
     let scan = await fetchAllPads(account: account)
     if let error = scan.error { return toolResult(error) }
@@ -708,6 +714,7 @@ private func countQuestions(arguments: [String: Value]?, account: MCPAccount) as
     let type = stringArgument(arguments, "type")
     let after = stringArgument(arguments, "created_after")
     let before = stringArgument(arguments, "created_before")
+    if let error = dateBoundValidationError(after: after, before: before) { return errorResult(error) }
 
     let scan = await fetchAllQuestions(account: account)
     if let error = scan.error { return toolResult(error) }
@@ -750,6 +757,7 @@ private func aggregateQuestionsTool(groupBy: String, arguments: [String: Value]?
     let type = stringArgument(arguments, "type")
     let after = stringArgument(arguments, "created_after")
     let before = stringArgument(arguments, "created_before")
+    if let error = dateBoundValidationError(after: after, before: before) { return errorResult(error) }
 
     let scan = await fetchAllQuestions(account: account)
     if let error = scan.error { return toolResult(error) }

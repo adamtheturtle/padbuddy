@@ -86,6 +86,16 @@ struct MCPPadAggregationTests {
     }
 
     @Test
+    func `date bound validation rejects malformed bounds`() {
+        #expect(dateBoundValidationError(after: nil, before: "") == nil)
+        #expect(dateBoundValidationError(after: "2026-01", before: "2026-01-31") == nil)
+        #expect(dateBoundValidationError(after: "2026-01-04T00:00:00Z", before: nil) == nil)
+        #expect(dateBoundValidationError(after: "yesterday", before: nil)?.contains("created_after") == true)
+        #expect(dateBoundValidationError(after: "2026-99-99", before: nil)?.contains("created_after") == true)
+        #expect(dateBoundValidationError(after: nil, before: "2026-02-31")?.contains("created_before") == true)
+    }
+
+    @Test
     func `compact keeps only the compact keys`() {
         let rich: [[String: Any]] = [[
             "id": "abc", "title": "T", "owner_email": "a@x.com", "state": "active",
