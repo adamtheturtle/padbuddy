@@ -55,9 +55,9 @@ struct QuestionDetailView: View {
     @State private var deleteError: String?
     /// The in-flight delayed deletion, shown as an undoable banner during the grace
     /// period. Cancelling it (Undo) aborts before the API call fires.
-    @State private var deletionTask: Task<Void, Never>?
-    @State private var isCreatingPad = false
-    @State private var createPadError: String?
+    @State var deletionTask: Task<Void, Never>?
+    @State var isCreatingPad = false
+    @State var createPadError: String?
     #if !os(macOS)
         /// The Markdown export staged for iPad's `.fileExporter`.
         /// `nil` dismisses the export sheet.
@@ -166,8 +166,9 @@ struct QuestionDetailView: View {
 
     private var core: some View {
         detailScroll
-            .overlay(alignment: .bottom) { undoDeletionBanner }
+            .overlay(alignment: .bottom) { bottomBanners }
             .animation(reduceMotion ? nil : .spring(duration: 0.3), value: deletionTask == nil)
+            .animation(reduceMotion ? nil : .spring(duration: 0.3), value: createPadError == nil)
             // Publish the favorite state so the Question menu's Favorite command can
             // show the matching "Add to"/"Remove from Favorites" title and toggle it.
             .focusedSceneValue(\.focusedQuestionIsFavorite, isFavorite)
@@ -192,8 +193,7 @@ struct QuestionDetailView: View {
             } message: {
                 Text("You'll have a few seconds to undo before it's permanently deleted.")
             }
-            .modifier(QuestionDetailErrorAlerts(createPadError: $createPadError,
-                                                editError: $editError,
+            .modifier(QuestionDetailErrorAlerts(editError: $editError,
                                                 deleteError: $deleteError))
         #if !os(macOS)
             .fileExporter(
@@ -256,7 +256,7 @@ struct QuestionDetailView: View {
         }
     }
 
-    private func cancelDeletion() {
+    func cancelDeletion() {
         deletionTask?.cancel()
         deletionTask = nil
     }
@@ -267,27 +267,6 @@ struct QuestionDetailView: View {
             AppRouter.questionDeleted(id: question.id, account: accountID)
         } catch {
             deleteError = error.localizedDescription
-        }
-    }
-
-    @ViewBuilder
-    var undoDeletionBanner: some View {
-        if deletionTask != nil {
-            HStack(spacing: 12) {
-                Image(systemName: "trash")
-                    .accessibilityHidden(true)
-                Text("Deleting “\(question.title.isEmpty ? "this question" : question.title)”…")
-                    .lineLimit(1)
-                Spacer(minLength: 8)
-                Button("Undo") { cancelDeletion() }
-                    .buttonStyle(.borderedProminent)
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(.thinMaterial, in: Capsule())
-            .overlay(Capsule().stroke(Color.subtleStroke, lineWidth: 1))
-            .padding(.bottom, 12)
-            .transition(.move(edge: .bottom).combined(with: .opacity))
         }
     }
 
@@ -328,7 +307,7 @@ struct QuestionDetailView: View {
     }
 
     /// Creates a pad from this question and opens it in the user's browser.
-    private func createPadInline() async {
+    func createPadInline() async {
         if let url = await makePadFromQuestion() {
             BrowserSettings.openExternally(url)
         }
@@ -337,6 +316,7 @@ struct QuestionDetailView: View {
     /// Creates a pad from this question, returning its web URL (or nil on failure,
     /// after recording the error).
     private func makePadFromQuestion() async -> URL? {
+        createPadError = nil
         isCreatingPad = true
         defer { isCreatingPad = false }
         do {
@@ -349,23 +329,15 @@ struct QuestionDetailView: View {
     }
 }
 
-/// The detail view's three failure alerts (pad creation, edit, delete), pulled
-/// into a `ViewModifier` so they don't inflate the `core` view body's type-check
-/// time past the warnings-as-errors limit.
+/// The detail view's save/delete failure alerts, pulled into a `ViewModifier` so
+/// they don't inflate the `core` view body's type-check time past the warnings-as-errors
+/// limit. Pad-creation failures use an inline retry banner instead.
 private struct QuestionDetailErrorAlerts: ViewModifier {
-    @Binding var createPadError: String?
     @Binding var editError: String?
     @Binding var deleteError: String?
 
     func body(content: Content) -> some View {
         content
-            .alert("Couldn’t create pad",
-                   isPresented: Binding(get: { createPadError != nil },
-                                        set: { if !$0 { createPadError = nil } })) {
-                Button("OK", role: .cancel) { createPadError = nil }
-            } message: {
-                if let createPadError { Text(createPadError) }
-            }
             .alert("Couldn’t save question",
                    isPresented: Binding(get: { editError != nil },
                                         set: { if !$0 { editError = nil } })) {
