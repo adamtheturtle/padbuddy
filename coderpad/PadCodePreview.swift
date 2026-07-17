@@ -76,6 +76,22 @@ nonisolated struct CodeFile: Identifiable, Hashable {
     /// force-subscript. Callers already guard against rendering the card with no files
     /// (#419), so this is purely a defensive fallback and never actually displayed.
     static let placeholder = Self(id: "", path: nil, contents: "", language: nil)
+
+    var explanationKey: CodeFileExplanationKey {
+        CodeFileExplanationKey(id: id, contents: contents, language: language)
+    }
+}
+
+nonisolated struct CodeFileExplanationKey: Hashable {
+    let id: String
+    let contentsHash: Int
+    let language: String?
+
+    init(id: String, contents: String, language: String?) {
+        self.id = id
+        contentsHash = contents.hashValue
+        self.language = language
+    }
 }
 
 /// A code card for one environment. Single-file environments render exactly as
@@ -165,12 +181,11 @@ struct EnvironmentCodeCard: View {
     /// to re-lay-out) to reflow on every frame — the source of the stutter.
     @State var liveWidth: Double?
     /// On-device explanation of the selected file, shown in a popover. Keyed to
-    /// the file it was generated for - id plus a contents hash, so a refresh that
-    /// rewrites the code at the same path regenerates instead of reusing a stale
-    /// analysis (#789).
+    /// the file revision it was generated for - id, contents, and language - so a
+    /// refresh that rewrites the code at the same path regenerates instead of
+    /// reusing stale analysis (#789, #937).
     @State var explanation: CodeExplanation?
-    @State var explanationFileID: String?
-    @State var explanationContentsHash: Int?
+    @State var explanationKey: CodeFileExplanationKey?
     /// True when the last explanation attempt produced nothing, so the popover can
     /// say so and offer a retry instead of the button looking inert (#790).
     @State var explanationFailed = false
@@ -261,14 +276,14 @@ struct EnvironmentCodeCard: View {
             fullCodeViewer
         }
         #if os(iOS)
-            .fileExporter(
-                isPresented: $showCodeExporter,
-                document: exportDocument,
-                contentType: exportDocument?.contentType ?? .utf8PlainText,
-                defaultFilename: exportDocument?.defaultFilename
-            ) { _ in
-                exportDocument = nil
-            }
+        .fileExporter(
+            isPresented: $showCodeExporter,
+            document: exportDocument,
+            contentType: exportDocument?.contentType ?? .utf8PlainText,
+            defaultFilename: exportDocument?.defaultFilename
+        ) { _ in
+            exportDocument = nil
+        }
         #endif
         // When the environment's files change (added/removed/renamed — ids are
         // path-based), clear the retained selection so `selected` falls back to the
@@ -279,11 +294,13 @@ struct EnvironmentCodeCard: View {
             // Also drop any open code explanation: it was generated for a file id
             // that may no longer exist, and `selected` now falls back to the first
             // file — leaving it up would show file A's analysis over a different file.
-            showExplanation = false
-            explanation = nil
-            explanationFileID = nil
-            explanationContentsHash = nil
-            explanationFailed = false
+            clearExplanation()
+        }
+        // A refresh can change a file's contents or language without changing its
+        // path-derived id. Keep the selected file, but discard any explanation for
+        // the previous revision so the next Explain action regenerates (#937).
+        .onChange(of: files.map(\.explanationKey)) { _, _ in
+            clearExplanation()
         }
         .alert(
             "Couldn't save the code",
@@ -296,6 +313,13 @@ struct EnvironmentCodeCard: View {
         } message: {
             Text(exportError ?? "")
         }
+    }
+
+    private func clearExplanation() {
+        showExplanation = false
+        explanation = nil
+        explanationKey = nil
+        explanationFailed = false
     }
 
     /// Single-file environments render a lone highlighted scroll. Multi-file

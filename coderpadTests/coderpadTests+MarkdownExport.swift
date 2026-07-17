@@ -144,6 +144,16 @@ struct PadMarkdownExportTests {
 @Suite("Code export paths")
 struct CodeExportPathTests {
     @Test
+    func `explanation key changes when contents or language changes`() {
+        let original = CodeFile(id: "1", path: "main.swift", contents: "print(1)", language: "swift")
+        let changedContents = CodeFile(id: "1", path: "main.swift", contents: "print(2)", language: "swift")
+        let changedLanguage = CodeFile(id: "1", path: "main.swift", contents: "print(1)", language: "python")
+
+        #expect(original.explanationKey != changedContents.explanationKey)
+        #expect(original.explanationKey != changedLanguage.explanationKey)
+    }
+
+    @Test
     func `components drop traversal segments`() {
         let file = CodeFile(id: "1", path: "../src/./main.swift", contents: "", language: nil)
 
