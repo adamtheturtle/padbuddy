@@ -13,6 +13,18 @@ struct PendingBulkDelete<Item>: Identifiable {
 
 enum BulkDeleteUndo {
     static let gracePeriod: Duration = .seconds(5)
+
+    static func mergedItems<Item: Identifiable>(
+        existing: [Item],
+        adding newItems: [Item]
+    ) -> [Item] where Item.ID: Hashable {
+        var seen = Set(existing.map(\.id))
+        var merged = existing
+        for item in newItems where seen.insert(item.id).inserted {
+            merged.append(item)
+        }
+        return merged
+    }
 }
 
 struct BulkDeleteUndoBanner: View {

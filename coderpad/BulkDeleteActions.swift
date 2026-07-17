@@ -10,20 +10,23 @@ extension PadsView {
         guard !pads.isEmpty else { return }
 
         padsPendingBulkDelete = nil
+        let items = BulkDeleteUndo.mergedItems(existing: pendingBulkDeleteUndo?.items ?? [], adding: pads)
         bulkDeleteUndoTask?.cancel()
-        pendingBulkDeleteUndo = PendingBulkDelete(
-            items: pads,
-            message: String(localized: "Deleting \(pads.count) pads...")
+        let pending = PendingBulkDelete(
+            items: items,
+            message: String(localized: "Deleting \(items.count) pads...")
         )
+        pendingBulkDeleteUndo = pending
         bulkDeleteUndoTask = Task { @MainActor in
             try? await Task.sleep(for: BulkDeleteUndo.gracePeriod)
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, pendingBulkDeleteUndo?.id == pending.id else { return }
 
-            for pad in pads {
-                await deletePad(pad)
-            }
             pendingBulkDeleteUndo = nil
             bulkDeleteUndoTask = nil
+
+            for pad in items {
+                await deletePad(pad)
+            }
         }
     }
 
@@ -46,20 +49,23 @@ extension MergedPadsView {
         guard !pads.isEmpty else { return }
 
         padsPendingBulkDelete = nil
+        let items = BulkDeleteUndo.mergedItems(existing: pendingBulkDeleteUndo?.items ?? [], adding: pads)
         bulkDeleteUndoTask?.cancel()
-        pendingBulkDeleteUndo = PendingBulkDelete(
-            items: pads,
-            message: String(localized: "Deleting \(pads.count) pads...")
+        let pending = PendingBulkDelete(
+            items: items,
+            message: String(localized: "Deleting \(items.count) pads...")
         )
+        pendingBulkDeleteUndo = pending
         bulkDeleteUndoTask = Task { @MainActor in
             try? await Task.sleep(for: BulkDeleteUndo.gracePeriod)
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, pendingBulkDeleteUndo?.id == pending.id else { return }
 
-            for pad in pads {
-                await deletePad(pad)
-            }
             pendingBulkDeleteUndo = nil
             bulkDeleteUndoTask = nil
+
+            for pad in items {
+                await deletePad(pad)
+            }
         }
     }
 
@@ -82,18 +88,20 @@ extension QuestionsView {
         guard !questions.isEmpty else { return }
 
         questionsPendingBulkDelete = nil
+        let items = BulkDeleteUndo.mergedItems(existing: pendingBulkDeleteUndo?.items ?? [], adding: questions)
         bulkDeleteUndoTask?.cancel()
-        pendingBulkDeleteUndo = PendingBulkDelete(
-            items: questions,
-            message: String(localized: "Deleting \(questions.count) questions...")
+        let pending = PendingBulkDelete(
+            items: items,
+            message: String(localized: "Deleting \(items.count) questions...")
         )
+        pendingBulkDeleteUndo = pending
         bulkDeleteUndoTask = Task { @MainActor in
             try? await Task.sleep(for: BulkDeleteUndo.gracePeriod)
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, pendingBulkDeleteUndo?.id == pending.id else { return }
 
-            await bulkDelete(questions)
             pendingBulkDeleteUndo = nil
             bulkDeleteUndoTask = nil
+            await bulkDelete(items)
         }
     }
 
@@ -116,18 +124,20 @@ extension MergedQuestionsView {
         guard !rows.isEmpty else { return }
 
         rowsPendingBulkDelete = nil
+        let items = BulkDeleteUndo.mergedItems(existing: pendingBulkDeleteUndo?.items ?? [], adding: rows)
         bulkDeleteUndoTask?.cancel()
-        pendingBulkDeleteUndo = PendingBulkDelete(
-            items: rows,
-            message: String(localized: "Deleting \(rows.count) questions...")
+        let pending = PendingBulkDelete(
+            items: items,
+            message: String(localized: "Deleting \(items.count) questions...")
         )
+        pendingBulkDeleteUndo = pending
         bulkDeleteUndoTask = Task { @MainActor in
             try? await Task.sleep(for: BulkDeleteUndo.gracePeriod)
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, pendingBulkDeleteUndo?.id == pending.id else { return }
 
-            await bulkDelete(rows)
             pendingBulkDeleteUndo = nil
             bulkDeleteUndoTask = nil
+            await bulkDelete(items)
         }
     }
 
