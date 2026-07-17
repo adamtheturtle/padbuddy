@@ -8,6 +8,10 @@
     import SwiftUI
 
     extension MenuBarView {
+        static func canCreatePad(account: Account, isOffline: Bool) -> Bool {
+            !isOffline && (account.isMock || !account.apiKey.isEmpty)
+        }
+
         func padLabel(_ pad: Pad) -> String {
             let title = pad.title.isEmpty ? pad.id : pad.title
             let language = pad.language.flatMap { $0.isEmpty ? nil : " · \($0.coderPadLanguageDisplayName)" } ?? ""

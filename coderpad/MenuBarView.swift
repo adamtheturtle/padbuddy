@@ -179,8 +179,7 @@
                             Button("In \(target.name)…") {
                                 Task { await createPad(PadCreate(), account: target) }
                             }
-                            .disabled((target.isMock == false && target.apiKey.isEmpty)
-                                || network.isOffline)
+                            .disabled(!Self.canCreatePad(account: target, isOffline: network.isOffline))
                         }
                     }
                 } else {
@@ -188,7 +187,7 @@
                         Task { await createPad(PadCreate(), account: account) }
                     }
                     .keyboardShortcut("n")
-                    .disabled((account.isMock == false && account.apiKey.isEmpty) || network.isOffline)
+                    .disabled(!Self.canCreatePad(account: account, isOffline: network.isOffline))
                 }
             }
             // Load the menu's data here (a stable, always-present action) keyed on the
@@ -216,9 +215,10 @@
                                 Text(questionRowLabel(row))
                             }
                         }
+                        .disabled(!Self.canCreatePad(account: row.account, isOffline: network.isOffline))
                     }
                 }
-                .disabled((account.isMock == false && account.apiKey.isEmpty) || network.isOffline)
+                .disabled(network.isOffline)
             }
         }
 

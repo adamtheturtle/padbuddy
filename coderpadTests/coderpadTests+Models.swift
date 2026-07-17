@@ -45,6 +45,22 @@ struct AppNavigationRouteTests {
     }
 }
 
+#if os(macOS)
+    @Suite("Menu bar create actions")
+    struct MenuBarCreateActionTests {
+        @Test func `create actions require a usable source account`() {
+            let live = Account(name: "Live", apiKey: "key")
+            let missingKey = Account(name: "Missing", apiKey: "")
+            let demo = Account.demo()
+
+            #expect(MenuBarView.canCreatePad(account: live, isOffline: false))
+            #expect(!MenuBarView.canCreatePad(account: missingKey, isOffline: false))
+            #expect(MenuBarView.canCreatePad(account: demo, isOffline: false))
+            #expect(!MenuBarView.canCreatePad(account: live, isOffline: true))
+        }
+    }
+#endif
+
 @Suite("Question sort field/direction")
 struct QuestionSortTests {
     private func question(
