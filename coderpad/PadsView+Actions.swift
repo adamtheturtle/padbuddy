@@ -108,14 +108,16 @@ extension PadsView {
     /// A change-detection token for the live filters, so they can be re-persisted
     /// the instant any one of them changes without observing each `@State` var.
     var filterSignature: String {
-        ([search, stateFilter?.rawValue, languageFilter, ownerFilter, teamFilter, typeFilter]
-            .map { $0 ?? "·" }
-            + [Self.windowToken(updatedWindow), Self.windowToken(createdWindow)])
-            .joined(separator: "|")
-    }
-
-    private static func windowToken(_ window: DateWindow) -> String {
-        window.signatureToken
+        FilterSignature.make([
+            search,
+            stateFilter?.rawValue,
+            languageFilter,
+            ownerFilter,
+            teamFilter,
+            typeFilter,
+            updatedWindow.signatureToken,
+            createdWindow.signatureToken
+        ])
     }
 
     static func liveFilterKey(_ account: UUID) -> String {

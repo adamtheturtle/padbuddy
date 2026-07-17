@@ -203,13 +203,19 @@ extension MergedPadsView {
     /// A change token so the `List` re-identifies (fast fresh render) whenever the
     /// filter shape changes, matching `PadsView`.
     var filterSignature: String {
-        ([search, stateFilter?.rawValue, languageFilter, ownerFilter, typeFilter,
-          accountFilter?.uuidString, mineOnly ? "mine" : nil]
-                .map { $0 ?? "·" }
-                // Include the custom bounds, not just the named range, so switching
-                // between two custom date ranges actually changes the signature.
-                + [updatedWindow.signatureToken, createdWindow.signatureToken])
-            .joined(separator: "|")
+        FilterSignature.make([
+            search,
+            stateFilter?.rawValue,
+            languageFilter,
+            ownerFilter,
+            typeFilter,
+            accountFilter?.uuidString,
+            mineOnly ? "mine" : nil,
+            // Include the custom bounds, not just the named range, so switching
+            // between two custom date ranges actually changes the signature.
+            updatedWindow.signatureToken,
+            createdWindow.signatureToken
+        ])
     }
 
     /// A token covering the set of accounts being merged (ids + key emptiness), so

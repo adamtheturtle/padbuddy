@@ -209,9 +209,15 @@ extension MergedQuestionsView {
     }
 
     var filterSignature: String {
-        [search, languageFilter, ownerFilter, typeFilter, draftFilter,
-         accountFilter?.uuidString, mineOnly ? "mine" : nil]
-            .map { $0 ?? "·" }.joined(separator: "|")
+        FilterSignature.make([
+            search,
+            languageFilter,
+            ownerFilter,
+            typeFilter,
+            draftFilter,
+            accountFilter?.uuidString,
+            mineOnly ? "mine" : nil
+        ])
     }
 
     var accountKey: String {

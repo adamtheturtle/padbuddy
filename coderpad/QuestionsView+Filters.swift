@@ -78,8 +78,7 @@ extension QuestionsView {
     /// republishes the signature no matter which control edited a filter. Built from
     /// the same fields as `captureCurrentSearch`.
     var filterSignature: String {
-        [search, languageFilter, ownerFilter, typeFilter, draftFilter]
-            .map { $0 ?? "·" }.joined(separator: "|")
+        FilterSignature.make([search, languageFilter, ownerFilter, typeFilter, draftFilter])
     }
 
     /// Publish the live filter signature for the sidebar to match against the
