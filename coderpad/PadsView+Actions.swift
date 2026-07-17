@@ -224,7 +224,7 @@ extension PadsView {
             changes.filter { account.owns($0.pad.ownerEmail) }
         } ?? []
         PadUpdateNotifier.shared.notify(changes: myChanges)
-        previousActivity = activitySnapshot(of: fetched)
+        previousActivity = Self.activitySnapshot(of: fetched)
         if let id = accounts.currentAccountID {
             cache.set(id, pads: fetched)
         }
@@ -245,6 +245,12 @@ extension PadsView {
     func padChanges(in fetched: [Pad]) -> [PadChange] {
         guard hasLoadedOnce else { return [] }
 
+        return Self.padChanges(in: fetched, since: previousActivity)
+    }
+
+    /// The pure diff behind `padChanges(in:)`, static so the windowless background
+    /// refresher can share the exact same classification (#735).
+    static func padChanges(in fetched: [Pad], since previousActivity: [String: PadActivitySnapshot]) -> [PadChange] {
         var changes: [PadChange] = []
         for pad in fetched {
             guard let prev = previousActivity[pad.id] else {
@@ -280,7 +286,7 @@ extension PadsView {
     }
 
     /// A snapshot of the per-pad fields we diff on the next sweep.
-    func activitySnapshot(of fetched: [Pad]) -> [String: PadActivitySnapshot] {
+    static func activitySnapshot(of fetched: [Pad]) -> [String: PadActivitySnapshot] {
         var state: [String: PadActivitySnapshot] = [:]
         for pad in fetched {
             state[pad.id] = PadActivitySnapshot(

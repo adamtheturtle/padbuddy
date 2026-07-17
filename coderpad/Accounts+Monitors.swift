@@ -95,6 +95,11 @@ final class AccountHealthMonitor {
 final class PadsBackgroundRefresher {
     static let shared = PadsBackgroundRefresher()
     private var loop: Task<Void, Never>?
+    /// Per-account activity snapshots from the previous sweep, so the windowless
+    /// refresher can diff and post pad-update notifications like the pad list
+    /// does (#735). An account's first sweep only seeds its snapshot, so a cold
+    /// start never alerts about every existing pad.
+    private var previousActivity: [UUID: [String: PadActivitySnapshot]] = [:]
     private init() {}
 
     /// Refetches the current account's pads on a fixed interval (default 5 min).
@@ -137,9 +142,23 @@ final class PadsBackgroundRefresher {
             let client = account.makeClient()
             guard let fetched = try? await client.listPads(sort: "updated_at,desc") else { continue }
 
+            notifyAboutChanges(account: account, fetched: fetched)
             // `set` cascades to the widget snapshot and the active-pads Dock badge.
             PadsCacheStore.shared.set(account.id, pads: fetched)
         }
+    }
+
+    /// Posts opt-in pad-update alerts for background-detected activity, so closing
+    /// every window doesn't silently disable notifications (#735). Shares the pad
+    /// list's diff/classification and its "only the user's own pads" narrowing
+    /// (#424); PadUpdateNotifier itself still gates on the preference, permission,
+    /// and the app being inactive.
+    private func notifyAboutChanges(account: Account, fetched: [Pad]) {
+        defer { previousActivity[account.id] = PadsView.activitySnapshot(of: fetched) }
+        guard let previous = previousActivity[account.id] else { return }
+
+        let changes = PadsView.padChanges(in: fetched, since: previous)
+        PadUpdateNotifier.shared.notify(changes: changes.filter { account.owns($0.pad.ownerEmail) })
     }
 }
 
