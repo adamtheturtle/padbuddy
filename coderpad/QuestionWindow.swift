@@ -66,8 +66,17 @@ struct QuestionWindow: View {
                 // The system can restore this window without a value, or the fetch
                 // can fail (e.g. the question was deleted); show a placeholder rather
                 // than a blank window.
-                ContentUnavailableView("Question Unavailable", systemImage: "questionmark.bubble",
-                                       description: Text("This question couldn’t be loaded."))
+                ContentUnavailableView {
+                    Label("Question Unavailable", systemImage: "questionmark.bubble")
+                } description: {
+                    Text("This question couldn’t be loaded.")
+                } actions: {
+                    if value != nil {
+                        Button("Retry") {
+                            Task { await refresh() }
+                        }
+                    }
+                }
             } else {
                 ProgressView().controlSize(.large)
             }

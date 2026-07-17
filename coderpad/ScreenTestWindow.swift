@@ -30,6 +30,7 @@ struct ScreenTestWindow: View {
     @State private var accounts = AccountsStore.shared
     @State private var fetched: ScreenTestSession?
     @State private var loadFailed = false
+    @State private var refreshError: String?
 
     /// The owning account: the one named in the value, or the current account when the
     /// value omits it (single-account context).
@@ -43,34 +44,68 @@ struct ScreenTestWindow: View {
     var body: some View {
         Group {
             if let client = account?.makeScreenClient(), let test = fetched {
-                ScreenTestDetailView(client: client, test: test)
-                    .navigationTitle(test.candidateName ?? test.candidateEmail ?? String(localized: "Test Session"))
+                VStack(spacing: 0) {
+                    if let refreshError {
+                        StaleRefreshBanner(message: refreshError) {
+                            Task { await refresh() }
+                        }
+                    }
+                    ScreenTestDetailView(client: client, test: test)
+                }
+                .navigationTitle(test.candidateName ?? test.candidateEmail ?? String(localized: "Test Session"))
             } else if value == nil || loadFailed || account?.makeScreenClient() == nil {
                 // The system can restore this window without a value, the account may
                 // have lost its Screen key, or the fetch can fail (e.g. the session was
                 // deleted); show a placeholder rather than a blank window.
-                ContentUnavailableView("Test Session Unavailable", systemImage: "person.crop.rectangle.stack",
-                                       description: Text("This test session couldn’t be loaded."))
+                ContentUnavailableView {
+                    Label("Test Session Unavailable", systemImage: "person.crop.rectangle.stack")
+                } description: {
+                    Text("This test session couldn’t be loaded.")
+                } actions: {
+                    if value != nil, account?.makeScreenClient() != nil {
+                        Button("Retry") {
+                            Task { await refresh() }
+                        }
+                    }
+                }
             } else {
                 ProgressView().controlSize(.large)
             }
         }
-        .task(id: value) { await loadIfNeeded() }
+        .task(id: value) { await load() }
+        .task {
+            for await _ in AppRouter.reloads {
+                await refresh()
+            }
+        }
     }
 
-    /// Fetch the session once on appear (and whenever the window is reused for a
-    /// different session), so a restored window fills in.
-    private func loadIfNeeded() async {
+    /// Fetch the session on appear and on reload, so transient failures can recover
+    /// without closing the restored window.
+    private func load() async {
         if let fetched, fetched.id != value?.id {
             self.fetched = nil
             loadFailed = false
+            refreshError = nil
         }
-        guard fetched == nil, let value, let client = account?.makeScreenClient() else { return }
+        await refresh()
+    }
+
+    private func refresh() async {
+        guard let value, let client = account?.makeScreenClient() else { return }
 
         do {
             fetched = try await client.getTest(id: value.id)
+            loadFailed = false
+            refreshError = nil
+        } catch is CancellationError {
+            return
         } catch {
-            loadFailed = true
+            if fetched == nil {
+                loadFailed = true
+            } else {
+                refreshError = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
+            }
         }
     }
 }

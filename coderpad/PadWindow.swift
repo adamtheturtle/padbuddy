@@ -65,8 +65,17 @@ struct PadWindow: View {
                 // The system can restore this window without a value, or the fetch
                 // can fail (e.g. the pad was deleted); show a placeholder rather
                 // than a blank window.
-                ContentUnavailableView("Pad Unavailable", systemImage: "doc.questionmark",
-                                       description: Text("This pad couldn’t be loaded."))
+                ContentUnavailableView {
+                    Label("Pad Unavailable", systemImage: "doc.questionmark")
+                } description: {
+                    Text("This pad couldn’t be loaded.")
+                } actions: {
+                    if value != nil {
+                        Button("Retry") {
+                            Task { await refresh() }
+                        }
+                    }
+                }
             } else {
                 ProgressView().controlSize(.large)
             }
