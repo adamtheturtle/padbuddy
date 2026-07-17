@@ -26,6 +26,8 @@ struct InlineEditableText: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var editing = false
     @State private var draft = ""
+    @State private var baseText = ""
+    @State private var sourceChanged = false
     @State private var saving = false
     @State private var hovered = false
     @FocusState private var focused: Bool
@@ -35,6 +37,9 @@ struct InlineEditableText: View {
             if editing { editor } else { display }
         }
         .onHover { hovered = $0 }
+        .onChange(of: text) { _, newValue in
+            handleSourceChange(newValue)
+        }
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.12), value: hovered)
     }
 
@@ -90,12 +95,27 @@ struct InlineEditableText: View {
                             in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
                     .stroke(Color.subtleStroke, lineWidth: 1))
+            if sourceChanged {
+                HStack(spacing: 8) {
+                    Label("Changed elsewhere", systemImage: "exclamationmark.triangle.fill")
+                        .font(.callout)
+                        .foregroundStyle(.orange)
+                    Spacer(minLength: 0)
+                    Button("Use Latest") {
+                        useLatestSource()
+                    }
+                }
+            }
             HStack(spacing: 8) {
                 Spacer(minLength: 0)
                 Button("Cancel") { cancel() }
                     .disabled(saving)
                 Button { Task { await commit() } } label: {
-                    if saving { ProgressView().controlSize(.small) } else { Text("Save") }
+                    if saving {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Text(sourceChanged ? "Save Anyway" : "Save")
+                    }
                 }
                 .keyboardShortcut(.defaultAction)
                 .buttonStyle(.borderedProminent)
@@ -106,6 +126,8 @@ struct InlineEditableText: View {
 
     private func beginEditing() {
         draft = text
+        baseText = text
+        sourceChanged = false
         editing = true
         focused = true
     }
@@ -113,6 +135,7 @@ struct InlineEditableText: View {
     private func cancel() {
         editing = false
         focused = false
+        sourceChanged = false
     }
 
     private func commit() async {
@@ -124,6 +147,26 @@ struct InlineEditableText: View {
         if saved {
             editing = false
             focused = false
+            sourceChanged = false
         }
+    }
+
+    private func handleSourceChange(_ newValue: String) {
+        guard editing, newValue != baseText else { return }
+
+        if draft == baseText {
+            draft = newValue
+            baseText = newValue
+            sourceChanged = false
+        } else {
+            baseText = newValue
+            sourceChanged = true
+        }
+    }
+
+    private func useLatestSource() {
+        draft = text
+        baseText = text
+        sourceChanged = false
     }
 }
