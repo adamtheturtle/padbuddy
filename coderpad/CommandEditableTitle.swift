@@ -21,6 +21,8 @@ struct CommandEditableTitle: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isEditing = false
     @State private var draft = ""
+    @State private var editingBaseTitle = ""
+    @State private var titleConflict = false
     @State private var isHovering = false
     @State private var isSaving = false
     @State private var naturalWidth: CGFloat = 0
@@ -62,6 +64,7 @@ struct CommandEditableTitle: View {
         .font(font)
         .frame(maxWidth: .infinity, alignment: .leading)
         .onChange(of: editRequest) { _, _ in beginEditing() }
+        .onChange(of: title) { _, newTitle in sourceTitleChanged(to: newTitle) }
     }
 
     private var plainTitle: some View {
@@ -104,20 +107,37 @@ struct CommandEditableTitle: View {
     }
 
     private var editorField: some View {
-        HStack(spacing: 8) {
-            TextField(placeholder, text: $draft)
-                .textFieldStyle(.plain)
-                .focused($fieldFocused)
-                .disabled(isSaving)
-                .lineLimit(1)
-                .frame(maxWidth: fieldWidth, alignment: .leading)
-                .onSubmit { Task { await commit() } }
-                .onChange(of: fieldFocused) { _, focused in
-                    if !focused, isEditing { Task { await commit() } }
-                }
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 8) {
+                TextField(placeholder, text: $draft)
+                    .textFieldStyle(.plain)
+                    .focused($fieldFocused)
+                    .disabled(isSaving)
+                    .lineLimit(1)
+                    .frame(maxWidth: fieldWidth, alignment: .leading)
+                    .onSubmit { Task { await commit() } }
+                    .onChange(of: fieldFocused) { _, focused in
+                        if !focused, isEditing { Task { await commit() } }
+                    }
 
-            if isSaving {
-                ProgressView().controlSize(.small)
+                if isSaving {
+                    ProgressView().controlSize(.small)
+                }
+            }
+
+            if titleConflict {
+                HStack(spacing: 8) {
+                    Text("Title changed elsewhere.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Button("Use Latest") { useLatestTitle() }
+                    Button("Save Anyway") {
+                        titleConflict = false
+                        editingBaseTitle = title
+                        Task { await commit() }
+                    }
+                }
+                .font(.caption)
             }
         }
     }
@@ -135,13 +155,19 @@ struct CommandEditableTitle: View {
         guard editingAllowed else { return }
 
         draft = title
+        editingBaseTitle = title
+        titleConflict = false
         isEditing = true
         fieldFocused = true
     }
 
     private func commit() async {
         guard isEditing, !isSaving else { return }
-        guard let value = InlineEdit.commitValue(original: title, edited: draft) else {
+        guard !titleConflict else {
+            fieldFocused = true
+            return
+        }
+        guard let value = InlineEdit.commitValue(original: editingBaseTitle, edited: draft) else {
             isEditing = false
             return
         }
@@ -155,5 +181,24 @@ struct CommandEditableTitle: View {
         } else {
             fieldFocused = true
         }
+    }
+
+    private func sourceTitleChanged(to newTitle: String) {
+        guard isEditing, newTitle != editingBaseTitle else { return }
+
+        if draft == editingBaseTitle || draft == newTitle {
+            draft = newTitle
+            editingBaseTitle = newTitle
+            titleConflict = false
+        } else {
+            titleConflict = true
+        }
+    }
+
+    private func useLatestTitle() {
+        draft = title
+        editingBaseTitle = title
+        titleConflict = false
+        fieldFocused = true
     }
 }
