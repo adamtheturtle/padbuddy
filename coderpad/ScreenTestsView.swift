@@ -81,6 +81,13 @@ struct ScreenTestsView: View {
             // The date range is a server-side filter, so changing it re-fetches (onChange,
             // not a second .task, so it doesn't double-fetch alongside the campaign task).
             .onChange(of: dateRange) { _, _ in Task { await load() } }
+            // Local filters can hide selected rows; drop those from the selection so
+            // commands gated on it (Edit > Copy) never fire for invisible rows and
+            // clobber the clipboard with an empty payload (#809). Filter changes are
+            // rare user actions, so the O(N) prune stays off the render path - the
+            // copy gate itself must remain the O(1) `selectedIDs` check (#395).
+            .onChange(of: statusFilter) { _, _ in pruneHiddenSelection() }
+            .onChange(of: search) { _, _ in pruneHiddenSelection() }
             .task {
                 for await _ in AppRouter.reloads {
                     await load()
@@ -202,27 +209,12 @@ struct ScreenTestsView: View {
         selectedTestsInOrder.map(\.screenCopyText).joined(separator: "\n")
     }
 
-    @ViewBuilder
-    private var statusOverlay: some View {
-        if let loadError, tests.isEmpty {
-            ContentUnavailableView {
-                Label("Couldn't load test sessions", systemImage: "exclamationmark.triangle")
-            } description: {
-                Text(loadError)
-            } actions: {
-                Button("Try Again") { Task { await load() } }
-            }
-        } else if tests.isEmpty, isLoading {
-            ProgressView()
-        } else if filtered.isEmpty {
-            ContentUnavailableView {
-                Label("No test sessions", systemImage: "person.crop.rectangle.stack")
-            } description: {
-                Text(tests.isEmpty
-                    ? "No one has been invited to this campaign yet."
-                    : "No test session matches your filters.")
-            }
-        }
+    /// Drops selected rows the status/search filter has hidden (#809), mirroring the
+    /// prune `load()` applies against fresh server data.
+    private func pruneHiddenSelection() {
+        let visible = Set(filtered.map(\.id))
+        let pruned = selectedIDs.intersection(visible)
+        if pruned != selectedIDs { selectedIDs = pruned }
     }
 
     private func load() async {
@@ -232,7 +224,7 @@ struct ScreenTestsView: View {
             let fromMs = dateRange.lowerBound.map { Int($0.timeIntervalSince1970 * 1000) }
             tests = try await client.listAllTests(campaignID: campaign.id, from: fromMs)
             loadError = nil
-            selectedIDs = selectedIDs.filter { id in tests.contains { $0.id == id } }
+            pruneHiddenSelection()
         } catch {
             loadError = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
         }
@@ -324,5 +316,32 @@ struct ScreenTestsView: View {
 
     private func message(for error: any Error) -> String {
         (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
+    }
+}
+
+// Same-file extension so the overlay can keep using the view's private state while
+// staying out of the struct body, which sits right at the lint length limit.
+private extension ScreenTestsView {
+    @ViewBuilder
+    var statusOverlay: some View {
+        if let loadError, tests.isEmpty {
+            ContentUnavailableView {
+                Label("Couldn't load test sessions", systemImage: "exclamationmark.triangle")
+            } description: {
+                Text(loadError)
+            } actions: {
+                Button("Try Again") { Task { await load() } }
+            }
+        } else if tests.isEmpty, isLoading {
+            ProgressView()
+        } else if filtered.isEmpty {
+            ContentUnavailableView {
+                Label("No test sessions", systemImage: "person.crop.rectangle.stack")
+            } description: {
+                Text(tests.isEmpty
+                    ? "No one has been invited to this campaign yet."
+                    : "No test session matches your filters.")
+            }
+        }
     }
 }

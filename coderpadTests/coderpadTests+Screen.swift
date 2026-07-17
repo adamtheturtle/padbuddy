@@ -343,3 +343,38 @@ struct ScreenClientUnauthorizedTests {
         }
     }
 }
+
+@Suite("Screen session link fallback")
+struct ScreenSessionURLTests {
+    @Test
+    func `valid recruiter URL wins over the candidate URL`() {
+        let session = ScreenTestSession(id: 1, url: "https://a.example/review",
+                                        testURL: "https://b.example/take")
+        #expect(session.screenURL?.absoluteString == "https://a.example/review")
+    }
+
+    @Test
+    func `malformed recruiter URL falls back to the candidate URL`() {
+        let session = ScreenTestSession(id: 1, url: "not a url",
+                                        testURL: "https://b.example/take")
+        #expect(session.screenURL?.absoluteString == "https://b.example/take")
+    }
+
+    @Test
+    func `empty recruiter URL falls back to the candidate URL`() {
+        let session = ScreenTestSession(id: 1, url: "", testURL: "https://b.example/take")
+        #expect(session.screenURL?.absoluteString == "https://b.example/take")
+    }
+
+    @Test
+    func `non-web schemes are rejected`() {
+        let session = ScreenTestSession(id: 1, url: "file:///etc/hosts",
+                                        testURL: "javascript:alert(1)")
+        #expect(session.screenURL == nil)
+    }
+
+    @Test
+    func `no links at all yields nil`() {
+        #expect(ScreenTestSession(id: 1).screenURL == nil)
+    }
+}

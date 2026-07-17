@@ -63,6 +63,11 @@ struct ScreenCampaignsView: View {
             // the detail column can show the selected campaign's test sessions (#448).
             .onAppear { restoreSelectedCampaign() }
             .onChange(of: selectedCampaignID) { _, id in publishSelectedCampaign(id) }
+            // Hiding archived campaigns must not leave a now-invisible archived
+            // selection driving the detail column and the search field (#801).
+            .onChange(of: showArchived) { _, show in
+                if !show, selectedCampaign?.archived == true { selectedCampaignID = nil }
+            }
     }
 
     private func restoreSelectedCampaign() {

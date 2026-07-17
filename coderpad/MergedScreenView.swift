@@ -73,6 +73,11 @@ struct MergedScreenView: View {
             // detail column shows the campaign's tests, routed to the right account (#448).
             .onAppear { restoreSelectedCampaign() }
             .onChange(of: selectedScopedID) { _, id in publishSelectedCampaign(id) }
+            // Hiding archived campaigns must not leave a now-invisible archived
+            // selection driving the detail column and the search field (#801).
+            .onChange(of: showArchived) { _, show in
+                if !show, selectedCampaign?.campaign.archived == true { selectedScopedID = nil }
+            }
     }
 
     private func restoreSelectedCampaign() {

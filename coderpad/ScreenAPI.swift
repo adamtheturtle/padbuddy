@@ -145,10 +145,11 @@ nonisolated struct ScreenTestSession: Decodable, Identifiable, Hashable {
     init(id: Int, status: String = "waiting", report: ScreenReport? = nil,
          candidateName: String? = nil, candidateEmail: String? = nil, tags: [String] = [],
          sendTime: Int? = nil, startTime: Int? = nil, endTime: Int? = nil,
-         lastActivityTime: Int? = nil, campaignID: Int? = nil) {
+         lastActivityTime: Int? = nil, campaignID: Int? = nil,
+         url: String? = nil, testURL: String? = nil) {
         self.id = id
         self.status = status
-        url = nil
+        self.url = url
         self.report = report
         idTest = nil
         organizationID = nil
@@ -160,7 +161,7 @@ nonisolated struct ScreenTestSession: Decodable, Identifiable, Hashable {
         self.startTime = startTime
         self.endTime = endTime
         self.lastActivityTime = lastActivityTime
-        testURL = nil
+        self.testURL = testURL
         candidateLanguage = nil
         questions = []
         approvalStatus = nil
@@ -350,96 +351,5 @@ nonisolated struct ScreenSkillResult: Decodable, Hashable {
     enum CodingKeys: String, CodingKey {
         case points, score
         case totalPoints = "total_points"
-    }
-}
-
-// MARK: - Pagination
-
-/// One page of test sessions from `GET /tests`. Unlike the Interview API's
-/// cursor-URL pagination, Screen uses offset/limit: pass `nextStart` as the next
-/// request's `start` while `hasMoreItems` is true.
-nonisolated struct ScreenTestsPage: Decodable, Hashable {
-    let tests: [ScreenTestSession]
-    let pagination: ScreenPagination?
-
-    init(from decoder: any Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        tests = Self.decodeTests(from: container)
-        pagination = try? container.decodeIfPresent(ScreenPagination.self, forKey: .pagination)
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case tests, pagination
-    }
-
-    private static func decodeTests(from container: KeyedDecodingContainer<CodingKeys>) -> [ScreenTestSession] {
-        guard var testsContainer = try? container.nestedUnkeyedContainer(forKey: .tests) else { return [] }
-
-        var decoded: [ScreenTestSession] = []
-        while !testsContainer.isAtEnd {
-            if let test = try? testsContainer.decode(ScreenTestSession.self) {
-                decoded.append(test)
-            } else if (try? testsContainer.decode(DiscardedScreenValue.self)) == nil {
-                break
-            }
-        }
-        return decoded
-    }
-}
-
-private nonisolated struct DiscardedScreenValue: Decodable {
-    init(from decoder: any Decoder) throws {
-        if var array = try? decoder.unkeyedContainer() {
-            while !array.isAtEnd {
-                _ = try? array.decode(DiscardedScreenValue.self)
-            }
-            return
-        }
-
-        if let object = try? decoder.container(keyedBy: DiscardedScreenCodingKey.self) {
-            for key in object.allKeys {
-                _ = try? object.decode(DiscardedScreenValue.self, forKey: key)
-            }
-            return
-        }
-
-        _ = try? decoder.singleValueContainer()
-    }
-}
-
-private nonisolated struct DiscardedScreenCodingKey: CodingKey {
-    var stringValue: String
-    var intValue: Int?
-
-    init?(stringValue: String) {
-        self.stringValue = stringValue
-    }
-
-    init?(intValue: Int) {
-        stringValue = String(intValue)
-        self.intValue = intValue
-    }
-}
-
-nonisolated struct ScreenPagination: Decodable, Hashable {
-    let start: Int?
-    let limit: Int?
-    let total: Int?
-    let hasMoreItems: Bool
-    let nextStart: Int?
-
-    init(from decoder: any Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        start = try? container.decodeIfPresent(Int.self, forKey: .start)
-        limit = try? container.decodeIfPresent(Int.self, forKey: .limit)
-        total = try? container.decodeIfPresent(Int.self, forKey: .total)
-        hasMoreItems = (try? container.decodeIfPresent(Bool.self, forKey: .hasMoreItems)) ?? false
-        nextStart = try? container.decodeIfPresent(Int.self, forKey: .nextStart)
-    }
-
-    enum CodingKeys: String, CodingKey {
-        case start, limit, total
-        case hasMoreItems = "has_more_items"
-        case nextStart = "next_start"
     }
 }

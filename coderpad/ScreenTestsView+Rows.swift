@@ -16,7 +16,21 @@ extension ScreenTestSession {
     }
 
     var screenURL: URL? {
-        (url ?? testURL).flatMap(URL.init(string:))
+        // Validate each candidate independently (#806): a present-but-malformed
+        // recruiter `url` must not suppress a valid candidate `test_url` fallback.
+        Self.webURL(from: url) ?? Self.webURL(from: testURL)
+    }
+
+    /// Parses a candidate link, accepting only a well-formed absolute web URL.
+    private static func webURL(from string: String?) -> URL? {
+        guard let string,
+              let url = URL(string: string),
+              let scheme = url.scheme?.lowercased(),
+              scheme == "http" || scheme == "https",
+              url.host() != nil
+        else { return nil }
+
+        return url
     }
 
     var screenCopyText: String {
