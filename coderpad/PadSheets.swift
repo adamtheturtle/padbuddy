@@ -44,6 +44,11 @@ struct NewPadSheet: View {
     @State private var teams: [PadTeam] = []
     @State private var selectedTeamID: String?
     @State private var users: [OrganizationUser] = []
+    /// Whether the fresh question / organization loads failed, so the sheet can say
+    /// the Question, Owner, and Team choices may be incomplete instead of presenting
+    /// failed data as authoritative emptiness (#863).
+    @State private var questionsLoadFailed = false
+    @State private var organizationLoadFailed = false
 
     var body: some View {
         sheetContent
@@ -134,6 +139,38 @@ struct NewPadSheet: View {
                     .foregroundStyle(.orange)
                     .font(.callout)
             }
+
+            // A prerequisite load failed: say so (with retry) rather than letting the
+            // disabled Question picker and missing Team/Owner options read as a
+            // genuinely empty question bank or organization (#863).
+            if questionsLoadFailed || organizationLoadFailed {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Label(loadFailureMessage, systemImage: "wifi.exclamationmark")
+                        .foregroundStyle(.orange)
+                        .font(.callout)
+                    Button("Retry") {
+                        Task {
+                            await loadQuestions()
+                            await loadOrganization()
+                        }
+                    }
+                    .font(.callout)
+                }
+            }
+        }
+    }
+
+    private var loadFailureMessage: String {
+        switch (questionsLoadFailed, organizationLoadFailed) {
+        case (true, true):
+            String(localized: """
+            Questions and organization details couldn't be loaded, so the Question, Owner, and Team \
+            choices may be incomplete.
+            """)
+        case (true, false):
+            String(localized: "Questions couldn't be loaded, so the Question choices may be incomplete.")
+        default:
+            String(localized: "Organization details couldn't be loaded, so the Owner and Team choices may be incomplete.")
         }
     }
 
@@ -218,9 +255,19 @@ struct NewPadSheet: View {
         }
         guard !client.apiKey.isEmpty else { return }
 
-        if let fresh = try? await client.listQuestions() {
+        do {
+            let fresh = try await client.listQuestions()
+            questionsLoadFailed = false
             questions = fresh.sorted { ($0.updatedAt ?? .distantPast) > ($1.updatedAt ?? .distantPast) }
+            // The authoritative list just replaced the cached one: a selection that no
+            // longer resolves must be cleared, not submitted invisibly - the picker
+            // would show "None" while the create request still carried the id (#864).
+            if let id = selectedQuestionID, !questions.contains(where: { $0.id == id }) {
+                selectedQuestionID = nil
+            }
             fillFromSelectedQuestion()
+        } catch {
+            questionsLoadFailed = true
         }
     }
 
@@ -262,11 +309,15 @@ struct NewPadSheet: View {
     private func loadOrganization() async {
         guard !client.apiKey.isEmpty else { return }
 
-        if let org = try? await OrganizationCacheStore.shared.organization(via: client) {
+        do {
+            let org = try await OrganizationCacheStore.shared.organization(via: client)
+            organizationLoadFailed = false
             teams = org.teams
             users = org.users.sorted {
                 ($0.name ?? $0.email).localizedCaseInsensitiveCompare($1.name ?? $1.email) == .orderedAscending
             }
+        } catch {
+            organizationLoadFailed = true
         }
     }
 
