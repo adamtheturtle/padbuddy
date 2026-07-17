@@ -60,7 +60,7 @@ struct ScreenCampaignsView: View {
             .sheet(isPresented: $showWebhook) {
                 ScreenWebhookSheet(client: client)
             }
-            .task(id: client.apiKey) { await load() }
+            .task(id: client.taskIdentity) { await load() }
             // Reload on ⌘R like the other lists (AppRouter.requestReload()).
             .task {
                 for await _ in AppRouter.reloads {

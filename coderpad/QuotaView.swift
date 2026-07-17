@@ -51,7 +51,7 @@ struct QuotaView: View {
                 .macPullToRefresh { await reload() }
             }
         }
-        .task(id: client.apiKey) {
+        .task(id: client.taskIdentity) {
             // Show the last-loaded quota immediately so re-entering the section
             // doesn't flash a spinner; the reload below refreshes it in place.
             if quota == nil, let id = accountID {

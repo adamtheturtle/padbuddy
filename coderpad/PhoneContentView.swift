@@ -59,6 +59,22 @@
                     await NavigationSessionLoader.warmInactiveSections(store: store, active: available)
                 }
             }
+            // Switching accounts (or into/out of All Accounts) swaps every tab's
+            // data source, so pop each tab's pushed detail and drop its selection:
+            // a route left on the stack kept showing the previous account's pad or
+            // question over the new account's list (#698). MainSplit clears its
+            // selections the same way.
+            .onChange(of: store.currentAccountID) { _, _ in clearNavigationState() }
+            .onChange(of: store.isMergedView) { _, _ in clearNavigationState() }
+        }
+
+        private func clearNavigationState() {
+            padSelection = nil
+            questionSelection = nil
+            padPath = []
+            questionPath = []
+            screenPath = []
+            nav.screenCampaignSelection = nil
         }
 
         private var padsTab: some View {

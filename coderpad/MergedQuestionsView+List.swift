@@ -46,9 +46,14 @@ extension MergedQuestionsView {
                 // Restore the filters the list was left with last session before
                 // bridging the selection, so the list opens in the same view.
                 restoreFilters()
-                selectedRowIDs = selection
-                    .flatMap { sel in scoped.first { $0.item.id == sel.id }?.id }
-                    .map { [$0] } ?? []
+                // Prefer the row in the account the selection was made in (tracked
+                // by the router): per-org question ids collide, so the bare id can
+                // otherwise re-select a different account's same-id row (#710).
+                let restored = selection.flatMap { sel in
+                    scoped.first { $0.item.id == sel.id && $0.account.id == router.selectedQuestionAccountID }
+                        ?? scoped.first { $0.item.id == sel.id }
+                }
+                selectedRowIDs = restored.map { [$0.id] } ?? []
             }
             .onChange(of: cache.questionsByAccount) { _, _ in hydrateFromCacheIfEmpty() }
             // Re-persist whenever any filter changes; `filterSignature` shifts for

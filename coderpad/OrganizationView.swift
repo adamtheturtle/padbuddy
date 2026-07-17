@@ -41,7 +41,7 @@ struct OrganizationView: View {
 
     var body: some View {
         content
-            .task(id: client.apiKey) {
+            .task(id: client.taskIdentity) {
                 // Show the last-loaded org/quota immediately so re-entering the
                 // section doesn't flash a spinner; reload refreshes them in place.
                 // Stats are period-dependent, so they reload rather than restore.

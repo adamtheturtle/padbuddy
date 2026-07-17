@@ -122,6 +122,7 @@ extension MainSplit {
             .onChange(of: store.currentAccountID) { _, _ in
                 padSelection = nil
                 questionSelection = nil
+                clearScreenSelection()
                 restoredSections.removeAll()
             }
             // Switching into or out of the combined view changes what the panes show, so
@@ -129,8 +130,20 @@ extension MainSplit {
             .onChange(of: store.isMergedView) { _, _ in
                 padSelection = nil
                 questionSelection = nil
+                clearScreenSelection()
                 restoredSections.removeAll()
             }
+    }
+
+    /// Drops the Screen drill-down state alongside the pad/question selections when
+    /// the account or view mode changes: the selected campaign (and its account
+    /// routing and subtitle) belongs to the previous account's Screen client, so
+    /// leaving it active shows another org's candidates in the detail column (#711).
+    private func clearScreenSelection() {
+        nav.screenCampaignSelection = nil
+        nav.screenTestsSubtitle = ""
+        nav.screenTestsSubtitleOwner = nil
+        MergedRouting.shared.selectedScreenAccountID = nil
     }
 
     /// Selection observers: restore-on-launch, per-pane persistence, the debounced

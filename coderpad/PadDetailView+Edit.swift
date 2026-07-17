@@ -208,7 +208,9 @@ extension PadDetailView {
     }
 
     func commitOwner(_ email: String) async {
-        let normalized = email.trimmingCharacters(in: .whitespaces)
+        // .whitespacesAndNewlines, not .whitespaces: a pasted address can carry a
+        // trailing newline, which would be sent to the server verbatim (#783).
+        let normalized = email.trimmingCharacters(in: .whitespacesAndNewlines)
 
         // An empty owner makes the server resolve the pad to the key owner, whose email
         // can't be known locally — so this one edit keeps the authoritative re-GET
