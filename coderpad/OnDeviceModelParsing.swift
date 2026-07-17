@@ -16,10 +16,32 @@ enum OnDeviceModelParsing {
     /// omitted are simply absent from the result.
     static func labeledSections(_ reply: String, labels: [String]) -> [String: String] {
         var positions: [(label: String, range: Range<String.Index>)] = []
-        for label in labels {
-            if let range = reply.range(of: label + ":", options: .caseInsensitive) {
-                positions.append((label, range))
+        var seen = Set<String>()
+        var lineStart = reply.startIndex
+        while lineStart < reply.endIndex {
+            var lineEnd = lineStart
+            while lineEnd < reply.endIndex, !reply[lineEnd].isNewline {
+                lineEnd = reply.index(after: lineEnd)
             }
+
+            var labelStart = lineStart
+            while labelStart < lineEnd, reply[labelStart].isWhitespace {
+                labelStart = reply.index(after: labelStart)
+            }
+
+            let line = reply[labelStart ..< lineEnd]
+            for label in labels where !seen.contains(label) {
+                if let range = line.range(of: label + ":", options: [.anchored, .caseInsensitive]) {
+                    positions.append((label, range))
+                    seen.insert(label)
+                    break
+                }
+            }
+
+            if lineEnd == reply.endIndex {
+                break
+            }
+            lineStart = reply.index(after: lineEnd)
         }
         positions.sort { $0.range.lowerBound < $1.range.lowerBound }
 
