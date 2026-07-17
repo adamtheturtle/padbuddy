@@ -109,6 +109,16 @@ struct AccountsTests {
     }
 
     @Test
+    func `env screen region rejects unknown non-empty values`() {
+        #expect(throws: MCPConfigError.invalidScreenRegion(account: "default", region: "europe")) {
+            try makeAccountSet(config: nil, environment: [
+                "CODERPAD_API_KEY": "k1",
+                "CODERPAD_SCREEN_REGION": "europe"
+            ])
+        }
+    }
+
+    @Test
     func `config accounts parse, pick the marked default, and OR the write flag`() throws {
         let config: [String: Any] = [
             "accounts": [
@@ -122,6 +132,28 @@ struct AccountsTests {
         #expect(set.defaultAccount.name == "Beta")
         #expect(set.allowWrites)
         #expect(set.anyScreenEnabled)
+    }
+
+    @Test
+    func `config screen regions accept documented values case-insensitively`() throws {
+        let config: [String: Any] = ["accounts": [
+            ["name": "Acme", "api_key": "a", "screen_region": "US"],
+            ["name": "Beta", "api_key": "b", "screen_region": " eu "]
+        ]]
+        let set = try makeAccountSet(config: config, environment: [:])
+        #expect(set.accounts[0].screenRegion == "us")
+        #expect(set.accounts[1].screenRegion == "eu")
+    }
+
+    @Test
+    func `config screen region rejects unknown non-empty values`() {
+        let config: [String: Any] = ["accounts": [
+            ["name": "Acme", "api_key": "a", "screen_region": "ue"]
+        ]]
+
+        #expect(throws: MCPConfigError.invalidScreenRegion(account: "Acme", region: "ue")) {
+            try makeAccountSet(config: config, environment: [:])
+        }
     }
 
     @Test

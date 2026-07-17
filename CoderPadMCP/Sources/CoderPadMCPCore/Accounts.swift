@@ -101,6 +101,7 @@ public enum MCPConfigError: Error, Equatable {
     case missingAPIKey(account: String)
     case duplicateName(String)
     case multipleDefaultAccounts([String])
+    case invalidScreenRegion(account: String, region: String)
 }
 
 /// Why the standalone JSON config file could not be loaded.
@@ -121,8 +122,15 @@ public enum MCPConfigLoadError: Error, Equatable, LocalizedError {
     }
 }
 
-private func screenRegion(from raw: String?) -> String {
-    raw?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "eu" ? "eu" : "us"
+private func screenRegion(from raw: String?, account: String) throws -> String {
+    guard let region = trimmedNonEmpty(raw) else { return "us" }
+
+    switch region.lowercased() {
+    case "us", "eu":
+        return region.lowercased()
+    default:
+        throw MCPConfigError.invalidScreenRegion(account: account, region: region)
+    }
 }
 
 private func trimmedNonEmpty(_ raw: String?) -> String? {
@@ -210,12 +218,12 @@ public func makeAccountSet(config: [String: Any]?, environment: [String: String]
                 throw MCPConfigError.duplicateName(name)
             }
 
-            accounts.append(MCPAccount(
+            try accounts.append(MCPAccount(
                 name: name,
                 apiKey: key,
                 baseURL: parseBaseURL(entry["base_url"] as? String),
                 screenAPIKey: trimmedNonEmpty(entry["screen_api_key"] as? String),
-                screenRegion: screenRegion(from: entry["screen_region"] as? String)
+                screenRegion: screenRegion(from: entry["screen_region"] as? String, account: name)
             ))
             if (entry["default"] as? Bool) == true { defaultNames.append(name) }
         }
@@ -234,12 +242,15 @@ public func makeAccountSet(config: [String: Any]?, environment: [String: String]
         throw MCPConfigError.noAccounts
     }
 
-    let account = MCPAccount(
+    let account = try MCPAccount(
         name: trimmedNonEmpty(environment["CODERPAD_ACCOUNT_NAME"]) ?? "default",
         apiKey: key,
         baseURL: parseBaseURL(environment["CODERPAD_BASE_URL"]),
         screenAPIKey: trimmedNonEmpty(environment["CODERPAD_SCREEN_API_KEY"]),
-        screenRegion: screenRegion(from: environment["CODERPAD_SCREEN_REGION"])
+        screenRegion: screenRegion(
+            from: environment["CODERPAD_SCREEN_REGION"],
+            account: trimmedNonEmpty(environment["CODERPAD_ACCOUNT_NAME"]) ?? "default"
+        )
     )
     return MCPAccountSet(accounts: [account], defaultName: account.name, allowWrites: envWrites)
 }
