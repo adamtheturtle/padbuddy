@@ -131,12 +131,10 @@ struct ContentView: View {
             // Focused-window scoped: these are process-wide broadcasts, and with
             // several main windows open each used to present its own copy of the
             // sheet/palette at once (#906).
-            .onFocusedWindowRequest({ AppRouter.openPadByURLRequests }) {
-                showOpenPadURL = true
-            }
-            .onFocusedWindowRequest({ AppRouter.commandPaletteRequests }) {
-                showCommandPalette = true
-            }
+            .onFocusedWindowRequest({ AppRouter.openPadByURLRequests },
+                                    perform: { showOpenPadURL = true })
+            .onFocusedWindowRequest({ AppRouter.commandPaletteRequests },
+                                    perform: { showCommandPalette = true })
             // The "Open Pad by ID" intent routes through durable AppNavigation state so a
             // cold-launch request isn't dropped: consume whatever is already pending on
             // appear, and react to any value set afterwards.
