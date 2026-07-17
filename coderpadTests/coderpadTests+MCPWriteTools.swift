@@ -104,8 +104,11 @@ struct MCPWriteToolsTests {
 
         #expect(MCPTools.hasAnyUpdateQuestionField(["description": ""]))
         #expect(!MCPTools.hasAnyUpdateQuestionField([:]))
-        #expect((object["title"] as? String)?.isEmpty == true)
-        #expect(object["language"] as? String == "swift")
+        // CoderPadKit's QuestionUpdate nests title/language under a `question`
+        // object, matching the API contract; the empty title must survive there.
+        let question = try #require(object["question"] as? [String: Any])
+        #expect((question["title"] as? String)?.isEmpty == true)
+        #expect(question["language"] as? String == "swift")
         #expect((object["description"] as? String)?.isEmpty == true)
         #expect((object["solution"] as? String)?.isEmpty == true)
         #expect((object["contents"] as? String)?.isEmpty == true)
