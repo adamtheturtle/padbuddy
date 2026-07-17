@@ -163,7 +163,9 @@ struct NewQuestionSheet: View {
                         Label("Draft Question", systemImage: "sparkles")
                     }
                 }
-                .disabled(isDrafting || draftPrompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                .disabled(isSubmitting
+                    || isDrafting
+                    || draftPrompt.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 .help("Draft the title, brief, candidate prompt, and solution")
             }
         }
@@ -252,7 +254,7 @@ struct NewQuestionSheet: View {
         #if os(macOS)
             .buttonStyle(.borderedProminent)
         #endif
-            .disabled(isSubmitting || title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .disabled(isSubmitting || isDrafting || title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
     }
 }
 
@@ -336,6 +338,8 @@ private extension NewQuestionSheet {
     }
 
     func submit() async {
+        guard !isDrafting else { return }
+
         isSubmitting = true
         error = nil
         defer { isSubmitting = false }
