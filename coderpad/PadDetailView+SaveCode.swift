@@ -159,7 +159,9 @@ extension PadDetailView {
                     guard panel.runModal() == .OK, let directory = panel.url else { return }
 
                     let root = directory.appending(path: Self.sanitizeComponent(suggestedBaseName))
-                    try write(files, into: root)
+                    guard confirmReplacingExport(at: root) else { return }
+
+                    try replaceExport(files, at: root)
                 }
             } catch {
                 mutateError = error.localizedDescription
@@ -186,6 +188,38 @@ extension PadDetailView {
     }
 
     #if os(macOS)
+        private func confirmReplacingExport(at root: URL) -> Bool {
+            guard FileManager.default.fileExists(atPath: root.path) else { return true }
+
+            let alert = NSAlert()
+            alert.messageText = "Replace Existing Export?"
+            alert.informativeText = "\"\(root.lastPathComponent)\" already exists. "
+                + "Replacing it removes old exported files before saving the current pad code."
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: "Replace")
+            alert.addButton(withTitle: "Cancel")
+            return alert.runModal() == .alertFirstButtonReturn
+        }
+
+        /// Stage the complete export in a temporary sibling folder, then replace the final
+        /// root so files removed from the pad do not linger from an older export.
+        private func replaceExport(_ files: [SavableFile], at root: URL) throws {
+            let fileManager = FileManager.default
+            let parent = root.deletingLastPathComponent()
+            let staging = parent.appending(path: ".\(root.lastPathComponent)-\(UUID().uuidString).tmp")
+            do {
+                try write(files, into: staging)
+                if fileManager.fileExists(atPath: root.path) {
+                    _ = try fileManager.replaceItemAt(root, withItemAt: staging)
+                } else {
+                    try fileManager.moveItem(at: staging, to: root)
+                }
+            } catch {
+                try? fileManager.removeItem(at: staging)
+                throw error
+            }
+        }
+
         /// Write each file into `root`, creating intermediate folders so the
         /// pad's project structure survives.
         private func write(_ files: [SavableFile], into root: URL) throws {
