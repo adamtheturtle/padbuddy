@@ -121,6 +121,11 @@ final class AppNavigation {
     /// consumed/cleared by QuestionDetailView when it appears or this value changes.
     var createPadForQuestionID: Int?
 
+    /// A question id whose detail pane should immediately open title editing,
+    /// matching the detail view's inline rename affordance and the Pad menu's
+    /// command-driven edit path.
+    var editQuestionID: Int?
+
     /// A question id whose detail pane should immediately present its delete
     /// confirmation. Routed (rather than deleting inline) so the context menu and
     /// the detail view share the same confirmation step before the irreversible delete.

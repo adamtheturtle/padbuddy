@@ -191,11 +191,11 @@ extension QuestionDetailView {
             VStack(alignment: .leading, spacing: 4) {
                 // The title is edited in place: it reads as the heading until you
                 // hover or click in, and commits on Return or when focus leaves. The
-                // control is self-owning (it holds its own draft and focus), so it takes
-                // the question's title and an async commit returning whether it saved.
-                InlineEditableTitle(title: question.title, placeholder: "Untitled Question",
-                                    isEditable: !isReadOnly,
-                                    font: .title.bold()) { newTitle in await commitTitle(newTitle) }
+                // command-aware editor also lets Question > Edit Question open the
+                // same rename affordance without duplicating save logic.
+                CommandEditableTitle(title: question.title, placeholder: "Untitled Question",
+                                     isEditable: !isReadOnly, font: .title.bold(),
+                                     editRequest: titleEditRequest) { newTitle in await commitTitle(newTitle) }
                 // Keep the question identity to one owner line under the title. When
                 // the org directory has not resolved the name, avoid exposing the raw
                 // email in the header and use the generic fallback label.

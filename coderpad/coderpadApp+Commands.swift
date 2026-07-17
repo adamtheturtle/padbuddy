@@ -231,10 +231,9 @@
 
     /// Top-level "Question" menu: the Questions-pane counterpart to `PadCommands`,
     /// acting on the question selected in the frontmost window (`focusedQuestion`).
-    /// New Pad / Delete route through `AppNavigation` so the mounted
-    /// `QuestionDetailView` performs them with its existing delete confirmation —
-    /// the same path the Questions list's context menu uses. (The long-form content
-    /// is edited in place in the detail view, so there's no Edit command here.)
+    /// New Pad / Edit / Delete route through `AppNavigation` so the mounted
+    /// `QuestionDetailView` performs them with its existing inline editor and
+    /// delete confirmation — the same path the Questions list's context menu uses.
     ///
     /// `⌘↩` mirrors the Pad menu's primary action: with a pad selected it opens the
     /// pad, with a question selected it creates a pad from that question — each the
@@ -262,6 +261,14 @@
                 .disabled(question == nil || isReadOnly == true)
 
                 Divider()
+
+                Button("Edit Question…") {
+                    guard let question else { return }
+
+                    AppNavigation.shared.editQuestionID = question.id
+                }
+                .keyboardShortcut("e", modifiers: [.command])
+                .disabled(question == nil || isReadOnly == true)
 
                 Button(isFavorite == true ? "Remove from Favorites" : "Add to Favorites") {
                     guard let question else { return }

@@ -10,7 +10,9 @@ enum QuestionDetailPane: String, CaseIterable, Identifiable {
     case materials
     case solution
 
-    var id: Self { self }
+    var id: Self {
+        self
+    }
 
     var label: LocalizedStringKey {
         switch self {
@@ -27,7 +29,6 @@ enum QuestionDetailPane: String, CaseIterable, Identifiable {
         case .solution: "checkmark.seal"
         }
     }
-
 }
 
 struct QuestionDetailView: View {
@@ -54,15 +55,14 @@ struct QuestionDetailView: View {
     @State private var deletionTask: Task<Void, Never>?
     @State private var isCreatingPad = false
     @State private var createPadError: String?
-    // Inline metadata drafts (title, language, type), seeded from the question and
+    // Inline metadata drafts (language, type), seeded from the question and
     // committed one field at a time, mirroring the pad detail editor. The long-form
     // content (description, instructions, solution) is edited in place too (#335).
-    @State var titleDraft = ""
     @State var draftLanguage = "python3"
     @State var draftPadType = "live"
     @State var editError: String?
     @State var selectedPane: QuestionDetailPane = .prompt
-    @FocusState var titleFocused: Bool
+    @State var titleEditRequest = 0
 
     private var detailToolbarLeadingPlacement: ToolbarItemPlacement {
         #if os(macOS)
@@ -157,7 +157,10 @@ struct QuestionDetailView: View {
                               jobTitle: question.displayTitle)
             })
             .toolbar(id: "question-detail") { detailToolbar }
-            .alert("Delete \(question.title.isEmpty ? "this question" : question.title)?", isPresented: $showDeleteConfirm) {
+            .alert(
+                "Delete \(question.title.isEmpty ? "this question" : question.title)?",
+                isPresented: $showDeleteConfirm
+            ) {
                 Button("Cancel", role: .cancel) {}
                 Button("Delete", role: .destructive) { startDeletion() }
             } message: {
@@ -168,12 +171,23 @@ struct QuestionDetailView: View {
                                                 deleteError: $deleteError))
             .onAppear {
                 consumePendingPadCreation()
+                consumePendingEdit()
                 consumePendingDelete()
                 consumePendingFavoriteToggle()
             }
             .onChange(of: nav.createPadForQuestionID) { _, _ in consumePendingPadCreation() }
+            .onChange(of: nav.editQuestionID) { _, _ in consumePendingEdit() }
             .onChange(of: nav.deleteQuestionID) { _, _ in consumePendingDelete() }
             .onChange(of: nav.toggleFavoriteQuestionID) { _, _ in consumePendingFavoriteToggle() }
+    }
+
+    /// Consumes an "Edit Question" request routed via `AppNavigation` from the
+    /// Question menu, opening the inline title editor.
+    private func consumePendingEdit() {
+        guard nav.editQuestionID == question.id else { return }
+
+        nav.editQuestionID = nil
+        titleEditRequest += 1
     }
 
     /// Honors a "Favorite" request from the Question menu by toggling the same

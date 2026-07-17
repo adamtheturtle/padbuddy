@@ -143,6 +143,14 @@
 
                 Divider()
 
+                Button("Edit Question…") {
+                    guard let question else { return }
+
+                    AppNavigation.shared.editQuestionID = question.id
+                }
+                .keyboardShortcut("e", modifiers: [.command])
+                .disabled(question == nil || isReadOnly == true)
+
                 Button(isFavorite == true ? "Remove from Favorites" : "Add to Favorites") {
                     guard let question else { return }
 
