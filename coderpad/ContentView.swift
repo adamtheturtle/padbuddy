@@ -177,10 +177,25 @@ struct ContentView: View {
         guard let raw = nav.openPadID else { return }
 
         nav.openPadID = nil
-        guard let id = PadIDValidation.normalize(raw),
-              let url = URL(string: "https://app.coderpad.io/\(id)") else { return }
+        guard let id = PadIDValidation.normalize(raw) else { return }
 
-        BrowserSettings.openExternally(url)
+        BrowserSettings.openExternally(padURL(for: id))
+    }
+
+    /// The web URL for a pad id queued by ID-based routing (Spotlight, the Open Pad
+    /// intent, notifications, coderpad://pad/...). Prefers the cached pad's own URL
+    /// from whichever account holds it, then that account's server, then the current
+    /// account's - never a hardcoded host, which sent self-hosted and regional
+    /// accounts' pads to app.coderpad.io where they don't exist (#731).
+    private func padURL(for id: String) -> URL {
+        for account in store.accounts {
+            guard let pad = PadsCacheStore.shared.get(account.id).first(where: { $0.id == id })
+            else { continue }
+
+            return pad.webURL(fallbackBase: account.resolvedBaseURL)
+        }
+        let base = store.currentAccount?.resolvedBaseURL ?? CoderPadClient.defaultBaseURL
+        return base.appending(path: id)
     }
 
     /// Starts account setup on the canonical Settings > Accounts inline editor, the
