@@ -30,6 +30,7 @@ struct NewQuestionSheet: View {
 
     var body: some View {
         sheetContent
+            .interactiveDismissDisabled(isSubmitting)
             .task { applyOrgDefaultLanguage() }
             .onChange(of: directory.defaultLanguage) { _, _ in applyOrgDefaultLanguage() }
     }
@@ -227,6 +228,7 @@ struct NewQuestionSheet: View {
         HStack {
             Spacer()
             Button("Cancel", role: .cancel, action: onCancel)
+                .disabled(isSubmitting)
             createButton
         }
     }
@@ -235,6 +237,7 @@ struct NewQuestionSheet: View {
     private var sheetToolbar: some ToolbarContent {
         ToolbarItem(placement: .cancellationAction) {
             Button("Cancel", role: .cancel, action: onCancel)
+                .disabled(isSubmitting)
         }
         ToolbarItem(placement: .confirmationAction) {
             createButton
