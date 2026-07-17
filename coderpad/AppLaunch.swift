@@ -55,6 +55,10 @@ enum AppLaunch {
         // and the menu is never clicked — the one state where nothing else fetches.
         // Writing to PadsCacheStore cascades to the widget snapshot and Dock badge.
         PadsBackgroundRefresher.shared.start()
+        // Clean up caches, Spotlight, favorites, and open-history when a pad or
+        // question deletion is broadcast — process-wide, so a delete from a
+        // standalone detail window works even when no list view is mounted (#721).
+        DeletionCleanup.start()
         // Watch network reachability so the app can drop into a read-only mode while
         // CoderPad is unreachable, surfacing an offline banner and disabling edits (#321).
         NetworkMonitor.shared.start()

@@ -279,6 +279,16 @@ final class PadOpenedStore {
         save()
     }
 
+    /// Drops one pad's open timestamp under `account`, called by the central
+    /// deletion cleanup so a deleted pad's record doesn't persist indefinitely
+    /// (and reattach if the same id is ever seen again, #723).
+    func removePad(_ padID: String, account: UUID) {
+        guard byAccount[account]?[padID] != nil else { return }
+
+        byAccount[account]?[padID] = nil
+        save()
+    }
+
     private func save() {
         do {
             let data = try JSONEncoder().encode(byAccount)

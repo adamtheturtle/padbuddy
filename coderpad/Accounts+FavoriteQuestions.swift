@@ -152,6 +152,20 @@ final class FavoriteQuestionsStore {
         WidgetSync.syncFavorites(account: account)
     }
 
+    /// Removes one starred question under `account` if present, called by the
+    /// central deletion cleanup so a deleted question can't linger as a dead
+    /// sidebar shortcut or New Pad seed (#722). Unlike `toggle`, never adds.
+    func remove(_ id: Int, account: UUID, undoManager: UndoManager? = nil) {
+        guard var entries = byAccount[account], let index = entries.firstIndex(where: { $0.id == id }) else { return }
+
+        let before = entries
+        entries.remove(at: index)
+        byAccount[account] = entries
+        save()
+        WidgetSync.syncFavorites(account: account)
+        registerUndo(to: before, account: account, undoManager: undoManager, actionName: "Remove Favorite")
+    }
+
     /// Updates stored titles from a freshly loaded question list, so a favorite's
     /// name stays current after a rename and legacy id-only favorites gain a title.
     /// Called when an account's questions cache is refreshed; a no-op when nothing
