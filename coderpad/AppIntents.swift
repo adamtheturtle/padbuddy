@@ -182,6 +182,7 @@ struct OpenRecentPadsIntent: AppIntent {
     func perform() async -> some IntentResult {
         try? await Task.sleep(for: .milliseconds(200))
         await MainActor.run {
+            UserDefaults.standard.set(PadSort.updatedDesc.rawValue, forKey: PadSort.storageKey)
             if AccountsStore.shared.showAllAccounts {
                 AppNavigation.shared.showMergedRoot(kind: .pads)
             } else {
