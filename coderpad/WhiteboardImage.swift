@@ -62,8 +62,6 @@ struct WhiteboardImage: View {
     }
 
     private func load() async {
-        phase = .loading
-
         // The whiteboard renders into the detail pane (a few hundred points wide)
         // and opens full size on tap, so cap the inline copy at a generous pane
         // width in pixels rather than decoding the source at full resolution.
@@ -71,9 +69,15 @@ struct WhiteboardImage: View {
         let maxPixelSize = Int(600 * scale)
         let key = "\(url.absoluteString)|\(maxPixelSize)"
 
-        if let cached = WhiteboardImageCache.shared.image(forKey: key) {
+        let cached = WhiteboardImageCache.shared.image(forKey: key)
+        if let cached {
+            // Show the cached thumbnail instantly, but keep going: the drawing can
+            // change behind an unchanged URL, so every load revalidates through the
+            // URL cache (conditional GET when the server offers validators) and
+            // refreshes the decoded copy (#792).
             phase = .success(cached)
-            return
+        } else {
+            phase = .loading
         }
 
         do {
@@ -82,15 +86,23 @@ struct WhiteboardImage: View {
             let downsampled = await Task.detached {
                 WhiteboardImageCache.downsample(data: data, maxPixelSize: maxPixelSize)
             }.value
+            // `.task(id: url)` cancelled this task if the URL moved on, but the
+            // detached downsample doesn't inherit that: a late result must not
+            // overwrite the newer URL's image (#793).
+            try Task.checkCancellation()
             guard let image = downsampled?.image else {
-                phase = .failure
+                if cached == nil { phase = .failure }
                 return
             }
 
             WhiteboardImageCache.shared.store(image, forKey: key)
             phase = .success(image)
         } catch {
-            phase = .failure
+            guard !Task.isCancelled else { return }
+
+            // A failed revalidation keeps showing the cached thumbnail rather than
+            // flashing a failure over a perfectly presentable image.
+            if cached == nil { phase = .failure }
         }
     }
 }
@@ -124,7 +136,11 @@ final class WhiteboardImageCache {
         config.urlCache = URLCache(memoryCapacity: 8 * 1024 * 1024,
                                    diskCapacity: 64 * 1024 * 1024,
                                    directory: nil)
-        config.requestCachePolicy = .returnCacheDataElseLoad
+        // Standard HTTP semantics rather than returnCacheDataElseLoad: an edited
+        // drawing can be served behind an unchanged URL, and blindly reusing cached
+        // bytes froze it forever (#792). With validators this is a cheap conditional
+        // GET; the decoded memory cache still makes re-selection instant.
+        config.requestCachePolicy = .useProtocolCachePolicy
         session = URLSession(configuration: config)
     }
 
