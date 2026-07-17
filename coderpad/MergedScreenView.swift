@@ -34,6 +34,11 @@ struct MergedScreenView: View {
     @State private var routing = MergedRouting.shared
     @State private var nav = AppNavigation.shared
     @State private var campaignsByAccount: [UUID: [ScreenCampaign]] = [:]
+    /// The Screen credential token each account's bucket was loaded with, so a bucket
+    /// filled under an old key/region is cleared the moment the account is re-keyed
+    /// (#891) and a stale in-flight response can't overwrite the new credentials'
+    /// campaigns (#890).
+    @State private var bucketCredentials: [UUID: String] = [:]
     @State private var accountErrors: [UUID: String] = [:]
     @State private var isLoading = false
     @State private var showArchived = false
@@ -272,36 +277,76 @@ struct MergedScreenView: View {
             .joined(separator: ",")
     }
 
+    /// One account's Screen backend identity: responses and cached buckets only count
+    /// while the account still uses the credentials they were fetched with.
+    private func credentialToken(_ account: Account) -> String {
+        "\(account.screenApiKey ?? ""):\(account.screenRegion.rawValue)"
+    }
+
     /// Fan out `listCampaigns()` across every Screen-enabled account concurrently,
     /// applying each result as it lands and isolating per-account failure.
     private func load() async {
         let targets = screenAccounts
         guard !targets.isEmpty else { return }
 
+        clearRekeyedBuckets(for: targets)
+        pruneVanishedSelection()
+
         isLoading = true
         defer { isLoading = false }
-        await withTaskGroup(of: (UUID, [ScreenCampaign]?, String?).self) { group in
+        await withTaskGroup(of: (UUID, String, [ScreenCampaign]?, String?).self) { group in
             for target in targets {
+                let token = credentialToken(target.account)
                 group.addTask {
                     do {
-                        return try await (target.account.id, target.client.listCampaigns(), nil)
+                        return try await (target.account.id, token, target.client.listCampaigns(), nil)
                     } catch {
                         let message = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
-                        return (target.account.id, nil, message)
+                        return (target.account.id, token, nil, message)
                     }
                 }
             }
-            for await (id, campaigns, errorText) in group {
-                if let campaigns {
-                    campaignsByAccount[id] = campaigns
-                    accountErrors[id] = nil
-                } else if let errorText {
-                    accountErrors[id] = errorText
-                }
+            for await (id, token, campaigns, errorText) in group {
+                apply(id: id, token: token, campaigns: campaigns, errorText: errorText)
             }
         }
-        // If the selected campaign vanished (deleted, or its account lost its key),
-        // clear the selection so the detail column stops showing its tests.
+        pruneVanishedSelection()
+    }
+
+    /// Drops buckets loaded under superseded credentials: they're stale the moment
+    /// the key or region changes, and must not be relabeled as the new client's
+    /// campaigns while the replacement request runs (#891).
+    private func clearRekeyedBuckets(for targets: [(account: Account, client: ScreenClient)]) {
+        for target in targets {
+            let token = credentialToken(target.account)
+            if let previous = bucketCredentials[target.account.id], previous != token {
+                campaignsByAccount[target.account.id] = nil
+                accountErrors[target.account.id] = nil
+                bucketCredentials[target.account.id] = nil
+            }
+        }
+    }
+
+    /// Applies one account's fetch result, but only when it was fetched with the
+    /// account's current credentials: an overlapping reload started before a re-key
+    /// must not land last and overwrite the new key's campaigns with the old
+    /// org's (#890).
+    private func apply(id: UUID, token: String, campaigns: [ScreenCampaign]?, errorText: String?) {
+        guard let current = screenAccounts.first(where: { $0.account.id == id }),
+              credentialToken(current.account) == token else { return }
+
+        if let campaigns {
+            campaignsByAccount[id] = campaigns
+            accountErrors[id] = nil
+            bucketCredentials[id] = token
+        } else if let errorText {
+            accountErrors[id] = errorText
+        }
+    }
+
+    /// If the selected campaign vanished (deleted, re-keyed away, or its account lost
+    /// its key), clear the selection so the detail column stops showing its tests.
+    private func pruneVanishedSelection() {
         if let id = selectedScopedID, scopedCampaign(id: id) == nil {
             selectedScopedID = nil
         }
