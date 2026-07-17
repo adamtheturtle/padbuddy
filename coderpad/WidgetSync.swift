@@ -21,6 +21,12 @@ enum WidgetSync {
     /// to the same shared files stay ordered.
     private static let writeQueue = DispatchQueue(label: "com.coderpad.widget-sync", qos: .utility)
 
+    /// Accounts torn down this session, guarded by `writeQueue` (every access runs on
+    /// it). A refresh enqueued before a removal must not recreate the removed
+    /// account's snapshot when it runs after it (#724); re-adding the account clears
+    /// its tombstone via `syncAccounts`.
+    nonisolated(unsafe) private static var removedAccounts: Set<UUID> = []
+
     /// Mirrors one account's most recently updated pads into the shared container,
     /// keyed by account id so a configured widget can pin it. When `isCurrent`, it
     /// also rewrites the default snapshot an unconfigured widget reads. Cheap and
@@ -37,6 +43,8 @@ enum WidgetSync {
         // the main actor isn't blocked on disk I/O (#373).
         let snapshots = recentSnapshots(from: pads)
         writeQueue.async {
+            guard !removedAccounts.contains(accountID) else { return }
+
             WidgetSharedStore.save(snapshots, account: accountID.uuidString)
             if isCurrent {
                 WidgetSharedStore.save(snapshots)
@@ -46,10 +54,14 @@ enum WidgetSync {
     }
 
     /// Clears the default snapshot (read when no account is pinned) and reloads, for
-    /// when there is no current account.
+    /// when there is no current account. Ordered through the same serial queue as
+    /// the refresh writes, so a refresh enqueued earlier can't run after this clear
+    /// and repopulate the snapshot it just emptied (#753).
     static func clearCurrent() {
-        WidgetSharedStore.save([])
-        WidgetCenter.shared.reloadAllTimelines()
+        writeQueue.async {
+            WidgetSharedStore.save([])
+            WidgetCenter.shared.reloadAllTimelines()
+        }
     }
 
     /// Mirrors the account list (id + name) into the shared container so the widget's
@@ -57,6 +69,10 @@ enum WidgetSync {
     /// the accounts explicitly rather than reading `AccountsStore.shared`, so it's
     /// safe to call from the `accounts` observer during the store's own init.
     static func syncAccounts(_ accounts: [Account]) {
+        // An account that exists (again) is no longer torn down; drop its tombstone
+        // so its snapshots refresh normally after a remove-and-re-add.
+        let present = Set(accounts.map(\.id))
+        writeQueue.async { removedAccounts.subtract(present) }
         WidgetSharedStore.saveAccounts(accounts.map {
             WidgetAccount(id: $0.id.uuidString, name: $0.name)
         })
@@ -99,10 +115,16 @@ enum WidgetSync {
     }
 
     /// Drops a removed account's per-account snapshot and reloads. The account index
-    /// is refreshed separately when the accounts list itself changes.
+    /// is refreshed separately when the accounts list itself changes. Ordered through
+    /// the serial write queue AND tombstoned, so a refresh enqueued before the
+    /// removal (whose closure captured the account's pads) can't write the snapshot
+    /// back after teardown (#724).
     static func removeAccount(_ accountID: UUID) {
-        WidgetSharedStore.deletePads(account: accountID.uuidString)
-        WidgetCenter.shared.reloadAllTimelines()
+        writeQueue.async {
+            removedAccounts.insert(accountID)
+            WidgetSharedStore.deletePads(account: accountID.uuidString)
+            WidgetCenter.shared.reloadAllTimelines()
+        }
     }
 
     private static func recentSnapshots(from pads: [Pad]) -> [WidgetPadSnapshot] {
