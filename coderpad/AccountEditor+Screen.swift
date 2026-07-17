@@ -136,14 +136,24 @@ extension AccountEditor {
         let key = (draft.screenApiKey ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         guard !key.isEmpty else { return }
 
+        let region = draft.screenRegion
         screenValidation = .validating
         do {
-            let client = ScreenClient.live(apiKey: key, baseURL: draft.screenRegion.baseURL)
+            let client = ScreenClient.live(apiKey: key, baseURL: region.baseURL)
             _ = try await client.listCampaigns()
+            guard screenCredentialsStillMatch(key: key, region: region) else { return }
+
             screenValidation = .valid
         } catch {
+            guard screenCredentialsStillMatch(key: key, region: region) else { return }
+
             screenValidation = .invalid(friendlyValidationMessage(for: error))
         }
+    }
+
+    private func screenCredentialsStillMatch(key: String, region: ScreenRegion) -> Bool {
+        (draft.screenApiKey ?? "").trimmingCharacters(in: .whitespacesAndNewlines) == key
+            && draft.screenRegion == region
     }
 }
 
