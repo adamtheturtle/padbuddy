@@ -251,7 +251,7 @@ final class FavoriteQuestionsStore {
         // titles renamed on another Mac (#762).
         merged = FavoriteTitleSync.adoptCloudTitles(
             merged: merged, cloud: cloud, uuidForSyncID: uuidForSyncID,
-            id: { $0.id }, title: { $0.title }, setTitle: { $0.title = $1 }
+            id: { $0.id }, title: \.title
         )
         guard merged != byAccount else { return }
 

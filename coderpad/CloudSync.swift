@@ -75,21 +75,20 @@ nonisolated enum FavoriteTitleSync {
         cloud: [String: [Element]],
         uuidForSyncID: (String) -> UUID?,
         id: (Element) -> AnyHashable,
-        title: (Element) -> String,
-        setTitle: (inout Element, String) -> Void
+        title: WritableKeyPath<Element, String>
     ) -> [UUID: [Element]] {
         var result = merged
         for (identity, cloudList) in cloud {
             guard let uuid = uuidForSyncID(identity), var list = result[uuid] else { continue }
 
-            let cloudTitles = Dictionary(cloudList.map { (id($0), title($0)) },
+            let cloudTitles = Dictionary(cloudList.map { (id($0), $0[keyPath: title]) },
                                          uniquingKeysWith: { first, _ in first })
             var changed = false
             for index in list.indices {
                 guard let cloudTitle = cloudTitles[id(list[index])],
-                      !cloudTitle.isEmpty, cloudTitle != title(list[index]) else { continue }
+                      !cloudTitle.isEmpty, cloudTitle != list[index][keyPath: title] else { continue }
 
-                setTitle(&list[index], cloudTitle)
+                list[index][keyPath: title] = cloudTitle
                 changed = true
             }
             if changed { result[uuid] = list }

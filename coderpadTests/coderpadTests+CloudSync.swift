@@ -257,7 +257,7 @@ struct FavoriteTitleSyncTests {
         let cloud = ["sync-id": [FavoritePad(id: "abc", title: "New title")]]
         let result = FavoriteTitleSync.adoptCloudTitles(
             merged: merged, cloud: cloud, uuidForSyncID: { _ in account },
-            id: { $0.id }, title: { $0.title }, setTitle: { $0.title = $1 }
+            id: { $0.id }, title: \.title
         )
         #expect(result[account]?.map(\.title) == ["New title"])
     }
@@ -271,7 +271,7 @@ struct FavoriteTitleSyncTests {
         let cloud = ["sync-id": [FavoriteQuestion(id: 7, title: "")]]
         let result = FavoriteTitleSync.adoptCloudTitles(
             merged: merged, cloud: cloud, uuidForSyncID: { _ in account },
-            id: { $0.id }, title: { $0.title }, setTitle: { $0.title = $1 }
+            id: { $0.id }, title: \.title
         )
         #expect(result[account]?.map(\.title) == ["Two Sum"])
     }
@@ -287,7 +287,7 @@ struct FavoriteTitleSyncTests {
         let result = FavoriteTitleSync.adoptCloudTitles(
             merged: merged, cloud: cloud,
             uuidForSyncID: { $0 == "sync-id" ? account : nil },
-            id: { $0.id }, title: { $0.title }, setTitle: { $0.title = $1 }
+            id: { $0.id }, title: \.title
         )
         #expect(result[account]?.map(\.title) == ["Kept"])
     }
