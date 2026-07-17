@@ -15,8 +15,8 @@ import Testing
 
 @Suite("iCloud sync foundation")
 struct CloudSyncTests {
-    private func account(email: String, baseURL: String? = nil, id: UUID = UUID()) -> Account {
-        Account(name: "Acme", apiKey: "key", id: id, userEmail: email, baseURL: baseURL)
+    private func account(email: String, baseURL: String? = nil, apiKey: String = "key", id: UUID = UUID()) -> Account {
+        Account(name: "Acme", apiKey: apiKey, id: id, userEmail: email, baseURL: baseURL)
     }
 
     @Test
@@ -41,15 +41,28 @@ struct CloudSyncTests {
         let jane = account(email: "jane@acme.com")
         let bob = account(email: "bob@acme.com")
         let janeSelfHosted = account(email: "jane@acme.com", baseURL: "https://coderpad.acme.internal")
+        let janeSelfHostedPort = account(email: "jane@acme.com", baseURL: "https://coderpad.acme.internal:8443")
+        let janeSelfHostedPath = account(email: "jane@acme.com", baseURL: "https://coderpad.acme.internal/org-a")
 
         #expect(jane.syncID != bob.syncID)
         #expect(jane.syncID != janeSelfHosted.syncID)
+        #expect(janeSelfHosted.syncID != janeSelfHostedPort.syncID)
+        #expect(janeSelfHosted.syncID != janeSelfHostedPath.syncID)
+    }
+
+    @Test
+    func `different API keys for the same owner and endpoint get different sync ids`() {
+        let orgA = account(email: "jane@acme.com", apiKey: "org-a-key")
+        let orgB = account(email: "jane@acme.com", apiKey: "org-b-key")
+
+        #expect(orgA.syncID != orgB.syncID)
     }
 
     @Test
     func `an account with no owner email has an empty sync id`() {
         #expect(account(email: "").syncID.isEmpty)
         #expect(account(email: "   ").syncID.isEmpty)
+        #expect(account(email: "jane@acme.com", apiKey: "   ").syncID.isEmpty)
     }
 
     @Test
