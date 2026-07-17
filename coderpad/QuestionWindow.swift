@@ -30,6 +30,7 @@ struct QuestionWindow: View {
     @State private var cache = QuestionsCacheStore.shared
     @State private var fetched: Question?
     @State private var loadFailed = false
+    @State private var refreshError: String?
 
     /// The owning account: the one named in the value, or the current account when
     /// the value omits it (single-account context).
@@ -49,11 +50,18 @@ struct QuestionWindow: View {
 
     var body: some View {
         Group {
-            if let account, let question = cachedQuestion ?? fetched {
-                QuestionDetailView(client: account.makeClient(),
-                                   question: question,
-                                   accountID: account.id)
-                    .navigationTitle(question.displayTitle)
+            if let account, let question = fetched ?? cachedQuestion {
+                VStack(spacing: 0) {
+                    if let refreshError {
+                        StaleRefreshBanner(message: refreshError) {
+                            Task { await refresh() }
+                        }
+                    }
+                    QuestionDetailView(client: account.makeClient(),
+                                       question: question,
+                                       accountID: account.id)
+                }
+                .navigationTitle(question.displayTitle)
             } else if value == nil || loadFailed {
                 // The system can restore this window without a value, or the fetch
                 // can fail (e.g. the question was deleted); show a placeholder rather
@@ -64,25 +72,45 @@ struct QuestionWindow: View {
                 ProgressView().controlSize(.large)
             }
         }
-        .task(id: value) { await loadIfNeeded() }
+        .task(id: value) { await load() }
+        .task {
+            for await _ in AppRouter.reloads {
+                await refresh()
+            }
+        }
     }
 
-    /// Fetch the question once when it isn't in the cache, so a restored window on a
-    /// cold cache fills in. Cache hits skip the network entirely.
-    private func loadIfNeeded() async {
+    /// Fetch the question after first paint so restored windows don't treat
+    /// persisted list snapshots as authoritative.
+    private func load() async {
         // If the window was reused for a different question, drop the previous
         // fetch so its stale result can't satisfy the `fetched == nil` guard
-        // (and can't render via `cachedQuestion ?? fetched`).
+        // (and can't render via `fetched ?? cachedQuestion`).
         if let fetched, fetched.id != value?.id {
             self.fetched = nil
             loadFailed = false
+            refreshError = nil
         }
-        guard cachedQuestion == nil, fetched == nil, let value, let account else { return }
+        await refresh()
+    }
+
+    private func refresh() async {
+        guard let value, let account else { return }
 
         do {
-            fetched = try await account.makeClient().getQuestion(id: value.id)
+            let question = try await account.makeClient().getQuestion(id: value.id)
+            fetched = question
+            loadFailed = false
+            refreshError = nil
+            AppRouter.questionUpdated(question, account: account.id)
+        } catch is CancellationError {
+            return
         } catch {
-            loadFailed = true
+            if cachedQuestion == nil, fetched == nil {
+                loadFailed = true
+            } else {
+                refreshError = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
+            }
         }
     }
 }
