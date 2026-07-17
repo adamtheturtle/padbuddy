@@ -7,6 +7,11 @@
 //  file under the length limit.
 //
 
+#if os(macOS)
+    import AppKit
+#else
+    import UIKit
+#endif
 import SwiftUI
 
 /// The scrollable, syntax-highlighted view of one file's source. Kept separate
@@ -119,16 +124,33 @@ struct HighlightedCode: View, Equatable {
     private func copy() {
         copyGeneration += 1
         let generation = copyGeneration
-        didCopy = false
+        // Plain text lands synchronously, so the newest copy - from this or any other
+        // view - always wins the clipboard, and the checkmark is honest (#750).
+        Clipboard.copy(contents)
+        let baseline = Self.pasteboardChangeCount
+        didCopy = true
+        scheduleCopyReset(for: generation)
         copyTask?.cancel()
         copyTask = Task {
             let rtf = await SyntaxHighlighter.rtf(contents, language: language, dark: dark)
-            guard !Task.isCancelled, copyGeneration == generation else { return }
+            // Add the rich-text flavor only while our plain-text write is still the
+            // latest pasteboard change: the clipboard is global, so a newer copy from
+            // any other view (another file, a URL from a context menu) must never be
+            // replaced by this older content finishing late (#750).
+            guard !Task.isCancelled, copyGeneration == generation,
+                  Self.pasteboardChangeCount == baseline else { return }
 
             Clipboard.copy(contents, rtf: rtf)
-            didCopy = true
-            scheduleCopyReset(for: generation)
         }
+    }
+
+    /// The system pasteboard's change counter, bumped by every write from any app.
+    private static var pasteboardChangeCount: Int {
+        #if os(macOS)
+            NSPasteboard.general.changeCount
+        #else
+            UIPasteboard.general.changeCount
+        #endif
     }
 
     private func scheduleCopyReset(for generation: Int) {
