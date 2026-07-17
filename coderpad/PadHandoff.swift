@@ -18,16 +18,44 @@ enum PadActivity {
     /// `userInfo` key carrying the pad's URL string, used to restore the activity even
     /// when `webpageURL` isn't consulted.
     static let urlKey = "url"
+
+    @MainActor
+    static var trustedPadHosts: Set<String> {
+        var hosts: Set<String> = []
+        if let host = CoderPadClient.defaultBaseURL.host() {
+            hosts.insert(host.lowercased())
+        }
+        for account in AccountsStore.shared.accounts {
+            if let host = account.resolvedBaseURL.host() {
+                hosts.insert(host.lowercased())
+            }
+        }
+        return hosts
+    }
+
+    @MainActor
+    static func isTrustedPadURL(_ url: URL) -> Bool {
+        guard let scheme = url.scheme?.lowercased(),
+              scheme == "http" || scheme == "https",
+              let host = url.host()?.lowercased(),
+              trustedPadHosts.contains(host) else {
+            return false
+        }
+
+        return url.pathComponents.contains { $0 != "/" && !$0.isEmpty }
+    }
 }
 
 /// The pad URL carried by an incoming pad activity: the `webpageURL` (set on every
-/// pad activity) with the `userInfo` string as a fallback. Returns `nil` for an
-/// activity that carries neither, so the scene handlers can ignore it.
+/// pad activity) with the `userInfo` string as a fallback. Returns `nil` for missing
+/// or untrusted URLs, so Handoff cannot become an arbitrary external-open command.
 @MainActor
 func padActivityURL(_ activity: NSUserActivity) -> URL? {
-    if let url = activity.webpageURL { return url }
-    if let string = activity.userInfo?[PadActivity.urlKey] as? String { return URL(string: string) }
-    return nil
+    let candidate = activity.webpageURL
+        ?? (activity.userInfo?[PadActivity.urlKey] as? String).flatMap(URL.init(string:))
+    guard let candidate, PadActivity.isTrustedPadURL(candidate) else { return nil }
+
+    return candidate
 }
 
 extension View {
