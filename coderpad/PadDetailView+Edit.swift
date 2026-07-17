@@ -9,6 +9,31 @@
 
 import SwiftUI
 
+private enum PadInlineCommitField: String {
+    case language
+    case owner
+    case privacy
+    case execution
+}
+
+@MainActor
+private enum PadInlineCommitQueue {
+    private static var tasks: [String: Task<Void, Never>] = [:]
+
+    static func enqueue(padID: String,
+                        field: PadInlineCommitField,
+                        operation: @escaping @MainActor () async -> Void) {
+        let key = "\(padID):\(field.rawValue)"
+        let previous = tasks[key]
+        tasks[key] = Task { @MainActor in
+            await previous?.value
+            guard !Task.isCancelled else { return }
+
+            await operation()
+        }
+    }
+}
+
 extension PadDetailView {
     /// The editable pad properties, presented as labeled rows of inline controls.
     /// Title is edited in the header, notes are edited in their own long-form
@@ -97,22 +122,42 @@ extension PadDetailView {
 
     private var languageBinding: Binding<String> {
         Binding(get: { draftLanguage },
-                set: { newValue in draftLanguage = newValue; Task { await commitLanguage(newValue) } })
+                set: { newValue in
+                    draftLanguage = newValue
+                    PadInlineCommitQueue.enqueue(padID: pad.id, field: .language) {
+                        await commitLanguage(newValue)
+                    }
+                })
     }
 
     private var ownerBinding: Binding<String> {
         Binding(get: { draftOwner },
-                set: { newValue in draftOwner = newValue; Task { await commitOwner(newValue) } })
+                set: { newValue in
+                    draftOwner = newValue
+                    PadInlineCommitQueue.enqueue(padID: pad.id, field: .owner) {
+                        await commitOwner(newValue)
+                    }
+                })
     }
 
     private var privateBinding: Binding<Bool> {
         Binding(get: { draftIsPrivate },
-                set: { newValue in draftIsPrivate = newValue; Task { await commitPrivate(newValue) } })
+                set: { newValue in
+                    draftIsPrivate = newValue
+                    PadInlineCommitQueue.enqueue(padID: pad.id, field: .privacy) {
+                        await commitPrivate(newValue)
+                    }
+                })
     }
 
     private var executionBinding: Binding<Bool> {
         Binding(get: { draftExecution },
-                set: { newValue in draftExecution = newValue; Task { await commitExecution(newValue) } })
+                set: { newValue in
+                    draftExecution = newValue
+                    PadInlineCommitQueue.enqueue(padID: pad.id, field: .execution) {
+                        await commitExecution(newValue)
+                    }
+                })
     }
 
     // MARK: - Drafts
@@ -157,16 +202,13 @@ extension PadDetailView {
     }
 
     func commitLanguage(_ language: String) async {
-        guard language != pad.language else { return }
-
-        await save(PadUpdate(id: pad.id, language: language), optimistic: optimisticPad()) {
+        await save(PadUpdate(id: pad.id, language: language), optimistic: optimisticPad(language: language)) {
             draftLanguage = pad.language ?? "python3"
         }
     }
 
     func commitOwner(_ email: String) async {
         let normalized = email.trimmingCharacters(in: .whitespaces)
-        guard normalized != pad.ownerEmail else { return }
 
         // An empty owner makes the server resolve the pad to the key owner, whose email
         // can't be known locally — so this one edit keeps the authoritative re-GET
@@ -177,17 +219,16 @@ extension PadDetailView {
     }
 
     func commitPrivate(_ isPrivate: Bool) async {
-        guard isPrivate != (pad.isPrivate ?? false) else { return }
-
-        await save(PadUpdate(id: pad.id, isPrivate: isPrivate), optimistic: optimisticPad()) {
+        await save(PadUpdate(id: pad.id, isPrivate: isPrivate), optimistic: optimisticPad(isPrivate: isPrivate)) {
             draftIsPrivate = pad.isPrivate ?? false
         }
     }
 
     func commitExecution(_ enabled: Bool) async {
-        guard enabled != (pad.executionEnabled ?? true) else { return }
-
-        await save(PadUpdate(id: pad.id, executionEnabled: enabled), optimistic: optimisticPad()) {
+        await save(
+            PadUpdate(id: pad.id, executionEnabled: enabled),
+            optimistic: optimisticPad(executionEnabled: enabled)
+        ) {
             draftExecution = pad.executionEnabled ?? true
         }
     }
@@ -207,14 +248,19 @@ extension PadDetailView {
     /// Building from the full draft set (not just the one changed field) keeps
     /// concurrent rapid edits from clobbering each other, since those drafts are always
     /// the saved value (#376).
-    private func optimisticPad(title: String? = nil, notes: String? = nil) -> Pad {
+    private func optimisticPad(title: String? = nil,
+                               language: String? = nil,
+                               notes: String? = nil,
+                               isPrivate: Bool? = nil,
+                               executionEnabled: Bool? = nil) -> Pad {
         Pad(
             id: pad.id, title: title ?? pad.title, state: pad.state, ownerEmail: pad.ownerEmail,
-            language: draftLanguage, participants: pad.participants, url: pad.url,
+            language: language ?? draftLanguage, participants: pad.participants, url: pad.url,
             playback: pad.playback, events: pad.events, notes: notes ?? pad.notes,
             drawing: pad.drawing, contents: pad.contents, history: pad.history,
             createdAt: pad.createdAt, updatedAt: pad.updatedAt, endedAt: pad.endedAt,
-            type: pad.type, executionEnabled: draftExecution, isPrivate: draftIsPrivate,
+            type: pad.type, executionEnabled: executionEnabled ?? draftExecution,
+            isPrivate: isPrivate ?? draftIsPrivate,
             activeEnvironmentID: pad.activeEnvironmentID, padEnvironmentIDs: pad.padEnvironmentIDs,
             questionIDs: pad.questionIDs, team: pad.team
         )
