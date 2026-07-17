@@ -15,7 +15,11 @@ extension MergedPadsView {
     var decoratedDialogs: some View {
         decoratedStreams
             .sheet(item: $creatingForAccount) { account in
-                NewPadSheet(client: account.makeClient(), initialQuestionID: creatingSeedQuestionID) { created in
+                NewPadSheet(
+                    client: account.makeClient(),
+                    keyOwnerEmail: account.userEmail,
+                    initialQuestionID: creatingSeedQuestionID
+                ) { created in
                     insert(created, into: account)
                     selectedIDs = [created.id]
                     creatingForAccount = nil

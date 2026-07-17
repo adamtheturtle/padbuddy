@@ -9,6 +9,7 @@ import SwiftUI
 
 struct NewPadSheet: View {
     let client: CoderPadClient
+    let keyOwnerEmail: String?
     /// A question to pre-select when the sheet opens (e.g. the widget's New Pad
     /// button seeded from a favourite). The matching title/language are filled in
     /// once the questions list loads.
@@ -16,9 +17,10 @@ struct NewPadSheet: View {
     let onCreated: (Pad) -> Void
     let onCancel: () -> Void
 
-    init(client: CoderPadClient, initialQuestionID: Int? = nil,
+    init(client: CoderPadClient, keyOwnerEmail: String? = nil, initialQuestionID: Int? = nil,
          onCreated: @escaping (Pad) -> Void, onCancel: @escaping () -> Void) {
         self.client = client
+        self.keyOwnerEmail = keyOwnerEmail
         self.initialQuestionID = initialQuestionID
         self.onCreated = onCreated
         self.onCancel = onCancel
@@ -115,7 +117,8 @@ struct NewPadSheet: View {
                 LabeledContent("Owner") {
                     SearchableOwnerPicker(ownerEmail: $ownerEmail,
                                           users: users,
-                                          keyOwnerEmail: AccountsStore.shared.currentAccount?.userEmail)
+                                          keyOwnerEmail: keyOwnerEmail
+                                              ?? AccountsStore.shared.currentAccount?.userEmail)
                 }
 
                 if !teams.isEmpty {
@@ -233,7 +236,6 @@ struct NewPadSheet: View {
             language = "python3"
         }
     }
-
 }
 
 // MARK: - Loading and submission
@@ -246,8 +248,10 @@ private extension NewPadSheet {
             Questions and organization details couldn't be loaded, so the Question, Owner, and Team \
             choices may be incomplete.
             """)
+
         case (true, false):
             String(localized: "Questions couldn't be loaded, so the Question choices may be incomplete.")
+
         default:
             String(localized: """
             Organization details couldn't be loaded, so the Owner and Team choices may be incomplete.
