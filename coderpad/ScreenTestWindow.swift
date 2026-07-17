@@ -29,6 +29,10 @@ struct ScreenTestWindow: View {
     let value: ScreenTestWindowID?
     @State private var accounts = AccountsStore.shared
     @State private var fetched: ScreenTestSession?
+    /// Which window value produced `fetched`, compared whole (account AND id):
+    /// per-campaign session ids collide across accounts, so an id-only staleness
+    /// check let a reused window keep showing another account's session (#727).
+    @State private var fetchedFor: ScreenTestWindowID?
     @State private var loadFailed = false
     @State private var refreshError: String?
     @State private var fallbackAccountID: UUID?
@@ -86,8 +90,9 @@ struct ScreenTestWindow: View {
     /// without closing the restored window.
     private func load() async {
         captureFallbackAccountIfNeeded()
-        if let fetched, fetched.id != value?.id {
-            self.fetched = nil
+        // Compare the whole value: session ids collide across accounts (#727).
+        if fetched != nil, fetchedFor != value {
+            fetched = nil
             loadFailed = false
             refreshError = nil
         }
@@ -105,6 +110,7 @@ struct ScreenTestWindow: View {
 
         do {
             fetched = try await client.getTest(id: value.id)
+            fetchedFor = value
             loadFailed = false
             refreshError = nil
         } catch is CancellationError {

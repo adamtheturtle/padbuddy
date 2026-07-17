@@ -29,6 +29,10 @@ struct QuestionWindow: View {
     @State private var accounts = AccountsStore.shared
     @State private var cache = QuestionsCacheStore.shared
     @State private var fetched: Question?
+    /// Which window value produced `fetched`, compared whole (account AND id): ids
+    /// collide across accounts, so an id-only staleness check let a reused window
+    /// keep showing another account's data (#726).
+    @State private var fetchedFor: QuestionWindowID?
     @State private var loadFailed = false
     @State private var refreshError: String?
     @State private var fallbackAccountID: UUID?
@@ -95,11 +99,12 @@ struct QuestionWindow: View {
     /// persisted list snapshots as authoritative.
     private func load() async {
         captureFallbackAccountIfNeeded()
-        // If the window was reused for a different question, drop the previous
-        // fetch so its stale result can't satisfy the `fetched == nil` guard
-        // (and can't render via `fetched ?? cachedQuestion`).
-        if let fetched, fetched.id != value?.id {
-            self.fetched = nil
+        // If the window was reused for a different question or a different account
+        // (per-org ids collide across accounts), drop the previous fetch so its
+        // stale result can't satisfy the `fetched == nil` guard (and can't render
+        // via `fetched ?? cachedQuestion`) (#726).
+        if fetched != nil, fetchedFor != value {
+            fetched = nil
             loadFailed = false
             refreshError = nil
         }
@@ -118,6 +123,7 @@ struct QuestionWindow: View {
         do {
             let question = try await account.makeClient().getQuestion(id: value.id)
             fetched = question
+            fetchedFor = value
             loadFailed = false
             refreshError = nil
             AppRouter.questionUpdated(question, account: account.id)

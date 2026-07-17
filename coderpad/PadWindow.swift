@@ -30,6 +30,10 @@ struct PadWindow: View {
     @State private var accounts = AccountsStore.shared
     @State private var cache = PadsCacheStore.shared
     @State private var fetched: Pad?
+    /// Which window value produced `fetched`, compared whole (account AND id): pad
+    /// slugs can collide across custom servers, so an id-only staleness check let a
+    /// reused window keep showing another account's pad (#732).
+    @State private var fetchedFor: PadWindowID?
     @State private var loadFailed = false
     @State private var refreshError: String?
     @State private var fallbackAccountID: UUID?
@@ -95,11 +99,12 @@ struct PadWindow: View {
     /// list snapshots as authoritative.
     private func load() async {
         captureFallbackAccountIfNeeded()
-        // If the window was reused for a different pad, drop the previous fetch so
-        // its stale result can't satisfy the `fetched == nil` guard (and can't
-        // render via `fetched ?? cachedPad`).
-        if let fetched, fetched.id != value?.id {
-            self.fetched = nil
+        // If the window was reused for a different pad or a different account (pad
+        // slugs can collide across custom servers), drop the previous fetch so its
+        // stale result can't satisfy the `fetched == nil` guard (and can't render
+        // via `fetched ?? cachedPad`) (#732).
+        if fetched != nil, fetchedFor != value {
+            fetched = nil
             loadFailed = false
             refreshError = nil
         }
@@ -118,6 +123,7 @@ struct PadWindow: View {
         do {
             let pad = try await account.makeClient().getPad(id: value.id)
             fetched = pad
+            fetchedFor = value
             loadFailed = false
             refreshError = nil
             AppRouter.padUpdated(pad)
