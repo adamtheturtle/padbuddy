@@ -32,22 +32,31 @@ public func padMatches(_ pad: [String: Any], owner: String?, state: String?, lan
     return equals("owner_email", owner) && equals("state", state) && equals("language", language)
 }
 
-/// Whether a record's `created_at` falls within an optional [after, before] range. Both
-/// bounds are compared against the matching-length prefix of `created_at`, so a bound can be
-/// a full ISO8601 timestamp, a date (`2026-03-01`), or a month (`2026-03`) — inclusive at
-/// whatever granularity is given. A record with no `created_at` fails any present bound;
-/// empty/absent bounds always pass. Shared by the pad and question count/aggregate tools.
+/// Whether a record's `created_at` falls within an optional [after, before] range. Month
+/// and date bounds are compared against the matching-length prefix of `created_at`; full
+/// ISO-8601 timestamps are parsed and compared as normalized instants. A record with no
+/// `created_at` fails any present bound; empty/absent bounds always pass. Shared by the pad
+/// and question count/aggregate tools.
 public func withinDateRange(_ record: [String: Any], after: String?, before: String?) -> Bool {
     let created = (record["created_at"] as? String) ?? ""
-    func passes(_ bound: String?, _ compare: (String) -> Bool) -> Bool {
-        guard let bound, !bound.isEmpty else { return true }
+    func passes(_ bound: String?, isAfter: Bool) -> Bool {
+        guard let bound, !bound.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return true }
         guard !created.isEmpty else { return false }
+        guard let dateBound = dateBound(from: bound) else { return false }
 
-        return compare(bound)
+        switch dateBound {
+        case let .month(value), let .day(value):
+            let createdPrefix = String(created.prefix(value.count))
+            return isAfter ? createdPrefix >= value : createdPrefix <= value
+
+        case let .timestamp(value):
+            guard let createdDate = iso8601Date(from: created) else { return false }
+
+            return isAfter ? createdDate >= value : createdDate <= value
+        }
     }
 
-    return passes(after) { String(created.prefix($0.count)) >= $0 }
-        && passes(before) { String(created.prefix($0.count)) <= $0 }
+    return passes(after, isAfter: true) && passes(before, isAfter: false)
 }
 
 /// Validates optional created_at bounds before a count/aggregate scan. Supported
@@ -69,9 +78,30 @@ private func dateBoundValidationError(name: String, value: String?) -> String? {
 }
 
 public func isSupportedDateBound(_ value: String) -> Bool {
+    dateBound(from: value) != nil
+}
+
+private enum DateBound {
+    case month(String)
+    case day(String)
+    case timestamp(Date)
+}
+
+private func dateBound(from value: String) -> DateBound? {
     let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-    if isValidMonthBound(trimmed) || isValidDateBound(trimmed) { return true }
-    return ISO8601DateFormatter().date(from: trimmed) != nil
+    if isValidMonthBound(trimmed) { return .month(trimmed) }
+    if isValidDateBound(trimmed) { return .day(trimmed) }
+    if let date = iso8601Date(from: trimmed) { return .timestamp(date) }
+    return nil
+}
+
+private func iso8601Date(from value: String) -> Date? {
+    let formatter = ISO8601DateFormatter()
+    if let date = formatter.date(from: value) { return date }
+
+    let fractionalFormatter = ISO8601DateFormatter()
+    fractionalFormatter.formatOptions.insert(.withFractionalSeconds)
+    return fractionalFormatter.date(from: value)
 }
 
 private func isValidMonthBound(_ value: String) -> Bool {

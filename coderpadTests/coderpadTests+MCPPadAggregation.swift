@@ -86,6 +86,16 @@ struct MCPPadAggregationTests {
     }
 
     @Test
+    func `withinDateRange compares timestamp offsets chronologically`() {
+        let record = ["created_at": "2026-03-01T00:00:00Z"]
+
+        #expect(withinDateRange(record, after: "2026-03-01T01:00:00+02:00", before: nil))
+        #expect(!withinDateRange(record, after: "2026-03-01T03:00:00+02:00", before: nil))
+        #expect(withinDateRange(record, after: nil, before: "2026-02-28T22:30:00-02:00"))
+        #expect(!withinDateRange(record, after: nil, before: "2026-02-28T21:30:00-02:00"))
+    }
+
+    @Test
     func `date bound validation rejects malformed bounds`() {
         #expect(dateBoundValidationError(after: nil, before: "") == nil)
         #expect(dateBoundValidationError(after: "2026-01", before: "2026-01-31") == nil)
