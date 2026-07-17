@@ -220,6 +220,7 @@ struct FavoriteQuestionEntity: AppEntity {
     let accountID: String
     let questionID: Int
     let title: String
+    let legacyID: String
 
     static var typeDisplayRepresentation: TypeDisplayRepresentation {
         "Favorite Question"
@@ -235,7 +236,8 @@ struct FavoriteQuestionEntity: AppEntity {
 struct FavoriteQuestionQuery: EntityQuery {
     func entities(for identifiers: [String]) async throws -> [FavoriteQuestionEntity] {
         await MainActor.run {
-            all().filter { identifiers.contains($0.id) }
+            let identifiers = Set(identifiers)
+            return all().filter { identifiers.contains($0.id) || identifiers.contains($0.legacyID) }
         }
     }
 
@@ -253,11 +255,25 @@ struct FavoriteQuestionQuery: EntityQuery {
             FavoriteQuestionsStore.shared.titledFavorites(account: account.id).map { favorite in
                 let title = favorite.title.isEmpty ? "#\(favorite.id)" : favorite.title
                 let label = qualify ? "\(title) · \(account.name)" : title
-                return FavoriteQuestionEntity(id: "\(account.id.uuidString):\(favorite.id)",
+                return FavoriteQuestionEntity(id: entityID(account: account, questionID: favorite.id),
                                               accountID: account.id.uuidString,
                                               questionID: favorite.id,
-                                              title: label)
+                                              title: label,
+                                              legacyID: legacyEntityID(account: account, questionID: favorite.id))
             }
         }
+    }
+
+    @MainActor
+    private func entityID(account: Account, questionID: Int) -> String {
+        let syncID = account.syncID
+        guard !syncID.isEmpty else { return legacyEntityID(account: account, questionID: questionID) }
+
+        return "sync|\(syncID)|\(questionID)"
+    }
+
+    @MainActor
+    private func legacyEntityID(account: Account, questionID: Int) -> String {
+        "\(account.id.uuidString):\(questionID)"
     }
 }
