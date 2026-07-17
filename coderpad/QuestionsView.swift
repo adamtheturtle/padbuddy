@@ -137,11 +137,7 @@ struct QuestionsView: View {
                 restoreSelectedQuestionIfNeeded()
                 resolvePendingSelection()
             }
-            .task {
-                for await _ in AppRouter.reloads {
-                    await reload()
-                }
-            }
+            .onReloadRequest { await reload() }
     }
 
     /// `sidebar` plus the per-session load task and the create/save sheets.

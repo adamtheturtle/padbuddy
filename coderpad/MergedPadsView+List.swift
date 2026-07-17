@@ -173,11 +173,7 @@ extension MergedPadsView {
     /// The reload / pad-update / pad-deletion router streams.
     var decoratedStreams: some View {
         decoratedSync
-            .task {
-                for await _ in AppRouter.reloads {
-                    await reload()
-                }
-            }
+            .onReloadRequest { await reload() }
             .task {
                 for await updated in AppRouter.padUpdates {
                     applyUpdated(updated)

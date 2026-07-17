@@ -273,11 +273,7 @@ struct PadsView: View {
     /// The reload / pad-update / pad-deletion router streams.
     private var decoratedStreams: some View {
         decoratedObservers
-            .task {
-                for await _ in AppRouter.reloads {
-                    await reload()
-                }
-            }
+            .onReloadRequest { await reload() }
             .task {
                 for await updated in AppRouter.padUpdates {
                     if let index = pads.firstIndex(where: { $0.id == updated.id }) {

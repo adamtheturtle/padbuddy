@@ -93,11 +93,7 @@ struct MergedOrganizationView: View {
 
             scheduleStatsReload()
         }
-        .task {
-            for await _ in AppRouter.reloads {
-                await reload()
-            }
-        }
+        .onReloadRequest { await reload() }
         .toolbar(id: "merged-organization") {
             ToolbarItem(id: "period", placement: .primaryAction) {
                 periodPicker

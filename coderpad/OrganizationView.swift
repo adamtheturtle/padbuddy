@@ -65,11 +65,7 @@ struct OrganizationView: View {
                 scheduleStatsReload()
             }
             .focusedSceneValue(\.findAction, FindAction(id: "organization") { userSearchFocused = true })
-            .task {
-                for await _ in AppRouter.reloads {
-                    await reload()
-                }
-            }
+            .onReloadRequest { await reload() }
             .toolbar(id: "organization") { organizationToolbar }
     }
 

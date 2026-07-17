@@ -59,11 +59,7 @@ struct QuotaView: View {
             }
             await reload()
         }
-        .task {
-            for await _ in AppRouter.reloads {
-                await reload()
-            }
-        }
+        .onReloadRequest { await reload() }
         .toolbar(id: "quota") {
             // Hidden by default — reachable via View ▸ Customize Toolbar… or the
             // File ▸ Reload command (⌘R) (#413).

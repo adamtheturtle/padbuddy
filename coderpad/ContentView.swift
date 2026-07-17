@@ -128,15 +128,14 @@ struct ContentView: View {
 
     private func routing(_ content: some View) -> some View {
         content
-            .task {
-                for await _ in AppRouter.openPadByURLRequests {
-                    showOpenPadURL = true
-                }
+            // Focused-window scoped: these are process-wide broadcasts, and with
+            // several main windows open each used to present its own copy of the
+            // sheet/palette at once (#906).
+            .onFocusedWindowRequest({ AppRouter.openPadByURLRequests }) {
+                showOpenPadURL = true
             }
-            .task {
-                for await _ in AppRouter.commandPaletteRequests {
-                    showCommandPalette = true
-                }
+            .onFocusedWindowRequest({ AppRouter.commandPaletteRequests }) {
+                showCommandPalette = true
             }
             // The "Open Pad by ID" intent routes through durable AppNavigation state so a
             // cold-launch request isn't dropped: consume whatever is already pending on

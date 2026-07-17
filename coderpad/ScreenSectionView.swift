@@ -62,11 +62,7 @@ struct ScreenCampaignsView: View {
             }
             .task(id: client.taskIdentity) { await load() }
             // Reload on ⌘R like the other lists (AppRouter.requestReload()).
-            .task {
-                for await _ in AppRouter.reloads {
-                    await load()
-                }
-            }
+            .onReloadRequest { await load() }
             // Restore the published selection on appear, and publish each change onward so
             // the detail column can show the selected campaign's test sessions (#448).
             .onAppear { restoreSelectedCampaign() }

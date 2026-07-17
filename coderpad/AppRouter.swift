@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import SwiftUI
 
 /// A pad mutation broadcast: the updated question and the account that owns it.
 /// The account travels with the payload because per-org question ids collide
@@ -155,4 +156,58 @@ private extension Notification.Name {
     static let padDeleted = Notification.Name("coderpad.padDeleted")
     static let questionUpdated = Notification.Name("coderpad.questionUpdated")
     static let questionDeleted = Notification.Name("coderpad.questionDeleted")
+}
+
+/// Consumes an `AppRouter` broadcast only while this view's window is focused.
+/// The router's commands are process-wide notifications, so without this every
+/// window acted on them at once: ⌘R reloaded every mounted list in every window
+/// (#905), and Open Pad by URL / the command palette presented their UI in every
+/// main window simultaneously (#906). The focused-window state is tracked through
+/// a reference box because the long-running consumption task would otherwise
+/// capture a stale `controlActiveState` snapshot from one body evaluation.
+/// `controlActiveState` doesn't exist on iOS, where the previous every-window
+/// behavior is kept (the box stays focused).
+private struct FocusedWindowRequestModifier: ViewModifier {
+    #if os(macOS)
+        @Environment(\.controlActiveState) private var controlActiveState
+    #endif
+    @State private var focus = FocusBox()
+    let stream: () -> AsyncStream<Void>
+    let action: @MainActor () async -> Void
+
+    @MainActor final class FocusBox {
+        /// Defaults to focused so a single-window app (and the interval before the
+        /// first `onAppear`) behaves exactly as before.
+        var isFocused = true
+    }
+
+    func body(content: Content) -> some View {
+        consuming(content)
+        #if os(macOS)
+            .onAppear { focus.isFocused = controlActiveState != .inactive }
+            .onChange(of: controlActiveState) { _, state in focus.isFocused = state != .inactive }
+        #endif
+    }
+
+    private func consuming(_ content: Content) -> some View {
+        content.task { [focus] in
+            for await _ in stream() where focus.isFocused {
+                await action()
+            }
+        }
+    }
+}
+
+extension View {
+    /// Runs `action` for an `AppRouter` void broadcast, but only while this view's
+    /// window is the focused one (#905, #906).
+    func onFocusedWindowRequest(_ stream: @escaping () -> AsyncStream<Void>,
+                                perform action: @escaping @MainActor () async -> Void) -> some View {
+        modifier(FocusedWindowRequestModifier(stream: stream, action: action))
+    }
+
+    /// Reload-on-⌘R scoped to the focused window (#905).
+    func onReloadRequest(perform action: @escaping @MainActor () async -> Void) -> some View {
+        onFocusedWindowRequest({ AppRouter.reloads }, perform: action)
+    }
 }

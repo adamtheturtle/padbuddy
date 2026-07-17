@@ -106,11 +106,7 @@ struct ScreenTestsView: View {
             // copy gate itself must remain the O(1) `selectedIDs` check (#395).
             .onChange(of: statusFilter) { _, _ in pruneHiddenSelection() }
             .onChange(of: search) { _, _ in pruneHiddenSelection() }
-            .task {
-                for await _ in AppRouter.reloads {
-                    await load()
-                }
-            }
+            .onReloadRequest { await load() }
             // This list lives in the detail column (#448); publish the candidate count so the
             // campaigns column can show it as the window subtitle while a campaign is selected
             // (#475) — see `AppNavigation.screenTestsSubtitle`. A test session's report opens

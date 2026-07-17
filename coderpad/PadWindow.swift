@@ -88,11 +88,7 @@ struct PadWindow: View {
             }
         }
         .task(id: value) { await load() }
-        .task {
-            for await _ in AppRouter.reloads {
-                await refresh()
-            }
-        }
+        .onReloadRequest { await refresh() }
     }
 
     /// Fetch the pad after first paint so restored windows don't treat persisted

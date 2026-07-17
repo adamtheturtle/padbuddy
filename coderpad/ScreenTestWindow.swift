@@ -79,11 +79,7 @@ struct ScreenTestWindow: View {
             }
         }
         .task(id: value) { await load() }
-        .task {
-            for await _ in AppRouter.reloads {
-                await refresh()
-            }
-        }
+        .onReloadRequest { await refresh() }
     }
 
     /// Fetch the session on appear and on reload, so transient failures can recover
