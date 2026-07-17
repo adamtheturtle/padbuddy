@@ -11,7 +11,8 @@ import SwiftUI
 
 extension PadDetailView {
     /// The editable pad properties, presented as labeled rows of inline controls.
-    /// Title is edited in the header; language, owner, and the two flags live here.
+    /// Title is edited in the header, notes are edited in their own long-form
+    /// section, and language, owner, and the two flags live here.
     var propertyRows: some View {
         VStack(alignment: .leading, spacing: 10) {
             propertyRow("Language") {
@@ -191,15 +192,46 @@ extension PadDetailView {
         }
     }
 
+    /// Commits private interviewer notes in place. The editor keeps its draft open
+    /// on failure, so this path reports success instead of reverting local text.
+    func commitNotes(_ text: String) async -> Bool {
+        guard text != (pad.notes ?? "") else { return true }
+
+        return await saveContent(PadUpdate(id: pad.id, notes: text), optimistic: optimisticPad(notes: text))
+    }
+
     /// The pad with every immediately-committed draft applied (language, privacy,
-    /// execution). `title` is passed only by `commitTitle` — for the other fields the
-    /// committed `pad.title` is kept so an as-yet-uncommitted title edit isn't pushed
-    /// out early. Building from the full draft set (not just the one changed field) keeps
+    /// execution), plus whichever self-owning long-form field this commit changed.
+    /// `title` is passed only by `commitTitle` — for the other fields the committed
+    /// `pad.title` is kept so an as-yet-uncommitted title edit isn't pushed out early.
+    /// Building from the full draft set (not just the one changed field) keeps
     /// concurrent rapid edits from clobbering each other, since those drafts are always
     /// the saved value (#376).
-    private func optimisticPad(title: String? = nil) -> Pad {
-        pad.applying(title: title, language: draftLanguage,
-                     isPrivate: draftIsPrivate, executionEnabled: draftExecution)
+    private func optimisticPad(title: String? = nil, notes: String? = nil) -> Pad {
+        Pad(
+            id: pad.id, title: title ?? pad.title, state: pad.state, ownerEmail: pad.ownerEmail,
+            language: draftLanguage, participants: pad.participants, url: pad.url,
+            playback: pad.playback, events: pad.events, notes: notes ?? pad.notes,
+            drawing: pad.drawing, contents: pad.contents, history: pad.history,
+            createdAt: pad.createdAt, updatedAt: pad.updatedAt, endedAt: pad.endedAt,
+            type: pad.type, executionEnabled: draftExecution, isPrivate: draftIsPrivate,
+            activeEnvironmentID: pad.activeEnvironmentID, padEnvironmentIDs: pad.padEnvironmentIDs,
+            questionIDs: pad.questionIDs, team: pad.team
+        )
+    }
+
+    /// Sends a single-field content update and propagates the optimistic pad without
+    /// the redundant re-GET (#376), returning whether it succeeded. On failure it
+    /// surfaces the error; the inline editor keeps the unsaved text so nothing is lost.
+    private func saveContent(_ body: PadUpdate, optimistic: Pad) async -> Bool {
+        do {
+            try await client.updatePadWithoutRefetch(body)
+            AppRouter.padUpdated(optimistic)
+            return true
+        } catch {
+            mutateError = error.localizedDescription
+            return false
+        }
     }
 
     /// Sends a single-field update and propagates the result. When `optimistic` is

@@ -10,6 +10,7 @@ extension PadDetailView {
         ScrollView {
             VStack(alignment: .leading, spacing: detailSectionSpacing) {
                 summaryCard
+                notesCard
                 Divider()
                 // One code card per environment. A pad can carry several
                 // environments (e.g. a candidate and reference solution, or
@@ -117,6 +118,16 @@ extension PadDetailView {
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
+    /// Private interviewer notes are the pad detail's only long-form, user-authored
+    /// field. Keep the card visible even when empty so notes can be added in place.
+    private var notesCard: some View {
+        DetailSection(title: "Notes", systemImage: "note.text") {
+            InlineEditableText(text: pad.notes ?? "", placeholder: "Empty", label: "notes") {
+                await commitNotes($0)
+            }
+        }
+    }
+
     private var header: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Actions now live in the window toolbar, so the header only carries
@@ -169,7 +180,11 @@ extension PadDetailView {
         }
     }
 
-    private func summaryGroup(title: LocalizedStringKey, systemImage: String, @ViewBuilder content: () -> some View) -> some View {
+    private func summaryGroup(
+        title: LocalizedStringKey,
+        systemImage: String,
+        @ViewBuilder content: () -> some View
+    ) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             Label(title, systemImage: systemImage)
                 .font(.caption.weight(.semibold))
