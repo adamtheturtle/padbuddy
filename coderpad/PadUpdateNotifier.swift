@@ -51,6 +51,8 @@ final class PadUpdateNotifier: NSObject {
     static let shared = PadUpdateNotifier()
 
     private let center = UNUserNotificationCenter.current()
+    private var notificationGeneration = 0
+    private var notificationTask: Task<Void, Never>?
 
     /// A single, stable identifier so repeated bursts of activity coalesce into one
     /// alert ("3 pads updated" replaces "2 pads updated") rather than stacking up a
@@ -92,7 +94,10 @@ final class PadUpdateNotifier: NSObject {
               !changes.isEmpty,
               !appIsActive else { return }
 
-        Task { await post(changes: changes) }
+        notificationGeneration += 1
+        let generation = notificationGeneration
+        notificationTask?.cancel()
+        notificationTask = Task { await post(changes: changes, generation: generation) }
     }
 
     /// Whether the app is frontmost, used to suppress alerts you'd already see. Spelled
@@ -105,8 +110,10 @@ final class PadUpdateNotifier: NSObject {
         #endif
     }
 
-    private func post(changes: [PadChange]) async {
+    private func post(changes: [PadChange], generation: Int) async {
         let settings = await center.notificationSettings()
+        guard isCurrentNotification(generation) else { return }
+
         switch settings.authorizationStatus {
         case .notDetermined:
             guard await (try? center.requestAuthorization(options: [.alert, .sound])) == true else { return }
@@ -117,6 +124,8 @@ final class PadUpdateNotifier: NSObject {
         default:
             break
         }
+
+        guard isCurrentNotification(generation) else { return }
 
         let content = UNMutableNotificationContent()
         content.sound = .default
@@ -134,12 +143,18 @@ final class PadUpdateNotifier: NSObject {
             content.userInfo = ["url": "coderpad://pads"]
         }
 
+        guard isCurrentNotification(generation) else { return }
+
         let request = UNNotificationRequest(
             identifier: Self.notificationID,
             content: content,
             trigger: nil
         )
         try? await center.add(request)
+    }
+
+    private func isCurrentNotification(_ generation: Int) -> Bool {
+        !Task.isCancelled && generation == notificationGeneration
     }
 
     /// A one-line body for a burst of changes. When they're all the same kind we
