@@ -262,11 +262,31 @@ final class AppNavigation {
     /// here (pure navigation, no AppKit) so it is callable on every platform.
     @MainActor
     func routeNewPad(account: String?, seedQuestionID: Int?) {
-        if let account, let uuid = UUID(uuidString: account),
-           AccountsStore.shared.accounts.contains(where: { $0.id == uuid }) {
+        let route = Self.resolveNewPadRoute(
+            account: account,
+            seedQuestionID: seedQuestionID,
+            availableAccountIDs: AccountsStore.shared.accounts.map(\.id)
+        )
+        if let uuid = route.accountID {
             AccountsStore.shared.showAllAccounts = false
             AccountsStore.shared.currentAccountID = uuid
         }
-        showPads(PadsRequest(startCreating: true, seedQuestionID: seedQuestionID))
+        showPads(PadsRequest(startCreating: true, seedQuestionID: route.seedQuestionID))
+    }
+
+    static func resolveNewPadRoute(
+        account: String?,
+        seedQuestionID: Int?,
+        availableAccountIDs: some Collection<UUID>
+    ) -> (accountID: UUID?, seedQuestionID: Int?) {
+        guard let account, !account.isEmpty else {
+            return (nil, seedQuestionID)
+        }
+        guard let uuid = UUID(uuidString: account),
+              availableAccountIDs.contains(uuid) else {
+            return (nil, nil)
+        }
+
+        return (uuid, seedQuestionID)
     }
 }

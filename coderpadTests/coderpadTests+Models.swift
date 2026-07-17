@@ -8,6 +8,43 @@ import Foundation
 import SwiftUI
 import Testing
 
+@Suite("App navigation routes")
+struct AppNavigationRouteTests {
+    @Test func `new pad route keeps seed when requested account exists`() {
+        let accountID = UUID()
+        let route = AppNavigation.resolveNewPadRoute(
+            account: accountID.uuidString,
+            seedQuestionID: 42,
+            availableAccountIDs: [accountID]
+        )
+
+        #expect(route.accountID == accountID)
+        #expect(route.seedQuestionID == 42)
+    }
+
+    @Test func `new pad route keeps seed for current account requests`() {
+        let route = AppNavigation.resolveNewPadRoute(
+            account: nil,
+            seedQuestionID: 42,
+            availableAccountIDs: []
+        )
+
+        #expect(route.accountID == nil)
+        #expect(route.seedQuestionID == 42)
+    }
+
+    @Test func `new pad route drops seed when requested account is missing`() {
+        let route = AppNavigation.resolveNewPadRoute(
+            account: UUID().uuidString,
+            seedQuestionID: 42,
+            availableAccountIDs: []
+        )
+
+        #expect(route.accountID == nil)
+        #expect(route.seedQuestionID == nil)
+    }
+}
+
 @Suite("Question sort field/direction")
 struct QuestionSortTests {
     private func question(
