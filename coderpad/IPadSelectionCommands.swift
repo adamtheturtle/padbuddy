@@ -13,6 +13,7 @@
 
     struct PadCommands: Commands {
         @FocusedValue(\.focusedPad) private var pad
+        @FocusedValue(\.focusedPadIsFavorite) private var isFavorite
         @FocusedValue(\.isReadOnly) private var isReadOnly
         @FocusedValue(\.padHasSavableCode) private var padHasSavableCode
         @AppStorage(PadSort.storageKey) private var sort: PadSort = .updatedDesc
@@ -50,6 +51,14 @@
                 }
                 .keyboardShortcut("e", modifiers: [.command])
                 .disabled(pad == nil || isReadOnly == true)
+
+                Button(isFavorite == true ? "Remove from Favorites" : "Add to Favorites") {
+                    guard let pad else { return }
+
+                    AppNavigation.shared.toggleFavoritePadID = pad.id
+                }
+                .keyboardShortcut("d", modifiers: [.command])
+                .disabled(pad == nil)
 
                 Menu("Sort By") {
                     PadSortMenuContent(sort: $sort)

@@ -41,8 +41,11 @@ struct PadDetailView: View {
         @State var pendingExport: PadExportDocument?
     #endif
     @State var nav = AppNavigation.shared
+    @State private var accounts = AccountsStore.shared
+    @State private var favorites = FavoritePadsStore.shared
     @Environment(\.orgDirectory) var directory
     @Environment(\.colorScheme) var colorScheme
+    @Environment(\.undoManager) private var undoManager
     #if os(iOS)
         @Environment(\.horizontalSizeClass) var horizontalSizeClass
     #endif
@@ -82,6 +85,17 @@ struct PadDetailView: View {
     @ToolbarContentBuilder
     private var detailToolbar: some CustomizableToolbarContent {
         ToolbarSpacer(.fixed)
+        ToolbarItem(id: "favorite", placement: detailToolbarLeadingPlacement) {
+            Button { toggleFavorite() } label: {
+                Label(isFavorite ? String(localized: "Favorited") : String(localized: "Favorite"),
+                      systemImage: isFavorite ? "star.fill" : "star")
+                    .contentTransition(.symbolEffect(.replace))
+            }
+            .help(isFavorite ? String(localized: "Remove from Favorites") : String(localized: "Add to Favorites"))
+            .accessibilityLabel(isFavorite
+                ? String(localized: "Remove from Favorites")
+                : String(localized: "Add to Favorites"))
+        }
         if let url = pad.webURL {
             ToolbarItem(id: "share", placement: detailToolbarLeadingPlacement) {
                 ShareLink(item: url) {
@@ -184,6 +198,9 @@ struct PadDetailView: View {
     /// off the pad load.
     private func presentationPublishers(_ content: some View) -> some View {
         content
+            // Publish the favorite state so the Pad menu's Favorite command can
+            // show the matching "Add to"/"Remove from Favorites" title and toggle it.
+            .focusedSceneValue(\.focusedPadIsFavorite, isFavorite)
             // Publish a print rendering so File ▸ Print (⌘P) can produce a hard copy
             // or PDF of the pad's summary and code (whatever has loaded so far).
             .focusedSceneValue(\.printAction, PrintAction(id: "pad-\(pad.id)") {
@@ -253,12 +270,14 @@ struct PadDetailView: View {
                 consumePendingDelete()
                 consumePendingWatch()
                 consumePendingSaveCode()
+                consumePendingFavoriteToggle()
             }
             .onChange(of: nav.editPadID) { _, _ in consumePendingEdit() }
             .onChange(of: nav.endPadID) { _, _ in consumePendingEnd() }
             .onChange(of: nav.deletePadID) { _, _ in consumePendingDelete() }
             .onChange(of: nav.watchPlaybackPadID) { _, _ in consumePendingWatch() }
             .onChange(of: nav.saveCodePadID) { _, _ in consumePendingSaveCode() }
+            .onChange(of: nav.toggleFavoritePadID) { _, _ in consumePendingFavoriteToggle() }
     }
 
     private func scheduleSeedDrafts() {
@@ -277,6 +296,18 @@ struct PadDetailView: View {
             .onChange(of: pad.ownerEmail) { _, newValue in draftOwner = newValue }
             .onChange(of: pad.isPrivate) { _, newValue in draftIsPrivate = newValue ?? false }
             .onChange(of: pad.executionEnabled) { _, newValue in draftExecution = newValue ?? true }
+    }
+
+    /// Whether the displayed pad is a favorite of the current account, so the
+    /// toolbar star can reflect and toggle its state.
+    private var isFavorite: Bool {
+        favorites.isFavorite(pad.id, account: accounts.currentAccountID)
+    }
+
+    func toggleFavorite() {
+        guard let account = accounts.currentAccountID else { return }
+
+        favorites.toggle(pad.id, title: pad.title, account: account, undoManager: undoManager)
     }
 }
 

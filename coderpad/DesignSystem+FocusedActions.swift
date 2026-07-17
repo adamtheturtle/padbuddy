@@ -22,6 +22,13 @@ extension FocusedValues {
 }
 
 extension FocusedValues {
+    /// Whether the selected pad is a favorite of the current account, published
+    /// by `PadDetailView` so the Pad menu's Favorite command can show the
+    /// matching "Add to"/"Remove from Favorites" title.
+    @Entry var focusedPadIsFavorite: Bool?
+}
+
+extension FocusedValues {
     /// The question selected in the active window's list, published via
     /// `focusedSceneValue` so the Question menu commands can act on it whenever the
     /// window is frontmost — the Questions-pane counterpart to `focusedPad`.

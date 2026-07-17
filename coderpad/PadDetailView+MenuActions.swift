@@ -31,6 +31,15 @@ extension PadDetailView {
         saveCodeLocally()
     }
 
+    /// Honors a "Favorite" request from the Pad menu by toggling the same
+    /// per-account favorite state as the in-pane toolbar star.
+    func consumePendingFavoriteToggle() {
+        guard nav.toggleFavoritePadID == pad.id else { return }
+
+        nav.toggleFavoritePadID = nil
+        toggleFavorite()
+    }
+
     /// Consumes an "Edit Pad" request routed via `AppNavigation` from the Pad menu,
     /// opening the title editor.
     func consumePendingEdit() {

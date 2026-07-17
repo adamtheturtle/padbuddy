@@ -156,6 +156,10 @@ final class AppNavigation {
     /// save logic (and the same knowledge of which files have loaded).
     var saveCodePadID: String?
 
+    /// A pad id whose detail pane should toggle its favorite state, routed from the
+    /// Pad menu's Favorite command — the counterpart to the detail toolbar star.
+    var toggleFavoritePadID: String?
+
     /// A question id whose detail pane should toggle its favorite state, routed
     /// from the Question menu's Favorite command — the counterpart to the
     /// detail view's toolbar star.

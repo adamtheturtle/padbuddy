@@ -106,6 +106,7 @@
     /// unambiguous, while the muscle memory carries across both sections.
     struct PadCommands: Commands {
         @FocusedValue(\.focusedPad) private var pad
+        @FocusedValue(\.focusedPadIsFavorite) private var isFavorite
         /// Mirrors the window's read-only state (offline) so the mutating items disable
         /// to match the in-window controls (#321). `nil`/`false` means editable.
         @FocusedValue(\.isReadOnly) private var isReadOnly
@@ -151,6 +152,14 @@
                 }
                 .keyboardShortcut("e", modifiers: [.command])
                 .disabled(pad == nil || isReadOnly == true)
+
+                Button(isFavorite == true ? "Remove from Favorites" : "Add to Favorites") {
+                    guard let pad else { return }
+
+                    AppNavigation.shared.toggleFavoritePadID = pad.id
+                }
+                .keyboardShortcut("d", modifiers: [.command])
+                .disabled(pad == nil)
 
                 Menu("Sort By") {
                     PadSortMenuContent(sort: $sort)
