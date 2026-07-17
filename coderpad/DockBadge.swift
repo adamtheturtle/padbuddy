@@ -38,6 +38,9 @@ enum DockBadgeScope: String, CaseIterable, Identifiable {
 /// The count *derivation* lives here; rendering the tile is delegated to
 /// `BuddyAppKit`'s `DockBadge.set(count:)`.
 enum DockBadgeController {
+    @MainActor private static var badgeGeneration = 0
+    @MainActor private static var badgeTask: Task<Void, Never>?
+
     enum Key {
         static let scope = "general.dockBadgeScope"
         /// The old on/off Bool, kept only so a saved choice can be migrated into
@@ -81,7 +84,10 @@ enum DockBadgeController {
     /// "0".
     @MainActor
     static func apply() {
-        setPlatformBadge(count: activePadCount())
+        badgeGeneration += 1
+        let generation = badgeGeneration
+        badgeTask?.cancel()
+        setPlatformBadge(count: activePadCount(), generation: generation)
     }
 
     @MainActor
@@ -127,13 +133,16 @@ enum DockBadgeController {
         }
     }
 
-    private static func setPlatformBadge(count: Int) {
+    @MainActor
+    private static func setPlatformBadge(count: Int, generation: Int) {
         #if os(macOS)
             DockBadge.set(count: count)
         #else
             let center = UNUserNotificationCenter.current()
-            Task {
+            badgeTask = Task { @MainActor in
                 let settings = await center.notificationSettings()
+                guard isCurrentBadge(generation) else { return }
+
                 switch settings.authorizationStatus {
                 case .notDetermined:
                     guard count > 0 else { return }
@@ -146,7 +155,9 @@ enum DockBadgeController {
                     break
                 }
 
+                guard isCurrentBadge(generation) else { return }
                 guard await center.notificationSettings().badgeSetting == .enabled else { return }
+                guard isCurrentBadge(generation) else { return }
 
                 center.setBadgeCount(count) { error in
                     if let error {
@@ -155,5 +166,10 @@ enum DockBadgeController {
                 }
             }
         #endif
+    }
+
+    @MainActor
+    private static func isCurrentBadge(_ generation: Int) -> Bool {
+        !Task.isCancelled && generation == badgeGeneration
     }
 }
