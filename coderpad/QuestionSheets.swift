@@ -324,11 +324,12 @@ private extension NewQuestionSheet {
         let requestLanguage = language
         let requestFields = [title, description, instructions, solution]
 
-        isDrafting = true
+        error = nil; isDrafting = true
         Task {
             let draft = await QuestionDrafter.draft(prompt: requestPrompt, language: requestLanguage)
             isDrafting = false
-            guard let draft, draftPrompt == requestPrompt, language == requestLanguage else { return }
+            guard draftPrompt == requestPrompt, language == requestLanguage else { return }
+            guard let draft else { error = "Draft failed. Try a more specific prompt, or draft again."; return }
 
             if !draft.title.isEmpty, title == requestFields[0] { title = draft.title }
             if !draft.description.isEmpty, description == requestFields[1] { description = draft.description }
