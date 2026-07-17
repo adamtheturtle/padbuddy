@@ -14,12 +14,26 @@ extension SettingsView {
                 }
             }
             .onChange(of: dockBadgeScope) { _, scope in
-                if scope != .off { PadUpdateNotifier.shared.requestBadgeAuthorization() }
-                DockBadgeController.refresh()
+                updateBadgeScope(scope)
             }
             #if os(macOS)
             .disabled(!presence.showsDockIcon)
             #endif
+        }
+    }
+
+    private func updateBadgeScope(_ scope: DockBadgeScope) {
+        guard scope != .off else {
+            DockBadgeController.refresh()
+            return
+        }
+
+        Task { @MainActor in
+            let isAvailable = await PadUpdateNotifier.shared.badgeAuthorizationIsAvailable()
+            if !isAvailable, dockBadgeScope == scope {
+                dockBadgeScope = .off
+            }
+            DockBadgeController.refresh()
         }
     }
 

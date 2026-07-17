@@ -82,7 +82,21 @@ final class PadUpdateNotifier: NSObject {
     /// returns the standing decision, so it's safe to call on every launch and whenever
     /// the badge scope is switched on.
     func requestBadgeAuthorization() {
-        Task { _ = try? await center.requestAuthorization(options: [.badge]) }
+        Task { _ = await badgeAuthorizationIsAvailable() }
+    }
+
+    /// Returns whether the app can currently render an icon badge after requesting
+    /// badge permission. Callers that expose a badge preference use this to avoid
+    /// leaving an enabled-looking setting in place when the system will drop updates.
+    func badgeAuthorizationIsAvailable() async -> Bool {
+        do {
+            guard try await center.requestAuthorization(options: [.badge]) else { return false }
+        } catch {
+            return false
+        }
+
+        let settings = await center.notificationSettings()
+        return settings.authorizationStatus != .denied && settings.badgeSetting == .enabled
     }
 
     /// Post an alert summarizing pads that just gained activity. A no-op unless the
