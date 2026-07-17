@@ -38,6 +38,9 @@ struct HighlightedCode: View, Equatable {
     /// Briefly flips the copy button to a checkmark after a successful copy, so a
     /// click gives visible confirmation. Reset after a short delay.
     @State private var didCopy = false
+    @State private var copyGeneration = 0
+    @State private var copyTask: Task<Void, Never>?
+    @State private var copyResetTask: Task<Void, Never>?
 
     /// Compare only the inputs (not the @State result) so SwiftUI keeps skipping
     /// re-renders for unrelated reasons, e.g. the file sidebar's resize drag.
@@ -114,13 +117,26 @@ struct HighlightedCode: View, Equatable {
     /// colours; plain text stays the fallback for editors and the terminal. The
     /// RTF is produced off the main actor (#372), so the write happens once ready.
     private func copy() {
-        Task {
+        copyGeneration += 1
+        let generation = copyGeneration
+        didCopy = false
+        copyTask?.cancel()
+        copyTask = Task {
             let rtf = await SyntaxHighlighter.rtf(contents, language: language, dark: dark)
+            guard !Task.isCancelled, copyGeneration == generation else { return }
+
             Clipboard.copy(contents, rtf: rtf)
+            didCopy = true
+            scheduleCopyReset(for: generation)
         }
-        didCopy = true
-        Task {
+    }
+
+    private func scheduleCopyReset(for generation: Int) {
+        copyResetTask?.cancel()
+        copyResetTask = Task {
             try? await Task.sleep(for: .seconds(1.2))
+            guard !Task.isCancelled, copyGeneration == generation else { return }
+
             didCopy = false
         }
     }
