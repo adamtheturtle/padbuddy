@@ -37,13 +37,13 @@
 
         /// Performs any pending widget / Control Center New Pad request and clears it. Shared
         /// by `applicationDidBecomeActive` (cold launch / background→foreground) and the Darwin
-        /// observer (already-frontmost taps, #485). Idempotent: `takePendingNewPad` removes the
-        /// request file, so whichever path runs first wins and the other no-ops.
+        /// observer (already-frontmost taps, #485). Drains every queued entry; whichever
+        /// activation path runs second simply finds the queue empty.
         @MainActor
         static func drainPendingNewPad() {
-            guard let request = WidgetSharedStore.takePendingNewPad() else { return }
-
-            createPadInBrowser(account: request.account, question: request.question)
+            while let request = WidgetSharedStore.takePendingNewPad() {
+                createPadInBrowser(account: request.account, question: request.question)
+            }
         }
 
         /// Creates a pad through the API and opens it in the user's browser — the same

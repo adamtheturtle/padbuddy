@@ -87,6 +87,9 @@ nonisolated enum WidgetSharedStore {
     private static let accountsFile = "widget-accounts.json"
     private static let newPadRequestFile = "pending-new-pad.json"
     private static let openPadRequestFile = "pending-open-pad.json"
+    private static let newPadRequestPrefix = "pending-new-pad-"
+    private static let openPadRequestPrefix = "pending-open-pad-"
+    private static let requestFileExtension = ".json"
     private static let logger = Logger(subsystem: "com.coderpad.app", category: "widget-shared-store")
 
     /// Darwin notification posted when a New Pad request is recorded, so a running app
@@ -113,14 +116,25 @@ nonisolated enum WidgetSharedStore {
         "widget-favorites-\(account).json"
     }
 
-    private static func fileURL(_ name: String, purpose: String) -> URL? {
+    private static func containerURL(purpose: String) -> URL? {
         guard let container = FileManager.default
             .containerURL(forSecurityApplicationGroupIdentifier: appGroupID) else {
             logger.error("Widget shared container unavailable for \(purpose, privacy: .public)")
             return nil
         }
 
+        return container
+    }
+
+    private static func fileURL(_ name: String, purpose: String) -> URL? {
+        guard let container = containerURL(purpose: purpose) else { return nil }
+
         return container.appending(path: name, directoryHint: .notDirectory)
+    }
+
+    private static func requestFileName(prefix: String) -> String {
+        let milliseconds = Int64(Date().timeIntervalSince1970 * 1000)
+        return "\(prefix)\(milliseconds)-\(UUID().uuidString)\(requestFileExtension)"
     }
 
     @discardableResult
@@ -145,6 +159,10 @@ nonisolated enum WidgetSharedStore {
     private static func loadData(fileName: String, purpose: String) -> Data? {
         guard let url = fileURL(fileName, purpose: purpose) else { return nil }
 
+        return loadData(url: url, purpose: purpose)
+    }
+
+    private static func loadData(url: URL, purpose: String) -> Data? {
         do {
             return try Data(contentsOf: url)
         } catch let error as CocoaError where error.code == .fileReadNoSuchFile {
@@ -158,9 +176,40 @@ nonisolated enum WidgetSharedStore {
         }
     }
 
+    private static func pendingRequestURLs(legacyFileName: String, prefix: String, purpose: String) -> [URL] {
+        guard let container = containerURL(purpose: purpose) else { return [] }
+
+        do {
+            return try FileManager.default
+                .contentsOfDirectory(at: container, includingPropertiesForKeys: nil)
+                .filter { url in
+                    let name = url.lastPathComponent
+                    return name == legacyFileName || (name.hasPrefix(prefix) && name.hasSuffix(requestFileExtension))
+                }
+                .sorted { lhs, rhs in
+                    requestSortKey(lhs.lastPathComponent, legacyFileName: legacyFileName)
+                        < requestSortKey(rhs.lastPathComponent, legacyFileName: legacyFileName)
+                }
+        } catch {
+            logger.error("""
+            Widget shared store list failed for \(purpose, privacy: .public): \
+            \(error.localizedDescription, privacy: .public)
+            """)
+            return []
+        }
+    }
+
+    private static func requestSortKey(_ fileName: String, legacyFileName: String) -> String {
+        fileName == legacyFileName ? "0-\(legacyFileName)" : "1-\(fileName)"
+    }
+
     private static func remove(_ fileName: String, purpose: String) {
         guard let url = fileURL(fileName, purpose: purpose) else { return }
 
+        remove(url: url, purpose: purpose)
+    }
+
+    private static func remove(url: URL, purpose: String) {
         do {
             try FileManager.default.removeItem(at: url)
         } catch let error as CocoaError where error.code == .fileNoSuchFile {
@@ -171,6 +220,31 @@ nonisolated enum WidgetSharedStore {
             \(error.localizedDescription, privacy: .public)
             """)
         }
+    }
+
+    private static func takePendingRequest<Request: Decodable>(
+        legacyFileName: String,
+        prefix: String,
+        purpose: String,
+        as type: Request.Type
+    ) -> Request? {
+        for url in pendingRequestURLs(legacyFileName: legacyFileName, prefix: prefix, purpose: purpose) {
+            guard let data = loadData(url: url, purpose: purpose) else {
+                remove(url: url, purpose: purpose)
+                continue
+            }
+
+            remove(url: url, purpose: purpose)
+            do {
+                return try JSONDecoder().decode(type, from: data)
+            } catch {
+                logger.error("""
+                Widget shared store decode failed for \(purpose, privacy: .public): \
+                \(error.localizedDescription, privacy: .public)
+                """)
+            }
+        }
+        return nil
     }
 
     /// Atomically replaces `account`'s snapshot (or the default snapshot when nil). A
@@ -201,7 +275,7 @@ nonisolated enum WidgetSharedStore {
     @discardableResult
     static func requestNewPad(account: String?, question: Int?) -> Bool {
         guard save(WidgetNewPadRequest(account: account, question: question),
-                   fileName: newPadRequestFile,
+                   fileName: requestFileName(prefix: newPadRequestPrefix),
                    purpose: "new pad handoff request") else {
             return false
         }
@@ -218,7 +292,7 @@ nonisolated enum WidgetSharedStore {
     @discardableResult
     static func requestOpenPad(id: String, account: String?) -> Bool {
         guard save(WidgetOpenPadRequest(id: id, account: account),
-                   fileName: openPadRequestFile,
+                   fileName: requestFileName(prefix: openPadRequestPrefix),
                    purpose: "open pad handoff request") else {
             return false
         }
@@ -252,44 +326,36 @@ nonisolated enum WidgetSharedStore {
     /// Returns and clears any pending New Pad request the widget/Control Center button
     /// recorded, so the app performs it once on activation. Nil when none is pending.
     static func takePendingNewPad() -> WidgetNewPadRequest? {
-        guard let data = loadData(fileName: newPadRequestFile, purpose: "new pad handoff request") else { return nil }
+        let purpose = "new pad handoff request"
+        guard let request = takePendingRequest(
+            legacyFileName: newPadRequestFile,
+            prefix: newPadRequestPrefix,
+            purpose: purpose,
+            as: WidgetNewPadRequest.self
+        ) else { return nil }
 
-        remove(newPadRequestFile, purpose: "new pad handoff request")
-        do {
-            let request = try JSONDecoder().decode(WidgetNewPadRequest.self, from: data)
-            logger.info("""
-            Drained new pad handoff request accountScoped=\((request.account?.isEmpty == false), privacy: .public) \
-            questionSeeded=\(request.question != nil, privacy: .public)
-            """)
-            return request
-        } catch {
-            logger.error("""
-            Widget shared store decode failed for new pad handoff request: \
-            \(error.localizedDescription, privacy: .public)
-            """)
-            return nil
-        }
+        logger.info("""
+        Drained new pad handoff request accountScoped=\((request.account?.isEmpty == false), privacy: .public) \
+        questionSeeded=\(request.question != nil, privacy: .public)
+        """)
+        return request
     }
 
     /// Returns and clears any pending iPad widget request to open an existing pad.
     static func takePendingOpenPad() -> WidgetOpenPadRequest? {
-        guard let data = loadData(fileName: openPadRequestFile, purpose: "open pad handoff request") else { return nil }
+        let purpose = "open pad handoff request"
+        guard let request = takePendingRequest(
+            legacyFileName: openPadRequestFile,
+            prefix: openPadRequestPrefix,
+            purpose: purpose,
+            as: WidgetOpenPadRequest.self
+        ) else { return nil }
 
-        remove(openPadRequestFile, purpose: "open pad handoff request")
-        do {
-            let request = try JSONDecoder().decode(WidgetOpenPadRequest.self, from: data)
-            logger.info("""
-            Drained open pad handoff request accountScoped=\
-            \((request.account?.isEmpty == false), privacy: .public)
-            """)
-            return request
-        } catch {
-            logger.error("""
-            Widget shared store decode failed for open pad handoff request: \
-            \(error.localizedDescription, privacy: .public)
-            """)
-            return nil
-        }
+        logger.info("""
+        Drained open pad handoff request accountScoped=\
+        \((request.account?.isEmpty == false), privacy: .public)
+        """)
+        return request
     }
 
     /// Removes a removed account's per-account snapshot and favourites so they stop

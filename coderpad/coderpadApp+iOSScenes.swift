@@ -129,7 +129,7 @@
 
         @MainActor
         static func drainPendingWidgetRequests() {
-            if let request = WidgetSharedStore.takePendingOpenPad() {
+            while let request = WidgetSharedStore.takePendingOpenPad() {
                 if let account = request.account,
                    let uuid = UUID(uuidString: account),
                    AccountsStore.shared.accounts.contains(where: { $0.id == uuid }) {
@@ -138,7 +138,7 @@
                 }
                 AppNavigation.shared.showPads(PadsRequest(selectPadID: request.id))
             }
-            if let request = WidgetSharedStore.takePendingNewPad() {
+            while let request = WidgetSharedStore.takePendingNewPad() {
                 AppNavigation.shared.routeNewPad(account: request.account, seedQuestionID: request.question)
             }
         }

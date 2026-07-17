@@ -84,6 +84,9 @@ enum WidgetSharedStore {
     private static let accountsFile = "widget-accounts.json"
     private static let newPadRequestFile = "pending-new-pad.json"
     private static let openPadRequestFile = "pending-open-pad.json"
+    private static let newPadRequestPrefix = "pending-new-pad-"
+    private static let openPadRequestPrefix = "pending-open-pad-"
+    private static let requestFileExtension = ".json"
     private static let logger = Logger(subsystem: "com.coderpad.app", category: "widget-shared-store")
 
     /// Darwin notification posted when a New Pad request is recorded, so a running app
@@ -118,6 +121,11 @@ enum WidgetSharedStore {
         }
 
         return container.appending(path: name, directoryHint: .notDirectory)
+    }
+
+    private static func requestFileName(prefix: String) -> String {
+        let milliseconds = Int64(Date().timeIntervalSince1970 * 1000)
+        return "\(prefix)\(milliseconds)-\(UUID().uuidString)\(requestFileExtension)"
     }
 
     private static func loadData(fileName: String, purpose: String) -> Data? {
@@ -221,7 +229,7 @@ enum WidgetSharedStore {
     @discardableResult
     static func requestNewPad(account: String?, question: Int?) -> Bool {
         guard write(WidgetNewPadRequest(account: account, question: question),
-                    fileName: newPadRequestFile,
+                    fileName: requestFileName(prefix: newPadRequestPrefix),
                     purpose: "new pad handoff request") else {
             return false
         }
@@ -238,7 +246,7 @@ enum WidgetSharedStore {
     @discardableResult
     static func requestOpenPad(id: String, account: String?) -> Bool {
         guard write(WidgetOpenPadRequest(id: id, account: account),
-                    fileName: openPadRequestFile,
+                    fileName: requestFileName(prefix: openPadRequestPrefix),
                     purpose: "open pad handoff request") else {
             return false
         }
