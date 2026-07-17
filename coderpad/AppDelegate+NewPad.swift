@@ -55,24 +55,25 @@
         @MainActor
         static func createPadInBrowser(account: String?, question: Int?) {
             let store = AccountsStore.shared
-            let resolved: Account? = {
-                if let account, let uuid = UUID(uuidString: account),
-                   let match = store.accounts.first(where: { $0.id == uuid }) {
-                    return match
-                }
-                return store.currentAccount
-            }()
+            let route = AppNavigation.resolveNewPadRoute(
+                account: account,
+                seedQuestionID: question,
+                availableAccountIDs: store.accounts.map(\.id)
+            )
+            let resolved = route.accountID.flatMap { id in
+                store.accounts.first { $0.id == id }
+            } ?? store.currentAccount
 
             guard let account = resolved else {
                 // No account configured yet — open the app so the user can add one.
-                routeNewPadViaDeepLink(account: nil, question: question)
+                routeNewPadViaDeepLink(account: nil, question: route.seedQuestionID)
                 return
             }
 
             // `question_id` alone seeds the pad from the favourite question; a nil id makes a
             // blank pad. Mirrors `MenuBarView`'s `createPad`.
             var body = PadCreate()
-            body.questionID = question
+            body.questionID = route.seedQuestionID
 
             let client = account.makeClient()
             let accountID = account.id
@@ -85,7 +86,7 @@
                 } catch {
                     // Offline or a transient API error: surface the in-app create flow so the
                     // user can retry, rather than failing silently.
-                    routeNewPadViaDeepLink(account: accountID.uuidString, question: question)
+                    routeNewPadViaDeepLink(account: accountID.uuidString, question: route.seedQuestionID)
                 }
             }
         }
