@@ -135,6 +135,18 @@ struct AccountsTests {
     }
 
     @Test
+    func `config with multiple marked defaults is rejected`() {
+        let config: [String: Any] = ["accounts": [
+            ["name": "Acme", "api_key": "a", "default": true],
+            ["name": "Beta", "api_key": "b", "default": true]
+        ]]
+
+        #expect(throws: MCPConfigError.multipleDefaultAccounts(["Acme", "Beta"])) {
+            try makeAccountSet(config: config, environment: [:])
+        }
+    }
+
+    @Test
     func `resolve matches by name case-insensitively, defaults on nil, nil on unknown`() throws {
         let config: [String: Any] = ["accounts": [
             ["name": "Acme", "api_key": "a", "default": true],

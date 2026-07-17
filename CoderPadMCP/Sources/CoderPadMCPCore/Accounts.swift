@@ -100,6 +100,7 @@ public enum MCPConfigError: Error, Equatable {
     case noAccounts
     case missingAPIKey(account: String)
     case duplicateName(String)
+    case multipleDefaultAccounts([String])
 }
 
 /// Why the standalone JSON config file could not be loaded.
@@ -198,7 +199,7 @@ public func makeAccountSet(config: [String: Any]?, environment: [String: String]
 
     if let config, let rawAccounts = config["accounts"] as? [[String: Any]], !rawAccounts.isEmpty {
         var accounts: [MCPAccount] = []
-        var defaultName: String?
+        var defaultNames: [String] = []
         var seen = Set<String>()
         for entry in rawAccounts {
             let name = trimmedNonEmpty(entry["name"] as? String) ?? "account-\(accounts.count + 1)"
@@ -216,11 +217,16 @@ public func makeAccountSet(config: [String: Any]?, environment: [String: String]
                 screenAPIKey: trimmedNonEmpty(entry["screen_api_key"] as? String),
                 screenRegion: screenRegion(from: entry["screen_region"] as? String)
             ))
-            if (entry["default"] as? Bool) == true, defaultName == nil { defaultName = name }
+            if (entry["default"] as? Bool) == true { defaultNames.append(name) }
+        }
+
+        guard defaultNames.count <= 1 else {
+            throw MCPConfigError.multipleDefaultAccounts(defaultNames)
         }
 
         let allowWrites = envWrites || (config["allow_writes"] as? Bool == true)
-        return MCPAccountSet(accounts: accounts, defaultName: defaultName ?? accounts[0].name, allowWrites: allowWrites)
+        let defaultName = defaultNames.first ?? accounts[0].name
+        return MCPAccountSet(accounts: accounts, defaultName: defaultName, allowWrites: allowWrites)
     }
 
     // Legacy single-account env fallback.

@@ -56,6 +56,11 @@ private let accountSet: MCPAccountSet = {
         case let MCPConfigError.duplicateName(name):
             "coderpad-mcp: two accounts share the name \"\(name)\"; names must be unique.\n"
 
+        case let MCPConfigError.multipleDefaultAccounts(names):
+            "coderpad-mcp: multiple accounts are marked as default ("
+                + names.joined(separator: ", ")
+                + "); mark only one account as the default.\n"
+
         default:
             "coderpad-mcp: could not load the account configuration: \(error.localizedDescription)\n"
         }
