@@ -51,6 +51,9 @@ struct ScreenTestsView: View {
     @State private var testPendingDelete: ScreenTestSession?
     @State private var actionError: String?
     @State private var showResentConfirmation = false
+    /// Identifies this view instance as the subtitle's publisher, so a disappearing
+    /// instance can only clear a subtitle it still owns (#805).
+    private let subtitleOwnerToken = UUID()
 
     var body: some View {
         coreList
@@ -127,10 +130,20 @@ struct ScreenTestsView: View {
     }
 
     private func publishCountSubtitle(_ subtitle: String) {
-        guard nav.screenTestsSubtitle != subtitle else { return }
-
+        // Publications are tagged with this view instance, and the deferred write
+        // honors that tag: during a direct A -> B campaign switch, A's queued
+        // disappearance clear runs after B's publish and must not blank it (#805).
+        let owner = subtitleOwnerToken
         DispatchQueue.main.async {
-            if nav.screenTestsSubtitle != subtitle { nav.screenTestsSubtitle = subtitle }
+            if subtitle.isEmpty {
+                guard nav.screenTestsSubtitleOwner == owner else { return }
+
+                nav.screenTestsSubtitleOwner = nil
+                if !nav.screenTestsSubtitle.isEmpty { nav.screenTestsSubtitle = "" }
+            } else {
+                nav.screenTestsSubtitleOwner = owner
+                if nav.screenTestsSubtitle != subtitle { nav.screenTestsSubtitle = subtitle }
+            }
         }
     }
 
@@ -325,6 +338,17 @@ struct ScreenTestsView: View {
     private func cancel(_ test: ScreenTestSession) async {
         do {
             try await client.cancelTest(id: test.id)
+            // The server mutation succeeded: refresh this row before the full reload,
+            // so a failed reconciliation can't leave it "waiting" with Cancel/Resend
+            // still offered for an already-canceled invitation (#810). If even the
+            // single-session refetch fails, drop the row; the next successful reload
+            // restores it with its true status.
+            if let fresh = try? await client.getTest(id: test.id, withCommunityStats: false),
+               let index = tests.firstIndex(where: { $0.id == test.id }) {
+                tests[index] = fresh
+            } else {
+                tests.removeAll { $0.id == test.id }
+            }
             await load()
         } catch {
             actionError = message(for: error)
@@ -334,7 +358,11 @@ struct ScreenTestsView: View {
     private func delete(_ test: ScreenTestSession) async {
         do {
             try await client.deleteTest(id: test.id)
+            // The server mutation succeeded: remove the row locally first, so a
+            // failed reconciliation reload can't resurrect it (#810); the stale
+            // banner reports the reload failure separately.
             selectedIDs.remove(test.id)
+            tests.removeAll { $0.id == test.id }
             await load()
         } catch {
             actionError = message(for: error)

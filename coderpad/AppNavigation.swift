@@ -66,6 +66,11 @@ final class AppNavigation {
     /// column's own count preference doesn't propagate out to the toolbar (#475).
     var screenTestsSubtitle = ""
 
+    /// Which tests-list view instance last published ``screenTestsSubtitle``, so the
+    /// deferred clear from a disappearing campaign view can't blank the subtitle a
+    /// newly selected campaign just wrote (#805). Only the current owner may clear.
+    var screenTestsSubtitleOwner: UUID?
+
     /// The visible list section's result-count summary (e.g. "12 pads"), published by
     /// the active list pane via ``publishSectionCount(_:)`` and shown by `MainSplit` as
     /// the window's toolbar subtitle beneath the section title. Replaces the former
