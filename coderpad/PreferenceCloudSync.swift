@@ -117,6 +117,46 @@ final class PreferenceCloudSync {
 
         UserDefaults.standard.set(cloud, forKey: key)
         UserDefaults.standard.set(cloudRevision, forKey: Self.localRevisionKey(key))
+        applySideEffects(forPulledKey: key)
+    }
+
+    /// Runs the side effects a locally toggled control would have run for `key`, so a
+    /// pulled value behaves exactly like a local change. @AppStorage-backed UI reacts
+    /// to the defaults write on its own; these are the out-of-band effects that only
+    /// lived in Settings' onChange closures, which a cloud pull bypasses:
+    /// the Dock activation policy for presence (#742), the badge recompute and
+    /// authorization for the badge scope (#743), and the Spotlight index/clear pass
+    /// for the indexing opt-in/out (#741).
+    private func applySideEffects(forPulledKey key: String) {
+        switch key {
+        case "general.presence":
+            GeneralSettings.applyDockVisibility()
+
+        case "general.dockBadgeScope":
+            if DockBadgeController.scope != .off {
+                PadUpdateNotifier.shared.requestBadgeAuthorization()
+            }
+            DockBadgeController.refresh()
+
+        case "general.spotlightIndexing":
+            applySpotlightIndexingChange()
+
+        default:
+            break
+        }
+    }
+
+    /// Mirrors the Settings toggle (#741): opting out must actually clear the index -
+    /// the titles carry candidate names - and opting in seeds it from the caches.
+    private func applySpotlightIndexingChange() {
+        guard UserDefaults.standard.bool(forKey: "general.spotlightIndexing") else {
+            SpotlightIndexer.clearAll()
+            return
+        }
+        for account in AccountsStore.shared.accounts {
+            SpotlightIndexer.updatePads(PadsCacheStore.shared.get(account.id), account: account.id)
+            SpotlightIndexer.updateQuestions(QuestionsCacheStore.shared.get(account.id), account: account.id)
+        }
     }
 
     /// The KVS key carrying `key`'s revision stamp. Internal for tests.
