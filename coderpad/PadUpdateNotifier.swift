@@ -69,10 +69,20 @@ final class PadUpdateNotifier: NSObject {
         center.delegate = self
     }
 
-    /// Ask the system for permission to post alerts. Called when the user opts in, so
-    /// the permission prompt appears at a moment they expect it rather than at launch.
-    func requestAuthorization() {
-        Task { _ = try? await center.requestAuthorization(options: [.alert, .sound]) }
+    /// Returns whether the app can currently post pad-update alerts, requesting alert
+    /// permission first (the system prompts at most once and otherwise returns the
+    /// standing decision). Callers that expose the notify preference use this to avoid
+    /// leaving an enabled-looking setting in place when every alert would be
+    /// dropped (#836).
+    func alertAuthorizationIsAvailable() async -> Bool {
+        do {
+            guard try await center.requestAuthorization(options: [.alert, .sound]) else { return false }
+        } catch {
+            return false
+        }
+
+        let settings = await center.notificationSettings()
+        return settings.authorizationStatus != .denied
     }
 
     /// Ask the system for permission to put a count on the app icon. Since macOS

@@ -73,7 +73,17 @@ extension SettingsView {
                     .onChange(of: notifyOnPadUpdates) { _, isOn in
                         // Ask for permission the moment they opt in, so the system
                         // prompt arrives when it's expected rather than at first alert.
-                        if isOn { PadUpdateNotifier.shared.requestAuthorization() }
+                        // If permission is denied (or the request fails), revert the
+                        // toggle instead of leaving an enabled-looking setting whose
+                        // alerts are all silently dropped (#836).
+                        guard isOn else { return }
+
+                        Task { @MainActor in
+                            let isAvailable = await PadUpdateNotifier.shared.alertAuthorizationIsAvailable()
+                            if !isAvailable, notifyOnPadUpdates {
+                                notifyOnPadUpdates = false
+                            }
+                        }
                     }
             } footer: {
                 Text("Alerts when pads gain activity while PadBuddy is in the background.")
