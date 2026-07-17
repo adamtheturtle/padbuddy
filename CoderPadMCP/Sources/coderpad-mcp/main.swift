@@ -859,6 +859,13 @@ private func presentString(_ arguments: [String: Value]?, _ name: String) -> Str
 }
 
 private func createPad(arguments: [String: Value]?, account: MCPAccount) async -> CallTool.Result {
+    if let error = padSeedValidationError(
+        questionID: intArgument(arguments, "question_id"),
+        contents: optionalString(arguments, "contents")
+    ) {
+        return errorResult(error)
+    }
+
     var body: [String: Any] = [:]
     if let title = optionalString(arguments, "title") { body["title"] = title }
     if let language = optionalString(arguments, "language") { body["language"] = language }

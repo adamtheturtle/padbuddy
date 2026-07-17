@@ -58,6 +58,13 @@ nonisolated extension MCPTools {
     // MARK: - Implementations
 
     private static func createPad(arguments: [String: Any], key: String, base: URL) async -> Outcome {
+        if let error = padSeedValidationError(
+            questionID: int(arguments, "question_id"),
+            contents: string(arguments, "contents")
+        ) {
+            return Outcome(text: error, isError: true)
+        }
+
         let body = padCreateBody(from: arguments)
         return await send("POST", "/api/pads/", key: key, base: base, body: body)
     }

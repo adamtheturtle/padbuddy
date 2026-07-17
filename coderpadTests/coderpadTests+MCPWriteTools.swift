@@ -59,6 +59,13 @@ struct MCPWriteToolsTests {
     }
 
     @Test
+    func `pad seed validation rejects conflicting sources`() {
+        #expect(padSeedValidationError(questionID: nil, contents: "print(1)") == nil)
+        #expect(padSeedValidationError(questionID: 123, contents: nil) == nil)
+        #expect(padSeedValidationError(questionID: 123, contents: "print(1)")?.contains("mutually exclusive") == true)
+    }
+
+    @Test
     func `screen tools appear only when Screen is enabled`() {
         let without = toolNames(allowWrites: false, screenEnabled: false)
         let with = toolNames(allowWrites: false, screenEnabled: true)

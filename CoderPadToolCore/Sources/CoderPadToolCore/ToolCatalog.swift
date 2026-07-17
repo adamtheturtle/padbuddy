@@ -24,10 +24,14 @@ public func mcpToolDescriptor(
     _ description: String,
     properties: [String: [String: Any]] = [:],
     required: [String] = [],
+    schemaExtras: [String: Any] = [:],
     annotations: [String: Any] = [:]
 ) -> [String: Any] {
     var schema: [String: Any] = ["type": "object", "properties": properties]
     if !required.isEmpty { schema["required"] = required }
+    for (key, value) in schemaExtras {
+        schema[key] = value
+    }
     var descriptor: [String: Any] = ["name": name, "description": description, "inputSchema": schema]
     if !annotations.isEmpty { descriptor["annotations"] = annotations }
     return descriptor
@@ -255,6 +259,7 @@ public var coderPadWriteToolDescriptors: [[String: Any]] {
                 "notes": mcpStringSchema("Optional private interviewer notes."),
                 "team_id": mcpStringSchema("Optional team id to link the pad to (org owners only).")
             ]),
+            schemaExtras: ["not": ["required": ["question_id", "contents"]]],
             annotations: writeAnnotations(title: "Create pad", destructive: false)
         ),
         mcpToolDescriptor(

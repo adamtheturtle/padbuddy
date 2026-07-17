@@ -127,6 +127,13 @@ struct ToolCatalogTests {
     }
 
     @Test
+    func `create pad schema rejects conflicting seed sources`() throws {
+        let schema = try inputSchema(of: "create_pad")
+        let notSchema = try #require(schema["not"] as? [String: Any])
+        #expect(notSchema["required"] as? [String] == ["question_id", "contents"])
+    }
+
+    @Test
     func `tools encode to valid JSON-RPC tool descriptors`() throws {
         // This mirrors what tools/list serializes onto the wire, so a malformed
         // schema (wrong nesting, non-object inputSchema) is caught here.
@@ -170,13 +177,17 @@ struct ToolCatalogTests {
     }
 
     private func property(_ name: String, of toolName: String) throws -> [String: Any] {
-        let descriptor = try #require(
-            (coderPadReadToolDescriptors + coderPadScreenToolDescriptors)
-                .first { $0["name"] as? String == toolName }
-        )
-        let inputSchema = try #require(descriptor["inputSchema"] as? [String: Any])
+        let inputSchema = try inputSchema(of: toolName)
         let properties = try #require(inputSchema["properties"] as? [String: [String: Any]])
         return try #require(properties[name])
+    }
+
+    private func inputSchema(of toolName: String) throws -> [String: Any] {
+        let descriptor = try #require(
+            (coderPadReadToolDescriptors + coderPadScreenToolDescriptors + coderPadWriteToolDescriptors)
+                .first { $0["name"] as? String == toolName }
+        )
+        return try #require(descriptor["inputSchema"] as? [String: Any])
     }
 }
 
