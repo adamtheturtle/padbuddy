@@ -48,6 +48,7 @@ struct MCPInstallTabs: View {
                 .onTapGesture {
                     isManualInstructionsExpanded.toggle()
                 }
+                .accessibilityAddTraits(.isButton)
         }
         .font(.callout)
     }

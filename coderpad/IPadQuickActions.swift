@@ -45,7 +45,7 @@
         func windowScene(
             _: UIWindowScene,
             performActionFor shortcutItem: UIApplicationShortcutItem,
-            completionHandler: @escaping (Bool) -> Void
+            completionHandler: (Bool) -> Void
         ) {
             completionHandler(IPadQuickAction.handle(shortcutItem))
         }

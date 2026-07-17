@@ -7,59 +7,6 @@ import SwiftUI
 
 // MARK: - Question Create / Edit sheets
 
-private let padTypeOptions = InterviewType.allCases.map(\.rawValue)
-private func padTypeLabel(_ raw: String) -> String {
-    InterviewType(rawValue: raw)?.label ?? raw.capitalized
-}
-
-private enum QuestionDraftSection: String, CaseIterable, Identifiable {
-    case description
-    case instructions
-    case solution
-
-    var id: Self { self }
-
-    var title: LocalizedStringKey {
-        switch self {
-        case .description: "Brief"
-        case .instructions: "Candidate"
-        case .solution: "Solution"
-        }
-    }
-
-    var editorTitle: LocalizedStringKey {
-        switch self {
-        case .description: "Brief"
-        case .instructions: "Candidate Prompt"
-        case .solution: "Reference Solution"
-        }
-    }
-
-    var systemImage: String {
-        switch self {
-        case .description: "text.alignleft"
-        case .instructions: "person.text.rectangle"
-        case .solution: "chevron.left.forwardslash.chevron.right"
-        }
-    }
-
-    var placeholder: LocalizedStringKey {
-        switch self {
-        case .description: "Summarize the problem an interviewer should understand before opening a pad."
-        case .instructions: "Write the prompt candidates will see, including inputs, outputs, constraints, and examples."
-        case .solution: "Add the reference solution or key implementation notes."
-        }
-    }
-
-    var accessibilityLabel: String {
-        switch self {
-        case .description: "Question brief"
-        case .instructions: "Candidate instructions"
-        case .solution: "Reference solution"
-        }
-    }
-}
-
 struct NewQuestionSheet: View {
     let client: CoderPadClient
     let onCreated: (Question) -> Void
@@ -139,6 +86,7 @@ struct NewQuestionSheet: View {
             Image(systemName: "questionmark.bubble")
                 .font(.title3)
                 .foregroundStyle(.purple)
+                .accessibilityHidden(true)
             Text("New Question")
                 .font(.title3.bold())
             Spacer()
@@ -275,29 +223,6 @@ struct NewQuestionSheet: View {
         }
     }
 
-    private func metadataPicker<Content: View>(title: LocalizedStringKey,
-                                               systemImage: String,
-                                               @ViewBuilder content: () -> Content) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 10) {
-            Label(title, systemImage: systemImage)
-                .foregroundStyle(.secondary)
-                .frame(width: 92, alignment: .leading)
-            content()
-                .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    private func authorPanel<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        content()
-            .padding(14)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .stroke(Color.secondary.opacity(0.16), lineWidth: 1)
-            }
-    }
-
     private var actionButtons: some View {
         HStack {
             Spacer()
@@ -326,19 +251,44 @@ struct NewQuestionSheet: View {
         #endif
         .disabled(isSubmitting || title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
     }
+}
+
+private extension NewQuestionSheet {
+    func metadataPicker<Content: View>(title: LocalizedStringKey,
+                                       systemImage: String,
+                                       @ViewBuilder content: () -> Content) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Label(title, systemImage: systemImage)
+                .foregroundStyle(.secondary)
+                .frame(width: 92, alignment: .leading)
+            content()
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    func authorPanel<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        content()
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .stroke(Color.secondary.opacity(0.16), lineWidth: 1)
+            }
+    }
 
     /// The language picker's binding, marking the choice as user-made so the org
     /// default no longer overrides it.
-    private var languageSelection: Binding<String> {
+    var languageSelection: Binding<String> {
         Binding(get: { language }, set: { language = $0; languageEdited = true })
     }
 
-    private var editorText: Binding<String> {
+    var editorText: Binding<String> {
         Binding(get: { text(for: selectedSection) },
                 set: { setText($0, for: selectedSection) })
     }
 
-    private func text(for section: QuestionDraftSection) -> String {
+    func text(for section: QuestionDraftSection) -> String {
         switch section {
         case .description: description
         case .instructions: instructions
@@ -346,7 +296,7 @@ struct NewQuestionSheet: View {
         }
     }
 
-    private func setText(_ value: String, for section: QuestionDraftSection) {
+    func setText(_ value: String, for section: QuestionDraftSection) {
         switch section {
         case .description: description = value
         case .instructions: instructions = value
@@ -356,7 +306,7 @@ struct NewQuestionSheet: View {
 
     /// Pre-select the organization's default language, unless the user has already
     /// chosen one. Driven by `OrgDirectory`, which is loaded app-wide.
-    private func applyOrgDefaultLanguage() {
+    func applyOrgDefaultLanguage() {
         guard !languageEdited, let def = directory.defaultLanguage, !def.isEmpty else { return }
 
         language = def
@@ -365,7 +315,7 @@ struct NewQuestionSheet: View {
     /// Drafts the question fields from the prompt, in the currently-selected
     /// language. Fills only the fields the model returned, so a partial draft
     /// doesn't blank anything the user already typed.
-    private func draftQuestion() {
+    func draftQuestion() {
         isDrafting = true
         Task {
             let draft = await QuestionDrafter.draft(prompt: draftPrompt, language: language)
@@ -382,7 +332,7 @@ struct NewQuestionSheet: View {
         }
     }
 
-    private func submit() async {
+    func submit() async {
         isSubmitting = true
         error = nil
         defer { isSubmitting = false }
@@ -402,36 +352,6 @@ struct NewQuestionSheet: View {
             onCreated(created)
         } catch {
             self.error = error.localizedDescription
-        }
-    }
-}
-
-private struct DraftTextEditor: View {
-    @Binding var text: String
-    let placeholder: LocalizedStringKey
-    let accessibilityLabel: String
-    var isCode = false
-
-    var body: some View {
-        ZStack(alignment: .topLeading) {
-            TextEditor(text: $text)
-                .font(isCode ? .system(.body, design: .monospaced) : .body)
-                .scrollContentBackground(.hidden)
-                .padding(8)
-                .accessibilityLabel(accessibilityLabel)
-
-            if text.isEmpty {
-                Text(placeholder)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal, 13)
-                    .padding(.vertical, 16)
-                    .allowsHitTesting(false)
-            }
-        }
-        .background(Color.primary.opacity(0.035), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(Color.secondary.opacity(0.18), lineWidth: 1)
         }
     }
 }

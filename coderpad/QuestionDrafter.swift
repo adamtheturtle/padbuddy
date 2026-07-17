@@ -49,8 +49,10 @@ enum QuestionDrafter {
         let languageName = language.coderPadLanguageDisplayName
         return Draft(
             title: "Simulator Draft",
-            description: "A simulator-only draft for: \(trimmed). Apple Intelligence model assets are not available in iPhone and iPad simulators.",
-            instructions: "Implement a clear solution in \(languageName). Replace this placeholder after testing on an Apple Intelligence-capable physical device or Mac.",
+            description: "A simulator-only draft for: \(trimmed). Apple Intelligence model assets "
+                + "are not available in iPhone and iPad simulators.",
+            instructions: "Implement a clear solution in \(languageName). Replace this placeholder "
+                + "after testing on an Apple Intelligence-capable physical device or Mac.",
             solution: "// Simulator placeholder: run on a supported device to generate a real \(languageName) solution."
         )
     }

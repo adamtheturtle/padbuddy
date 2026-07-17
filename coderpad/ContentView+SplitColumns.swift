@@ -187,7 +187,8 @@ extension MainSplit {
         /// Compact-width presentations collapse into a stack, where forcing the old
         /// iPad width makes the root column wider than an iPhone screen.
         @ViewBuilder
-        func regularWidthSidebarColumnWidth(_ width: CGFloat, horizontalSizeClass: UserInterfaceSizeClass?) -> some View {
+        func regularWidthSidebarColumnWidth(_ width: CGFloat,
+                                            horizontalSizeClass: UserInterfaceSizeClass?) -> some View {
             if horizontalSizeClass == .compact {
                 self
             } else {

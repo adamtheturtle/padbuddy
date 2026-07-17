@@ -58,8 +58,11 @@ enum PadCodeExplainer {
 
         let language = file.language?.coderPadLanguageDisplayName ?? "code"
         return CodeExplanation(
-            summary: "Simulator preview for \(file.name). Apple Intelligence model assets are not available in iPhone and iPad simulators, so this placeholder stands in for the on-device \(language) explanation.",
-            readability: "Run on an Apple Intelligence-capable physical device or Mac to generate a real readability assessment.",
+            summary: "Simulator preview for \(file.name). Apple Intelligence model assets are not "
+                + "available in iPhone and iPad simulators, so this placeholder stands in for the "
+                + "on-device \(language) explanation.",
+            readability: "Run on an Apple Intelligence-capable physical device or Mac to generate "
+                + "a real readability assessment.",
             optimality: "Run on a supported device to generate real time and space complexity notes."
         )
     }

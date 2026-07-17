@@ -90,7 +90,10 @@ nonisolated enum Keychain {
             let addStatus = SecItemAdd(insert as CFDictionary, nil)
             if addStatus != errSecSuccess {
                 persistenceLogger.error(
-                    "iCloud Keychain SecItemAdd failed for account '\(account, privacy: .public)' (OSStatus \(addStatus))"
+                    """
+                    iCloud Keychain SecItemAdd failed for account \
+                    '\(account, privacy: .public)' (OSStatus \(addStatus))
+                    """
                 )
             }
         } else if status != errSecSuccess {

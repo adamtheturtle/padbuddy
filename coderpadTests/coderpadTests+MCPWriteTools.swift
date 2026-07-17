@@ -85,9 +85,9 @@ struct MCPWriteToolsTests {
 
         #expect(MCPTools.hasAnyUpdatePadField(["notes": ""]))
         #expect(!MCPTools.hasAnyUpdatePadField([:]))
-        #expect(object["title"] as? String == "")
-        #expect(object["notes"] as? String == "")
-        #expect(object["owner_email"] as? String == "")
+        #expect((object["title"] as? String)?.isEmpty == true)
+        #expect((object["notes"] as? String)?.isEmpty == true)
+        #expect((object["owner_email"] as? String)?.isEmpty == true)
         #expect(object["language"] as? String == "python3")
     }
 
@@ -104,10 +104,10 @@ struct MCPWriteToolsTests {
 
         #expect(MCPTools.hasAnyUpdateQuestionField(["description": ""]))
         #expect(!MCPTools.hasAnyUpdateQuestionField([:]))
-        #expect(object["title"] as? String == "")
+        #expect((object["title"] as? String)?.isEmpty == true)
         #expect(object["language"] as? String == "swift")
-        #expect(object["description"] as? String == "")
-        #expect(object["solution"] as? String == "")
-        #expect(object["contents"] as? String == "")
+        #expect((object["description"] as? String)?.isEmpty == true)
+        #expect((object["solution"] as? String)?.isEmpty == true)
+        #expect((object["contents"] as? String)?.isEmpty == true)
     }
 }

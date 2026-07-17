@@ -298,8 +298,10 @@ struct OrganizationView: View {
             }
         #endif
     }
+}
 
-    private func filteredUsers(_ org: Organization) -> [OrganizationUser] {
+private extension OrganizationView {
+    func filteredUsers(_ org: Organization) -> [OrganizationUser] {
         let lowered = userSearch.lowercased()
         let matched = lowered.isEmpty ? org.users : org.users.filter {
             ($0.name ?? "").lowercased().contains(lowered) || $0.email.lowercased().contains(lowered)
@@ -311,7 +313,7 @@ struct OrganizationView: View {
         }
     }
 
-    private func reload() async {
+    func reload() async {
         guard !client.apiKey.isEmpty else { return }
 
         isLoading = true
@@ -341,14 +343,14 @@ struct OrganizationView: View {
     /// Cancels any in-flight stats fetch before starting a new one, so rapid period
     /// or custom-date changes can't land an earlier, slower response on top of a newer
     /// one and show stats for the wrong window.
-    private func scheduleStatsReload() {
+    func scheduleStatsReload() {
         statsTask?.cancel()
         statsTask = Task { await reloadStats() }
     }
 
     /// Refetches just the stats when the period changes, leaving the rest of the
     /// loaded organization data in place.
-    private func reloadStats() async {
+    func reloadStats() async {
         guard !client.apiKey.isEmpty else { return }
 
         let window = window
@@ -359,65 +361,6 @@ struct OrganizationView: View {
         stats = result
     }
 }
-
-#if os(macOS)
-private struct CompactUserRow: View {
-    let user: OrganizationUser
-
-    private var displayName: String {
-        user.name ?? user.email
-    }
-
-    var body: some View {
-        HStack(spacing: 12) {
-            HStack(spacing: 8) {
-                AvatarCircle(label: displayName, diameter: 24)
-                Text(displayName)
-                    .font(.callout.weight(.medium))
-                    .lineLimit(1)
-            }
-            .frame(minWidth: 180, maxWidth: .infinity, alignment: .leading)
-
-            Text(user.email)
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .textSelection(.enabled)
-                .frame(minWidth: 220, maxWidth: .infinity, alignment: .leading)
-        }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .contentShape(Rectangle())
-    }
-}
-#else
-private struct TouchUserCard: View {
-    let user: OrganizationUser
-
-    private var displayName: String {
-        user.name ?? user.email
-    }
-
-    var body: some View {
-        HStack(spacing: 10) {
-            AvatarCircle(label: displayName, diameter: 32)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(displayName)
-                    .font(.callout.weight(.medium))
-                    .lineLimit(1)
-                Text(user.email)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-            }
-            Spacer(minLength: 0)
-        }
-        .padding(10)
-        .background(Color.subtleStroke.opacity(0.5),
-                    in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
-    }
-}
-#endif
 
 #Preview("Period picker") {
     @Previewable @State var period: StatsPeriod = .days7

@@ -40,8 +40,14 @@ struct MCPActivityAttributionTests {
 
     @Test
     func `valid explicit selectors use the matched account`() {
-        #expect(MCPActivityAttribution.accountName(arguments: [MCPTools.account: "beta"], directory: directory) == "Beta")
-        #expect(MCPActivityAttribution.accountName(arguments: [MCPTools.account: "account-b"], directory: directory) == "Beta")
+        #expect(
+            MCPActivityAttribution.accountName(arguments: [MCPTools.account: "beta"], directory: directory)
+                == "Beta"
+        )
+        #expect(
+            MCPActivityAttribution.accountName(arguments: [MCPTools.account: "account-b"], directory: directory)
+                == "Beta"
+        )
     }
 
     @Test

@@ -98,7 +98,10 @@ struct OrgMemberPicker: View {
     private var customEmailCandidate: String? {
         let trimmedQuery = query.trimmingCharacters(in: .whitespaces)
         guard !trimmedQuery.isEmpty, trimmedQuery.contains("@") else { return nil }
-        guard !memberOptions.contains(where: { $0.email.caseInsensitiveCompare(trimmedQuery) == .orderedSame }) else { return nil }
+        let isExistingMember = memberOptions.contains {
+            $0.email.caseInsensitiveCompare(trimmedQuery) == .orderedSame
+        }
+        guard !isExistingMember else { return nil }
 
         return trimmedQuery
     }
