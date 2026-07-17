@@ -27,10 +27,13 @@ struct NewPadSheet: View {
 
     @Environment(\.orgDirectory) private var directory
     @State private var title = ""
+    @State private var titleEdited = false
+    @State private var titleAutofilledFromQuestionID: Int?
     @State private var language = "python3"
     /// Set once the user picks a language themselves, so a late-arriving org
     /// default doesn't overwrite their choice.
     @State private var languageEdited = false
+    @State private var languageAutofilledFromQuestionID: Int?
     @State private var ownerEmail = ""
     @State private var isPrivate = false
     @State private var executionEnabled = true
@@ -78,7 +81,7 @@ struct NewPadSheet: View {
     private var formContent: some View {
         VStack(alignment: .leading, spacing: Spacing.sheetGap) {
             Form {
-                TextField("Title", text: $title, prompt: Text("Optional, e.g. \"Onsite: Jane Doe\""))
+                TextField("Title", text: titleBinding, prompt: Text("Optional, e.g. \"Onsite: Jane Doe\""))
 
                 LabeledContent("Question") {
                     SearchableQuestionPicker(selection: $selectedQuestionID, questions: questions)
@@ -168,18 +171,41 @@ struct NewPadSheet: View {
     /// The language picker's binding, marking the choice as user-made so the org
     /// default no longer overrides it.
     private var languageSelection: Binding<String> {
-        Binding(get: { language }, set: { language = $0; languageEdited = true })
+        Binding(get: { language }, set: {
+            language = $0
+            languageEdited = true
+            languageAutofilledFromQuestionID = nil
+        })
+    }
+
+    private var titleBinding: Binding<String> {
+        Binding(get: { title }, set: {
+            title = $0
+            titleEdited = true
+            titleAutofilledFromQuestionID = nil
+        })
     }
 
     /// Pre-select the organization's default language, unless the user has already
     /// chosen one. Driven by `OrgDirectory`, which is loaded app-wide.
     private func applyOrgDefaultLanguage() {
         guard !languageEdited,
+              languageAutofilledFromQuestionID == nil,
               let def = directory.defaultLanguage,
               CoderPadLanguages.canCreatePad(with: def)
         else { return }
 
         language = def
+    }
+
+    private func resetQuestionAutofilledLanguage() {
+        languageAutofilledFromQuestionID = nil
+        if let def = directory.defaultLanguage,
+           CoderPadLanguages.canCreatePad(with: def) {
+            language = def
+        } else {
+            language = "python3"
+        }
     }
 
     private func loadQuestions() async {
@@ -200,17 +226,31 @@ struct NewPadSheet: View {
     /// sheet opens pre-seeded with one (where the picker's `onChange` doesn't fire).
     /// Doesn't clobber a title the user already typed or a language they chose.
     private func fillFromSelectedQuestion() {
-        guard let id = selectedQuestionID,
-              let question = questions.first(where: { $0.id == id }) else { return }
+        guard let id = selectedQuestionID else {
+            if titleAutofilledFromQuestionID != nil {
+                title = ""
+                titleEdited = false
+                titleAutofilledFromQuestionID = nil
+            }
+            if languageAutofilledFromQuestionID != nil {
+                resetQuestionAutofilledLanguage()
+            }
+            return
+        }
+        guard let question = questions.first(where: { $0.id == id }) else { return }
 
-        if title.isEmpty { title = question.title }
+        if !titleEdited || titleAutofilledFromQuestionID != nil {
+            title = question.title
+            titleEdited = false
+            titleAutofilledFromQuestionID = id
+        }
         if !languageEdited,
            let lang = question.language,
            CoderPadLanguages.canCreatePad(with: lang) {
             language = lang
-            // Treat the question's language as a deliberate choice so a late-arriving
-            // org default (applied from `.task`/`.onChange`) can't clobber it.
-            languageEdited = true
+            languageAutofilledFromQuestionID = id
+        } else if !languageEdited, languageAutofilledFromQuestionID != nil {
+            resetQuestionAutofilledLanguage()
         }
     }
 
