@@ -36,6 +36,13 @@ nonisolated extension MCPTools {
             return await screenGet("/campaigns", key: key, base: base)
 
         case "screen_list_tests":
+            if let error = screenPaginationValidationError(
+                start: int(arguments, "start"),
+                limit: int(arguments, "limit")
+            ) {
+                return Outcome(text: error, isError: true)
+            }
+
             return await screenGet("/tests", key: key, base: base, query: screenTestsQuery(arguments))
 
         case "screen_get_test":

@@ -33,6 +33,25 @@ struct MCPAccountDirectoryTests {
 
     private let uuid = UUID()
 
+    private func singleAccountDirectory() throws -> MCPAccountDirectory {
+        let baseURL = try #require(URL(string: "https://example.com"))
+        let screenBaseURL = try #require(URL(string: "https://screen.example.com"))
+        return MCPAccountDirectory(
+            accounts: [
+                MCPCredentials(
+                    id: "account-a",
+                    apiKey: "key",
+                    baseURL: baseURL,
+                    accountName: "Acme",
+                    userEmail: "user@example.com",
+                    secondaryApiKey: "screen-key",
+                    secondaryBaseURL: screenBaseURL
+                )
+            ],
+            currentID: "account-a"
+        )
+    }
+
     @Test
     func `duplicate display names do not resolve by name`() {
         #expect(duplicateNameDirectory.resolve("Acme") == nil)
@@ -63,6 +82,32 @@ struct MCPAccountDirectoryTests {
 
         #expect(directory.resolve(uuid.uuidString.lowercased())?.id == uuid.uuidString)
         #expect(directory.ambiguousAccountIDs(for: uuid.uuidString.lowercased()).isEmpty)
+    }
+
+    @Test
+    func `list tools reject invalid page before network requests`() async throws {
+        let directory = try singleAccountDirectory()
+        let outcome = await MCPTools.run(
+            name: "list_pads",
+            arguments: ["page": 0],
+            directory: directory
+        )
+
+        #expect(outcome.isError)
+        #expect(outcome.text.contains("page"))
+    }
+
+    @Test
+    func `screen list tests rejects invalid pagination before network requests`() async throws {
+        let directory = try singleAccountDirectory()
+        let outcome = await MCPTools.run(
+            name: "screen_list_tests",
+            arguments: ["start": -1, "limit": 0],
+            directory: directory
+        )
+
+        #expect(outcome.isError)
+        #expect(outcome.text.contains("start"))
     }
 
     @Test

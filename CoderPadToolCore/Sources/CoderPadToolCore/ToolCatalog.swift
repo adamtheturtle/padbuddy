@@ -37,8 +37,10 @@ public func mcpStringSchema(_ description: String) -> [String: Any] {
     ["type": "string", "description": description]
 }
 
-public func mcpIntSchema(_ description: String) -> [String: Any] {
-    ["type": "integer", "description": description]
+public func mcpIntSchema(_ description: String, minimum: Int? = nil) -> [String: Any] {
+    var schema: [String: Any] = ["type": "integer", "description": description]
+    if let minimum { schema["minimum"] = minimum }
+    return schema
 }
 
 /// The name of the optional account-selector argument shared by every account-scoped tool.
@@ -86,7 +88,7 @@ private var questionFilterProperties: [String: [String: Any]] {
 
 private var pagingProperties: [String: [String: Any]] {
     [
-        "page": mcpIntSchema("1-based page number."),
+        "page": mcpIntSchema("1-based page number.", minimum: 1),
         "sort": mcpStringSchema("Sort order, e.g. \"created_at\" or \"-created_at\".")
     ]
 }
@@ -221,8 +223,8 @@ public var coderPadScreenToolDescriptors: [[String: Any]] {
             properties: withAccount([
                 "campaignId": mcpIntSchema("Optional. Only sessions in this campaign."),
                 "candidateEmail": mcpStringSchema("Optional. Only sessions for this candidate email."),
-                "start": mcpIntSchema("Optional. Offset of the first session to return."),
-                "limit": mcpIntSchema("Optional. Maximum number of sessions to return.")
+                "start": mcpIntSchema("Optional. Offset of the first session to return.", minimum: 0),
+                "limit": mcpIntSchema("Optional. Maximum number of sessions to return.", minimum: 1)
             ])
         ),
         mcpToolDescriptor(
@@ -245,7 +247,9 @@ public var coderPadWriteToolDescriptors: [[String: Any]] {
             properties: withAccount([
                 "title": mcpStringSchema("Optional pad title."),
                 "language": mcpStringSchema("Optional language, e.g. \"python3\"."),
-                "question_id": mcpIntSchema("Optional question id to seed the pad from. Mutually exclusive with contents."),
+                "question_id": mcpIntSchema(
+                    "Optional question id to seed the pad from. Mutually exclusive with contents."
+                ),
                 "contents": mcpStringSchema("Optional starting code. Mutually exclusive with question_id."),
                 "owner_email": mcpStringSchema("Optional owner email; defaults to the account's user."),
                 "notes": mcpStringSchema("Optional private interviewer notes."),

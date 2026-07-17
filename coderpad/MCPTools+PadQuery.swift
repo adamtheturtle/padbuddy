@@ -170,6 +170,10 @@ nonisolated extension MCPTools {
     }
 
     static func listPadsCompact(arguments: [String: Any], key: String, base: URL) async -> Outcome {
+        if let error = pageValidationError(int(arguments, "page")) {
+            return Outcome(text: error, isError: true)
+        }
+
         let response = await get("/api/pads/", key: key, base: base, query: paging(arguments))
         guard !response.isError, let object = jsonObject(response.text) else { return response }
 

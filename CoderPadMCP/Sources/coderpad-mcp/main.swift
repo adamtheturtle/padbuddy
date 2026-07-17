@@ -322,7 +322,7 @@ private func dispatch(name: String, arguments: [String: Value]?, account: MCPAcc
         return await whoami(account: account)
 
     case "list_pads":
-        return await toolResult(apiGet("/api/pads/", account: account, query: pagingQuery(arguments)))
+        return await listPads(arguments: arguments, account: account)
 
     case "get_pad":
         guard let pad = stringArgument(arguments, "pad"), !pad.isEmpty else { return missingArgument("pad") }
@@ -348,7 +348,7 @@ private func dispatch(name: String, arguments: [String: Value]?, account: MCPAcc
         return await listPadsCompact(arguments: arguments, account: account)
 
     case "list_questions":
-        return await toolResult(apiGet("/api/questions/", account: account, query: pagingQuery(arguments)))
+        return await listQuestions(arguments: arguments, account: account)
 
     case "get_question":
         guard let question = intArgument(arguments, "question") else { return missingArgument("question (integer)") }
@@ -389,6 +389,13 @@ private func dispatchScreenOrWrite(
         return await toolResult(screenGet("/campaigns", account: account))
 
     case "screen_list_tests":
+        if let error = screenPaginationValidationError(
+            start: intArgument(arguments, "start"),
+            limit: intArgument(arguments, "limit")
+        ) {
+            return errorResult(error)
+        }
+
         return await toolResult(screenGet("/tests", account: account, query: screenTestQuery(arguments)))
 
     case "screen_get_test":
@@ -666,7 +673,15 @@ private func aggregatePadsTool(groupBy: String, arguments: [String: Value]?, acc
     return jsonResult(result)
 }
 
+private func listPads(arguments: [String: Value]?, account: MCPAccount) async -> CallTool.Result {
+    if let error = pageValidationError(intArgument(arguments, "page")) { return errorResult(error) }
+
+    return await toolResult(apiGet("/api/pads/", account: account, query: pagingQuery(arguments)))
+}
+
 private func listPadsCompact(arguments: [String: Value]?, account: MCPAccount) async -> CallTool.Result {
+    if let error = pageValidationError(intArgument(arguments, "page")) { return errorResult(error) }
+
     let response = await apiGet("/api/pads/", account: account, query: pagingQuery(arguments))
     guard response.ok, let object = jsonObject(response.body) else { return toolResult(response) }
 
@@ -804,7 +819,15 @@ private func aggregateQuestionsTool(groupBy: String, arguments: [String: Value]?
     return jsonResult(result)
 }
 
+private func listQuestions(arguments: [String: Value]?, account: MCPAccount) async -> CallTool.Result {
+    if let error = pageValidationError(intArgument(arguments, "page")) { return errorResult(error) }
+
+    return await toolResult(apiGet("/api/questions/", account: account, query: pagingQuery(arguments)))
+}
+
 private func listQuestionsCompact(arguments: [String: Value]?, account: MCPAccount) async -> CallTool.Result {
+    if let error = pageValidationError(intArgument(arguments, "page")) { return errorResult(error) }
+
     let response = await apiGet("/api/questions/", account: account, query: pagingQuery(arguments))
     guard response.ok, let object = jsonObject(response.body) else { return toolResult(response) }
 

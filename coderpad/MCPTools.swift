@@ -150,19 +150,25 @@ nonisolated enum MCPTools {
     ) async -> Outcome {
         switch name {
         case "list_pads":
-            await get("/api/pads/", key: key, base: base, query: paging(arguments))
+            if let error = pageValidationError(int(arguments, "page")) {
+                return Outcome(text: error, isError: true)
+            }
+            return await get("/api/pads/", key: key, base: base, query: paging(arguments))
 
         case "list_questions":
-            await get("/api/questions/", key: key, base: base, query: paging(arguments))
+            if let error = pageValidationError(int(arguments, "page")) {
+                return Outcome(text: error, isError: true)
+            }
+            return await get("/api/questions/", key: key, base: base, query: paging(arguments))
 
         case "get_quota":
-            await get("/api/quota", key: key, base: base)
+            return await get("/api/quota", key: key, base: base)
 
         case "get_organization":
-            await get("/api/organization", key: key, base: base)
+            return await get("/api/organization", key: key, base: base)
 
         default:
-            Outcome(text: "Unknown tool: \(name)", isError: true)
+            return Outcome(text: "Unknown tool: \(name)", isError: true)
         }
     }
 

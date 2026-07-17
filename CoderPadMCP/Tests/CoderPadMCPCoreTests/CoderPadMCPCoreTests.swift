@@ -48,6 +48,16 @@ struct ArgumentTests {
         #expect(optionalString(args, "blank") == nil)
         #expect(optionalString(args, "missing") == nil)
     }
+
+    @Test
+    func `pagination validation rejects invalid domains`() {
+        #expect(pageValidationError(nil) == nil)
+        #expect(pageValidationError(1) == nil)
+        #expect(pageValidationError(0)?.contains("page") == true)
+        #expect(screenPaginationValidationError(start: 0, limit: 1) == nil)
+        #expect(screenPaginationValidationError(start: -1, limit: nil)?.contains("start") == true)
+        #expect(screenPaginationValidationError(start: nil, limit: 0)?.contains("limit") == true)
+    }
 }
 
 // MARK: - Tool catalog
@@ -109,6 +119,14 @@ struct ToolCatalogTests {
     }
 
     @Test
+    func `pagination schemas declare numeric minima`() throws {
+        #expect(try property("page", of: "list_pads")["minimum"] as? Int == 1)
+        #expect(try property("page", of: "list_questions")["minimum"] as? Int == 1)
+        #expect(try property("start", of: "screen_list_tests")["minimum"] as? Int == 0)
+        #expect(try property("limit", of: "screen_list_tests")["minimum"] as? Int == 1)
+    }
+
+    @Test
     func `tools encode to valid JSON-RPC tool descriptors`() throws {
         // This mirrors what tools/list serializes onto the wire, so a malformed
         // schema (wrong nesting, non-object inputSchema) is caught here.
@@ -149,6 +167,16 @@ struct ToolCatalogTests {
         else { return [] }
 
         return required.compactMap { if case let .string(value) = $0 { value } else { nil } }
+    }
+
+    private func property(_ name: String, of toolName: String) throws -> [String: Any] {
+        let descriptor = try #require(
+            (coderPadReadToolDescriptors + coderPadScreenToolDescriptors)
+                .first { $0["name"] as? String == toolName }
+        )
+        let inputSchema = try #require(descriptor["inputSchema"] as? [String: Any])
+        let properties = try #require(inputSchema["properties"] as? [String: [String: Any]])
+        return try #require(properties[name])
     }
 }
 
