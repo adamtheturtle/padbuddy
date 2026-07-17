@@ -111,6 +111,44 @@ struct MCPAccountDirectoryTests {
     }
 
     @Test
+    func `an unavailable stored selection yields no default account (#832)`() {
+        // The app's selected account (e.g. Demo, or one with an empty key) was filtered
+        // out of the directory; unqualified calls must not fall back to another account.
+        let directory = MCPAccountDirectory(
+            accounts: duplicateNameDirectory.accounts,
+            currentID: "demo-account-not-in-directory"
+        )
+        #expect(directory.current == nil)
+        #expect(directory.currentSelectionUnavailable)
+        #expect(directory.resolve(nil) == nil)
+        // An explicit selector still works.
+        #expect(directory.resolve("account-b")?.id == "account-b")
+    }
+
+    @Test
+    func `no stored selection still defaults to the first account`() {
+        let directory = MCPAccountDirectory(
+            accounts: duplicateNameDirectory.accounts,
+            currentID: nil
+        )
+        #expect(directory.current?.id == "account-a")
+        #expect(!directory.currentSelectionUnavailable)
+    }
+
+    @Test
+    func `unqualified tool calls report an unavailable selection instead of retargeting (#832)`() async {
+        let directory = MCPAccountDirectory(
+            accounts: duplicateNameDirectory.accounts,
+            currentID: "demo-account-not-in-directory"
+        )
+        let outcome = await MCPTools.run(name: "whoami", arguments: [:], directory: directory)
+
+        #expect(outcome.isError)
+        #expect(outcome.text.contains("isn't available"))
+        #expect(outcome.text.contains("Acme"))
+    }
+
+    @Test
     func `ambiguous account tool calls list matching ids`() async {
         let outcome = await MCPTools.run(
             name: "whoami",

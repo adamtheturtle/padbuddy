@@ -69,11 +69,23 @@ nonisolated struct MCPAccountDirectory {
         accounts.contains { $0.secondaryApiKey?.isEmpty == false }
     }
 
-    /// The default account: the app-selected one, or the first configured if that id is
-    /// missing, or nil when nothing is configured.
+    /// The default account: the app-selected one when it's available to the server, or
+    /// the first configured account when nothing was ever selected. When a selection is
+    /// stored but unavailable here (filtered out of the directory, e.g. the demo account
+    /// or one without a usable key), this is nil rather than an arbitrary other account:
+    /// an unqualified tool call must not silently read or write a different
+    /// organization (#832).
     var current: MCPCredentials? {
-        if let currentID, let match = account(matchingID: currentID) { return match }
+        if let currentID { return account(matchingID: currentID) }
         return accounts.first
+    }
+
+    /// Whether the app has a stored account selection that is unavailable to the server,
+    /// so unqualified tool calls need an explicit `account` argument (#832).
+    var currentSelectionUnavailable: Bool {
+        guard let currentID else { return false }
+
+        return account(matchingID: currentID) == nil
     }
 
     /// Resolves a tool's `account` argument to one account. A nil/empty selector picks the

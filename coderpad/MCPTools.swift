@@ -57,8 +57,21 @@ nonisolated enum MCPTools {
             }
 
             let available = directory.accounts.map(\.accountName).joined(separator: ", ")
+            let selector = string(arguments, account)?.trimmingCharacters(in: .whitespacesAndNewlines)
+            // No selector, yet no default: the account selected in the app exists but is
+            // unavailable to the server (demo, or no usable key). Say so instead of
+            // silently acting as an unrelated account (#832).
+            if selector?.isEmpty != false {
+                return Outcome(
+                    text: "The account currently selected in PadBuddy isn't available to the "
+                        + "MCP server (for example the demo account, or one without a usable "
+                        + "API key). Pass the \"\(account)\" argument to pick one of: \(available). "
+                        + "Use list_accounts to see their ids.",
+                    isError: true
+                )
+            }
             return Outcome(
-                text: "No account matches \"\(string(arguments, account) ?? "")\". "
+                text: "No account matches \"\(selector ?? "")\". "
                     + "Available accounts: \(available). Use list_accounts to see their ids.",
                 isError: true
             )
