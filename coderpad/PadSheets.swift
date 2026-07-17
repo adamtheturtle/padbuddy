@@ -9,6 +9,7 @@ import SwiftUI
 
 struct NewPadSheet: View {
     let client: CoderPadClient
+    let targetAccountID: UUID?
     let keyOwnerEmail: String?
     /// A question to pre-select when the sheet opens (e.g. the widget's New Pad
     /// button seeded from a favourite). The matching title/language are filled in
@@ -17,9 +18,11 @@ struct NewPadSheet: View {
     let onCreated: (Pad) -> Void
     let onCancel: () -> Void
 
-    init(client: CoderPadClient, keyOwnerEmail: String? = nil, initialQuestionID: Int? = nil,
+    init(client: CoderPadClient, targetAccountID: UUID? = nil, keyOwnerEmail: String? = nil,
+         initialQuestionID: Int? = nil,
          onCreated: @escaping (Pad) -> Void, onCancel: @escaping () -> Void) {
         self.client = client
+        self.targetAccountID = targetAccountID
         self.keyOwnerEmail = keyOwnerEmail
         self.initialQuestionID = initialQuestionID
         self.onCreated = onCreated
@@ -260,7 +263,7 @@ private extension NewPadSheet {
     }
 
     func loadQuestions() async {
-        if questions.isEmpty, let id = AccountsStore.shared.currentAccountID {
+        if questions.isEmpty, let id = targetAccountID ?? AccountsStore.shared.currentAccountID {
             questions = QuestionsCacheStore.shared.get(id)
             fillFromSelectedQuestion()
         }

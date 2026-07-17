@@ -17,6 +17,7 @@ extension MergedPadsView {
             .sheet(item: $creatingForAccount) { account in
                 NewPadSheet(
                     client: account.makeClient(),
+                    targetAccountID: account.id,
                     keyOwnerEmail: account.userEmail,
                     initialQuestionID: creatingSeedQuestionID
                 ) { created in
