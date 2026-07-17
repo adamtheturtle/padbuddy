@@ -102,38 +102,46 @@
         }
 
         func loadMenu(activeAccount: Account) async {
+            // Claim a fresh generation: any refresh still in flight becomes stale and
+            // stops publishing (#775).
+            loadGeneration += 1
+            let generation = loadGeneration
             if store.isMergedView {
-                await loadMergedAccounts()
+                await loadMergedAccounts(generation: generation)
             } else {
-                await load(account: activeAccount)
+                await load(account: activeAccount, generation: generation)
             }
         }
 
-        func load(account: Account) async {
+        private func load(account: Account, generation: Int) async {
             isLoading = true
             errorMessage = nil
-            defer { isLoading = false }
-            errorMessage = await loadData(for: account)
+            let error = await loadData(for: account, generation: generation)
+            guard generation == loadGeneration else { return }
+
+            errorMessage = error
+            isLoading = false
         }
 
-        private func loadMergedAccounts() async {
+        private func loadMergedAccounts(generation: Int) async {
             isLoading = true
             errorMessage = nil
-            defer { isLoading = false }
 
             var errors: [String] = []
             for account in store.mergeableAccounts {
-                if let error = await loadData(for: account) {
+                if let error = await loadData(for: account, generation: generation) {
                     errors.append(error)
                 }
             }
+            guard generation == loadGeneration else { return }
+
             if !errors.isEmpty {
                 errorMessage = errors.joined(separator: "\n")
             }
+            isLoading = false
         }
 
-        @discardableResult
-        private func loadData(for account: Account) async -> String? {
+        private func loadData(for account: Account, generation: Int) async -> String? {
             let client = account.makeClient()
             do {
                 // Use the same "updated_at,desc" sort as every other loader writing into
@@ -146,11 +154,19 @@
                 // first): the menu — and every other view reading these stores — keeps
                 // showing the previous data until the fresh data lands, so switching
                 // accounts shows the new account's cache rather than an initial fetch status.
+                // A stale generation stops before each write so it can't overwrite a
+                // newer refresh's data (#775).
                 let fetched = try await padsTask
+                guard generation == loadGeneration else { return nil }
+
                 PadsCacheStore.shared.set(account.id, pads: fetched)
-                if let fetchedQuestions = try? await qsTask {
-                    QuestionsCacheStore.shared.set(account.id, questions: fetchedQuestions)
-                }
+                // A Questions failure is a real partial failure, not something to
+                // swallow: fall through to the shared catch so the menu reports it
+                // instead of silently serving stale question actions (#774).
+                let fetchedQuestions = try await qsTask
+                guard generation == loadGeneration else { return nil }
+
+                QuestionsCacheStore.shared.set(account.id, questions: fetchedQuestions)
                 return nil
             } catch {
                 return "\(account.name): \(error.localizedDescription)"

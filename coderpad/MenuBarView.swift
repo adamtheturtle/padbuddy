@@ -29,6 +29,11 @@
         @State private var questionsCache = QuestionsCacheStore.shared
         @State var isLoading = false
         @State var errorMessage: String?
+        /// Monotonic id of the newest `loadMenu` call. Overlapping refreshes (the
+        /// automatic `.task` plus a manual Reload) each capture their generation and
+        /// only the newest may publish caches, `errorMessage`, or end `isLoading`, so
+        /// an older, slower request can't overwrite a newer result (#775).
+        @State var loadGeneration = 0
         /// Per-render memo of the sorted pads/questions, refreshed once at the top of
         /// `accountMenu` so the menu's several readers share one sort instead of
         /// re-sorting the full cached lists on every access (#370).
