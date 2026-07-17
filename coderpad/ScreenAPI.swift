@@ -91,15 +91,15 @@ nonisolated struct ScreenInvitation: Encodable, Hashable {
     }
 }
 
-/// The result of sending an invitation: the new test session id and the URL the
-/// candidate uses to take it.
+/// The result of sending an invitation: the URL the candidate uses to take it,
+/// and, when returned, the new test session id.
 nonisolated struct ScreenInvitationResult: Decodable, Hashable {
-    let id: Int
+    let id: Int?
     let testURL: String?
 
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(Int.self, forKey: .id)
+        id = try? container.decodeIfPresent(Int.self, forKey: .id)
         testURL = try? container.decodeIfPresent(String.self, forKey: .testURL)
     }
 

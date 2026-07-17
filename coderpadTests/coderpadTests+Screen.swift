@@ -44,6 +44,16 @@ struct ScreenClientTests {
     }
 
     @Test
+    func `sendInvitation accepts a successful response without an id`() async throws {
+        let result = try await screenClient().sendInvitation(
+            campaignID: 43,
+            ScreenInvitation(candidateEmail: "candidate@example.com")
+        )
+        #expect(result.id == nil)
+        #expect(result.testURL == "https://screen-ide.coderpad.io/?id=no-session-id")
+    }
+
+    @Test
     func `listTests returns the first page with offset pagination`() async throws {
         let page = try await screenClient().listTests(campaignID: 42)
         #expect(page.tests.count == 2)

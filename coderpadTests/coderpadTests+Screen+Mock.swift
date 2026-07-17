@@ -46,12 +46,15 @@ final nonisolated class ScreenAPIMockURLProtocol: URLProtocol {
 
     override func stopLoading() {}
 
+    // swiftlint:disable:next cyclomatic_complexity
     private static func respond(method: String, path: String, query: [String: String]) -> (Int, String) {
         switch (method, path) {
         case ("GET", "/campaigns"):
             (200, campaignsJSON)
         case ("POST", "/campaigns/42/actions/send"):
             (200, #"{"id": 999, "test_url": "https://screen-ide.coderpad.io/?id=999abc"}"#)
+        case ("POST", "/campaigns/43/actions/send"):
+            (200, #"{"test_url": "https://screen-ide.coderpad.io/?id=no-session-id"}"#)
         case ("GET", "/tests"):
             (200, testsBody(query: query))
         case ("GET", "/tests/13188658"):
