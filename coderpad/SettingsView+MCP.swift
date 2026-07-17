@@ -29,6 +29,12 @@ extension SettingsView {
 
             Section {
                 Toggle("Enable the MCP server", isOn: $mcpServerEnabled)
+            } footer: {
+                Text("""
+                When off, the server refuses to run, so assistants you've already added \
+                lose access the next time they start.
+                """)
+                .foregroundStyle(.secondary)
             }
 
             if mcpServerEnabled {

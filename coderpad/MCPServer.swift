@@ -37,9 +37,10 @@ nonisolated enum MCPServer {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
     }
 
-    /// UserDefaults key behind the "Enable the MCP server" toggle in Settings, which
-    /// reveals the setup instructions. (The `--mcp` server serves whenever it's launched;
-    /// the user controls it by adding or removing the MCP client configuration.)
+    /// UserDefaults key behind the "Enable the MCP server" toggle in Settings. It reveals
+    /// the setup instructions in the pane and gates serving itself: a `--mcp` launch checks
+    /// it and refuses to serve while it's off (#811), so turning the toggle off genuinely
+    /// cuts off assistants whose configs still point at the app.
     static let enabledDefaultsKey = "mcpServerEnabled"
 
     /// UserDefaults key behind the separate "Allow the MCP server to make changes" opt-in
@@ -57,14 +58,19 @@ nonisolated enum MCPServer {
     /// returns: MCPKit's shared stdio bootstrap blocks on the async server until stdin
     /// closes, then exits.
     ///
-    /// The in-app server serves whenever it's launched (the user controls it by adding or
-    /// removing the MCP client configuration), so no `isEnabled:` gate is passed; the launch
-    /// is always recorded via `onLaunch`, matching the previous open-coded behaviour.
+    /// The `isEnabled:` gate mirrors the Settings toggle (#811): assistants keep their
+    /// installed config after the user turns the server off, so the launch itself must
+    /// refuse to serve, with a stderr message telling the user how to re-enable it. Reading
+    /// UserDefaults here is safe: the caller has already read it while resolving the
+    /// directory, past the too-early-read hang from #402.
     static func runUntilExit(directory: MCPAccountDirectory) -> Never {
         MCPKit.MCPServer.runOverStdioUntilExit(
             name: serverName,
             version: serverVersion,
             capabilities: .init(tools: .init(listChanged: false)),
+            isEnabled: { UserDefaults.standard.bool(forKey: enabledDefaultsKey) },
+            disabledMessage: "The PadBuddy MCP server is turned off. Turn on \u{201C}Enable the "
+                + "MCP server\u{201D} in PadBuddy's Settings > MCP Server, then restart this assistant.",
             onLaunch: { MCPActivityLog.recordLaunch(account: directory.current?.accountName) },
             provider: CoderPadToolProvider(directory: directory)
         )

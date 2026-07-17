@@ -55,9 +55,9 @@ struct SettingsView: View {
     @AppStorage("menuBarTopN") var menuBarTopN = 3
     @AppStorage("menuBarStartedOnly") var menuBarStartedOnly = false
 
-    /// Whether the user has opted into the local MCP server integration. The server is a
-    /// separate package (#393); this preference gates the in-app setup instructions and
-    /// is what a future bundled helper would key off (#402).
+    /// Whether the user has opted into the local MCP server integration. Gates both the
+    /// in-app setup instructions and serving itself: a `--mcp` launch refuses to serve
+    /// while this is off (#811), so already-installed assistants lose access too.
     @AppStorage(MCPServer.enabledDefaultsKey) var mcpServerEnabled = false
 
     /// Whether the MCP server may create/edit CoderPad content (#502). A separate, explicit
