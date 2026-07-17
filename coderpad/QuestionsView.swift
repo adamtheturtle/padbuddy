@@ -123,6 +123,7 @@ struct QuestionsView: View {
             }
             .onChange(of: cache.questionsByAccount) { _, _ in
                 guard questions.isEmpty, let id = accounts.currentAccountID else { return }
+
                 let warm = cache.cached(id)
                 guard !warm.isEmpty else { return }
 
@@ -146,7 +147,7 @@ struct QuestionsView: View {
     /// `sidebar` plus the per-session load task and the create/save sheets.
     private var decoratedSheets: some View {
         sidebar
-            .task(id: QuestionsTaskKey(apiKey: client.apiKey, phase: scenePhase)) {
+            .task(id: QuestionsTaskKey(apiKey: client.apiKey, baseURL: client.baseURL, phase: scenePhase)) {
                 guard scenePhase == .active else { return }
 
                 if questions.isEmpty, let id = accounts.currentAccountID {
@@ -372,5 +373,6 @@ struct QuestionsView: View {
 
 struct QuestionsTaskKey: Hashable {
     let apiKey: String
+    let baseURL: URL?
     let phase: ScenePhase
 }

@@ -165,7 +165,7 @@ struct PadsView: View {
     /// `sidebar` plus the per-session load task and the core selection bridge.
     private var decoratedLifecycle: some View {
         sidebar
-            .task(id: PadsTaskKey(apiKey: client.apiKey, phase: scenePhase)) {
+            .task(id: PadsTaskKey(apiKey: client.apiKey, baseURL: client.baseURL, phase: scenePhase)) {
                 guard scenePhase == .active else { return }
 
                 if pads.isEmpty, let id = accounts.currentAccountID {

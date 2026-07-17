@@ -218,12 +218,18 @@ extension MergedPadsView {
         ])
     }
 
-    /// A token covering the set of accounts being merged (ids + key emptiness), so
-    /// the load task restarts when an account is added, removed, or has its key
-    /// changed — without restarting on unrelated edits.
+    /// A token covering the set of accounts being merged (ids, keys, and endpoints),
+    /// so the load task restarts when an account is added, removed, or rekeyed —
+    /// without restarting on unrelated edits.
     var accountKey: String {
-        accounts.mergeableAccounts.map { "\($0.id.uuidString):\($0.apiKey.isEmpty ? 0 : 1)" }
-            .joined(separator: ",")
+        accounts.mergeableAccounts.map {
+            FilterSignature.make([
+                $0.id.uuidString,
+                $0.apiKey.trimmingCharacters(in: .whitespacesAndNewlines),
+                $0.resolvedBaseURL.absoluteString
+            ])
+        }
+        .joined(separator: ",")
     }
 
     // MARK: - Loading

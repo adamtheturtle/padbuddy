@@ -25,7 +25,7 @@ extension MergedQuestionsView {
 
     private var decoratedLifecycle: some View {
         content
-            .task(id: QuestionsTaskKey(apiKey: accountKey, phase: scenePhase)) {
+            .task(id: QuestionsTaskKey(apiKey: accountKey, baseURL: nil, phase: scenePhase)) {
                 guard scenePhase == .active else { return }
 
                 seedFromCache()
@@ -227,9 +227,9 @@ extension MergedQuestionsView {
 
                     return [SwipeAction(title: String(localized: "Delete"), role: .destructive,
                                         systemImage: "trash") {
-                        select(row)
-                        nav.deleteQuestionID = row.item.id
-                    }]
+                            select(row)
+                            nav.deleteQuestionID = row.item.id
+                        }]
                 },
                 pasteboardItem: { questionPasteboardItem($0) },
                 menuItems: { questionTableMenuItems($0) },
@@ -270,9 +270,9 @@ extension MergedQuestionsView {
 
                 return [SwipeAction(title: String(localized: "Delete"), role: .destructive,
                                     systemImage: "trash") {
-                    select(row)
-                    nav.deleteQuestionID = row.item.id
-                }]
+                        select(row)
+                        nav.deleteQuestionID = row.item.id
+                    }]
             }
             .onTopRowChange { scheduleTopRowPersistence($0) }
             .scrollToRow(id: pendingScrollToRowID) { pendingScrollToRowID = nil }

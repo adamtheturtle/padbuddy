@@ -313,6 +313,20 @@ struct NewPadRequestNormalizationTests {
     }
 }
 
+@Suite("List load task keys")
+struct ListLoadTaskKeyTests {
+    @Test
+    func `single account task keys include the server endpoint`() throws {
+        let first = try #require(URL(string: "https://first.example.com"))
+        let second = try #require(URL(string: "https://second.example.com"))
+
+        #expect(PadsTaskKey(apiKey: "same-key", baseURL: first, phase: .active)
+            != PadsTaskKey(apiKey: "same-key", baseURL: second, phase: .active))
+        #expect(QuestionsTaskKey(apiKey: "same-key", baseURL: first, phase: .active)
+            != QuestionsTaskKey(apiKey: "same-key", baseURL: second, phase: .active))
+    }
+}
+
 @Suite("CoderPadError messages")
 struct CoderPadErrorMessageTests {
     @Test

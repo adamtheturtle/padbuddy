@@ -9,9 +9,10 @@
 import SwiftUI
 
 /// Restart key for the per-session load task: the account's API key plus the scene
-/// phase, so the task re-runs when either changes.
+/// endpoint and scene phase, so the task re-runs when any of them changes.
 struct PadsTaskKey: Hashable {
     let apiKey: String
+    let baseURL: URL
     let phase: ScenePhase
 }
 

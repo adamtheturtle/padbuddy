@@ -221,8 +221,14 @@ extension MergedQuestionsView {
     }
 
     var accountKey: String {
-        accounts.mergeableAccounts.map { "\($0.id.uuidString):\($0.apiKey.isEmpty ? 0 : 1)" }
-            .joined(separator: ",")
+        accounts.mergeableAccounts.map {
+            FilterSignature.make([
+                $0.id.uuidString,
+                $0.apiKey.trimmingCharacters(in: .whitespacesAndNewlines),
+                $0.resolvedBaseURL.absoluteString
+            ])
+        }
+        .joined(separator: ",")
     }
 
     // MARK: - Loading
