@@ -247,3 +247,48 @@ struct CloudSyncTests {
         #expect(PreferenceCloudSync.syncedKeys.contains("general.appearance"))
     }
 }
+
+@Suite("Favorite title adoption (#762)")
+struct FavoriteTitleSyncTests {
+    @Test
+    func `a title renamed on another device is adopted for a shared id`() {
+        let account = UUID()
+        let merged = [account: [FavoritePad(id: "abc", title: "Old title")]]
+        let cloud = ["sync-id": [FavoritePad(id: "abc", title: "New title")]]
+        let result = FavoriteTitleSync.adoptCloudTitles(
+            merged: merged, cloud: cloud, uuidForSyncID: { _ in account },
+            id: { $0.id }, title: { $0.title }, setTitle: { $0.title = $1 }
+        )
+        #expect(result[account]?.map(\.title) == ["New title"])
+    }
+
+    @Test
+    func `an empty cloud title never blanks a captured local one`() {
+        // Legacy id-only favorites carry empty titles; they must not erase a
+        // title this device already captured.
+        let account = UUID()
+        let merged = [account: [FavoriteQuestion(id: 7, title: "Two Sum")]]
+        let cloud = ["sync-id": [FavoriteQuestion(id: 7, title: "")]]
+        let result = FavoriteTitleSync.adoptCloudTitles(
+            merged: merged, cloud: cloud, uuidForSyncID: { _ in account },
+            id: { $0.id }, title: { $0.title }, setTitle: { $0.title = $1 }
+        )
+        #expect(result[account]?.map(\.title) == ["Two Sum"])
+    }
+
+    @Test
+    func `cloud entries for unresolved accounts and unknown ids are ignored`() {
+        let account = UUID()
+        let merged = [account: [FavoritePad(id: "abc", title: "Kept")]]
+        let cloud = [
+            "unknown-account": [FavoritePad(id: "abc", title: "Other")],
+            "sync-id": [FavoritePad(id: "zzz", title: "Unrelated")]
+        ]
+        let result = FavoriteTitleSync.adoptCloudTitles(
+            merged: merged, cloud: cloud,
+            uuidForSyncID: { $0 == "sync-id" ? account : nil },
+            id: { $0.id }, title: { $0.title }, setTitle: { $0.title = $1 }
+        )
+        #expect(result[account]?.map(\.title) == ["Kept"])
+    }
+}

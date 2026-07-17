@@ -4,8 +4,9 @@
 //
 //  iCloud sync foundation (#536): a stable cross-device account identity. The pure
 //  merge strategies (`CloudSyncMerge`) and the iCloud key-value mirror (`CloudSyncStore`)
-//  now live in buddy-kit's BuddyAppKit; this file keeps only the CoderPad-specific
-//  `Account.syncID` derivation that keys them.
+//  now live in buddy-kit's BuddyAppKit; this file keeps the CoderPad-specific
+//  `Account.syncID` derivation that keys them, plus the favorite-title adoption
+//  pass layered over the id-keyed union merge (#762).
 //
 
 import BuddyAppKit
@@ -55,5 +56,44 @@ extension Account {
             .prefix(12)
             .map { String(format: "%02x", $0) }
             .joined()
+    }
+}
+
+// MARK: - Favorite title adoption (#762)
+
+/// Adopts cloud-captured titles for favorites present on both sides of a sync.
+/// The id-keyed `CloudSyncMerge.mergeArrays` union deliberately keeps the local
+/// element when an id exists on both devices, so a favorite renamed on another
+/// Mac kept its stale title here until this account's own list refresh backfilled
+/// it (#762). Titles are server-derived (see the stores' `refreshTitles`), so
+/// adopting a differing, non-empty cloud title is safe: any transient
+/// disagreement between devices converges to the server's truth on the next
+/// list load.
+nonisolated enum FavoriteTitleSync {
+    static func adoptCloudTitles<Element>(
+        merged: [UUID: [Element]],
+        cloud: [String: [Element]],
+        uuidForSyncID: (String) -> UUID?,
+        id: (Element) -> AnyHashable,
+        title: (Element) -> String,
+        setTitle: (inout Element, String) -> Void
+    ) -> [UUID: [Element]] {
+        var result = merged
+        for (identity, cloudList) in cloud {
+            guard let uuid = uuidForSyncID(identity), var list = result[uuid] else { continue }
+
+            let cloudTitles = Dictionary(cloudList.map { (id($0), title($0)) },
+                                         uniquingKeysWith: { first, _ in first })
+            var changed = false
+            for index in list.indices {
+                guard let cloudTitle = cloudTitles[id(list[index])],
+                      !cloudTitle.isEmpty, cloudTitle != title(list[index]) else { continue }
+
+                setTitle(&list[index], cloudTitle)
+                changed = true
+            }
+            if changed { result[uuid] = list }
+        }
+        return result
     }
 }

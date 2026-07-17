@@ -213,9 +213,17 @@ final class FavoritePadsStore {
         guard let data = CloudSyncStore.shared.data(forKey: Self.cloudKey),
               let cloud = try? JSONDecoder().decode([String: [FavoritePad]].self, from: data) else { return }
 
-        let merged = CloudSyncMerge.mergeArrays(cloud: cloud, into: byAccount) { identity in
+        let uuidForSyncID: (String) -> UUID? = { identity in
             AccountsStore.shared.accounts.first { $0.syncID == identity }?.id
-        } id: { $0.id }
+        }
+        var merged = CloudSyncMerge.mergeArrays(cloud: cloud, into: byAccount,
+                                                uuidForSyncID: uuidForSyncID) { $0.id }
+        // The union keeps the local element for ids on both sides, so also adopt
+        // titles renamed on another Mac (#762).
+        merged = FavoriteTitleSync.adoptCloudTitles(
+            merged: merged, cloud: cloud, uuidForSyncID: uuidForSyncID,
+            id: { $0.id }, title: { $0.title }, setTitle: { $0.title = $1 }
+        )
         guard merged != byAccount else { return }
 
         byAccount = merged
