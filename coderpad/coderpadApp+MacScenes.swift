@@ -40,17 +40,12 @@
                         if let padID = SpotlightIndexer.padID(fromItemIdentifier: id) {
                             AppNavigation.shared.openPad(id: padID)
                         } else if let ref = SpotlightIndexer.questionRef(fromItemIdentifier: id) {
-                            // Switch to the owning account first so the right org's
-                            // question is selected - per-org ids collide across accounts (#378).
                             // If the account was removed but Spotlight still has a stale
                             // result, abort instead of opening another org's colliding id.
-                            guard AccountsStore.shared.accounts.contains(where: { $0.id == ref.account }) else {
+                            guard AppNavigation.shared.showQuestion(id: ref.id, account: ref.account) else {
                                 SpotlightIndexer.removeQuestion(id: ref.id, account: ref.account)
                                 return
                             }
-
-                            AccountsStore.shared.currentAccountID = ref.account
-                            AppNavigation.shared.showFavoriteQuestion(id: ref.id)
                         }
                     }
                     // Resume a pad handed off from another device / Siri Suggestion (#596)

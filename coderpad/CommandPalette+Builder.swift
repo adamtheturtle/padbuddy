@@ -166,11 +166,7 @@ enum CommandPaletteBuilder {
     }
 
     private static func jump(toQuestion id: Int, in account: UUID) {
-        if AccountsStore.shared.currentAccountID != account,
-           AccountsStore.shared.accounts.contains(where: { $0.id == account }) {
-            AccountsStore.shared.currentAccountID = account
-        }
-        AppNavigation.shared.showFavoriteQuestion(id: id)
+        AppNavigation.shared.showQuestion(id: id, account: account)
     }
 
     /// Joins an optional account name and an optional detail into one subtitle line.

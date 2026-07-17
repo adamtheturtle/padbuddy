@@ -247,6 +247,24 @@ final class AppNavigation {
         showQuestions(QuestionsRequest(selectQuestionID: id))
     }
 
+    /// Opens an account-scoped question from global entry points like Spotlight and
+    /// the command palette. Question ids collide across accounts, so merged mode must
+    /// carry the account through `MergedRouting` instead of selecting by bare id.
+    @discardableResult
+    @MainActor
+    func showQuestion(id: Int, account: UUID) -> Bool {
+        guard AccountsStore.shared.accounts.contains(where: { $0.id == account }) else { return false }
+
+        if AccountsStore.shared.isMergedView {
+            section = .questions
+            MergedRouting.shared.selectFavoriteQuestion(account: account, id: id)
+        } else {
+            AccountsStore.shared.currentAccountID = account
+            showFavoriteQuestion(id: id)
+        }
+        return true
+    }
+
     /// Switch to Pads and select the favorite pad with `id` once the list has it,
     /// so a sidebar pad favorite opens straight into its detail pane — the pad
     /// counterpart to ``showFavoriteQuestion(id:)``.
