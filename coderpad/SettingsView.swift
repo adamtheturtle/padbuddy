@@ -149,6 +149,11 @@ struct SettingsView: View {
         guard let id, store.accounts.contains(where: { $0.id == id }) else { return }
 
         navigation.selectedTab = .accounts
+        guard addingAccount == nil else {
+            navigation.accountToEdit = nil
+            return
+        }
+
         addingAccount = nil
         selectedAccountID = id
         navigation.accountToEdit = nil
@@ -161,8 +166,10 @@ struct SettingsView: View {
         guard navigation.startAddingAccount else { return }
 
         navigation.selectedTab = .accounts
-        selectedAccountID = nil
-        addingAccount = Account(name: "", apiKey: "")
+        if addingAccount == nil {
+            selectedAccountID = nil
+            addingAccount = Account(name: "", apiKey: "")
+        }
         navigation.startAddingAccount = false
     }
 }
