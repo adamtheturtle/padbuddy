@@ -27,10 +27,10 @@ struct ScreenTestsView: View {
     /// `= nil`: the synthesized memberwise init defaults an optional to nil, and
     /// SwiftLint's `implicit_optional_initialization` forbids the explicit form.)
     var accountID: UUID?
-    @State private var nav = AppNavigation.shared
-    @State private var accounts = AccountsStore.shared
-    @Environment(\.openWindow) private var openWindow
-    @State private var tests: [ScreenTestSession] = []
+    @State var nav = AppNavigation.shared
+    @State var accounts = AccountsStore.shared
+    @Environment(\.openWindow) var openWindow
+    @State var tests: [ScreenTestSession] = []
     @State private var isLoading = false
     @State private var loadError: String?
     @State private var statusFilter: String?
@@ -39,7 +39,7 @@ struct ScreenTestsView: View {
     @State private var dateRange: ScreenTestDateRange = .all
     /// The selected row ids. An `NSTableView`-backed `FastList` (#439/#474) drives this
     /// as a set; a single selection drives the detail column's report.
-    @State private var selectedIDs: Set<Int> = []
+    @State var selectedIDs: Set<Int> = []
     /// Monotonic id of the newest `load()` call: date-range changes and reloads can
     /// overlap, and only the newest request may publish rows or errors, so an older
     /// slower response can't overwrite the current date range's list (#885).
@@ -47,10 +47,10 @@ struct ScreenTestsView: View {
     @State private var showInvite = false
     /// Sessions with a resend in flight, so repeated Resend commands can't email
     /// the same candidate twice (#900).
-    @State private var resendingIDs: Set<Int> = []
-    @State private var testPendingDelete: ScreenTestSession?
-    @State private var actionError: String?
-    @State private var showResentConfirmation = false
+    @State var resendingIDs: Set<Int> = []
+    @State var testPendingDelete: ScreenTestSession?
+    @State var actionError: String?
+    @State var showResentConfirmation = false
     /// Identifies this view instance as the subtitle's publisher, so a disappearing
     /// instance can only clear a subtitle it still owns (#805).
     private let subtitleOwnerToken = UUID()
@@ -229,7 +229,7 @@ struct ScreenTestsView: View {
         filtered.filter { selectedIDs.contains($0.id) }
     }
 
-    private var selectedTest: ScreenTestSession? {
+    var selectedTest: ScreenTestSession? {
         selectedTestsInOrder.first
     }
 
@@ -245,7 +245,7 @@ struct ScreenTestsView: View {
         if pruned != selectedIDs { selectedIDs = pruned }
     }
 
-    private func load() async {
+    func load() async {
         loadGeneration += 1
         let generation = loadGeneration
         isLoading = true
@@ -263,114 +263,6 @@ struct ScreenTestsView: View {
             loadError = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
         }
         if generation == loadGeneration { isLoading = false }
-    }
-
-    // MARK: Row actions (write paths, #437)
-
-    /// The right-click menu for a row, gated by status: resend and cancel apply only to
-    /// an invitation the candidate hasn't started yet ("waiting"); delete is always
-    /// available behind a confirmation. "Open in New Window" mirrors the double-click.
-    private func testTableMenuItems(_ test: ScreenTestSession) -> [MenuItem] {
-        var items: [MenuItem] = [
-            .button(title: String(localized: "Open in New Window")) { openTestWindow(test) },
-            .button(title: String(localized: "Copy Test Session")) { Clipboard.copy(test.screenCopyText) },
-            .separator
-        ]
-        if test.status == "waiting" {
-            items.append(.button(title: String(localized: "Resend Invitation")) { Task { await resend(test) } })
-            items.append(.button(title: String(localized: "Cancel Invitation")) { Task { await cancel(test) } })
-            items.append(.separator)
-        }
-        items.append(.button(title: String(localized: "Delete Test Session"), role: .destructive) {
-            testPendingDelete = test
-        })
-        return items
-    }
-
-    private var selectedTestAction: ScreenTestAction? {
-        guard let selectedTest else { return nil }
-
-        return ScreenTestAction(id: selectedTest.id, status: selectedTest.status) {
-            Clipboard.copy(selectedTest.screenCopyText)
-        } openWindow: {
-            openTestWindow(selectedTest)
-        } resend: {
-            Task { await resend(selectedTest) }
-        } cancel: {
-            Task { await cancel(selectedTest) }
-        } delete: {
-            testPendingDelete = selectedTest
-        }
-    }
-
-    #if os(macOS)
-        private func testPasteboardItem(_ test: ScreenTestSession) -> NSPasteboardItem? {
-            let item = NSPasteboardItem()
-            if let url = test.screenURL {
-                item.setString(url.absoluteString, forType: .URL)
-            }
-            item.setString(test.screenCopyText, forType: .string)
-            return item
-        }
-    #endif
-
-    /// Opens a test session's report in its own window (#474). The owning account is
-    /// the explicit `accountID` in the combined view (#442), else the current account.
-    private func openTestWindow(_ test: ScreenTestSession) {
-        let owner = accountID ?? accounts.currentAccountID
-        openWindow(id: "screen-test", value: ScreenTestWindowID(account: owner, id: test.id))
-    }
-
-    private func resend(_ test: ScreenTestSession) async {
-        // The command can be invoked repeatedly (menu, focused commands) while a
-        // resend is in flight; each duplicate would email the candidate again (#900).
-        guard resendingIDs.insert(test.id).inserted else { return }
-
-        defer { resendingIDs.remove(test.id) }
-        do {
-            try await client.resendTest(id: test.id)
-            showResentConfirmation = true
-        } catch {
-            actionError = message(for: error)
-        }
-    }
-
-    private func cancel(_ test: ScreenTestSession) async {
-        do {
-            try await client.cancelTest(id: test.id)
-            // The server mutation succeeded: refresh this row before the full reload,
-            // so a failed reconciliation can't leave it "waiting" with Cancel/Resend
-            // still offered for an already-canceled invitation (#810). If even the
-            // single-session refetch fails, drop the row; the next successful reload
-            // restores it with its true status.
-            if let fresh = try? await client.getTest(id: test.id, withCommunityStats: false),
-               let index = tests.firstIndex(where: { $0.id == test.id }) {
-                tests[index] = fresh
-            } else {
-                tests.removeAll { $0.id == test.id }
-            }
-            await load()
-        } catch {
-            actionError = message(for: error)
-        }
-    }
-
-    private func delete(_ test: ScreenTestSession) async {
-        do {
-            try await client.deleteTest(id: test.id)
-            // The server mutation succeeded: remove the row locally first, so a
-            // failed reconciliation reload can't resurrect it (#810); the stale
-            // banner reports the reload failure separately.
-            selectedIDs.remove(test.id)
-            tests.removeAll { $0.id == test.id }
-            await load()
-        } catch {
-            actionError = message(for: error)
-        }
-    }
-
-    private func message(for error: any Error) -> String {
-        (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
     }
 }
 
