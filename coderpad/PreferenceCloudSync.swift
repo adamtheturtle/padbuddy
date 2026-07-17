@@ -79,30 +79,55 @@ final class PreferenceCloudSync {
         }
     }
 
-    /// Pushes any synced key whose local value differs from the cloud copy. Cheap enough
-    /// to run on every defaults change: the list is short and KVS reads are in-memory.
+    /// Pushes any synced key whose local value differs from the cloud copy, stamping a
+    /// revision alongside it (both in the cloud and locally) so pulls can order the
+    /// writers (#766). Cheap enough to run on every defaults change: the list is short
+    /// and KVS reads are in-memory.
     private func mirrorChangedToCloud() {
         for key in Self.syncedKeys {
             let local = UserDefaults.standard.object(forKey: key)
             let cloud = CloudSyncStore.shared.object(forKey: key)
             guard !Self.plistValuesEqual(local, cloud) else { continue }
 
+            let revision = Date().timeIntervalSince1970
+            UserDefaults.standard.set(revision, forKey: Self.localRevisionKey(key))
             CloudSyncStore.shared.mirrorObject(local, forKey: key)
+            CloudSyncStore.shared.mirrorObject(revision, forKey: Self.cloudRevisionKey(key))
         }
     }
 
-    /// Pulls one key's cloud value into UserDefaults when it differs. A missing cloud
-    /// value never clears a local one (deletions don't propagate, matching the
-    /// collection stores). Writing the value re-posts `didChangeNotification`, but the
-    /// resulting push is a no-op because the two sides now match - this is what makes
-    /// the sync converge instead of looping.
+    /// Pulls one key's cloud value into UserDefaults when it differs AND its revision
+    /// stamp is at least as new as the last local write - last-writer-wins needs to
+    /// know the writer order, so a newer offline local edit survives startup instead
+    /// of being reverted by an older cloud copy (#766). Missing revisions count as 0,
+    /// so a pre-revision cloud value still seeds a never-locally-written key (the
+    /// fresh-Mac case). A missing cloud value never clears a local one (deletions
+    /// don't propagate, matching the collection stores). Writing the value re-posts
+    /// `didChangeNotification`, but the resulting push is a no-op because the two
+    /// sides now match - this is what makes the sync converge instead of looping.
     private func pull(key: String) {
         guard let cloud = CloudSyncStore.shared.object(forKey: key) else { return }
 
         let local = UserDefaults.standard.object(forKey: key)
         guard !Self.plistValuesEqual(local, cloud) else { return }
 
+        let cloudRevision = CloudSyncStore.shared.object(forKey: Self.cloudRevisionKey(key)) as? Double ?? 0
+        let localRevision = UserDefaults.standard.double(forKey: Self.localRevisionKey(key))
+        guard cloudRevision >= localRevision else { return }
+
         UserDefaults.standard.set(cloud, forKey: key)
+        UserDefaults.standard.set(cloudRevision, forKey: Self.localRevisionKey(key))
+    }
+
+    /// The KVS key carrying `key`'s revision stamp. Internal for tests.
+    static func cloudRevisionKey(_ key: String) -> String {
+        "revision.\(key)"
+    }
+
+    /// The device-local UserDefaults key remembering the revision of the last write
+    /// (local edit or adopted pull) for `key`. Deliberately NOT in `syncedKeys`.
+    static func localRevisionKey(_ key: String) -> String {
+        "cloud.revision.\(key)"
     }
 
     /// Whether two plist-type preference values are equal, treating two absent values as
