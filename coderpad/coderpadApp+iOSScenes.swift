@@ -5,7 +5,7 @@
 //  The iPad scene graph for `CoderpadApp`, split out of coderpadApp.swift (#580) so
 //  the `@main` file keeps only the entry point, `App` conformance, `init()`, `body`,
 //  and the shared helpers. `iOSScenes` stays internal so `body` (in the main file)
-//  can reach it; the Settings sheet it composes stays private to this file.
+//  can reach it; the scene-local Settings cover lives in `provideAppSettingsAction()`.
 //
 
 #if !os(macOS)
@@ -48,17 +48,9 @@
                     .onOpenURL { url in
                         handleDeepLink(url)
                     }
+                    // Also owns the scene-local Settings cover, so opening Settings
+                    // covers only this window (#838).
                     .provideAppSettingsAction()
-                    // A full-screen cover, not a `.sheet`: on iPad a sheet is a centered form
-                    // sheet whose faint scrim let the parent's empty-state text and window
-                    // chrome bleed around the card edges and read as broken (#577/#578). A
-                    // full cover hides the background entirely; the Done button dismisses it.
-                    .fullScreenCover(isPresented: Binding(
-                        get: { SettingsPresentation.shared.isPresented },
-                        set: { SettingsPresentation.shared.isPresented = $0 }
-                    )) {
-                        iPadSettingsSheet
-                    }
             }
             .commands {
                 IPadCommands()
@@ -90,20 +82,6 @@
             WindowGroup("Test Session", id: "screen-test", for: ScreenTestWindowID.self) { $value in
                 ScreenTestWindow(value: value)
                     .preferredColorScheme(appearance.colorScheme)
-            }
-        }
-
-        /// The iPad in-app Settings sheet (there is no macOS-style `Settings` scene on iOS).
-        /// Reached via the shared `\.openAppSettings` action, which raises
-        /// `SettingsPresentation.shared.isPresented`.
-        private var iPadSettingsSheet: some View {
-            NavigationStack {
-                SettingsView()
-                    .toolbar {
-                        ToolbarItem(placement: .confirmationAction) {
-                            Button("Done") { SettingsPresentation.shared.isPresented = false }
-                        }
-                    }
             }
         }
     }

@@ -27,17 +27,6 @@ extension EnvironmentValues {
     @Entry var openAppSettings: OpenAppSettingsAction = .init(perform: {})
 }
 
-#if !os(macOS)
-    /// iPad settings-sheet presentation state (no macOS-style `Settings` scene on iOS). The
-    /// main window observes this to present `SettingsView` as a sheet.
-    @MainActor @Observable final class SettingsPresentation {
-        static let shared = SettingsPresentation()
-        private init() {}
-
-        var isPresented = false
-    }
-#endif
-
 extension View {
     /// Injects the cross-platform `\.openAppSettings` action for descendants. Apply this once
     /// per scene, above the content that opens settings. On macOS it forwards to the system
@@ -50,15 +39,33 @@ extension View {
 private struct AppSettingsActionProvider: ViewModifier {
     #if os(macOS)
         @Environment(\.openSettings) private var openSettings
-    #endif
 
-    func body(content: Content) -> some View {
-        #if os(macOS)
+        func body(content: Content) -> some View {
             content.environment(\.openAppSettings, OpenAppSettingsAction { openSettings() })
-        #else
-            content.environment(\.openAppSettings, OpenAppSettingsAction {
-                SettingsPresentation.shared.isPresented = true
-            })
-        #endif
-    }
+        }
+    #else
+        /// Scene-local presentation (#838): each window owns its own flag, so opening
+        /// Settings covers only the initiating window - a process-wide singleton would
+        /// present (and dismiss) the cover in every open iPad window at once.
+        @State private var isPresented = false
+
+        func body(content: Content) -> some View {
+            content
+                .environment(\.openAppSettings, OpenAppSettingsAction { isPresented = true })
+                // A full-screen cover, not a `.sheet`: on iPad a sheet is a centered form
+                // sheet whose faint scrim let the parent's empty-state text and window
+                // chrome bleed around the card edges and read as broken (#577/#578). A
+                // full cover hides the background entirely; the Done button dismisses it.
+                .fullScreenCover(isPresented: $isPresented) {
+                    NavigationStack {
+                        SettingsView()
+                            .toolbar {
+                                ToolbarItem(placement: .confirmationAction) {
+                                    Button("Done") { isPresented = false }
+                                }
+                            }
+                    }
+                }
+        }
+    #endif
 }
