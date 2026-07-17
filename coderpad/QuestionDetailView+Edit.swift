@@ -52,8 +52,37 @@ extension QuestionDetailView {
                 .labelsHidden()
                 .fixedSize()
             }
+            readOnlyPropertyRows
         }
         .disabled(isReadOnly)
+    }
+
+    @ViewBuilder
+    private var readOnlyPropertyRows: some View {
+        if let shared = question.shared {
+            readOnlyPropertyRow("Shared", value: yesNo(shared))
+        }
+        if let enabled = question.testCasesEnabled {
+            readOnlyPropertyRow("Test cases", value: enabled ? "Enabled" : "Disabled")
+        }
+        if let draft = question.isDraft {
+            readOnlyPropertyRow("Draft", value: yesNo(draft))
+        }
+        readOnlyPropertyRow(
+            "Public link",
+            value: question.publicTakeHomeSettingID == nil ? "Not configured" : "Configured"
+        )
+    }
+
+    private func readOnlyPropertyRow(_ label: LocalizedStringKey, value: LocalizedStringKey) -> some View {
+        propertyRow(label) {
+            Text(value)
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private func yesNo(_ value: Bool) -> LocalizedStringKey {
+        value ? "Yes" : "No"
     }
 
     /// A labeled row pairing a property name with its inline control, matching the
