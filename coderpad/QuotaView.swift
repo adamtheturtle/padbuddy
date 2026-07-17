@@ -8,7 +8,10 @@ import SwiftUI
 
 struct QuotaView: View {
     let client: CoderPadClient
-    @State private var accounts = AccountsStore.shared
+    /// The account this view shows, captured by the caller: quota responses are
+    /// displayed and cached strictly under this id, never under whatever account
+    /// is current when a slow response lands (#797).
+    let accountID: UUID?
     @State private var cache = QuotaCacheStore.shared
     @State private var quota: Quota?
     @State private var isLoading = false
@@ -23,6 +26,13 @@ struct QuotaView: View {
             } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
+                        // A failed refresh over previously loaded numbers must not
+                        // pose as current data (#800).
+                        if let error {
+                            StaleRefreshBanner(message: error.localizedDescription) {
+                                Task { await reload() }
+                            }
+                        }
                         if let quota {
                             statTiles(quota)
                             if let pace = QuotaPace(quota: quota, now: Date()) {
@@ -44,7 +54,7 @@ struct QuotaView: View {
         .task(id: client.apiKey) {
             // Show the last-loaded quota immediately so re-entering the section
             // doesn't flash a spinner; the reload below refreshes it in place.
-            if quota == nil, let id = accounts.currentAccountID {
+            if quota == nil, let id = accountID {
                 quota = cache.get(id)
             }
             await reload()
@@ -168,7 +178,7 @@ struct QuotaView: View {
         do {
             let fetched = try await client.quota()
             quota = fetched
-            if let id = accounts.currentAccountID {
+            if let id = accountID {
                 cache.set(id, quota: fetched)
             }
         } catch {

@@ -6,43 +6,6 @@
 import MacPullToRefresh
 import SwiftUI
 
-/// Selectable window for the organization pad-usage stats. `nil` dates mean the
-/// API's own default (last 7 days); the presets compute an explicit range.
-enum StatsPeriod: String, CaseIterable, Identifiable {
-    case days7 = "Last 7 days"
-    case days30 = "Last 30 days"
-    case days90 = "Last 90 days"
-    case months12 = "Last 12 months"
-    case custom = "Custom range"
-
-    /// `@AppStorage` key shared by the Organization view and the View menu's
-    /// "Stats Period" command, so the toolbar picker and the menu stay in sync.
-    static let storageKey = "organization.statsPeriod"
-
-    var id: String {
-        rawValue
-    }
-
-    private var days: Int? {
-        switch self {
-        case .days7: 7
-        case .days30: 30
-        case .days90: 90
-        case .months12: 365
-        case .custom: nil
-        }
-    }
-
-    /// The (start, end) window ending now for the selected preset, or `nil` for
-    /// `.custom` where the dates come from the view's own pickers.
-    func range(now: Date = Date()) -> (start: Date, end: Date)? {
-        guard let days else { return nil }
-
-        let start = Calendar.current.date(byAdding: .day, value: -days, to: now) ?? now
-        return (start, now)
-    }
-}
-
 struct OrganizationView: View {
     let client: CoderPadClient
     @State private var accounts = AccountsStore.shared
@@ -50,6 +13,9 @@ struct OrganizationView: View {
     @State private var quotaCache = QuotaCacheStore.shared
     @State private var organization: Organization?
     @State private var stats: OrganizationStats?
+    /// A stats-only refresh failure (#799): the previous stats stay on screen,
+    /// explicitly marked stale, instead of vanishing into a silent placeholder.
+    @State private var statsError: String?
     @State private var quota: Quota?
     @State private var isLoading = false
     @State private var error: (any Error)?
@@ -205,11 +171,16 @@ struct OrganizationView: View {
     }
 
     private var statTiles: some View {
-        HStack(spacing: 12) {
-            StatTile(title: "Teams", value: organization.map { "\($0.teams.count)" } ?? "…",
-                     systemImage: "rectangle.stack.person.crop", tint: .indigo)
-            StatTile(title: "Pads", value: stats.map { "\($0.padsCreated)" } ?? "…",
-                     systemImage: "doc.text.fill", tint: .teal)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 12) {
+                StatTile(title: "Teams", value: organization.map { "\($0.teams.count)" } ?? "…",
+                         systemImage: "rectangle.stack.person.crop", tint: .indigo)
+                StatTile(title: "Pads", value: stats.map { "\($0.padsCreated)" } ?? "…",
+                         systemImage: "doc.text.fill", tint: .teal)
+            }
+            if let statsError {
+                StaleRefreshBanner(message: statsError) { scheduleStatsReload() }
+            }
         }
     }
 
@@ -313,6 +284,12 @@ private extension OrganizationView {
         }
     }
 
+    var statsWindowToken: StatsWindowToken {
+        StatsWindowToken(period: period,
+                         customStart: period == .custom ? customStart : nil,
+                         customEnd: period == .custom ? customEnd : nil)
+    }
+
     func reload() async {
         guard !client.apiKey.isEmpty else { return }
 
@@ -320,13 +297,27 @@ private extension OrganizationView {
         error = nil
         defer { isLoading = false }
         let window = window
+        let requested = statsWindowToken
         do {
             async let orgFetch = client.organization()
             async let statsFetch = client.organizationStats(start: window.start, end: window.end)
             async let quotaFetch = client.quota()
             let fetchedOrg = try await orgFetch
             organization = fetchedOrg
-            stats = try? await statsFetch
+            // Stats were fetched for `requested`; if the period picker moved on
+            // while this full reload was in flight, a separately launched
+            // `reloadStats()` owns the display now (#798). A stats-only failure
+            // keeps the previous stats, marked stale, instead of silently
+            // clearing them to a placeholder (#799).
+            let fetchedStats = try? await statsFetch
+            if requested == statsWindowToken {
+                if let fetchedStats {
+                    stats = fetchedStats
+                    statsError = nil
+                } else {
+                    statsError = String(localized: "The pad stats request failed.")
+                }
+            }
             let fetchedQuota = try? await quotaFetch
             quota = fetchedQuota
             // Warm the shared caches so re-entering Organization — or visiting
@@ -349,16 +340,23 @@ private extension OrganizationView {
     }
 
     /// Refetches just the stats when the period changes, leaving the rest of the
-    /// loaded organization data in place.
+    /// loaded organization data in place. A failure keeps the previous stats,
+    /// marked stale (#799).
     func reloadStats() async {
         guard !client.apiKey.isEmpty else { return }
 
         let window = window
+        let requested = statsWindowToken
         let result = try? await client.organizationStats(start: window.start, end: window.end)
         // A newer request may have superseded this one while it was in flight.
-        guard !Task.isCancelled else { return }
+        guard !Task.isCancelled, requested == statsWindowToken else { return }
 
-        stats = result
+        if let result {
+            stats = result
+            statsError = nil
+        } else {
+            statsError = String(localized: "The pad stats request failed.")
+        }
     }
 }
 

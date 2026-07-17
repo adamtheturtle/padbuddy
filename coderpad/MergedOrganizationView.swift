@@ -49,6 +49,18 @@ struct MergedOrganizationView: View {
         period.range() ?? (customStart, customEnd)
     }
 
+    /// Identity of the stats window a request was made for, mirroring
+    /// `OrganizationView.statsWindowToken`. The resolved `window` dates are
+    /// now-anchored and never compare equal across reads, so guarding on them
+    /// silently dropped every full reload's stats (#798).
+    private var statsWindowToken: StatsWindowToken {
+        StatsWindowToken(
+            period: period,
+            customStart: period == .custom ? customStart : nil,
+            customEnd: period == .custom ? customEnd : nil
+        )
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             if period == .custom { customRangeHeader }
@@ -262,6 +274,7 @@ struct MergedOrganizationView: View {
         isLoading = true
         defer { isLoading = false }
         let requestedWindow = window
+        let requestedToken = statsWindowToken
         let targets = mergeable.map { (id: $0.id, client: $0.makeClient()) }
         await withTaskGroup(of: (UUID, Organization?, OrganizationStats?, Quota?, String?).self) { group in
             for target in targets {
@@ -289,8 +302,8 @@ struct MergedOrganizationView: View {
                 // Org and quota are window-independent, but stats were fetched for
                 // `requestedWindow`. If the period picker has since changed (a newer
                 // reloadStats is the authority now), drop these to avoid overwriting
-                // fresh stats with counts for the old period. #384
-                if let stats, requestedWindow == window { statsByAccount[id] = stats }
+                // fresh stats with counts for the old period. #384/#798
+                if let stats, requestedToken == statsWindowToken { statsByAccount[id] = stats }
                 if let quota { quotaCache.set(id, quota: quota) }
             }
         }
@@ -308,6 +321,7 @@ struct MergedOrganizationView: View {
         guard !mergeable.isEmpty else { return }
 
         let window = window
+        let requestedToken = statsWindowToken
         let targets = mergeable.map { (id: $0.id, client: $0.makeClient()) }
         await withTaskGroup(of: (UUID, OrganizationStats?).self) { group in
             for target in targets {
@@ -316,7 +330,7 @@ struct MergedOrganizationView: View {
                 }
             }
             for await (id, stats) in group {
-                guard !Task.isCancelled else { return }
+                guard !Task.isCancelled, requestedToken == statsWindowToken else { return }
 
                 if let stats { statsByAccount[id] = stats }
             }

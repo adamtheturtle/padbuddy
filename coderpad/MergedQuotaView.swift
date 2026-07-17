@@ -67,6 +67,11 @@ struct MergedQuotaView: View {
         VStack(alignment: .leading, spacing: 14) {
             AccountSectionHeader(account: account)
             if let quota = quotaByAccount[account.id] {
+                // A recorded refresh failure must stay visible even while cached
+                // numbers are shown, or stale usage poses as current (#800).
+                if let error = accountErrors[account.id] {
+                    StaleRefreshBanner(message: error) { Task { await reload() } }
+                }
                 QuotaDetail(quota: quota)
             } else if let error = accountErrors[account.id] {
                 Label(error, systemImage: "exclamationmark.triangle")

@@ -34,7 +34,7 @@ struct SectionContent: View {
 
             case .organization: OrganizationView(client: client).id(account.id)
 
-            case .quota: QuotaView(client: client).id(account.id)
+            case .quota: QuotaView(client: client, accountID: account.id).id(account.id)
 
             // The Screen row only shows when a Screen client exists (#432), but guard
             // anyway; the campaigns list is the content column (#433).
