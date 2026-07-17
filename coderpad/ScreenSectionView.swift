@@ -38,6 +38,14 @@ struct ScreenCampaignsView: View {
             }
         }
         .overlay { statusOverlay }
+        // A refresh failure over previously loaded rows must not pose as current
+        // data (#802): keep the rows but flag them stale with the error and retry.
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if let loadError, !campaigns.isEmpty {
+                StaleRefreshBanner(message: loadError) { Task { await load() } }
+                    .padding(8)
+            }
+        }
         // With no campaign selected, show the campaign count; once one is selected the
         // detail column shows its test sessions, so surface that campaign's candidate
         // count instead (published by the tests view via AppNavigation) (#448/#475).

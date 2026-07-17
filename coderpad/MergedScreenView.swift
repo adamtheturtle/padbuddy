@@ -52,6 +52,15 @@ struct MergedScreenView: View {
             }
         }
         .overlay { statusOverlay }
+        // Partial refresh failures over previously loaded rows must not pose as
+        // current data (#802): the full-pane overlay only covers the all-failed,
+        // nothing-loaded case, so flag per-account failures here with a retry.
+        .safeAreaInset(edge: .top, spacing: 0) {
+            if !allFailed, let message = accountErrorSummary {
+                StaleRefreshBanner(message: message) { Task { await load() } }
+                    .padding(8)
+            }
+        }
         // The campaign count with nothing selected; the selected campaign's candidate
         // count once chosen (published by the tests list via AppNavigation, #475).
         .reportsSectionCount(selectedScopedID == nil ? countSubtitle : nav.screenTestsSubtitle)
@@ -208,6 +217,17 @@ struct MergedScreenView: View {
     private var allFailed: Bool {
         !hasAnyCampaign && !screenAccounts.isEmpty
             && screenAccounts.allSatisfy { accountErrors[$0.account.id] != nil }
+    }
+
+    /// One line per failed account for the stale-data banner (#802), or nil when
+    /// every account refreshed cleanly.
+    private var accountErrorSummary: String? {
+        let lines = screenAccounts.compactMap { scoped -> String? in
+            guard let error = accountErrors[scoped.account.id] else { return nil }
+
+            return "\(scoped.account.name): \(error)"
+        }
+        return lines.isEmpty ? nil : lines.joined(separator: "\n")
     }
 
     private var countSubtitle: String {

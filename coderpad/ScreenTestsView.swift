@@ -77,6 +77,14 @@ struct ScreenTestsView: View {
             .onRowDrag { testPasteboardItem($0) }
         #endif
             .overlay { statusOverlay }
+            // A refresh failure over previously loaded sessions must not pose as
+            // current candidate data (#803): keep the rows but flag them stale.
+            .safeAreaInset(edge: .top, spacing: 0) {
+                if let loadError, !tests.isEmpty {
+                    StaleRefreshBanner(message: loadError) { Task { await load() } }
+                        .padding(8)
+                }
+            }
             .task(id: campaign.id) { await load() }
             // The date range is a server-side filter, so changing it re-fetches (onChange,
             // not a second .task, so it doesn't double-fetch alongside the campaign task).

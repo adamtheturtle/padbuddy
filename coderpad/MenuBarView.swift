@@ -168,11 +168,29 @@
         /// data load, keyed on the active account, as a stable always-present action.
         @ViewBuilder
         private func newPadItems(account: Account) -> some View {
-            Button("New Pad…") {
-                Task { await createPad(PadCreate(), account: account) }
+            Group {
+                if store.isMergedView {
+                    // All Accounts shows no current account, so a bare "New Pad…"
+                    // would silently create in the hidden previous selection (#776):
+                    // name the destination with one item per account instead.
+                    Menu("New Pad") {
+                        newPadAccountWarning
+                        ForEach(store.mergeableAccounts) { target in
+                            Button("In \(target.name)…") {
+                                Task { await createPad(PadCreate(), account: target) }
+                            }
+                            .disabled((target.isMock == false && target.apiKey.isEmpty)
+                                || network.isOffline)
+                        }
+                    }
+                } else {
+                    Button("New Pad…") {
+                        Task { await createPad(PadCreate(), account: account) }
+                    }
+                    .keyboardShortcut("n")
+                    .disabled((account.isMock == false && account.apiKey.isEmpty) || network.isOffline)
+                }
             }
-            .keyboardShortcut("n")
-            .disabled((account.isMock == false && account.apiKey.isEmpty) || network.isOffline)
             // Load the menu's data here (a stable, always-present action) keyed on the
             // active account, rather than hanging it off an unrelated leaf button.
             .task(id: menuLoadKey) { await loadMenu(activeAccount: account) }
