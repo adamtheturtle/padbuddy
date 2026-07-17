@@ -203,7 +203,8 @@ enum PadEventGrouping {
             if let last = groups.last,
                collapsibleKinds.contains(event.kind.lowercased()),
                last.representative.kind.lowercased() == event.kind.lowercased(),
-               last.representative.userName == event.userName {
+               let lastActor = actorKey(for: last.representative),
+               lastActor == actorKey(for: event) {
                 groups[groups.count - 1] = PadEventGroup(
                     id: last.id,
                     representative: last.representative,
@@ -221,5 +222,19 @@ enum PadEventGrouping {
             }
         }
         return groups
+    }
+
+    private static func actorKey(for event: PadEvent) -> String? {
+        if let email = event.userEmail?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !email.isEmpty {
+            return "email:\(email.lowercased())"
+        }
+
+        if let name = event.userName?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !name.isEmpty {
+            return "name:\(name)"
+        }
+
+        return nil
     }
 }
