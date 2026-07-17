@@ -180,7 +180,11 @@ func markdownInlineEscaped(_ text: String) -> String {
     var result = ""
     result.reserveCapacity(text.count)
     let special: Set<Character> = ["\\", "`", "*", "_", "[", "]", "<", ">", "|"]
-    for character in text {
+    let inlineText = text
+        .replacingOccurrences(of: "\r\n", with: " ")
+        .replacingOccurrences(of: "\r", with: " ")
+        .replacingOccurrences(of: "\n", with: " ")
+    for character in inlineText {
         if special.contains(character) { result.append("\\") }
         result.append(character)
     }

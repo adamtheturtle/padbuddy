@@ -61,6 +61,22 @@ struct PadMarkdownExportTests {
     }
 
     @Test
+    func `line breaks in inline metadata cannot create Markdown blocks`() {
+        let markdown = padMarkdownDocument(
+            title: "Title\n# Injected heading",
+            summary: [("Owner\n## Injected", "Ada\r\n- Injected item")],
+            files: [PadPrintFile(id: "1", title: "main.py\r## Injected file", code: "print('hi')")]
+        )
+
+        #expect(markdown.contains("# Title # Injected heading\n"))
+        #expect(markdown.contains("- **Owner ## Injected:** Ada - Injected item\n"))
+        #expect(markdown.contains("## main.py ## Injected file\n"))
+        #expect(!markdown.contains("\n# Injected heading"))
+        #expect(!markdown.contains("\n## Injected file"))
+        #expect(!markdown.contains("\n- Injected item"))
+    }
+
+    @Test
     func `code containing a triple-backtick run gets a longer fence`() {
         let code = "let s = \"\"\"\n```\n\"\"\""
         let markdown = padMarkdownDocument(
