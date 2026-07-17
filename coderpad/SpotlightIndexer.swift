@@ -3,7 +3,7 @@
 //  coderpad
 //
 
-import CoreSpotlight
+@preconcurrency import CoreSpotlight
 import Foundation
 import os.log
 import UniformTypeIdentifiers
@@ -19,15 +19,20 @@ import UniformTypeIdentifiers
 /// reopens the app via the handler in `coderpadApp` (see `onContinueUserActivity`).
 enum SpotlightIndexer {
     private nonisolated static let logger = Logger(subsystem: "com.coderpad.app", category: "spotlight")
-    private static let padPrefix = "pad:"
-    private static let questionPrefix = "question:"
+    private nonisolated static let padPrefix = "pad:"
+    private nonisolated static let questionPrefix = "question:"
+    private typealias SpotlightFinish = @Sendable () -> Void
+    private typealias SpotlightErrorCompletion = @Sendable ((any Error)?) -> Void
+    private typealias SpotlightOperation = @Sendable (@escaping SpotlightFinish) -> Void
+
+    private nonisolated static let operationQueue = DispatchQueue(label: "com.coderpad.app.spotlight.operations")
     /// How many questions one indexing pass will enrich with on-device keywords.
     /// Each enrichment runs the language model, so a big org's full list would be
     /// far too costly to summarize in one go; the cap keeps it bounded and the
     /// dropped remainder is logged rather than silently skipped.
     private static let maxKeywordEnrichments = 50
 
-    private static func domain(_ account: UUID) -> String {
+    private nonisolated static func domain(_ account: UUID) -> String {
         account.uuidString
     }
 
@@ -37,7 +42,7 @@ enum SpotlightIndexer {
     /// indexing one account's question overwrites another's same-id entry, and a
     /// single-account delete removes the other account's item too (#378). (Pads use
     /// global slug ids, so they need no such namespacing.)
-    private static func questionIdentifier(id: Int, account: UUID) -> String {
+    private nonisolated static func questionIdentifier(id: Int, account: UUID) -> String {
         "\(questionPrefix)\(account.uuidString):\(id)"
     }
 
@@ -120,8 +125,11 @@ enum SpotlightIndexer {
 
     /// Removes all indexed items for an account (e.g. when it's deleted).
     static func removeAccount(_ account: UUID) {
-        CSSearchableIndex.default().deleteSearchableItems(withDomainIdentifiers: [domain(account)]) { error in
-            logDeletionFailure(error, operation: "remove account domain")
+        enqueueDelete(operation: "remove account domain") { completion in
+            CSSearchableIndex.default().deleteSearchableItems(
+                withDomainIdentifiers: [domain(account)],
+                completionHandler: completion
+            )
         }
     }
 
@@ -129,8 +137,11 @@ enum SpotlightIndexer {
     /// the remaining list only adds/updates items, so a dropped pad needs an
     /// explicit delete by identifier or it lingers in system search.
     static func removePad(id: String) {
-        CSSearchableIndex.default().deleteSearchableItems(withIdentifiers: [padPrefix + id]) { error in
-            logDeletionFailure(error, operation: "remove pad item")
+        enqueueDelete(operation: "remove pad item") { completion in
+            CSSearchableIndex.default().deleteSearchableItems(
+                withIdentifiers: [padPrefix + id],
+                completionHandler: completion
+            )
         }
     }
 
@@ -138,26 +149,52 @@ enum SpotlightIndexer {
     /// the owning account so a delete in one account can't drop another account's
     /// same-id question from system search (#378).
     static func removeQuestion(id: Int, account: UUID) {
-        CSSearchableIndex.default()
-            .deleteSearchableItems(withIdentifiers: [questionIdentifier(id: id, account: account)]) { error in
-                logDeletionFailure(error, operation: "remove question item")
-            }
+        enqueueDelete(operation: "remove question item") { completion in
+            CSSearchableIndex.default()
+                .deleteSearchableItems(
+                    withIdentifiers: [questionIdentifier(id: id, account: account)],
+                    completionHandler: completion
+                )
+        }
     }
 
     /// Clears everything this app indexed — used when the user turns the feature off.
     static func clearAll() {
-        CSSearchableIndex.default().deleteAllSearchableItems { error in
-            logDeletionFailure(error, operation: "clear all items")
+        enqueueDelete(operation: "clear all items") { completion in
+            CSSearchableIndex.default().deleteAllSearchableItems(completionHandler: completion)
         }
     }
 
     private static func index(_ items: [CSSearchableItem]) {
         guard !items.isEmpty else { return }
 
-        CSSearchableIndex.default().indexSearchableItems(items) { error in
-            if let error {
-                logger.error("Spotlight index failed: \(error.localizedDescription, privacy: .public)")
+        enqueueSpotlightOperation { finish in
+            CSSearchableIndex.default().indexSearchableItems(items) { error in
+                if let error {
+                    logger.error("Spotlight index failed: \(error.localizedDescription, privacy: .public)")
+                }
+                finish()
             }
+        }
+    }
+
+    private nonisolated static func enqueueDelete(
+        operation: String,
+        _ body: @escaping @Sendable (@escaping SpotlightErrorCompletion) -> Void
+    ) {
+        enqueueSpotlightOperation { finish in
+            body { error in
+                logDeletionFailure(error, operation: operation)
+                finish()
+            }
+        }
+    }
+
+    private nonisolated static func enqueueSpotlightOperation(_ body: @escaping SpotlightOperation) {
+        operationQueue.async {
+            let semaphore = DispatchSemaphore(value: 0)
+            body { semaphore.signal() }
+            semaphore.wait()
         }
     }
 
