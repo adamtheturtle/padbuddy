@@ -38,22 +38,41 @@
         /// Extracts a pad id from the service pasteboard, preferring a real URL item
         /// over selected text (Safari sends both for a selected link).
         static func padID(from pasteboard: NSPasteboard) -> String? {
-            if let url = NSURL(from: pasteboard) as URL?, let id = padID(fromSelection: url.absoluteString) {
+            let hosts = allowedPadLinkHosts
+            if let url = NSURL(from: pasteboard) as URL?,
+               let id = padID(fromSelection: url.absoluteString, allowedHosts: hosts) {
                 return id
             }
             if let text = pasteboard.string(forType: .string) {
-                return padID(fromSelection: text)
+                return padID(fromSelection: text, allowedHosts: hosts)
             }
             return nil
         }
 
         // swiftlint:enable legacy_objc_type
 
+        /// The web hosts a selected link may point at to count as a pad link (#795):
+        /// the hosted service plus every configured account's custom server. Anything
+        /// else (an arbitrary selected URL) must not be mistaken for a pad.
+        static var allowedPadLinkHosts: Set<String> {
+            var hosts: Set<String> = []
+            if let host = CoderPadClient.defaultBaseURL.host() {
+                hosts.insert(host.lowercased())
+            }
+            for account in AccountsStore.shared.accounts {
+                if let host = account.resolvedBaseURL.host() {
+                    hosts.insert(host.lowercased())
+                }
+            }
+            return hosts
+        }
+
         /// Pure string → id extraction, kept separate so it's unit-testable. Accepts a
-        /// CoderPad web URL (the id is its first path component), a `coderpad://pad/<id>`
-        /// deep link, or a bare alphanumeric id token. Returns nil for anything else, so
-        /// selecting arbitrary prose doesn't fire a bogus open.
-        static func padID(fromSelection raw: String) -> String? {
+        /// CoderPad web URL from a known host (the id is its first path component), a
+        /// `coderpad://pad/<id>` deep link, or a bare alphanumeric id token. Returns nil
+        /// for anything else, so selecting arbitrary prose or an unrelated web link
+        /// doesn't fire a bogus open (#795).
+        static func padID(fromSelection raw: String, allowedHosts: Set<String>) -> String? {
             let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else { return nil }
 
@@ -63,6 +82,12 @@
                     return id.isEmpty ? nil : id
                 }
                 if scheme == "http" || scheme == "https" {
+                    // Only links to the hosted service or a configured custom server
+                    // are pad links; any other web URL is unrelated selection (#795).
+                    guard let host = url.host()?.lowercased(), allowedHosts.contains(host) else {
+                        return nil
+                    }
+
                     // The pad id is the first real path component, e.g.
                     // https://app.coderpad.io/ABC123 or .../ABC123/playback.
                     return url.pathComponents.first { $0 != "/" && !$0.isEmpty }

@@ -171,14 +171,16 @@ struct ContentView: View {
     }
 
     /// Opens any pad id queued by the "Open Pad by ID" intent, then clears it so it
-    /// isn't reopened on the next change.
+    /// isn't reopened on the next change. Re-validates the id here as well as in the
+    /// intent so a queued value can never rewrite the URL it's interpolated into (#778).
     private func consumeOpenPadID() {
-        guard let id = nav.openPadID, !id.isEmpty else { return }
+        guard let raw = nav.openPadID else { return }
 
         nav.openPadID = nil
-        if let url = URL(string: "https://app.coderpad.io/\(id)") {
-            BrowserSettings.openExternally(url)
-        }
+        guard let id = PadIDValidation.normalize(raw),
+              let url = URL(string: "https://app.coderpad.io/\(id)") else { return }
+
+        BrowserSettings.openExternally(url)
     }
 
     /// Starts account setup on the canonical Settings > Accounts inline editor, the

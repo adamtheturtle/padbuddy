@@ -56,6 +56,21 @@ struct CoderPadShortcuts: AppShortcutsProvider {
     }
 }
 
+/// Validates the free-text pad identifier the "Open Pad by ID" intent accepts. Pad ids
+/// are short ASCII-alphanumeric tokens; anything else (slashes, `?`, `#`, spaces) would
+/// change the structure of the browser URL it's interpolated into rather than name a
+/// pad (#778). Pure so it's unit-testable.
+nonisolated enum PadIDValidation {
+    static func normalize(_ raw: String) -> String? {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard (1 ... 64).contains(trimmed.count),
+              trimmed.allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber) })
+        else { return nil }
+
+        return trimmed
+    }
+}
+
 struct OpenPadByIDIntent: AppIntent {
     static let title: LocalizedStringResource = "Open Pad by ID"
     // Read by the AppIntents framework (Shortcuts metadata), not Swift.
@@ -66,14 +81,19 @@ struct OpenPadByIDIntent: AppIntent {
     @Parameter(title: "Pad ID", description: "The 8-character pad identifier.")
     var padID: String
 
-    func perform() async -> some IntentResult {
-        let trimmed = padID.trimmingCharacters(in: .whitespacesAndNewlines)
+    func perform() async throws -> some IntentResult {
+        // Reject anything that isn't a plain pad identifier instead of letting it
+        // rewrite the opened URL's path, query, or fragment (#778).
+        guard let id = PadIDValidation.normalize(padID) else {
+            throw $padID.needsValueError("Enter the pad's identifier - letters and numbers only.")
+        }
+
         // Mirror the other intents: warm up briefly on cold launch, then route through
         // durable AppNavigation state (consumed on appear) so the request isn't lost if
         // it fires before any view is listening.
         try? await Task.sleep(for: .milliseconds(300))
         await MainActor.run {
-            AppNavigation.shared.openPad(id: trimmed)
+            AppNavigation.shared.openPad(id: id)
         }
         return .result()
     }

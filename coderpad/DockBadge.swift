@@ -94,9 +94,11 @@ enum DockBadgeController {
             return 0
 
         case .currentAccount:
-            // No single current account (e.g. the combined "All Accounts" view) means
-            // there's nothing to scope to, so clear the badge rather than guess.
-            guard let current = store.currentAccount else { return 0 }
+            // No single current account means there's nothing to scope to, so clear
+            // the badge rather than guess. The store retains the last selection while
+            // the combined "All Accounts" view is active, so check the merged flag
+            // explicitly - otherwise the badge keeps counting a hidden account (#794).
+            guard !store.isMergedView, let current = store.currentAccount else { return 0 }
 
             countedAccounts = [current]
 
