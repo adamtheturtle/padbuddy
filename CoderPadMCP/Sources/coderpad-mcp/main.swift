@@ -65,6 +65,10 @@ private let accountSet: MCPAccountSet = {
             "coderpad-mcp: account \"\(account)\" has unsupported screen_region \"\(region)\"; "
                 + "use \"us\" or \"eu\".\n"
 
+        case let MCPConfigError.invalidBaseURL(account, baseURL):
+            "coderpad-mcp: account \"\(account)\" has unsupported base_url \"\(baseURL)\"; "
+                + "use an http or https URL with a host.\n"
+
         default:
             "coderpad-mcp: could not load the account configuration: \(error.localizedDescription)\n"
         }

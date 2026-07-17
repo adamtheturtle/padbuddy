@@ -102,6 +102,7 @@ public enum MCPConfigError: Error, Equatable {
     case duplicateName(String)
     case multipleDefaultAccounts([String])
     case invalidScreenRegion(account: String, region: String)
+    case invalidBaseURL(account: String, baseURL: String)
 }
 
 /// Why the standalone JSON config file could not be loaded.
@@ -139,9 +140,19 @@ private func trimmedNonEmpty(_ raw: String?) -> String? {
     return value
 }
 
-private func parseBaseURL(_ raw: String?) -> URL {
-    if let raw = trimmedNonEmpty(raw), let url = URL(string: raw) { return url }
-    return URL(string: "https://app.coderpad.io")!
+private func parseBaseURL(_ raw: String?, account: String) throws -> URL {
+    guard let value = trimmedNonEmpty(raw) else { return URL(string: "https://app.coderpad.io")! }
+    guard
+        let url = URL(string: value),
+        let scheme = url.scheme?.lowercased(),
+        ["http", "https"].contains(scheme),
+        let host = url.host(),
+        !host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    else {
+        throw MCPConfigError.invalidBaseURL(account: account, baseURL: value)
+    }
+
+    return url
 }
 
 private func truthy(_ raw: String?) -> Bool {
@@ -221,7 +232,7 @@ public func makeAccountSet(config: [String: Any]?, environment: [String: String]
             try accounts.append(MCPAccount(
                 name: name,
                 apiKey: key,
-                baseURL: parseBaseURL(entry["base_url"] as? String),
+                baseURL: parseBaseURL(entry["base_url"] as? String, account: name),
                 screenAPIKey: trimmedNonEmpty(entry["screen_api_key"] as? String),
                 screenRegion: screenRegion(from: entry["screen_region"] as? String, account: name)
             ))
@@ -245,7 +256,10 @@ public func makeAccountSet(config: [String: Any]?, environment: [String: String]
     let account = try MCPAccount(
         name: trimmedNonEmpty(environment["CODERPAD_ACCOUNT_NAME"]) ?? "default",
         apiKey: key,
-        baseURL: parseBaseURL(environment["CODERPAD_BASE_URL"]),
+        baseURL: parseBaseURL(
+            environment["CODERPAD_BASE_URL"],
+            account: trimmedNonEmpty(environment["CODERPAD_ACCOUNT_NAME"]) ?? "default"
+        ),
         screenAPIKey: trimmedNonEmpty(environment["CODERPAD_SCREEN_API_KEY"]),
         screenRegion: screenRegion(
             from: environment["CODERPAD_SCREEN_REGION"],

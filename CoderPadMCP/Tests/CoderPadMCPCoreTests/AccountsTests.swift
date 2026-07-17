@@ -36,6 +36,23 @@ struct AccountsTests {
     }
 
     @Test
+    func `env base URL rejects non-HTTP and hostless values`() {
+        #expect(throws: MCPConfigError.invalidBaseURL(account: "default", baseURL: "mailto:user@example.com")) {
+            try makeAccountSet(config: nil, environment: [
+                "CODERPAD_API_KEY": "k1",
+                "CODERPAD_BASE_URL": "mailto:user@example.com"
+            ])
+        }
+
+        #expect(throws: MCPConfigError.invalidBaseURL(account: "default", baseURL: "https:///missing-host")) {
+            try makeAccountSet(config: nil, environment: [
+                "CODERPAD_API_KEY": "k1",
+                "CODERPAD_BASE_URL": "https:///missing-host"
+            ])
+        }
+    }
+
+    @Test
     func `missing default config falls back to environment`() throws {
         let home = try temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: home) }
@@ -132,6 +149,30 @@ struct AccountsTests {
         #expect(set.defaultAccount.name == "Beta")
         #expect(set.allowWrites)
         #expect(set.anyScreenEnabled)
+    }
+
+    @Test
+    func `config base URL accepts HTTP URLs with hosts`() throws {
+        let config: [String: Any] = ["accounts": [
+            ["name": "Acme", "api_key": "a", "base_url": "http://coderpad.acme.internal"]
+        ]]
+        let set = try makeAccountSet(config: config, environment: [:])
+        #expect(set.defaultAccount.baseURL.absoluteString == "http://coderpad.acme.internal")
+    }
+
+    @Test
+    func `config base URL rejects non-HTTP and hostless values`() {
+        #expect(throws: MCPConfigError.invalidBaseURL(account: "Acme", baseURL: "file:///tmp")) {
+            try makeAccountSet(config: ["accounts": [
+                ["name": "Acme", "api_key": "a", "base_url": "file:///tmp"]
+            ]], environment: [:])
+        }
+
+        #expect(throws: MCPConfigError.invalidBaseURL(account: "Beta", baseURL: "https:///missing-host")) {
+            try makeAccountSet(config: ["accounts": [
+                ["name": "Beta", "api_key": "b", "base_url": "https:///missing-host"]
+            ]], environment: [:])
+        }
     }
 
     @Test
