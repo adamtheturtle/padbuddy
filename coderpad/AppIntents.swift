@@ -183,7 +183,7 @@ struct OpenRecentPadsIntent: AppIntent {
         try? await Task.sleep(for: .milliseconds(200))
         await MainActor.run {
             UserDefaults.standard.set(PadSort.updatedDesc.rawValue, forKey: PadSort.storageKey)
-            if AccountsStore.shared.showAllAccounts {
+            if AccountsStore.shared.isMergedView {
                 AppNavigation.shared.showMergedRoot(kind: .pads)
             } else {
                 AppNavigation.shared.showPads(PadsRequest(applySearch: NamedSearch(name: "")))
@@ -203,7 +203,7 @@ struct OpenActivePadsIntent: AppIntent {
     func perform() async -> some IntentResult {
         try? await Task.sleep(for: .milliseconds(200))
         await MainActor.run {
-            if AccountsStore.shared.showAllAccounts {
+            if AccountsStore.shared.isMergedView {
                 AppNavigation.shared.section = .pads
                 AppNavigation.shared.mergedPadsActiveRequest = true
             } else {
