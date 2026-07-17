@@ -23,6 +23,16 @@ extension InterviewType {
     }
 }
 
+extension Pad {
+    /// The pad's web URL with a guaranteed value: the API's `url` string when it
+    /// parses, otherwise `{base}/{id}` (the canonical pad address). Quick-create
+    /// flows use this so a successfully created pad can always be opened, instead of
+    /// ending silently when the response's `url` is absent or malformed (#781).
+    func webURL(fallbackBase: URL) -> URL {
+        webURL ?? fallbackBase.appending(path: id)
+    }
+}
+
 extension PadState {
     /// Human-facing label for badges and filter menus. Localized at the source so
     /// `StateBadge` / `MetaLabel` (which take a plain `String`) still render in the

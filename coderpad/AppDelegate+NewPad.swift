@@ -77,12 +77,13 @@
 
             let client = account.makeClient()
             let accountID = account.id
+            let fallbackBase = account.resolvedBaseURL
             Task { @MainActor in
                 do {
                     let pad = try await client.createPad(body)
-                    if let url = pad.webURL {
-                        openCreatedPad(url)
-                    }
+                    // Fall back to the canonical {base}/{id} address when the response's
+                    // url is absent/malformed, so the created pad is never lost (#781).
+                    openCreatedPad(pad.webURL(fallbackBase: fallbackBase))
                 } catch {
                     // Offline or a transient API error: surface the in-app create flow so the
                     // user can retry, rather than failing silently.

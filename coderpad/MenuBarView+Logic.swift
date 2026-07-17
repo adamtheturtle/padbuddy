@@ -103,9 +103,9 @@
             let client = account.makeClient()
             do {
                 let pad = try await client.createPad(body)
-                if let url = pad.webURL {
-                    openPadURL(url)
-                }
+                // Fall back to the canonical {base}/{id} address when the response's
+                // url is absent/malformed, so the created pad is never lost (#781).
+                openPadURL(pad.webURL(fallbackBase: account.resolvedBaseURL))
             } catch {
                 errorMessage = error.localizedDescription
             }
