@@ -130,6 +130,18 @@ struct PromptsTests {
 
 @Suite("Resources")
 struct ResourcesTests {
+    private func accountSet() throws -> MCPAccountSet {
+        let baseURL = try #require(URL(string: "https://example.com"))
+        return MCPAccountSet(
+            accounts: [
+                MCPAccount(name: "Acme EU", apiKey: "a", baseURL: baseURL, screenAPIKey: nil, screenRegion: "us"),
+                MCPAccount(name: "Beta", apiKey: "b", baseURL: baseURL, screenAPIKey: nil, screenRegion: "us")
+            ],
+            defaultName: "Acme EU",
+            allowWrites: false
+        )
+    }
+
     @Test
     func `static resources cover quota and organization`() {
         let uris = staticResources.map(\.uri)
@@ -138,11 +150,28 @@ struct ResourcesTests {
     }
 
     @Test
+    func `multi-account static resources are account-qualified`() throws {
+        let uris = try staticResources(for: accountSet()).map(\.uri)
+        #expect(uris.contains("coderpad://account/Acme%20EU/quota"))
+        #expect(uris.contains("coderpad://account/Beta/organization"))
+        #expect(!uris.contains("coderpad://quota"))
+    }
+
+    @Test
     func `templates cover pad, pad code, and question`() {
         let patterns = resourceTemplates.map(\.uriTemplate)
         #expect(patterns.contains("coderpad://pad/{id}"))
         #expect(patterns.contains("coderpad://pad/{id}/code"))
         #expect(patterns.contains("coderpad://question/{id}"))
+    }
+
+    @Test
+    func `multi-account templates require an account segment`() throws {
+        let patterns = try resourceTemplates(for: accountSet()).map(\.uriTemplate)
+        #expect(patterns.contains("coderpad://account/{account}/pad/{id}"))
+        #expect(patterns.contains("coderpad://account/{account}/pad/{id}/code"))
+        #expect(patterns.contains("coderpad://account/{account}/question/{id}"))
+        #expect(!patterns.contains("coderpad://pad/{id}"))
     }
 
     @Test
@@ -155,8 +184,30 @@ struct ResourcesTests {
     }
 
     @Test
+    func `parseResourceURI maps account-qualified shapes`() {
+        #expect(parseResourceURI("coderpad://account/Acme%20EU/quota") == .accountQuota("Acme EU"))
+        #expect(parseResourceURI("coderpad://account/Acme%20EU/organization") == .accountOrganization("Acme EU"))
+        #expect(
+            parseResourceURI("coderpad://account/Acme%20EU/pad/abc123")
+                == .accountPad(account: "Acme EU", id: "abc123")
+        )
+        #expect(
+            parseResourceURI("coderpad://account/Acme%20EU/pad/abc123/code")
+                == .accountPadCode(account: "Acme EU", id: "abc123")
+        )
+        #expect(
+            parseResourceURI("coderpad://account/Acme%20EU/question/42")
+                == .accountQuestion(account: "Acme EU", id: 42)
+        )
+    }
+
+    @Test
     func `parseResourceURI decodes percent-encoded ids`() {
         #expect(parseResourceURI("coderpad://pad/a%20b") == .pad("a b"))
+        #expect(
+            parseResourceURI("coderpad://account/Acme%20EU/pad/a%20b")
+                == .accountPad(account: "Acme EU", id: "a b")
+        )
     }
 
     @Test
@@ -165,7 +216,23 @@ struct ResourcesTests {
         #expect(parseResourceURI("coderpad://unknown") == nil)
         #expect(parseResourceURI("coderpad://question/not-a-number") == nil)
         #expect(parseResourceURI("coderpad://pad") == nil)
+        #expect(parseResourceURI("coderpad://account/Acme/pad") == nil)
+        #expect(parseResourceURI("coderpad://account/Acme/question/not-a-number") == nil)
         #expect(parseResourceURI("not a uri") == nil)
+    }
+
+    @Test
+    func `resource account resolution requires account in multi-account configs`() throws {
+        let set = try accountSet()
+        #expect(resolveResourceAccount(.pad("abc123"), accountSet: set) == .requiresAccount)
+        #expect(
+            resolveResourceAccount(.accountPad(account: "beta", id: "abc123"), accountSet: set)
+                == .account(set.accounts[1])
+        )
+        #expect(
+            resolveResourceAccount(.accountQuestion(account: "Nope", id: 42), accountSet: set)
+                == .unknownAccount("Nope")
+        )
     }
 
     @Test

@@ -277,12 +277,12 @@ struct CoderPadProvider: MCPToolProvider {
     }
 
     func resources() async -> [Resource] {
-        staticResources
+        staticResources(for: accountSet)
     }
 
     func resourceTemplates() async -> [Resource.Template] {
-        // Qualified: the unqualified name resolves to this method, not the global catalog.
-        CoderPadMCPCore.resourceTemplates
+        // Qualified: the unqualified name resolves to this method, not the core helper.
+        CoderPadMCPCore.resourceTemplates(for: accountSet)
     }
 
     func readResource(_ uri: String) async throws -> ReadResource.Result {
@@ -290,9 +290,20 @@ struct CoderPadProvider: MCPToolProvider {
             throw MCPError.invalidParams("Unknown resource URI: \(uri)")
         }
 
-        // Resources are URI-addressed with no account selector, so they read from the
-        // default account. Qualified: the unqualified name resolves to this method.
-        return try await coderpad_mcp.readResource(request, uri: uri, account: accountSet.defaultAccount)
+        let account: MCPAccount = switch resolveResourceAccount(request, accountSet: accountSet) {
+        case let .account(account):
+            account
+
+        case .requiresAccount:
+            throw MCPError.invalidParams(
+                "Resource URI must include an account in multi-account configs: "
+                    + "coderpad://account/{account}/..."
+            )
+
+        case let .unknownAccount(name):
+            throw MCPError.invalidParams("No account matches resource selector \"\(name)\".")
+        }
+        return try await coderpad_mcp.readResource(request.unqualified, uri: uri, account: account)
     }
 }
 
