@@ -24,23 +24,35 @@ nonisolated extension MCPTools {
     ) async -> Outcome {
         let key = credentials.apiKey
         let base = credentials.baseURL
+        let accountID = credentials.id
 
         switch name {
         case "create_pad":
-            return await createPad(arguments: arguments, key: key, base: base)
+            let outcome = await createPad(arguments: arguments, key: key, base: base)
+            return invalidateCache(kind: "pads", accountID: accountID, after: outcome)
 
         case "update_pad":
-            return await updatePad(arguments: arguments, key: key, base: base)
+            let outcome = await updatePad(arguments: arguments, key: key, base: base)
+            return invalidateCache(kind: "pads", accountID: accountID, after: outcome)
 
         case "create_question":
-            return await createQuestion(arguments: arguments, key: key, base: base)
+            let outcome = await createQuestion(arguments: arguments, key: key, base: base)
+            return invalidateCache(kind: "questions", accountID: accountID, after: outcome)
 
         case "update_question":
-            return await updateQuestion(arguments: arguments, key: key, base: base)
+            let outcome = await updateQuestion(arguments: arguments, key: key, base: base)
+            return invalidateCache(kind: "questions", accountID: accountID, after: outcome)
 
         default:
             return Outcome(text: "Unknown tool: \(name)", isError: true)
         }
+    }
+
+    static func invalidateCache(kind: String, accountID: String, after outcome: Outcome) -> Outcome {
+        guard !outcome.isError, let account = UUID(uuidString: accountID) else { return outcome }
+
+        CacheDisk.delete(kind: kind, account: account)
+        return outcome
     }
 
     // MARK: - Implementations

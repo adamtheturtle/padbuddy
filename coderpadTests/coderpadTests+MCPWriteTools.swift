@@ -113,4 +113,37 @@ struct MCPWriteToolsTests {
         #expect((object["solution"] as? String)?.isEmpty == true)
         #expect((object["contents"] as? String)?.isEmpty == true)
     }
+
+    @Test
+    func `successful writes invalidate the selected account cache`() {
+        let account = UUID()
+        let kind = "mcp-write-test-\(UUID().uuidString)"
+        CacheDisk.save(["stale"], kind: kind, account: account)
+        #expect(CacheDisk.load([String].self, kind: kind, account: account) == ["stale"])
+
+        let success = MCPTools.invalidateCache(
+            kind: kind,
+            accountID: account.uuidString,
+            after: MCPTools.Outcome(text: "OK", isError: false)
+        )
+        #expect(!success.isError)
+        #expect(CacheDisk.load([String].self, kind: kind, account: account) == nil)
+    }
+
+    @Test
+    func `failed writes keep the selected account cache`() {
+        let account = UUID()
+        let kind = "mcp-write-test-\(UUID().uuidString)"
+        CacheDisk.save(["stale"], kind: kind, account: account)
+        #expect(CacheDisk.load([String].self, kind: kind, account: account) == ["stale"])
+
+        let failure = MCPTools.invalidateCache(
+            kind: kind,
+            accountID: account.uuidString,
+            after: MCPTools.Outcome(text: "HTTP 500", isError: true)
+        )
+        #expect(failure.isError)
+        #expect(CacheDisk.load([String].self, kind: kind, account: account) == ["stale"])
+        CacheDisk.delete(kind: kind, account: account)
+    }
 }
