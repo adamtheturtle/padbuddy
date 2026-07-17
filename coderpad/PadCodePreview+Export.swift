@@ -14,6 +14,58 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+enum CodeExportPathError: LocalizedError {
+    case fileDirectoryConflict(String)
+
+    var errorDescription: String? {
+        switch self {
+        case let .fileDirectoryConflict(path):
+            "Cannot export files because \"\(path)\" is both a file and a folder."
+        }
+    }
+}
+
+enum CodeExportPathPlan {
+    static func components(for file: CodeFile) -> [String] {
+        let path = file.path ?? file.name
+        var components: [String] = []
+
+        for component in path.split(separator: "/") {
+            let name = String(component)
+            guard !name.isEmpty, name != ".", name != ".." else { continue }
+
+            components.append(name)
+        }
+
+        return components.isEmpty ? [file.name] : components
+    }
+
+    static func validateNoFileDirectoryConflicts(_ files: [CodeFile]) throws {
+        var filePaths = Set<String>()
+        var directoryPaths = Set<String>()
+
+        for file in files {
+            let components = components(for: file)
+            let filePath = components.joined(separator: "/")
+            if directoryPaths.contains(filePath) {
+                throw CodeExportPathError.fileDirectoryConflict(filePath)
+            }
+
+            var directoryComponents: [String] = []
+            for component in components.dropLast() {
+                directoryComponents.append(component)
+                let directoryPath = directoryComponents.joined(separator: "/")
+                if filePaths.contains(directoryPath) {
+                    throw CodeExportPathError.fileDirectoryConflict(directoryPath)
+                }
+                directoryPaths.insert(directoryPath)
+            }
+
+            filePaths.insert(filePath)
+        }
+    }
+}
+
 extension EnvironmentCodeCard {
     /// Writes the file's contents to a user-chosen location. The save panel
     /// grants the sandboxed app write access to the picked URL, so no extra
@@ -68,6 +120,8 @@ extension EnvironmentCodeCard {
         /// Writes the files into a fresh folder at `destination`, recreating each
         /// file's relative path beneath it.
         private func writeFolder(of files: [CodeFile], to destination: URL) throws {
+            try CodeExportPathPlan.validateNoFileDirectoryConflicts(files)
+
             let fileManager = FileManager.default
             if fileManager.fileExists(atPath: destination.path) {
                 try fileManager.removeItem(at: destination)
@@ -77,10 +131,7 @@ extension EnvironmentCodeCard {
             for file in files {
                 // Keep the file's relative path, dropping any `.`/`..` segments so a
                 // crafted path can't escape the destination folder.
-                let relative = (file.path ?? file.name)
-                    .split(separator: "/")
-                    .filter { $0 != "." && $0 != ".." }
-                    .joined(separator: "/")
+                let relative = CodeExportPathPlan.components(for: file).joined(separator: "/")
                 let fileURL = destination.appendingPathComponent(relative.isEmpty ? file.name : relative)
                 try fileManager.createDirectory(at: fileURL.deletingLastPathComponent(),
                                                 withIntermediateDirectories: true)
@@ -92,8 +143,13 @@ extension EnvironmentCodeCard {
 
 #if os(iOS)
     nonisolated struct CodeExportDocument: FileDocument {
-        static var readableContentTypes: [UTType] { [.utf8PlainText, .folder] }
-        static var writableContentTypes: [UTType] { [.utf8PlainText, .folder] }
+        static var readableContentTypes: [UTType] {
+            [.utf8PlainText, .folder]
+        }
+
+        static var writableContentTypes: [UTType] {
+            [.utf8PlainText, .folder]
+        }
 
         let files: [CodeFile]
         let defaultFilename: String
@@ -105,11 +161,11 @@ extension EnvironmentCodeCard {
             self.contentType = contentType
         }
 
-        init(configuration: ReadConfiguration) throws {
+        init(configuration _: ReadConfiguration) throws {
             throw CocoaError(.fileReadUnsupportedScheme)
         }
 
-        func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        func fileWrapper(configuration _: WriteConfiguration) throws -> FileWrapper {
             if contentType == .folder || files.count > 1 {
                 return CodeExportDirectory(files: files).fileWrapper()
             }
@@ -121,9 +177,10 @@ extension EnvironmentCodeCard {
         }
     }
 
-    private nonisolated final class CodeExportDirectory {
+    private final nonisolated class CodeExportDirectory {
         private var filesByName: [String: FileWrapper] = [:]
         private var directoriesByName: [String: CodeExportDirectory] = [:]
+        private var directoryAliasesByName: [String: String] = [:]
 
         init(files: [CodeFile] = []) {
             for file in files {
@@ -152,9 +209,20 @@ extension EnvironmentCodeCard {
                 return
             }
 
-            let directory = directoriesByName[name] ?? CodeExportDirectory()
-            directoriesByName[name] = directory
+            let directoryName = directoryName(for: name)
+            let directory = directoriesByName[directoryName] ?? CodeExportDirectory()
+            directoriesByName[directoryName] = directory
             directory.insert(file, components: Array(components.dropFirst()))
+        }
+
+        private func directoryName(for preferred: String) -> String {
+            if let alias = directoryAliasesByName[preferred] {
+                return alias
+            }
+
+            let alias = uniqueName(preferred)
+            directoryAliasesByName[preferred] = alias
+            return alias
         }
 
         private func uniqueName(_ preferred: String) -> String {
@@ -168,16 +236,7 @@ extension EnvironmentCodeCard {
         }
 
         private static func pathComponents(for file: CodeFile) -> [String] {
-            let path = file.path ?? file.name
-            var components: [String] = []
-
-            for component in path.split(separator: "/") {
-                let name = String(component)
-                guard !name.isEmpty, name != ".", name != ".." else { continue }
-                components.append(name)
-            }
-
-            return components.isEmpty ? [file.name] : components
+            CodeExportPathPlan.components(for: file)
         }
     }
 #endif

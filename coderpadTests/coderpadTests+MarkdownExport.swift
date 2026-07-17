@@ -140,3 +140,35 @@ struct PadMarkdownExportTests {
         #expect(markdown.hasSuffix("\n"))
     }
 }
+
+@Suite("Code export paths")
+struct CodeExportPathTests {
+    @Test
+    func `components drop traversal segments`() {
+        let file = CodeFile(id: "1", path: "../src/./main.swift", contents: "", language: nil)
+
+        #expect(CodeExportPathPlan.components(for: file) == ["src", "main.swift"])
+    }
+
+    @Test
+    func `path plan rejects file directory collisions`() throws {
+        let files = [
+            CodeFile(id: "1", path: "src", contents: "", language: nil),
+            CodeFile(id: "2", path: "src/main.swift", contents: "", language: nil)
+        ]
+
+        #expect(throws: CodeExportPathError.self) {
+            try CodeExportPathPlan.validateNoFileDirectoryConflicts(files)
+        }
+    }
+
+    @Test
+    func `path plan allows duplicate leaf files for later renaming`() throws {
+        let files = [
+            CodeFile(id: "1", path: "src/main.swift", contents: "", language: nil),
+            CodeFile(id: "2", path: "src/main.swift", contents: "", language: nil)
+        ]
+
+        try CodeExportPathPlan.validateNoFileDirectoryConflicts(files)
+    }
+}
