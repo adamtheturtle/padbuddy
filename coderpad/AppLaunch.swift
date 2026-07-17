@@ -15,6 +15,10 @@ import Foundation
 /// macOS Services provider), as does the Dock menu and the windowless keep-alive —
 /// none of which have a SwiftUI scene equivalent (#286).
 enum AppLaunch {
+    /// Held for the app's lifetime: the sync bootstrap re-runs on every iCloud
+    /// identity change until quit (#765).
+    private static var identityObserver: (any NSObjectProtocol)?
+
     /// Runs the launch seeding exactly once. `CoderpadApp.init()` runs before the
     /// delegate's `applicationDidFinishLaunching(_:)`, so any preference migrations
     /// here are in place before the delegate reads them (e.g. `applyDockVisibility`).
@@ -36,16 +40,17 @@ enum AppLaunch {
         // Questions section has been opened this session (#411). The per-account sync
         // otherwise only fires when an account's questions load or a favourite toggles.
         WidgetSync.syncAllFavorites(AccountsStore.shared.accounts)
-        // Start mirroring favourites through iCloud's key-value store and pull any
-        // cloud state now that accounts are loaded (the sync id maps cloud entries
-        // back to local accounts). A no-op on the Developer ID build, which can't
-        // carry the profile-gated iCloud entitlement (#536).
-        CloudSyncStore.shared.start()
-        FavoritePadsStore.shared.syncFromCloud()
-        FavoriteQuestionsStore.shared.syncFromCloud()
-        FavoritesOrderStore.shared.syncFromCloud()
-        PadOpenedStore.shared.syncFromCloud()
-        PreferenceCloudSync.shared.start()
+        startCloudSync()
+        // Signing into iCloud while the app is running must start sync too: the
+        // bootstrap above returns immediately without an identity token and was
+        // never retried, so favorites/preferences silently didn't sync until a
+        // relaunch (#765). Everything startCloudSync() runs is idempotent, so
+        // re-running it on an identity change is safe.
+        identityObserver = NotificationCenter.default.addObserver(
+            forName: .NSUbiquityIdentityDidChange, object: nil, queue: .main
+        ) { _ in
+            Task { @MainActor in startCloudSync() }
+        }
         // Keep the current account's pads fresh on a timer even when no window is open
         // and the menu is never clicked — the one state where nothing else fetches.
         // Writing to PadsCacheStore cascades to the widget snapshot and Dock badge.
@@ -65,5 +70,20 @@ enum AppLaunch {
         #if !APP_STORE && canImport(BuddySparkleUpdater)
             SoftwareUpdater.shared.start()
         #endif
+    }
+
+    /// Start mirroring favourites through iCloud's key-value store and pull any
+    /// cloud state now that accounts are loaded (the sync id maps cloud entries
+    /// back to local accounts). A no-op on the Developer ID build, which can't
+    /// carry the profile-gated iCloud entitlement (#536), and whenever no iCloud
+    /// identity is present - which is why the identity-change observer re-runs
+    /// it (#765).
+    private static func startCloudSync() {
+        CloudSyncStore.shared.start()
+        FavoritePadsStore.shared.syncFromCloud()
+        FavoriteQuestionsStore.shared.syncFromCloud()
+        FavoritesOrderStore.shared.syncFromCloud()
+        PadOpenedStore.shared.syncFromCloud()
+        PreferenceCloudSync.shared.start()
     }
 }
