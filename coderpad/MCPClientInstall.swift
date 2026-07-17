@@ -218,59 +218,37 @@ enum MCPClientInstall {
         /// Adds a `[mcp_servers.padbuddy]` table, or - when one is already there - rewrites it (after
         /// the user confirms) so its command points at this copy of PadBuddy. Reports the outcome
         /// itself; does nothing and shows no alert if the user cancels the update.
+        ///
+        /// Read failures throw (only a genuinely absent file counts as empty) so an unreadable
+        /// config is never silently replaced, matching the JSON path's behaviour.
         @MainActor
         private static func upsertCodexServer(into url: URL, client: Client, executablePath: String) throws {
             var text = ""
             if FileManager.default.fileExists(atPath: url.path) {
-                text = (try? String(contentsOf: url, encoding: .utf8)) ?? ""
+                text = try String(contentsOf: url, encoding: .utf8)
             }
 
             let block = codexServerBlock(executablePath: executablePath)
-            if text.contains("[mcp_servers.padbuddy]") {
+            switch codexPadbuddyDeclaration(in: text) {
+            case .notDeclared:
+                let merged = text.isEmpty ? block : text + "\n" + block
+                try merged.write(to: url, atomically: true, encoding: .utf8)
+                showAlert(.informational, "Added to \(client.displayName)", client.restartHint)
+
+            case .table:
                 guard confirmUpdate(client) else { return }
 
                 let updated = replacingCodexServer(in: text, with: block)
                 try updated.write(to: url, atomically: true, encoding: .utf8)
                 showAlert(.informational, "Updated \(client.displayName)", client.restartHint)
-            } else {
-                let merged = text.isEmpty ? block : text + "\n" + block
-                try merged.write(to: url, atomically: true, encoding: .utf8)
-                showAlert(.informational, "Added to \(client.displayName)", client.restartHint)
+
+            case .other:
+                // Appending a second [mcp_servers.padbuddy] table would redefine the key and
+                // could make the whole config unparseable, so leave the file untouched.
+                throw CodexConfigError(errorDescription:
+                    "config.toml already declares the \u{201C}padbuddy\u{201D} server in a style "
+                        + "PadBuddy can't safely rewrite. Edit its command in config.toml yourself.")
             }
-        }
-
-        /// The `[mcp_servers.padbuddy]` TOML table, with a trailing blank line so it stays separated
-        /// from anything that follows.
-        private static func codexServerBlock(executablePath: String) -> String {
-            """
-            [mcp_servers.padbuddy]
-            command = "\(executablePath)"
-            args = ["--mcp"]
-
-            """
-        }
-
-        /// Replaces the existing `[mcp_servers.padbuddy]` table (its header through the line before
-        /// the next table header, or the end of file) with `block`, leaving every other table
-        /// untouched.
-        private static func replacingCodexServer(in text: String, with block: String) -> String {
-            let lines = text.components(separatedBy: "\n")
-            var result: [String] = []
-            var index = 0
-            while index < lines.count {
-                if lines[index].trimmingCharacters(in: .whitespaces) == "[mcp_servers.padbuddy]" {
-                    result.append(contentsOf: block.components(separatedBy: "\n"))
-                    index += 1
-                    while index < lines.count,
-                          !lines[index].trimmingCharacters(in: .whitespaces).hasPrefix("[") {
-                        index += 1
-                    }
-                } else {
-                    result.append(lines[index])
-                    index += 1
-                }
-            }
-            return result.joined(separator: "\n")
         }
 
         // MARK: - Access + alerts
