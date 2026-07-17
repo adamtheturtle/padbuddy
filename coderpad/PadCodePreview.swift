@@ -165,11 +165,19 @@ struct EnvironmentCodeCard: View {
     /// to re-lay-out) to reflow on every frame — the source of the stutter.
     @State var liveWidth: Double?
     /// On-device explanation of the selected file, shown in a popover. Keyed to
-    /// the file it was generated for so switching files doesn't show a stale one.
+    /// the file it was generated for - id plus a contents hash, so a refresh that
+    /// rewrites the code at the same path regenerates instead of reusing a stale
+    /// analysis (#789).
     @State var explanation: CodeExplanation?
     @State var explanationFileID: String?
+    @State var explanationContentsHash: Int?
+    /// True when the last explanation attempt produced nothing, so the popover can
+    /// say so and offer a retry instead of the button looking inert (#790).
+    @State var explanationFailed = false
     @State var isExplaining = false
     @State var showExplanation = false
+    /// A failed code download/export to report (#791); non-nil presents an alert.
+    @State var exportError: String?
     /// Presents the code in a large, full-screen viewer so the source can be read
     /// without the card's fixed 360-tall viewport. Tap/click the expand button to
     /// open it; the file list and selection carry over.
@@ -274,6 +282,19 @@ struct EnvironmentCodeCard: View {
             showExplanation = false
             explanation = nil
             explanationFileID = nil
+            explanationContentsHash = nil
+            explanationFailed = false
+        }
+        .alert(
+            "Couldn't save the code",
+            isPresented: .init(
+                get: { exportError != nil },
+                set: { if !$0 { exportError = nil } }
+            )
+        ) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(exportError ?? "")
         }
     }
 
@@ -324,95 +345,3 @@ struct FileTreeNode: Identifiable {
         file == nil
     }
 }
-
-#if os(iOS)
-    nonisolated struct CodeExportDocument: FileDocument {
-        static var readableContentTypes: [UTType] { [.utf8PlainText, .folder] }
-        static var writableContentTypes: [UTType] { [.utf8PlainText, .folder] }
-
-        let files: [CodeFile]
-        let defaultFilename: String
-        let contentType: UTType
-
-        init(files: [CodeFile], defaultFilename: String, contentType: UTType) {
-            self.files = files
-            self.defaultFilename = defaultFilename
-            self.contentType = contentType
-        }
-
-        init(configuration: ReadConfiguration) throws {
-            throw CocoaError(.fileReadUnsupportedScheme)
-        }
-
-        func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
-            if contentType == .folder || files.count > 1 {
-                return CodeExportDirectory(files: files).fileWrapper()
-            }
-
-            let file = files.first ?? .placeholder
-            let wrapper = FileWrapper(regularFileWithContents: Data(file.contents.utf8))
-            wrapper.preferredFilename = file.name
-            return wrapper
-        }
-    }
-
-    private nonisolated final class CodeExportDirectory {
-        private var filesByName: [String: FileWrapper] = [:]
-        private var directoriesByName: [String: CodeExportDirectory] = [:]
-
-        init(files: [CodeFile] = []) {
-            for file in files {
-                insert(file, components: Self.pathComponents(for: file))
-            }
-        }
-
-        func fileWrapper() -> FileWrapper {
-            var children: [String: FileWrapper] = filesByName
-            for (name, directory) in directoriesByName {
-                let wrapper = directory.fileWrapper()
-                wrapper.preferredFilename = name
-                children[name] = wrapper
-            }
-            return FileWrapper(directoryWithFileWrappers: children)
-        }
-
-        private func insert(_ file: CodeFile, components: [String]) {
-            guard let name = components.first else { return }
-
-            if components.count == 1 {
-                let unique = uniqueName(name)
-                let wrapper = FileWrapper(regularFileWithContents: Data(file.contents.utf8))
-                wrapper.preferredFilename = unique
-                filesByName[unique] = wrapper
-                return
-            }
-
-            let directory = directoriesByName[name] ?? CodeExportDirectory()
-            directoriesByName[name] = directory
-            directory.insert(file, components: Array(components.dropFirst()))
-        }
-
-        private func uniqueName(_ preferred: String) -> String {
-            var candidate = preferred
-            var index = 2
-            while filesByName[candidate] != nil || directoriesByName[candidate] != nil {
-                candidate = "\(preferred) \(index)"
-                index += 1
-            }
-            return candidate
-        }
-
-        private static func pathComponents(for file: CodeFile) -> [String] {
-            let path = file.path ?? file.name
-            var components: [String] = []
-
-            for component in path.split(separator: "/") {
-                let name = String(component)
-                guard !name.isEmpty, name != ".", name != ".." else { continue }
-                components.append(name)
-            }
-
-            return components.isEmpty ? [file.name] : components
-        }
-    }
-#endif

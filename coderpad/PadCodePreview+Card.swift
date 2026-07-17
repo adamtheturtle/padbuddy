@@ -259,6 +259,16 @@ extension EnvironmentCodeCard {
                         explanationSection(title: "What it does", text: explanation.summary)
                         explanationSection(title: "Quality & readability", text: explanation.readability)
                         explanationSection(title: "Time & space complexity", text: explanation.optimality)
+                    } else if explanationFailed {
+                        // A failed attempt says so and offers a retry, rather than the
+                        // spinner just stopping as if the button did nothing (#790).
+                        Text("The on-device model couldn't generate an explanation for this file.")
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                        Button("Try Again") {
+                            Task { await explainSelected() }
+                        }
+                        .disabled(isExplaining)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -288,19 +298,34 @@ extension EnvironmentCodeCard {
 
     /// Generates (or reuses) an on-device explanation of the visible file, then
     /// shows it in the popover. Reuses an explanation already generated for the
-    /// same file so reopening the popover is instant and doesn't re-run the model.
-    private func explainSelected() async {
-        if explanationFileID == selected.id, explanation != nil {
+    /// same file *contents* (id plus hash, #789) so reopening the popover is
+    /// instant without re-running the model, but a refresh that rewrites the file
+    /// at the same path regenerates.
+    func explainSelected() async {
+        // Snapshot the file the model actually sees: the sidebar stays enabled
+        // while generating, so `selected` can move to another file mid-flight and
+        // the result must stay tied to this one (#749).
+        let file = selected
+        if explanationFileID == file.id, explanationContentsHash == file.contents.hashValue,
+           explanation != nil {
             showExplanation = true
             return
         }
         isExplaining = true
+        explanationFailed = false
         defer { isExplaining = false }
-        if let result = await PadCodeExplainer.explain(file: selected) {
+        let result = await PadCodeExplainer.explain(file: file)
+        if let result {
             explanation = result
-            explanationFileID = selected.id
-            showExplanation = true
+            explanationFileID = file.id
+            explanationContentsHash = file.contents.hashValue
         }
+        // Only present for the file that's still on screen; a result for a file
+        // the user has moved away from stays cached under its own id (#749).
+        guard selected.id == file.id else { return }
+
+        explanationFailed = result == nil
+        showExplanation = true
     }
 
     var accessibilityLabel: String {
@@ -317,66 +342,4 @@ extension EnvironmentCodeCard {
         }
         return String(localized: "Code preview of pad \(padID)")
     }
-
-    /// Writes the file's contents to a user-chosen location. The save panel
-    /// grants the sandboxed app write access to the picked URL, so no extra
-    /// entitlement beyond user-selected read-write is needed.
-    private func download(_ file: CodeFile) {
-        #if os(macOS)
-            let panel = NSSavePanel()
-            panel.nameFieldStringValue = file.name
-            panel.canCreateDirectories = true
-            panel.isExtensionHidden = false
-            guard panel.runModal() == .OK, let url = panel.url else { return }
-
-            try? file.contents.write(to: url, atomically: true, encoding: .utf8)
-        #else
-            // iPad export (a document picker / share sheet) can be added later; for now
-            // this is a no-op so the download button stays present but inert on iOS.
-        #endif
-    }
-
-    /// Saves every file in the environment into a folder chosen via a save panel
-    /// pre-filled with the pad id. Each file keeps its relative path so a
-    /// multi-file project lands back in its original layout. The save panel
-    /// grants write access to the picked location, so the folder can be created
-    /// there with no extra entitlement beyond user-selected read-write.
-    private func downloadAll(_ files: [CodeFile]) {
-        #if os(macOS)
-            let panel = NSSavePanel()
-            panel.nameFieldStringValue = "pad-\(padID)"
-            panel.canCreateDirectories = true
-            guard panel.runModal() == .OK, let destination = panel.url else { return }
-
-            try? writeFolder(of: files, to: destination)
-        #else
-            // iPad export (a document picker / share sheet) can be added later; for now
-            // this is a no-op so the download button stays present but inert on iOS.
-        #endif
-    }
-
-    #if os(macOS)
-        /// Writes the files into a fresh folder at `destination`, recreating each
-        /// file's relative path beneath it.
-        private func writeFolder(of files: [CodeFile], to destination: URL) throws {
-            let fileManager = FileManager.default
-            if fileManager.fileExists(atPath: destination.path) {
-                try fileManager.removeItem(at: destination)
-            }
-            try fileManager.createDirectory(at: destination, withIntermediateDirectories: true)
-
-            for file in files {
-                // Keep the file's relative path, dropping any `.`/`..` segments so a
-                // crafted path can't escape the destination folder.
-                let relative = (file.path ?? file.name)
-                    .split(separator: "/")
-                    .filter { $0 != "." && $0 != ".." }
-                    .joined(separator: "/")
-                let fileURL = destination.appendingPathComponent(relative.isEmpty ? file.name : relative)
-                try fileManager.createDirectory(at: fileURL.deletingLastPathComponent(),
-                                                withIntermediateDirectories: true)
-                try file.contents.write(to: fileURL, atomically: true, encoding: .utf8)
-            }
-        }
-    #endif
 }
