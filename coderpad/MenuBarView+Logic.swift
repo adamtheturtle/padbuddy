@@ -162,33 +162,40 @@
 
         private func loadData(for account: Account, generation: Int) async -> String? {
             let client = account.makeClient()
+            // Use the same "updated_at,desc" sort as every other loader writing into
+            // these shared caches (background refresher, list views): a different sort
+            // would re-order the shared cache and make a subsequent list view re-sort
+            // or refetch (#370).
+            async let padsTask = capture { try await client.listPads(sort: "updated_at,desc") }
+            async let questionsTask = capture { try await client.listQuestions(sort: "updated_at,desc") }
+            let (padsResult, questionsResult) = await (padsTask, questionsTask)
+            guard generation == loadGeneration else { return nil }
+
+            var errors: [String] = []
+            switch padsResult {
+            case let .success(pads):
+                PadsCacheStore.shared.set(account.id, pads: pads)
+            case let .failure(error):
+                errors.append("Pads: \(error.localizedDescription)")
+            }
+            switch questionsResult {
+            case let .success(questions):
+                QuestionsCacheStore.shared.set(account.id, questions: questions)
+            case let .failure(error):
+                errors.append("Questions: \(error.localizedDescription)")
+            }
+
+            guard !errors.isEmpty else { return nil }
+
+            return "\(account.name): \(errors.joined(separator: "; "))"
+        }
+
+        private func capture<Value>(_ operation: () async throws -> Value) async -> Result<Value, any Error> {
             do {
-                // Use the same "updated_at,desc" sort as every other loader writing into
-                // these shared caches (background refresher, list views): a different sort
-                // would re-order the shared cache and make a subsequent list view re-sort
-                // or refetch (#370).
-                async let padsTask = client.listPads(sort: "updated_at,desc")
-                async let qsTask = client.listQuestions(sort: "updated_at,desc")
-                // Write fetched results straight into the shared caches (no clearing
-                // first): the menu — and every other view reading these stores — keeps
-                // showing the previous data until the fresh data lands, so switching
-                // accounts shows the new account's cache rather than an initial fetch status.
-                // A stale generation stops before each write so it can't overwrite a
-                // newer refresh's data (#775).
-                let fetched = try await padsTask
-                guard generation == loadGeneration else { return nil }
-
-                PadsCacheStore.shared.set(account.id, pads: fetched)
-                // A Questions failure is a real partial failure, not something to
-                // swallow: fall through to the shared catch so the menu reports it
-                // instead of silently serving stale question actions (#774).
-                let fetchedQuestions = try await qsTask
-                guard generation == loadGeneration else { return nil }
-
-                QuestionsCacheStore.shared.set(account.id, questions: fetchedQuestions)
-                return nil
+                let value = try await operation()
+                return .success(value)
             } catch {
-                return "\(account.name): \(error.localizedDescription)"
+                return .failure(error)
             }
         }
     }
