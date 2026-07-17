@@ -64,6 +64,15 @@ struct PadFilterCriteria {
 }
 
 enum PadListLogic {
+    /// Cache token for active date filters. Date windows can depend on the current
+    /// time ("Today", "Last 24 hours", etc.), so memoized filter results must move
+    /// forward as time does even when the pad data and static filter signature do not.
+    static func dateFilterCacheToken(updated: DateWindow, created: DateWindow, now: Date = Date()) -> Int? {
+        guard updated.isActive || created.isActive else { return nil }
+
+        return Int(now.timeIntervalSinceReferenceDate / 60)
+    }
+
     /// Whether a pad should show the "new activity" dot: it's a *started* pad that
     /// has been updated since the user last opened it. A pad never opened (nil
     /// `lastOpened`) shows no dot — "since last open" has no meaning yet — and only
@@ -140,6 +149,42 @@ struct PadEventGroup: Identifiable {
     let representative: PadEvent
     let count: Int
     let lastEvent: PadEvent
+}
+
+/// Loaded editor history for one displayable pad file.
+nonisolated struct PadFileHistory: Identifiable, Hashable {
+    let id: String
+    let title: String
+    let language: String?
+    let history: PadHistory
+    let snapshots: [PadHistorySnapshot]
+
+    init(id: String, title: String, language: String?, history: PadHistory) {
+        self.id = id
+        self.title = title
+        self.language = language
+        self.history = history
+
+        var contents = ""
+        snapshots = history.entries.enumerated().map { index, entry in
+            contents = entry.applying(to: contents)
+            return PadHistorySnapshot(index: index, entry: entry, contents: contents)
+        }
+    }
+
+    var latestEntry: PadHistoryEntry? {
+        history.entries.last
+    }
+}
+
+nonisolated struct PadHistorySnapshot: Identifiable, Hashable {
+    var id: String {
+        entry.id
+    }
+
+    let index: Int
+    let entry: PadHistoryEntry
+    let contents: String
 }
 
 enum PadEventGrouping {

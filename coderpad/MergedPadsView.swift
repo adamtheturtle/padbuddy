@@ -93,6 +93,9 @@ struct MergedPadsView: View {
     @State var mineOnly = false
     @State var updatedWindow = DateWindow()
     @State var createdWindow = DateWindow()
+    /// Ticks while a date filter is active so rolling windows such as Today and Last
+    /// 24 hours re-filter even if no account's pad cache changes.
+    @State var dateFilterClockTick = 0
 
     @State var padPendingDelete: Pad?
     @State var deleteError: String?
@@ -155,6 +158,9 @@ final class FilteredScopedPadsCache {
         /// data change (handled by `refreshScoped()`) invalidates the filter too.
         let scopedSignature: Int
         let filterSignature: String
+        /// Rolling date filters depend on the current clock, not just the selected
+        /// range, so active date windows add a time bucket to the cache key.
+        let dateFilterTimeToken: String?
         /// Owner display names feed the search predicate, so a directory that finishes
         /// loading after the list must re-filter. Its entry count is a cheap proxy.
         let directoryCount: Int

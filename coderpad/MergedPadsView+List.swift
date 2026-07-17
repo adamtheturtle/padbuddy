@@ -59,6 +59,7 @@ extension MergedPadsView {
             // Re-persist whenever any filter changes; `filterSignature` shifts for
             // every filter control, so one observer covers them all.
             .onChange(of: filterSignature) { _, _ in persistFilters() }
+            .task(id: dateFilterClockActive) { await runDateFilterClock() }
             // The List edits `selectedIDs`; derive the primary row from it so the
             // detail pane, command target, and per-row bridging keep working off the
             // single `selectedID`. One-way (set → primary), so there's no two-way loop.

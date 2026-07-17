@@ -68,6 +68,9 @@ struct PadsView: View {
     /// date. Both apply at once, so a pad must satisfy each active window.
     @State var updatedWindow = DateWindow()
     @State var createdWindow = DateWindow()
+    /// Ticks while a date filter is active so rolling windows such as Today and Last
+    /// 24 hours re-filter even if the underlying pad data is unchanged.
+    @State var dateFilterClockTick = 0
     /// Guards the once-per-account restore of persisted live filters so the
     /// `onChange` that saves them doesn't fire before the restore has run.
     @State var didRestoreFilters = false
@@ -220,6 +223,7 @@ struct PadsView: View {
             .onChange(of: nav.padsRequest) { _, _ in applyPendingRequest() }
             .onChange(of: cache.padsByAccount) { _, _ in
                 guard pads.isEmpty, let id = accounts.currentAccountID else { return }
+
                 let warm = cache.cached(id)
                 guard !warm.isEmpty else { return }
 
@@ -236,6 +240,7 @@ struct PadsView: View {
                 persistFilters()
                 publishLiveFilter()
             }
+            .task(id: dateFilterClockActive) { await runDateFilterClock() }
             // Opening (selecting) a pad clears its "new activity" dot until it next
             // changes, and mirrors the change back to the list's id selection.
             .onChange(of: selection) { _, newValue in

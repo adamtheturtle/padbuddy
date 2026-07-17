@@ -83,9 +83,11 @@ extension MergedPadsView {
         // selection differs across those passes — re-filtering the whole merged list each
         // time is what made clicking a row slow on large orgs (mirrors #395). `scoped` is
         // itself memoized (`refreshScoped()`), so its signature stands in for the rows.
+        let now = Date()
         let key = FilteredScopedPadsCache.Key(
             scopedSignature: scopedCache.signature ?? 0,
             filterSignature: filterSignature,
+            dateFilterTimeToken: dateFilterTimeToken(now: now),
             directoryCount: directory.nameByEmail.count
         )
         guard filteredCache.key != key else { return }
@@ -95,13 +97,32 @@ extension MergedPadsView {
             owner: ownerFilter, team: nil, type: typeFilter,
             updated: updatedWindow, created: createdWindow
         )
-        let now = Date()
         filteredCache.rows = scoped.filter { row in
             (accountFilter == nil || row.account.id == accountFilter)
                 && (!mineOnly || isMine(row))
                 && PadListLogic.matches(row.item, criteria: criteria, now: now, display: directory.display)
         }
         filteredCache.key = key
+    }
+
+    var dateFilterClockActive: Bool {
+        updatedWindow.isActive || createdWindow.isActive
+    }
+
+    func dateFilterTimeToken(now: Date = Date()) -> String? {
+        PadListLogic.dateFilterCacheToken(updated: updatedWindow, created: createdWindow, now: now)
+            .map { "\($0):\(dateFilterClockTick)" }
+    }
+
+    func runDateFilterClock() async {
+        guard dateFilterClockActive else { return }
+
+        while !Task.isCancelled {
+            try? await Task.sleep(for: .seconds(60))
+            guard !Task.isCancelled else { return }
+
+            dateFilterClockTick &+= 1
+        }
     }
 
     /// Whether `row`'s pad is owned by its own account's user. Ownership is account

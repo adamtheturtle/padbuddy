@@ -29,6 +29,9 @@ final class FilteredPadsCache {
         let padsRevision: Int
         let filterSignature: String
         let sortRawValue: String
+        /// Rolling date filters depend on the current clock, not just the selected
+        /// range, so active date windows add a time bucket to the cache key.
+        let dateFilterTimeToken: String?
         /// Owner display names feed the search predicate, so a directory that finishes
         /// loading after the list must re-filter. Its entry count is a cheap proxy.
         let directoryCount: Int

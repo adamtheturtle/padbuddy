@@ -26,10 +26,12 @@ extension PadsView {
         // re-runs several times per click as the selection settles, and only the
         // selection differs across those passes — re-filtering and re-sorting the
         // whole org each time is what made clicking a row slow on large lists (#395).
+        let now = Date()
         let key = FilteredPadsCache.Key(
             padsRevision: padsRevision,
             filterSignature: filterSignature,
             sortRawValue: sort.rawValue,
+            dateFilterTimeToken: dateFilterTimeToken(now: now),
             directoryCount: directory.nameByEmail.count
         )
         guard filteredCache.key != key else { return }
@@ -46,10 +48,31 @@ extension PadsView {
                 updated: updatedWindow,
                 created: createdWindow
             ),
+            now: now,
             display: directory.display
         )
         filteredCache.pads = sort.sorted(matched)
         filteredCache.key = key
+    }
+
+    var dateFilterClockActive: Bool {
+        updatedWindow.isActive || createdWindow.isActive
+    }
+
+    func dateFilterTimeToken(now: Date = Date()) -> String? {
+        PadListLogic.dateFilterCacheToken(updated: updatedWindow, created: createdWindow, now: now)
+            .map { "\($0):\(dateFilterClockTick)" }
+    }
+
+    func runDateFilterClock() async {
+        guard dateFilterClockActive else { return }
+
+        while !Task.isCancelled {
+            try? await Task.sleep(for: .seconds(60))
+            guard !Task.isCancelled else { return }
+
+            dateFilterClockTick &+= 1
+        }
     }
 
     /// The pad to select after the pad with `id` is deleted. Picks the row that

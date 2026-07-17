@@ -136,6 +136,38 @@ struct PadFilterTests {
     }
 
     @Test
+    func `date filter cache token advances with the clock only while active`() {
+        let minuteStart = Date(timeIntervalSinceReferenceDate: 3600)
+        let sameMinute = Date(timeIntervalSinceReferenceDate: 3659)
+        let nextMinute = Date(timeIntervalSinceReferenceDate: 3660)
+
+        let inactiveToken = PadListLogic.dateFilterCacheToken(
+            updated: DateWindow(),
+            created: DateWindow(),
+            now: minuteStart
+        )
+        #expect(inactiveToken == nil)
+        #expect(PadListLogic.dateFilterCacheToken(
+            updated: DateWindow(range: "today"),
+            created: DateWindow(),
+            now: minuteStart
+        ) == PadListLogic.dateFilterCacheToken(
+            updated: DateWindow(range: "today"),
+            created: DateWindow(),
+            now: sameMinute
+        ))
+        #expect(PadListLogic.dateFilterCacheToken(
+            updated: DateWindow(range: "today"),
+            created: DateWindow(),
+            now: minuteStart
+        ) != PadListLogic.dateFilterCacheToken(
+            updated: DateWindow(range: "today"),
+            created: DateWindow(),
+            now: nextMinute
+        ))
+    }
+
+    @Test
     func `the created window compares against created_at, not updated_at`() throws {
         // OLD was created in January but bumped (updated) yesterday; NEW is the
         // reverse. An updated window keeps OLD; a created window keeps NEW.
