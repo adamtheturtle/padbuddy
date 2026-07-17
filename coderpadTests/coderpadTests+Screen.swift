@@ -98,6 +98,35 @@ struct ScreenClientTests {
     }
 
     @Test
+    func `report keeps valid score entries when sibling entries are malformed (#861)`() throws {
+        let json = """
+        {
+          "technologies": {
+            "Java": {
+              "skills": {
+                "Problem solving": {
+                  "score": 80,
+                  "total_points": 100
+                },
+                "Malformed skill": "unscored"
+              }
+            },
+            "Malformed technology": "unscored"
+          }
+        }
+        """
+
+        let report = try JSONDecoder().decode(ScreenReport.self, from: Data(json.utf8))
+        let java = try #require(report.technologies["Java"])
+        let problemSolving = try #require(java.skills["Problem solving"])
+
+        #expect(problemSolving.score == 80)
+        #expect(problemSolving.totalPoints == 100)
+        #expect(report.technologies["Malformed technology"] == nil)
+        #expect(java.skills["Malformed skill"] == nil)
+    }
+
+    @Test
     func `epoch-millisecond timestamps convert to Dates`() async throws {
         let test = try await screenClient().getTest(id: 13_188_658)
         let sendDate = try #require(test.sendDate)

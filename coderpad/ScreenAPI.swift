@@ -253,6 +253,47 @@ nonisolated struct ScreenTestQuestion: Decodable, Identifiable, Hashable {
 
 // MARK: - Reports
 
+private nonisolated struct DynamicScreenCodingKey: CodingKey {
+    let stringValue: String
+    let intValue: Int?
+
+    init(stringValue: String) {
+        self.stringValue = stringValue
+        intValue = nil
+    }
+
+    init?(intValue: Int) {
+        stringValue = String(intValue)
+        self.intValue = intValue
+    }
+}
+
+private nonisolated struct LenientScreenDictionary<Value: Decodable>: Decodable {
+    let values: [String: Value]
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: DynamicScreenCodingKey.self)
+        var decodedValues: [String: Value] = [:]
+
+        for key in container.allKeys {
+            if let value = try? container.decode(Value.self, forKey: key) {
+                decodedValues[key.stringValue] = value
+            }
+        }
+
+        values = decodedValues
+    }
+}
+
+private extension KeyedDecodingContainer {
+    nonisolated func decodeLenientScreenDictionary<Value: Decodable>(
+        of _: Value.Type,
+        forKey key: Key
+    ) -> [String: Value] {
+        (try? decodeIfPresent(LenientScreenDictionary<Value>.self, forKey: key))?.values ?? [:]
+    }
+}
+
 /// A candidate's scored results, present once the test is completed.
 nonisolated struct ScreenReport: Decodable, Hashable {
     /// Time spent, in seconds.
@@ -293,8 +334,7 @@ nonisolated struct ScreenReport: Decodable, Hashable {
         warnings = (try? container.decodeIfPresent([String].self, forKey: .warnings)) ?? []
         points = try? container.decodeIfPresent(Int.self, forKey: .points)
         score = try? container.decodeIfPresent(Double.self, forKey: .score)
-        technologies = (try? container.decodeIfPresent([String: ScreenTechnologyResult].self,
-                                                       forKey: .technologies)) ?? [:]
+        technologies = container.decodeLenientScreenDictionary(of: ScreenTechnologyResult.self, forKey: .technologies)
         totalDuration = try? container.decodeIfPresent(Int.self, forKey: .totalDuration)
         totalPoints = try? container.decodeIfPresent(Int.self, forKey: .totalPoints)
         comparativeScore = try? container.decodeIfPresent(Double.self, forKey: .comparativeScore)
@@ -323,7 +363,7 @@ nonisolated struct ScreenTechnologyResult: Decodable, Hashable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         points = try? container.decodeIfPresent(Int.self, forKey: .points)
         score = try? container.decodeIfPresent(Double.self, forKey: .score)
-        skills = (try? container.decodeIfPresent([String: ScreenSkillResult].self, forKey: .skills)) ?? [:]
+        skills = container.decodeLenientScreenDictionary(of: ScreenSkillResult.self, forKey: .skills)
         totalPoints = try? container.decodeIfPresent(Int.self, forKey: .totalPoints)
         comparativeScore = try? container.decodeIfPresent(Double.self, forKey: .comparativeScore)
     }
