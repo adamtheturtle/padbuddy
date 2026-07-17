@@ -57,7 +57,7 @@ extension PadDetailView {
             propertyRow("Owner") {
                 SearchableOwnerPicker(ownerEmail: ownerBinding,
                                       users: orgUsers,
-                                      keyOwnerEmail: AccountsStore.shared.currentAccount?.userEmail)
+                                      keyOwnerEmail: keyOwnerEmail)
                     .fixedSize(horizontal: !isCompactPhone, vertical: false)
             }
             propertyRow("Private", alignment: .center) {
@@ -75,6 +75,20 @@ extension PadDetailView {
         // can't fire a doomed PUT against an unreachable server (#321).
         .disabled(isReadOnly)
         .task(id: pad.id) { await loadOrgUsers() }
+    }
+
+    /// The email of the user whose API key this detail view talks through, resolved
+    /// from the view's own client identity rather than the globally current account:
+    /// a standalone pad window or a merged row can belong to a non-current account,
+    /// and reading the current account made the Owner picker's "Me" label follow
+    /// account switches made elsewhere (#873). Falls back to the current account
+    /// for clients that don't match a stored account byte-for-byte (e.g. mocks).
+    private var keyOwnerEmail: String? {
+        let match = AccountsStore.shared.accounts.first {
+            $0.apiKey.trimmingCharacters(in: .whitespacesAndNewlines) == client.apiKey
+                && $0.resolvedBaseURL == client.baseURL
+        }
+        return (match ?? AccountsStore.shared.currentAccount)?.userEmail
     }
 
     var propertiesCard: some View {
