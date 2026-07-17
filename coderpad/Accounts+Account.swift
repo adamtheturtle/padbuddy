@@ -9,20 +9,13 @@ import Foundation
 import SwiftUI
 
 extension String {
-    /// This email address reduced to a canonical mailbox form for ownership checks:
-    /// trimmed, lowercased, with any plus-addressing tag removed. People route pads to
-    /// one mailbox via sub-addresses (`hello+cursor@acme.co`), and CoderPad records the
-    /// alias verbatim as the owner, so folding the `+tag` lets the app still recognize
-    /// those as the account user's. Only the explicit `+tag` convention is folded; dots
-    /// and other provider-specific quirks are left untouched.
+    /// This email address reduced to the conservative mailbox form used for ownership
+    /// checks: trimmed and lowercased only. The `+` character is legal in email local
+    /// parts and is not a guaranteed alias convention for every organization, so matching
+    /// `hello@acme.co` to `hello+team@acme.co` would risk treating another mailbox's pads
+    /// as the configured user's.
     var canonicalOwnerEmail: String {
-        let trimmed = trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard let atIndex = trimmed.firstIndex(of: "@") else { return trimmed }
-
-        let local = trimmed[..<atIndex]
-        guard let plus = local.firstIndex(of: "+") else { return trimmed }
-
-        return String(local[..<plus]) + trimmed[atIndex...]
+        trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
     }
 }
 
@@ -163,22 +156,65 @@ struct Account: Identifiable, Codable, Hashable {
         "#FF9500", "#34C759", "#30B0C7", "#8E8E93"
     ]
 
+    /// The account's Server URL override, parsed fallibly: the trimmed non-empty
+    /// override as a usable HTTP(S) URL with a host, or nil when the field is blank
+    /// or the text doesn't parse to one.
+    var baseURLOverride: URL? {
+        let trimmed = baseURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        guard !trimmed.isEmpty, let url = URL(string: trimmed),
+              let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https",
+              let host = url.host, !host.isEmpty
+        else { return nil }
+
+        return url
+    }
+
+    /// Whether the account has a non-empty Server URL override that isn't a usable
+    /// HTTP(S) URL. Such an account must never fall back to the hosted endpoint:
+    /// a request there would send a self-hosted or regional API key to the wrong
+    /// host (#849). Only a genuinely blank field selects the hosted default.
+    var hasMalformedBaseURLOverride: Bool {
+        let trimmed = baseURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return !trimmed.isEmpty && baseURLOverride == nil
+    }
+
     /// The server URL to talk to: the account's override when set and parseable,
     /// otherwise the standard hosted endpoint.
     var resolvedBaseURL: URL {
-        let trimmed = baseURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        if !trimmed.isEmpty, let url = URL(string: trimmed),
-           let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https",
-           let host = url.host, !host.isEmpty {
-            return url
+        baseURLOverride ?? CoderPadClient.defaultBaseURL
+    }
+
+    /// The resolved server URL reduced to a canonical identity for duplicate-account
+    /// detection: scheme and host folded to lowercase, a default port (80/443)
+    /// dropped, and trailing slashes removed, so cosmetic spellings of the same
+    /// origin (`https://Example.com:443/` vs `https://example.com`) compare
+    /// equal (#850).
+    var serverIdentity: String {
+        Self.serverIdentity(of: resolvedBaseURL)
+    }
+
+    static func serverIdentity(of url: URL) -> String {
+        guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
+            return url.absoluteString
         }
-        return CoderPadClient.defaultBaseURL
+
+        components.scheme = components.scheme?.lowercased()
+        components.host = components.host?.lowercased()
+        if let port = components.port,
+           (components.scheme == "https" && port == 443) || (components.scheme == "http" && port == 80) {
+            components.port = nil
+        }
+        while components.path.hasSuffix("/") {
+            components.path.removeLast()
+        }
+        components.query = nil
+        components.fragment = nil
+        return components.string ?? url.absoluteString
     }
 
     /// Whether `ownerEmail` (a pad or question owner) belongs to this account's user,
-    /// folding case and plus-addressing so an item owned via a sub-address alias
-    /// (`hello+cursor@acme.co`) still counts as the base mailbox (`hello@acme.co`).
-    /// This backs "my pads"/"my questions" and the Dock badge. Guards against an
+    /// ignoring case and surrounding whitespace but preserving the exact mailbox local
+    /// part. This backs "my pads"/"my questions" and the Dock badge. Guards against an
     /// empty account email so a draft account (or a pad with no owner) never matches.
     func owns(_ ownerEmail: String) -> Bool {
         !userEmail.isEmpty && ownerEmail.canonicalOwnerEmail == userEmail.canonicalOwnerEmail

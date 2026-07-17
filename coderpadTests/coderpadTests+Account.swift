@@ -186,6 +186,70 @@ struct AccountRoundTripTests {
     }
 }
 
+@Suite("Account server URL resolution")
+struct AccountServerURLTests {
+    private func account(baseURL: String?) -> Account {
+        Account(name: "A", apiKey: "k", userEmail: "me@acme.com", baseURL: baseURL)
+    }
+
+    @Test
+    func `a blank Server URL resolves to the hosted default and is not malformed`() {
+        for raw in [nil, "", "   \n"] {
+            let account = account(baseURL: raw)
+            #expect(account.resolvedBaseURL == CoderPadClient.defaultBaseURL)
+            #expect(!account.hasMalformedBaseURLOverride)
+            #expect(account.baseURLOverride == nil)
+        }
+    }
+
+    @Test
+    func `a valid override resolves to itself`() {
+        let account = account(baseURL: " https://coderpad.internal/api ")
+        #expect(account.baseURLOverride == URL(string: "https://coderpad.internal/api"))
+        #expect(account.resolvedBaseURL == URL(string: "https://coderpad.internal/api"))
+        #expect(!account.hasMalformedBaseURLOverride)
+    }
+
+    @Test
+    func `a non-empty invalid override is flagged instead of falling back (#849)`() {
+        // A scheme typo, a missing scheme, and a non-HTTP scheme must all be reported
+        // as malformed rather than silently sending the key to the hosted endpoint.
+        for raw in ["htps://coderpad.internal", "coderpad.internal", "ftp://coderpad.internal", "https://"] {
+            let account = account(baseURL: raw)
+            #expect(account.hasMalformedBaseURLOverride, "\(raw) should be malformed")
+            #expect(account.baseURLOverride == nil, "\(raw) should not parse")
+        }
+    }
+
+    @Test
+    func `server identity folds cosmetic URL spelling differences (#850)`() {
+        let canonical = account(baseURL: "https://coderpad.example").serverIdentity
+        for spelling in [
+            "https://coderpad.example/",
+            "HTTPS://CODERPAD.EXAMPLE",
+            "https://coderpad.example:443",
+            "https://Coderpad.Example:443/"
+        ] {
+            #expect(account(baseURL: spelling).serverIdentity == canonical, "\(spelling) should match")
+        }
+    }
+
+    @Test
+    func `server identity keeps genuinely different servers apart`() {
+        let base = account(baseURL: "https://coderpad.example").serverIdentity
+        #expect(account(baseURL: "https://other.example").serverIdentity != base)
+        #expect(account(baseURL: "https://coderpad.example:8443").serverIdentity != base)
+        #expect(account(baseURL: "http://coderpad.example").serverIdentity != base)
+        #expect(account(baseURL: "https://coderpad.example/api").serverIdentity != base)
+    }
+
+    @Test
+    func `a non-default port and path survive canonicalization`() {
+        let account = account(baseURL: "https://Coderpad.Example:8443/api/")
+        #expect(account.serverIdentity == "https://coderpad.example:8443/api")
+    }
+}
+
 @Suite("Account ownership matching")
 struct AccountOwnershipTests {
     @Test
@@ -196,14 +260,14 @@ struct AccountOwnershipTests {
     }
 
     @Test
-    func `owns folds plus-addressing in either direction`() {
-        // A pad owned via a sub-address alias still counts as the base mailbox's owner.
+    func `owns treats plus-addressed mailboxes as distinct (#851)`() {
         let base = Account(name: "A", apiKey: "k", userEmail: "hello@acme.co")
-        #expect(base.owns("hello+cursor@acme.co"))
-        // And an account configured with the alias still owns base-addressed pads.
+        #expect(!base.owns("hello+cursor@acme.co"))
+
         let alias = Account(name: "B", apiKey: "k", userEmail: "hello+cursor@acme.co")
-        #expect(alias.owns("hello@acme.co"))
-        #expect(alias.owns("hello+other@acme.co"))
+        #expect(!alias.owns("hello@acme.co"))
+        #expect(!alias.owns("hello+other@acme.co"))
+        #expect(alias.owns("hello+cursor@acme.co"))
     }
 
     @Test

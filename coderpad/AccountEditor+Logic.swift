@@ -221,7 +221,7 @@ extension AccountEditor {
     /// Silent on failure: the saved email stays selectable and Validate remains the path
     /// that surfaces a real problem.
     func loadOrgMembersForEditing() async {
-        guard isEditing, !isValidated, orgUsers.isEmpty else { return }
+        guard isEditing, !isValidated, orgUsers.isEmpty, !draft.hasMalformedBaseURLOverride else { return }
 
         isLoadingMembers = true
         defer { isLoadingMembers = false }
@@ -233,16 +233,17 @@ extension AccountEditor {
     }
 
     /// Whether another saved account already uses this key and server, to stop the
-    /// same organization being added twice. Compares the trimmed key and the resolved
-    /// server URL, excluding the draft itself so re-validating a saved account (or
-    /// changing only its description) never flags it as a clash.
+    /// same organization being added twice. Compares the trimmed key and the canonical
+    /// server identity (so a trailing slash, host case, or explicit default port can't
+    /// smuggle in a duplicate, #850), excluding the draft itself so re-validating a
+    /// saved account (or changing only its description) never flags it as a clash.
     func duplicateAccountMessage() -> String? {
         let key = draft.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        let server = draft.resolvedBaseURL
+        let server = draft.serverIdentity
         let clashes = AccountsStore.shared.accounts.contains { existing in
             existing.id != draft.id
                 && existing.apiKey.trimmingCharacters(in: .whitespacesAndNewlines) == key
-                && existing.resolvedBaseURL == server
+                && existing.serverIdentity == server
         }
         guard clashes else { return nil }
 
@@ -263,6 +264,16 @@ extension AccountEditor {
             case .badKey: AccountsStore.shared.addDemoBadKeyIfMissing()
             }
             onCancel()
+            return
+        }
+        // A non-empty but malformed Server URL must not silently fall back to the
+        // hosted endpoint: validating there would send this (possibly self-hosted)
+        // API key to the wrong host (#849). Reject locally, before any network call.
+        if draft.hasMalformedBaseURLOverride {
+            validation = .invalid(String(localized: """
+            The Server URL isn't a valid web address. Enter a full URL starting with https://, \
+            or leave the field blank to use the standard CoderPad server.
+            """))
             return
         }
         // Reject a key that's already saved before hitting the network, so the user
