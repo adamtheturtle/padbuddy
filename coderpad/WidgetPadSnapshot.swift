@@ -222,23 +222,27 @@ nonisolated enum WidgetSharedStore {
         }
     }
 
-    /// Removes a request file to claim ownership of it. True only when this call
-    /// actually deleted the file: false when it was already gone (a concurrent drain
-    /// won the race) or when it couldn't be deleted - executing a request whose file
-    /// survives would replay it on every later drain, duplicating non-idempotent
-    /// actions like pad creation (#779).
-    private static func claim(url: URL, purpose: String) -> Bool {
+    /// Claims a request file by atomically renaming it to a unique path, returning
+    /// the claimed URL. Rename-to-claim gives exactly-once consumption two ways: a
+    /// request is only executed by the process that won the rename (#779), and a
+    /// concurrent writer replacing the legacy fixed-name file either lands before the
+    /// claim (its newer bytes are the ones read) or after (its file survives for the
+    /// next drain) - whereas read-then-delete could execute stale bytes while
+    /// unlinking a newer write (#752).
+    private static func claim(url: URL, purpose: String) -> URL? {
+        let claimed = url.deletingLastPathComponent()
+            .appendingPathComponent("claimed-\(UUID().uuidString).json")
         do {
-            try FileManager.default.removeItem(at: url)
-            return true
+            try FileManager.default.moveItem(at: url, to: claimed)
+            return claimed
         } catch let error as CocoaError where error.code == .fileNoSuchFile {
-            return false
+            return nil
         } catch {
             logger.error("""
             Widget shared store claim failed for \(purpose, privacy: .public): \
             \(error.localizedDescription, privacy: .public)
             """)
-            return false
+            return nil
         }
     }
 
@@ -249,14 +253,10 @@ nonisolated enum WidgetSharedStore {
         as type: Request.Type
     ) -> Request? {
         for url in pendingRequestURLs(legacyFileName: legacyFileName, prefix: prefix, purpose: purpose) {
-            guard let data = loadData(url: url, purpose: purpose) else {
-                remove(url: url, purpose: purpose)
-                continue
-            }
+            guard let claimedURL = claim(url: url, purpose: purpose) else { continue }
 
-            // Execute only requests whose file we deleted ourselves, so a request is
-            // performed at most once (#779).
-            guard claim(url: url, purpose: purpose) else { continue }
+            defer { try? FileManager.default.removeItem(at: claimedURL) }
+            guard let data = loadData(url: claimedURL, purpose: purpose) else { continue }
 
             do {
                 return try JSONDecoder().decode(type, from: data)
