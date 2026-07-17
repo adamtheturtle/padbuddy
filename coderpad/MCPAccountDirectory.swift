@@ -72,7 +72,7 @@ nonisolated struct MCPAccountDirectory {
     /// The default account: the app-selected one, or the first configured if that id is
     /// missing, or nil when nothing is configured.
     var current: MCPCredentials? {
-        if let currentID, let match = accounts.first(where: { $0.id == currentID }) { return match }
+        if let currentID, let match = account(matchingID: currentID) { return match }
         return accounts.first
     }
 
@@ -85,7 +85,7 @@ nonisolated struct MCPAccountDirectory {
               !selector.isEmpty
         else { return current }
 
-        if let byID = accounts.first(where: { $0.id == selector }) { return byID }
+        if let byID = account(matchingID: selector) { return byID }
         let matches = nameMatches(selector)
         return matches.count == 1 ? matches[0] : nil
     }
@@ -93,11 +93,19 @@ nonisolated struct MCPAccountDirectory {
     func ambiguousAccountIDs(for selector: String?) -> [String] {
         guard let selector = selector?.trimmingCharacters(in: .whitespacesAndNewlines),
               !selector.isEmpty,
-              accounts.allSatisfy({ $0.id != selector })
+              account(matchingID: selector) == nil
         else { return [] }
 
         let matches = nameMatches(selector)
         return matches.count > 1 ? matches.map(\.id) : []
+    }
+
+    private func account(matchingID selector: String) -> MCPCredentials? {
+        if let selectedID = UUID(uuidString: selector) {
+            return accounts.first { UUID(uuidString: $0.id) == selectedID }
+        }
+
+        return accounts.first { $0.id == selector }
     }
 
     private func nameMatches(_ selector: String) -> [MCPCredentials] {

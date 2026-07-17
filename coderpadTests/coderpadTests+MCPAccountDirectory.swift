@@ -31,6 +31,8 @@ struct MCPAccountDirectoryTests {
         currentID: "account-a"
     )
 
+    private let uuid = UUID()
+
     @Test
     func `duplicate display names do not resolve by name`() {
         #expect(duplicateNameDirectory.resolve("Acme") == nil)
@@ -41,6 +43,26 @@ struct MCPAccountDirectoryTests {
     func `duplicate display names still resolve by id`() {
         #expect(duplicateNameDirectory.resolve("account-b")?.id == "account-b")
         #expect(duplicateNameDirectory.ambiguousAccountIDs(for: "account-b").isEmpty)
+    }
+
+    @Test
+    func `uuid selectors resolve case insensitively`() throws {
+        let baseURL = try #require(URL(string: "https://example.com"))
+        let directory = MCPAccountDirectory(
+            accounts: [
+                MCPCredentials(
+                    id: uuid.uuidString,
+                    apiKey: "key",
+                    baseURL: baseURL,
+                    accountName: "Primary",
+                    userEmail: "user@example.com"
+                )
+            ],
+            currentID: nil
+        )
+
+        #expect(directory.resolve(uuid.uuidString.lowercased())?.id == uuid.uuidString)
+        #expect(directory.ambiguousAccountIDs(for: uuid.uuidString.lowercased()).isEmpty)
     }
 
     @Test
