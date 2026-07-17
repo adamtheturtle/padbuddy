@@ -120,7 +120,10 @@ extension QuestionDetailView {
     /// and commits on Return / focus-loss), so it reads `question.title` directly.
     func draftSync(_ content: some View) -> some View {
         content
-            .onChange(of: question.id, initial: true) { _, _ in scheduleSeedDrafts() }
+            .onChange(of: question.id, initial: true) { _, _ in
+                latestQuestion = question
+                scheduleSeedDrafts()
+            }
             .onChange(of: question.language) { _, newValue in draftLanguage = newValue ?? "python3" }
             .onChange(of: question.padType) { _, _ in draftPadType = currentType }
     }
@@ -167,17 +170,19 @@ extension QuestionDetailView {
     func commitTitle(_ newTitle: String) async -> Bool {
         guard newTitle != question.title else { return true }
 
-        return await saveContent(QuestionUpdate(id: question.id, title: newTitle),
-                                 optimistic: optimisticQuestion(title: newTitle))
+        return await saveContent(QuestionUpdate(id: question.id, title: newTitle)) {
+            optimisticQuestion(title: newTitle)
+        }
     }
 
     func commitLanguage(_ language: String) async {
         guard language != question.language else { return }
 
         await save(QuestionUpdate(id: question.id, language: language),
-                   optimistic: optimisticQuestion()) {
-            draftLanguage = question.language ?? "python3"
-        }
+                   optimistic: { optimisticQuestion() },
+                   revert: {
+                       draftLanguage = question.language ?? "python3"
+                   })
     }
 
     func commitType(_ padType: String) async {
@@ -185,9 +190,10 @@ extension QuestionDetailView {
 
         // `take_home` and `pad_type` are coupled, so a type change commits both.
         await save(QuestionUpdate(id: question.id, takeHome: padType == "take-home", padType: padType),
-                   optimistic: optimisticQuestion()) {
-            draftPadType = currentType
-        }
+                   optimistic: { optimisticQuestion() },
+                   revert: {
+                       draftPadType = currentType
+                   })
     }
 
     // MARK: - Long-form content commits
@@ -199,15 +205,17 @@ extension QuestionDetailView {
     func commitDescription(_ text: String) async -> Bool {
         guard text != (question.description ?? "") else { return true }
 
-        return await saveContent(QuestionUpdate(id: question.id, description: text),
-                                 optimistic: optimisticQuestion(description: text))
+        return await saveContent(QuestionUpdate(id: question.id, description: text)) {
+            optimisticQuestion(description: text)
+        }
     }
 
     func commitSolution(_ text: String) async -> Bool {
         guard text != (question.solution ?? "") else { return true }
 
-        return await saveContent(QuestionUpdate(id: question.id, solution: text),
-                                 optimistic: optimisticQuestion(solution: text))
+        return await saveContent(QuestionUpdate(id: question.id, solution: text)) {
+            optimisticQuestion(solution: text)
+        }
     }
 
     /// Commits one candidate-instruction part. The whole list is resent with only
@@ -228,8 +236,9 @@ extension QuestionDetailView {
 
             payloads.append(CandidateInstructionPayload(instructions: text, defaultVisible: true))
         }
-        return await saveContent(QuestionUpdate(id: question.id, candidateInstructions: payloads),
-                                 optimistic: optimisticQuestion(candidateInstructions: payloads))
+        return await saveContent(QuestionUpdate(id: question.id, candidateInstructions: payloads)) {
+            optimisticQuestion(candidateInstructions: payloads)
+        }
     }
 
     /// The question with the immediately-committed metadata drafts (language, type)
@@ -239,7 +248,8 @@ extension QuestionDetailView {
     /// uncommitted title isn't pushed out early (#376).
     func optimisticQuestion(title: String? = nil, description: String? = nil, solution: String? = nil,
                             candidateInstructions: [CandidateInstructionPayload]? = nil) -> Question {
-        question.applying(
+        let base = latestQuestion ?? question
+        return base.applying(
             title: title, language: draftLanguage,
             takeHome: draftPadType == "take-home", padType: draftPadType,
             description: description, solution: solution,
@@ -250,9 +260,11 @@ extension QuestionDetailView {
     /// Sends a single-field content update and propagates the optimistic question
     /// without the redundant re-GET (#376), returning whether it succeeded. On failure
     /// it surfaces the error; the inline editor keeps the unsaved text so nothing is lost.
-    private func saveContent(_ body: QuestionUpdate, optimistic: Question) async -> Bool {
+    private func saveContent(_ body: QuestionUpdate, optimistic: () -> Question) async -> Bool {
         do {
             try await client.updateQuestionWithoutRefetch(body)
+            let optimistic = optimistic()
+            latestQuestion = optimistic
             AppRouter.questionUpdated(optimistic, account: accountID)
             return true
         } catch {
@@ -265,9 +277,11 @@ extension QuestionDetailView {
     /// redundant re-GET (#376). On failure it surfaces the error and runs `revert` to
     /// snap the field back to the server's value, so the control never lies about what's
     /// saved.
-    private func save(_ body: QuestionUpdate, optimistic: Question, revert: () -> Void) async {
+    private func save(_ body: QuestionUpdate, optimistic: () -> Question, revert: () -> Void) async {
         do {
             try await client.updateQuestionWithoutRefetch(body)
+            let optimistic = optimistic()
+            latestQuestion = optimistic
             AppRouter.questionUpdated(optimistic, account: accountID)
         } catch {
             editError = error.localizedDescription

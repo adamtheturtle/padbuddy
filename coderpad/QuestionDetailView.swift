@@ -69,6 +69,8 @@ struct QuestionDetailView: View {
     @State var draftLanguage = "python3"
     @State var draftPadType = "live"
     @State var editError: String?
+    /// Latest locally-published question, used as the merge base for concurrent field saves.
+    @State var latestQuestion: Question?
     @State var selectedPane: QuestionDetailPane = .prompt
     @State var titleEditRequest = 0
 
