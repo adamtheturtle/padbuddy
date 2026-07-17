@@ -28,6 +28,8 @@ enum SpotlightIndexer {
     private nonisolated static let operationQueue = DispatchQueue(label: "com.coderpad.app.spotlight.operations")
     private nonisolated static let enrichmentLock = NSLock()
     private nonisolated(unsafe) static var questionEnrichmentGenerations: [String: Int] = [:]
+    private nonisolated(unsafe) static var indexedPadIdentifiersByAccount: [UUID: Set<String>] = [:]
+    private nonisolated(unsafe) static var indexedQuestionIdentifiersByAccount: [UUID: Set<String>] = [:]
     /// How many questions one indexing pass will enrich with on-device keywords.
     /// Each enrichment runs the language model, so a big org's full list would be
     /// far too costly to summarize in one go; the cap keeps it bounded and the
@@ -52,6 +54,9 @@ enum SpotlightIndexer {
     static func updatePads(_ pads: [Pad], account: UUID) {
         guard GeneralSettings.spotlightIndexing else { return }
 
+        let identifiers = Set(pads.map { padPrefix + $0.id })
+        reconcilePadIdentifiers(identifiers, account: account)
+
         let items = pads.map { pad -> CSSearchableItem in
             let attrs = CSSearchableItemAttributeSet(contentType: .text)
             attrs.title = pad.title.isEmpty ? pad.id : pad.title
@@ -67,6 +72,9 @@ enum SpotlightIndexer {
     /// Indexes (or re-indexes) the account's questions. No-op unless enabled.
     static func updateQuestions(_ questions: [Question], account: UUID) {
         guard GeneralSettings.spotlightIndexing else { return }
+
+        let identifiers = Set(questions.map { questionIdentifier(id: $0.id, account: account) })
+        reconcileQuestionIdentifiers(identifiers, account: account)
 
         let items = questions.map { question -> CSSearchableItem in
             let attrs = CSSearchableItemAttributeSet(contentType: .text)
@@ -135,6 +143,35 @@ enum SpotlightIndexer {
         }
     }
 
+    private nonisolated static func reconcilePadIdentifiers(_ current: Set<String>, account: UUID) {
+        let stale = enrichmentLock.withLock {
+            let stale = (indexedPadIdentifiersByAccount[account] ?? []).subtracting(current)
+            indexedPadIdentifiersByAccount[account] = current
+            return stale
+        }
+        deleteStaleIdentifiers(stale, operation: "remove stale pad items")
+    }
+
+    private nonisolated static func reconcileQuestionIdentifiers(_ current: Set<String>, account: UUID) {
+        let stale = enrichmentLock.withLock {
+            let stale = (indexedQuestionIdentifiersByAccount[account] ?? []).subtracting(current)
+            indexedQuestionIdentifiersByAccount[account] = current
+            return stale
+        }
+        deleteStaleIdentifiers(stale, operation: "remove stale question items")
+    }
+
+    private nonisolated static func deleteStaleIdentifiers(_ identifiers: Set<String>, operation: String) {
+        guard !identifiers.isEmpty else { return }
+
+        enqueueDelete(operation: operation) { completion in
+            CSSearchableIndex.default().deleteSearchableItems(
+                withIdentifiers: Array(identifiers),
+                completionHandler: completion
+            )
+        }
+    }
+
     private nonisolated static func nextQuestionEnrichmentGeneration(for identifier: String) -> Int {
         enrichmentLock.withLock {
             let next = (questionEnrichmentGenerations[identifier] ?? 0) + 1
@@ -164,6 +201,10 @@ enum SpotlightIndexer {
     /// Removes all indexed items for an account (e.g. when it's deleted).
     static func removeAccount(_ account: UUID) {
         invalidateQuestionEnrichment(account: account)
+        enrichmentLock.withLock {
+            indexedPadIdentifiersByAccount.removeValue(forKey: account)
+            indexedQuestionIdentifiersByAccount.removeValue(forKey: account)
+        }
         enqueueDelete(operation: "remove account domain") { completion in
             CSSearchableIndex.default().deleteSearchableItems(
                 withDomainIdentifiers: [domain(account)],
@@ -176,9 +217,15 @@ enum SpotlightIndexer {
     /// the remaining list only adds/updates items, so a dropped pad needs an
     /// explicit delete by identifier or it lingers in system search.
     static func removePad(id: String) {
+        let identifier = padPrefix + id
+        enrichmentLock.withLock {
+            for account in indexedPadIdentifiersByAccount.keys {
+                indexedPadIdentifiersByAccount[account]?.remove(identifier)
+            }
+        }
         enqueueDelete(operation: "remove pad item") { completion in
             CSSearchableIndex.default().deleteSearchableItems(
-                withIdentifiers: [padPrefix + id],
+                withIdentifiers: [identifier],
                 completionHandler: completion
             )
         }
@@ -188,10 +235,15 @@ enum SpotlightIndexer {
     /// the owning account so a delete in one account can't drop another account's
     /// same-id question from system search (#378).
     static func removeQuestion(id: Int, account: UUID) {
+        let identifier = questionIdentifier(id: id, account: account)
+        enrichmentLock.withLock {
+            indexedQuestionIdentifiersByAccount[account]?.remove(identifier)
+            questionEnrichmentGenerations.removeValue(forKey: identifier)
+        }
         enqueueDelete(operation: "remove question item") { completion in
             CSSearchableIndex.default()
                 .deleteSearchableItems(
-                    withIdentifiers: [questionIdentifier(id: id, account: account)],
+                    withIdentifiers: [identifier],
                     completionHandler: completion
                 )
         }
@@ -199,6 +251,11 @@ enum SpotlightIndexer {
 
     /// Clears everything this app indexed — used when the user turns the feature off.
     static func clearAll() {
+        enrichmentLock.withLock {
+            indexedPadIdentifiersByAccount.removeAll()
+            indexedQuestionIdentifiersByAccount.removeAll()
+            questionEnrichmentGenerations.removeAll()
+        }
         enqueueDelete(operation: "clear all items") { completion in
             CSSearchableIndex.default().deleteAllSearchableItems(completionHandler: completion)
         }
