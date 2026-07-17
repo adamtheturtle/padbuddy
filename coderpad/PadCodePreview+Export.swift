@@ -25,7 +25,9 @@ enum CodeExportPathError: LocalizedError {
     }
 }
 
-enum CodeExportPathPlan {
+/// Pure path planning, `nonisolated` so the iOS `FileDocument` (whose conformance is
+/// nonisolated) can call it off the main actor; the module default would pin it there.
+nonisolated enum CodeExportPathPlan {
     static func components(for file: CodeFile) -> [String] {
         let path = file.path ?? file.name
         var components: [String] = []

@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 enum QuestionDetailPane: String, CaseIterable, Identifiable {
     case prompt
@@ -166,8 +167,15 @@ struct QuestionDetailView: View {
             .sensoryFeedback(trigger: deleteError) { _, new in new != nil ? .error : nil }
     }
 
+    // `core` is staged through helper functions so each getter stays under the
+    // 250ms type-check budget (warnings-as-errors): the single full modifier chain
+    // blew it on the iOS build once the draft/export modifiers landed.
     private var core: some View {
-        detailScroll
+        withNavigationConsumption(withCommandsAndAlerts(withBanners(detailScroll)))
+    }
+
+    private func withBanners(_ content: some View) -> some View {
+        content
             .overlay(alignment: .bottom) { bottomBanners }
             .animation(reduceMotion ? nil : .spring(duration: 0.3), value: deletionTask == nil)
             .animation(reduceMotion ? nil : .spring(duration: 0.3), value: createPadError == nil)
@@ -185,6 +193,10 @@ struct QuestionDetailView: View {
             .focusedSceneValue(\.exportMarkdownAction, PrintAction(id: "question-\(question.id)") {
                 exportMarkdown()
             })
+    }
+
+    private func withCommandsAndAlerts(_ content: some View) -> some View {
+        content
             .toolbar(id: "question-detail") { detailToolbar }
             .alert(
                 "Delete \(question.title.isEmpty ? "this question" : question.title)?",
@@ -211,6 +223,10 @@ struct QuestionDetailView: View {
                 pendingExport = nil
             }
         #endif
+    }
+
+    private func withNavigationConsumption(_ content: some View) -> some View {
+        content
             .onAppear {
                 consumePendingPadCreation()
                 consumePendingEdit()
