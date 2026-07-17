@@ -317,23 +317,26 @@ private extension NewQuestionSheet {
         language = def
     }
 
-    /// Drafts the question fields from the prompt, in the currently-selected
-    /// language. Fills only the fields the model returned, so a partial draft
-    /// doesn't blank anything the user already typed.
+    /// Drafts fields from the prompt/language snapshot, applying returned values
+    /// only to fields the user has not edited while the model was running.
     func draftQuestion() {
+        let requestPrompt = draftPrompt
+        let requestLanguage = language
+        let requestFields = [title, description, instructions, solution]
+
         isDrafting = true
         Task {
-            let draft = await QuestionDrafter.draft(prompt: draftPrompt, language: language)
+            let draft = await QuestionDrafter.draft(prompt: requestPrompt, language: requestLanguage)
             isDrafting = false
-            guard let draft else { return }
+            guard let draft, draftPrompt == requestPrompt, language == requestLanguage else { return }
 
-            if !draft.title.isEmpty { title = draft.title }
-            if !draft.description.isEmpty { description = draft.description }
-            if !draft.instructions.isEmpty {
+            if !draft.title.isEmpty, title == requestFields[0] { title = draft.title }
+            if !draft.description.isEmpty, description == requestFields[1] { description = draft.description }
+            if !draft.instructions.isEmpty, instructions == requestFields[2] {
                 instructions = draft.instructions
                 selectedSection = .instructions
             }
-            if !draft.solution.isEmpty { solution = draft.solution }
+            if !draft.solution.isEmpty, solution == requestFields[3] { solution = draft.solution }
         }
     }
 
