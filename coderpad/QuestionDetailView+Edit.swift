@@ -11,6 +11,29 @@
 
 import SwiftUI
 
+private enum QuestionInlineCommitField: String {
+    case language
+    case type
+}
+
+@MainActor
+private enum QuestionInlineCommitQueue {
+    private static var tasks: [String: Task<Void, Never>] = [:]
+
+    static func enqueue(questionID: Int,
+                        field: QuestionInlineCommitField,
+                        operation: @escaping @MainActor () async -> Void) {
+        let key = "\(questionID):\(field.rawValue)"
+        let previous = tasks[key]
+        tasks[key] = Task { @MainActor in
+            await previous?.value
+            guard !Task.isCancelled else { return }
+
+            await operation()
+        }
+    }
+}
+
 extension QuestionDetailView {
     /// The editable metadata, presented as labeled rows of inline controls. Title is
     /// edited in the header; language and type live here.
@@ -132,12 +155,22 @@ extension QuestionDetailView {
 
     private var languageBinding: Binding<String> {
         Binding(get: { draftLanguage },
-                set: { newValue in draftLanguage = newValue; Task { await commitLanguage(newValue) } })
+                set: { newValue in
+                    draftLanguage = newValue
+                    QuestionInlineCommitQueue.enqueue(questionID: question.id, field: .language) {
+                        await commitLanguage(newValue)
+                    }
+                })
     }
 
     private var typeBinding: Binding<String> {
         Binding(get: { draftPadType },
-                set: { newValue in draftPadType = newValue; Task { await commitType(newValue) } })
+                set: { newValue in
+                    draftPadType = newValue
+                    QuestionInlineCommitQueue.enqueue(questionID: question.id, field: .type) {
+                        await commitType(newValue)
+                    }
+                })
     }
 
     // MARK: - Drafts
@@ -176,21 +209,17 @@ extension QuestionDetailView {
     }
 
     func commitLanguage(_ language: String) async {
-        guard language != question.language else { return }
-
         await save(QuestionUpdate(id: question.id, language: language),
-                   optimistic: { optimisticQuestion() },
+                   optimistic: { optimisticQuestion(language: language) },
                    revert: {
                        draftLanguage = question.language ?? "python3"
                    })
     }
 
     func commitType(_ padType: String) async {
-        guard padType != currentType else { return }
-
         // `take_home` and `pad_type` are coupled, so a type change commits both.
         await save(QuestionUpdate(id: question.id, takeHome: padType == "take-home", padType: padType),
-                   optimistic: { optimisticQuestion() },
+                   optimistic: { optimisticQuestion(padType: padType) },
                    revert: {
                        draftPadType = currentType
                    })
@@ -246,12 +275,14 @@ extension QuestionDetailView {
     /// editor, building from the full saved-draft set keeps concurrent edits from
     /// clobbering each other; `title` is supplied only by `commitTitle` so an
     /// uncommitted title isn't pushed out early (#376).
-    func optimisticQuestion(title: String? = nil, description: String? = nil, solution: String? = nil,
+    func optimisticQuestion(title: String? = nil, language: String? = nil, padType: String? = nil,
+                            description: String? = nil, solution: String? = nil,
                             candidateInstructions: [CandidateInstructionPayload]? = nil) -> Question {
         let base = latestQuestion ?? question
+        let optimisticPadType = padType ?? draftPadType
         return base.applying(
-            title: title, language: draftLanguage,
-            takeHome: draftPadType == "take-home", padType: draftPadType,
+            title: title, language: language ?? draftLanguage,
+            takeHome: optimisticPadType == "take-home", padType: optimisticPadType,
             description: description, solution: solution,
             candidateInstructions: candidateInstructions
         )
