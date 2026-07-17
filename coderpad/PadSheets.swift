@@ -231,22 +231,57 @@ struct NewPadSheet: View {
         isSubmitting = true
         error = nil
         defer { isSubmitting = false }
-        let body = PadCreate(
-            title: title.isEmpty ? nil : title,
+        let body = Self.normalizedCreateBody(Self.CreateDraft(
+            title: title,
             language: language,
-            ownerEmail: ownerEmail.isEmpty ? nil : ownerEmail,
+            ownerEmail: ownerEmail,
             contents: nil,
             notes: nil,
             isPrivate: isPrivate,
             executionEnabled: executionEnabled,
             questionID: selectedQuestionID,
             teamID: selectedTeamID
-        )
+        ))
         do {
             let pad = try await client.createPad(body)
             onCreated(pad)
         } catch {
             self.error = error.localizedDescription
         }
+    }
+}
+
+extension NewPadSheet {
+    struct CreateDraft {
+        var title: String?
+        var language: String?
+        var ownerEmail: String?
+        var contents: String?
+        var notes: String?
+        var isPrivate: Bool?
+        var executionEnabled: Bool?
+        var questionID: Int?
+        var teamID: String?
+    }
+
+    static func normalizedCreateBody(_ draft: CreateDraft) -> PadCreate {
+        PadCreate(
+            title: trimmedOrNil(draft.title),
+            language: draft.language,
+            ownerEmail: trimmedOrNil(draft.ownerEmail),
+            contents: draft.contents,
+            notes: draft.notes,
+            isPrivate: draft.isPrivate,
+            executionEnabled: draft.executionEnabled,
+            questionID: draft.questionID,
+            teamID: draft.teamID
+        )
+    }
+
+    private static func trimmedOrNil(_ value: String?) -> String? {
+        guard let value else { return nil }
+
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }

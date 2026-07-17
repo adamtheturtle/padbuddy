@@ -269,6 +269,50 @@ struct PadExecutionEncodingTests {
     }
 }
 
+@Suite("New pad request normalization")
+struct NewPadRequestNormalizationTests {
+    @Test
+    func `create body trims optional title and owner fields`() {
+        let body = NewPadSheet.normalizedCreateBody(NewPadSheet.CreateDraft(
+            title: "  Onsite: Jane  \n",
+            language: "python3",
+            ownerEmail: "\towner@example.com  ",
+            contents: nil,
+            notes: nil,
+            isPrivate: true,
+            executionEnabled: false,
+            questionID: 42,
+            teamID: "team-1"
+        ))
+
+        #expect(body.title == "Onsite: Jane")
+        #expect(body.ownerEmail == "owner@example.com")
+        #expect(body.language == "python3")
+        #expect(body.isPrivate == true)
+        #expect(body.executionEnabled == false)
+        #expect(body.questionID == 42)
+        #expect(body.teamID == "team-1")
+    }
+
+    @Test
+    func `create body omits whitespace only title and owner fields`() {
+        let body = NewPadSheet.normalizedCreateBody(NewPadSheet.CreateDraft(
+            title: " \n ",
+            language: "python3",
+            ownerEmail: "\t",
+            contents: nil,
+            notes: nil,
+            isPrivate: false,
+            executionEnabled: true,
+            questionID: nil,
+            teamID: nil
+        ))
+
+        #expect(body.title == nil)
+        #expect(body.ownerEmail == nil)
+    }
+}
+
 @Suite("CoderPadError messages")
 struct CoderPadErrorMessageTests {
     @Test
