@@ -90,8 +90,9 @@ struct OpenPadByIDIntent: AppIntent {
 
         // Mirror the other intents: warm up briefly on cold launch, then route through
         // durable AppNavigation state (consumed on appear) so the request isn't lost if
-        // it fires before any view is listening.
-        try? await Task.sleep(for: .milliseconds(300))
+        // it fires before any view is listening. The sleep throws when Shortcuts/Siri
+        // cancels the intent; propagating that exits before routing (#844).
+        try await Task.sleep(for: .milliseconds(300))
         await MainActor.run {
             AppNavigation.shared.openPad(id: id)
         }
@@ -109,8 +110,9 @@ struct SearchPadsIntent: AppIntent {
     @Parameter(title: "Query", description: "Text to search pad titles, owners, and participants for.")
     var query: String
 
-    func perform() async -> some IntentResult {
-        try? await Task.sleep(for: .milliseconds(300))
+    func perform() async throws -> some IntentResult {
+        // Cancellation during the warm-up throws and exits before routing (#844).
+        try await Task.sleep(for: .milliseconds(300))
         let searchText = query
         await MainActor.run {
             AppNavigation.shared.showPads(PadsRequest(search: searchText))
@@ -126,8 +128,9 @@ struct NewPadIntent: AppIntent {
     static let description = IntentDescription("Open PadBuddy and start creating a new pad.")
     static let openAppWhenRun: Bool = true
 
-    func perform() async -> some IntentResult {
-        try? await Task.sleep(for: .milliseconds(400))
+    func perform() async throws -> some IntentResult {
+        // Cancellation during the warm-up throws and exits before routing (#844).
+        try await Task.sleep(for: .milliseconds(400))
         await MainActor.run {
             AppNavigation.shared.showPads(PadsRequest(startCreating: true))
         }
@@ -145,8 +148,9 @@ struct NewPadFromFavoriteQuestionIntent: AppIntent {
     @Parameter(title: "Question")
     var question: FavoriteQuestionEntity
 
-    func perform() async -> some IntentResult {
-        try? await Task.sleep(for: .milliseconds(400))
+    func perform() async throws -> some IntentResult {
+        // Cancellation during the warm-up throws and exits before routing (#844).
+        try await Task.sleep(for: .milliseconds(400))
         let accountID = question.accountID
         let questionID = question.questionID
         await MainActor.run {
@@ -163,8 +167,9 @@ struct OpenPadsIntent: AppIntent {
     static let description = IntentDescription("Open the Pads list in PadBuddy.")
     static let openAppWhenRun: Bool = true
 
-    func perform() async -> some IntentResult {
-        try? await Task.sleep(for: .milliseconds(200))
+    func perform() async throws -> some IntentResult {
+        // Cancellation during the warm-up throws and exits before routing (#844).
+        try await Task.sleep(for: .milliseconds(200))
         await MainActor.run {
             AppNavigation.shared.show(.pads)
         }
@@ -179,8 +184,9 @@ struct OpenRecentPadsIntent: AppIntent {
     static let description = IntentDescription("Open PadBuddy to your recent pads.")
     static let openAppWhenRun: Bool = true
 
-    func perform() async -> some IntentResult {
-        try? await Task.sleep(for: .milliseconds(200))
+    func perform() async throws -> some IntentResult {
+        // Cancellation during the warm-up throws and exits before routing (#844).
+        try await Task.sleep(for: .milliseconds(200))
         await MainActor.run {
             UserDefaults.standard.set(PadSort.updatedDesc.rawValue, forKey: PadSort.storageKey)
             if AccountsStore.shared.isMergedView {
@@ -200,8 +206,9 @@ struct OpenActivePadsIntent: AppIntent {
     static let description = IntentDescription("Open PadBuddy to active interview pads.")
     static let openAppWhenRun: Bool = true
 
-    func perform() async -> some IntentResult {
-        try? await Task.sleep(for: .milliseconds(200))
+    func perform() async throws -> some IntentResult {
+        // Cancellation during the warm-up throws and exits before routing (#844).
+        try await Task.sleep(for: .milliseconds(200))
         await MainActor.run {
             if AccountsStore.shared.isMergedView {
                 AppNavigation.shared.section = .pads
