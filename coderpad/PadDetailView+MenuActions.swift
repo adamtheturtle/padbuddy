@@ -92,6 +92,48 @@ extension PadDetailView {
         }
     }
 
+    /// Grace period during which a confirmed deletion can still be undone.
+    private static let deletionGracePeriod: Duration = .seconds(5)
+
+    /// Begins a delayed deletion: an undo banner appears for the grace period, and
+    /// the API delete only fires if it isn't cancelled.
+    func startDeletion() {
+        guard deletionTask == nil else { return }
+
+        deletionTask = Task {
+            try? await Task.sleep(for: Self.deletionGracePeriod)
+            if Task.isCancelled { return }
+            await deletePad()
+            deletionTask = nil
+        }
+    }
+
+    func cancelDeletion() {
+        deletionTask?.cancel()
+        deletionTask = nil
+    }
+
+    @ViewBuilder
+    var undoDeletionBanner: some View {
+        if deletionTask != nil {
+            HStack(spacing: 12) {
+                Image(systemName: "trash")
+                    .accessibilityHidden(true)
+                Text("Deleting “\(pad.title.isEmpty ? "this pad" : pad.title)”…")
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+                Button("Undo") { cancelDeletion() }
+                    .buttonStyle(.borderedProminent)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(.thinMaterial, in: Capsule())
+            .overlay(Capsule().stroke(Color.subtleStroke, lineWidth: 1))
+            .padding(.bottom, 12)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+        }
+    }
+
     func load() async {
         // Only show the blocking spinner when there's nothing to show yet. When the
         // pad was seeded from the session cache (or a prior load), refresh silently

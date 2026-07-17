@@ -35,6 +35,7 @@ struct PadDetailView: View {
     @State var isMutating = false
     @State var mutateError: String?
     @State var titleEditRequest = 0
+    @State var deletionTask: Task<Void, Never>?
     #if !os(macOS)
         /// The document staged for the iPad's `.fileExporter` (Save All Code / Export Markdown).
         /// `nil` dismisses the export sheet.
@@ -46,6 +47,7 @@ struct PadDetailView: View {
     @Environment(\.orgDirectory) var directory
     @Environment(\.colorScheme) var colorScheme
     @Environment(\.undoManager) private var undoManager
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     #if os(iOS)
         @Environment(\.horizontalSizeClass) var horizontalSizeClass
     #endif
@@ -135,7 +137,7 @@ struct PadDetailView: View {
             } label: {
                 Label("Delete Pad", systemImage: "trash")
             }
-            .disabled(isMutating || isReadOnly)
+            .disabled(isMutating || isReadOnly || deletionTask != nil)
             .help("Delete this pad")
         }
         .defaultCustomization(.hidden)
@@ -184,6 +186,8 @@ struct PadDetailView: View {
 
     private var coreContent: some View {
         detailScroll
+            .overlay(alignment: .bottom) { undoDeletionBanner }
+            .animation(reduceMotion ? nil : .spring(duration: 0.3), value: deletionTask == nil)
     }
 
     /// Split into two sub-chains (publishers, then dialogs) rather than one long chain:
@@ -229,9 +233,9 @@ struct PadDetailView: View {
             }
             .alert("Delete this pad?", isPresented: $showDeleteConfirm) {
                 Button("Cancel", role: .cancel) {}
-                Button("Delete Pad", role: .destructive) { Task { await deletePad() } }
+                Button("Delete Pad", role: .destructive) { startDeletion() }
             } message: {
-                Text("Deleting the pad is permanent and cannot be undone.")
+                Text("You'll have a few seconds to undo before it's permanently deleted.")
             }
             .alert("Action failed",
                    isPresented: .init(get: { mutateError != nil },
