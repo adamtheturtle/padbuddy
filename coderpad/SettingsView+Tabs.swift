@@ -61,15 +61,7 @@ extension SettingsView {
             Section {
                 Toggle("Make pads and questions searchable in Spotlight", isOn: $spotlightIndexing)
                     .onChange(of: spotlightIndexing) { _, isOn in
-                        if isOn {
-                            // Index what's already cached so results appear without a refresh.
-                            if let id = accountsStore.currentAccountID {
-                                SpotlightIndexer.updatePads(PadsCacheStore.shared.get(id), account: id)
-                                SpotlightIndexer.updateQuestions(QuestionsCacheStore.shared.get(id), account: id)
-                            }
-                        } else {
-                            SpotlightIndexer.clearAll()
-                        }
+                        updateSpotlightIndexing(isOn)
                     }
             } footer: {
                 Text("Indexed on this device only. Pad and question titles can include candidate names.")
@@ -91,6 +83,18 @@ extension SettingsView {
         .formStyle(.grouped)
         // Re-sync with the system in case the login item changed outside the app.
         .onAppear { launchAtLogin = LoginItem.isEnabled }
+    }
+
+    private func updateSpotlightIndexing(_ isOn: Bool) {
+        guard isOn else {
+            SpotlightIndexer.clearAll()
+            return
+        }
+
+        for account in accountsStore.accounts {
+            SpotlightIndexer.updatePads(PadsCacheStore.shared.get(account.id), account: account.id)
+            SpotlightIndexer.updateQuestions(QuestionsCacheStore.shared.get(account.id), account: account.id)
+        }
     }
 
     @ViewBuilder
