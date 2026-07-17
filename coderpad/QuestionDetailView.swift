@@ -273,8 +273,11 @@ struct QuestionDetailView: View {
         deletionTask = Task {
             try? await Task.sleep(for: Self.deletionGracePeriod)
             if Task.isCancelled { return }
-            await performDelete()
+            // The grace period is over: drop the banner (and its Undo) BEFORE the
+            // irreversible API request starts. An Undo pressed mid-request would
+            // pretend to cancel a deletion the server may still complete (#725).
             deletionTask = nil
+            await performDelete()
         }
     }
 
