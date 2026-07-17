@@ -217,6 +217,10 @@ struct QuestionDetailView: View {
                 consumePendingDelete()
                 consumePendingFavoriteToggle()
             }
+            // Navigating away hides the undo banner - the only remaining way to stop
+            // a pending deletion - so the armed task must not outlive it. Cancel the
+            // grace period instead of letting the delete finish invisibly (#870).
+            .onDisappear { cancelDeletion() }
             .onChange(of: nav.createPadForQuestionID) { _, _ in consumePendingPadCreation() }
             .onChange(of: nav.editQuestionID) { _, _ in consumePendingEdit() }
             .onChange(of: nav.deleteQuestionID) { _, _ in consumePendingDelete() }
