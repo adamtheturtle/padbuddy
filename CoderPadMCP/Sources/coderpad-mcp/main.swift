@@ -453,6 +453,10 @@ private func whoami(account: MCPAccount) async -> CallTool.Result {
 /// via the pure `padCodePayload` in the core library. Throws `MCPError` on an HTTP or
 /// parse failure so both the tool and the resource reader can surface it.
 private func padCodeJSON(id: String, maxFileChars: Int?, account: MCPAccount) async throws -> String {
+    if let error = maxFileCharsValidationError(maxFileChars) {
+        throw MCPError.invalidParams(error)
+    }
+
     let padResponse = await apiGet("/api/pads/\(id)", account: account)
     guard padResponse.ok else {
         throw MCPError.internalError("HTTP \(padResponse.status)\n\(padResponse.body)")

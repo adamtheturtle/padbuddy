@@ -32,6 +32,14 @@ struct MCPPadCodeTests {
     }
 
     @Test
+    func `max file char validation rejects non-positive explicit limits`() {
+        #expect(maxFileCharsValidationError(nil) == nil)
+        #expect(maxFileCharsValidationError(1) == nil)
+        #expect(maxFileCharsValidationError(0) != nil)
+        #expect(maxFileCharsValidationError(-1) != nil)
+    }
+
+    @Test
     func `environment ids coerce int and string forms and drop duplicates`() {
         #expect(environmentIDs(in: ["pad_environment_ids": [1, "2", 3, "2", 1]]) == [1, 2, 3])
         #expect(environmentIDs(in: [:]).isEmpty)

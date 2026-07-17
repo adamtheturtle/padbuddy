@@ -345,6 +345,14 @@ struct PadCodeTests {
     }
 
     @Test
+    func `max file char validation rejects non-positive explicit limits`() {
+        #expect(maxFileCharsValidationError(nil) == nil)
+        #expect(maxFileCharsValidationError(1) == nil)
+        #expect(maxFileCharsValidationError(0) != nil)
+        #expect(maxFileCharsValidationError(-1) != nil)
+    }
+
+    @Test
     func `synthesizedFilename maps known languages and falls back`() {
         #expect(synthesizedFilename(language: "python") == "main.py")
         #expect(synthesizedFilename(language: "C++") == "main.cpp")

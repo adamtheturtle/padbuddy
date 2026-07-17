@@ -29,6 +29,15 @@ public func truncate(_ body: String, to maxChars: Int?) -> String {
     return String(body.prefix(maxChars)) + "\n… [truncated, \(dropped) more characters]"
 }
 
+/// Validates the optional get_pad_code file-size cap. Nil means unlimited; any
+/// provided value must be positive so callers cannot accidentally request "no limit"
+/// with 0 or a negative number.
+public func maxFileCharsValidationError(_ maxFileChars: Int?) -> String? {
+    guard let maxFileChars, maxFileChars <= 0 else { return nil }
+
+    return "max_file_chars must be greater than 0 when provided."
+}
+
 /// A handful of common language → file extension mappings, used only to synthesize a
 /// filename for legacy single-file pads, which have no path of their own.
 public let languageExtensions: [String: String] = [

@@ -41,6 +41,10 @@ nonisolated extension MCPTools {
     /// Fetches a pad and each of its environments, then assembles the compact code JSON
     /// via the pure `padCodePayload` helper.
     static func getPadCode(pad id: String, maxFileChars: Int?, key: String, base: URL) async -> Outcome {
+        if let error = maxFileCharsValidationError(maxFileChars) {
+            return Outcome(text: error, isError: true)
+        }
+
         let padResponse = await get("/api/pads/\(id)", key: key, base: base)
         guard !padResponse.isError else { return padResponse }
         guard let pad = jsonObject(padResponse.text) else {
