@@ -138,23 +138,38 @@ struct AccountRoundTripTests {
     }
 
     @Test
-    func `an account persisted without a user email fails to decode`() {
+    func `an account persisted without a user email still decodes (#767)`() throws {
+        // The legacy single-key migration persists an account with no email after
+        // deleting the original credential; dropping it on the next launch would
+        // lose the API key with no recovery path.
         let json = """
-        {"id":"\(UUID().uuidString)","name":"Old","apiKey":"k","isMock":false,"userEmail":""}
+        {"id":"\(UUID().uuidString)","name":"Default","apiKey":"k","isMock":false,"userEmail":""}
         """
-        #expect(throws: DecodingError.self) {
-            try JSONDecoder().decode(Account.self, from: Data(json.utf8))
-        }
+        let decoded = try JSONDecoder().decode(Account.self, from: Data(json.utf8))
+        #expect(decoded.apiKey == "k")
+        #expect(decoded.userEmail.isEmpty)
     }
 
     @Test
-    func `a missing-email account is dropped on load without sinking valid siblings`() throws {
+    func `a migrated legacy account survives the store round-trip (#767)`() throws {
+        // The exact shape migrateLegacyAccounts() persists: no userEmail key at all.
+        let migrated = Account(name: "Default", apiKey: "legacy-key")
+        let data = try JSONEncoder().encode([migrated])
+        let reloaded = try JSONDecoder().decode([LenientElement<Account>].self, from: data)
+            .compactMap(\.value)
+        #expect(reloaded.map(\.apiKey) == ["legacy-key"])
+        // An empty email must never claim ownership of anything.
+        #expect(reloaded.allSatisfy { !$0.owns("someone@acme.co") })
+    }
+
+    @Test
+    func `a corrupt account is dropped on load without sinking valid siblings`() throws {
         // The store decodes elements leniently, so one invalid account must not take
         // the rest down with it.
         let valid = Account(name: "Good", apiKey: "k", userEmail: "me@acme.com")
         let validJSON = try #require(String(bytes: JSONEncoder().encode(valid), encoding: .utf8))
         let array = """
-        [\(validJSON),{"id":"\(UUID().uuidString)","name":"Bad","apiKey":"k","userEmail":""}]
+        [\(validJSON),{"id":"not-a-uuid","name":"Bad","apiKey":"k","userEmail":""}]
         """
         let decoded = try JSONDecoder().decode([LenientElement<Account>].self, from: Data(array.utf8))
             .compactMap(\.value)

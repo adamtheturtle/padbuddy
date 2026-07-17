@@ -80,8 +80,8 @@ extension Account: StorableAccount {
         currentIDDefaultsKey: "currentAccountID",
         showAllAccountsDefaultsKey: "showAllAccounts",
         encode: { try? JSONEncoder().encode($0) },
-        // Decode element-by-element so a single invalid account (e.g. one persisted
-        // without a user email) is dropped rather than failing the whole store.
+        // Decode element-by-element so a single corrupt account is dropped rather
+        // than failing the whole store.
         decode: { (try? JSONDecoder().decode([LenientElement<Account>].self, from: $0))?.compactMap(\.value) ?? [] },
         isTestingMode: coderpadIsUITesting,
         seedForTesting: { [.demo()] },

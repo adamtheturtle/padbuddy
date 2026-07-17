@@ -43,11 +43,14 @@ struct Account: Identifiable, Codable, Hashable {
     var isMock: Bool
     /// The email of the org member this key belongs to, used to show "my" pads.
     /// The CoderPad API doesn't expose the key's owner, so the user picks it when
-    /// validating the key — and saving is gated on it (see `canSave`) — so a
-    /// persisted account always has one, matching the org-users API where email is
-    /// non-optional. A persisted account without one is invalid and dropped on load
-    /// (see `init(from:)`). Empty only for an in-progress draft before the owner is
-    /// picked.
+    /// validating the key — and saving is gated on it (see `canSave`). Normally a
+    /// persisted account has one, matching the org-users API where email is
+    /// non-optional; it can be empty for an in-progress draft or for an account
+    /// migrated from the legacy single-key storage, which carries no email. Such an
+    /// account still loads: dropping it would lose the API key with no recovery
+    /// path, since migration already deleted the legacy credential (#767). The
+    /// editor requires re-validation (which picks the email) before it can be saved
+    /// again, and `owns(_:)` never matches on an empty email.
     var userEmail: String
     /// An optional override for the CoderPad server URL, for self-hosted or regional
     /// deployments. `nil`/empty means the standard hosted endpoint. Optional so
@@ -93,26 +96,19 @@ struct Account: Identifiable, Codable, Hashable {
         case screenApiKey, screenRegion
     }
 
-    /// Custom decoding to enforce that a persisted account carries a user email: it's
-    /// required to save (see `canSave`), so a stored account without one is invalid.
-    /// Throwing here drops that single account on load (the store decodes elements
-    /// leniently — see `loadAccounts`) rather than corrupting an otherwise-good account.
-    /// Encoding stays synthesized.
+    /// Custom decoding that tolerates a missing or empty user email rather than
+    /// dropping the account: the legacy single-key migration persists an account
+    /// with no email after deleting the original credential, so rejecting it here
+    /// would silently lose the API key on the next launch with no recovery path
+    /// (#767). The account editor requires re-validation (which picks the owner
+    /// email) before such an account can be saved again. Encoding stays synthesized.
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
         name = try container.decode(String.self, forKey: .name)
         apiKey = try container.decode(String.self, forKey: .apiKey)
         isMock = try container.decodeIfPresent(Bool.self, forKey: .isMock) ?? false
-        let email = try container.decodeIfPresent(String.self, forKey: .userEmail) ?? ""
-        guard !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            throw DecodingError.dataCorruptedError(
-                forKey: .userEmail, in: container,
-                debugDescription: "Account has no user email; treated as invalid and skipped."
-            )
-        }
-
-        userEmail = email
+        userEmail = try container.decodeIfPresent(String.self, forKey: .userEmail) ?? ""
         baseURL = try container.decodeIfPresent(String.self, forKey: .baseURL)
         iconSymbol = try container.decodeIfPresent(String.self, forKey: .iconSymbol)
         tintHex = try container.decodeIfPresent(String.self, forKey: .tintHex)
