@@ -26,6 +26,8 @@ enum SpotlightIndexer {
     private typealias SpotlightOperation = @Sendable (@escaping SpotlightFinish) -> Void
 
     private nonisolated static let operationQueue = DispatchQueue(label: "com.coderpad.app.spotlight.operations")
+    private nonisolated static let enrichmentLock = NSLock()
+    private nonisolated(unsafe) static var questionEnrichmentGenerations: [String: Int] = [:]
     /// How many questions one indexing pass will enrich with on-device keywords.
     /// Each enrichment runs the language model, so a big org's full list would be
     /// far too costly to summarize in one go; the cap keeps it bounded and the
@@ -101,25 +103,48 @@ enum SpotlightIndexer {
                 """
             )
         }
+        let generationByIdentifier = Dictionary(uniqueKeysWithValues: bounded.map { question in
+            let identifier = questionIdentifier(id: question.id, account: account)
+            return (identifier, nextQuestionEnrichmentGeneration(for: identifier))
+        })
+
         Task {
             for question in bounded {
                 guard GeneralSettings.spotlightIndexing else { return }
+
+                let identifier = questionIdentifier(id: question.id, account: account)
+                guard let generation = generationByIdentifier[identifier] else { continue }
                 guard let keywords = await SpotlightSummarizer.keywords(
                     title: question.title,
                     language: question.language,
                     description: question.description ?? ""
                 ) else { continue }
+                guard isCurrentQuestionEnrichment(identifier: identifier, generation: generation) else { continue }
 
                 let attrs = CSSearchableItemAttributeSet(contentType: .text)
                 attrs.title = question.title.isEmpty ? "#\(question.id)" : question.title
                 attrs.contentDescription = [question.language, question.authorName]
                     .compactMap(\.self).filter { !$0.isEmpty }.joined(separator: " · ")
                 attrs.keywords = keywords
-                let item = CSSearchableItem(uniqueIdentifier: questionIdentifier(id: question.id, account: account),
+                let item = CSSearchableItem(uniqueIdentifier: identifier,
                                             domainIdentifier: domain(account),
                                             attributeSet: attrs)
                 index([item])
             }
+        }
+    }
+
+    private nonisolated static func nextQuestionEnrichmentGeneration(for identifier: String) -> Int {
+        enrichmentLock.withLock {
+            let next = (questionEnrichmentGenerations[identifier] ?? 0) + 1
+            questionEnrichmentGenerations[identifier] = next
+            return next
+        }
+    }
+
+    private nonisolated static func isCurrentQuestionEnrichment(identifier: String, generation: Int) -> Bool {
+        enrichmentLock.withLock {
+            questionEnrichmentGenerations[identifier] == generation
         }
     }
 
