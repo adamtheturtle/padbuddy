@@ -174,7 +174,10 @@ enum AppPresence: String, CaseIterable, Identifiable {
 /// getters here, so a single source of truth backs both. Launch-at-login state lives
 /// with the system (`SMAppService`) rather than here — see `LoginItem`.
 enum GeneralSettings {
-    enum Key {
+    /// Nonisolated so off-main readers (e.g. the Spotlight operation queue, which
+    /// re-checks the indexing preference at execution time, #734) can reference the
+    /// key constants.
+    nonisolated enum Key {
         static let appearance = "general.appearance"
         static let presence = "general.presence"
         /// Legacy boolean ("Hide Dock icon") superseded by `presence`. Read once at

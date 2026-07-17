@@ -19,8 +19,10 @@ import UniformTypeIdentifiers
 /// reopens the app via the handler in `coderpadApp` (see `onContinueUserActivity`).
 enum SpotlightIndexer {
     private nonisolated static let logger = Logger(subsystem: "com.coderpad.app", category: "spotlight")
-    private nonisolated static let padPrefix = "pad:"
-    private nonisolated static let questionPrefix = "question:"
+    // Internal (not private) so the parsing helpers in
+    // SpotlightIndexer+Identifiers.swift can share them.
+    nonisolated static let padPrefix = "pad:"
+    nonisolated static let questionPrefix = "question:"
     private typealias SpotlightFinish = @Sendable () -> Void
     private typealias SpotlightErrorCompletion = @Sendable ((any Error)?) -> Void
     private typealias SpotlightOperation = @Sendable (@escaping SpotlightFinish) -> Void
@@ -28,8 +30,21 @@ enum SpotlightIndexer {
     private nonisolated static let operationQueue = DispatchQueue(label: "com.coderpad.app.spotlight.operations")
     private nonisolated static let enrichmentLock = NSLock()
     private nonisolated(unsafe) static var questionEnrichmentGenerations: [String: Int] = [:]
-    private nonisolated(unsafe) static var indexedPadIdentifiersByAccount: [UUID: Set<String>] = [:]
-    private nonisolated(unsafe) static var indexedQuestionIdentifiersByAccount: [UUID: Set<String>] = [:]
+    // Seeded from UserDefaults so reconciliation spans launches: an item deleted
+    // server-side while the app was closed must still be detected as stale on the
+    // first refresh after relaunch, or it lingers in system search forever (#733).
+    private nonisolated(unsafe) static var indexedPadIdentifiersByAccount: [UUID: Set<String>] =
+        loadPersistedIdentifiers(key: PersistenceKey.pads)
+    private nonisolated(unsafe) static var indexedQuestionIdentifiersByAccount: [UUID: Set<String>] =
+        loadPersistedIdentifiers(key: PersistenceKey.questions)
+
+    /// UserDefaults keys mirroring the in-memory indexed-identifier bookkeeping.
+    /// Only populated while the user has Spotlight indexing enabled; `clearAll()`
+    /// wipes them along with the index.
+    nonisolated enum PersistenceKey {
+        static let pads = "spotlight.indexedPadIdentifiers"
+        static let questions = "spotlight.indexedQuestionIdentifiers"
+    }
     /// How many questions one indexing pass will enrich with on-device keywords.
     /// Each enrichment runs the language model, so a big org's full list would be
     /// far too costly to summarize in one go; the cap keeps it bounded and the
@@ -147,6 +162,7 @@ enum SpotlightIndexer {
         let stale = enrichmentLock.withLock {
             let stale = (indexedPadIdentifiersByAccount[account] ?? []).subtracting(current)
             indexedPadIdentifiersByAccount[account] = current
+            persistPadIdentifiers()
             return stale
         }
         deleteStaleIdentifiers(stale, operation: "remove stale pad items")
@@ -156,6 +172,7 @@ enum SpotlightIndexer {
         let stale = enrichmentLock.withLock {
             let stale = (indexedQuestionIdentifiersByAccount[account] ?? []).subtracting(current)
             indexedQuestionIdentifiersByAccount[account] = current
+            persistQuestionIdentifiers()
             return stale
         }
         deleteStaleIdentifiers(stale, operation: "remove stale question items")
@@ -204,6 +221,8 @@ enum SpotlightIndexer {
         enrichmentLock.withLock {
             indexedPadIdentifiersByAccount.removeValue(forKey: account)
             indexedQuestionIdentifiersByAccount.removeValue(forKey: account)
+            persistPadIdentifiers()
+            persistQuestionIdentifiers()
         }
         enqueueDelete(operation: "remove account domain") { completion in
             CSSearchableIndex.default().deleteSearchableItems(
@@ -222,6 +241,7 @@ enum SpotlightIndexer {
             for account in indexedPadIdentifiersByAccount.keys {
                 indexedPadIdentifiersByAccount[account]?.remove(identifier)
             }
+            persistPadIdentifiers()
         }
         enqueueDelete(operation: "remove pad item") { completion in
             CSSearchableIndex.default().deleteSearchableItems(
@@ -239,6 +259,7 @@ enum SpotlightIndexer {
         enrichmentLock.withLock {
             indexedQuestionIdentifiersByAccount[account]?.remove(identifier)
             questionEnrichmentGenerations.removeValue(forKey: identifier)
+            persistQuestionIdentifiers()
         }
         enqueueDelete(operation: "remove question item") { completion in
             CSSearchableIndex.default()
@@ -255,6 +276,8 @@ enum SpotlightIndexer {
             indexedPadIdentifiersByAccount.removeAll()
             indexedQuestionIdentifiersByAccount.removeAll()
             questionEnrichmentGenerations.removeAll()
+            UserDefaults.standard.removeObject(forKey: PersistenceKey.pads)
+            UserDefaults.standard.removeObject(forKey: PersistenceKey.questions)
         }
         enqueueDelete(operation: "clear all items") { completion in
             CSSearchableIndex.default().deleteAllSearchableItems(completionHandler: completion)
@@ -265,6 +288,16 @@ enum SpotlightIndexer {
         guard !items.isEmpty else { return }
 
         enqueueSpotlightOperation { finish in
+            // Re-checked at execution time, not just at enqueue: a slow keyword
+            // enrichment can enqueue an index write after the user opted out, and
+            // that write would run after clearAll() and repopulate the index (#734).
+            // The preference flips before clearAll is enqueued, so any operation
+            // ordered after the clear sees it off and skips. Read straight from
+            // UserDefaults (thread-safe) since this runs off the MainActor.
+            guard UserDefaults.standard.bool(forKey: GeneralSettings.Key.spotlightIndexing) else {
+                finish()
+                return
+            }
             CSSearchableIndex.default().indexSearchableItems(items) { error in
                 if let error {
                     logger.error("Spotlight index failed: \(error.localizedDescription, privacy: .public)")
@@ -303,28 +336,21 @@ enum SpotlightIndexer {
         """)
     }
 
-    /// The pad id encoded in a Spotlight result identifier, or `nil` if it isn't a pad.
-    static func padID(fromItemIdentifier id: String) -> String? {
-        id.hasPrefix(padPrefix) ? String(id.dropFirst(padPrefix.count)) : nil
+}
+
+// MARK: - Indexed-identifier bookkeeping persistence (#733)
+
+extension SpotlightIndexer {
+    /// Both persist helpers must be called while holding `enrichmentLock`,
+    /// alongside the in-memory mutation they mirror. The stateless
+    /// encode/decode/load halves live in `SpotlightIndexer+Identifiers.swift`.
+    private nonisolated static func persistPadIdentifiers() {
+        UserDefaults.standard.set(encodeIdentifierMap(indexedPadIdentifiersByAccount),
+                                  forKey: PersistenceKey.pads)
     }
 
-    /// Whether a Spotlight result identifier refers to a question.
-    static func isQuestion(itemIdentifier id: String) -> Bool {
-        id.hasPrefix(questionPrefix)
-    }
-
-    /// The account and question id encoded in a Spotlight result identifier, or
-    /// `nil` if it isn't a (namespaced) question. Carrying the account lets the tap
-    /// handler open the question in the right org rather than a colliding id in
-    /// whichever account happens to be current (#378).
-    static func questionRef(fromItemIdentifier id: String) -> (account: UUID, id: Int)? {
-        guard id.hasPrefix(questionPrefix) else { return nil }
-
-        let body = id.dropFirst(questionPrefix.count)
-        guard let separator = body.firstIndex(of: ":"),
-              let account = UUID(uuidString: String(body[..<separator])),
-              let questionID = Int(body[body.index(after: separator)...]) else { return nil }
-
-        return (account, questionID)
+    private nonisolated static func persistQuestionIdentifiers() {
+        UserDefaults.standard.set(encodeIdentifierMap(indexedQuestionIdentifiersByAccount),
+                                  forKey: PersistenceKey.questions)
     }
 }
