@@ -130,7 +130,9 @@ struct PadMarkdownExportTests {
         #expect(markdown.contains("- **Public link:** Configured"))
         #expect(markdown.contains("## Description\n\nReturn indices for the **target**."))
         #expect(markdown.contains("### Part 2\n\n> Hidden by default\n\nUse the helper."))
-        #expect(markdown.contains("| [2,7], 9 | [0,1] | Hidden |"))
+        // Brackets are escaped in table cells since a58c9d4's inline-metadata
+        // hardening, so they can't read as Markdown link syntax.
+        #expect(markdown.contains(#"| \[2,7\], 9 | \[0,1\] | Hidden |"#))
         #expect(markdown.contains("- main.py (1.2 KB): Boilerplate"))
         #expect(markdown.contains("```python3\ndef two_sum"))
         #expect(markdown.contains("## Starter Code (Test Cases)"))
