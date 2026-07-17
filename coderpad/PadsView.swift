@@ -213,7 +213,10 @@ struct PadsView: View {
                 // Deferred off the click's synchronous path: this writes UserDefaults, and a
                 // UserDefaults change re-reads the @AppStorage-backed `sort` mid-update,
                 // which invalidated the whole list (an extra full rebuild) on every click.
-                Task { @MainActor in persistSelectedPad() }
+                // The id and account are captured now so the deferred write can't land
+                // under a different account after a fast switch (#757).
+                let persistAccount = accounts.currentAccountID
+                Task { @MainActor in persistSelectedPad(primary, account: persistAccount) }
             }
     }
 

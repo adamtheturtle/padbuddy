@@ -18,9 +18,12 @@ extension PadsView {
     /// Persist the id of the pad currently shown in the detail pane, per account, so
     /// the list reopens to it next launch. Skipped until the restore has run so the
     /// empty startup state can't clobber the saved id; clearing the selection removes
-    /// the stored id so a blank detail pane is also restored faithfully.
-    func persistSelectedPad() {
-        guard didRestoreSelection, let account = accounts.currentAccountID else { return }
+    /// the stored id so a blank detail pane is also restored faithfully. Takes the id
+    /// and owning account captured when the change happened: the write is deferred,
+    /// and reading them at run time let a fast account switch save one account's row
+    /// id under another account's key (#757).
+    func persistSelectedPad(_ selectedID: String?, account: UUID?) {
+        guard didRestoreSelection, let account else { return }
 
         let key = Self.selectedPadKey(account)
         if let selectedID {
@@ -38,8 +41,8 @@ extension PadsView {
     /// *unselected* list reopens scrolled to roughly where it was left (#273) — the
     /// selection restore already covers the selected case. Guarded by the selection
     /// restore so the empty startup state can't clobber the saved id.
-    func persistTopRow(_ id: String?) {
-        guard didRestoreSelection, let account = accounts.currentAccountID else { return }
+    func persistTopRow(_ id: String?, account: UUID?) {
+        guard didRestoreSelection, let account else { return }
 
         let key = Self.topRowKey(account)
         if let id {
@@ -50,12 +53,16 @@ extension PadsView {
     }
 
     func scheduleTopRowPersistence(_ id: String?) {
+        // Capture the owning account now: the write is deferred, and a fast account
+        // switch would otherwise save this account's top row under the next
+        // account's key (#757).
+        let account = accounts.currentAccountID
         topRowPersistTask?.cancel()
         topRowPersistTask = Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(350))
             guard !Task.isCancelled else { return }
 
-            persistTopRow(id)
+            persistTopRow(id, account: account)
         }
     }
 

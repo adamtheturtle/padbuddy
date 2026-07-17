@@ -14,8 +14,8 @@ extension QuestionsView {
     /// list reopens to it next launch. Skipped until the restore has run so the empty
     /// startup state can't clobber the saved id; clearing the selection removes the
     /// stored id so a blank detail pane is restored faithfully too.
-    func persistSelectedQuestion() {
-        guard didRestoreSelection, let account = accounts.currentAccountID else { return }
+    func persistSelectedQuestion(_ selectedQuestionID: Int?, account: UUID?) {
+        guard didRestoreSelection, let account else { return }
 
         let key = Self.selectedQuestionKey(account)
         if let selectedQuestionID {
@@ -33,8 +33,8 @@ extension QuestionsView {
     /// *unselected* list reopens scrolled to roughly where it was left (#273) — the
     /// selection restore already covers the selected case. Guarded by the selection
     /// restore so the empty startup state can't clobber the saved id.
-    func persistTopRow(_ id: Int?) {
-        guard didRestoreSelection, let account = accounts.currentAccountID else { return }
+    func persistTopRow(_ id: Int?, account: UUID?) {
+        guard didRestoreSelection, let account else { return }
 
         let key = Self.topRowKey(account)
         if let id {
@@ -45,8 +45,12 @@ extension QuestionsView {
     }
 
     func scheduleTopRowPersistence(_ id: Int?) {
+        // Capture the owning account now: the write is debounced, and a fast account
+        // switch would otherwise save this account's top row under the next
+        // account's key (#757).
+        let account = accounts.currentAccountID
         topRowPersistence.schedule {
-            persistTopRow(id)
+            persistTopRow(id, account: account)
         }
     }
 

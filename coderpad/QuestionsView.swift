@@ -287,7 +287,11 @@ struct QuestionsView: View {
                 // off the click's synchronous path: it writes UserDefaults, and a UserDefaults
                 // change re-reads the @AppStorage-backed sort mid-update, which re-invalidated
                 // the whole list (an extra full rebuild) on every click.
-                Task { @MainActor in persistSelectedQuestion() }
+                // The id and account are captured now so the deferred write can't land
+                // under a different account after a fast switch (#757).
+                let persistID = selectedQuestionID
+                let persistAccount = accounts.currentAccountID
+                Task { @MainActor in persistSelectedQuestion(persistID, account: persistAccount) }
             }
             .onChange(of: selection) { _, newValue in
                 if selectedQuestionID != newValue?.id { selectedQuestionID = newValue?.id }
