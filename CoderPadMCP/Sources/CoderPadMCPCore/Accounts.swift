@@ -155,6 +155,15 @@ private func parseBaseURL(_ raw: String?, account: String) throws -> URL {
     return url
 }
 
+private func parseConfigBaseURL(_ entry: [String: Any], account: String) throws -> URL {
+    guard let raw = entry["base_url"] else { return try parseBaseURL(nil, account: account) }
+    guard let value = raw as? String else {
+        throw MCPConfigError.invalidBaseURL(account: account, baseURL: String(describing: raw))
+    }
+
+    return try parseBaseURL(value, account: account)
+}
+
 private func truthy(_ raw: String?) -> Bool {
     ["1", "true", "yes", "on"].contains(raw?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())
 }
@@ -232,7 +241,7 @@ public func makeAccountSet(config: [String: Any]?, environment: [String: String]
             try accounts.append(MCPAccount(
                 name: name,
                 apiKey: key,
-                baseURL: parseBaseURL(entry["base_url"] as? String, account: name),
+                baseURL: parseConfigBaseURL(entry, account: name),
                 screenAPIKey: trimmedNonEmpty(entry["screen_api_key"] as? String),
                 screenRegion: screenRegion(from: entry["screen_region"] as? String, account: name)
             ))

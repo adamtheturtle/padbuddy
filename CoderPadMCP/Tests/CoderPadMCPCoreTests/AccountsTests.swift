@@ -176,6 +176,15 @@ struct AccountsTests {
     }
 
     @Test
+    func `config base URL rejects present non-string values`() {
+        #expect(throws: MCPConfigError.invalidBaseURL(account: "Acme", baseURL: "123")) {
+            try makeAccountSet(config: ["accounts": [
+                ["name": "Acme", "api_key": "a", "base_url": 123]
+            ]], environment: [:])
+        }
+    }
+
+    @Test
     func `config screen regions accept documented values case-insensitively`() throws {
         let config: [String: Any] = ["accounts": [
             ["name": "Acme", "api_key": "a", "screen_region": "US"],
