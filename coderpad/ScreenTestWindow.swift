@@ -31,14 +31,16 @@ struct ScreenTestWindow: View {
     @State private var fetched: ScreenTestSession?
     @State private var loadFailed = false
     @State private var refreshError: String?
+    @State private var fallbackAccountID: UUID?
 
-    /// The owning account: the one named in the value, or the current account when the
-    /// value omits it (single-account context).
+    /// The owning account: the one named in the value, or the current account captured
+    /// when a legacy/restored value omits it. The fallback is intentionally sticky so
+    /// switching accounts elsewhere cannot retarget this standalone window.
     private var account: Account? {
         guard let value else { return nil }
 
-        if let id = value.account { return accounts.accounts.first { $0.id == id } }
-        return accounts.currentAccount
+        let id = value.account ?? fallbackAccountID ?? accounts.currentAccountID
+        return id.flatMap { id in accounts.accounts.first { $0.id == id } }
     }
 
     var body: some View {
@@ -83,12 +85,19 @@ struct ScreenTestWindow: View {
     /// Fetch the session on appear and on reload, so transient failures can recover
     /// without closing the restored window.
     private func load() async {
+        captureFallbackAccountIfNeeded()
         if let fetched, fetched.id != value?.id {
             self.fetched = nil
             loadFailed = false
             refreshError = nil
         }
         await refresh()
+    }
+
+    private func captureFallbackAccountIfNeeded() {
+        guard value?.account == nil, fallbackAccountID == nil else { return }
+
+        fallbackAccountID = accounts.currentAccountID
     }
 
     private func refresh() async {
