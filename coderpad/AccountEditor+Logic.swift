@@ -282,34 +282,16 @@ extension AccountEditor {
             validation = .invalid(message)
             return
         }
+        let fingerprint = currentValidationFingerprint
         validation = .validating
         scopeWarning = nil
         do {
-            let client = CoderPadClient(apiKey: draft.apiKey.trimmingCharacters(in: .whitespacesAndNewlines),
-                                        baseURL: draft.resolvedBaseURL)
+            let client = CoderPadClient(apiKey: fingerprint.apiKey, baseURL: fingerprint.baseURL)
             let org = try await client.organization()
-            orgUsers = org.users
-            if draft.name.trimmingCharacters(in: .whitespaces).isEmpty {
-                draft.name = org.organizationName
-            }
-            // Pre-select the signed-in user's email. The default /api/pads/ endpoint
-            // is scoped to the API key owner, so the dominant owner email on their pads
-            // is "you" — detect it directly rather than making the user pick. Fall back
-            // to the single-user org case, then to the manual picker. This runs while
-            // still in the validating state so the spinner covers the email retrieval.
-            if draft.userEmail.isEmpty {
-                if let detected = await detectUserEmail(client: client) {
-                    draft.userEmail = detected
-                } else if org.users.count == 1 {
-                    draft.userEmail = org.users.first?.email ?? ""
-                }
-            }
-            validation = .valid
-            validatedOrgName = org.organizationName
-            // The key reaches the org; now surface any feature endpoints it isn't
-            // scoped for, as a non-blocking note (the account still saves).
-            scopeWarning = await missingScopesWarning(client: client)
+            guard await applyValidatedOrganization(org, client: client, fingerprint: fingerprint) else { return }
         } catch {
+            guard validationStillMatches(fingerprint) else { return }
+
             validation = .invalid(friendlyValidationMessage(for: error))
         }
     }
