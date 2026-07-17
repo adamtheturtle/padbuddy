@@ -10,6 +10,19 @@ import Testing
 
 @Suite("Question sort field/direction")
 struct QuestionSortTests {
+    private func question(
+        id: Int,
+        title: String = "Question",
+        updatedAt: String? = nil,
+        used: Int? = nil
+    ) throws -> Question {
+        var dict: [String: Any] = ["id": id, "title": title]
+        if let updatedAt { dict["updated_at"] = updatedAt }
+        if let used { dict["used"] = used }
+        let data = try JSONSerialization.data(withJSONObject: dict)
+        return try CoderPadClient.decoder.decode(Question.self, from: data)
+    }
+
     @Test func `each sort maps to the expected field`() {
         #expect(QuestionSort.lastUsedDesc.field == .lastUsed)
         #expect(QuestionSort.lastUsedAsc.field == .lastUsed)
@@ -34,6 +47,45 @@ struct QuestionSortTests {
         #expect(QuestionSort.titleDesc.withField(.lastUsed) == .lastUsedAsc)
         // Switching to the same field is a no-op.
         #expect(QuestionSort.usedAsc.withField(.used) == .usedAsc)
+    }
+
+    @Test func `tied question sorts fall back to stable ids`() throws {
+        let laterID = try question(id: 10, title: "Same", updatedAt: "2026-01-01T00:00:00Z", used: 0)
+        let earlierID = try question(id: 2, title: "same", updatedAt: "2026-01-01T00:00:00Z", used: 0)
+
+        #expect(QuestionSort.titleAsc.sorted([laterID, earlierID]).map(\.id) == [2, 10])
+        #expect(QuestionSort.lastUsedDesc.sorted([laterID, earlierID]).map(\.id) == [2, 10])
+        #expect(QuestionSort.usedDesc.sorted([laterID, earlierID]).map(\.id) == [2, 10])
+    }
+}
+
+@Suite("Pad sort")
+struct PadSortTests {
+    private func pad(
+        id: String,
+        title: String = "Pad",
+        updatedAt: String? = nil,
+        createdAt: String? = nil
+    ) throws -> Pad {
+        var dict: [String: Any] = [
+            "id": id,
+            "title": title,
+            "state": "started",
+            "owner_email": "",
+            "participants": []
+        ]
+        if let updatedAt { dict["updated_at"] = updatedAt }
+        if let createdAt { dict["created_at"] = createdAt }
+        let data = try JSONSerialization.data(withJSONObject: dict)
+        return try CoderPadClient.decoder.decode(Pad.self, from: data)
+    }
+
+    @Test func `tied pad sorts fall back to stable ids`() throws {
+        let laterID = try pad(id: "B", title: "Same", updatedAt: "2026-01-01T00:00:00Z")
+        let earlierID = try pad(id: "A", title: "same", updatedAt: "2026-01-01T00:00:00Z")
+
+        #expect(PadSort.titleAsc.sorted([laterID, earlierID]).map(\.id) == ["A", "B"])
+        #expect(PadSort.updatedDesc.sorted([laterID, earlierID]).map(\.id) == ["A", "B"])
     }
 }
 

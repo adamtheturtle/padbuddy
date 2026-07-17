@@ -79,37 +79,86 @@ enum QuestionSort: String, CaseIterable, Identifiable {
     /// Arrange question-backed rows by this sort. "Last used" is backed by
     /// `updatedAt` — the only per-question recency signal the API exposes.
     func sorted<C: Collection>(_ items: C, question: (C.Element) -> Question) -> [C.Element] {
+        sorted(items, question: question, tieBreaker: { question($0).id })
+    }
+
+    func sorted<C: Collection>(
+        _ items: C,
+        question: (C.Element) -> Question,
+        tieBreaker: (C.Element) -> some Comparable
+    ) -> [C.Element] {
         switch self {
         case .titleAsc:
             items.sorted {
                 let lhs = question($0).displayTitle
                 let rhs = question($1).displayTitle
-                return lhs.localizedCaseInsensitiveCompare(rhs) == .orderedAscending
+                return compare(lhs, rhs, .orderedAscending, tieBreaker($0), tieBreaker($1))
             }
 
         case .titleDesc:
             items.sorted {
                 let lhs = question($0).displayTitle
                 let rhs = question($1).displayTitle
-                return lhs.localizedCaseInsensitiveCompare(rhs) == .orderedDescending
+                return compare(lhs, rhs, .orderedDescending, tieBreaker($0), tieBreaker($1))
             }
 
         case .lastUsedDesc:
-            items.sorted { (question($0).updatedAt ?? .distantPast) > (question($1).updatedAt ?? .distantPast) }
+            items.sorted { lhsItem, rhsItem in
+                compare(
+                    question(lhsItem).updatedAt ?? .distantPast,
+                    question(rhsItem).updatedAt ?? .distantPast,
+                    >,
+                    tieBreaker(lhsItem),
+                    tieBreaker(rhsItem)
+                )
+            }
 
         case .lastUsedAsc:
-            items.sorted { (question($0).updatedAt ?? .distantPast) < (question($1).updatedAt ?? .distantPast) }
+            items.sorted { lhsItem, rhsItem in
+                compare(
+                    question(lhsItem).updatedAt ?? .distantPast,
+                    question(rhsItem).updatedAt ?? .distantPast,
+                    <,
+                    tieBreaker(lhsItem),
+                    tieBreaker(rhsItem)
+                )
+            }
 
         case .usedDesc:
-            items.sorted { (question($0).used ?? 0) > (question($1).used ?? 0) }
+            items.sorted { compare(question($0).used ?? 0, question($1).used ?? 0, >, tieBreaker($0), tieBreaker($1)) }
 
         case .usedAsc:
-            items.sorted { (question($0).used ?? 0) < (question($1).used ?? 0) }
+            items.sorted { compare(question($0).used ?? 0, question($1).used ?? 0, <, tieBreaker($0), tieBreaker($1)) }
         }
     }
 
     func sorted(_ items: some Collection<Question>) -> [Question] {
         sorted(items) { $0 }
+    }
+
+    private func compare<T: Equatable, TieBreaker: Comparable>(
+        _ lhs: T,
+        _ rhs: T,
+        _ ordered: (T, T) -> Bool,
+        _ lhsTieBreaker: TieBreaker,
+        _ rhsTieBreaker: TieBreaker
+    ) -> Bool {
+        guard lhs != rhs else { return lhsTieBreaker < rhsTieBreaker }
+
+        return ordered(lhs, rhs)
+    }
+
+    private func compare<TieBreaker: Comparable>(
+        _ lhs: String,
+        _ rhs: String,
+        _ ordered: ComparisonResult,
+        _ lhsTieBreaker: TieBreaker,
+        _ rhsTieBreaker: TieBreaker
+    ) -> Bool {
+        let result = lhs.localizedCaseInsensitiveCompare(rhs)
+        guard result != .orderedSame else { return lhsTieBreaker < rhsTieBreaker }
+
+        return result == ordered
     }
 }
 

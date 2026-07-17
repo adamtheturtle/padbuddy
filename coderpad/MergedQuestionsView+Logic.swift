@@ -39,7 +39,7 @@ extension MergedQuestionsView {
                 rows.append(MergedQuestionRow(account: account, item: question))
             }
         }
-        scopedCache.rows = sort.sorted(rows, question: { $0.item })
+        scopedCache.rows = sort.sorted(rows, question: { $0.item }, tieBreaker: \.id)
         // Rebuild the chip-option lists in the same pass, sharing the input signature.
         scopedCache.availableLanguages = Array(Set(rows.compactMap { $0.item.language?.lowercased() })
             .filter { !$0.isEmpty }).sorted()

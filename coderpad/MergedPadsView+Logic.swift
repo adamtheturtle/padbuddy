@@ -43,7 +43,7 @@ extension MergedPadsView {
                 rows.append(AccountScoped(account: account, item: pad, id: pad.id))
             }
         }
-        let sorted = sort.sorted(rows, by: \.item)
+        let sorted = sort.sorted(rows, by: \.item, tieBreaker: \.id)
         scopedCache.rows = sorted
         // Rebuild the chip-option lists in the same pass (same input signature).
         scopedCache.availableStates = Array(Set(sorted.map(\.item.status)))

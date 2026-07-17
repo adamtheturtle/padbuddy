@@ -134,22 +134,59 @@ extension PadSort {
     /// Orders any items by their backing pad, so both the single-account list
     /// (`[Pad]`) and the merged list (`[AccountScoped<Pad>]`) share one ordering.
     func sorted<T>(_ items: [T], by pad: (T) -> Pad) -> [T] {
-        items.sorted { precedes(pad($0), pad($1)) }
+        sorted(items, by: pad, tieBreaker: { pad($0).id })
+    }
+
+    func sorted<T>(_ items: [T], by pad: (T) -> Pad, tieBreaker: (T) -> String) -> [T] {
+        items.sorted {
+            precedes(pad($0), pad($1), lhsTieBreaker: tieBreaker($0), rhsTieBreaker: tieBreaker($1))
+        }
     }
 
     /// Whether `lhs` sorts before `rhs` under this order.
-    private func precedes(_ lhs: Pad, _ rhs: Pad) -> Bool {
+    private func precedes(_ lhs: Pad, _ rhs: Pad, lhsTieBreaker: String, rhsTieBreaker: String) -> Bool {
         switch self {
-        case .updatedDesc: (lhs.updatedAt ?? .distantPast) > (rhs.updatedAt ?? .distantPast)
-        case .updatedAsc: (lhs.updatedAt ?? .distantPast) < (rhs.updatedAt ?? .distantPast)
-        case .createdDesc: (lhs.createdAt ?? .distantPast) > (rhs.createdAt ?? .distantPast)
-        case .createdAsc: (lhs.createdAt ?? .distantPast) < (rhs.createdAt ?? .distantPast)
-        case .titleAsc: sortTitle(lhs).localizedCaseInsensitiveCompare(sortTitle(rhs)) == .orderedAscending
-        case .titleDesc: sortTitle(lhs).localizedCaseInsensitiveCompare(sortTitle(rhs)) == .orderedDescending
+        case .updatedDesc:
+            compare(lhs.updatedAt ?? .distantPast, rhs.updatedAt ?? .distantPast, >, lhsTieBreaker, rhsTieBreaker)
+        case .updatedAsc:
+            compare(lhs.updatedAt ?? .distantPast, rhs.updatedAt ?? .distantPast, <, lhsTieBreaker, rhsTieBreaker)
+        case .createdDesc:
+            compare(lhs.createdAt ?? .distantPast, rhs.createdAt ?? .distantPast, >, lhsTieBreaker, rhsTieBreaker)
+        case .createdAsc:
+            compare(lhs.createdAt ?? .distantPast, rhs.createdAt ?? .distantPast, <, lhsTieBreaker, rhsTieBreaker)
+        case .titleAsc:
+            compare(sortTitle(lhs), sortTitle(rhs), .orderedAscending, lhsTieBreaker, rhsTieBreaker)
+        case .titleDesc:
+            compare(sortTitle(lhs), sortTitle(rhs), .orderedDescending, lhsTieBreaker, rhsTieBreaker)
         }
     }
 
     private func sortTitle(_ pad: Pad) -> String {
         pad.title.isEmpty ? pad.id : pad.title
+    }
+
+    private func compare<T: Equatable>(
+        _ lhs: T,
+        _ rhs: T,
+        _ ordered: (T, T) -> Bool,
+        _ lhsTieBreaker: String,
+        _ rhsTieBreaker: String
+    ) -> Bool {
+        guard lhs != rhs else { return lhsTieBreaker < rhsTieBreaker }
+
+        return ordered(lhs, rhs)
+    }
+
+    private func compare(
+        _ lhs: String,
+        _ rhs: String,
+        _ ordered: ComparisonResult,
+        _ lhsTieBreaker: String,
+        _ rhsTieBreaker: String
+    ) -> Bool {
+        let result = lhs.localizedCaseInsensitiveCompare(rhs)
+        guard result != .orderedSame else { return lhsTieBreaker < rhsTieBreaker }
+
+        return result == ordered
     }
 }
