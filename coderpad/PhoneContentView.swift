@@ -21,6 +21,7 @@
         @State private var questionSelection: Question?
         @State private var padPath: [PhoneRoute] = []
         @State private var questionPath: [PhoneRoute] = []
+        @State private var screenPath: [PhoneRoute] = []
         @State private var padSearch = ""
         @State private var questionSearch = ""
         @State private var screenSearch = ""
@@ -153,7 +154,7 @@
         }
 
         private var screenTab: some View {
-            NavigationStack {
+            NavigationStack(path: $screenPath) {
                 SectionContent(
                     section: .screen,
                     padSelection: $padSelection,
@@ -169,9 +170,19 @@
                     placement: .navigationBarDrawer(displayMode: .automatic),
                     prompt: Text("Search campaigns")
                 )
+                .navigationDestination(for: PhoneRoute.self) { routeDestination($0) }
             }
             .tabItem { Label(AppSection.screen.shortLabel, systemImage: AppSection.screen.systemImage) }
             .tag(AppSection.screen)
+            // The campaigns list publishes its selection for a split-view detail column
+            // that doesn't exist in the compact shell; mirror it into this tab's path so
+            // a selected campaign pushes its test sessions (#837).
+            .onChange(of: nav.screenCampaignSelection) { _, selection in
+                syncScreenPath(with: selection)
+            }
+            .onChange(of: screenPath) { _, path in
+                if path.isEmpty { nav.screenCampaignSelection = nil }
+            }
         }
 
         @ViewBuilder
@@ -196,6 +207,17 @@
                     screenSearch: $screenSearch
                 )
                 .navigationTitle(questionSelection?.displayTitle ?? "Question")
+                .navigationBarTitleDisplayMode(.inline)
+                .phoneAccountToolbar(accountMenu)
+
+            case .screenCampaign:
+                SectionDetail(
+                    section: .screen,
+                    padSelection: $padSelection,
+                    questionSelection: $questionSelection,
+                    screenSearch: $screenSearch
+                )
+                .navigationTitle(nav.screenCampaignSelection?.name ?? String(localized: "Campaign"))
                 .navigationBarTitleDisplayMode(.inline)
                 .phoneAccountToolbar(accountMenu)
             }
@@ -356,11 +378,22 @@
             let route = PhoneRoute.question(selection.id)
             if questionPath.last != route { questionPath = [route] }
         }
+
+        private func syncScreenPath(with selection: ScreenCampaign?) {
+            guard let selection else {
+                screenPath = []
+                return
+            }
+
+            let route = PhoneRoute.screenCampaign(selection.id)
+            if screenPath.last != route { screenPath = [route] }
+        }
     }
 
     private enum PhoneRoute: Hashable {
         case pad(String)
         case question(Int)
+        case screenCampaign(Int)
     }
 
     private extension View {
