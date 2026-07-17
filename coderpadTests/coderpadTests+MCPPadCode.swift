@@ -32,8 +32,8 @@ struct MCPPadCodeTests {
     }
 
     @Test
-    func `environment ids coerce int and string forms`() {
-        #expect(environmentIDs(in: ["pad_environment_ids": [1, "2", 3]]) == [1, 2, 3])
+    func `environment ids coerce int and string forms and drop duplicates`() {
+        #expect(environmentIDs(in: ["pad_environment_ids": [1, "2", 3, "2", 1]]) == [1, 2, 3])
         #expect(environmentIDs(in: [:]).isEmpty)
     }
 

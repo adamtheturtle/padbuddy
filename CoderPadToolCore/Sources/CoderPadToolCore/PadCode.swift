@@ -59,10 +59,13 @@ public struct PadCodeEnvironment {
     }
 }
 
-/// The numeric environment ids referenced by a pad, coercing string/int forms.
+/// The numeric environment ids referenced by a pad, coercing string/int forms and
+/// preserving first-seen order while dropping duplicates.
 public func environmentIDs(in pad: [String: Any]) -> [Int] {
-    (pad["pad_environment_ids"] as? [Any])?
-        .compactMap { ($0 as? Int) ?? Int("\($0)") } ?? []
+    var seen = Set<Int>()
+    return (pad["pad_environment_ids"] as? [Any])?
+        .compactMap { ($0 as? Int) ?? Int("\($0)") }
+        .filter { seen.insert($0).inserted } ?? []
 }
 
 /// Assembles the file list for a pad. Multi-file environments take precedence; a
