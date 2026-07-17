@@ -58,6 +58,11 @@ struct QuestionDetailView: View {
     @State private var deletionTask: Task<Void, Never>?
     @State private var isCreatingPad = false
     @State private var createPadError: String?
+    #if !os(macOS)
+        /// The Markdown export staged for iPad's `.fileExporter`.
+        /// `nil` dismisses the export sheet.
+        @State var pendingExport: PadExportDocument?
+    #endif
     // Inline metadata drafts (language, type), seeded from the question and
     // committed one field at a time, mirroring the pad detail editor. The long-form
     // content (description, instructions, solution) is edited in place too (#335).
@@ -125,6 +130,22 @@ struct QuestionDetailView: View {
             }
             .help("Share a link to this question")
         }
+        #if !os(macOS)
+            // iPad has no menu bar, so File-menu document actions live in a
+            // detail-pane overflow just like pad detail's document actions.
+            ToolbarItem(id: "documents", placement: detailToolbarTrailingPlacement) {
+                Menu {
+                    Button { printQuestionDocument() } label: {
+                        Label("Print", systemImage: "printer")
+                    }
+                    Button { exportMarkdown() } label: {
+                        Label("Export as Markdown", systemImage: "doc.richtext")
+                    }
+                } label: {
+                    Label("Document Actions", systemImage: "ellipsis.circle")
+                }
+            }
+        #endif
         ToolbarItem(id: "delete", placement: detailToolbarTrailingPlacement) {
             Button(role: .destructive) { showDeleteConfirm = true } label: {
                 Label("Delete", systemImage: "trash")
@@ -156,8 +177,10 @@ struct QuestionDetailView: View {
             // Publish a print rendering so File ▸ Print (⌘P) can produce a hard copy
             // or PDF of the prompt, instructions, and solution.
             .focusedSceneValue(\.printAction, PrintAction(id: "question-\(question.id)") {
-                printDocument(QuestionPrintDocument(question: question),
-                              jobTitle: question.displayTitle)
+                printQuestionDocument()
+            })
+            .focusedSceneValue(\.exportMarkdownAction, PrintAction(id: "question-\(question.id)") {
+                exportMarkdown()
             })
             .toolbar(id: "question-detail") { detailToolbar }
             .alert(
@@ -172,6 +195,20 @@ struct QuestionDetailView: View {
             .modifier(QuestionDetailErrorAlerts(createPadError: $createPadError,
                                                 editError: $editError,
                                                 deleteError: $deleteError))
+        #if !os(macOS)
+            .fileExporter(
+                isPresented: .init(get: { pendingExport != nil },
+                                   set: { if !$0 { pendingExport = nil } }),
+                document: pendingExport,
+                contentType: pendingExport?.contentType ?? .plainText,
+                defaultFilename: pendingExport?.defaultName
+            ) { result in
+                if case let .failure(error) = result {
+                    editError = error.localizedDescription
+                }
+                pendingExport = nil
+            }
+        #endif
             .onAppear {
                 consumePendingPadCreation()
                 consumePendingEdit()

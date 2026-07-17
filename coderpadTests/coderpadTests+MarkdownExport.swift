@@ -87,4 +87,38 @@ struct PadMarkdownExportTests {
         // A bare fence: three backticks immediately followed by the newline, no language.
         #expect(none.contains("```\nx\n```"))
     }
+
+    @Test
+    func `question document includes prompt materials and solution`() throws {
+        let json = #"""
+        {"id": 1, "title": "Two Sum", "language": "python3", "owner_email": "owner@example.com",
+         "description": "Return indices for the **target**.",
+         "candidate_instructions": [{"instructions": "Read the prompt.", "default_visible": true},
+                                    {"instructions": "Use the helper.", "default_visible": false}],
+         "test_cases_enabled": true,
+         "test_cases": [{"id": 1, "arguments": ["[2,7]", "9"], "return_value": "[0,1]", "visible": false}],
+         "custom_files": [{"id": "cf1", "title": "Starter", "description": "Boilerplate",
+                           "filename": "main.py", "filesize": "1.2 KB"}],
+         "contents": "def two_sum(nums, target):\n    pass",
+         "contents_for_test_cases": "def check():\n    pass",
+         "solution": "Use a hash map.", "used": 12, "public_take_home_setting_id": 42}
+        """#
+        let question = try CoderPadClient.decoder.decode(Question.self, from: Data(json.utf8))
+        let markdown = questionMarkdownDocument(question) { $0 == "owner@example.com" ? "Ada" : $0 }
+
+        #expect(markdown.hasPrefix("# Two Sum\n"))
+        #expect(markdown.contains("- **Type:** Live"))
+        #expect(markdown.contains("- **Language:** Python 3"))
+        #expect(markdown.contains("- **Owner:** Ada"))
+        #expect(markdown.contains("- **Times used:** 12"))
+        #expect(markdown.contains("- **Public link:** Configured"))
+        #expect(markdown.contains("## Description\n\nReturn indices for the **target**."))
+        #expect(markdown.contains("### Part 2\n\n> Hidden by default\n\nUse the helper."))
+        #expect(markdown.contains("| [2,7], 9 | [0,1] | Hidden |"))
+        #expect(markdown.contains("- main.py (1.2 KB): Boilerplate"))
+        #expect(markdown.contains("```python3\ndef two_sum"))
+        #expect(markdown.contains("## Starter Code (Test Cases)"))
+        #expect(markdown.contains("## Solution\n\nUse a hash map."))
+        #expect(markdown.hasSuffix("\n"))
+    }
 }

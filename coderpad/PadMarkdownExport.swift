@@ -18,21 +18,155 @@ func padMarkdownDocument(title: String, summary: [(String, String)], files: [Pad
     let heading = title.trimmingCharacters(in: .whitespacesAndNewlines)
     var lines: [String] = ["# \(markdownInlineEscaped(heading.isEmpty ? "Untitled Pad" : heading))", ""]
 
+    appendSummary(summary, to: &lines)
+
+    for file in files {
+        appendCodeSection(title: file.title, code: file.code, language: file.language, to: &lines)
+    }
+
+    return finalizedMarkdown(lines)
+}
+
+func questionMarkdownDocument(_ question: Question, displayName: (String) -> String = \.self) -> String {
+    let heading = question.title.trimmingCharacters(in: .whitespacesAndNewlines)
+    var lines: [String] = ["# \(markdownInlineEscaped(heading.isEmpty ? "Untitled Question" : heading))", ""]
+
+    appendSummary(questionSummaryRows(question, displayName: displayName), to: &lines)
+    appendMarkdownSection(title: "Description", text: question.description, to: &lines)
+    appendInstructions(question.candidateInstructions, to: &lines)
+    appendTestCases(question.testCases, to: &lines)
+    appendFiles(question.customFiles, to: &lines)
+
+    if let contents = question.contents, !contents.isEmpty {
+        appendCodeSection(title: "Starter Code", code: contents, language: question.language, to: &lines)
+    }
+    if let contents = question.contentsForTestCases, !contents.isEmpty, contents != question.contents {
+        appendCodeSection(title: "Starter Code (Test Cases)", code: contents, language: question.language, to: &lines)
+    }
+    appendMarkdownSection(title: "Solution", text: question.solution, to: &lines)
+
+    return finalizedMarkdown(lines)
+}
+
+func questionSummaryRows(_ question: Question, displayName: (String) -> String = \.self) -> [(String, String)] {
+    var rows: [(String, String)] = [("Type", question.interviewType.label)]
+    if let language = question.language, !language.isEmpty {
+        rows.append(("Language", language.coderPadLanguageDisplayName))
+    }
+    if !question.ownerEmail.isEmpty {
+        rows.append(("Owner", displayName(question.ownerEmail)))
+    }
+    if let used = question.used {
+        rows.append(("Times used", "\(used)"))
+    }
+    if question.shared == true {
+        rows.append(("Shared", "Yes"))
+    }
+    if question.testCasesEnabled == true {
+        rows.append(("Test cases", "Enabled"))
+    }
+    if question.isDraft == true {
+        rows.append(("Draft", "Yes"))
+    }
+    if question.publicTakeHomeSettingID != nil {
+        rows.append(("Public link", "Configured"))
+    }
+    if let createdAt = question.createdAt {
+        rows.append(("Created", createdAt.formatted(date: .long, time: .omitted)))
+    }
+    if let updatedAt = question.updatedAt {
+        rows.append(("Updated", updatedAt.formatted(date: .long, time: .omitted)))
+    }
+    return rows
+}
+
+private func appendSummary(_ summary: [(String, String)], to lines: inout [String]) {
     for (label, value) in summary {
         lines.append("- **\(markdownInlineEscaped(label)):** \(markdownInlineEscaped(value))")
     }
     if !summary.isEmpty { lines.append("") }
+}
 
-    for file in files {
-        let fence = codeFence(for: file.code)
-        lines.append("## \(markdownInlineEscaped(file.title))")
-        lines.append("")
-        lines.append(fence + codeFenceLanguage(file.language))
-        lines.append(file.code)
-        lines.append(fence)
+private func appendMarkdownSection(title: String, text: String?, to lines: inout [String]) {
+    guard let text, !text.isEmpty else { return }
+
+    lines.append("## \(markdownInlineEscaped(title))")
+    lines.append("")
+    lines.append(text)
+    lines.append("")
+}
+
+private func appendCodeSection(title: String, code: String, language: String?, to lines: inout [String]) {
+    let fence = codeFence(for: code)
+    lines.append("## \(markdownInlineEscaped(title))")
+    lines.append("")
+    lines.append(fence + codeFenceLanguage(language))
+    lines.append(code)
+    lines.append(fence)
+    lines.append("")
+}
+
+private func appendInstructions(_ instructions: [CandidateInstruction], to lines: inout [String]) {
+    guard !instructions.isEmpty else { return }
+
+    lines.append("## Candidate Instructions")
+    lines.append("")
+    for (index, item) in instructions.enumerated() {
+        if instructions.count > 1 {
+            lines.append("### Part \(index + 1)")
+            lines.append("")
+        }
+        if !item.defaultVisible {
+            lines.append("> Hidden by default")
+            lines.append("")
+        }
+        lines.append(item.instructions)
         lines.append("")
     }
+}
 
+private func appendTestCases(_ testCases: [QuestionTestCase], to lines: inout [String]) {
+    guard !testCases.isEmpty else { return }
+
+    lines.append("## Test Cases")
+    lines.append("")
+    lines.append("| Input | Expected | Visibility |")
+    lines.append("| --- | --- | --- |")
+    for testCase in testCases {
+        let input = testCase.arguments?.joined(separator: ", ") ?? "None"
+        let expected = testCase.returnValue ?? "None"
+        let visibility = testCase.visible == false ? "Hidden" : "Visible"
+        lines.append("| \(markdownInlineEscaped(input)) | \(markdownInlineEscaped(expected)) | \(visibility) |")
+    }
+    lines.append("")
+}
+
+private func appendFiles(_ files: [QuestionCustomFile], to lines: inout [String]) {
+    guard !files.isEmpty else { return }
+
+    lines.append("## Files")
+    lines.append("")
+    for file in files {
+        var line = "- \(markdownInlineEscaped(questionFileName(file)))"
+        if let size = file.filesize, !size.isEmpty {
+            line += " (\(markdownInlineEscaped(size)))"
+        }
+        if let description = file.description, !description.isEmpty {
+            line += ": \(markdownInlineEscaped(description))"
+        }
+        lines.append(line)
+    }
+    lines.append("")
+}
+
+private func questionFileName(_ file: QuestionCustomFile) -> String {
+    if let filename = file.filename, !filename.isEmpty { return filename }
+    if let title = file.title, !title.isEmpty { return title }
+    return "Untitled file"
+}
+
+private func finalizedMarkdown(_ lines: [String]) -> String {
+    var lines = lines
     while lines.last?.isEmpty == true {
         lines.removeLast()
     }
