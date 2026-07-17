@@ -59,6 +59,7 @@ struct PadWindow: View {
                         }
                     }
                     PadDetailView(client: account.makeClient(), pad: pad)
+                        .advertisesPadActivity(url: pad.webURL, title: pad.title)
                 }
                 .navigationTitle(pad.title.isEmpty ? pad.id : pad.title)
             } else if value == nil || loadFailed {

@@ -105,7 +105,9 @@ struct SectionDetail: View {
         switch section {
         case .pads:
             if let pad = padSelection, let client = padClient(for: pad) {
-                PadDetailView(client: client, pad: pad).id(pad.id)
+                PadDetailView(client: client, pad: pad)
+                    .advertisesPadActivity(url: pad.webURL, title: pad.title)
+                    .id(pad.id)
             } else {
                 ContentUnavailableView("Select a pad", systemImage: "doc.text")
             }

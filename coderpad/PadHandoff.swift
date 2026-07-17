@@ -62,14 +62,19 @@ extension View {
     /// Marks this view as advertising the pad at `url` for Handoff, Spotlight, and Siri
     /// prediction while it's on screen. `title` (the live page title when known) labels
     /// the Handoff banner and search result.
-    func advertisesPadActivity(url: URL, title: String?) -> some View {
-        userActivity(PadActivity.type) { activity in
-            activity.title = (title?.isEmpty == false ? title : nil) ?? url.host ?? "Pad"
-            activity.targetContentIdentifier = url.absoluteString
-            // Sets webpageURL plus the Handoff/Spotlight (and iOS-only prediction)
-            // eligibility flags shared across the interview apps (BuddyAppKit).
-            activity.applyBuddyHandoffFlags(webpageURL: url)
-            activity.addUserInfoEntries(from: [PadActivity.urlKey: url.absoluteString])
+    @ViewBuilder
+    func advertisesPadActivity(url: URL?, title: String?) -> some View {
+        if let url {
+            userActivity(PadActivity.type) { activity in
+                activity.title = (title?.isEmpty == false ? title : nil) ?? url.host ?? "Pad"
+                activity.targetContentIdentifier = url.absoluteString
+                // Sets webpageURL plus the Handoff/Spotlight (and iOS-only prediction)
+                // eligibility flags shared across the interview apps (BuddyAppKit).
+                activity.applyBuddyHandoffFlags(webpageURL: url)
+                activity.addUserInfoEntries(from: [PadActivity.urlKey: url.absoluteString])
+            }
+        } else {
+            self
         }
     }
 }
