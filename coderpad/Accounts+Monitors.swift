@@ -110,7 +110,7 @@ final class PadsBackgroundRefresher {
         let interval = interval > .zero ? interval : .milliseconds(1)
         let loop = Task { [weak self] in
             for await _ in AsyncTimerSequence.repeating(every: interval) {
-                await self?.refreshCurrentAccount()
+                await self?.refreshAllAccounts()
             }
         }
         self.loop = loop
@@ -123,17 +123,23 @@ final class PadsBackgroundRefresher {
         loop = nil
     }
 
-    func refreshCurrentAccount() async {
-        // Skip mock/demo accounts (their data is static, so a refresh would only churn
-        // the widget timeline) and any account without a key to fetch with.
-        guard let account = AccountsStore.shared.currentAccount,
-              !account.isMock, !account.apiKey.isEmpty else { return }
+    /// Refetches pads for every account a persistent consumer can need (#736): the
+    /// all-accounts badge scope counts every account's cache and a widget can pin any
+    /// account, so the sweep isn't limited to the current account - which is even
+    /// absent in All Accounts mode, where the old current-only refresh did nothing.
+    /// Sequential on purpose: one list fetch at a time keeps the background load low.
+    func refreshAllAccounts() async {
+        for account in AccountsStore.shared.accounts {
+            // Skip mock/demo accounts (their data is static, so a refresh would only
+            // churn the widget timeline) and any account without a key to fetch with.
+            guard !account.isMock, !account.apiKey.isEmpty else { continue }
 
-        let client = account.makeClient()
-        guard let fetched = try? await client.listPads(sort: "updated_at,desc") else { return }
+            let client = account.makeClient()
+            guard let fetched = try? await client.listPads(sort: "updated_at,desc") else { continue }
 
-        // `set` cascades to the widget snapshot and the active-pads Dock badge.
-        PadsCacheStore.shared.set(account.id, pads: fetched)
+            // `set` cascades to the widget snapshot and the active-pads Dock badge.
+            PadsCacheStore.shared.set(account.id, pads: fetched)
+        }
     }
 }
 
