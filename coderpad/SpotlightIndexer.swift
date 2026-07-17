@@ -120,6 +120,7 @@ enum SpotlightIndexer {
                     description: question.description ?? ""
                 ) else { continue }
                 guard isCurrentQuestionEnrichment(identifier: identifier, generation: generation) else { continue }
+                guard accountStillExists(account) else { continue }
 
                 let attrs = CSSearchableItemAttributeSet(contentType: .text)
                 attrs.title = question.title.isEmpty ? "#\(question.id)" : question.title
@@ -148,8 +149,21 @@ enum SpotlightIndexer {
         }
     }
 
+    private nonisolated static func invalidateQuestionEnrichment(account: UUID) {
+        let prefix = "\(questionPrefix)\(account.uuidString):"
+        enrichmentLock.withLock {
+            questionEnrichmentGenerations = questionEnrichmentGenerations.filter { !$0.key.hasPrefix(prefix) }
+        }
+    }
+
+    @MainActor
+    private static func accountStillExists(_ account: UUID) -> Bool {
+        AccountsStore.shared.accounts.contains { $0.id == account }
+    }
+
     /// Removes all indexed items for an account (e.g. when it's deleted).
     static func removeAccount(_ account: UUID) {
+        invalidateQuestionEnrichment(account: account)
         enqueueDelete(operation: "remove account domain") { completion in
             CSSearchableIndex.default().deleteSearchableItems(
                 withDomainIdentifiers: [domain(account)],
