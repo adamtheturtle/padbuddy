@@ -43,6 +43,26 @@ nonisolated struct ScreenTestsPage: Decodable, Hashable {
     }
 }
 
+/// A tolerantly decoded JSON array: malformed elements are skipped rather than
+/// failing the whole response, so one bad item can't hide every valid one
+/// (#764 for sessions, #896 for campaigns).
+nonisolated struct TolerantScreenList<Element: Decodable>: Decodable {
+    let elements: [Element]
+
+    init(from decoder: any Decoder) throws {
+        var container = try decoder.unkeyedContainer()
+        var decoded: [Element] = []
+        while !container.isAtEnd {
+            if let element = try? container.decode(Element.self) {
+                decoded.append(element)
+            } else if (try? container.decode(DiscardedScreenValue.self)) == nil {
+                break
+            }
+        }
+        elements = decoded
+    }
+}
+
 private nonisolated struct DiscardedScreenValue: Decodable {
     init(from decoder: any Decoder) throws {
         if var array = try? decoder.unkeyedContainer() {

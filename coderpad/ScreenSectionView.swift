@@ -151,7 +151,8 @@ struct ScreenCampaignsView: View {
     /// selected the search field targets that campaign's candidates (the detail column),
     /// so this list ignores the query then — keeping the selected campaign in view.
     private var filtered: [ScreenCampaign] {
-        let query = selectedCampaignID == nil ? search.trimmingCharacters(in: .whitespaces).lowercased() : ""
+        let trimmed = search.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let query = selectedCampaignID == nil ? trimmed : ""
         return campaigns
             .filter { (showArchived || !$0.archived) && (query.isEmpty || $0.name.lowercased().contains(query)) }
             .sorted { lhs, rhs in

@@ -55,9 +55,11 @@ struct ScreenClient {
 
     // MARK: Campaigns
 
-    /// All test campaigns in the organization. `GET /campaigns`.
+    /// All test campaigns in the organization. `GET /campaigns`. Decoded tolerantly:
+    /// one malformed campaign in the response is dropped rather than hiding every
+    /// valid campaign behind a decode error (#896), matching the sessions page (#764).
     nonisolated func listCampaigns() async throws -> [ScreenCampaign] {
-        try await get([ScreenCampaign].self, path: "/campaigns")
+        try await get(TolerantScreenList<ScreenCampaign>.self, path: "/campaigns").elements
     }
 
     /// Invites a candidate to a campaign, creating a test session.
@@ -101,6 +103,14 @@ struct ScreenClient {
                                   from: Int? = nil,
                                   until: Int? = nil) async throws -> [ScreenTestSession] {
         var all: [ScreenTestSession] = []
+        // Offset pagination can shift while pages are fetched, re-serving a session
+        // on a later page; keep the first copy of each id so callers never see
+        // duplicates (#898). (A concurrent deletion can still skip a session - not
+        // detectable client-side with offset paging.)
+        var seenIDs: Set<Int> = []
+        // Server-provided offsets already visited: a `nextStart` cycle spanning more
+        // than one page (A -> B -> A) would otherwise loop forever (#857).
+        var seenStarts: Set<Int> = []
         var start: Int?
         while true {
             let page = try await listTests(campaignID: campaignID,
@@ -109,11 +119,14 @@ struct ScreenClient {
                                            from: from,
                                            until: until,
                                            start: start)
-            all.append(contentsOf: page.tests)
-            guard let pagination = page.pagination,
-                  pagination.hasMoreItems,
-                  let next = pagination.nextStart,
-                  next != start else { break }
+            all.append(contentsOf: page.tests.filter { seenIDs.insert($0.id).inserted })
+            guard let pagination = page.pagination, pagination.hasMoreItems else { break }
+
+            // The API says more items exist but gave no usable way to fetch them:
+            // surface that instead of silently returning a partial list (#858).
+            guard let next = pagination.nextStart, next != start, seenStarts.insert(next).inserted else {
+                throw CoderPadError.decode("Screen pagination returned an invalid next offset.")
+            }
 
             start = next
         }
@@ -159,7 +172,16 @@ struct ScreenClient {
         }
         let request = try authorizedRequest(path: "/tests/\(id)/report", method: "GET",
                                             query: query, accept: "application/pdf")
-        return try await data(for: request).0
+        let (data, response) = try await data(for: request)
+        // A 2xx that isn't actually a PDF (an HTML error page, an empty body) must
+        // not be opened or saved as a candidate report (#859).
+        let contentType = response.value(forHTTPHeaderField: "Content-Type") ?? ""
+        guard contentType.localizedCaseInsensitiveContains("pdf")
+            || data.starts(with: Array("%PDF".utf8)) else {
+            throw CoderPadError.decode("The report response was not a PDF.")
+        }
+
+        return data
     }
 
     // MARK: Webhook

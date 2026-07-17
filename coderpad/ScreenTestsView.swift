@@ -40,6 +40,10 @@ struct ScreenTestsView: View {
     /// The selected row ids. An `NSTableView`-backed `FastList` (#439/#474) drives this
     /// as a set; a single selection drives the detail column's report.
     @State private var selectedIDs: Set<Int> = []
+    /// Monotonic id of the newest `load()` call: date-range changes and reloads can
+    /// overlap, and only the newest request may publish rows or errors, so an older
+    /// slower response can't overwrite the current date range's list (#885).
+    @State private var loadGeneration = 0
     @State private var showInvite = false
     @State private var testPendingDelete: ScreenTestSession?
     @State private var actionError: String?
@@ -180,7 +184,7 @@ struct ScreenTestsView: View {
 
     /// Tests matching the status + search filters, most-recent activity first.
     private var filtered: [ScreenTestSession] {
-        let query = search.trimmingCharacters(in: .whitespaces).lowercased()
+        let query = search.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         return tests
             .filter { test in
                 (statusFilter == nil || test.status == statusFilter)
@@ -226,16 +230,23 @@ struct ScreenTestsView: View {
     }
 
     private func load() async {
+        loadGeneration += 1
+        let generation = loadGeneration
         isLoading = true
-        defer { isLoading = false }
         do {
             let fromMs = dateRange.lowerBound.map { Int($0.timeIntervalSince1970 * 1000) }
-            tests = try await client.listAllTests(campaignID: campaign.id, from: fromMs)
+            let fetched = try await client.listAllTests(campaignID: campaign.id, from: fromMs)
+            guard generation == loadGeneration else { return }
+
+            tests = fetched
             loadError = nil
             pruneHiddenSelection()
         } catch {
+            guard generation == loadGeneration else { return }
+
             loadError = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
         }
+        if generation == loadGeneration { isLoading = false }
     }
 
     // MARK: Row actions (write paths, #437)

@@ -21,6 +21,9 @@ struct ScreenTestDetailView: View {
     /// The freshest copy, refetched via `getTest` for community stats / latest report;
     /// falls back to the `test` passed from the list until the refetch lands.
     @State private var detail: ScreenTestSession?
+    /// A failed refetch (#921): the list's copy stays on screen, but flagged stale
+    /// rather than silently posing as the session's current state.
+    @State private var refreshError: String?
     @State private var isFetchingReport = false
     @State private var reportError: String?
     // Optional report-export options (#443), mapped onto the Screen API's PDF query
@@ -37,6 +40,9 @@ struct ScreenTestDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
+                if let refreshError {
+                    StaleRefreshBanner(message: refreshError) { Task { await refetch() } }
+                }
                 header
                 detailsSection
                 if let report = session.report {
@@ -232,8 +238,17 @@ struct ScreenTestDetailView: View {
 
     private func refetch() async {
         // Non-fatal: the list already gave us a usable session, so a failed refetch
-        // just leaves the existing data in place.
-        detail = try? await client.getTest(id: test.id, withCommunityStats: true)
+        // leaves the existing data in place - but flagged stale rather than silently
+        // presented as the current state (#921).
+        do {
+            detail = try await client.getTest(id: test.id, withCommunityStats: true)
+            refreshError = nil
+        } catch {
+            // Switching sessions cancels this task; that's not a refresh failure.
+            guard !Task.isCancelled else { return }
+
+            refreshError = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
+        }
     }
 
     /// Fetches the report PDF, then either opens it (temp file) or offers a save panel.

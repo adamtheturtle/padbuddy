@@ -190,7 +190,8 @@ struct MergedScreenView: View {
     private var filtered: [ScopedScreenCampaign] {
         // While a campaign is selected the search field targets its candidates (the
         // detail column), so this list ignores the query then — keeping it in view.
-        let query = selectedScopedID == nil ? search.trimmingCharacters(in: .whitespaces).lowercased() : ""
+        let trimmed = search.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let query = selectedScopedID == nil ? trimmed : ""
         let scoped = screenAccounts.flatMap { account, _ in
             (campaignsByAccount[account.id] ?? []).map {
                 ScopedScreenCampaign(accountID: account.id, account: RowAccount(account), campaign: $0)
