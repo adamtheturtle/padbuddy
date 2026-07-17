@@ -104,18 +104,26 @@ struct SectionDetail: View {
     var body: some View {
         switch section {
         case .pads:
-            if let pad = padSelection, let client = padClient(for: pad) {
-                PadDetailView(client: client, pad: pad)
-                    .advertisesPadActivity(url: pad.webURL, title: pad.title)
-                    .id(pad.id)
+            if let pad = padSelection {
+                if let client = padClient(for: pad) {
+                    PadDetailView(client: client, pad: pad)
+                        .advertisesPadActivity(url: pad.webURL, title: pad.title)
+                        .id(pad.id)
+                } else {
+                    unresolvedRoutePlaceholder(systemImage: "doc.text")
+                }
             } else {
                 ContentUnavailableView("Select a pad", systemImage: "doc.text")
             }
 
         case .questions:
-            if let question = questionSelection, let account = questionAccount(for: question) {
-                QuestionDetailView(client: account.makeClient(), question: question, accountID: account.id)
-                    .id(questionDetailID(for: question))
+            if let question = questionSelection {
+                if let account = questionAccount(for: question) {
+                    QuestionDetailView(client: account.makeClient(), question: question, accountID: account.id)
+                        .id(questionDetailID(for: question))
+                } else {
+                    unresolvedRoutePlaceholder(systemImage: "questionmark.bubble")
+                }
             } else {
                 ContentUnavailableView("Select a question", systemImage: "questionmark.bubble")
             }
@@ -161,25 +169,37 @@ struct SectionDetail: View {
         return String(campaign.id)
     }
 
+    /// Shown when a merged selection's source account can't be resolved. Never
+    /// guess an account instead: the detail is fully actionable, question ids are
+    /// per-org, and pad credentials are account-specific, so a guessed first
+    /// account could edit or delete an unrelated item in the wrong org (#912).
+    /// Routes rebuild as the merged list publishes, so reselecting recovers.
+    private func unresolvedRoutePlaceholder(systemImage: String) -> some View {
+        ContentUnavailableView {
+            Label("Account Unavailable", systemImage: systemImage)
+        } description: {
+            Text("The account this item belongs to couldn't be determined. Select it in the list again.")
+        }
+    }
+
     /// The client a selected pad's detail should use: in the combined view, the
     /// account that pad came from (resolved through `MergedRouting`); otherwise the
-    /// single current account.
+    /// single current account. Never falls back to an arbitrary account (#912).
     private func padClient(for pad: Pad) -> CoderPadClient? {
         if store.isMergedView {
-            return (router.account(forPadID: pad.id) ?? store.mergeableAccounts.first)?.makeClient()
+            return router.account(forPadID: pad.id)?.makeClient()
         }
         return store.currentAccount?.makeClient()
     }
 
     /// The account a selected question belongs to. Per-org question ids collide
     /// across accounts, so in the combined view prefer the account the list
-    /// published for the *selected* question; fall back to the (collision-prone)
-    /// id map, then the first merged account.
+    /// published for the *selected* question, then the (collision-prone) id map.
+    /// Never falls back to an arbitrary account (#912).
     private func questionAccount(for question: Question) -> Account? {
         if store.isMergedView {
             return router.selectedQuestionAccountID.flatMap { id in store.accounts.first { $0.id == id } }
                 ?? router.account(forQuestionID: question.id)
-                ?? store.mergeableAccounts.first
         }
         return store.currentAccount
     }
