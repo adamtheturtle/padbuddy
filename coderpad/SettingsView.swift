@@ -46,6 +46,9 @@ struct SettingsView: View {
     /// editor for it and the sidebar selection is cleared — mirroring Mail, where the
     /// `+` button reveals an inline setup pane rather than a modal sheet.
     @State var addingAccount: Account?
+    /// The account the sidebar minus button is about to remove; non-nil presents the
+    /// delete confirmation (#772), mirroring the editor's own delete button.
+    @State var accountPendingRemoval: UUID?
 
     // Browser and menu-bar preferences live in UserDefaults under the keys defined
     // in `BrowserSettings.Key`; `@AppStorage` reads/writes those same keys so the

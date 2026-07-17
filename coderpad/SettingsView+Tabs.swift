@@ -259,14 +259,12 @@ extension SettingsView {
         HStack(spacing: 2) {
             // A single Mail-style segmented add/remove control: a rounded pill holding
             // +/- split by a hairline divider, rather than two free-standing buttons.
+            // Removal asks first (#772): deleting an account discards its stored API
+            // key irreversibly, so the minus button gets the same confirmation as the
+            // editor's own delete button.
             AddRemoveControl(
                 onAdd: { addingAccount = Account(name: "", apiKey: "") },
-                onRemove: {
-                    if let id = selectedAccountID {
-                        store.remove(id: id)
-                        selectedAccountID = nil
-                    }
-                },
+                onRemove: { accountPendingRemoval = selectedAccountID },
                 canRemove: selectedAccountID != nil
             )
 
@@ -278,6 +276,33 @@ extension SettingsView {
             // first-run users and App Review (see the App Review notes) without a
             // bespoke control in the toolbar.
         }
+        .alert(
+            "Delete this account?",
+            isPresented: .init(
+                get: { accountPendingRemoval != nil },
+                set: { if !$0 { accountPendingRemoval = nil } }
+            )
+        ) {
+            Button("Cancel", role: .cancel) {}
+            Button("Delete Account", role: .destructive) {
+                if let id = accountPendingRemoval {
+                    store.remove(id: id)
+                    if selectedAccountID == id { selectedAccountID = nil }
+                }
+                accountPendingRemoval = nil
+            }
+        } message: {
+            Text("""
+            \u{201C}\(pendingRemovalName)\u{201D} and its stored API key will be removed \
+            from this Mac. This can\u{2019}t be undone.
+            """)
+        }
+    }
+
+    /// The display name for the account the sidebar minus button is about to remove.
+    private var pendingRemovalName: String {
+        accountPendingRemoval
+            .flatMap { id in store.accounts.first { $0.id == id } }?.name ?? ""
     }
 
     @ViewBuilder
