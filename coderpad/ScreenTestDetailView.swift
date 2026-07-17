@@ -11,6 +11,8 @@
 
 #if os(macOS)
     import AppKit
+#else
+    import QuickLook
 #endif
 import SwiftUI
 import UniformTypeIdentifiers
@@ -31,6 +33,12 @@ struct ScreenTestDetailView: View {
     @State private var exportAnonymized = false
     @State private var exportIncludeRank = false
     @State private var exportIncludeComparative = false
+    #if !os(macOS)
+        /// The staged PDF Quick Look is previewing after Open PDF (#808).
+        @State private var reportPreviewURL: URL?
+        /// The fetched PDF staged for the save-file exporter (#808).
+        @State private var pendingReportExport: ScreenReportExportDocument?
+    #endif
 
     /// The session to display: the refetched copy when available, else the list's.
     private var session: ScreenTestSession {
@@ -61,6 +69,21 @@ struct ScreenTestDetailView: View {
         } message: {
             Text(reportError ?? "")
         }
+        #if !os(macOS)
+            .quickLookPreview($reportPreviewURL)
+            .fileExporter(
+                isPresented: .init(get: { pendingReportExport != nil },
+                                   set: { if !$0 { pendingReportExport = nil } }),
+                document: pendingReportExport,
+                contentType: .pdf,
+                defaultFilename: "ScreenReport-\(test.id).pdf"
+            ) { result in
+                if case let .failure(error) = result {
+                    reportError = error.localizedDescription
+                }
+                pendingReportExport = nil
+            }
+        #endif
     }
 
     private var header: some View {
@@ -217,26 +240,30 @@ struct ScreenTestDetailView: View {
         if let email = session.candidateEmail, !email.isEmpty { return email }
         return String(localized: "Unknown candidate")
     }
+}
 
+// MARK: - Formatting, fetching, and report export
+
+private extension ScreenTestDetailView {
     // MARK: Formatting
 
-    private func scoreText(_ score: Double, outOf total: Int?) -> String {
+    func scoreText(_ score: Double, outOf total: Int?) -> String {
         if let total, total > 0 { return "\(Int(score.rounded()))/\(total)" }
         return "\(Int(score.rounded()))"
     }
 
-    private func pointsText(_ points: Int, outOf total: Int?) -> String {
+    func pointsText(_ points: Int, outOf total: Int?) -> String {
         if let total, total > 0 { return "\(points)/\(total)" }
         return "\(points)"
     }
 
-    private func durationText(_ seconds: Int) -> String {
+    func durationText(_ seconds: Int) -> String {
         Duration.seconds(seconds).formatted(.units(allowed: [.hours, .minutes], width: .abbreviated))
     }
 
     // MARK: Data
 
-    private func refetch() async {
+    func refetch() async {
         // Non-fatal: the list already gave us a usable session, so a failed refetch
         // leaves the existing data in place - but flagged stale rather than silently
         // presented as the current state (#921).
@@ -252,7 +279,7 @@ struct ScreenTestDetailView: View {
     }
 
     /// Fetches the report PDF, then either opens it (temp file) or offers a save panel.
-    private func openReport(save: Bool) async {
+    func openReport(save: Bool) async {
         isFetchingReport = true
         defer { isFetchingReport = false }
         do {
@@ -273,8 +300,11 @@ struct ScreenTestDetailView: View {
                     NSWorkspace.shared.open(url)
                     ScreenReportFiles.scheduleRemoval(of: url)
                 #else
-                    // Opening the PDF (a document preview / share sheet) can be added
-                    // later on iPad; for now this is a no-op so the button stays inert.
+                    // Quick Look previews the staged single-use file, which is swept
+                    // again once the viewer has had time to load it (#808).
+                    let url = try ScreenReportFiles.stage(data, testID: test.id)
+                    reportPreviewURL = url
+                    ScreenReportFiles.scheduleRemoval(of: url)
                 #endif
             }
         } catch {
@@ -284,7 +314,7 @@ struct ScreenTestDetailView: View {
 
     /// Offers a save panel (sandbox-safe: the user grants write access to the chosen
     /// location) and writes the fetched PDF there.
-    private func saveReport(_ data: Data) {
+    func saveReport(_ data: Data) {
         #if os(macOS)
             let panel = NSSavePanel()
             panel.allowedContentTypes = [.pdf]
@@ -297,12 +327,34 @@ struct ScreenTestDetailView: View {
                 reportError = error.localizedDescription
             }
         #else
-            // Saving the PDF (a document picker / share sheet) can be added later on
-            // iPad; for now this is a no-op so the button stays inert.
-            _ = data
+            // The document exporter is sandbox-safe: it writes wherever the user
+            // picks, mirroring the macOS save panel (#808).
+            pendingReportExport = ScreenReportExportDocument(data: data)
         #endif
     }
 }
+
+#if !os(macOS)
+    /// A fetched Screen report PDF staged for the iPad's `.fileExporter` (#808).
+    private struct ScreenReportExportDocument: FileDocument {
+        static var readableContentTypes: [UTType] { [] }
+        static var writableContentTypes: [UTType] { [.pdf] }
+
+        private let data: Data
+
+        init(data: Data) {
+            self.data = data
+        }
+
+        init(configuration _: ReadConfiguration) throws {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+
+        func fileWrapper(configuration _: WriteConfiguration) throws -> FileWrapper {
+            FileWrapper(regularFileWithContents: data)
+        }
+    }
+#endif
 
 #Preview("Completed report") {
     // Build the sample session in its own statements to keep the view
