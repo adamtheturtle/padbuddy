@@ -51,7 +51,11 @@ nonisolated extension MCPTools {
         }
 
         let scan = await pageAllPadsFromAPI(key: key, base: base)
-        if scan.error != nil, let cached = cachedPadDicts(accountID: accountID, requireFresh: false) {
+        // Only a transport failure (offline) justifies the stale-cache fallback: an HTTP
+        // error, e.g. a 401 from a revoked key, must be surfaced, not papered over with
+        // cached content (#828).
+        if scan.error?.isConnectivityFailure == true,
+           let cached = cachedPadDicts(accountID: accountID, requireFresh: false) {
             return PadScan(pads: cached, totalReported: cached.count, fromCache: true)
         }
         return scan

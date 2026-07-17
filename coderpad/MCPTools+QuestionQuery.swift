@@ -66,7 +66,11 @@ nonisolated extension MCPTools {
         }
 
         let scan = await pageAllQuestionsFromAPI(key: key, base: base)
-        if scan.error != nil, let cached = cachedQuestionDicts(accountID: accountID, requireFresh: false) {
+        // Only a transport failure (offline) justifies the stale-cache fallback: an HTTP
+        // error, e.g. a 401 from a revoked key, must be surfaced, not papered over with
+        // cached content (#828).
+        if scan.error?.isConnectivityFailure == true,
+           let cached = cachedQuestionDicts(accountID: accountID, requireFresh: false) {
             return QuestionScan(questions: cached, totalReported: cached.count, fromCache: true)
         }
         return scan

@@ -69,7 +69,10 @@ nonisolated extension MCPTools {
     /// known pad still answers offline.
     static func getPadCacheBacked(pad: String, credentials: MCPCredentials) async -> Outcome {
         let live = await get("/api/pads/\(pad)", key: credentials.apiKey, base: credentials.baseURL)
-        if !live.isError { return live }
+        // Fall back to the snapshot only when the API was unreachable: an HTTP error
+        // (401 from a revoked key, a genuine 404) must be surfaced, not answered from
+        // the cache (#828).
+        guard live.isConnectivityFailure else { return live }
 
         if let pads = cachedPads(accountID: credentials.id, requireFresh: false),
            let match = pads.first(where: { $0.id == pad }),
@@ -82,7 +85,8 @@ nonisolated extension MCPTools {
     /// get_question backed by the cache (see `getPadCacheBacked`).
     static func getQuestionCacheBacked(id: Int, credentials: MCPCredentials) async -> Outcome {
         let live = await get("/api/questions/\(id)", key: credentials.apiKey, base: credentials.baseURL)
-        if !live.isError { return live }
+        // See getPadCacheBacked: offline-only fallback (#828).
+        guard live.isConnectivityFailure else { return live }
 
         if let questions = cachedQuestions(accountID: credentials.id, requireFresh: false),
            let match = questions.first(where: { $0.id == id }),

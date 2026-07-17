@@ -16,6 +16,11 @@ nonisolated enum MCPTools {
     struct Outcome {
         let text: String
         let isError: Bool
+        /// Whether the failure was transport-level (offline, DNS, timeout) rather than an
+        /// HTTP response. Only these justify serving a stale cached snapshot: an HTTP
+        /// 401/403 must surface as the error it is, so revoking a key genuinely revokes
+        /// MCP access to cached content (#828).
+        var isConnectivityFailure = false
     }
 
     /// Tool descriptors for `tools/list`, built from the shared catalog in CoderPadToolCore
@@ -216,7 +221,11 @@ nonisolated enum MCPTools {
             }
             return Outcome(text: "HTTP \(status)\n\(body)", isError: true)
         } catch {
-            return Outcome(text: "Request to \(path) failed: \(error.localizedDescription)", isError: true)
+            return Outcome(
+                text: "Request to \(path) failed: \(error.localizedDescription)",
+                isError: true,
+                isConnectivityFailure: true
+            )
         }
     }
 
