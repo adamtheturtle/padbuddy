@@ -7,40 +7,113 @@ import SwiftUI
 
 extension PadDetailView {
     var detailScroll: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: detailSectionSpacing) {
-                summaryCard
-                notesCard
-                Divider()
-                // One code card per environment. A pad can carry several
-                // environments (e.g. a candidate and reference solution, or
-                // multiple languages); showing only the active one silently hid
-                // the rest. Each card is identified by its language chip and
-                // flags the active one, so no separate environments list is
-                // needed to tell them apart.
-                ForEach(environments) { env in
-                    let files = displayFiles(for: env)
-                    if !files.isEmpty {
-                        EnvironmentCodeCard(
-                            files: files,
-                            isActive: env.id == pad.activeEnvironmentID,
-                            showActiveBadge: environments.count > 1,
-                            language: env.language,
-                            padID: pad.id,
-                            dark: colorScheme == .dark,
-                            exampleQuestionID: env.exampleQuestionID
-                        )
+        ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: detailSectionSpacing) {
+                    summaryCard
+                        .id(PadDetailSection.summary)
+                    notesCard
+                        .id(PadDetailSection.notes)
+                    Divider()
+                    let codeEnvironments = environments.filter { !displayFiles(for: $0).isEmpty }
+                    if !codeEnvironments.isEmpty {
+                        VStack(alignment: .leading, spacing: detailSectionSpacing) {
+                            ForEach(codeEnvironments) { env in
+                                let files = displayFiles(for: env)
+                                EnvironmentCodeCard(
+                                    files: files,
+                                    isActive: env.id == pad.activeEnvironmentID,
+                                    showActiveBadge: environments.count > 1,
+                                    language: env.language,
+                                    padID: pad.id,
+                                    dark: colorScheme == .dark,
+                                    exampleQuestionID: env.exampleQuestionID
+                                )
+                            }
+                        }
+                        .id(PadDetailSection.code)
                     }
+                    if whiteboardURL != nil {
+                        whiteboardCard
+                            .id(PadDetailSection.whiteboard)
+                    }
+                    eventsCard
+                        .id(PadDetailSection.events)
                 }
-                if whiteboardURL != nil {
-                    whiteboardCard
+                .padding(.horizontal, detailHorizontalPadding)
+                .padding(.top, detailTopPadding)
+                .padding(.bottom, detailBottomPadding)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .safeAreaInset(edge: .top, spacing: 0) {
+                sectionNavigator(proxy: proxy)
+            }
+        }
+    }
+
+    private var availableSections: [PadDetailSection] {
+        PadDetailSection.allCases.filter { section in
+            switch section {
+            case .summary, .notes, .events:
+                true
+            case .code:
+                codeCardCount > 0
+            case .whiteboard:
+                whiteboardURL != nil
+            }
+        }
+    }
+
+    private func sectionNavigator(proxy: ScrollViewProxy) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(availableSections) { section in
+                    Button {
+                        withAnimation(.snappy(duration: 0.2)) {
+                            proxy.scrollTo(section, anchor: .top)
+                        }
+                    } label: {
+                        Label(section.title, systemImage: section.systemImage)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
                 }
-                eventsCard
             }
             .padding(.horizontal, detailHorizontalPadding)
-            .padding(.top, detailTopPadding)
-            .padding(.bottom, detailBottomPadding)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.vertical, 8)
+        }
+        .background(.bar)
+    }
+
+    private enum PadDetailSection: String, CaseIterable, Identifiable {
+        case summary
+        case notes
+        case code
+        case whiteboard
+        case events
+
+        var id: Self {
+            self
+        }
+
+        var title: LocalizedStringKey {
+            switch self {
+            case .summary: "Summary"
+            case .notes: "Notes"
+            case .code: "Code"
+            case .whiteboard: "Whiteboard"
+            case .events: "Events"
+            }
+        }
+
+        var systemImage: String {
+            switch self {
+            case .summary: "info.circle"
+            case .notes: "note.text"
+            case .code: "chevron.left.forwardslash.chevron.right"
+            case .whiteboard: "scribble.variable"
+            case .events: "list.bullet.rectangle"
+            }
         }
     }
 
