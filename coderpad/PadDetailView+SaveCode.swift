@@ -61,7 +61,7 @@ extension PadDetailView {
             result.append(SavableFile(relativePath: "\(Self.sanitizeComponent(suggestedBaseName)).\(ext)",
                                       contents: contents))
         }
-        return result
+        return Self.withUniqueRelativePaths(result)
     }
 
     /// The pad's code as printable sections — one per file, titled by its path,
@@ -253,17 +253,11 @@ extension PadDetailView {
         return "untitled-\(file.id).\(fileExtension(forLanguage: file.language))"
     }
 
-    /// Replaces characters that are unsafe in a single path component, so a pad
-    /// title or file name can't break out of its folder or confuse the shell.
-    static func sanitizeComponent(_ name: String) -> String {
-        let invalid = CharacterSet(charactersIn: "/\\:?%*|\"<>")
-        let cleaned = name.components(separatedBy: invalid).joined(separator: "-")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !cleaned.isEmpty, !cleaned.allSatisfy({ $0 == "." }) else {
-            return "untitled"
+    private static func withUniqueRelativePaths(_ files: [SavableFile]) -> [SavableFile] {
+        let paths = uniqueRelativePaths(files.map(\.relativePath))
+        return zip(files, paths).map { file, path in
+            SavableFile(relativePath: path, contents: file.contents)
         }
-
-        return cleaned
     }
 
     /// Maps each known language code to a file extension. A table rather than a

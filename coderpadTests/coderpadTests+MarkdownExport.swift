@@ -168,6 +168,23 @@ struct CodeExportPathTests {
     }
 
     @Test
+    func `unique relative paths preserve sanitized filename collisions`() {
+        let paths = PadDetailView.uniqueRelativePaths([
+            "src/foo-.js",
+            "src/foo-.js",
+            "src/foo-2.js",
+            "src/foo-.js"
+        ])
+
+        #expect(paths == [
+            "src/foo-.js",
+            "src/foo--2.js",
+            "src/foo-2.js",
+            "src/foo--3.js"
+        ])
+    }
+
+    @Test
     func `path plan rejects file directory collisions`() throws {
         let files = [
             CodeFile(id: "1", path: "src", contents: "", language: nil),
