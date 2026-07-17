@@ -31,14 +31,16 @@ struct QuestionWindow: View {
     @State private var fetched: Question?
     @State private var loadFailed = false
     @State private var refreshError: String?
+    @State private var fallbackAccountID: UUID?
 
-    /// The owning account: the one named in the value, or the current account when
-    /// the value omits it (single-account context).
+    /// The owning account: the one named in the value, or the current account captured
+    /// when a legacy/restored value omits it. The fallback is intentionally sticky so
+    /// switching accounts elsewhere cannot retarget this standalone window.
     private var account: Account? {
         guard let value else { return nil }
 
-        if let id = value.account { return accounts.accounts.first { $0.id == id } }
-        return accounts.currentAccount
+        let id = value.account ?? fallbackAccountID ?? accounts.currentAccountID
+        return id.flatMap { id in accounts.accounts.first { $0.id == id } }
     }
 
     /// The question from the warm cache, if the owning account has it loaded.
@@ -92,6 +94,7 @@ struct QuestionWindow: View {
     /// Fetch the question after first paint so restored windows don't treat
     /// persisted list snapshots as authoritative.
     private func load() async {
+        captureFallbackAccountIfNeeded()
         // If the window was reused for a different question, drop the previous
         // fetch so its stale result can't satisfy the `fetched == nil` guard
         // (and can't render via `fetched ?? cachedQuestion`).
@@ -101,6 +104,12 @@ struct QuestionWindow: View {
             refreshError = nil
         }
         await refresh()
+    }
+
+    private func captureFallbackAccountIfNeeded() {
+        guard value?.account == nil, fallbackAccountID == nil else { return }
+
+        fallbackAccountID = accounts.currentAccountID
     }
 
     private func refresh() async {
