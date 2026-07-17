@@ -72,13 +72,33 @@ extension PadDetailView {
         defer { isMutating = false }
         do {
             try await client.endPad(id: pad.id)
-            // Refresh so the ended state/timestamp propagate to the list and detail.
-            if let updated = try? await client.getPad(id: pad.id) {
+            do {
+                // Refresh so the authoritative ended state/timestamp propagate to the list and detail.
+                let updated = try await client.getPad(id: pad.id)
                 AppRouter.padUpdated(updated)
+            } catch {
+                AppRouter.padUpdated(optimisticEndedPad())
+                mutateError = """
+                The interview was ended, but the latest pad details couldn't be refreshed. \
+                Reload to confirm the final timestamp.
+                """
             }
         } catch {
             mutateError = error.localizedDescription
         }
+    }
+
+    private func optimisticEndedPad(now: Date = Date()) -> Pad {
+        Pad(
+            id: pad.id, title: pad.title, state: "ended", ownerEmail: pad.ownerEmail,
+            language: pad.language, participants: pad.participants, url: pad.url,
+            playback: pad.playback, events: pad.events, notes: pad.notes,
+            drawing: pad.drawing, contents: pad.contents, history: pad.history,
+            createdAt: pad.createdAt, updatedAt: now, endedAt: now,
+            type: pad.type, executionEnabled: pad.executionEnabled, isPrivate: pad.isPrivate,
+            activeEnvironmentID: pad.activeEnvironmentID, padEnvironmentIDs: pad.padEnvironmentIDs,
+            questionIDs: pad.questionIDs, team: pad.team
+        )
     }
 
     func deletePad() async {
