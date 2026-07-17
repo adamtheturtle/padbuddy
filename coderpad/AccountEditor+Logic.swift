@@ -119,7 +119,7 @@ extension AccountEditor {
     /// Whether the draft has a non-empty user email. Required to save: the email
     /// identifies "you" for the My Pads/My Questions filters and the menu bar.
     var hasEmail: Bool {
-        !draft.userEmail.trimmingCharacters(in: .whitespaces).isEmpty
+        EmailValidation.isPlausibleAddress(draft.userEmail.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
     /// A saved account whose key and server URL are untouched can be re-saved without

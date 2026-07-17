@@ -29,7 +29,9 @@ struct OrgMemberPicker: View {
         var email: String
         var name: String?
 
-        var id: String { email.lowercased() }
+        var id: String {
+            email.lowercased()
+        }
 
         var primary: String {
             name?.nilIfEmpty ?? email
@@ -61,6 +63,7 @@ struct OrgMemberPicker: View {
         for user in users where !user.email.isEmpty {
             let key = user.email.lowercased()
             guard seenEmails.insert(key).inserted else { continue }
+
             options.append(MemberOption(email: user.email, name: user.name))
         }
 
@@ -83,6 +86,7 @@ struct OrgMemberPicker: View {
 
     private var selectedLabel: String {
         guard !trimmedSelection.isEmpty else { return String(localized: "Unset") }
+
         return selectedOption?.primary ?? trimmedSelection
     }
 
@@ -96,8 +100,9 @@ struct OrgMemberPicker: View {
     /// A typed address that isn't already an existing member — offered as a
     /// "Use …" row so the field still works before the org member list is loaded.
     private var customEmailCandidate: String? {
-        let trimmedQuery = query.trimmingCharacters(in: .whitespaces)
-        guard !trimmedQuery.isEmpty, trimmedQuery.contains("@") else { return nil }
+        let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard EmailValidation.isPlausibleAddress(trimmedQuery) else { return nil }
+
         let isExistingMember = memberOptions.contains {
             $0.email.caseInsensitiveCompare(trimmedQuery) == .orderedSame
         }

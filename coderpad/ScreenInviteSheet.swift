@@ -170,7 +170,7 @@ struct ScreenInviteSheet: View {
             }
         }
         #if os(macOS)
-            .buttonStyle(.borderedProminent)
+        .buttonStyle(.borderedProminent)
         #endif
         .keyboardShortcut(.defaultAction)
         .disabled(isSending || sendDisabled)
@@ -181,7 +181,7 @@ struct ScreenInviteSheet: View {
             dismiss()
         }
         #if os(macOS)
-            .buttonStyle(.borderedProminent)
+        .buttonStyle(.borderedProminent)
         #endif
         .keyboardShortcut(.defaultAction)
     }
@@ -200,13 +200,7 @@ struct ScreenInviteSheet: View {
     /// A light plausibility check, not full RFC validation: one @, a non-empty local
     /// part, a dotted domain, and no whitespace. Internal for tests.
     static func isPlausibleEmail(_ value: String) -> Bool {
-        guard !value.contains(where: \.isWhitespace) else { return false }
-
-        let parts = value.split(separator: "@", omittingEmptySubsequences: false)
-        guard parts.count == 2, !parts[0].isEmpty else { return false }
-
-        let domain = parts[1]
-        return domain.contains(".") && !domain.hasPrefix(".") && !domain.hasSuffix(".")
+        EmailValidation.isPlausibleAddress(value)
     }
 
     private func send() async {
