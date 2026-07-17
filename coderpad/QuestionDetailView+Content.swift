@@ -151,13 +151,10 @@ extension QuestionDetailView {
     }
 
     var headerChips: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 8) {
-                headerChipContent
-            }
-            VStack(alignment: .leading, spacing: 8) {
-                headerChipContent
-            }
+        // Match pad detail's wrapping header badges so several question chips
+        // reflow cleanly in a narrow detail pane instead of clipping at the edge.
+        FlowLayout(spacing: 6, lineSpacing: 6) {
+            headerChipContent
         }
     }
 
