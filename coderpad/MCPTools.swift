@@ -221,6 +221,20 @@ nonisolated enum MCPTools {
         return nil
     }
 
+    /// Reads a required string argument, trimming user whitespace and rejecting blanks.
+    static func requiredString(_ arguments: [String: Any], _ name: String) -> String? {
+        let value: String? = if let string = arguments[name] as? String {
+            string
+        } else if let int = arguments[name] as? Int {
+            String(int)
+        } else {
+            nil
+        }
+
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed?.isEmpty == false ? trimmed : nil
+    }
+
     /// Reads a string argument only when the key is present, preserving explicit empty
     /// strings for write tools that need to clear existing text fields.
     static func presentString(_ arguments: [String: Any], _ name: String) -> String? {

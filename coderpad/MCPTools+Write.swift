@@ -105,14 +105,19 @@ nonisolated extension MCPTools {
     }
 
     private static func createQuestion(arguments: [String: Any], key: String, base: URL) async -> Outcome {
-        guard let title = string(arguments, "title") else { return missing("title") }
+        guard let title = requiredString(arguments, "title") else { return missing("title") }
 
+        let body = questionCreateBody(title: title, arguments: arguments)
+        return await send("POST", "/api/questions/", key: key, base: base, body: body)
+    }
+
+    static func questionCreateBody(title: String, arguments: [String: Any]) -> QuestionCreate {
         var body = QuestionCreate(title: title)
         body.language = string(arguments, "language")
         body.description = string(arguments, "description")
         body.solution = string(arguments, "solution")
         body.contents = string(arguments, "contents")
-        return await send("POST", "/api/questions/", key: key, base: base, body: body)
+        return body
     }
 
     private static func updateQuestion(arguments: [String: Any], key: String, base: URL) async -> Outcome {

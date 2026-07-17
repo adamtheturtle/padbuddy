@@ -115,6 +115,29 @@ struct MCPWriteToolsTests {
     }
 
     @Test
+    func `required string trims and rejects blank input`() {
+        #expect(MCPTools.requiredString(["title": "  Two Sum\n"], "title") == "Two Sum")
+        #expect(MCPTools.requiredString(["title": "   \n"], "title") == nil)
+        #expect(MCPTools.requiredString(["title": ""], "title") == nil)
+        #expect(MCPTools.requiredString(["title": 42], "title") == "42")
+    }
+
+    @Test
+    func `create question body uses normalized required title`() throws {
+        let title = try #require(MCPTools.requiredString(["title": "  Two Sum\n"], "title"))
+        let body = MCPTools.questionCreateBody(title: title, arguments: [
+            "language": "swift",
+            "description": "Prompt"
+        ])
+        let object = try encodedObject(body)
+        let question = try #require(object["question"] as? [String: Any])
+
+        #expect(question["title"] as? String == "Two Sum")
+        #expect(question["language"] as? String == "swift")
+        #expect(object["description"] as? String == "Prompt")
+    }
+
+    @Test
     func `successful writes invalidate the selected account cache`() {
         let account = UUID()
         let kind = "mcp-write-test-\(UUID().uuidString)"
