@@ -57,8 +57,8 @@ extension MergedPadsView {
 
     /// Snapshot the structured filters into a `NamedSearch`, reusing the same model
     /// `PadsView` persists. The cross-account `accountFilter` and the `mineOnly`
-    /// preset are intentionally left out, matching how the single-account list omits
-    /// its own presets; `teamFilter` has no merged equivalent, so it stays nil.
+    /// preset travel in the `MergedFilterSnapshot` envelope around this (#913);
+    /// `teamFilter` has no merged equivalent, so it stays nil.
     func captureCurrentSearch() -> NamedSearch {
         NamedSearch(
             name: "", search: search,
@@ -104,20 +104,35 @@ extension MergedPadsView {
     func persistFilters() {
         guard didRestoreFilters else { return }
 
-        if let data = try? JSONEncoder().encode(captureCurrentSearch()) {
+        let snapshot = MergedFilterSnapshot(search: captureCurrentSearch(),
+                                            accountFilter: accountFilter,
+                                            mineOnly: mineOnly)
+        if let data = try? JSONEncoder().encode(snapshot) {
             UserDefaults.standard.set(data, forKey: Self.liveFilterKey)
         }
     }
 
-    /// Restore the persisted filters once, on appear.
+    /// Restore the persisted filters once, on appear. Reads the
+    /// `MergedFilterSnapshot` envelope, falling back to the bare `NamedSearch`
+    /// persisted by earlier builds (#913).
     func restoreFilters() {
         guard !didRestoreFilters else { return }
 
         didRestoreFilters = true
-        guard let data = UserDefaults.standard.data(forKey: Self.liveFilterKey),
-              let snapshot = try? JSONDecoder().decode(NamedSearch.self, from: data) else { return }
+        guard let data = UserDefaults.standard.data(forKey: Self.liveFilterKey) else { return }
 
-        apply(snapshot)
+        if let snapshot = try? JSONDecoder().decode(MergedFilterSnapshot.self, from: data) {
+            apply(snapshot.search)
+            // Only re-apply an account filter that still resolves to a mergeable
+            // account; a removed account's filter would show an empty list.
+            if let id = snapshot.accountFilter,
+               accounts.mergeableAccounts.contains(where: { $0.id == id }) {
+                accountFilter = id
+            }
+            mineOnly = snapshot.mineOnly
+        } else if let legacy = try? JSONDecoder().decode(NamedSearch.self, from: data) {
+            apply(legacy)
+        }
     }
 
     // MARK: - Selection persistence

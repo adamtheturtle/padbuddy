@@ -83,3 +83,32 @@ enum SavedSearchKind: String, Codable, Hashable {
     case pads
     case questions
 }
+
+/// The merged ("All Accounts") lists' persisted live-filter snapshot: the shared
+/// `NamedSearch` body plus the merged-only account and preset filters it cannot
+/// carry. Persisting only the `NamedSearch` subset silently broadened results on
+/// the next launch whenever an account filter or a Mine/Favorites preset was
+/// active (#913).
+struct MergedFilterSnapshot: Codable {
+    var search: NamedSearch
+    var accountFilter: UUID?
+    var mineOnly: Bool
+    var favoritesOnly: Bool
+
+    init(search: NamedSearch, accountFilter: UUID? = nil,
+         mineOnly: Bool = false, favoritesOnly: Bool = false) {
+        self.search = search
+        self.accountFilter = accountFilter
+        self.mineOnly = mineOnly
+        self.favoritesOnly = favoritesOnly
+    }
+
+    /// Lenient decoding so a snapshot persisted before a field existed still loads.
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        search = try container.decode(NamedSearch.self, forKey: .search)
+        accountFilter = try container.decodeIfPresent(UUID.self, forKey: .accountFilter)
+        mineOnly = try container.decodeIfPresent(Bool.self, forKey: .mineOnly) ?? false
+        favoritesOnly = try container.decodeIfPresent(Bool.self, forKey: .favoritesOnly) ?? false
+    }
+}

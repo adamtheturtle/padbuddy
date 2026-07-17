@@ -1,0 +1,58 @@
+//
+//  coderpadTests+MergedFilters.swift
+//  coderpadTests
+//
+//  The merged lists' persisted live-filter envelope (#913): account and preset
+//  filters must survive the round-trip, and snapshots persisted by earlier builds
+//  (a bare NamedSearch) must still restore.
+//
+
+@testable import CoderPad
+import Foundation
+import Testing
+
+@Suite("Merged filter snapshot (#913)")
+struct MergedFilterSnapshotTests {
+    @Test
+    func `account and preset filters survive the round-trip`() throws {
+        let account = UUID()
+        let original = MergedFilterSnapshot(
+            search: NamedSearch(name: "", search: "graphs", languageFilter: "python3",
+                                ownerFilter: nil, typeFilter: nil, draftFilter: nil),
+            accountFilter: account, mineOnly: true, favoritesOnly: true
+        )
+        let data = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(MergedFilterSnapshot.self, from: data)
+        #expect(decoded.search.search == "graphs")
+        #expect(decoded.accountFilter == account)
+        #expect(decoded.mineOnly)
+        #expect(decoded.favoritesOnly)
+    }
+
+    @Test
+    func `a snapshot without preset keys decodes with them off`() throws {
+        let search = NamedSearch(name: "", search: "s", languageFilter: nil,
+                                 ownerFilter: nil, typeFilter: nil, draftFilter: nil)
+        let searchJSON = try #require(String(bytes: JSONEncoder().encode(search), encoding: .utf8))
+        let json = #"{"search":\#(searchJSON)}"#
+        let decoded = try JSONDecoder().decode(MergedFilterSnapshot.self, from: Data(json.utf8))
+        #expect(decoded.accountFilter == nil)
+        #expect(!decoded.mineOnly)
+        #expect(!decoded.favoritesOnly)
+    }
+
+    @Test
+    func `a legacy bare NamedSearch blob is not mistaken for an envelope`() throws {
+        // restoreFilters() tries the envelope first and falls back to NamedSearch;
+        // a legacy blob must fail the envelope decode so the fallback runs.
+        let legacy = NamedSearch(name: "", search: "s", languageFilter: nil,
+                                 ownerFilter: nil, typeFilter: nil, draftFilter: nil)
+        let data = try JSONEncoder().encode(legacy)
+        #expect(throws: DecodingError.self) {
+            try JSONDecoder().decode(MergedFilterSnapshot.self, from: data)
+        }
+        #expect(throws: Never.self) {
+            try JSONDecoder().decode(NamedSearch.self, from: data)
+        }
+    }
+}
