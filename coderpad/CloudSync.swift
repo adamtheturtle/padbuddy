@@ -96,3 +96,69 @@ nonisolated enum FavoriteTitleSync {
         return result
     }
 }
+
+// MARK: - Deletion tombstones (#738, #723)
+
+/// Cross-device deletion semantics for the additively-merged per-account blobs.
+/// `CloudSyncMerge.mergeArrays`/`mergeTimestamps` deliberately never delete, so a
+/// favorite removed on one Mac was unioned back by another device's mirror and
+/// could resurrect everywhere (#738); the same held for a deleted pad's
+/// open-history timestamp (#723). Each store now records a dated tombstone when
+/// it removes an entry, mirrors the tombstones alongside the items, and resolves
+/// the two after every merge: the newer side wins, so a removal beats the entry
+/// it removed while a later re-add beats the tombstone.
+nonisolated enum CloudTombstones {
+    /// How long a tombstone is kept before it's pruned. Any device that syncs
+    /// within this window converges; after it, the entry is long gone from every
+    /// mirror, so the tombstone no longer earns its storage.
+    static let retention: TimeInterval = 60 * 60 * 24 * 60
+
+    /// Resolves favorite-style items (carrying an optional `addedAt`) against
+    /// tombstones: an item whose tombstone is newer than its `addedAt` is dropped
+    /// (removed elsewhere); an item re-added after the tombstone survives and
+    /// retires the tombstone. Items persisted before `addedAt` existed count as
+    /// arbitrarily old, so a tombstone always beats them.
+    static func resolve<Element>(
+        items: [Element],
+        tombstones: [String: Date],
+        id: (Element) -> String,
+        addedAt: (Element) -> Date?
+    ) -> (items: [Element], tombstones: [String: Date]) {
+        var liveTombstones = tombstones
+        let kept = items.filter { item in
+            guard let removedAt = tombstones[id(item)] else { return true }
+
+            if (addedAt(item) ?? .distantPast) > removedAt {
+                liveTombstones[id(item)] = nil
+                return true
+            }
+            return false
+        }
+        return (kept, liveTombstones)
+    }
+
+    /// The open-history variant, where the entry's own date is the recency signal:
+    /// an entry older than its tombstone is dropped; a newer one (the pad was
+    /// opened again after the deletion) retires the tombstone.
+    static func resolveTimestamps(
+        entries: [String: Date],
+        tombstones: [String: Date]
+    ) -> (entries: [String: Date], tombstones: [String: Date]) {
+        var liveTombstones = tombstones
+        let kept = entries.filter { key, opened in
+            guard let removedAt = tombstones[key] else { return true }
+
+            if opened > removedAt {
+                liveTombstones[key] = nil
+                return true
+            }
+            return false
+        }
+        return (kept, liveTombstones)
+    }
+
+    /// Tombstones older than ``retention``, dropped so the maps stay bounded.
+    static func pruned(_ tombstones: [String: Date], now: Date = Date()) -> [String: Date] {
+        tombstones.filter { now.timeIntervalSince($0.value) < retention }
+    }
+}

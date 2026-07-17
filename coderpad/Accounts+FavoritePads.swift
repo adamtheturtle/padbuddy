@@ -2,7 +2,7 @@
 //  Accounts+FavoritePads.swift
 //  coderpad
 //
-//  Per-account favorite pads and pad-open tracking.
+//  Per-account favorite pads. Pad-open tracking lives in Accounts+PadOpened.swift.
 //
 
 import Foundation
@@ -16,6 +16,10 @@ import SwiftUI
 struct FavoritePad: Codable, Hashable {
     let id: String
     var title: String
+    /// When this favorite was (re-)pinned, so a deletion tombstone from another
+    /// device can be ordered against it (#738). Optional so entries persisted
+    /// before it existed still decode; they count as arbitrarily old.
+    var addedAt: Date?
 }
 
 /// Per-account favorite ("pinned") pads, identified by pad id. The pad counterpart
@@ -30,11 +34,16 @@ struct FavoritePad: Codable, Hashable {
 final class FavoritePadsStore {
     static let shared = FavoritePadsStore()
     private var byAccount: [UUID: [FavoritePad]] = [:]
+    /// Dated per-account deletion tombstones, so an unfavorite converges across
+    /// devices instead of being unioned back by another Mac's mirror (#738).
+    private var removedAt: [UUID: [String: Date]] = [:]
     private static let key = "favoritePads.v2"
+    private static let tombstonesKey = "favoritePads.tombstones.v1"
     /// The iCloud mirror is keyed by each account's stable sync id (a `String`), not
     /// the per-device `UUID` the local blob uses, so it lives under its own key with
     /// its own schema (#536).
     private static let cloudKey = "favoritePads.cloud.v1"
+    private static let cloudTombstonesKey = "favoritePads.tombstones.cloud.v1"
     /// Held so the external-change observation task isn't cancelled; the store is a
     /// singleton that lives for the whole process, so it's never explicitly stopped.
     private var cloudObserverTask: Task<Void, Never>?
@@ -43,6 +52,10 @@ final class FavoritePadsStore {
         if let data = UserDefaults.standard.data(forKey: Self.key),
            let decoded = try? JSONDecoder().decode([UUID: [FavoritePad]].self, from: data) {
             byAccount = decoded
+        }
+        if let data = UserDefaults.standard.data(forKey: Self.tombstonesKey),
+           let decoded = try? JSONDecoder().decode([UUID: [String: Date]].self, from: data) {
+            removedAt = decoded
         }
         // Re-pull and merge whenever iCloud reports an external change to our mirror.
         cloudObserverTask = Task { @MainActor in
@@ -83,7 +96,7 @@ final class FavoritePadsStore {
         guard !entries.contains(where: { $0.id == id }) else { return }
 
         let before = entries
-        entries.append(FavoritePad(id: id, title: title))
+        entries.append(FavoritePad(id: id, title: title, addedAt: Date()))
         byAccount[account] = entries
         save()
         registerUndo(to: before, account: account, undoManager: undoManager, actionName: "Add Favorite")
@@ -96,9 +109,10 @@ final class FavoritePadsStore {
         let actionName: String
         if let index = entries.firstIndex(where: { $0.id == id }) {
             entries.remove(at: index)
+            recordRemoval(of: id, account: account)
             actionName = "Remove Favorite"
         } else {
-            entries.append(FavoritePad(id: id, title: title))
+            entries.append(FavoritePad(id: id, title: title, addedAt: Date()))
             actionName = "Add Favorite"
         }
         byAccount[account] = entries
@@ -112,6 +126,7 @@ final class FavoritePadsStore {
         let before = entries
         entries.remove(at: index)
         byAccount[account] = entries
+        recordRemoval(of: id, account: account)
         save()
         registerUndo(to: before, account: account, undoManager: undoManager, actionName: "Remove Favorite")
     }
@@ -160,16 +175,35 @@ final class FavoritePadsStore {
     /// Drops every favorite for an account, called when the account is removed or
     /// re-keyed so its pinned pad ids don't linger in UserDefaults (#379).
     func remove(account: UUID) {
-        guard byAccount[account] != nil else { return }
+        guard byAccount[account] != nil || removedAt[account] != nil else { return }
 
         byAccount[account] = nil
+        removedAt[account] = nil
         save()
     }
 
+    /// Records a dated deletion tombstone so the removal propagates through the
+    /// additive iCloud merge instead of being unioned back (#738).
+    private func recordRemoval(of id: String, account: UUID) {
+        removedAt[account, default: [:]][id] = Date()
+    }
+
     private func save() {
+        // A present id retires its tombstone (re-added locally, incl. via undo),
+        // and old tombstones age out so the map stays bounded.
+        for (account, entries) in byAccount {
+            guard var tombstones = removedAt[account] else { continue }
+
+            for entry in entries {
+                tombstones[entry.id] = nil
+            }
+            removedAt[account] = CloudTombstones.pruned(tombstones)
+        }
         do {
             let data = try JSONEncoder().encode(byAccount)
             UserDefaults.standard.set(data, forKey: Self.key)
+            let tombstones = try JSONEncoder().encode(removedAt)
+            UserDefaults.standard.set(tombstones, forKey: Self.tombstonesKey)
         } catch {
             let reason = error.localizedDescription
             persistenceLogger.error("Failed to encode favorite pads: \(reason, privacy: .public)")
@@ -179,7 +213,18 @@ final class FavoritePadsStore {
 
     private func restore(_ entries: [FavoritePad], account: UUID, undoManager: UndoManager?, actionName: String) {
         let before = byAccount[account] ?? []
-        byAccount[account] = entries
+        // Anything the restore drops relative to the current list is a removal to
+        // propagate; anything it (re-)introduces is stamped as freshly added so it
+        // beats any remote tombstone (#738).
+        let restoredIDs = Set(entries.map(\.id))
+        for entry in before where !restoredIDs.contains(entry.id) {
+            recordRemoval(of: entry.id, account: account)
+        }
+        byAccount[account] = entries.map { entry in
+            var entry = entry
+            entry.addedAt = Date()
+            return entry
+        }
         save()
         registerUndo(to: before, account: account, undoManager: undoManager, actionName: actionName)
     }
@@ -193,22 +238,28 @@ final class FavoritePadsStore {
         undoManager.setActionName(actionName)
     }
 
-    /// Pushes the current favourites up to iCloud, keyed by each account's stable sync
-    /// id. No-op when iCloud is unavailable (#536).
+    /// Pushes the current favourites (and their deletion tombstones, #738) up to
+    /// iCloud, keyed by each account's stable sync id. No-op when iCloud is
+    /// unavailable (#536).
     private func mirrorToCloud() {
         guard CloudSyncStore.shared.isAvailable else { return }
 
-        let cloud = CloudSyncMerge.toCloud(byAccount) { uuid in
+        let syncID: (UUID) -> String? = { uuid in
             AccountsStore.shared.accounts.first { $0.id == uuid }?.syncID
         }
-        if let data = try? JSONEncoder().encode(cloud) {
+        if let data = try? JSONEncoder().encode(CloudSyncMerge.toCloud(byAccount, syncID: syncID)) {
             CloudSyncStore.shared.mirror(data, forKey: Self.cloudKey)
+        }
+        if let data = try? JSONEncoder().encode(CloudSyncMerge.toCloud(removedAt, syncID: syncID)) {
+            CloudSyncStore.shared.mirror(data, forKey: Self.cloudTombstonesKey)
         }
     }
 
     /// Pulls the iCloud favourites and merges them into the local set (additive union
-    /// per account), then persists. Called once accounts have loaded and on every
-    /// external iCloud change. No-op when iCloud is unavailable (#536).
+    /// per account), then resolves deletion tombstones so an unfavorite made on
+    /// another Mac converges here instead of being unioned back (#738), and persists.
+    /// Called once accounts have loaded and on every external iCloud change. No-op
+    /// when iCloud is unavailable (#536).
     func syncFromCloud() {
         guard let data = CloudSyncStore.shared.data(forKey: Self.cloudKey),
               let cloud = try? JSONDecoder().decode([String: [FavoritePad]].self, from: data) else { return }
@@ -224,116 +275,23 @@ final class FavoritePadsStore {
             merged: merged, cloud: cloud, uuidForSyncID: uuidForSyncID,
             id: { $0.id }, title: \.title
         )
-        guard merged != byAccount else { return }
+        var tombstones = removedAt
+        if let data = CloudSyncStore.shared.data(forKey: Self.cloudTombstonesKey),
+           let cloudTombstones = try? JSONDecoder().decode([String: [String: Date]].self, from: data) {
+            tombstones = CloudSyncMerge.mergeTimestamps(cloud: cloudTombstones, into: tombstones,
+                                                        uuidForSyncID: uuidForSyncID)
+        }
+        for (account, entries) in merged {
+            let resolved = CloudTombstones.resolve(items: entries,
+                                                   tombstones: tombstones[account] ?? [:],
+                                                   id: \.id, addedAt: \.addedAt)
+            merged[account] = resolved.items
+            tombstones[account] = resolved.tombstones
+        }
+        guard merged != byAccount || tombstones != removedAt else { return }
 
         byAccount = merged
-        save()
-    }
-}
-
-/// Per-account record of when each pad was last opened, so the pad list can show
-/// an activity dot on a started pad that has changed *since you last looked at it*
-/// — a more personal signal than "changed since the last background refresh".
-/// Scoped per account (a pad id only means something within its org) and
-/// persisted to UserDefaults as a single JSON blob keyed by account id.
-@Observable
-final class PadOpenedStore {
-    static let shared = PadOpenedStore()
-    private var byAccount: [UUID: [String: Date]] = [:]
-    private static let key = "padLastOpened.v1"
-    /// The iCloud mirror is keyed by each account's stable sync id, like the favourites
-    /// mirror, so the activity-dot "last looked at" state follows the user across their
-    /// Macs (#536).
-    private static let cloudKey = "padLastOpened.cloud.v1"
-    /// Held so the external-change observation task isn't cancelled; the store is a
-    /// singleton that lives for the whole process, so it's never explicitly stopped.
-    private var cloudObserverTask: Task<Void, Never>?
-
-    private init() {
-        if let data = UserDefaults.standard.data(forKey: Self.key),
-           let decoded = try? JSONDecoder().decode([UUID: [String: Date]].self, from: data) {
-            byAccount = decoded
-        }
-        // Re-pull and merge whenever iCloud reports an external change to our mirror.
-        cloudObserverTask = Task { @MainActor in
-            for await note in NotificationCenter.default.notifications(named: CloudSyncStore.didChangeExternally) {
-                guard note.userInfo?["key"] as? String == Self.cloudKey else { continue }
-
-                Self.shared.syncFromCloud()
-            }
-        }
-    }
-
-    /// When the pad was last opened under this account, or `nil` if never opened.
-    func lastOpened(_ padID: String, account: UUID?) -> Date? {
-        guard let account else { return nil }
-
-        return byAccount[account]?[padID]
-    }
-
-    /// Records that the pad was just opened, clearing its activity dot until it
-    /// next changes. `now` is injectable for tests.
-    func markOpened(_ padID: String, account: UUID, now: Date = Date()) {
-        byAccount[account, default: [:]][padID] = now
-        save()
-    }
-
-    /// Drops an account's open-history, called when the account is removed or
-    /// re-keyed so its pad-open timestamps don't linger in UserDefaults (#379).
-    func remove(account: UUID) {
-        guard byAccount[account] != nil else { return }
-
-        byAccount[account] = nil
-        save()
-    }
-
-    /// Drops one pad's open timestamp under `account`, called by the central
-    /// deletion cleanup so a deleted pad's record doesn't persist indefinitely
-    /// (and reattach if the same id is ever seen again, #723).
-    func removePad(_ padID: String, account: UUID) {
-        guard byAccount[account]?[padID] != nil else { return }
-
-        byAccount[account]?[padID] = nil
-        save()
-    }
-
-    private func save() {
-        do {
-            let data = try JSONEncoder().encode(byAccount)
-            UserDefaults.standard.set(data, forKey: Self.key)
-        } catch {
-            let reason = error.localizedDescription
-            persistenceLogger.error("Failed to encode pad open times: \(reason, privacy: .public)")
-        }
-        mirrorToCloud()
-    }
-
-    /// Pushes the current open-history up to iCloud, keyed by each account's stable sync
-    /// id. No-op when iCloud is unavailable (#536).
-    private func mirrorToCloud() {
-        guard CloudSyncStore.shared.isAvailable else { return }
-
-        let cloud = CloudSyncMerge.toCloud(byAccount) { uuid in
-            AccountsStore.shared.accounts.first { $0.id == uuid }?.syncID
-        }
-        if let data = try? JSONEncoder().encode(cloud) {
-            CloudSyncStore.shared.mirror(data, forKey: Self.cloudKey)
-        }
-    }
-
-    /// Pulls the iCloud open-history and merges it into the local set, keeping the most
-    /// recent open per pad, then persists. Called once accounts have loaded and on every
-    /// external iCloud change. No-op when iCloud is unavailable (#536).
-    func syncFromCloud() {
-        guard let data = CloudSyncStore.shared.data(forKey: Self.cloudKey),
-              let cloud = try? JSONDecoder().decode([String: [String: Date]].self, from: data) else { return }
-
-        let merged = CloudSyncMerge.mergeTimestamps(cloud: cloud, into: byAccount) { identity in
-            AccountsStore.shared.accounts.first { $0.syncID == identity }?.id
-        }
-        guard merged != byAccount else { return }
-
-        byAccount = merged
+        removedAt = tombstones
         save()
     }
 }

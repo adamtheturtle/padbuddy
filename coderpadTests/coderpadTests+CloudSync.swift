@@ -292,3 +292,70 @@ struct FavoriteTitleSyncTests {
         #expect(result[account]?.map(\.title) == ["Kept"])
     }
 }
+
+@Suite("Deletion tombstones (#738, #723)")
+struct CloudTombstonesTests {
+    @Test
+    func `a tombstone newer than the entry removes it and survives`() {
+        let removed = Date(timeIntervalSince1970: 1_000)
+        let items = [FavoritePad(id: "abc", title: "T", addedAt: Date(timeIntervalSince1970: 500))]
+        let resolved = CloudTombstones.resolve(items: items,
+                                               tombstones: ["abc": removed],
+                                               id: \.id, addedAt: \.addedAt)
+        #expect(resolved.items.isEmpty)
+        #expect(resolved.tombstones["abc"] == removed)
+    }
+
+    @Test
+    func `an entry re-added after the tombstone survives and retires it`() {
+        let removed = Date(timeIntervalSince1970: 1_000)
+        let items = [FavoritePad(id: "abc", title: "T", addedAt: Date(timeIntervalSince1970: 2_000))]
+        let resolved = CloudTombstones.resolve(items: items,
+                                               tombstones: ["abc": removed],
+                                               id: \.id, addedAt: \.addedAt)
+        #expect(resolved.items.map(\.id) == ["abc"])
+        #expect(resolved.tombstones.isEmpty)
+    }
+
+    @Test
+    func `an entry with no addedAt counts as arbitrarily old`() {
+        // Legacy entries persisted before addedAt existed must lose to a tombstone.
+        let items = [FavoritePad(id: "abc", title: "T")]
+        let resolved = CloudTombstones.resolve(items: items,
+                                               tombstones: ["abc": Date(timeIntervalSince1970: 1)],
+                                               id: \.id, addedAt: \.addedAt)
+        #expect(resolved.items.isEmpty)
+    }
+
+    @Test
+    func `entries without tombstones pass through untouched`() {
+        let items = [FavoritePad(id: "abc", title: "T", addedAt: Date())]
+        let resolved = CloudTombstones.resolve(items: items, tombstones: [:],
+                                               id: \.id, addedAt: \.addedAt)
+        #expect(resolved.items.map(\.id) == ["abc"])
+    }
+
+    @Test
+    func `open-history entries resolve by their own recency`() {
+        let removed = Date(timeIntervalSince1970: 1_000)
+        let entries = [
+            "deleted-pad": Date(timeIntervalSince1970: 500),
+            "reopened-pad": Date(timeIntervalSince1970: 2_000)
+        ]
+        let resolved = CloudTombstones.resolveTimestamps(
+            entries: entries,
+            tombstones: ["deleted-pad": removed, "reopened-pad": removed]
+        )
+        #expect(resolved.entries.keys.sorted() == ["reopened-pad"])
+        #expect(resolved.tombstones.keys.sorted() == ["deleted-pad"])
+    }
+
+    @Test
+    func `pruning drops tombstones past retention and keeps fresh ones`() {
+        let now = Date(timeIntervalSince1970: 10_000_000)
+        let fresh = now.addingTimeInterval(-60)
+        let stale = now.addingTimeInterval(-CloudTombstones.retention - 1)
+        let pruned = CloudTombstones.pruned(["fresh": fresh, "stale": stale], now: now)
+        #expect(pruned.keys.sorted() == ["fresh"])
+    }
+}

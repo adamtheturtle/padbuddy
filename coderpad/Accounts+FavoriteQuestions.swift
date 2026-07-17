@@ -17,6 +17,10 @@ import SwiftUI
 struct FavoriteQuestion: Codable, Hashable {
     let id: Int
     var title: String
+    /// When this favorite was (re-)starred, so a deletion tombstone from another
+    /// device can be ordered against it (#738). Optional so entries persisted
+    /// before it existed still decode; they count as arbitrarily old.
+    var addedAt: Date?
 }
 
 /// Per-account favorite ("starred") questions, identified by question id. A
@@ -32,11 +36,17 @@ struct FavoriteQuestion: Codable, Hashable {
 final class FavoriteQuestionsStore {
     static let shared = FavoriteQuestionsStore()
     private var byAccount: [UUID: [FavoriteQuestion]] = [:]
+    /// Dated per-account deletion tombstones (keyed by the stringified question
+    /// id), so an unstar converges across devices instead of being unioned back
+    /// by another Mac's mirror (#738).
+    private var removedAt: [UUID: [String: Date]] = [:]
     private static let key = "favoriteQuestions.v2"
     private static let legacyKey = "favoriteQuestions.v1"
+    private static let tombstonesKey = "favoriteQuestions.tombstones.v1"
     /// The iCloud mirror, keyed by each account's stable sync id rather than the
     /// per-device `UUID`, under its own key (#536).
     private static let cloudKey = "favoriteQuestions.cloud.v1"
+    private static let cloudTombstonesKey = "favoriteQuestions.tombstones.cloud.v1"
     private var cloudObserver: (any NSObjectProtocol)?
 
     private init() {
@@ -51,6 +61,10 @@ final class FavoriteQuestionsStore {
             byAccount = legacy.mapValues { ids in ids.map { FavoriteQuestion(id: $0, title: "") } }
             save()
             UserDefaults.standard.removeObject(forKey: Self.legacyKey)
+        }
+        if let data = UserDefaults.standard.data(forKey: Self.tombstonesKey),
+           let decoded = try? JSONDecoder().decode([UUID: [String: Date]].self, from: data) {
+            removedAt = decoded
         }
         cloudObserver = NotificationCenter.default.addObserver(
             forName: CloudSyncStore.didChangeExternally, object: nil, queue: .main
@@ -95,9 +109,10 @@ final class FavoriteQuestionsStore {
         let actionName: String
         if let index = entries.firstIndex(where: { $0.id == id }) {
             entries.remove(at: index)
+            recordRemoval(of: id, account: account)
             actionName = "Remove Favorite"
         } else {
-            entries.append(FavoriteQuestion(id: id, title: title))
+            entries.append(FavoriteQuestion(id: id, title: title, addedAt: Date()))
             actionName = "Add Favorite"
         }
         byAccount[account] = entries
@@ -116,7 +131,7 @@ final class FavoriteQuestionsStore {
         guard !entries.contains(where: { $0.id == id }) else { return }
 
         let before = entries
-        entries.append(FavoriteQuestion(id: id, title: title))
+        entries.append(FavoriteQuestion(id: id, title: title, addedAt: Date()))
         byAccount[account] = entries
         save()
         WidgetSync.syncFavorites(account: account)
@@ -144,9 +159,10 @@ final class FavoriteQuestionsStore {
     /// removed or re-keyed so its question ids and captured titles don't linger in
     /// UserDefaults — the titles can carry candidate names, a privacy concern (#379).
     func remove(account: UUID) {
-        guard byAccount[account] != nil else { return }
+        guard byAccount[account] != nil || removedAt[account] != nil else { return }
 
         byAccount[account] = nil
+        removedAt[account] = nil
         save()
         // Push the now-empty favorites to the widget so its question picker drops them too.
         WidgetSync.syncFavorites(account: account)
@@ -161,9 +177,16 @@ final class FavoriteQuestionsStore {
         let before = entries
         entries.remove(at: index)
         byAccount[account] = entries
+        recordRemoval(of: id, account: account)
         save()
         WidgetSync.syncFavorites(account: account)
         registerUndo(to: before, account: account, undoManager: undoManager, actionName: "Remove Favorite")
+    }
+
+    /// Records a dated deletion tombstone so the removal propagates through the
+    /// additive iCloud merge instead of being unioned back (#738).
+    private func recordRemoval(of id: Int, account: UUID) {
+        removedAt[account, default: [:]][String(id)] = Date()
     }
 
     /// Updates stored titles from a freshly loaded question list, so a favorite's
@@ -193,9 +216,21 @@ final class FavoriteQuestionsStore {
     }
 
     private func save() {
+        // A present id retires its tombstone (re-starred locally, incl. via undo),
+        // and old tombstones age out so the map stays bounded.
+        for (account, entries) in byAccount {
+            guard var tombstones = removedAt[account] else { continue }
+
+            for entry in entries {
+                tombstones[String(entry.id)] = nil
+            }
+            removedAt[account] = CloudTombstones.pruned(tombstones)
+        }
         do {
             let data = try JSONEncoder().encode(byAccount)
             UserDefaults.standard.set(data, forKey: Self.key)
+            let tombstones = try JSONEncoder().encode(removedAt)
+            UserDefaults.standard.set(tombstones, forKey: Self.tombstonesKey)
         } catch {
             let reason = error.localizedDescription
             persistenceLogger.error("Failed to encode favorite questions: \(reason, privacy: .public)")
@@ -205,7 +240,18 @@ final class FavoriteQuestionsStore {
 
     private func restore(_ entries: [FavoriteQuestion], account: UUID, undoManager: UndoManager?, actionName: String) {
         let before = byAccount[account] ?? []
-        byAccount[account] = entries
+        // Anything the restore drops relative to the current list is a removal to
+        // propagate; anything it (re-)introduces is stamped as freshly added so it
+        // beats any remote tombstone (#738).
+        let restoredIDs = Set(entries.map(\.id))
+        for entry in before where !restoredIDs.contains(entry.id) {
+            recordRemoval(of: entry.id, account: account)
+        }
+        byAccount[account] = entries.map { entry in
+            var entry = entry
+            entry.addedAt = Date()
+            return entry
+        }
         save()
         WidgetSync.syncFavorites(account: account)
         registerUndo(to: before, account: account, undoManager: undoManager, actionName: actionName)
@@ -221,23 +267,29 @@ final class FavoriteQuestionsStore {
         undoManager.setActionName(actionName)
     }
 
-    /// Pushes the current favourites up to iCloud, keyed by each account's stable sync
-    /// id. No-op when iCloud is unavailable (#536).
+    /// Pushes the current favourites (and their deletion tombstones, #738) up to
+    /// iCloud, keyed by each account's stable sync id. No-op when iCloud is
+    /// unavailable (#536).
     private func mirrorToCloud() {
         guard CloudSyncStore.shared.isAvailable else { return }
 
-        let cloud = CloudSyncMerge.toCloud(byAccount) { uuid in
+        let syncID: (UUID) -> String? = { uuid in
             AccountsStore.shared.accounts.first { $0.id == uuid }?.syncID
         }
-        if let data = try? JSONEncoder().encode(cloud) {
+        if let data = try? JSONEncoder().encode(CloudSyncMerge.toCloud(byAccount, syncID: syncID)) {
             CloudSyncStore.shared.mirror(data, forKey: Self.cloudKey)
+        }
+        if let data = try? JSONEncoder().encode(CloudSyncMerge.toCloud(removedAt, syncID: syncID)) {
+            CloudSyncStore.shared.mirror(data, forKey: Self.cloudTombstonesKey)
         }
     }
 
     /// Pulls the iCloud favourites and merges them into the local set, unioning by
-    /// question id so a title backfilled on only one device never forks an entry, then
-    /// persists. Called once accounts have loaded and on every external iCloud change.
-    /// No-op when iCloud is unavailable (#536).
+    /// question id so a title backfilled on only one device never forks an entry,
+    /// then resolves deletion tombstones so an unstar made on another Mac converges
+    /// here instead of being unioned back (#738), and persists. Called once accounts
+    /// have loaded and on every external iCloud change. No-op when iCloud is
+    /// unavailable (#536).
     func syncFromCloud() {
         guard let data = CloudSyncStore.shared.data(forKey: Self.cloudKey),
               let cloud = try? JSONDecoder().decode([String: [FavoriteQuestion]].self, from: data) else { return }
@@ -253,9 +305,23 @@ final class FavoriteQuestionsStore {
             merged: merged, cloud: cloud, uuidForSyncID: uuidForSyncID,
             id: { $0.id }, title: \.title
         )
-        guard merged != byAccount else { return }
+        var tombstones = removedAt
+        if let data = CloudSyncStore.shared.data(forKey: Self.cloudTombstonesKey),
+           let cloudTombstones = try? JSONDecoder().decode([String: [String: Date]].self, from: data) {
+            tombstones = CloudSyncMerge.mergeTimestamps(cloud: cloudTombstones, into: tombstones,
+                                                        uuidForSyncID: uuidForSyncID)
+        }
+        for (account, entries) in merged {
+            let resolved = CloudTombstones.resolve(items: entries,
+                                                   tombstones: tombstones[account] ?? [:],
+                                                   id: { String($0.id) }, addedAt: \.addedAt)
+            merged[account] = resolved.items
+            tombstones[account] = resolved.tombstones
+        }
+        guard merged != byAccount || tombstones != removedAt else { return }
 
         byAccount = merged
+        removedAt = tombstones
         save()
         for account in merged.keys {
             WidgetSync.syncFavorites(account: account)
