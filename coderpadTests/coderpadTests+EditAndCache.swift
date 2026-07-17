@@ -11,6 +11,47 @@
 import Foundation
 import Testing
 
+@Suite("New question request normalization")
+struct NewQuestionRequestNormalizationTests {
+    @Test
+    func `create body trims title and optional long form fields`() {
+        let body = NewQuestionSheet.normalizedCreateBody(NewQuestionSheet.CreateDraft(
+            title: "  Two Sum  \n",
+            language: "python3",
+            description: "\n  Find a pair.  ",
+            instructions: "  Return indices. \n",
+            solution: "  use a map  ",
+            padType: "take-home"
+        ))
+
+        #expect(body.title == "Two Sum")
+        #expect(body.description == "Find a pair.")
+        #expect(body.solution == "use a map")
+        #expect(body.takeHome == true)
+        #expect(body.padType == "take-home")
+        #expect(body.candidateInstructions?.map(\.instructions) == ["Return indices."])
+    }
+
+    @Test
+    func `create body omits whitespace only optional sections`() {
+        let body = NewQuestionSheet.normalizedCreateBody(NewQuestionSheet.CreateDraft(
+            title: "Title",
+            language: "python3",
+            description: " \n ",
+            instructions: "\t",
+            solution: "",
+            padType: "live"
+        ))
+
+        #expect(body.title == "Title")
+        #expect(body.description == nil)
+        #expect(body.solution == nil)
+        #expect(body.takeHome == false)
+        #expect(body.padType == "live")
+        #expect(body.candidateInstructions == nil)
+    }
+}
+
 /// Each test gets its own mock client keyed by a unique API key, so its mutations and
 /// the client-identity-keyed org cache stay isolated and the suite runs in parallel.
 @Suite("Optimistic edits and org cache")
@@ -88,13 +129,13 @@ struct EditAndCacheTests {
     func `pad detail cache separates same pad id by backend (#760)`() throws {
         let store = PadDetailCacheStore.shared
         let padID = "shared-slug-\(UUID().uuidString)"
-        let first = CoderPadClient.live(
+        let first = try CoderPadClient.live(
             apiKey: "key-a-\(UUID().uuidString)",
-            baseURL: try #require(URL(string: "https://first.example.com"))
+            baseURL: #require(URL(string: "https://first.example.com"))
         )
-        let second = CoderPadClient.live(
+        let second = try CoderPadClient.live(
             apiKey: "key-b-\(UUID().uuidString)",
-            baseURL: try #require(URL(string: "https://second.example.com"))
+            baseURL: #require(URL(string: "https://second.example.com"))
         )
 
         store.set(padID, client: first, events: [], environments: [])

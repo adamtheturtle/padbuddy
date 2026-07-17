@@ -249,14 +249,14 @@ struct NewQuestionSheet: View {
         #if os(macOS)
             .buttonStyle(.borderedProminent)
         #endif
-        .disabled(isSubmitting || title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .disabled(isSubmitting || title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
     }
 }
 
 private extension NewQuestionSheet {
-    func metadataPicker<Content: View>(title: LocalizedStringKey,
-                                       systemImage: String,
-                                       @ViewBuilder content: () -> Content) -> some View {
+    func metadataPicker(title: LocalizedStringKey,
+                        systemImage: String,
+                        @ViewBuilder content: () -> some View) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 10) {
             Label(title, systemImage: systemImage)
                 .foregroundStyle(.secondary)
@@ -266,7 +266,7 @@ private extension NewQuestionSheet {
         }
     }
 
-    func authorPanel<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+    func authorPanel(@ViewBuilder content: () -> some View) -> some View {
         content()
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -336,23 +336,51 @@ private extension NewQuestionSheet {
         isSubmitting = true
         error = nil
         defer { isSubmitting = false }
-        let body = QuestionCreate(
+        let body = Self.normalizedCreateBody(Self.CreateDraft(
             title: title,
             language: language,
-            description: description.isEmpty ? nil : description,
-            solution: solution.isEmpty ? nil : solution,
-            takeHome: padType == "take-home",
-            padType: padType,
-            candidateInstructions: instructions.isEmpty
-                ? nil
-                : [CandidateInstructionPayload(instructions: instructions, defaultVisible: true)]
-        )
+            description: description,
+            instructions: instructions,
+            solution: solution,
+            padType: padType
+        ))
         do {
             let created = try await client.createQuestion(body)
             onCreated(created)
         } catch {
             self.error = error.localizedDescription
         }
+    }
+}
+
+extension NewQuestionSheet {
+    struct CreateDraft {
+        var title: String
+        var language: String
+        var description: String
+        var instructions: String
+        var solution: String
+        var padType: String
+    }
+
+    static func normalizedCreateBody(_ draft: CreateDraft) -> QuestionCreate {
+        let trimmedInstructions = trimmedOrNil(draft.instructions)
+        return QuestionCreate(
+            title: draft.title.trimmingCharacters(in: .whitespacesAndNewlines),
+            language: draft.language,
+            description: trimmedOrNil(draft.description),
+            solution: trimmedOrNil(draft.solution),
+            takeHome: draft.padType == "take-home",
+            padType: draft.padType,
+            candidateInstructions: trimmedInstructions.map {
+                [CandidateInstructionPayload(instructions: $0, defaultVisible: true)]
+            }
+        )
+    }
+
+    private static func trimmedOrNil(_ value: String) -> String? {
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }
 
