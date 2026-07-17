@@ -22,6 +22,17 @@ import MCPKit
 #endif
 
 enum MCPClientInstall {
+    enum JSONConfigError: LocalizedError {
+        case incompatibleMCPServers
+
+        var errorDescription: String? {
+            switch self {
+            case .incompatibleMCPServers:
+                "The existing mcpServers value is not a JSON object. PadBuddy left the config unchanged."
+            }
+        }
+    }
+
     /// An MCP client PadBuddy can install itself into.
     enum Client: String, CaseIterable, Identifiable {
         case claudeDesktop
@@ -185,18 +196,38 @@ enum MCPClientInstall {
         @MainActor
         private static func mergeJSONServer(into url: URL, client: Client, executablePath: String) throws {
             var root = try existingJSON(at: url)
-            var servers = root["mcpServers"] as? [String: Any] ?? [:]
-            let alreadyPresent = servers["padbuddy"] != nil
+            let merged = try jsonConfigByAddingServer(to: root, executablePath: executablePath)
+            root = merged.root
+            let alreadyPresent = merged.alreadyPresent
             if alreadyPresent, !confirmUpdate(client) { return }
-
-            servers["padbuddy"] = ["command": executablePath, "args": ["--mcp"]]
-            root["mcpServers"] = servers
 
             let data = try JSONSerialization.data(withJSONObject: root, options: [.prettyPrinted, .sortedKeys])
             try data.write(to: url, options: .atomic)
 
             let title = alreadyPresent ? "Updated \(client.displayName)" : "Added to \(client.displayName)"
             showAlert(.informational, title, client.restartHint)
+        }
+
+        static func jsonConfigByAddingServer(
+            to root: [String: Any],
+            executablePath: String
+        ) throws -> (root: [String: Any], alreadyPresent: Bool) {
+            var root = root
+            var servers: [String: Any]
+            if let existing = root["mcpServers"] {
+                guard let object = existing as? [String: Any] else {
+                    throw JSONConfigError.incompatibleMCPServers
+                }
+
+                servers = object
+            } else {
+                servers = [:]
+            }
+
+            let alreadyPresent = servers["padbuddy"] != nil
+            servers["padbuddy"] = ["command": executablePath, "args": ["--mcp"]]
+            root["mcpServers"] = servers
+            return (root, alreadyPresent)
         }
 
         /// Reads and parses the existing JSON config, returning an empty object when the file is

@@ -13,6 +13,44 @@ import Testing
 
 #if os(macOS)
 
+    @Suite("JSON MCP install")
+    struct MCPClientInstallJSONTests {
+        @Test
+        func `adding padbuddy preserves existing JSON servers`() throws {
+            let root: [String: Any] = [
+                "mcpServers": [
+                    "other": ["command": "/bin/other"]
+                ],
+                "otherSetting": true
+            ]
+
+            let merged = try MCPClientInstall.jsonConfigByAddingServer(
+                to: root,
+                executablePath: "/Applications/PadBuddy"
+            )
+            let servers = try #require(merged.root["mcpServers"] as? [String: Any])
+            let padbuddy = try #require(servers["padbuddy"] as? [String: Any])
+
+            #expect(merged.alreadyPresent == false)
+            #expect(servers["other"] != nil)
+            #expect(padbuddy["command"] as? String == "/Applications/PadBuddy")
+            #expect(padbuddy["args"] as? [String] == ["--mcp"])
+            #expect(merged.root["otherSetting"] as? Bool == true)
+        }
+
+        @Test
+        func `wrong typed mcpServers is rejected without replacement`() {
+            let root: [String: Any] = [
+                "mcpServers": ["existing-value"],
+                "otherSetting": true
+            ]
+
+            #expect(throws: MCPClientInstall.JSONConfigError.self) {
+                try MCPClientInstall.jsonConfigByAddingServer(to: root, executablePath: "/Applications/PadBuddy")
+            }
+        }
+    }
+
     @Suite("Codex TOML install")
     struct MCPClientInstallTOMLTests {
         // MARK: - tomlBasicString (#813)
