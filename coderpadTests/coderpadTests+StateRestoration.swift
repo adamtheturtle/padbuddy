@@ -147,3 +147,26 @@ struct FocusFilterRestoreTests {
         #expect(FocusFilterRestoredAccount.resolve(savedID: UUID().uuidString, accounts: [account]) == .missingSnapshot)
     }
 }
+
+struct FocusFilterActionTests {
+    private let account = Account(name: "Acme", apiKey: "key", userEmail: "a@example.com")
+
+    @Test func `a resolvable configured account scopes`() {
+        let action = FocusFilterAction.decide(
+            configuredID: account.id.uuidString, accounts: [account], hasSnapshot: false
+        )
+        #expect(action == .scope(account.id))
+    }
+
+    @Test func `a removed configured account is stale, not Focus off (#796)`() {
+        let action = FocusFilterAction.decide(
+            configuredID: UUID().uuidString, accounts: [account], hasSnapshot: true
+        )
+        #expect(action == .ignoreStaleScope)
+    }
+
+    @Test func `no configured account restores only when a snapshot exists`() {
+        #expect(FocusFilterAction.decide(configuredID: nil, accounts: [account], hasSnapshot: true) == .restore)
+        #expect(FocusFilterAction.decide(configuredID: nil, accounts: [account], hasSnapshot: false) == .none)
+    }
+}

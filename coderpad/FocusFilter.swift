@@ -64,6 +64,26 @@ struct AccountFocusEntityQuery: EntityQuery {
     }
 }
 
+/// What a Focus filter `perform()` call should do, decided from the configured account
+/// and whether a pre-Focus snapshot exists. Pure so the transitions are unit-testable;
+/// the key distinction is `ignoreStaleScope` (#796): a configured account that no longer
+/// resolves is stale configuration, not a Focus-off transition, so it must neither scope
+/// nor restore-and-clear the snapshot.
+nonisolated enum FocusFilterAction: Equatable {
+    case scope(UUID)
+    case ignoreStaleScope
+    case restore
+    case none
+
+    static func decide(configuredID: String?, accounts: [Account], hasSnapshot: Bool) -> Self {
+        guard let configuredID else { return hasSnapshot ? .restore : .none }
+        guard let uuid = UUID(uuidString: configuredID),
+              accounts.contains(where: { $0.id == uuid }) else { return .ignoreStaleScope }
+
+        return .scope(uuid)
+    }
+}
+
 nonisolated enum FocusFilterRestoredAccount: Equatable {
     case missingSnapshot
     case noAccount
@@ -110,8 +130,12 @@ struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
             let store = AccountsStore.shared
             let defaults = UserDefaults.standard
 
-            if let account, let uuid = UUID(uuidString: account.id),
-               store.accounts.contains(where: { $0.id == uuid }) {
+            switch FocusFilterAction.decide(
+                configuredID: account?.id,
+                accounts: store.accounts,
+                hasSnapshot: defaults.object(forKey: Self.savedShowAllKey) != nil
+            ) {
+            case let .scope(uuid):
                 // Entering a Focus-scoped state: snapshot the pre-Focus selection once,
                 // so a later Focus switch (account A -> account B with no "off" between)
                 // keeps the original snapshot to restore at the end.
@@ -124,7 +148,14 @@ struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
                 }
                 store.showAllAccounts = false
                 store.currentAccountID = uuid
-            } else if defaults.object(forKey: Self.savedShowAllKey) != nil {
+
+            case .ignoreStaleScope, .none:
+                // Stale scope (#796): the configured account was removed, so this is
+                // not a Focus-off transition. Leave the selection and any snapshot
+                // untouched so the real off transition can still restore it.
+                break
+
+            case .restore:
                 // Focus turned off: restore whatever was selected before it began.
                 let savedShowAll = defaults.bool(forKey: Self.savedShowAllKey)
                 switch FocusFilterRestoredAccount.resolve(
