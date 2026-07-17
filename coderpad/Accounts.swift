@@ -144,4 +144,20 @@ extension Account: StorableAccount {
     FavoriteQuestionsStore.shared.remove(account: id)
     FavoritesOrderStore.shared.remove(account: id)
     PadOpenedStore.shared.remove(account: id)
+    AccountScopedDefaults.purge(account: id)
+}
+
+/// Purges every per-account UserDefaults key on account removal or re-key: live
+/// filters, selected rows, scroll positions, and the last-open section all persist
+/// under keys embedding the account UUID, and they carry org-specific emails, team
+/// names, search text, and per-org item ids. Left behind, a re-keyed UUID pointing
+/// at a different org re-applies the old org's filters and can restore an unrelated
+/// same-numbered question (#914). Sweeping by UUID substring covers every such key,
+/// including ones added later, without maintaining a list here.
+nonisolated enum AccountScopedDefaults {
+    static func purge(account: UUID, defaults: UserDefaults = .standard) {
+        for key in defaults.dictionaryRepresentation().keys where key.contains(account.uuidString) {
+            defaults.removeObject(forKey: key)
+        }
+    }
 }

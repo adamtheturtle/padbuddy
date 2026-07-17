@@ -303,3 +303,26 @@ struct AccountOwnershipTests {
         #expect(!real.owns(""))
     }
 }
+
+@Suite("Account-scoped defaults purge (#914)")
+struct AccountScopedDefaultsTests {
+    @Test
+    func `purging removes every key embedding the account UUID and keeps the rest`() throws {
+        let suiteName = "coderpadTests.purge.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let account = UUID()
+        defaults.set("owner:candidate@acme.co", forKey: "pads.liveFilter.\(account.uuidString)")
+        defaults.set("row-7", forKey: "questions.selectedQuestion.\(account.uuidString)")
+        defaults.set("pads", forKey: "section.\(account.uuidString)")
+        defaults.set("unrelated", forKey: "general.appearance")
+
+        AccountScopedDefaults.purge(account: account, defaults: defaults)
+
+        #expect(defaults.string(forKey: "pads.liveFilter.\(account.uuidString)") == nil)
+        #expect(defaults.string(forKey: "questions.selectedQuestion.\(account.uuidString)") == nil)
+        #expect(defaults.string(forKey: "section.\(account.uuidString)") == nil)
+        #expect(defaults.string(forKey: "general.appearance") == "unrelated")
+    }
+}
