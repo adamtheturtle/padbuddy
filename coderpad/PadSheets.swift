@@ -47,6 +47,7 @@ struct NewPadSheet: View {
 
     var body: some View {
         sheetContent
+            .interactiveDismissDisabled(isSubmitting)
             .task { await loadQuestions() }
             .task { await loadOrganization() }
             .task { applyOrgDefaultLanguage() }
@@ -140,6 +141,7 @@ struct NewPadSheet: View {
         HStack {
             Spacer()
             Button("Cancel", role: .cancel, action: onCancel)
+                .disabled(isSubmitting)
             createButton
         }
     }
@@ -148,6 +150,7 @@ struct NewPadSheet: View {
     private var sheetToolbar: some ToolbarContent {
         ToolbarItem(placement: .cancellationAction) {
             Button("Cancel", role: .cancel, action: onCancel)
+                .disabled(isSubmitting)
         }
         ToolbarItem(placement: .confirmationAction) {
             createButton
