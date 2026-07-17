@@ -167,6 +167,6 @@ struct FocusFilterActionTests {
 
     @Test func `no configured account restores only when a snapshot exists`() {
         #expect(FocusFilterAction.decide(configuredID: nil, accounts: [account], hasSnapshot: true) == .restore)
-        #expect(FocusFilterAction.decide(configuredID: nil, accounts: [account], hasSnapshot: false) == .none)
+        #expect(FocusFilterAction.decide(configuredID: nil, accounts: [account], hasSnapshot: false) == .noChange)
     }
 }

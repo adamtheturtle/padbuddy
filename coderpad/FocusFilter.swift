@@ -73,10 +73,10 @@ nonisolated enum FocusFilterAction: Equatable {
     case scope(UUID)
     case ignoreStaleScope
     case restore
-    case none
+    case noChange
 
     static func decide(configuredID: String?, accounts: [Account], hasSnapshot: Bool) -> Self {
-        guard let configuredID else { return hasSnapshot ? .restore : .none }
+        guard let configuredID else { return hasSnapshot ? .restore : .noChange }
         guard let uuid = UUID(uuidString: configuredID),
               accounts.contains(where: { $0.id == uuid }) else { return .ignoreStaleScope }
 
@@ -149,7 +149,7 @@ struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
                 store.showAllAccounts = false
                 store.currentAccountID = uuid
 
-            case .ignoreStaleScope, .none:
+            case .ignoreStaleScope, .noChange:
                 // Stale scope (#796): the configured account was removed, so this is
                 // not a Focus-off transition. Leave the selection and any snapshot
                 // untouched so the real off transition can still restore it.
