@@ -10,10 +10,10 @@
     import SwiftUI
 
     struct PhoneContentView: View {
-        @State private var store = AccountsStore.shared
+        @State var store = AccountsStore.shared
         @State private var nav = AppNavigation.shared
         @State private var network = NetworkMonitor.shared
-        @Environment(\.openAppSettings) private var openSettings
+        @Environment(\.openAppSettings) var openSettings
         let directory: OrgDirectory
         let monitor: AccountHealthMonitor
 
@@ -225,140 +225,6 @@
     }
 
     private extension PhoneContentView {
-        private var accountMenu: some View {
-            Menu {
-                accountMenuActions
-            } label: {
-                accountMenuLabel
-            }
-            .menuIndicator(.hidden)
-            .accessibilityLabel("Account and settings")
-        }
-
-        @ViewBuilder
-        private var accountMenuActions: some View {
-            if store.mergeableAccounts.count >= 2 {
-                Button {
-                    store.showAllAccounts = true
-                } label: {
-                    if store.isMergedView {
-                        Label("All Accounts", systemImage: "checkmark")
-                    } else {
-                        Label("All Accounts", systemImage: "person.2")
-                    }
-                }
-            }
-
-            ForEach(store.accounts) { account in
-                Button {
-                    store.showAllAccounts = false
-                    store.currentAccountID = account.id
-                } label: {
-                    accountMenuRow(for: account)
-                }
-            }
-
-            if !store.accounts.isEmpty {
-                Divider()
-            }
-            Button { openGeneralSettings() } label: {
-                Label("Settings", systemImage: "gearshape")
-            }
-            Button { manageAccounts() } label: {
-                Label("Manage Accounts...", systemImage: "person.crop.circle")
-            }
-            Button { startAddingAccount() } label: {
-                Label("Add Account...", systemImage: "plus")
-            }
-        }
-
-        @ViewBuilder
-        private func accountMenuRow(for account: Account) -> some View {
-            let isSelected = !store.isMergedView && account.id == store.currentAccount?.id
-            let isUnauthorized = monitor.isUnauthorized(account.id)
-            let title = isUnauthorized ? String(localized: "\(account.name) (bad key)") : account.name
-            if isSelected {
-                Label(title, systemImage: "checkmark")
-            } else if isUnauthorized {
-                Label(title, systemImage: "exclamationmark.triangle.fill")
-            } else if let symbol = account.iconSymbol {
-                Label(title, systemImage: symbol)
-            } else {
-                Text(title)
-            }
-        }
-
-        @ViewBuilder
-        private var accountMenuLabel: some View {
-            if store.isMergedView {
-                Image(systemName: "person.2.circle.fill")
-                    .font(.title3)
-                    .symbolRenderingMode(.monochrome)
-                    .foregroundStyle(.secondary)
-                    .accessibilityHidden(true)
-            } else if let account = store.currentAccount {
-                toolbarAccountAvatar(for: account)
-                    .overlay(alignment: .bottomTrailing) {
-                        if monitor.isUnauthorized(account.id) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .font(.system(size: 10))
-                                .foregroundStyle(.red)
-                                .background(Circle().fill(.background).padding(-1))
-                                .accessibilityHidden(true)
-                        }
-                    }
-            } else {
-                Image(systemName: "person.crop.circle")
-                    .font(.title3)
-                    .symbolRenderingMode(.hierarchical)
-                    .foregroundStyle(.secondary)
-                    .accessibilityHidden(true)
-            }
-        }
-
-        private func toolbarAccountAvatar(for account: Account) -> some View {
-            ZStack {
-                Circle()
-                    .fill(.primary.opacity(0.06))
-                    .overlay(Circle().stroke(.primary.opacity(0.12), lineWidth: 1))
-                if let symbol = account.iconSymbol {
-                    Image(systemName: symbol)
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(.primary.opacity(0.86))
-                        .accessibilityHidden(true)
-                } else {
-                    Text(accountInitials(for: account))
-                        .font(.system(size: 11, weight: .bold, design: .rounded))
-                        .foregroundStyle(.primary.opacity(0.86))
-                }
-            }
-            .frame(width: 28, height: 28)
-            .accessibilityHidden(true)
-        }
-
-        private func accountInitials(for account: Account) -> String {
-            let words = account.name.split(whereSeparator: { !$0.isLetter && !$0.isNumber })
-            let initials = words.prefix(2).compactMap(\.first)
-            return initials.isEmpty ? "?" : String(initials).uppercased()
-        }
-
-        private func openGeneralSettings() {
-            SettingsNavigation.shared.selectedTab = .general
-            openSettings()
-        }
-
-        private func startAddingAccount() {
-            let navigation = SettingsNavigation.shared
-            navigation.selectedTab = .accounts
-            navigation.startAddingAccount = true
-            openSettings()
-        }
-
-        private func manageAccounts() {
-            SettingsNavigation.shared.selectedTab = .accounts
-            openSettings()
-        }
-
         private func syncPadPath(with selection: Pad?) {
             guard let selection else {
                 padPath = []
