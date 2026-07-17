@@ -32,9 +32,12 @@
                         if let padID = SpotlightIndexer.padID(fromItemIdentifier: id) {
                             AppNavigation.shared.openPad(id: padID)
                         } else if let ref = SpotlightIndexer.questionRef(fromItemIdentifier: id) {
-                            if AccountsStore.shared.accounts.contains(where: { $0.id == ref.account }) {
-                                AccountsStore.shared.currentAccountID = ref.account
+                            guard AccountsStore.shared.accounts.contains(where: { $0.id == ref.account }) else {
+                                SpotlightIndexer.removeQuestion(id: ref.id, account: ref.account)
+                                return
                             }
+
+                            AccountsStore.shared.currentAccountID = ref.account
                             AppNavigation.shared.showFavoriteQuestion(id: ref.id)
                         }
                     }
