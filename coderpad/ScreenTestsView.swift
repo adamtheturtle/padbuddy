@@ -27,7 +27,9 @@ struct ScreenTestsView: View {
     /// `= nil`: the synthesized memberwise init defaults an optional to nil, and
     /// SwiftLint's `implicit_optional_initialization` forbids the explicit form.)
     var accountID: UUID?
-    @State var nav = AppNavigation.shared
+    /// This window's published navigation state (injected by `ContentView`), the
+    /// home of the candidate-count subtitle this list publishes (#887).
+    @Environment(WindowNavigation.self) private var windowNav
     @State var accounts = AccountsStore.shared
     @Environment(\.openWindow) var openWindow
     @State var tests: [ScreenTestSession] = []
@@ -109,7 +111,7 @@ struct ScreenTestsView: View {
             .onReloadRequest { await load() }
             // This list lives in the detail column (#448); publish the candidate count so the
             // campaigns column can show it as the window subtitle while a campaign is selected
-            // (#475) — see `AppNavigation.screenTestsSubtitle`. A test session's report opens
+            // (#475) — see `WindowNavigation.screenTestsSubtitle`. A test session's report opens
             // in its own window on double-click / Return (#474); there's no inline report here.
             .onChange(of: countSubtitle, initial: true) { _, new in publishCountSubtitle(new) }
             // Deselecting the campaign tears this view down; reset the published candidate count.
@@ -130,15 +132,16 @@ struct ScreenTestsView: View {
         // honors that tag: during a direct A -> B campaign switch, A's queued
         // disappearance clear runs after B's publish and must not blank it (#805).
         let owner = subtitleOwnerToken
+        let windowNav = windowNav
         DispatchQueue.main.async {
             if subtitle.isEmpty {
-                guard nav.screenTestsSubtitleOwner == owner else { return }
+                guard windowNav.screenTestsSubtitleOwner == owner else { return }
 
-                nav.screenTestsSubtitleOwner = nil
-                if !nav.screenTestsSubtitle.isEmpty { nav.screenTestsSubtitle = "" }
+                windowNav.screenTestsSubtitleOwner = nil
+                if !windowNav.screenTestsSubtitle.isEmpty { windowNav.screenTestsSubtitle = "" }
             } else {
-                nav.screenTestsSubtitleOwner = owner
-                if nav.screenTestsSubtitle != subtitle { nav.screenTestsSubtitle = subtitle }
+                windowNav.screenTestsSubtitleOwner = owner
+                if windowNav.screenTestsSubtitle != subtitle { windowNav.screenTestsSubtitle = subtitle }
             }
         }
     }

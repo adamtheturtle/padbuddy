@@ -32,7 +32,10 @@ struct MergedPadsView: View {
     /// in the error bar can jump to the account editor (#622).
     @Environment(\.openAppSettings) var openSettings
     @State var accounts = AccountsStore.shared
-    @State var router = MergedRouting.shared
+    /// This window's merged routing and published navigation state (injected by
+    /// `ContentView`), so selections and preset flags are per window (#888, #909).
+    @Environment(MergedRouting.self) var router
+    @Environment(WindowNavigation.self) var windowNav
     @State var nav = AppNavigation.shared
     @State var cache = PadsCacheStore.shared
     @State var openedStore = PadOpenedStore.shared

@@ -94,8 +94,11 @@ struct SectionContent: View {
 
 struct SectionDetail: View {
     @State private var store = AccountsStore.shared
-    @State private var router = MergedRouting.shared
-    @State private var nav = AppNavigation.shared
+    /// This window's merged routing and published navigation state (injected by
+    /// `ContentView`), so the detail pane follows its own window's selections rather
+    /// than whichever window published last (#888, #911).
+    @Environment(MergedRouting.self) private var router
+    @Environment(WindowNavigation.self) private var windowNav
     let section: AppSection
     @Binding var padSelection: Pad?
     @Binding var questionSelection: Question?
@@ -136,7 +139,7 @@ struct SectionDetail: View {
             // The selected campaign's test sessions fill the detail column (#448); a
             // session's report opens in its own window on double-click (#474). When no
             // campaign is selected, prompt to pick one.
-            if let campaign = nav.screenCampaignSelection, let screen = screenClient {
+            if let campaign = windowNav.screenCampaignSelection, let screen = screenClient {
                 ScreenTestsView(client: screen, campaign: campaign, search: $screenSearch,
                                 accountID: store.isMergedView ? router.selectedScreenAccountID : nil)
                     .id(screenTestsID(for: campaign))

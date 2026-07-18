@@ -88,13 +88,6 @@ extension QuestionsView {
         ])
     }
 
-    /// Publish the live filter signature for the sidebar to match against the
-    /// suggested and saved rows, falling back to the plain "Questions" row when
-    /// nothing matches.
-    func publishLiveFilter() {
-        nav.questionsFilter = captureCurrentSearch(named: "")
-    }
-
     // MARK: - Live filter persistence
 
     static func liveFilterKey(_ account: UUID) -> String {

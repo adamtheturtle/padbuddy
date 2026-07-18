@@ -39,6 +39,12 @@ extension AppSection {
 struct ContentView: View {
     @State private var store = AccountsStore.shared
     @State private var nav = AppNavigation.shared
+    /// This window's published navigation state and merged-view routing. Owned per
+    /// scene (not process-wide singletons) so other main windows can't overwrite this
+    /// window's counts, Screen drill-down, or merged detail routing (#887, #888,
+    /// #908, #911); injected into the environment for every pane below.
+    @State private var windowNav = WindowNavigation()
+    @State private var mergedRouting = MergedRouting()
     @State private var directory = OrgDirectory()
     @State private var monitor = AccountHealthMonitor.shared
     @State private var network = NetworkMonitor.shared
@@ -64,6 +70,8 @@ struct ContentView: View {
                     whatsNewCollection: [WhatsNewContent.current]
                 )
             )
+            .environment(windowNav)
+            .environment(mergedRouting)
     }
 
     private var windowContent: some View {

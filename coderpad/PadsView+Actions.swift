@@ -137,13 +137,6 @@ extension PadsView {
         }
     }
 
-    /// Publish the live filter signature for the sidebar to match against the
-    /// suggested and saved rows. Unguarded by `didRestoreFilters`/account, since the
-    /// sidebar should reflect even the empty starting filter.
-    func publishLiveFilter() {
-        nav.padsFilter = captureCurrentSearch(named: "")
-    }
-
     /// Restore the persisted live filters for the current account, once. A deep-link
     /// request (handled by `applyPendingRequest`) is applied afterward so it always
     /// wins over a restored snapshot.

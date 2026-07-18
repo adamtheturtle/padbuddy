@@ -12,12 +12,15 @@ import SwiftUI
 /// The Screen section's content column: the org's test campaigns (`GET /campaigns`),
 /// modelled on `PadsView` but far leaner — Screen is read-only here. Search is the
 /// shared window-toolbar field (routed via `MainSplit.activeSearch`); archived
-/// campaigns are hidden by default. The selection is published to `AppNavigation`
-/// so the detail column can show the campaign's test sessions (#434).
+/// campaigns are hidden by default. The selection is published to this window's
+/// `WindowNavigation` so the detail column can show the campaign's test sessions (#434).
 struct ScreenCampaignsView: View {
     let client: ScreenClient
     @Binding var search: String
-    @State private var nav = AppNavigation.shared
+    /// This window's published navigation state (injected by `ContentView`): the
+    /// campaign selection and candidate-count subtitle are per window, so another
+    /// window's Screen section can't retarget or blank this one's (#887, #888).
+    @Environment(WindowNavigation.self) private var windowNav
     @State private var campaigns: [ScreenCampaign] = []
     @State private var isLoading = false
     @State private var loadError: String?
@@ -48,8 +51,8 @@ struct ScreenCampaignsView: View {
         }
         // With no campaign selected, show the campaign count; once one is selected the
         // detail column shows its test sessions, so surface that campaign's candidate
-        // count instead (published by the tests view via AppNavigation) (#448/#475).
-        .reportsSectionCount(selectedCampaignID == nil ? countSubtitle : nav.screenTestsSubtitle)
+        // count instead (published by the tests view via WindowNavigation) (#448/#475).
+        .reportsSectionCount(selectedCampaignID == nil ? countSubtitle : windowNav.screenTestsSubtitle)
         .toolbar(id: "screen-campaigns") { campaignsToolbar }
         .focusedSceneValue(\.focusedScreenCampaignAction, selectedCampaignAction)
         #if os(macOS)
@@ -75,7 +78,7 @@ struct ScreenCampaignsView: View {
     }
 
     private func restoreSelectedCampaign() {
-        let id = nav.screenCampaignSelection?.id
+        let id = windowNav.screenCampaignSelection?.id
         guard selectedCampaignID != id else { return }
 
         DispatchQueue.main.async {
@@ -85,10 +88,11 @@ struct ScreenCampaignsView: View {
 
     private func publishSelectedCampaign(_ id: Int?) {
         let campaign = campaigns.first { $0.id == id }
-        guard nav.screenCampaignSelection != campaign else { return }
+        let windowNav = windowNav
+        guard windowNav.screenCampaignSelection != campaign else { return }
 
         DispatchQueue.main.async {
-            if nav.screenCampaignSelection != campaign { nav.screenCampaignSelection = campaign }
+            if windowNav.screenCampaignSelection != campaign { windowNav.screenCampaignSelection = campaign }
         }
     }
 

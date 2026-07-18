@@ -180,8 +180,8 @@ extension Sidebar {
 
     /// One favourite row: a pad opens its pad, a question opens its question, each with the
     /// same glyph its own section uses (a document vs a question bubble) so the kind reads
-    /// at a glance without a tinted star (#571). In the merged view the tap routes through
-    /// `MergedRouting` so the right account's row is selected (per-org ids collide, so the
+    /// at a glance without a tinted star (#571). In the merged view the tap queues a pending
+    /// merged favourite so the right account's row is selected (per-org ids collide, so the
     /// account must travel with the id).
     /// The stores and bindings a favourite row acts on, bundled so the row builder
     /// stays under the parameter-count limit while still receiving them as locals —
@@ -207,7 +207,7 @@ extension Sidebar {
             sidebarSubRow(label: item.title, icon: "doc.text") {
                 if item.account != nil {
                     sectionBinding.wrappedValue = .pads
-                    MergedRouting.shared.selectFavoritePad(id: padID)
+                    nav.selectMergedFavoritePad(id: padID)
                 } else {
                     nav.showFavoritePad(id: padID)
                 }
@@ -224,7 +224,7 @@ extension Sidebar {
             sidebarSubRow(label: item.title, icon: "questionmark.bubble") {
                 if let account = item.account {
                     sectionBinding.wrappedValue = .questions
-                    MergedRouting.shared.selectFavoriteQuestion(account: account, id: questionID)
+                    nav.selectMergedFavoriteQuestion(account: account, id: questionID)
                 } else {
                     nav.showFavoriteQuestion(id: questionID)
                 }

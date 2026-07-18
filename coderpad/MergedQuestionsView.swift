@@ -27,7 +27,10 @@ struct MergedQuestionsView: View {
     /// in the error bar can jump to the account editor (#622).
     @Environment(\.openAppSettings) var openSettings
     @State var accounts = AccountsStore.shared
-    @State var router = MergedRouting.shared
+    /// This window's merged routing and published navigation state (injected by
+    /// `ContentView`), so selections and preset flags are per window (#909, #911).
+    @Environment(MergedRouting.self) var router
+    @Environment(WindowNavigation.self) var windowNav
     @State var cache = QuestionsCacheStore.shared
     @State var favorites = FavoriteQuestionsStore.shared
     @State var nav = AppNavigation.shared

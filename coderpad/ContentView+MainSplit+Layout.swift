@@ -140,10 +140,10 @@ extension MainSplit {
     /// routing and subtitle) belongs to the previous account's Screen client, so
     /// leaving it active shows another org's candidates in the detail column (#711).
     private func clearScreenSelection() {
-        nav.screenCampaignSelection = nil
-        nav.screenTestsSubtitle = ""
-        nav.screenTestsSubtitleOwner = nil
-        MergedRouting.shared.selectedScreenAccountID = nil
+        windowNav.screenCampaignSelection = nil
+        windowNav.screenTestsSubtitle = ""
+        windowNav.screenTestsSubtitleOwner = nil
+        mergedRouting.selectedScreenAccountID = nil
     }
 
     /// Selection observers: restore-on-launch, per-pane persistence, the debounced

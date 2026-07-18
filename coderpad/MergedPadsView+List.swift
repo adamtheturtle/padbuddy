@@ -98,10 +98,10 @@ extension MergedPadsView {
             // are globally unique, so no account need travel with it). Cleared once
             // consumed; left as the selection if the row hasn't loaded yet — the same
             // best-effort the per-account view uses.
-            .onChange(of: router.pendingFavoritePadID) { _, id in
+            .onChange(of: nav.pendingMergedFavoritePadID) { _, id in
                 guard let id else { return }
 
-                router.pendingFavoritePadID = nil
+                nav.pendingMergedFavoritePadID = nil
                 selectedIDs = [id]
             }
             // Consume navigation requests routed to Pads. In merged mode this includes
@@ -126,10 +126,11 @@ extension MergedPadsView {
     }
 
     private func publishMergedPadsMineOnly(_ isOn: Bool) {
-        guard nav.mergedPadsMineOnly != isOn else { return }
+        let windowNav = windowNav
+        guard windowNav.mergedPadsMineOnly != isOn else { return }
 
         DispatchQueue.main.async {
-            if nav.mergedPadsMineOnly != isOn { nav.mergedPadsMineOnly = isOn }
+            if windowNav.mergedPadsMineOnly != isOn { windowNav.mergedPadsMineOnly = isOn }
         }
     }
 
@@ -145,10 +146,11 @@ extension MergedPadsView {
     }
 
     private func publishMergedPadsActiveOnly(_ isOn: Bool) {
-        guard nav.mergedPadsActiveOnly != isOn else { return }
+        let windowNav = windowNav
+        guard windowNav.mergedPadsActiveOnly != isOn else { return }
 
         DispatchQueue.main.async {
-            if nav.mergedPadsActiveOnly != isOn { nav.mergedPadsActiveOnly = isOn }
+            if windowNav.mergedPadsActiveOnly != isOn { windowNav.mergedPadsActiveOnly = isOn }
         }
     }
 

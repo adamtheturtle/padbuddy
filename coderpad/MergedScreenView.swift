@@ -31,8 +31,11 @@ struct ScopedScreenCampaign: Identifiable, Hashable {
 struct MergedScreenView: View {
     @Binding var search: String
     @State private var accounts = AccountsStore.shared
-    @State private var routing = MergedRouting.shared
-    @State private var nav = AppNavigation.shared
+    /// This window's merged routing and published navigation state (injected by
+    /// `ContentView`): the drilled-into campaign and its owning account are per
+    /// window, so other windows can't retarget this one's detail column (#888).
+    @Environment(MergedRouting.self) private var routing
+    @Environment(WindowNavigation.self) private var windowNav
     @State private var campaignsByAccount: [UUID: [ScreenCampaign]] = [:]
     /// The Screen credential token each account's bucket was loaded with, so a bucket
     /// filled under an old key/region is cleared the moment the account is re-keyed
@@ -67,8 +70,8 @@ struct MergedScreenView: View {
             }
         }
         // The campaign count with nothing selected; the selected campaign's candidate
-        // count once chosen (published by the tests list via AppNavigation, #475).
-        .reportsSectionCount(selectedScopedID == nil ? countSubtitle : nav.screenTestsSubtitle)
+        // count once chosen (published by the tests list via WindowNavigation, #475).
+        .reportsSectionCount(selectedScopedID == nil ? countSubtitle : windowNav.screenTestsSubtitle)
         .toolbar(id: "merged-screen") { toolbar }
         .focusedSceneValue(\.focusedScreenCampaignAction, selectedCampaignAction)
         #if os(macOS)
@@ -91,7 +94,8 @@ struct MergedScreenView: View {
     }
 
     private func restoreSelectedCampaign() {
-        let id: String? = if let account = routing.selectedScreenAccountID, let campaign = nav.screenCampaignSelection {
+        let id: String? = if let account = routing.selectedScreenAccountID,
+                             let campaign = windowNav.screenCampaignSelection {
             "\(account.uuidString):\(campaign.id)"
         } else {
             nil
@@ -107,10 +111,14 @@ struct MergedScreenView: View {
         let scoped = scopedCampaign(id: id)
         let campaign = scoped?.campaign
         let accountID = scoped?.accountID
-        guard nav.screenCampaignSelection != campaign || routing.selectedScreenAccountID != accountID else { return }
+        let windowNav = windowNav
+        let routing = routing
+        guard windowNav.screenCampaignSelection != campaign || routing.selectedScreenAccountID != accountID else {
+            return
+        }
 
         DispatchQueue.main.async {
-            if nav.screenCampaignSelection != campaign { nav.screenCampaignSelection = campaign }
+            if windowNav.screenCampaignSelection != campaign { windowNav.screenCampaignSelection = campaign }
             if routing.selectedScreenAccountID != accountID { routing.selectedScreenAccountID = accountID }
         }
     }

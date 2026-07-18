@@ -26,6 +26,10 @@ struct Sidebar: View {
     @State var padsCache = PadsCacheStore.shared
     @State private var quotaCache = QuotaCacheStore.shared
     @State var nav = AppNavigation.shared
+    /// This window's published navigation state (injected by `ContentView`), read so
+    /// the merged "Mine"/"Active" toggles aim at what *this* window's lists show
+    /// rather than whichever window published last (#909).
+    @Environment(WindowNavigation.self) var windowNav
     /// Highlights the Favorites section while an item is dragged over it, the
     /// Finder-style cue that dropping there will pin the item.
     @State var droppingFavorites = false

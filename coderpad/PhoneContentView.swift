@@ -12,6 +12,9 @@
     struct PhoneContentView: View {
         @State var store = AccountsStore.shared
         @State private var nav = AppNavigation.shared
+        /// This window's published navigation state (injected by `ContentView`), the
+        /// home of the per-scene Screen campaign selection (#888).
+        @Environment(WindowNavigation.self) private var windowNav
         @State private var network = NetworkMonitor.shared
         @Environment(\.openAppSettings) var openSettings
         let directory: OrgDirectory
@@ -74,7 +77,7 @@
             padPath = []
             questionPath = []
             screenPath = []
-            nav.screenCampaignSelection = nil
+            windowNav.screenCampaignSelection = nil
         }
 
         private var padsTab: some View {
@@ -193,11 +196,11 @@
             // The campaigns list publishes its selection for a split-view detail column
             // that doesn't exist in the compact shell; mirror it into this tab's path so
             // a selected campaign pushes its test sessions (#837).
-            .onChange(of: nav.screenCampaignSelection) { _, selection in
+            .onChange(of: windowNav.screenCampaignSelection) { _, selection in
                 syncScreenPath(with: selection)
             }
             .onChange(of: screenPath) { _, path in
-                if path.isEmpty { nav.screenCampaignSelection = nil }
+                if path.isEmpty { windowNav.screenCampaignSelection = nil }
             }
         }
 
@@ -233,7 +236,7 @@
                     questionSelection: $questionSelection,
                     screenSearch: $screenSearch
                 )
-                .navigationTitle(nav.screenCampaignSelection?.name ?? String(localized: "Campaign"))
+                .navigationTitle(windowNav.screenCampaignSelection?.name ?? String(localized: "Campaign"))
                 .navigationBarTitleDisplayMode(.inline)
                 .phoneAccountToolbar(accountMenu)
             }

@@ -190,7 +190,6 @@ struct PadsView: View {
                 // Restore first so a deep-link request can still override it below.
                 restoreFilters()
                 applyPendingRequest()
-                publishLiveFilter()
                 selectedIDs = selection.map { [$0.id] } ?? []
             }
             // The List edits `selectedIDs`; derive the primary row from it so the
@@ -236,12 +235,10 @@ struct PadsView: View {
             // The account id is often nil on first appear; restore once it lands, and
             // swap to the new account's saved filters whenever the account changes.
             .onChange(of: accounts.currentAccountID) { _, _ in restoreFiltersForAccountChange() }
-            // One signature drives both persistence and the sidebar highlight: persist
-            // the snapshot, and republish it so the sidebar tracks the applied search and
-            // falls back to the plain "Pads" row the instant any filter is edited.
+            // Persist the live filter snapshot whenever any filter control changes;
+            // `filterSignature` shifts for every one, so one observer covers them all.
             .onChange(of: filterSignature) { _, _ in
                 persistFilters()
-                publishLiveFilter()
             }
             .task(id: dateFilterClockActive) { await runDateFilterClock() }
             // Opening (selecting) a pad clears its "new activity" dot until it next

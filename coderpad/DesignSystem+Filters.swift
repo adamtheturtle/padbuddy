@@ -12,22 +12,35 @@ import SwiftUI
 
 // MARK: - Section result count
 
-extension View {
-    /// Publishes this list section's result-count summary (e.g. "12 pads") to
-    /// `AppNavigation`, which `MainSplit` renders as the window's toolbar subtitle
-    /// beneath the section title. Pass an empty string when there's nothing to show
-    /// (an empty or still-loading list).
-    ///
-    /// Fires once per settled value via `onChange` and routes through the guarded,
-    /// async ``AppNavigation/publishSectionCount(_:)``, so a count arrived at over the
-    /// several `body` passes that settle one frame lands a single time on the next
-    /// runloop. The former `SectionCountKey` preference wrote the live value straight
-    /// into the view tree and so could update multiple times per frame — which
-    /// SwiftUICore flagged as an invalid-configuration fault.
-    func reportsSectionCount(_ summary: String) -> some View {
-        onChange(of: summary, initial: true) { _, new in
-            AppNavigation.shared.publishSectionCount(new)
+/// Publishes a list section's result-count summary to its window's `WindowNavigation`
+/// (via the environment), which `MainSplit` renders as the window's toolbar subtitle.
+/// Per window rather than the former process-wide value, so two windows with different
+/// searches or filters can't overwrite each other's counts (#908).
+private struct SectionCountReporter: ViewModifier {
+    @Environment(WindowNavigation.self) private var windowNav
+    let summary: String
+
+    func body(content: Content) -> some View {
+        content.onChange(of: summary, initial: true) { _, new in
+            windowNav.publishSectionCount(new)
         }
+    }
+}
+
+extension View {
+    /// Publishes this list section's result-count summary (e.g. "12 pads") to the
+    /// window's `WindowNavigation`, which `MainSplit` renders as the window's toolbar
+    /// subtitle beneath the section title. Pass an empty string when there's nothing
+    /// to show (an empty or still-loading list).
+    ///
+    /// Fires once per settled value via `onChange` and routes through the guarded
+    /// ``WindowNavigation/publishSectionCount(_:)``, so a count arrived at over the
+    /// several `body` passes that settle one frame lands a single time. The former
+    /// `SectionCountKey` preference wrote the live value straight into the view tree
+    /// and so could update multiple times per frame — which SwiftUICore flagged as an
+    /// invalid-configuration fault.
+    func reportsSectionCount(_ summary: String) -> some View {
+        modifier(SectionCountReporter(summary: summary))
     }
 }
 

@@ -196,13 +196,13 @@ extension MergedPadsView {
         if let id = PadsView.padToRestore(
             savedID: UserDefaults.standard.string(forKey: Self.selectedPadKey),
             hasSelection: selection != nil,
-            hasPendingOpen: router.pendingFavoritePadID != nil,
+            hasPendingOpen: nav.pendingMergedFavoritePadID != nil,
             availableIDs: availableIDs
         ) {
             selectedIDs = [id]
             // Bring the restored row into view; the List won't scroll to it on its own.
             pendingScrollToID = id
-        } else if selection == nil, router.pendingFavoritePadID == nil,
+        } else if selection == nil, nav.pendingMergedFavoritePadID == nil,
                   let topID = UserDefaults.standard.string(forKey: Self.topRowKey),
                   availableIDs.contains(topID) {
             // Nothing to reselect — return the unselected list to where it was scrolled

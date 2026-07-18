@@ -22,9 +22,14 @@ struct MainSplit: View {
     #if os(iOS)
         @Environment(\.horizontalSizeClass) var horizontalSizeClass
     #endif
-    /// Observed so the Screen section's title/search prompt can reflect whether a
-    /// campaign is drilled into (campaigns → candidates), see #467/#468/#470.
-    @State var nav = AppNavigation.shared
+    /// This window's published navigation state (injected by `ContentView`), observed
+    /// so the Screen section's title/search prompt can reflect whether a campaign is
+    /// drilled into (campaigns → candidates, #467/#468/#470) and so the toolbar
+    /// subtitle shows this window's own list count (#908).
+    @Environment(WindowNavigation.self) var windowNav
+    /// This window's merged-view routing (injected by `ContentView`), so clearing the
+    /// Screen drill-down on account/mode changes resets only this window (#888).
+    @Environment(MergedRouting.self) var mergedRouting
     @Binding var section: AppSection
     let directory: OrgDirectory
     let monitor: AccountHealthMonitor
@@ -99,7 +104,7 @@ struct MainSplit: View {
         // The single window field is shared by the campaigns list and a drilled-into
         // campaign's candidate list, so name what it actually searches now (#470).
         case .screen:
-            if nav.screenCampaignSelection == nil { Text("Search campaigns") } else { Text("Search candidates") }
+            if windowNav.screenCampaignSelection == nil { Text("Search campaigns") } else { Text("Search candidates") }
         default: Text("Search pads")
         }
     }
@@ -249,19 +254,19 @@ struct MainSplit: View {
     /// What actually shows beneath the title: the active list section's result-count
     /// summary (e.g. "12 pads") when it publishes one, otherwise the static section
     /// subtitle. The count is published by the list panes into
-    /// ``AppNavigation/sectionCountSubtitle`` (via `reportsSectionCount`) rather than a
-    /// SwiftUI preference, which faulted when a count changed across a single frame's
+    /// ``WindowNavigation/sectionCountSubtitle`` (via `reportsSectionCount`) rather than
+    /// a SwiftUI preference, which faulted when a count changed across a single frame's
     /// body passes. Pads/Questions report a count; the merged variants already name the
     /// account span, so their count supersedes the "All accounts" cue while empty-count
     /// sections (Organization, Quota) fall back to it. A count published for a different
     /// section is ignored: when switching sections the outgoing count outlives the change
     /// until the new pane republishes, and showing it under the new title reads as a flash.
     var displaySubtitle: String {
-        guard nav.sectionCountSection == section, !nav.sectionCountSubtitle.isEmpty else {
+        guard windowNav.sectionCountSection == section, !windowNav.sectionCountSubtitle.isEmpty else {
             return sectionSubtitle
         }
 
-        return nav.sectionCountSubtitle
+        return windowNav.sectionCountSubtitle
     }
 
     // `body` is split across `splitLayout` + two observer groups rather than one long

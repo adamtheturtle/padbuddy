@@ -113,13 +113,11 @@ struct QuestionsView: View {
     private var decorated: some View {
         decoratedObservers
             .onChange(of: nav.questionsRequest) { _, _ in applyPendingRequest() }
-            // Republish the live filter so the sidebar highlights whichever suggested or
-            // saved row is applied, and falls back to the plain "Questions" row the moment
-            // any filter is edited. Keyed off a stable digest because a fresh
-            // `captureCurrentSearch` carries a new UUID each call and would fire endlessly.
+            // Persist the live filter snapshot whenever any filter changes. Keyed off a
+            // stable digest because a fresh `captureCurrentSearch` carries a new UUID
+            // each call and would fire endlessly.
             .onChange(of: filterSignature) { _, _ in
                 persistFilters()
-                publishLiveFilter()
             }
             .onChange(of: cache.questionsByAccount) { _, _ in
                 guard questions.isEmpty, let id = accounts.currentAccountID else { return }
@@ -260,7 +258,6 @@ struct QuestionsView: View {
                 // Restore first so a deep-link/favorite request can still override it.
                 restoreFilters()
                 applyPendingRequest()
-                publishLiveFilter()
                 selectedQuestionIDs = selection.map { [$0.id] } ?? []
             }
             // The List edits `selectedQuestionIDs`; derive the primary row from it so

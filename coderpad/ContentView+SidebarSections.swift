@@ -220,18 +220,19 @@ extension Sidebar {
     private var mergedDefaultsSection: some View {
         Section("Smart Lists") {
             VStack(spacing: 2) {
-                // Capture `nav` (not `self`) in the row tap closures — see the note in
-                // `defaultsSection`: capturing the whole `Sidebar` struct faults in
+                // Capture `nav`/`windowNav` (not `self`) in the row tap closures — see the
+                // note in `defaultsSection`: capturing the whole `Sidebar` struct faults in
                 // `swift_retain` while SwiftUI copies the row value on the iPad layout path.
                 let nav = nav
+                let windowNav = windowNav
                 sidebarSubRow(label: String(localized: "My Pads"), icon: "person.fill") {
-                    nav.toggleMergedMine(kind: .pads)
+                    nav.toggleMergedMine(kind: .pads, currentlyOn: windowNav.mergedPadsMineOnly)
                 }
                 sidebarSubRow(label: String(localized: "Active Pads"), icon: "bolt.fill") {
-                    nav.toggleMergedPadsActive()
+                    nav.toggleMergedPadsActive(currentlyOn: windowNav.mergedPadsActiveOnly)
                 }
                 sidebarSubRow(label: String(localized: "My Questions"), icon: "person.fill.questionmark") {
-                    nav.toggleMergedMine(kind: .questions)
+                    nav.toggleMergedMine(kind: .questions, currentlyOn: windowNav.mergedQuestionsMineOnly)
                 }
             }
             .sidebarGroupRow()

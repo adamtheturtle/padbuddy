@@ -180,13 +180,13 @@ extension MergedQuestionsView {
         if let rowID = Self.rowToRestore(
             savedRowID: UserDefaults.standard.string(forKey: Self.selectedRowKey),
             hasSelection: selection != nil,
-            hasPendingNavigation: router.pendingFavoriteQuestion != nil,
+            hasPendingNavigation: nav.pendingMergedFavoriteQuestion != nil,
             availableRowIDs: availableRowIDs
         ) {
             selectedRowIDs = [rowID]
             // Bring the restored row into view; the List won't scroll to it on its own.
             pendingScrollToRowID = rowID
-        } else if selection == nil, router.pendingFavoriteQuestion == nil,
+        } else if selection == nil, nav.pendingMergedFavoriteQuestion == nil,
                   let topID = UserDefaults.standard.string(forKey: Self.topRowKey),
                   availableRowIDs.contains(topID) {
             // Nothing to reselect — return the unselected list to where it was scrolled

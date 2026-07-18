@@ -80,10 +80,10 @@ extension MergedQuestionsView {
             // so it selects the right row even when two orgs share a per-org id. Cleared
             // once consumed; left untouched if the row hasn't loaded yet (the row id
             // simply won't resolve, the same best-effort the per-account view uses).
-            .onChange(of: router.pendingFavoriteQuestion) { _, request in
+            .onChange(of: nav.pendingMergedFavoriteQuestion) { _, request in
                 guard let request else { return }
 
-                router.pendingFavoriteQuestion = nil
+                nav.pendingMergedFavoriteQuestion = nil
                 selectedRowIDs = [Self.rowID(account: request.account, question: request.id)]
             }
             // Keep the sidebar's "My Questions" row in sync with this list's "Mine"
@@ -96,10 +96,11 @@ extension MergedQuestionsView {
     }
 
     private func publishMergedQuestionsMineOnly(_ isOn: Bool) {
-        guard nav.mergedQuestionsMineOnly != isOn else { return }
+        let windowNav = windowNav
+        guard windowNav.mergedQuestionsMineOnly != isOn else { return }
 
         DispatchQueue.main.async {
-            if nav.mergedQuestionsMineOnly != isOn { nav.mergedQuestionsMineOnly = isOn }
+            if windowNav.mergedQuestionsMineOnly != isOn { windowNav.mergedQuestionsMineOnly = isOn }
         }
     }
 

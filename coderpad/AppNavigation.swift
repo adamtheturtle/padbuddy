@@ -54,71 +54,48 @@ final class AppNavigation {
     /// Consumed and cleared by QuestionsView when it appears or this value changes.
     var questionsRequest: QuestionsRequest?
 
-    /// The campaign selected in the Screen section's middle column. Selecting one drives
-    /// the detail column's test-sessions list (#448). Kept here rather than as a
-    /// `MainSplit` binding so it needs no threading through the shared split columns;
-    /// the campaigns list owns it and the detail column observes it.
-    var screenCampaignSelection: ScreenCampaign?
+    // The per-window published state that used to live here (the Screen campaign
+    // selection and candidate-count subtitle, the section result-count subtitle,
+    // and the merged lists' live "Mine"/"Active" preset flags) moved to
+    // `WindowNavigation`, one instance per scene: a single process-wide value made
+    // every window display or act on whichever window published last (#887, #888,
+    // #908, #909). This type keeps only the process-wide request mailbox.
 
-    /// The selected campaign's candidate-count subtitle (e.g. "12 candidates"), published
-    /// by the tests list (which lives in the detail column, #448). The campaigns column
-    /// reports it as the window subtitle while a campaign is selected, since the detail
-    /// column's own count preference doesn't propagate out to the toolbar (#475).
-    var screenTestsSubtitle = ""
-
-    /// Which tests-list view instance last published ``screenTestsSubtitle``, so the
-    /// deferred clear from a disappearing campaign view can't blank the subtitle a
-    /// newly selected campaign just wrote (#805). Only the current owner may clear.
-    var screenTestsSubtitleOwner: UUID?
-
-    /// The visible list section's result-count summary (e.g. "12 pads"), published by
-    /// the active list pane via ``publishSectionCount(_:)`` and shown by `MainSplit` as
-    /// the window's toolbar subtitle beneath the section title. Replaces the former
-    /// `SectionCountKey` SwiftUI preference, which SwiftUICore faulted on ("tried to
-    /// update multiple times per frame"): a list's count can change across the several
-    /// `body` passes that settle one frame, and the preference wrote each intermediate
-    /// value straight into the tree. Routing it through the guarded ``publishSectionCount(_:)``
-    /// (an `onChange` side effect, which fires once per settled value) keeps that safety
-    /// without a preference.
-    var sectionCountSubtitle = ""
-
-    /// The section ``sectionCountSubtitle`` was published for, so `MainSplit` can ignore a
-    /// count left over from the section just navigated away from — otherwise that stale
-    /// count would linger under the new title until the new pane republishes its own,
-    /// which lands a frame later and reads as a flash (the old title's count, then the
-    /// new one). Set alongside the subtitle by ``publishSectionCount(_:)``.
-    var sectionCountSection: AppSection?
-
-    /// The live filter signature of each list, republished by its pane whenever its
-    /// filters change (and on appear). The sidebar compares these against the
-    /// suggested rows to highlight whichever search is currently applied, falling
-    /// back to the plain "Pads"/"Questions" row when nothing matches. Kept
-    /// here rather than inferred from `padsRequest`/`questionsRequest` because those
-    /// are transient one-shot requests, while this must track every in-pane filter
-    /// edit (a chip toggle, a menu change) so the sidebar highlight never lies about
-    /// what's on screen. Compared by filter fields only; `name`/`id` are ignored.
-    var padsFilter = NamedSearch(name: "")
-    var questionsFilter = NamedSearch(name: "")
-
-    /// The live "Mine" preset state of each combined ("All Accounts") list,
-    /// republished by `MergedPadsView`/`MergedQuestionsView` so the sidebar can
-    /// honestly highlight its "My Pads"/"My Questions" rows in merged mode. The
-    /// combined views own their filters locally rather than through
-    /// `padsFilter`/`padsRequest` (their "Mine" is per-account ownership, not a
-    /// single owner email), so a one-shot `…Request` lets the sidebar set the
-    /// preset; the view consumes and clears it, then republishes the result here.
-    /// Mirrors the padsFilter/padsRequest split the single-account panes use.
-    var mergedPadsMineOnly = false
+    /// One-shot toggle requests for the combined lists' "Mine"/"Active" presets,
+    /// set by the sidebar (or an App Intent); the merged view consumes and clears
+    /// the request, applies it, and republishes the result to its window's
+    /// `WindowNavigation`. A request rather than a binding because the combined
+    /// views own their filters locally (their "Mine" is per-account ownership, not
+    /// a single owner email) and may not be mounted when the request is made.
     var mergedPadsMineRequest: Bool?
-    var mergedQuestionsMineOnly = false
     var mergedQuestionsMineRequest: Bool?
-
-    /// The live "Active" preset of the combined pads list — its `stateFilter` set to
-    /// the in-progress session state — mirrored by the sidebar's "Active Pads" row.
-    /// Follows the same publish/one-shot-request split as `mergedPadsMineOnly`, since
-    /// the combined view owns its `stateFilter` locally.
-    var mergedPadsActiveOnly = false
     var mergedPadsActiveRequest: Bool?
+
+    /// A favourite question chosen from the sidebar (or Spotlight / the command
+    /// palette) while in the combined "All Accounts" view, carrying its account so
+    /// the combined questions list selects the right row - per-org ids collide, so
+    /// the id alone is ambiguous. Consumed and cleared by `MergedQuestionsView`.
+    var pendingMergedFavoriteQuestion: MergedFavorite?
+
+    /// Switch-to-merged-questions request for a favourite: the question id and the
+    /// account it belongs to.
+    struct MergedFavorite: Equatable {
+        let account: UUID
+        let id: Int
+    }
+
+    /// A favourite pad chosen from the sidebar in the merged view. Pad ids are
+    /// CoderPad slugs, so - unlike questions - no account needs to travel with it:
+    /// the id alone selects the right row. Consumed and cleared by `MergedPadsView`.
+    var pendingMergedFavoritePadID: String?
+
+    func selectMergedFavoriteQuestion(account: UUID, id: Int) {
+        pendingMergedFavoriteQuestion = MergedFavorite(account: account, id: id)
+    }
+
+    func selectMergedFavoritePad(id: String) {
+        pendingMergedFavoritePadID = id
+    }
 
     /// A question id whose detail pane should immediately create a pad and open it
     /// inline (the in-pane browser), matching the detail view's "New Pad" button.
@@ -180,19 +157,6 @@ final class AppNavigation {
         self.section = section
     }
 
-    /// Publish the active list section's result-count subtitle, tagged with the current
-    /// section so `MainSplit` can tell it apart from a stale count. Called as an
-    /// `onChange` side effect (see `reportsSectionCount`), which already fires once per
-    /// settled value, so the set is synchronous: deferring it to the next runloop is
-    /// what left the toolbar blank for a frame when switching sections (the new pane's
-    /// count arrived after the section change had already cleared the old one).
-    func publishSectionCount(_ subtitle: String) {
-        guard sectionCountSubtitle != subtitle || sectionCountSection != section else { return }
-
-        sectionCountSubtitle = subtitle
-        sectionCountSection = section
-    }
-
     /// Switch to Pads and queue a request for the list to apply on appear.
     func showPads(_ request: PadsRequest = PadsRequest()) {
         section = .pads
@@ -215,21 +179,23 @@ final class AppNavigation {
     }
 
     /// Toggle a combined list's "Mine" preset from the sidebar, switching to that
-    /// list first. Targets the opposite of the last-published state so repeated taps
-    /// flip it; the merged view consumes the request, applies it, and republishes.
-    func toggleMergedMine(kind: SavedSearchKind) {
+    /// list first. Targets the opposite of `currentlyOn` - the state the caller's
+    /// window last published to its `WindowNavigation` - so repeated taps flip it;
+    /// the merged view consumes the request, applies it, and republishes.
+    func toggleMergedMine(kind: SavedSearchKind, currentlyOn: Bool) {
         switch kind {
-        case .pads: section = .pads; mergedPadsMineRequest = !mergedPadsMineOnly
-        case .questions: section = .questions; mergedQuestionsMineRequest = !mergedQuestionsMineOnly
+        case .pads: section = .pads; mergedPadsMineRequest = !currentlyOn
+        case .questions: section = .questions; mergedQuestionsMineRequest = !currentlyOn
         }
     }
 
     /// Toggle the combined pads list's "Active" preset from the sidebar, switching to
-    /// Pads first. The pad counterpart to `toggleMergedMine` — independent of "Mine",
-    /// so both presets can apply together, matching the removed in-list chips.
-    func toggleMergedPadsActive() {
+    /// Pads first. The pad counterpart to `toggleMergedMine(kind:currentlyOn:)` -
+    /// independent of "Mine", so both presets can apply together, matching the
+    /// removed in-list chips.
+    func toggleMergedPadsActive(currentlyOn: Bool) {
         section = .pads
-        mergedPadsActiveRequest = !mergedPadsActiveOnly
+        mergedPadsActiveRequest = !currentlyOn
     }
 
     /// Switch to a combined list's plain, unfiltered root, clearing its "Mine"
@@ -249,7 +215,7 @@ final class AppNavigation {
 
     /// Opens an account-scoped question from global entry points like Spotlight and
     /// the command palette. Question ids collide across accounts, so merged mode must
-    /// carry the account through `MergedRouting` instead of selecting by bare id.
+    /// carry the account with the pending favourite instead of selecting by bare id.
     @discardableResult
     @MainActor
     func showQuestion(id: Int, account: UUID) -> Bool {
@@ -257,7 +223,7 @@ final class AppNavigation {
 
         if AccountsStore.shared.isMergedView {
             section = .questions
-            MergedRouting.shared.selectFavoriteQuestion(account: account, id: id)
+            selectMergedFavoriteQuestion(account: account, id: id)
         } else {
             AccountsStore.shared.currentAccountID = account
             showFavoriteQuestion(id: id)

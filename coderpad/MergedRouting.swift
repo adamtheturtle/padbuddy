@@ -9,13 +9,16 @@
 //  account map here as they load; the detail pane and row actions resolve the right
 //  account (and client) through it.
 //
+//  One instance per scene, owned by `ContentView` and injected into its window's
+//  environment: routing state used to be a process-wide singleton, so selecting a
+//  question or drilling into a Screen campaign in one window retargeted the detail
+//  pane (and its account-scoped actions) in every other window (#888, #911).
+//
 
 import Foundation
 
 @Observable
 final class MergedRouting {
-    static let shared = MergedRouting()
-    private init() {}
 
     /// pad id -> owning account id. Pad ids are CoderPad slugs (globally unique), so
     /// this is unambiguous across accounts.
@@ -39,32 +42,10 @@ final class MergedRouting {
     /// the selection. `nil` at the campaigns list (no campaign open).
     var selectedScreenAccountID: UUID?
 
-    /// A favourite question chosen from the sidebar in the merged view, carrying its
-    /// account so the combined questions list selects the right row — per-org ids
-    /// collide, so the id alone is ambiguous. Set by the sidebar, consumed and cleared
-    /// by `MergedQuestionsView`.
-    var pendingFavoriteQuestion: PendingFavorite?
-
-    /// Switch-to-merged-questions request for a sidebar favourite: the question id and
-    /// the account it belongs to.
-    struct PendingFavorite: Equatable {
-        let account: UUID
-        let id: Int
-    }
-
-    func selectFavoriteQuestion(account: UUID, id: Int) {
-        pendingFavoriteQuestion = PendingFavorite(account: account, id: id)
-    }
-
-    /// A favourite pad chosen from the sidebar in the merged view. Pad ids are
-    /// CoderPad slugs (globally unique), so — unlike questions — no account needs to
-    /// travel with it: the id alone selects the right row. Set by the sidebar,
-    /// consumed and cleared by `MergedPadsView`.
-    var pendingFavoritePadID: String?
-
-    func selectFavoritePad(id: String) {
-        pendingFavoritePadID = id
-    }
+    // The pending sidebar-favourite selections (`pendingMergedFavoriteQuestion`,
+    // `pendingMergedFavoritePadID`) live on `AppNavigation`: they are durable
+    // navigation *requests* also queued by global entry points (Spotlight, the
+    // command palette), while this type holds only this window's routing state.
 
     /// Replace the pad routing map with the accounts that own the currently merged
     /// pads. Replacing (rather than merging) keeps the map from growing without
