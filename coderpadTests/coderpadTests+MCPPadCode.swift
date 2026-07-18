@@ -28,7 +28,7 @@ struct MCPPadCodeTests {
         #expect(truncate("hello", to: 10) == "hello")
         let cut = truncate("hello", to: 3)
         #expect(cut.hasPrefix("hel"))
-        #expect(cut.contains("2 more characters"))
+        #expect(cut.contains("2 more bytes"))
     }
 
     @Test
@@ -81,7 +81,7 @@ struct MCPPadCodeTests {
         #expect(payload["title"] as? String == "T")
         let files = payload["files"] as? [[String: Any]] ?? []
         #expect(files.count == 1)
-        #expect((files[0]["contents"] as? String)?.contains("6 more characters") == true)
+        #expect((files[0]["contents"] as? String)?.contains("6 more bytes") == true)
     }
 
     @Test
@@ -96,7 +96,14 @@ struct MCPPadCodeTests {
         #expect(payload["incomplete"] as? Bool == true)
         #expect(payload["missing_environment_ids"] as? [Int] == [2])
 
-        let complete = padCodePayload(id: "abc", pad: pad, environments: [env], maxFileChars: nil)
+        // Completeness is derived from the pad's referenced environments (#1598):
+        // environment 2 was never fetched, so this stays incomplete even with no
+        // failed ids reported.
+        let derived = padCodePayload(id: "abc", pad: pad, environments: [env], maxFileChars: nil)
+        #expect(derived["incomplete"] as? Bool == true)
+
+        let both = [env, CoderPadToolCore.PadCodeEnvironment(id: 2, object: [:])]
+        let complete = padCodePayload(id: "abc", pad: pad, environments: both, maxFileChars: nil)
         #expect(complete["incomplete"] == nil)
     }
 }

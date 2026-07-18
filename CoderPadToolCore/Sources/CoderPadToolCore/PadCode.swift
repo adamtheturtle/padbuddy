@@ -20,13 +20,31 @@ public func jsonObject(_ body: String) -> [String: Any]? {
     return object
 }
 
-/// Truncates a file body to `maxChars`, appending a marker noting how much was
-/// dropped. A nil/non-positive limit returns the body unchanged.
-public func truncate(_ body: String, to maxChars: Int?) -> String {
-    guard let maxChars, maxChars > 0, body.count > maxChars else { return body }
+/// The cap applied when a caller doesn't provide one: the transform is bounded by
+/// default so an omitted or invalid limit can never request an unbounded response
+/// (#1589). Generous for real code files.
+public let defaultMaxFileChars = 200_000
 
-    let dropped = body.count - maxChars
-    return String(body.prefix(maxChars)) + "\n… [truncated, \(dropped) more characters]"
+/// Truncates a file body to a UTF-8 byte budget, appending a marker noting how much
+/// was dropped. Budgets are enforced on encoded bytes, never `String.count`: emoji or
+/// combining input could pass a character cap yet blow a downstream byte/token limit
+/// (#1588). The cut lands on a character boundary so no grapheme is split, and a
+/// nil/non-positive limit falls back to `defaultMaxFileChars` rather than "unlimited"
+/// (#1589). The marker itself adds at most ~64 bytes on top of the budget.
+public func truncate(_ body: String, to maxChars: Int?) -> String {
+    let limit = if let maxChars, maxChars > 0 { maxChars } else { defaultMaxFileChars }
+    let totalBytes = body.utf8.count
+    guard totalBytes > limit else { return body }
+
+    let utf8 = body.utf8
+    var cut = utf8.index(utf8.startIndex, offsetBy: limit)
+    while cut > utf8.startIndex, String.Index(cut, within: body) == nil {
+        cut = utf8.index(before: cut)
+    }
+    let index = String.Index(cut, within: body) ?? body.startIndex
+    let kept = String(body[..<index])
+    let dropped = totalBytes - kept.utf8.count
+    return kept + "\n… [truncated, \(dropped) more bytes]"
 }
 
 /// Validates the optional get_pad_code file-size cap. Nil means unlimited; any
@@ -49,12 +67,18 @@ public let languageExtensions: [String: String] = [
 ]
 
 /// Synthesizes `main.<ext>` for a file that has no path of its own (legacy
-/// single-file pads). Falls back to the language name as the extension, then txt.
+/// single-file pads). Falls back to the language name as the extension only when it
+/// is a short plain identifier - a remote language value carrying slashes, dots,
+/// whitespace, or control characters must not become part of a filename (#1590) -
+/// and to txt otherwise.
 public func synthesizedFilename(language: String?) -> String {
     guard let language, !language.isEmpty else { return "main.txt" }
 
     let key = language.lowercased()
-    return "main.\(languageExtensions[key] ?? key)"
+    if let known = languageExtensions[key] { return "main.\(known)" }
+
+    let safe = key.count <= 10 && key.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber) }
+    return safe ? "main.\(key)" : "main.txt"
 }
 
 /// A fetched multi-file environment: its id and decoded JSON object.
@@ -68,40 +92,72 @@ public struct PadCodeEnvironment {
     }
 }
 
-/// The numeric environment ids referenced by a pad, coercing string/int forms and
-/// preserving first-seen order while dropping duplicates.
+/// The numeric environment ids referenced by a pad, coercing int and integer-string
+/// forms only, keeping positive values, and preserving first-seen order while
+/// dropping duplicates. Booleans, floats, and other JSON shapes are rejected rather
+/// than coerced through their string descriptions (#1591).
 public func environmentIDs(in pad: [String: Any]) -> [Int] {
     var seen = Set<Int>()
     return (pad["pad_environment_ids"] as? [Any])?
-        .compactMap { ($0 as? Int) ?? Int("\($0)") }
+        .compactMap(environmentID(from:))
         .filter { seen.insert($0).inserted } ?? []
 }
 
+private func environmentID(from value: Any) -> Int? {
+    // JSON booleans bridge to NSNumber and would pass an `as? Int` cast as 0/1.
+    if value is Bool { return nil }
+    let id: Int? = switch value {
+    case let int as Int: int
+    case let string as String: Int(string.trimmingCharacters(in: .whitespaces))
+    default: nil
+    }
+    guard let id, id > 0 else { return nil }
+
+    return id
+}
+
 /// Assembles the file list for a pad. Multi-file environments take precedence; a
-/// legacy single-file pad's top-level "contents" is the fallback used only when no
-/// environment files were found.
+/// legacy single-file pad's top-level "contents" is the fallback used when no
+/// environment files were found - including when it is present but empty, so an
+/// intentionally blank single-file pad is distinguishable from a pad with no code
+/// (#1596). Duplicate environment ids (a retried or malformed fetch) contribute
+/// files once (#1592).
 public func padCodeFiles(
     pad: [String: Any], environments: [PadCodeEnvironment], maxFileChars: Int?
 ) -> [[String: Any]] {
     var files: [[String: Any]] = []
 
-    for environment in environments {
-        let environmentLanguage = environment.object["language"] as? String
+    var seenEnvironments = Set<Int>()
+    for environment in environments where seenEnvironments.insert(environment.id).inserted {
+        // An empty/whitespace file language is absent, not a value: it must not
+        // shadow a valid environment-level language (#1595).
+        let environmentLanguage = trimmedNonEmptyValue(environment.object["language"] as? String)
         let fileContents = environment.object["file_contents"] as? [[String: Any]] ?? []
         for file in fileContents {
-            let language = (file["language"] as? String) ?? environmentLanguage
+            let language = trimmedNonEmptyValue(file["language"] as? String) ?? environmentLanguage
+            let rawContents = file["contents"]
+            let contents = rawContents as? String
             var entry: [String: Any] = [
-                "filename": (file["path"] as? String) ?? synthesizedFilename(language: language),
-                "contents": truncate(file["contents"] as? String ?? "", to: maxFileChars),
+                // Remote paths are untrusted: traversal, control characters, or
+                // unbounded names must not flow into tool output that agents may
+                // hand to file operations (#1593).
+                "filename": sanitizedFilePath(file["path"] as? String)
+                    ?? synthesizedFilename(language: language),
+                "contents": truncate(contents ?? "", to: maxFileChars),
                 "environment_id": environment.id
             ]
             if let language { entry["language"] = language }
+            // A present-but-non-string contents value is a schema problem the
+            // caller must see, never a silently "empty" real file (#1594).
+            if contents == nil, let rawContents, !(rawContents is NSNull) {
+                entry["error"] = "The file's contents were not a string in the API response."
+            }
             files.append(entry)
         }
     }
 
-    if files.isEmpty, let contents = pad["contents"] as? String, !contents.isEmpty {
-        let language = pad["language"] as? String
+    if files.isEmpty, let contents = pad["contents"] as? String {
+        let language = trimmedNonEmptyValue(pad["language"] as? String)
         var entry: [String: Any] = [
             "filename": synthesizedFilename(language: language),
             "contents": truncate(contents, to: maxFileChars)
@@ -113,24 +169,61 @@ public func padCodeFiles(
     return files
 }
 
+private func trimmedNonEmptyValue(_ raw: String?) -> String? {
+    guard let value = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !value.isEmpty else { return nil }
+
+    return value
+}
+
+/// A remote file path reduced to a safe relative form: no control characters, no
+/// leading separators, no `.`/`..` components, and a bounded length. Nil when
+/// nothing safe remains, so the caller falls back to a synthesized name (#1593).
+func sanitizedFilePath(_ raw: String?) -> String? {
+    guard let value = trimmedNonEmptyValue(raw),
+          !value.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) })
+    else { return nil }
+
+    let parts = value.split(separator: "/").filter { $0 != "." && $0 != ".." }
+    guard !parts.isEmpty else { return nil }
+
+    let joined = parts.joined(separator: "/")
+    return joined.count <= 256 ? joined : nil
+}
+
 /// The full get_pad_code payload for a pad. Environments whose fetch failed must be
 /// reported in `failedEnvironmentIDs`: the payload then carries `incomplete: true` and
 /// `missing_environment_ids`, so a caller is never silently handed a partial file set
-/// (#1015/#1036).
+/// (#1015/#1036). Completeness is also *derived*, not just trusted: any environment
+/// the pad references that isn't in `environments` counts as missing even when the
+/// caller forgot to report it (#1598).
 public func padCodePayload(
     id: String, pad: [String: Any], environments: [PadCodeEnvironment],
     failedEnvironmentIDs: [Int] = [], maxFileChars: Int?
 ) -> [String: Any] {
     var payload: [String: Any] = [
-        "pad_id": id,
-        "title": pad["title"] as? String ?? "",
+        // Display fields are bounded and control-character-free so a malformed
+        // response can't pollute MCP output or logs (#1597).
+        "pad_id": sanitizedDisplayField(id, cap: 128),
+        "title": sanitizedDisplayField(pad["title"] as? String ?? "", cap: 500),
         "files": padCodeFiles(pad: pad, environments: environments, maxFileChars: maxFileChars)
     ]
-    if !failedEnvironmentIDs.isEmpty {
+    let fetched = Set(environments.map(\.id))
+    var missing = failedEnvironmentIDs
+    for referenced in environmentIDs(in: pad)
+        where !fetched.contains(referenced) && !missing.contains(referenced) {
+        missing.append(referenced)
+    }
+    if !missing.isEmpty {
         payload["incomplete"] = true
-        payload["missing_environment_ids"] = failedEnvironmentIDs
+        payload["missing_environment_ids"] = missing
         payload["incomplete_note"] = "Some pad environments could not be fetched; "
             + "the files list is missing their contents. Retry to get the full code."
     }
     return payload
+}
+
+/// A bounded, control-character-free copy of a display string (#1597).
+private func sanitizedDisplayField(_ value: String, cap: Int) -> String {
+    let cleaned = String(value.unicodeScalars.filter { !CharacterSet.controlCharacters.contains($0) })
+    return String(cleaned.prefix(cap))
 }

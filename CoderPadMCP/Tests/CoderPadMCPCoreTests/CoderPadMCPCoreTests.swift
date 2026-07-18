@@ -432,7 +432,13 @@ struct PadCodeTests {
         #expect(truncate("hello", to: 10) == "hello")
         let cut = truncate("hello", to: 3)
         #expect(cut.hasPrefix("hel"))
-        #expect(cut.contains("2 more characters"))
+        #expect(cut.contains("2 more bytes"))
+        // Budgets are UTF-8 bytes, cut on a character boundary (#1588), and a
+        // nil/non-positive limit means the bounded default, not unlimited (#1589).
+        #expect(truncate("é1234", to: 3) == "é1\n… [truncated, 3 more bytes]")
+        let unbounded = String(repeating: "x", count: defaultMaxFileChars + 10)
+        #expect(truncate(unbounded, to: nil).contains("10 more bytes"))
+        #expect(truncate(unbounded, to: 0).contains("10 more bytes"))
     }
 
     @Test
@@ -500,7 +506,7 @@ struct PadCodeTests {
         let files = padCodeFiles(pad: pad, environments: [], maxFileChars: 4)
         let contents = files[0]["contents"] as? String ?? ""
         #expect(contents.hasPrefix("0123"))
-        #expect(contents.contains("6 more characters"))
+        #expect(contents.contains("6 more bytes"))
     }
 
     @Test
@@ -525,7 +531,15 @@ struct PadCodeTests {
         #expect(payload["missing_environment_ids"] as? [Int] == [2])
         #expect((payload["files"] as? [[String: Any]])?.count == 1)
 
-        let complete = padCodePayload(id: "abc", pad: pad, environments: [env], maxFileChars: nil)
+        // Completeness is derived from the pad's referenced environments, not
+        // just the caller's report: environment 2 was never fetched, so the
+        // payload is incomplete even with no failed ids reported (#1598).
+        let derived = padCodePayload(id: "abc", pad: pad, environments: [env], maxFileChars: nil)
+        #expect(derived["incomplete"] as? Bool == true)
+        #expect(derived["missing_environment_ids"] as? [Int] == [2])
+
+        let both = [env, PadCodeEnvironment(id: 2, object: [:])]
+        let complete = padCodePayload(id: "abc", pad: pad, environments: both, maxFileChars: nil)
         #expect(complete["incomplete"] == nil)
         #expect(complete["missing_environment_ids"] == nil)
     }
