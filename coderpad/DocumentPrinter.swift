@@ -20,6 +20,22 @@ import SwiftUI
 struct QuestionPrintDocument: View {
     let question: Question
 
+    /// Trimmed, so a whitespace-only title falls back to the placeholder instead of
+    /// printing a blank heading (#1950).
+    private var displayTitle: String {
+        let trimmed = question.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? String(localized: "Untitled Question") : trimmed
+    }
+
+    /// Whether any printable section will render, so an all-empty question gets an
+    /// explicit note rather than a bare title over blank paper (#1956).
+    private var hasPrintableContent: Bool {
+        !(question.description ?? "").isEmpty
+            || !question.candidateInstructions.isEmpty
+            || !(question.contents ?? "").isEmpty
+            || !(question.solution ?? "").isEmpty
+    }
+
     private var metaLine: String {
         var parts: [String] = [question.interviewType.label]
         if let language = question.language, !language.isEmpty {
@@ -34,10 +50,16 @@ struct QuestionPrintDocument: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             VStack(alignment: .leading, spacing: 4) {
-                Text(question.title.isEmpty ? String(localized: "Untitled Question") : question.title)
+                Text(displayTitle)
                     .font(.title.bold())
                 Text(metaLine)
                     .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+
+            if !hasPrintableContent {
+                Text("This question has no description, candidate instructions, starter code, or solution to print.")
+                    .font(.callout)
                     .foregroundStyle(.secondary)
             }
 
@@ -113,7 +135,11 @@ func padSummaryRows(_ pad: Pad, displayName: (String) -> String = \.self) -> [(S
         rows.append(("Language", language.coderPadLanguageDisplayName))
     }
     if !pad.participants.isEmpty {
-        rows.append(("Participants", pad.participants.map(displayName).joined(separator: ", ")))
+        // The API can repeat a participant across sessions; a printed summary should
+        // name each person once (#1955).
+        var seen = Set<String>()
+        let unique = pad.participants.filter { seen.insert($0.lowercased()).inserted }
+        rows.append(("Participants", unique.map(displayName).joined(separator: ", ")))
     }
     if let createdAt = pad.createdAt {
         rows.append(("Created", createdAt.formatted(date: .long, time: .shortened)))
@@ -136,9 +162,38 @@ struct PadPrintDocument: View {
         padSummaryRows(pad, displayName: displayName)
     }
 
+    /// Trimmed, so a whitespace-only title falls back to the pad id instead of a
+    /// blank heading (#1951).
+    private var displayTitle: String {
+        let trimmed = pad.title.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? pad.id : trimmed
+    }
+
+    /// Files with guaranteed-unique SwiftUI identities and disambiguated headings:
+    /// file ids come from the server and can repeat (#1952), and two files can share
+    /// one display name, which would make their printed sections indistinguishable
+    /// (#1953).
+    private var displayFiles: [PadPrintFile] {
+        var seenIDs: Set<String> = []
+        var titleCounts: [String: Int] = [:]
+        for file in files { titleCounts[file.title, default: 0] += 1 }
+        var titleOrdinals: [String: Int] = [:]
+        return files.map { file in
+            var id = file.id
+            while !seenIDs.insert(id).inserted { id += "+" }
+            var title = file.title
+            if titleCounts[file.title, default: 0] > 1 {
+                let ordinal = (titleOrdinals[file.title] ?? 0) + 1
+                titleOrdinals[file.title] = ordinal
+                title = "\(file.title) (\(ordinal))"
+            }
+            return PadPrintFile(id: id, title: title, code: file.code, language: file.language)
+        }
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Text(pad.title.isEmpty ? pad.id : pad.title)
+            Text(displayTitle)
                 .font(.title.bold())
 
             PrintableView.PrintSection(title: "Summary") {
@@ -157,7 +212,7 @@ struct PadPrintDocument: View {
                 }
             }
 
-            ForEach(files) { file in
+            ForEach(displayFiles) { file in
                 PrintableView.PrintSection(title: file.title) { PrintableView.PrintCode(code: file.code) }
             }
         }
