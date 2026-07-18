@@ -16,11 +16,14 @@ import UniformTypeIdentifiers
 
 enum CodeExportPathError: LocalizedError {
     case fileDirectoryConflict(String)
+    case destinationNotEmpty(String)
 
     var errorDescription: String? {
         switch self {
         case let .fileDirectoryConflict(path):
             "Cannot export files because \"\(path)\" is both a file and a folder."
+        case let .destinationNotEmpty(name):
+            "\"\(name)\" already exists and isn't empty. Choose a new folder name to export into."
         }
     }
 }
@@ -36,10 +39,13 @@ nonisolated enum CodeExportPathPlan {
             let name = String(component)
             guard !name.isEmpty, name != ".", name != ".." else { continue }
 
-            components.append(name)
+            // Sanitize each component: remotely supplied names can carry colons,
+            // control characters, or bare dots that fail or misbehave differently
+            // per platform once handed to the exporter (#1177).
+            components.append(SaveCodePathHelpers.sanitizeComponent(name))
         }
 
-        return components.isEmpty ? [file.name] : components
+        return components.isEmpty ? [SaveCodePathHelpers.sanitizeComponent(file.name)] : components
     }
 
     /// A unique relative path per file, in order: exact and case-insensitive collisions
@@ -113,12 +119,18 @@ extension EnvironmentCodeCard {
             panel.canCreateDirectories = true
             guard panel.runModal() == .OK, let destination = panel.url else { return }
 
+            var createdDestination = false
             do {
-                try writeFolder(of: files, to: destination)
+                try writeFolder(of: files, to: destination, createdDestination: &createdDestination)
             } catch {
                 // Writes are sequential, so a mid-write failure would leave a partial
                 // folder posing as a complete download: remove it and say why (#791).
-                try? FileManager.default.removeItem(at: destination)
+                // Only a folder this export created is removed — cleanup after an
+                // early validation failure must never delete a pre-existing item the
+                // user happened to select (#1176).
+                if createdDestination {
+                    try? FileManager.default.removeItem(at: destination)
+                }
                 exportError = error.localizedDescription
             }
         #else
@@ -129,15 +141,31 @@ extension EnvironmentCodeCard {
 
     #if os(macOS)
         /// Writes the files into a fresh folder at `destination`, recreating each
-        /// file's relative path beneath it.
-        private func writeFolder(of files: [CodeFile], to destination: URL) throws {
+        /// file's relative path beneath it. `createdDestination` reports whether
+        /// this call created the folder, so the caller's failure cleanup can limit
+        /// itself to what this export actually made (#1176).
+        private func writeFolder(
+            of files: [CodeFile],
+            to destination: URL,
+            createdDestination: inout Bool
+        ) throws {
             try CodeExportPathPlan.validateNoFileDirectoryConflicts(files)
 
             let fileManager = FileManager.default
-            if fileManager.fileExists(atPath: destination.path) {
-                try fileManager.removeItem(at: destination)
+            var isDirectory: ObjCBool = false
+            if fileManager.fileExists(atPath: destination.path, isDirectory: &isDirectory) {
+                // Never delete what the user already had: refuse a file or a
+                // non-empty folder instead of silently replacing its contents when
+                // the save panel's replacement prompt was bypassed or misread
+                // (#1175). An existing *empty* folder is reused.
+                guard isDirectory.boolValue,
+                      try fileManager.contentsOfDirectory(atPath: destination.path).isEmpty else {
+                    throw CodeExportPathError.destinationNotEmpty(destination.lastPathComponent)
+                }
+            } else {
+                try fileManager.createDirectory(at: destination, withIntermediateDirectories: true)
+                createdDestination = true
             }
-            try fileManager.createDirectory(at: destination, withIntermediateDirectories: true)
 
             // Each file keeps its relative path (traversal segments already dropped by
             // the plan), renamed where paths collide exactly or by letter case only —

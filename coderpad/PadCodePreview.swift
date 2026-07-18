@@ -135,7 +135,7 @@ struct EnvironmentCodeCard: View {
         self.exampleQuestionID = exampleQuestionID
         self.padID = padID
         self.dark = dark
-        fileTree = Self.makeFileTree(from: files)
+        fileTree = FileTreeMemo.tree(for: files)
     }
 
     /// A humanized name for a built-in example identifier, or `nil` when the
@@ -216,54 +216,8 @@ struct EnvironmentCodeCard: View {
         files.count > 1
     }
 
-    /// Builds the folder tree from a flat file list. Pure and static so it can run
-    /// once at `init` time.
-    private static func makeFileTree(from files: [CodeFile]) -> [FileTreeNode] {
-        // Explicitly-typed intermediates keep the tuple-returning map cheap to
-        // type-check; the inferred chain otherwise blows the 250ms budget on CI's
-        // slower toolchain (#427).
-        let entries: [(segments: [String], file: CodeFile)] = files.map { file in
-            let path = file.path ?? file.name
-            let segments: [String] = path.split(separator: "/")
-                .map(String.init)
-                .filter { $0 != "." && $0 != ".." }
-            return (segments.isEmpty ? [file.name] : segments, file)
-        }
-        return makeNodes(entries: entries, prefix: "")
-    }
-
-    private static func makeNodes(
-        entries: [(segments: [String], file: CodeFile)],
-        prefix: String
-    ) -> [FileTreeNode] {
-        var folderOrder: [String] = []
-        var groups: [String: [(segments: [String], file: CodeFile)]] = [:]
-        var leaves: [(name: String, file: CodeFile)] = []
-
-        for entry in entries {
-            if entry.segments.count <= 1 {
-                leaves.append((entry.segments.first ?? entry.file.name, entry.file))
-            } else {
-                let head = entry.segments[0]
-                if groups[head] == nil {
-                    groups[head] = []
-                    folderOrder.append(head)
-                }
-                groups[head]?.append((Array(entry.segments.dropFirst()), entry.file))
-            }
-        }
-
-        var nodes: [FileTreeNode] = []
-        for folder in folderOrder.sorted(by: { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }) {
-            let childPrefix = prefix.isEmpty ? folder : prefix + "/" + folder
-            let children = makeNodes(entries: groups[folder] ?? [], prefix: childPrefix)
-            nodes.append(FileTreeNode(id: "folder:" + childPrefix, name: folder, file: nil, children: children))
-        }
-        for leaf in leaves.sorted(by: { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }) {
-            nodes.append(FileTreeNode(id: "file:\(leaf.file.id)", name: leaf.name, file: leaf.file, children: []))
-        }
-        return nodes
-    }
+    // `makeFileTree`/`makeNodes` (and the `FileTreeMemo` that caches their output)
+    // live in PadCodePreview+FileTree.swift to keep this file within the length lint.
 
     var body: some View {
         Card {
@@ -304,6 +258,11 @@ struct EnvironmentCodeCard: View {
             // that may no longer exist, and `selected` now falls back to the first
             // file — leaving it up would show file A's analysis over a different file.
             clearExplanation()
+            // And dismiss the full-screen viewer: left up, it would momentarily
+            // render the replacement environment's first file under the old
+            // title/selection with another project's collapsed folders (#1180).
+            showFullCode = false
+            collapsedFolders = []
         }
         // A refresh can change a file's contents or language without changing its
         // path-derived id. Keep the selected file, but discard any explanation for
@@ -366,15 +325,4 @@ struct EnvironmentCodeCard: View {
     }
 }
 
-/// A node in the file tree built from the files' paths. A leaf carries a
-/// `file`; a folder carries `children` and a nil `file`.
-struct FileTreeNode: Identifiable {
-    let id: String
-    let name: String
-    let file: CodeFile?
-    let children: [Self]
-
-    var isFolder: Bool {
-        file == nil
-    }
-}
+// `FileTreeNode` and `FileTreeMemo` live in PadCodePreview+FileTree.swift.

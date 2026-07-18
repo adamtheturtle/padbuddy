@@ -364,22 +364,7 @@ extension PadDetailView {
         isLoadingHistory || !histories.isEmpty
     }
 
-    /// The non-empty files of an environment, each paired with a language
-    /// inferred from its own extension. A multi-file project (e.g. a Django
-    /// app) mixes `.py`, `.html`, and `.css`; deriving the language per file
-    /// lets each be highlighted correctly instead of forcing the environment's
-    /// single language onto all of them.
-    func displayFiles(for env: PadEnvironment) -> [CodeFile] {
-        env.fileContents.enumerated().compactMap { index, file in
-            guard let body = file.contents, !body.isEmpty else { return nil }
-
-            let stableID = file.path.flatMap { $0.isEmpty ? nil : $0 } ?? "idx-\(index)"
-            return CodeFile(
-                id: stableID,
-                path: file.path,
-                contents: body,
-                language: CodeFile.language(forPath: file.path, fallback: env.language)
-            )
-        }
-    }
+    // `displayFiles(for:)` — the CodeFile normalization feeding these cards —
+    // lives in PadDetailView+SaveCodePaths.swift to keep this file within the
+    // length lint.
 }
