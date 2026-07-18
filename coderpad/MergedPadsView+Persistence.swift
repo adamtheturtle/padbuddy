@@ -173,8 +173,12 @@ extension MergedPadsView {
 
         if let snapshot = try? JSONDecoder().decode(MergedFilterSnapshot.self, from: data) {
             apply(snapshot.search)
-            // Only re-apply an account filter that still resolves to a mergeable
-            // account; a removed account's filter would show an empty list.
+            // Reset before conditionally re-applying: a saved filter whose account
+            // was removed must restore as unfiltered rather than leaving any prior
+            // in-memory value applied (#1656). Only an account that still resolves
+            // to a mergeable one re-applies; a removed account's filter would show
+            // an empty list.
+            accountFilter = nil
             if let id = snapshot.accountFilter,
                accounts.mergeableAccounts.contains(where: { $0.id == id }) {
                 accountFilter = id

@@ -231,14 +231,16 @@ extension MergedPadsView {
             // hasn't loaded yet, park the slug and let
             // `resolvePendingSlugSelection()` finish once it appears.
             let owner = request.selectPadAccountID
-            if let scopedRow = scoped.first(where: {
-                $0.item.id == id && (owner == nil || $0.account.id == owner)
-            }) {
+            let matches = scoped.filter { $0.item.id == id && (owner == nil || $0.account.id == owner) }
+            if let scopedRow = matches.first, owner != nil || matches.count == 1 {
                 selectedIDs = [scopedRow.id]
                 pendingScrollToID = scopedRow.id
-            } else {
+            } else if matches.isEmpty {
                 pendingSelectPadSlug = id
             }
+            // Several bare-id matches: ambiguous — a deep link must not open a
+            // nondeterministic account's pad, so the request is dropped (#1655),
+            // mirroring resolvePendingSlugSelection (#1232).
         }
     }
 
