@@ -25,6 +25,11 @@ struct PadsView: View {
     @State var favoritePads = FavoritePadsStore.shared
     @State var pads: [Pad] = []
     @State var isLoading = false
+    /// Monotonic reload token: each reload claims a new generation and applies
+    /// results only while still the newest, so an older overlapping reload
+    /// (pull-to-refresh racing the timer) that finishes last can't roll the list
+    /// back to stale data (#1201).
+    @State var reloadGeneration = 0
     @State var error: (any Error)?
     @Binding var selection: Pad?
     /// The list selects by pad *id*, not by the whole `Pad`. `List(selection:)` with

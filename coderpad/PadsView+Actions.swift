@@ -169,9 +169,18 @@ extension PadsView {
     func reload() async {
         guard !client.apiKey.isEmpty else { return }
 
+        // Claim the newest generation; an overlapping older reload stops applying
+        // the moment a newer one starts, so its slower result can't replace fresher
+        // data (#1201). The owning account is captured before any await: reading
+        // currentAccountID after awaiting could store this account's pads under a
+        // newly selected account (#1200).
+        reloadGeneration &+= 1
+        let generation = reloadGeneration
+        let owningID = accounts.account(matching: client)?.id ?? accounts.currentAccountID
+
         isLoading = true
         error = nil
-        defer { isLoading = false }
+        defer { if generation == reloadGeneration { isLoading = false } }
         do {
             // Render page 1 the moment it lands, then keep growing the list as the
             // remaining pages stream in. Snapshots arrive sorted updated_at,desc from the
@@ -179,6 +188,8 @@ extension PadsView {
             let isInitialLoad = pads.isEmpty
             var fetched: [Pad] = []
             for try await snapshot in client.listPadsIncrementally() {
+                guard generation == reloadGeneration else { return }
+
                 // The first snapshot is page 1 — the most-recently-updated pads, already
                 // usable. Drop the blocking spinner now and let the rest stream in
                 // silently behind the already-visible list, rather than spinning until
@@ -193,35 +204,41 @@ extension PadsView {
                 if isInitialLoad {
                     pads = snapshot
                     padsRevision += 1
-                    if let id = accounts.currentAccountID {
+                    if let id = owningID {
                         cache.set(id, pads: snapshot, via: client, persist: false)
                     }
                 }
             }
+            guard generation == reloadGeneration else { return }
+
             pads = fetched
             padsRevision += 1
-            finalize(fetched: fetched)
+            finalize(fetched: fetched, account: owningID)
         } catch {
+            guard generation == reloadGeneration else { return }
+
             self.error = error
         }
     }
 
     /// Records the activity diff, refreshes the per-pad timestamp snapshot, and
-    /// caches the full result. Split out of `reload` so the streaming loop stays
+    /// caches the full result under `account` - the id captured when the reload
+    /// started, so a mid-reload account switch can't file these pads under the
+    /// wrong account (#1200). Split out of `reload` so the streaming loop stays
     /// the focus there and the diff bookkeeping is testable in isolation.
-    func finalize(fetched: [Pad]) {
+    func finalize(fetched: [Pad], account: UUID?) {
         let changes = padChanges(in: fetched)
         PadActivityMonitor.shared.record(changedCount: changes.count)
         // Notify only about pads the current user owns: a background alert about every
         // colleague's pad activity across the org is noise, not signal (#424). The Dock
         // badge keeps counting per its own configurable scope (#399/#400); this only
         // narrows the opt-in Notification Center alerts.
-        let myChanges = accounts.currentAccount.map { account in
-            changes.filter { account.owns($0.pad.ownerEmail) }
+        let myChanges = accounts.accounts.first(where: { $0.id == account }).map { owner in
+            changes.filter { owner.owns($0.pad.ownerEmail) }
         } ?? []
         PadUpdateNotifier.shared.notify(changes: myChanges)
         previousActivity = Self.activitySnapshot(of: fetched)
-        if let id = accounts.currentAccountID {
+        if let id = account {
             cache.set(id, pads: fetched, via: client)
         }
         hasLoadedOnce = true

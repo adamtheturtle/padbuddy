@@ -53,6 +53,10 @@ struct MergedPadsView: View {
     /// quiet note without blanking the pads the other accounts returned.
     @State var accountErrors: [UUID: String] = [:]
     @State var isLoading = false
+    /// Monotonic reload token: results apply only while their reload is still the
+    /// newest, so an older overlapping fan-out that finishes last can't roll the
+    /// merged list back to stale per-account data (#1226).
+    @State var reloadGeneration = 0
 
     @Binding var selection: Pad?
     /// The row whose detail is shown: the "primary" of the multi-selection, derived

@@ -297,8 +297,15 @@ extension MergedPadsView {
         let mergeable = accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }
         guard !mergeable.isEmpty else { return }
 
+        // Claim the newest generation; an older overlapping reload stops before
+        // applying, so its slower all-account result can't overwrite fresher
+        // rows/cache/errors (#1226), and a cancelled task can't keep mutating
+        // state after navigation or an account change (#1229).
+        reloadGeneration &+= 1
+        let generation = reloadGeneration
+
         isLoading = true
-        defer { isLoading = false }
+        defer { if generation == reloadGeneration { isLoading = false } }
         // Build the clients on the main actor; each is Sendable, so the concurrent
         // children below can hold one without crossing isolation to build it.
         let targets = mergeable.map { (id: $0.id, client: $0.makeClient()) }
@@ -324,18 +331,27 @@ extension MergedPadsView {
                 }
             }
         }
+        guard generation == reloadGeneration, !Task.isCancelled else { return }
 
+        // Apply only for accounts still configured: one removed or re-keyed while
+        // the fetch ran must not resurface in rows or errors (#1224, #1230). The
+        // cache setter separately validates the fetching client's credentials.
+        let mergeableIDs = Set(accounts.mergeableAccounts.map(\.id))
         let clientsByID = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, $0.client) })
-        for (id, pads) in fetchedByAccount {
+        for (id, pads) in fetchedByAccount where mergeableIDs.contains(id) {
             padsByAccount[id] = pads
             accountErrors[id] = nil
             if let client = clientsByID[id] {
                 cache.set(id, pads: pads, via: client)
             }
         }
-        for (id, errorText) in fetchedErrors {
+        for (id, errorText) in fetchedErrors where mergeableIDs.contains(id) {
             accountErrors[id] = errorText
         }
+        // Prune rows and errors left by accounts that are gone, so a reintroduced
+        // UUID can't inherit an old failure or stale list (#1230).
+        padsByAccount = padsByAccount.filter { mergeableIDs.contains($0.key) }
+        accountErrors = accountErrors.filter { mergeableIDs.contains($0.key) }
         publishRoutes()
         // Stamp the refresh time for the "Updated X ago" freshness cue (#619).
         lastRefreshed = Date()

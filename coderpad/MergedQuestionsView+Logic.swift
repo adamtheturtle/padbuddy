@@ -298,8 +298,15 @@ extension MergedQuestionsView {
         let mergeable = accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }
         guard !mergeable.isEmpty else { return }
 
+        // Claim the newest generation; an older overlapping reload stops applying
+        // the moment a newer one starts, so its per-account results can't mix
+        // stale rows into a fresher merged list (#1227), and a cancelled task
+        // can't keep mutating state after navigation or an account change (#1229).
+        reloadGeneration &+= 1
+        let generation = reloadGeneration
+
         isLoading = true
-        defer { isLoading = false }
+        defer { if generation == reloadGeneration { isLoading = false } }
         // Build the clients on the main actor; each is Sendable, so the concurrent
         // children below can hold one without crossing isolation to build it.
         let targets = mergeable.map { (id: $0.id, client: $0.makeClient()) }
@@ -316,6 +323,12 @@ extension MergedQuestionsView {
                 }
             }
             for await (id, questions, errorText) in group {
+                guard generation == reloadGeneration, !Task.isCancelled else { break }
+                // An account removed or re-keyed while its fetch ran must not
+                // resurface in rows or errors (#1225); the cache setter separately
+                // validates the fetching client's credentials.
+                guard accounts.mergeableAccounts.contains(where: { $0.id == id }) else { continue }
+
                 if let questions {
                     questionsByAccount[id] = questions
                     accountErrors[id] = nil
@@ -328,6 +341,13 @@ extension MergedQuestionsView {
                 publishRoutes()
             }
         }
+        guard generation == reloadGeneration, !Task.isCancelled else { return }
+
+        // Prune rows and errors left by accounts that are gone, so a reintroduced
+        // UUID can't inherit an old failure or stale list (#1230).
+        let mergeableIDs = Set(accounts.mergeableAccounts.map(\.id))
+        questionsByAccount = questionsByAccount.filter { mergeableIDs.contains($0.key) }
+        accountErrors = accountErrors.filter { mergeableIDs.contains($0.key) }
         // The defer above clears isLoading once EVERY account has answered; clearing
         // it per-result made the first fast account end the loading state while
         // slower accounts were still fetching (#728), unlike MergedPadsView.

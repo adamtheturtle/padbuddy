@@ -46,6 +46,10 @@ struct MergedQuestionsView: View {
     @State var questionsRevision = 0
     @State var accountErrors: [UUID: String] = [:]
     @State var isLoading = false
+    /// Monotonic reload token: results apply only while their reload is still the
+    /// newest, so an older overlapping fan-out that finishes last can't roll the
+    /// merged list back to stale per-account data (#1227).
+    @State var reloadGeneration = 0
 
     @Binding var selection: Question?
     /// The primary row, keyed by the account-namespaced row id (`AccountScoped.id`)
