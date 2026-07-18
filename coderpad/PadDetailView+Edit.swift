@@ -94,7 +94,11 @@ extension PadDetailView {
         // Offline → read-only: disable the inline property editors so a field change
         // can't fire a doomed PUT against an unreachable server (#321).
         .disabled(isReadOnly)
-        .task(id: pad.id) { await loadOrgUsers() }
+        // Keyed to the pad, the client identity, and connectivity: a re-keyed
+        // account must not keep exposing the previous org's member list (#1191),
+        // and a load that failed offline retries when connectivity returns
+        // instead of leaving free-text entry for the rest of the view's life (#1190).
+        .task(id: "\(pad.id)|\(clientIdentity)|\(isReadOnly)") { await loadOrgUsers() }
     }
 
     /// The email of the user whose API key this detail view talks through, resolved
@@ -202,15 +206,31 @@ extension PadDetailView {
         draftExecution = pad.executionEnabled ?? true
     }
 
-    /// Loads org members so the owner picker offers a searchable, named list. Falls
-    /// back silently to free-text email entry when unavailable.
-    private func loadOrgUsers() async {
-        guard orgUsers.isEmpty, !client.apiKey.isEmpty else { return }
+    /// A stable identity for the view's client, so the org-member list can be
+    /// keyed to the credentials it was fetched through (#1191).
+    private var clientIdentity: String {
+        "\(client.baseURL.absoluteString)|\(client.apiKey.hashValue)"
+    }
 
+    /// Loads org members so the owner picker offers a searchable, named list. Falls
+    /// back silently to free-text email entry when unavailable; the keyed `.task`
+    /// above re-runs it (a retry) whenever the pad, client identity, or
+    /// connectivity changes (#1190).
+    private func loadOrgUsers() async {
+        guard !client.apiKey.isEmpty else { return }
+
+        // A list fetched through different credentials is another org's directory:
+        // drop it rather than offering the previous account's members while the
+        // reload runs (#1191). A same-client transient failure keeps the existing
+        // list, which is still current.
+        if orgUsersSource != clientIdentity {
+            orgUsers = []
+        }
         if let org = try? await OrganizationCacheStore.shared.organization(via: client) {
             orgUsers = org.users.sorted {
                 ($0.name ?? $0.email).localizedCaseInsensitiveCompare($1.name ?? $1.email) == .orderedAscending
             }
+            orgUsersSource = clientIdentity
         }
     }
 
@@ -244,6 +264,16 @@ extension PadDetailView {
         // .whitespacesAndNewlines, not .whitespaces: a pasted address can carry a
         // trailing newline, which would be sent to the server verbatim (#783).
         let normalized = email.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // A free-typed owner must at least look like an email before it's sent:
+        // the control is presented as an owner selector, and posting arbitrary
+        // text produced server errors or surprising owner assignments (#1189).
+        // Empty stays allowed — the server resolves it to the key owner.
+        guard normalized.isEmpty || EmailValidation.isPlausibleAddress(normalized) else {
+            mutateError = String(localized: "“\(normalized)” isn't a valid email address.")
+            draftOwner = pad.ownerEmail
+            return
+        }
 
         // An empty owner makes the server resolve the pad to the key owner, whose email
         // can't be known locally — so this one edit keeps the authoritative re-GET

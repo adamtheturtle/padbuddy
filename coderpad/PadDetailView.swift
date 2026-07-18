@@ -42,6 +42,9 @@ struct PadDetailView: View {
     @State var draftIsPrivate = false
     @State var draftExecution = true
     @State var orgUsers: [OrganizationUser] = []
+    /// The client identity `orgUsers` was fetched through, so a re-keyed account
+    /// drops the previous org's member list instead of offering it (#1191).
+    @State var orgUsersSource: String?
     // Module-internal (not private) so the Pad-menu handlers and loading split into
     // PadDetailView+MenuActions.swift can drive them across the file boundary.
     @State var showEndConfirm = false
