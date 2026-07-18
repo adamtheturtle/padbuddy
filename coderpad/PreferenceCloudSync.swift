@@ -89,6 +89,19 @@ final class PreferenceCloudSync {
             let cloud = CloudSyncStore.shared.object(forKey: key)
             guard !Self.plistValuesEqual(local, cloud) else { continue }
 
+            // Push only when the local side is the newest writer. A differing cloud
+            // value with a newer revision is an inbound edit this device simply hasn't
+            // pulled yet (this scan runs on EVERY defaults change, for every key);
+            // pushing over it would stamp a fresher revision onto the stale value and
+            // silently revert the other Mac's change everywhere (#1017, #1023). Adopt
+            // it now instead of waiting for the external-change notification.
+            let cloudRevision = CloudSyncStore.shared.object(forKey: Self.cloudRevisionKey(key)) as? Double ?? 0
+            let localRevision = UserDefaults.standard.double(forKey: Self.localRevisionKey(key))
+            guard cloudRevision <= localRevision else {
+                pull(key: key)
+                continue
+            }
+
             let revision = Date().timeIntervalSince1970
             UserDefaults.standard.set(revision, forKey: Self.localRevisionKey(key))
             CloudSyncStore.shared.mirrorObject(local, forKey: key)
@@ -133,16 +146,48 @@ final class PreferenceCloudSync {
             GeneralSettings.applyDockVisibility()
 
         case "general.dockBadgeScope":
-            if DockBadgeController.scope != .off {
-                PadUpdateNotifier.shared.requestBadgeAuthorization()
-            }
-            DockBadgeController.refresh()
+            applyBadgeScopeChange(key: key)
 
         case "general.spotlightIndexing":
             applySpotlightIndexingChange()
 
+        case "general.notifyOnPadUpdates":
+            applyNotifyOnPadUpdatesChange(key: key)
+
         default:
             break
+        }
+    }
+
+    /// Mirrors the Settings picker (#836): a pulled non-off scope on a Mac whose badge
+    /// permission is denied must revert to Off, not sit enabled-looking while nothing
+    /// ever renders (#1029).
+    private func applyBadgeScopeChange(key: String) {
+        guard DockBadgeController.scope != .off else {
+            DockBadgeController.refresh()
+            return
+        }
+
+        Task { @MainActor in
+            let isAvailable = await PadUpdateNotifier.shared.badgeAuthorizationIsAvailable()
+            if !isAvailable, DockBadgeController.scope != .off {
+                UserDefaults.standard.set(DockBadgeScope.off.rawValue, forKey: key)
+            }
+            DockBadgeController.refresh()
+        }
+    }
+
+    /// Mirrors the Settings toggle (#836): a pulled ON on a Mac whose notification
+    /// permission is denied must revert to off, or every alert is silently dropped
+    /// behind an enabled-looking setting (#1027).
+    private func applyNotifyOnPadUpdatesChange(key: String) {
+        guard UserDefaults.standard.bool(forKey: key) else { return }
+
+        Task { @MainActor in
+            let isAvailable = await PadUpdateNotifier.shared.alertAuthorizationIsAvailable()
+            if !isAvailable, UserDefaults.standard.bool(forKey: key) {
+                UserDefaults.standard.set(false, forKey: key)
+            }
         }
     }
 

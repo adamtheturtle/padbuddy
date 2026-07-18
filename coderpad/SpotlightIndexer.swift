@@ -173,6 +173,14 @@ enum SpotlightIndexer {
             let stale = (indexedQuestionIdentifiersByAccount[account] ?? []).subtracting(current)
             indexedQuestionIdentifiersByAccount[account] = current
             persistQuestionIdentifiers()
+            // Invalidate any in-flight keyword enrichment for the reconciled-away
+            // questions (as removeQuestion does): a slow enrichment from the previous
+            // pass would otherwise re-index the item AFTER the delete below, and with
+            // the identifier gone from the bookkeeping set no later reconcile would
+            // ever detect it again - a permanent Spotlight resurrection (#1021).
+            for identifier in stale {
+                questionEnrichmentGenerations.removeValue(forKey: identifier)
+            }
             return stale
         }
         deleteStaleIdentifiers(stale, operation: "remove stale question items")
