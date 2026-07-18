@@ -133,55 +133,72 @@ final class AppNavigation {
         pendingMergedFavoritePad = MergedFavoritePad(account: account, id: id)
     }
 
-    /// A question id whose detail pane should immediately create a pad and open it
+    /// A pad-detail command target: the slug plus its owning account when the
+    /// requester knows it. Slugs collide across custom servers and every iPad
+    /// scene attempts consumption, so a bare slug could hand a command to another
+    /// account's same-slug detail (#1820, #1821, #1822, #1823, #1824). A nil
+    /// account keeps the old id-only matching for legacy requesters.
+    struct PadCommandTarget: Equatable {
+        let id: String
+        var account: UUID?
+    }
+
+    /// The question counterpart: per-org ids collide across accounts
+    /// (#1816, #1817, #1818, #1819).
+    struct QuestionCommandTarget: Equatable {
+        let id: Int
+        var account: UUID?
+    }
+
+    /// A question whose detail pane should immediately create a pad and open it
     /// inline (the in-pane browser), matching the detail view's "New Pad" button.
     /// Set by the Questions list's context menu (after selecting that question) and
     /// consumed/cleared by QuestionDetailView when it appears or this value changes.
-    var createPadForQuestionID: Int?
+    var createPadForQuestionID: QuestionCommandTarget?
 
-    /// A question id whose detail pane should immediately open title editing,
+    /// A question whose detail pane should immediately open title editing,
     /// matching the detail view's inline rename affordance and the Pad menu's
     /// command-driven edit path.
-    var editQuestionID: Int?
+    var editQuestionID: QuestionCommandTarget?
 
     /// A question id whose detail pane should immediately present its delete
     /// confirmation. Routed (rather than deleting inline) so the context menu and
     /// the detail view share the same confirmation step before the irreversible delete.
-    var deleteQuestionID: Int?
+    var deleteQuestionID: QuestionCommandTarget?
 
-    /// A pad id whose detail pane should immediately present its edit sheet. The
+    /// A pad whose detail pane should immediately present its edit sheet. The
     /// pad counterpart to `editQuestionID`, set by the Pad menu command and
     /// consumed/cleared by `PadDetailView` when it appears or this value changes.
-    var editPadID: String?
+    var editPadID: PadCommandTarget?
 
     /// A pad id whose detail pane should immediately present its "End Interview"
     /// confirmation. Routed (rather than ending inline) so the menu command and the
     /// detail view share the same confirmation step before the live session is ended.
-    var endPadID: String?
+    var endPadID: PadCommandTarget?
 
     /// A pad id whose detail pane should immediately present its delete
     /// confirmation — the pad counterpart to `deleteQuestionID`, never deleting
     /// without that confirmation step.
-    var deletePadID: String?
+    var deletePadID: PadCommandTarget?
 
     /// A pad id whose detail pane should open its session playback, routed from
     /// the Pad menu's "Watch Playback" command so it honors the same in-app vs.
     /// external browser preference as the detail view's Watch button.
-    var watchPlaybackPadID: String?
+    var watchPlaybackPadID: PadCommandTarget?
 
     /// A pad id whose detail pane should run its "Save All Code" panel, routed from
     /// the Pad menu so the menu command and the toolbar button share the same
     /// save logic (and the same knowledge of which files have loaded).
-    var saveCodePadID: String?
+    var saveCodePadID: PadCommandTarget?
 
     /// A pad id whose detail pane should toggle its favorite state, routed from the
     /// Pad menu's Favorite command — the counterpart to the detail toolbar star.
-    var toggleFavoritePadID: String?
+    var toggleFavoritePadID: PadCommandTarget?
 
     /// A question id whose detail pane should toggle its favorite state, routed
     /// from the Question menu's Favorite command — the counterpart to the
     /// detail view's toolbar star.
-    var toggleFavoriteQuestionID: Int?
+    var toggleFavoriteQuestionID: QuestionCommandTarget?
 
     /// A pad id requested by the "Open Pad by ID" App Intent. Durable state (rather
     /// than a transient notification) so the request survives a cold launch where the
@@ -199,16 +216,50 @@ final class AppNavigation {
         sectionRequest = section
     }
 
-    /// Switch to Pads and queue a request for the list to apply on appear.
+    /// Switch to Pads and queue a request for the list to apply on appear. An
+    /// incoming request merges over one still awaiting consumption — each field
+    /// the newcomer sets wins, fields it leaves default keep the pending value —
+    /// so two rapid navigation actions arriving before the pane mounts no longer
+    /// silently discard the first (#1814).
     func showPads(_ request: PadsRequest = PadsRequest()) {
         sectionRequest = .pads
-        padsRequest = request
+        padsRequest = Self.merged(pending: padsRequest, incoming: request)
     }
 
-    /// Switch to Questions and queue a request for the list to apply on appear.
+    /// Switch to Questions and queue a request for the list to apply on appear;
+    /// merges like ``showPads(_:)`` (#1815).
     func showQuestions(_ request: QuestionsRequest = QuestionsRequest()) {
         sectionRequest = .questions
-        questionsRequest = request
+        questionsRequest = Self.merged(pending: questionsRequest, incoming: request)
+    }
+
+    static func merged(pending: PadsRequest?, incoming: PadsRequest) -> PadsRequest {
+        guard let pending else { return incoming }
+
+        var merged = pending
+        if incoming.ownerEmail != nil { merged.ownerEmail = incoming.ownerEmail }
+        if incoming.search != nil { merged.search = incoming.search }
+        if incoming.applySearch != nil { merged.applySearch = incoming.applySearch }
+        if incoming.startCreating {
+            merged.startCreating = true
+            merged.seedQuestionID = incoming.seedQuestionID
+        }
+        if incoming.selectPadID != nil {
+            merged.selectPadID = incoming.selectPadID
+            merged.selectPadAccountID = incoming.selectPadAccountID
+        }
+        return merged
+    }
+
+    static func merged(pending: QuestionsRequest?, incoming: QuestionsRequest) -> QuestionsRequest {
+        guard let pending else { return incoming }
+
+        var merged = pending
+        if incoming.search != nil { merged.search = incoming.search }
+        if incoming.applySearch != nil { merged.applySearch = incoming.applySearch }
+        if incoming.startCreating { merged.startCreating = true }
+        if incoming.selectQuestionID != nil { merged.selectQuestionID = incoming.selectQuestionID }
+        return merged
     }
 
     /// Switch to the list that owns `search` and apply it, routing a sidebar

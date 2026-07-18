@@ -155,12 +155,12 @@ extension QuestionsView {
                         SwipeAction(title: String(localized: "Delete"), role: .destructive,
                                     systemImage: "trash") {
                             selectedQuestionIDs = [question.id]
-                            nav.deleteQuestionID = question.id
+                            nav.deleteQuestionID = .init(id: question.id, account: owningAccountID)
                         },
                         SwipeAction(title: String(localized: "New Pad"), tint: newPadSwipeTint,
                                     systemImage: "plus.rectangle.on.rectangle") {
                             selectedQuestionIDs = [question.id]
-                            nav.createPadForQuestionID = question.id
+                            nav.createPadForQuestionID = .init(id: question.id, account: owningAccountID)
                         }
                     ]
                 },
@@ -178,6 +178,7 @@ extension QuestionsView {
                 }
             }
             .focusedSceneValue(\.focusedQuestion, selection)
+            .focusedSceneValue(\.focusedQuestionAccountID, owningAccountID)
             .onCopyCommand(perform: copyLinkCommand(hasSelection: !selectedQuestionIDs.isEmpty) {
                 selectedQuestionURLsInOrder.joined(separator: "\n")
             })
@@ -212,12 +213,12 @@ extension QuestionsView {
                     SwipeAction(title: String(localized: "Delete"), role: .destructive,
                                 systemImage: "trash") {
                         selectedQuestionIDs = [question.id]
-                        nav.deleteQuestionID = question.id
+                        nav.deleteQuestionID = .init(id: question.id, account: owningAccountID)
                     },
                     SwipeAction(title: String(localized: "New Pad"), tint: newPadSwipeTint,
                                 systemImage: "plus.rectangle.on.rectangle") {
                         selectedQuestionIDs = [question.id]
-                        nav.createPadForQuestionID = question.id
+                        nav.createPadForQuestionID = .init(id: question.id, account: owningAccountID)
                     }
                 ]
             }
@@ -233,6 +234,7 @@ extension QuestionsView {
                 }
             }
             .focusedSceneValue(\.focusedQuestion, selection)
+            .focusedSceneValue(\.focusedQuestionAccountID, owningAccountID)
             .macPullToRefresh { await reload() }
         #endif
     }
@@ -309,7 +311,7 @@ extension QuestionsView {
         var items: [MenuItem] = [
             .button(title: String(localized: "New Pad from Question"), isEnabled: !isReadOnly) {
                 selectedQuestionIDs = [question.id]
-                nav.createPadForQuestionID = question.id
+                nav.createPadForQuestionID = .init(id: question.id, account: owningAccountID)
             },
             .button(title: starred ? String(localized: "Remove from Favorites")
                 : String(localized: "Add to Favorites")) {
@@ -334,7 +336,7 @@ extension QuestionsView {
                              isEnabled: !isReadOnly,
                              role: .destructive) {
                 selectedQuestionIDs = [question.id]
-                nav.deleteQuestionID = question.id
+                nav.deleteQuestionID = .init(id: question.id, account: owningAccountID)
             })
         return items
     }

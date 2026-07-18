@@ -72,6 +72,7 @@ struct PadWindow: View {
                 // read `focusedPad` and disable on nil, so without this the whole
                 // menu greys out whenever a standalone pad window is key (#1047).
                 .focusedSceneValue(\.focusedPad, pad)
+                .focusedSceneValue(\.focusedPadAccountID, account.id)
             } else if value == nil || loadFailed {
                 // The system can restore this window without a value, or the fetch
                 // can fail (e.g. the pad was deleted); show a placeholder rather

@@ -106,6 +106,7 @@
     /// unambiguous, while the muscle memory carries across both sections.
     struct PadCommands: Commands {
         @FocusedValue(\.focusedPad) private var pad
+        @FocusedValue(\.focusedPadAccountID) private var padAccountID
         @FocusedValue(\.focusedPadIsFavorite) private var isFavorite
         /// Mirrors the window's read-only state (offline) so the mutating items disable
         /// to match the in-window controls (#321). `nil`/`false` means editable.
@@ -138,7 +139,7 @@
                 Button("Watch Playback") {
                     guard let pad else { return }
 
-                    AppNavigation.shared.watchPlaybackPadID = pad.id
+                    AppNavigation.shared.watchPlaybackPadID = .init(id: pad.id, account: padAccountID)
                 }
                 .keyboardShortcut("y", modifiers: [.command])
                 .disabled(pad?.playbackURL == nil)
@@ -148,7 +149,7 @@
                 Button("Edit Pad…") {
                     guard let pad else { return }
 
-                    AppNavigation.shared.editPadID = pad.id
+                    AppNavigation.shared.editPadID = .init(id: pad.id, account: padAccountID)
                 }
                 .keyboardShortcut("e", modifiers: [.command])
                 .disabled(pad == nil || isReadOnly == true)
@@ -156,7 +157,7 @@
                 Button(isFavorite == true ? "Remove from Favorites" : "Add to Favorites") {
                     guard let pad else { return }
 
-                    AppNavigation.shared.toggleFavoritePadID = pad.id
+                    AppNavigation.shared.toggleFavoritePadID = .init(id: pad.id, account: padAccountID)
                 }
                 .keyboardShortcut("d", modifiers: [.command])
                 .disabled(pad == nil)
@@ -213,7 +214,7 @@
                 Button("Save All Code…") {
                     guard let pad else { return }
 
-                    AppNavigation.shared.saveCodePadID = pad.id
+                    AppNavigation.shared.saveCodePadID = .init(id: pad.id, account: padAccountID)
                 }
                 .keyboardShortcut("s", modifiers: [.command])
                 .disabled(pad == nil || padHasSavableCode != true)
@@ -223,14 +224,14 @@
                 Button("End Interview…") {
                     guard let pad else { return }
 
-                    AppNavigation.shared.endPadID = pad.id
+                    AppNavigation.shared.endPadID = .init(id: pad.id, account: padAccountID)
                 }
                 .disabled(pad == nil || isEnded || isReadOnly == true)
 
                 Button("Delete Pad…") {
                     guard let pad else { return }
 
-                    AppNavigation.shared.deletePadID = pad.id
+                    AppNavigation.shared.deletePadID = .init(id: pad.id, account: padAccountID)
                 }
                 .keyboardShortcut(.delete, modifiers: [.command])
                 .disabled(pad == nil || isReadOnly == true)
@@ -250,6 +251,7 @@
     /// sharing shortcuts across the two menus is unambiguous.
     struct QuestionCommands: Commands {
         @FocusedValue(\.focusedQuestion) private var question
+        @FocusedValue(\.focusedQuestionAccountID) private var questionAccountID
         @FocusedValue(\.focusedQuestionIsFavorite) private var isFavorite
         @FocusedValue(\.focusedQuestionURL) private var questionURL
         /// Mirrors the window's read-only state (offline) so the mutating items disable
@@ -264,7 +266,7 @@
                 Button("New Pad from Question") {
                     guard let question else { return }
 
-                    AppNavigation.shared.createPadForQuestionID = question.id
+                    AppNavigation.shared.createPadForQuestionID = .init(id: question.id, account: questionAccountID)
                 }
                 .keyboardShortcut(.return, modifiers: [.command])
                 .disabled(question == nil || isReadOnly == true)
@@ -274,7 +276,7 @@
                 Button("Edit Question…") {
                     guard let question else { return }
 
-                    AppNavigation.shared.editQuestionID = question.id
+                    AppNavigation.shared.editQuestionID = .init(id: question.id, account: questionAccountID)
                 }
                 .keyboardShortcut("e", modifiers: [.command])
                 .disabled(question == nil || isReadOnly == true)
@@ -282,7 +284,7 @@
                 Button(isFavorite == true ? "Remove from Favorites" : "Add to Favorites") {
                     guard let question else { return }
 
-                    AppNavigation.shared.toggleFavoriteQuestionID = question.id
+                    AppNavigation.shared.toggleFavoriteQuestionID = .init(id: question.id, account: questionAccountID)
                 }
                 .keyboardShortcut("d", modifiers: [.command])
                 .disabled(question == nil)
@@ -331,7 +333,7 @@
                 Button("Delete Question…") {
                     guard let question else { return }
 
-                    AppNavigation.shared.deleteQuestionID = question.id
+                    AppNavigation.shared.deleteQuestionID = .init(id: question.id, account: questionAccountID)
                 }
                 .keyboardShortcut(.delete, modifiers: [.command])
                 .disabled(question == nil || isReadOnly == true)

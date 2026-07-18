@@ -248,7 +248,7 @@ extension MergedQuestionsView {
                     return [SwipeAction(title: String(localized: "Delete"), role: .destructive,
                                         systemImage: "trash") {
                             select(row)
-                            nav.deleteQuestionID = row.item.id
+                            nav.deleteQuestionID = .init(id: row.item.id, account: row.account.id)
                         }]
                 },
                 pasteboardItem: { questionPasteboardItem($0) },
@@ -258,6 +258,7 @@ extension MergedQuestionsView {
             .overlay { questionsOverlay }
             .macPullToRefresh { await reload() }
             .focusedSceneValue(\.focusedQuestion, selection)
+            .focusedSceneValue(\.focusedQuestionAccountID, router.selectedQuestionAccountID)
             .onCopyCommand(perform: copyLinkCommand(hasSelection: !selectedRowIDs.isEmpty) {
                 selectedQuestionURLsInOrder.joined(separator: "\n")
             })
@@ -291,7 +292,7 @@ extension MergedQuestionsView {
                 return [SwipeAction(title: String(localized: "Delete"), role: .destructive,
                                     systemImage: "trash") {
                         select(row)
-                        nav.deleteQuestionID = row.item.id
+                        nav.deleteQuestionID = .init(id: row.item.id, account: row.account.id)
                     }]
             }
             .onTopRowChange { scheduleTopRowPersistence($0) }
@@ -299,6 +300,7 @@ extension MergedQuestionsView {
             .overlay { questionsOverlay }
             .macPullToRefresh { await reload() }
             .focusedSceneValue(\.focusedQuestion, selection)
+            .focusedSceneValue(\.focusedQuestionAccountID, router.selectedQuestionAccountID)
         #endif
     }
 

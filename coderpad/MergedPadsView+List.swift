@@ -294,6 +294,7 @@ extension MergedPadsView {
             }
             .macPullToRefresh { await reload() }
             .focusedSceneValue(\.focusedPad, selection)
+            .focusedSceneValue(\.focusedPadAccountID, router.selectedPadAccountID)
         // Edit ▸ Copy / ⌘C copies the selected pads' web URLs (one per line)
         // while the list holds focus, matching the row's "Copy Pad URL" action
         // and extending it to a multi-row selection. The O(N) `selectedRowsInOrder`

@@ -72,6 +72,7 @@ struct QuestionWindow: View {
                 // commands read `focusedQuestion` and disable on nil, so without
                 // this the menu greys out whenever this window is key (#1011).
                 .focusedSceneValue(\.focusedQuestion, question)
+                .focusedSceneValue(\.focusedQuestionAccountID, account.id)
             } else if value == nil || loadFailed {
                 // The system can restore this window without a value, or the fetch
                 // can fail (e.g. the question was deleted); show a placeholder rather

@@ -19,6 +19,9 @@ extension FocusedValues {
     /// `focusedSceneValue` so the Pad menu commands can act on it whenever the
     /// window is frontmost — independent of which subview holds keyboard focus.
     @Entry var focusedPad: Pad?
+    /// The account owning `focusedPad`, published alongside it so menu commands
+    /// can target the right account when slugs collide (#1820-#1824).
+    @Entry var focusedPadAccountID: UUID?
 }
 
 extension FocusedValues {
@@ -33,6 +36,8 @@ extension FocusedValues {
     /// `focusedSceneValue` so the Question menu commands can act on it whenever the
     /// window is frontmost — the Questions-pane counterpart to `focusedPad`.
     @Entry var focusedQuestion: Question?
+    /// The account owning `focusedQuestion` (#1816-#1819).
+    @Entry var focusedQuestionAccountID: UUID?
 }
 
 extension FocusedValues {

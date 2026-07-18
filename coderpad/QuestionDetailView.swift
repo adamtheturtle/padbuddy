@@ -250,7 +250,8 @@ struct QuestionDetailView: View {
     /// Consumes an "Edit Question" request routed via `AppNavigation` from the
     /// Question menu, opening the inline title editor.
     private func consumePendingEdit() {
-        guard nav.editQuestionID == question.id else { return }
+        guard let request = nav.editQuestionID, request.id == question.id,
+              request.account == nil || request.account == accountID else { return }
 
         nav.editQuestionID = nil
         titleEditRequest += 1
@@ -259,7 +260,8 @@ struct QuestionDetailView: View {
     /// Honors a "Favorite" request from the Question menu by toggling the same
     /// per-account favorite state as the in-pane toolbar star.
     private func consumePendingFavoriteToggle() {
-        guard nav.toggleFavoriteQuestionID == question.id else { return }
+        guard let request = nav.toggleFavoriteQuestionID, request.id == question.id,
+              request.account == nil || request.account == accountID else { return }
 
         nav.toggleFavoriteQuestionID = nil
         toggleFavorite()
@@ -326,7 +328,8 @@ struct QuestionDetailView: View {
     /// from the Questions list's context menu): create the pad and open it in the
     /// user's browser.
     private func consumePendingPadCreation() {
-        guard nav.createPadForQuestionID == question.id else { return }
+        guard let request = nav.createPadForQuestionID, request.id == question.id,
+              request.account == nil || request.account == accountID else { return }
 
         nav.createPadForQuestionID = nil
         Task {
@@ -340,7 +343,8 @@ struct QuestionDetailView: View {
     /// the same delete confirmation as the in-pane Delete button — never deleting
     /// without that confirmation step.
     private func consumePendingDelete() {
-        guard nav.deleteQuestionID == question.id else { return }
+        guard let request = nav.deleteQuestionID, request.id == question.id,
+              request.account == nil || request.account == accountID else { return }
 
         nav.deleteQuestionID = nil
         showDeleteConfirm = true

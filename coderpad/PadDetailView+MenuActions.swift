@@ -20,7 +20,8 @@ extension PadDetailView {
     /// Honors a "Watch Playback" request from the Pad menu, opening the session
     /// playback exactly as the toolbar's Watch button does.
     func consumePendingWatch() {
-        guard nav.watchPlaybackPadID == pad.id else { return }
+        guard let request = nav.watchPlaybackPadID, request.id == pad.id,
+              request.account == nil || request.account == owningAccountID else { return }
 
         nav.watchPlaybackPadID = nil
         guard let playbackURL = pad.playbackURL else { return }
@@ -31,7 +32,8 @@ extension PadDetailView {
     /// Honors a "Save All Code" request from the Pad menu by running the same save
     /// panel as the in-pane button (which knows which environments have loaded).
     func consumePendingSaveCode() {
-        guard nav.saveCodePadID == pad.id else { return }
+        guard let request = nav.saveCodePadID, request.id == pad.id,
+              request.account == nil || request.account == owningAccountID else { return }
 
         nav.saveCodePadID = nil
         saveCodeLocally()
@@ -40,7 +42,8 @@ extension PadDetailView {
     /// Honors a "Favorite" request from the Pad menu by toggling the same
     /// per-account favorite state as the in-pane toolbar star.
     func consumePendingFavoriteToggle() {
-        guard nav.toggleFavoritePadID == pad.id else { return }
+        guard let request = nav.toggleFavoritePadID, request.id == pad.id,
+              request.account == nil || request.account == owningAccountID else { return }
 
         nav.toggleFavoritePadID = nil
         toggleFavorite()
@@ -49,7 +52,8 @@ extension PadDetailView {
     /// Consumes an "Edit Pad" request routed via `AppNavigation` from the Pad menu,
     /// opening the title editor.
     func consumePendingEdit() {
-        guard nav.editPadID == pad.id else { return }
+        guard let request = nav.editPadID, request.id == pad.id,
+              request.account == nil || request.account == owningAccountID else { return }
 
         nav.editPadID = nil
         titleEditRequest += 1
@@ -58,7 +62,8 @@ extension PadDetailView {
     /// Honors an "End Interview" request from the Pad menu by showing the same
     /// confirmation as the in-pane action — never ending the session without it.
     func consumePendingEnd() {
-        guard nav.endPadID == pad.id else { return }
+        guard let request = nav.endPadID, request.id == pad.id,
+              request.account == nil || request.account == owningAccountID else { return }
 
         nav.endPadID = nil
         showEndConfirm = true
@@ -67,7 +72,8 @@ extension PadDetailView {
     /// Honors a "Delete Pad" request from the Pad menu by showing the same delete
     /// confirmation as the in-pane Delete action.
     func consumePendingDelete() {
-        guard nav.deletePadID == pad.id else { return }
+        guard let request = nav.deletePadID, request.id == pad.id,
+              request.account == nil || request.account == owningAccountID else { return }
 
         nav.deletePadID = nil
         showDeleteConfirm = true

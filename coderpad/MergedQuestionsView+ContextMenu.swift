@@ -42,7 +42,7 @@ extension MergedQuestionsView {
         return [
             .button(title: String(localized: "New Pad from Question"), isEnabled: !isReadOnly) {
                 select(row)
-                nav.createPadForQuestionID = row.item.id
+                nav.createPadForQuestionID = .init(id: row.item.id, account: row.account.id)
             },
             .button(title: starred ? String(localized: "Remove from Favorites")
                 : String(localized: "Add to Favorites")) {
@@ -59,7 +59,7 @@ extension MergedQuestionsView {
             .separator,
             .button(title: String(localized: "Delete Question…"), isEnabled: !isReadOnly, role: .destructive) {
                 select(row)
-                nav.deleteQuestionID = row.item.id
+                nav.deleteQuestionID = .init(id: row.item.id, account: row.account.id)
             }
         ]
     }
