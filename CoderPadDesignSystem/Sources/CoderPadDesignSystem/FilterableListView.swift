@@ -75,11 +75,35 @@ public struct FilterableListView<
             errorView(error) { Task { await onReload() } }
         } else {
             VStack(spacing: 0) {
+                // With rows already on screen a failed (re)load previously stayed
+                // completely silent, so a partially streamed list read as the full
+                // organization. Surface a compact, non-blocking banner with a retry
+                // instead of hiding the incompleteness (#1202).
+                if let error {
+                    inlineErrorBanner(error)
+                    Divider()
+                }
                 savedSearches()
                 filters()
                 Divider()
                 list()
             }
         }
+    }
+
+    private func inlineErrorBanner(_ error: any Error) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+                .accessibilityHidden(true)
+            Text(verbatim: error.localizedDescription)
+                .font(.callout)
+                .lineLimit(2)
+            Spacer(minLength: 8)
+            Button("Retry") { Task { await onReload() } }
+                .font(.callout)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
     }
 }

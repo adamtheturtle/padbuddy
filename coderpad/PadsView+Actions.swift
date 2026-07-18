@@ -137,20 +137,23 @@ extension PadsView {
     /// Persist the current live filters for the signed-in account, so the list
     /// reopens with the same view next launch. Scoped per account because owners,
     /// teams, and languages are all org-specific. Skipped until the initial restore
-    /// has run, so the empty startup state never clobbers a saved snapshot.
+    /// has run, so the empty startup state never clobbers a saved snapshot. Keyed
+    /// by this view's own client-resolved account, not the globally current one: a
+    /// delayed onChange callback from an outgoing view can run after an account
+    /// switch, and must not save the old view's filters under the new account (#1199).
     func persistFilters() {
-        guard didRestoreFilters, let account = accounts.currentAccountID else { return }
+        guard didRestoreFilters, let account = owningAccountID else { return }
 
         if let data = try? JSONEncoder().encode(captureCurrentSearch(named: "")) {
             UserDefaults.standard.set(data, forKey: Self.liveFilterKey(account))
         }
     }
 
-    /// Restore the persisted live filters for the current account, once. A deep-link
+    /// Restore the persisted live filters for this view's account, once. A deep-link
     /// request (handled by `applyPendingRequest`) is applied afterward so it always
     /// wins over a restored snapshot.
     func restoreFilters() {
-        guard let account = accounts.currentAccountID else { return }
+        guard let account = owningAccountID else { return }
 
         didRestoreFilters = true
         guard let data = UserDefaults.standard.data(forKey: Self.liveFilterKey(account)),
@@ -193,8 +196,11 @@ extension PadsView {
             // server, so each one only appends below — no reshuffle as the list fills in.
             let isInitialLoad = pads.isEmpty
             var fetched: [Pad] = []
+            var receivedSnapshot = false
             for try await snapshot in client.listPadsIncrementally() {
                 guard generation == reloadGeneration else { return }
+
+                receivedSnapshot = true
 
                 // The first snapshot is page 1 — the most-recently-updated pads, already
                 // usable. Drop the blocking spinner now and let the rest stream in
@@ -216,6 +222,12 @@ extension PadsView {
                 }
             }
             guard generation == reloadGeneration else { return }
+
+            // A stream that completed without emitting a single snapshot has nothing
+            // to say: replacing a previously loaded list with the empty default would
+            // wipe valid rows and run deletion/activity bookkeeping over a phantom
+            // result (#1203). A genuinely empty org still emits its (empty) page 1.
+            guard receivedSnapshot else { return }
 
             pads = fetched
             padsRevision += 1

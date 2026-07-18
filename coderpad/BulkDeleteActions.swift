@@ -151,10 +151,11 @@ extension QuestionsView {
         pendingBulkDeleteUndo = pending
         // Doomed rows leave the list and selection for the grace period (#1262).
         selectedQuestionIDs.subtract(items.map(\.id))
-        // Capture the owning account now: the task can fire after an account switch,
-        // and per-org question ids collide across accounts, so broadcasting under the
-        // then-current account would clean up the wrong account (#1013, like #757).
-        let owningAccount = accounts.currentAccountID
+        // Capture the owning account snapshot now: the task can fire after an
+        // account switch, and per-org question ids collide across accounts, so
+        // both the deletes and the broadcast must stay bound to the account that
+        // scheduled them (#1013, #1209, like #757).
+        let owningAccount = accounts.account(matching: client) ?? accounts.currentAccount
         bulkDeleteUndoTask = Task { @MainActor in
             try? await Task.sleep(for: BulkDeleteUndo.gracePeriod)
             guard !Task.isCancelled, pendingBulkDeleteUndo?.id == pending.id else { return }

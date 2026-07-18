@@ -47,6 +47,7 @@ extension QuestionsView {
         // re-runs body several times and only the selection differs; favoriteIDs is in
         // the key so toggling a favorite still re-runs.
         let key = QuestionsListCache.Key(
+            account: owningAccountID,
             questionsRevision: questionsRevision,
             filterSignature: filterSignature,
             favoritesOnly: favoritesOnly,
@@ -112,6 +113,10 @@ final class QuestionsListCache {
     var key: Key?
 
     struct Key: Equatable {
+        /// The owning account: two orgs can coincidentally share a revision,
+        /// filter signature, and favorite ids across an account swap, and the
+        /// previous org's cached rows must not be reused then (#1206).
+        let account: UUID?
         let questionsRevision: Int
         let filterSignature: String
         let favoritesOnly: Bool

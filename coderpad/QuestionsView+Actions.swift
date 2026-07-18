@@ -23,14 +23,23 @@ extension QuestionsView {
         return nil
     }
 
-    /// Whether a question mutation notification applies to this single-account view:
-    /// true when it carries no account (legacy) or names this view's account. Per-org
-    /// ids collide across accounts, so a bare id from another account must not mutate
-    /// this list.
-    func scopedToThisAccount(_ account: UUID?) -> Bool {
-        guard let account else { return true }
+    /// The account this list belongs to, resolved from its own client rather than
+    /// the globally current account (which a race or another window can move),
+    /// mirroring `PadsView.owningAccountID`. Falls back to the current account for
+    /// clients that don't match a stored account (mocks).
+    var owningAccountID: UUID? {
+        (accounts.account(matching: client) ?? accounts.currentAccount)?.id
+    }
 
-        return account == accounts.currentAccountID
+    /// Whether a question mutation notification applies to this single-account view.
+    /// Per-org ids collide across accounts, so a bare id from another account must
+    /// not mutate this list. An accountless (legacy) event is unambiguous only when
+    /// a single account is configured; with several it is dropped rather than
+    /// applied to every mounted list (#1211).
+    func scopedToThisAccount(_ account: UUID?) -> Bool {
+        guard let account else { return accounts.accounts.count <= 1 }
+
+        return account == owningAccountID
     }
 
     /// How many questions the current filters resolve to, shown as the window's
@@ -58,26 +67,32 @@ extension QuestionsView {
 
     /// Delete several selected questions at once, looping the same per-question API
     /// path the detail view uses (delete, then broadcast so every list drops the row
-    /// and the selection follows). `account` is the account that owned the questions
-    /// when the delete was scheduled — the undo grace period can outlive an account
-    /// switch, and the broadcast must stay scoped to the account actually deleted
-    /// from, not whatever is current at fire time (#1013). Failures are aggregated
-    /// into one report naming the questions that remain, rather than each failure
-    /// overwriting the previous one (#1208).
-    func bulkDelete(_ questions: [Question], account: UUID?) async {
+    /// and the selection follows). `account` is a snapshot of the account that owned
+    /// the questions when the delete was scheduled — the undo grace period can
+    /// outlive an account switch, and both the requests and the broadcast must stay
+    /// bound to the account actually deleted from, not whatever is current at fire
+    /// time (#1013, #1209). Failures are aggregated into one report naming the
+    /// questions that remain, rather than each failure overwriting the previous
+    /// one (#1208).
+    func bulkDelete(_ questions: [Question], account: Account?) async {
         var failedTitles: [String] = []
         var lastError: String?
         for question in questions {
             // Navigating away cancels the batch task via `onDisappear`; stop the
-            // remaining destructive requests instead of firing them unobserved.
-            // Likewise stop if the owning account was removed mid-batch — its
-            // credentials were just revoked (#1257).
+            // remaining destructive requests instead of firing them unobserved (#1257).
             guard !Task.isCancelled else { return }
-            if let account, !accounts.accounts.contains(where: { $0.id == account }) { return }
+
+            // Stop if the owning account was removed or re-keyed mid-batch: its
+            // captured client would fire destructive deletes through credentials
+            // the user just revoked or replaced (#1209).
+            if let account {
+                guard let current = accounts.accounts.first(where: { $0.id == account.id }),
+                      !current.pointsAtDifferentBackend(than: account) else { return }
+            }
 
             do {
                 try await client.deleteQuestion(id: question.id)
-                AppRouter.questionDeleted(id: question.id, account: account)
+                AppRouter.questionDeleted(id: question.id, account: account?.id)
             } catch {
                 failedTitles.append(question.displayTitle)
                 lastError = error.localizedDescription
@@ -91,7 +106,10 @@ extension QuestionsView {
     }
 
     func toggleFavorite(_ question: Question) {
-        guard let account = accounts.currentAccountID else { return }
+        // The view's own account, not the globally current one: a multiwindow or
+        // account-switch race must not star a visible question from account A
+        // under account B's colliding numeric id (#1210).
+        guard let account = owningAccountID else { return }
 
         favorites.toggle(question.id, title: question.displayTitle, account: account, undoManager: undoManager)
         // Unstarring the last favorite hides the Favorites chip, so drop the

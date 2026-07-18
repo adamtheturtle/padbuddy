@@ -337,7 +337,10 @@ struct PadsView: View {
     /// mutation broadcasts can be matched against the right account: custom
     /// servers can issue colliding slugs across accounts (#761). Falls back to
     /// the current account for clients that don't match a stored account (mocks).
-    private var owningAccountID: UUID? {
+    /// Internal (not private): the filter-persistence helpers key saved filters
+    /// by it, so a delayed callback from an outgoing view can't save the old
+    /// account's filters under the newly selected account (#1199).
+    var owningAccountID: UUID? {
         (accounts.account(matching: client) ?? accounts.currentAccount)?.id
     }
 
