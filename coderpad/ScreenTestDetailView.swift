@@ -321,7 +321,7 @@ private extension ScreenTestDetailView {
                 reportError = String(localized: "The report is too large to open.")
                 return
             }
-            guard data.starts(with: Self.pdfMagic) else {
+            guard ScreenReportFiles.isLikelyPDF(data) else {
                 reportError = String(localized: "The server did not return a PDF report.")
                 return
             }
@@ -350,8 +350,6 @@ private extension ScreenTestDetailView {
 
     /// A generous ceiling for a single candidate report (#1862).
     static var maxReportBytes: Int { 50 * 1024 * 1024 }
-    /// Every PDF starts with this marker; anything else isn't a report (#1862).
-    static var pdfMagic: [UInt8] { Array("%PDF-".utf8) }
 
     /// Offers a save panel (sandbox-safe: the user grants write access to the chosen
     /// location) and writes the fetched PDF there.
