@@ -35,6 +35,13 @@ struct HighlightedCode: View, Equatable {
     /// renders until it lands so the main thread isn't blocked tokenizing (#372).
     @State private var highlighted: AttributedString?
 
+    /// The contents `highlighted` was produced from. This view keeps its identity
+    /// when the user switches files (it sits at a fixed position in the card), so
+    /// `highlighted` survives a switch holding the *previous* file's text; rendering
+    /// checks this against `contents` so the new file's plain source shows
+    /// immediately instead of the old file's highlighted source (#1042).
+    @State private var highlightedContents: String?
+
     /// Whether the pointer is over the code block. On macOS the copy button only
     /// appears while hovering so it doesn't clutter the code at rest; on iPad,
     /// which has no hover, the button is always shown.
@@ -56,7 +63,7 @@ struct HighlightedCode: View, Equatable {
 
     var body: some View {
         ScrollView([.vertical, .horizontal]) {
-            Text(highlighted ?? AttributedString(contents))
+            Text(displayText)
                 .font(.system(.callout, design: .monospaced))
                 .textSelection(.enabled)
                 .padding(.horizontal, 10)
@@ -86,11 +93,33 @@ struct HighlightedCode: View, Equatable {
         #if os(macOS)
         .onHover { isHovering = $0 }
         #endif
+        // A file switch means the copy confirmation (and any in-flight RTF write)
+        // belongs to the previous file; reset so the checkmark can't linger over
+        // code it didn't copy (#1042).
+        .onChange(of: contents) {
+            copyGeneration += 1
+            copyTask?.cancel()
+            copyResetTask?.cancel()
+            didCopy = false
+        }
         // Re-run only when the inputs change; a same-id task isn't restarted, so
         // an unrelated re-render won't re-highlight.
         .task(id: HighlightInput(contents: contents, language: language, dark: dark)) {
-            highlighted = await SyntaxHighlighter.highlight(contents, language: language, dark: dark)
+            let result = await SyntaxHighlighter.highlight(contents, language: language, dark: dark)
+            // A restarted task (newer contents) cancels this one; dropping the stale
+            // result keeps `highlighted` and `highlightedContents` in step.
+            guard !Task.isCancelled else { return }
+
+            highlighted = result
+            highlightedContents = contents
         }
+    }
+
+    /// The rendered source: the highlighted pass only when it was produced from the
+    /// *current* contents, else the plain text until the new pass lands (#1042).
+    private var displayText: AttributedString {
+        if let highlighted, highlightedContents == contents { return highlighted }
+        return AttributedString(contents)
     }
 
     /// The copy button overlaid on the code block. Backed by a material so it

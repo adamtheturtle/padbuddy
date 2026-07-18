@@ -292,6 +292,10 @@ extension HistoryPlaybackView {
                     dark: dark
                 )
                 .equatable()
+                // The same backing the code card gives its code pane, so replayed
+                // source reads as code rather than floating on the card (#984).
+                .background(Color.subtleStroke.opacity(0.5),
+                            in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
             } else {
                 Text("\(displayedFile.title) has no edits yet at this point in the session.")
                     .font(.callout)
