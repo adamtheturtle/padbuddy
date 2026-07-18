@@ -18,18 +18,38 @@ private enum PadInlineCommitField: String {
 
 @MainActor
 private enum PadInlineCommitQueue {
-    private static var tasks: [String: Task<Void, Never>] = [:]
+    private static var running: [String: Task<Void, Never>] = [:]
+    private static var pending: [String: @MainActor () async -> Void] = [:]
 
-    static func enqueue(padID: String,
+    /// Serializes saves per account + pad + field. The key carries the owning
+    /// account: pad slugs collide across custom servers, so a process-global
+    /// slug key made unrelated accounts' saves wait on each other and retained
+    /// the other window's state (#1181). While a save is in flight only the
+    /// newest queued value is kept, so rapid Picker/Toggle churn sends at most
+    /// one trailing PUT with the final choice instead of replaying every
+    /// intermediate value (#1185). Entries are removed as their work drains, so
+    /// completed tasks and their captured views aren't retained for the life of
+    /// the process (#1182).
+    static func enqueue(account: UUID?,
+                        padID: String,
                         field: PadInlineCommitField,
                         operation: @escaping @MainActor () async -> Void) {
-        let key = "\(padID):\(field.rawValue)"
-        let previous = tasks[key]
-        tasks[key] = Task { @MainActor in
-            await previous?.value
-            guard !Task.isCancelled else { return }
+        let key = "\(account?.uuidString ?? "current"):\(padID):\(field.rawValue)"
+        guard running[key] == nil else {
+            pending[key] = operation
+            return
+        }
 
+        run(key: key, operation: operation)
+    }
+
+    private static func run(key: String, operation: @escaping @MainActor () async -> Void) {
+        running[key] = Task { @MainActor in
             await operation()
+            running[key] = nil
+            if let next = pending.removeValue(forKey: key) {
+                run(key: key, operation: next)
+            }
         }
     }
 }
@@ -135,7 +155,7 @@ extension PadDetailView {
         Binding(get: { draftLanguage },
                 set: { newValue in
                     draftLanguage = newValue
-                    PadInlineCommitQueue.enqueue(padID: pad.id, field: .language) {
+                    PadInlineCommitQueue.enqueue(account: owningAccountID, padID: pad.id, field: .language) {
                         await commitLanguage(newValue)
                     }
                 })
@@ -145,7 +165,7 @@ extension PadDetailView {
         Binding(get: { draftOwner },
                 set: { newValue in
                     draftOwner = newValue
-                    PadInlineCommitQueue.enqueue(padID: pad.id, field: .owner) {
+                    PadInlineCommitQueue.enqueue(account: owningAccountID, padID: pad.id, field: .owner) {
                         await commitOwner(newValue)
                     }
                 })
@@ -155,7 +175,7 @@ extension PadDetailView {
         Binding(get: { draftIsPrivate },
                 set: { newValue in
                     draftIsPrivate = newValue
-                    PadInlineCommitQueue.enqueue(padID: pad.id, field: .privacy) {
+                    PadInlineCommitQueue.enqueue(account: owningAccountID, padID: pad.id, field: .privacy) {
                         await commitPrivate(newValue)
                     }
                 })
@@ -165,7 +185,7 @@ extension PadDetailView {
         Binding(get: { draftExecution },
                 set: { newValue in
                     draftExecution = newValue
-                    PadInlineCommitQueue.enqueue(padID: pad.id, field: .execution) {
+                    PadInlineCommitQueue.enqueue(account: owningAccountID, padID: pad.id, field: .execution) {
                         await commitExecution(newValue)
                     }
                 })
@@ -204,7 +224,9 @@ extension PadDetailView {
 
         do {
             try await client.updatePadWithoutRefetch(PadUpdate(id: pad.id, title: newTitle))
-            AppRouter.padUpdated(optimisticPad(title: newTitle), account: owningAccountID)
+            let optimistic = optimisticPad(title: newTitle)
+            latestPad = optimistic
+            AppRouter.padUpdated(optimistic, account: owningAccountID)
             return true
         } catch {
             mutateError = error.localizedDescription
@@ -213,9 +235,9 @@ extension PadDetailView {
     }
 
     func commitLanguage(_ language: String) async {
-        await save(PadUpdate(id: pad.id, language: language), optimistic: optimisticPad(language: language)) {
-            draftLanguage = pad.language ?? "python3"
-        }
+        await save(PadUpdate(id: pad.id, language: language),
+                   optimistic: { optimisticPad(language: language) },
+                   revert: { draftLanguage = pad.language ?? "python3" })
     }
 
     func commitOwner(_ email: String) async {
@@ -226,24 +248,21 @@ extension PadDetailView {
         // An empty owner makes the server resolve the pad to the key owner, whose email
         // can't be known locally — so this one edit keeps the authoritative re-GET
         // (`optimistic: nil`) rather than guessing the resolved owner.
-        await save(PadUpdate(id: pad.id, ownerEmail: normalized.isEmpty ? nil : normalized), optimistic: nil) {
-            draftOwner = pad.ownerEmail
-        }
+        await save(PadUpdate(id: pad.id, ownerEmail: normalized.isEmpty ? nil : normalized),
+                   optimistic: nil,
+                   revert: { draftOwner = pad.ownerEmail })
     }
 
     func commitPrivate(_ isPrivate: Bool) async {
-        await save(PadUpdate(id: pad.id, isPrivate: isPrivate), optimistic: optimisticPad(isPrivate: isPrivate)) {
-            draftIsPrivate = pad.isPrivate ?? false
-        }
+        await save(PadUpdate(id: pad.id, isPrivate: isPrivate),
+                   optimistic: { optimisticPad(isPrivate: isPrivate) },
+                   revert: { draftIsPrivate = pad.isPrivate ?? false })
     }
 
     func commitExecution(_ enabled: Bool) async {
-        await save(
-            PadUpdate(id: pad.id, executionEnabled: enabled),
-            optimistic: optimisticPad(executionEnabled: enabled)
-        ) {
-            draftExecution = pad.executionEnabled ?? true
-        }
+        await save(PadUpdate(id: pad.id, executionEnabled: enabled),
+                   optimistic: { optimisticPad(executionEnabled: enabled) },
+                   revert: { draftExecution = pad.executionEnabled ?? true })
     }
 
     /// Commits private interviewer notes in place. The editor keeps its draft open
@@ -251,7 +270,7 @@ extension PadDetailView {
     func commitNotes(_ text: String) async -> Bool {
         guard text != (pad.notes ?? "") else { return true }
 
-        return await saveContent(PadUpdate(id: pad.id, notes: text), optimistic: optimisticPad(notes: text))
+        return await saveContent(PadUpdate(id: pad.id, notes: text)) { optimisticPad(notes: text) }
     }
 
     /// The pad with every immediately-committed draft applied (language, privacy,
@@ -260,31 +279,41 @@ extension PadDetailView {
     /// `pad.title` is kept so an as-yet-uncommitted title edit isn't pushed out early.
     /// Building from the full draft set (not just the one changed field) keeps
     /// concurrent rapid edits from clobbering each other, since those drafts are always
-    /// the saved value (#376).
+    /// the saved value (#376). The untouched fields come from the latest published
+    /// pad (`latestPad`, kept fresh by `draftSync`), never this view's older
+    /// snapshot: a concurrent refresh or another window's edit to owner, notes, or
+    /// state must not be replaced by stale copies of fields this save never sent
+    /// (#1186).
     private func optimisticPad(title: String? = nil,
                                language: String? = nil,
                                notes: String? = nil,
                                isPrivate: Bool? = nil,
                                executionEnabled: Bool? = nil) -> Pad {
-        Pad(
-            id: pad.id, title: title ?? pad.title, state: pad.state, ownerEmail: pad.ownerEmail,
-            language: language ?? draftLanguage, participants: pad.participants, url: pad.url,
-            playback: pad.playback, events: pad.events, notes: notes ?? pad.notes,
-            drawing: pad.drawing, contents: pad.contents, history: pad.history,
-            createdAt: pad.createdAt, updatedAt: pad.updatedAt, endedAt: pad.endedAt,
-            type: pad.type, executionEnabled: executionEnabled ?? draftExecution,
+        let base = latestPad ?? pad
+        return Pad(
+            id: base.id, title: title ?? base.title, state: base.state, ownerEmail: base.ownerEmail,
+            language: language ?? draftLanguage, participants: base.participants, url: base.url,
+            playback: base.playback, events: base.events, notes: notes ?? base.notes,
+            drawing: base.drawing, contents: base.contents, history: base.history,
+            createdAt: base.createdAt, updatedAt: base.updatedAt, endedAt: base.endedAt,
+            type: base.type, executionEnabled: executionEnabled ?? draftExecution,
             isPrivate: isPrivate ?? draftIsPrivate,
-            activeEnvironmentID: pad.activeEnvironmentID, padEnvironmentIDs: pad.padEnvironmentIDs,
-            questionIDs: pad.questionIDs, team: pad.team
+            activeEnvironmentID: base.activeEnvironmentID, padEnvironmentIDs: base.padEnvironmentIDs,
+            questionIDs: base.questionIDs, team: base.team
         )
     }
 
     /// Sends a single-field content update and propagates the optimistic pad without
     /// the redundant re-GET (#376), returning whether it succeeded. On failure it
     /// surfaces the error; the inline editor keeps the unsaved text so nothing is lost.
-    private func saveContent(_ body: PadUpdate, optimistic: Pad) async -> Bool {
+    /// `optimistic` is a closure evaluated after the request returns, so the published
+    /// pad merges this field into the then-latest base rather than a pre-request
+    /// snapshot (#1186).
+    private func saveContent(_ body: PadUpdate, optimistic: () -> Pad) async -> Bool {
         do {
             try await client.updatePadWithoutRefetch(body)
+            let optimistic = optimistic()
+            latestPad = optimistic
             AppRouter.padUpdated(optimistic, account: owningAccountID)
             return true
         } catch {
@@ -297,14 +326,18 @@ extension PadDetailView {
     /// supplied the local copy is authoritative, so it PUTs without the redundant re-GET
     /// and propagates the optimistic pad (#376); otherwise (owner edits) it re-fetches
     /// the server's resolved state. On failure it surfaces the error and runs `revert`
-    /// so the control never lies about what's saved.
-    private func save(_ body: PadUpdate, optimistic: Pad?, revert: () -> Void) async {
+    /// so the control never lies about what's saved. See `saveContent` for why
+    /// `optimistic` is deferred (#1186).
+    private func save(_ body: PadUpdate, optimistic: (() -> Pad)?, revert: () -> Void) async {
         do {
             if let optimistic {
                 try await client.updatePadWithoutRefetch(body)
+                let optimistic = optimistic()
+                latestPad = optimistic
                 AppRouter.padUpdated(optimistic, account: owningAccountID)
             } else {
                 let updated = try await client.updatePad(body)
+                latestPad = updated
                 AppRouter.padUpdated(updated, account: owningAccountID)
             }
         } catch {

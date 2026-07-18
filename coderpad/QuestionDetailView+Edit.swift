@@ -18,19 +18,62 @@ private enum QuestionInlineCommitField: String {
 
 @MainActor
 private enum QuestionInlineCommitQueue {
-    private static var tasks: [String: Task<Void, Never>] = [:]
+    private static var running: [String: Task<Void, Never>] = [:]
+    private static var pending: [String: @MainActor () async -> Void] = [:]
 
-    static func enqueue(questionID: Int,
+    /// Serializes saves per account + question + field. The key carries the owning
+    /// account: per-org question ids collide across accounts, so a process-global
+    /// numeric key made unrelated accounts' saves wait on each other and retained
+    /// the other window's state (#1183). While a save is in flight only the newest
+    /// queued value is kept, so rapid Picker churn sends at most one trailing PUT
+    /// with the final choice instead of replaying every intermediate value (#1185).
+    /// Entries are removed as their work drains, so completed tasks and their
+    /// captured views aren't retained for the life of the process (#1184).
+    static func enqueue(account: UUID?,
+                        questionID: Int,
                         field: QuestionInlineCommitField,
                         operation: @escaping @MainActor () async -> Void) {
-        let key = "\(questionID):\(field.rawValue)"
-        let previous = tasks[key]
-        tasks[key] = Task { @MainActor in
-            await previous?.value
-            guard !Task.isCancelled else { return }
-
-            await operation()
+        let key = "\(account?.uuidString ?? "current"):\(questionID):\(field.rawValue)"
+        guard running[key] == nil else {
+            pending[key] = operation
+            return
         }
+
+        run(key: key, operation: operation)
+    }
+
+    private static func run(key: String, operation: @escaping @MainActor () async -> Void) {
+        running[key] = Task { @MainActor in
+            await operation()
+            running[key] = nil
+            if let next = pending.removeValue(forKey: key) {
+                run(key: key, operation: next)
+            }
+        }
+    }
+}
+
+/// Serializes whole-array candidate-instruction saves per account + question:
+/// each save resends the entire instruction list, so two concurrent part edits
+/// would each PUT an array holding the other part's old text and the later one
+/// would win (#1188). Chaining them (and building each payload from the latest
+/// published question inside the chained block) makes the second save see the
+/// first one's result. Entries are removed when a chain drains.
+@MainActor
+private enum QuestionInstructionSaveChain {
+    private static var tails: [String: Task<Void, Never>] = [:]
+
+    static func run(key: String, operation: @escaping @MainActor () async -> Bool) async -> Bool {
+        let previous = tails[key]
+        let task = Task { @MainActor () -> Bool in
+            await previous?.value
+            return await operation()
+        }
+        let tail = Task { @MainActor in _ = await task.value }
+        tails[key] = tail
+        let result = await task.value
+        if tails[key] == tail { tails[key] = nil }
+        return result
     }
 }
 
@@ -156,6 +199,10 @@ extension QuestionDetailView {
                 latestQuestion = question
                 scheduleSeedDrafts()
             }
+            // Track every question change (a refresh, another window's edit bounced
+            // back through the router) so optimistic saves merge into the freshest
+            // base instead of republishing stale fields they never sent (#1187).
+            .onChange(of: question) { _, newValue in latestQuestion = newValue }
             .onChange(of: question.language) { _, newValue in draftLanguage = newValue ?? "python3" }
             .onChange(of: question.padType) { _, _ in draftPadType = currentType }
     }
@@ -166,7 +213,8 @@ extension QuestionDetailView {
         Binding(get: { draftLanguage },
                 set: { newValue in
                     draftLanguage = newValue
-                    QuestionInlineCommitQueue.enqueue(questionID: question.id, field: .language) {
+                    QuestionInlineCommitQueue.enqueue(account: accountID, questionID: question.id,
+                                                      field: .language) {
                         await commitLanguage(newValue)
                     }
                 })
@@ -176,7 +224,8 @@ extension QuestionDetailView {
         Binding(get: { draftPadType },
                 set: { newValue in
                     draftPadType = newValue
-                    QuestionInlineCommitQueue.enqueue(questionID: question.id, field: .type) {
+                    QuestionInlineCommitQueue.enqueue(account: accountID, questionID: question.id,
+                                                      field: .type) {
                         await commitType(newValue)
                     }
                 })
@@ -260,9 +309,19 @@ extension QuestionDetailView {
     /// `index`'s text changed (each part keeps its `default_visible`), so editing
     /// part 2 onwards no longer collapses the parts into one (#334). An out-of-range
     /// index appends a new part, which is how the first part is added to a question
-    /// that had none.
+    /// that had none. Saves are serialized per question and each payload is built
+    /// from the latest published question inside the serialized block, so parallel
+    /// edits to two parts can't overwrite each other's text (#1188).
     func commitInstruction(at index: Int, text: String) async -> Bool {
-        var payloads = question.candidateInstructions.map {
+        await QuestionInstructionSaveChain.run(
+            key: "\(accountID?.uuidString ?? "current"):\(question.id)"
+        ) {
+            await performCommitInstruction(at: index, text: text)
+        }
+    }
+
+    private func performCommitInstruction(at index: Int, text: String) async -> Bool {
+        var payloads = (latestQuestion ?? question).candidateInstructions.map {
             CandidateInstructionPayload(instructions: $0.instructions, defaultVisible: $0.defaultVisible)
         }
         if payloads.indices.contains(index) {

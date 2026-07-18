@@ -53,6 +53,10 @@ struct PadDetailView: View {
     /// Generation counter for the deferred draft seeding (see `scheduleSeedDrafts`),
     /// so a stale queued seed can't overwrite a newer pad's drafts (#1192).
     @State private var draftSeedGeneration = 0
+    /// Latest known pad — this view's own optimistic publishes plus whatever the
+    /// parent last passed in — used as the merge base for optimistic updates so a
+    /// save never republishes stale copies of fields it didn't send (#1186).
+    @State var latestPad: Pad?
     #if !os(macOS)
         /// The document staged for the iPad's `.fileExporter` (Save All Code / Export Markdown).
         /// `nil` dismisses the export sheet.
@@ -320,6 +324,9 @@ struct PadDetailView: View {
     private func draftSync(_ content: some View) -> some View {
         content
             .onChange(of: pad.id, initial: true) { _, _ in scheduleSeedDrafts() }
+            // Track every pad change (a refresh, another window's edit bounced back
+            // through the router) so optimistic saves merge into the freshest base (#1186).
+            .onChange(of: pad, initial: true) { _, newValue in latestPad = newValue }
             .onChange(of: pad.language) { _, newValue in draftLanguage = newValue ?? "python3" }
             .onChange(of: pad.ownerEmail) { _, newValue in draftOwner = newValue }
             .onChange(of: pad.isPrivate) { _, newValue in draftIsPrivate = newValue ?? false }
