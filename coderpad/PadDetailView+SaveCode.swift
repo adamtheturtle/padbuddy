@@ -262,34 +262,8 @@ extension PadDetailView {
         }
     }
 
-    /// Maps each known language code to a file extension. A table rather than a
-    /// `switch` so the lookup stays a single statement and several aliases can map
-    /// to the same extension without one giant branch.
-    private static let extensionByLanguage: [String: String] = [
-        "python": "py", "python2": "py", "python3": "py",
-        "javascript": "js", "node": "js", "node.js": "js", "nodejs": "js",
-        "typescript": "ts", "swift": "swift",
-        "go": "go", "golang": "go", "rust": "rs", "java": "java",
-        "kotlin": "kt", "scala": "scala", "ruby": "rb", "c": "c",
-        "cpp": "cpp", "c++": "cpp", "csharp": "cs", "c#": "cs",
-        "objective-c": "m", "objc": "m", "php": "php",
-        "html": "html", "css": "css",
-        "sql": "sql", "mysql": "sql", "postgresql": "sql", "postgres": "sql",
-        "bash": "sh", "shell": "sh", "sh": "sh",
-        "r": "r", "elixir": "ex", "erlang": "erl", "haskell": "hs",
-        "perl": "pl", "lua": "lua", "dart": "dart", "clojure": "clj",
-        "ocaml": "ml", "f#": "fs", "fsharp": "fs"
-    ]
-
-    /// A reasonable file extension for code that has no path of its own (a
-    /// legacy single-file pad), derived from its language.
-    private static func fileExtension(forLanguage language: String?) -> String {
-        var lowered = (language ?? "").lowercased()
-        if lowered.hasPrefix("multifile_") {
-            lowered = String(lowered.dropFirst("multifile_".count))
-        }
-        return extensionByLanguage[lowered] ?? "txt"
-    }
+    // `extensionByLanguage` / `fileExtension(forLanguage:)` live in
+    // PadDetailView+SaveCodePaths.swift to keep this file within the length lint.
 }
 
 extension FocusedValues {
@@ -323,24 +297,31 @@ extension FocusedValues {
         let contentType: UTType
         /// The default name the export sheet pre-fills (including the extension).
         let defaultName: String
-        private let data: Data
+        private let data: Data?
+        /// The staged archive on disk for a multi-file export. Kept as a file (and
+        /// mapped lazily by `fileWrapper`) rather than loaded into `data`: holding
+        /// the archive bytes in Data AND in the FileWrapper doubled peak memory
+        /// for large pads (#1741).
+        private let archiveURL: URL?
 
         /// A single text file the user names in the export sheet.
         init(text: String, contentType: UTType, defaultName: String) {
             self.contentType = contentType
             self.defaultName = defaultName
             data = Data(text.utf8)
+            archiveURL = nil
         }
 
         /// A multi-file pad zipped into one archive named after the pad, each file at its
         /// relative path (e.g. `src/main.rs`) so the project structure survives. Returns
         /// `nil` if the archive can't be built (the caller surfaces an error).
         init?(zipName: String, files: [(path: String, contents: String)]) {
-            guard let archive = Self.zipData(folderName: zipName, files: files) else { return nil }
+            guard let archive = Self.zipFileURL(folderName: zipName, files: files) else { return nil }
 
             contentType = .zip
             defaultName = "\(zipName).zip"
-            data = archive
+            data = nil
+            archiveURL = archive
         }
 
         init(configuration _: ReadConfiguration) throws {
@@ -348,14 +329,20 @@ extension FocusedValues {
         }
 
         func fileWrapper(configuration _: WriteConfiguration) throws -> FileWrapper {
-            FileWrapper(regularFileWithContents: data)
+            if let archiveURL {
+                return try FileWrapper(url: archiveURL, options: [])
+            }
+            return FileWrapper(regularFileWithContents: data ?? Data())
         }
 
         /// Writes the files into a uniquely-named temporary folder, then uses
         /// `NSFileCoordinator`'s `.forUploading` option (Foundation's built-in zip) to
-        /// archive it, returning the archive bytes. Cleans up the scratch directory.
-        private static func zipData(folderName: String,
-                                    files: [(path: String, contents: String)]) -> Data? {
+        /// archive it, copying the archive to a stable temporary file and returning
+        /// its URL (disk-to-disk, never buffering the archive in memory, #1741).
+        /// Cleans up the scratch directory; the staged archive lives in the system
+        /// temporary directory, which the OS reclaims.
+        private static func zipFileURL(folderName: String,
+                                       files: [(path: String, contents: String)]) -> URL? {
             let fileManager = FileManager.default
             let scratch = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString)
             let folder = scratch.appendingPathComponent(folderName)
@@ -372,13 +359,17 @@ extension FocusedValues {
                 return nil
             }
 
-            var archive: Data?
+            var staged: URL?
             var coordinationError: NSError?
             NSFileCoordinator().coordinate(readingItemAt: folder, options: .forUploading,
                                            error: &coordinationError) { zippedURL in
-                archive = try? Data(contentsOf: zippedURL)
+                let destination = fileManager.temporaryDirectory
+                    .appendingPathComponent("padbuddy-export-\(UUID().uuidString).zip")
+                if (try? fileManager.copyItem(at: zippedURL, to: destination)) != nil {
+                    staged = destination
+                }
             }
-            return archive
+            return staged
         }
     }
 #endif

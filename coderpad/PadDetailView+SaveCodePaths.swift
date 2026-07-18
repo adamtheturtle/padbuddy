@@ -48,6 +48,39 @@ extension PadDetailView {
         return result
     }
 
+    /// Maps each known language code to a file extension. A table rather than a
+    /// `switch` so the lookup stays a single statement and several aliases can map
+    /// to the same extension without one giant branch.
+    static let extensionByLanguage: [String: String] = [
+        "python": "py", "python2": "py", "python3": "py",
+        "javascript": "js", "node": "js", "node.js": "js", "nodejs": "js",
+        "typescript": "ts", "swift": "swift",
+        "go": "go", "golang": "go", "rust": "rs", "java": "java",
+        "kotlin": "kt", "scala": "scala", "ruby": "rb", "c": "c",
+        "cpp": "cpp", "c++": "cpp", "csharp": "cs", "c#": "cs",
+        "objective-c": "m", "objc": "m", "php": "php",
+        "html": "html", "css": "css",
+        "sql": "sql", "mysql": "sql", "postgresql": "sql", "postgres": "sql",
+        "bash": "sh", "shell": "sh", "sh": "sh",
+        "r": "r", "elixir": "ex", "erlang": "erl", "haskell": "hs",
+        "perl": "pl", "lua": "lua", "dart": "dart", "clojure": "clj",
+        "ocaml": "ml", "f#": "fs", "fsharp": "fs",
+        // Markdown is in the supported-language table; a legacy pathless
+        // Markdown pad must export as .md, not .txt (#1744).
+        "markdown": "md", "md": "md"
+    ]
+
+    /// A reasonable file extension for code that has no path of its own (a
+    /// legacy single-file pad), derived from its language. Trimmed before lookup:
+    /// an API value like "python3 " must not fall through to .txt (#1743).
+    static func fileExtension(forLanguage language: String?) -> String {
+        var lowered = (language ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if lowered.hasPrefix("multifile_") {
+            lowered = String(lowered.dropFirst("multifile_".count))
+        }
+        return extensionByLanguage[lowered] ?? "txt"
+    }
+
     /// The path with empty, ".", and ".." segments dropped, or nil when nothing
     /// usable remains (#1173).
     private static func canonicalCodePath(_ path: String?) -> String? {
@@ -85,17 +118,32 @@ nonisolated enum SaveCodePathHelpers {
     /// case-insensitive by default and treat canonically equivalent names as one
     /// path, so `README.md`/`readme.md` — or an NFC and NFD spelling of the same
     /// accented name — would silently overwrite each other on disk even though
-    /// the backend treats them as distinct files (#1040, #1174). Original casing
-    /// and composition are preserved in the returned paths.
+    /// the backend treats them as distinct files (#1040, #1174). A file whose path
+    /// is also another file's directory prefix (`src` next to `src/main.swift`) is
+    /// renamed too: writing one as a file makes creating the other's directory
+    /// fail and aborts the export mid-write (#1739). Original casing and
+    /// composition are preserved in the returned paths.
     static func uniqueRelativePaths(_ paths: [String]) -> [String] {
-        var used = Set<String>()
         func key(_ path: String) -> String {
             path.precomposedStringWithCanonicalMapping.lowercased()
         }
+
+        // Every directory prefix any path needs; no file may claim one (#1739).
+        var directories = Set<String>()
+        for path in paths {
+            var components = path.split(separator: "/").map(String.init)
+            components.removeLast()
+            while !components.isEmpty {
+                directories.insert(key(components.joined(separator: "/")))
+                components.removeLast()
+            }
+        }
+
+        var used = Set<String>()
         return paths.map { path in
             var candidate = path
             var copyNumber = 2
-            while used.contains(key(candidate)) {
+            while used.contains(key(candidate)) || directories.contains(key(candidate)) {
                 candidate = copyPath(path, number: copyNumber)
                 copyNumber += 1
             }
