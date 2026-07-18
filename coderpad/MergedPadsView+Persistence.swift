@@ -8,7 +8,49 @@
 //  lint, mirroring MergedQuestionsView+Persistence.
 //
 
+import os
 import SwiftUI
+
+/// Endpoint stamping for persisted merged row ids (#1236): a saved value is an
+/// account-namespaced row id, but an account re-pointed at a different server
+/// keeps its UUID, so the id alone could reopen an unrelated same-slug resource
+/// on the new server. Each persisted row id is stamped with its account's
+/// endpoint; a restore drops the value when the endpoint no longer matches.
+@MainActor
+enum MergedRowPersistence {
+    static func endpointKey(_ key: String) -> String { "\(key).endpoint" }
+
+    /// Stamp (or clear) the endpoint of the account owning `rowID` alongside the
+    /// row id persisted under `key`.
+    static func stampEndpoint(forRowID rowID: String?, key: String) {
+        guard let rowID, let uuid = accountUUID(fromRowID: rowID),
+              let account = AccountsStore.shared.accounts.first(where: { $0.id == uuid }) else {
+            UserDefaults.standard.removeObject(forKey: endpointKey(key))
+            return
+        }
+
+        UserDefaults.standard.set(account.resolvedBaseURL.absoluteString, forKey: endpointKey(key))
+    }
+
+    /// The saved row id under `key`, dropped when its account now points at a
+    /// different endpoint than when it was saved. A value without an endpoint
+    /// stamp (legacy, or a bare pre-#758 slug) passes through untouched.
+    static func validatedSavedRowID(forKey key: String) -> String? {
+        guard let saved = UserDefaults.standard.string(forKey: key) else { return nil }
+        guard let uuid = accountUUID(fromRowID: saved),
+              let stored = UserDefaults.standard.string(forKey: endpointKey(key)) else { return saved }
+        guard let account = AccountsStore.shared.accounts.first(where: { $0.id == uuid }),
+              account.resolvedBaseURL.absoluteString == stored else { return nil }
+
+        return saved
+    }
+
+    private static func accountUUID(fromRowID id: String) -> UUID? {
+        guard let separator = id.firstIndex(of: ":") else { return nil }
+
+        return UUID(uuidString: String(id[..<separator]))
+    }
+}
 
 @MainActor
 final class TopRowPersistenceDebouncer {
@@ -107,8 +149,15 @@ extension MergedPadsView {
         let snapshot = MergedFilterSnapshot(search: captureCurrentSearch(),
                                             accountFilter: accountFilter,
                                             mineOnly: mineOnly)
-        if let data = try? JSONEncoder().encode(snapshot) {
+        do {
+            let data = try JSONEncoder().encode(snapshot)
             UserDefaults.standard.set(data, forKey: Self.liveFilterKey)
+        } catch {
+            // Log rather than silently dropping the write, so a persistent encode
+            // failure is diagnosable from Console (#1237).
+            persistenceLogger.error(
+                "Merged pad filter snapshot failed to encode: \(error.localizedDescription, privacy: .public)"
+            )
         }
     }
 
@@ -132,6 +181,12 @@ extension MergedPadsView {
             mineOnly = snapshot.mineOnly
         } else if let legacy = try? JSONDecoder().decode(NamedSearch.self, from: data) {
             apply(legacy)
+        } else {
+            // A corrupted or schema-incompatible payload would fail again on every
+            // launch while leaving stale defaults in place; remove it so the next
+            // filter change persists a fresh, decodable snapshot (#1237).
+            UserDefaults.standard.removeObject(forKey: Self.liveFilterKey)
+            persistenceLogger.error("Discarded an undecodable merged pad filter snapshot")
         }
     }
 
@@ -158,6 +213,9 @@ extension MergedPadsView {
         } else {
             UserDefaults.standard.removeObject(forKey: Self.selectedPadKey)
         }
+        // Stamp the owning account's endpoint so a restore can reject the row when
+        // the account was re-pointed at a different server (#1236).
+        MergedRowPersistence.stampEndpoint(forRowID: selectedID, key: Self.selectedPadKey)
     }
 
     /// The single key for the merged list's free-scroll position (top visible row),
@@ -177,6 +235,7 @@ extension MergedPadsView {
         } else {
             UserDefaults.standard.removeObject(forKey: Self.topRowKey)
         }
+        MergedRowPersistence.stampEndpoint(forRowID: id, key: Self.topRowKey)
     }
 
     func scheduleTopRowPersistence(_ id: String?) {
@@ -220,7 +279,8 @@ extension MergedPadsView {
         let hasPendingOpen = nav.pendingMergedFavoritePad != nil || pendingSelectPadSlug != nil
         if let id = PadsView.padToRestore(
             savedID: Self.normalizedSavedRowID(
-                UserDefaults.standard.string(forKey: Self.selectedPadKey), rowIDBySlug: rowIDBySlug
+                MergedRowPersistence.validatedSavedRowID(forKey: Self.selectedPadKey),
+                rowIDBySlug: rowIDBySlug
             ),
             hasSelection: selection != nil,
             hasPendingOpen: hasPendingOpen,
@@ -234,7 +294,8 @@ extension MergedPadsView {
             pendingScrollToID = id
         } else if selection == nil, !hasPendingOpen,
                   let topID = Self.normalizedSavedRowID(
-                      UserDefaults.standard.string(forKey: Self.topRowKey), rowIDBySlug: rowIDBySlug
+                      MergedRowPersistence.validatedSavedRowID(forKey: Self.topRowKey),
+                      rowIDBySlug: rowIDBySlug
                   ),
                   availableRowIDs.contains(topID) {
             // Nothing to reselect — return the unselected list to where it was scrolled

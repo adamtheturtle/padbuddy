@@ -7,6 +7,7 @@
 //  restoring them on launch.
 //
 
+import os
 import SwiftUI
 
 extension MergedQuestionsView {
@@ -67,8 +68,15 @@ extension MergedQuestionsView {
                                             accountFilter: accountFilter,
                                             mineOnly: mineOnly,
                                             favoritesOnly: favoritesOnly)
-        if let data = try? JSONEncoder().encode(snapshot) {
+        do {
+            let data = try JSONEncoder().encode(snapshot)
             UserDefaults.standard.set(data, forKey: Self.liveFilterKey)
+        } catch {
+            // Log rather than silently dropping the write, so a persistent encode
+            // failure is diagnosable from Console (#1237).
+            persistenceLogger.error(
+                "Merged question filter snapshot failed to encode: \(error.localizedDescription, privacy: .public)"
+            )
         }
     }
 
@@ -94,6 +102,12 @@ extension MergedQuestionsView {
             favoritesOnly = snapshot.favoritesOnly
         } else if let legacy = try? JSONDecoder().decode(NamedSearch.self, from: data) {
             apply(legacy)
+        } else {
+            // A corrupted or schema-incompatible payload would fail again on every
+            // launch while leaving stale defaults in place; remove it so the next
+            // filter change persists a fresh, decodable snapshot (#1237).
+            UserDefaults.standard.removeObject(forKey: Self.liveFilterKey)
+            persistenceLogger.error("Discarded an undecodable merged question filter snapshot")
         }
     }
 
@@ -119,6 +133,9 @@ extension MergedQuestionsView {
         } else {
             UserDefaults.standard.removeObject(forKey: Self.selectedRowKey)
         }
+        // Stamp the owning account's endpoint so a restore can reject the row when
+        // the account was re-pointed at a different server (#1236).
+        MergedRowPersistence.stampEndpoint(forRowID: selectedRowID, key: Self.selectedRowKey)
     }
 
     /// The saved row to reselect on launch: the stored namespaced row id, but only
@@ -154,6 +171,7 @@ extension MergedQuestionsView {
         } else {
             UserDefaults.standard.removeObject(forKey: Self.topRowKey)
         }
+        MergedRowPersistence.stampEndpoint(forRowID: rowID, key: Self.topRowKey)
     }
 
     func scheduleTopRowPersistence(_ rowID: String?) {
@@ -178,7 +196,7 @@ extension MergedQuestionsView {
 
         didRestoreSelection = true
         if let rowID = Self.rowToRestore(
-            savedRowID: UserDefaults.standard.string(forKey: Self.selectedRowKey),
+            savedRowID: MergedRowPersistence.validatedSavedRowID(forKey: Self.selectedRowKey),
             hasSelection: selection != nil,
             hasPendingNavigation: nav.pendingMergedFavoriteQuestion != nil,
             availableRowIDs: availableRowIDs
@@ -187,7 +205,7 @@ extension MergedQuestionsView {
             // Bring the restored row into view; the List won't scroll to it on its own.
             pendingScrollToRowID = rowID
         } else if selection == nil, nav.pendingMergedFavoriteQuestion == nil,
-                  let topID = UserDefaults.standard.string(forKey: Self.topRowKey),
+                  let topID = MergedRowPersistence.validatedSavedRowID(forKey: Self.topRowKey),
                   availableRowIDs.contains(topID) {
             // Nothing to reselect — return the unselected list to where it was scrolled
             // last session (#273), without selecting anything.
