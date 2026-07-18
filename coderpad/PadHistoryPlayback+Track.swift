@@ -20,7 +20,7 @@ struct PadPlaybackScrubber: View {
 
     var body: some View {
         GeometryReader { geometry in
-            canvas
+            layers
                 .contentShape(Rectangle())
                 .gesture(
                     DragGesture(minimumDistance: 0)
@@ -44,13 +44,73 @@ struct PadPlaybackScrubber: View {
         }
     }
 
-    private var canvas: some View {
+    /// The ticks and run markers don't depend on the playhead, so they draw in
+    /// their own layer that scrubbing never invalidates: a drag update redraws
+    /// only the lightweight progress/playhead layer, not a tick per edit (#1873).
+    private var layers: some View {
+        ZStack {
+            PadPlaybackTrackBase(timeline: timeline, runMarkers: runMarkers, color: color)
+                .equatable()
+            playheadLayer
+        }
+    }
+
+    private var playheadLayer: some View {
         Canvas { context, size in
-            let trackY = size.height * 0.62
+            let trackY = size.height * PadPlaybackTrackBase.trackYFraction
+            drawProgress(&context, size: size, trackY: trackY)
+            drawPlayhead(&context, size: size, trackY: trackY)
+        }
+    }
+
+    private func drawProgress(_ context: inout GraphicsContext, size: CGSize, trackY: CGFloat) {
+        var progress = Path()
+        progress.move(to: CGPoint(x: 0, y: trackY))
+        progress.addLine(to: CGPoint(x: timeline.fraction(at: position) * size.width, y: trackY))
+        context.stroke(
+            progress, with: .color(.accentColor.opacity(0.45)),
+            style: StrokeStyle(lineWidth: 3, lineCap: .round)
+        )
+    }
+
+    private func drawPlayhead(_ context: inout GraphicsContext, size: CGSize, trackY: CGFloat) {
+        let playheadX = timeline.fraction(at: position) * size.width
+        var playhead = Path()
+        playhead.move(to: CGPoint(x: playheadX, y: trackY - 8))
+        playhead.addLine(to: CGPoint(x: playheadX, y: trackY + 8))
+        context.stroke(
+            playhead, with: .color(.accentColor),
+            style: StrokeStyle(lineWidth: 2, lineCap: .round)
+        )
+        let knob = Path(ellipseIn: CGRect(x: playheadX - 3.5, y: trackY - 3.5, width: 7, height: 7))
+        context.fill(knob, with: .color(.accentColor))
+    }
+}
+
+/// The scrubber's playhead-independent layer: the base track line, one tick per
+/// edit, and the run markers. Equatable on its data so drag updates (which only
+/// move the playhead) never re-render it (#1873).
+struct PadPlaybackTrackBase: View, Equatable {
+    let timeline: PadPlaybackTimeline
+    let runMarkers: [Double]
+    let color: (String) -> Color
+
+    /// Where the track line sits, as a fraction of the canvas height; shared
+    /// with the playhead layer so the two layers line up.
+    static let trackYFraction = 0.62
+
+    // The color mapping is derived from the timeline's participant order, so
+    // comparing the data covers the closure too.
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.timeline == rhs.timeline && lhs.runMarkers == rhs.runMarkers
+    }
+
+    var body: some View {
+        Canvas { context, size in
+            let trackY = size.height * Self.trackYFraction
             drawTrack(&context, size: size, trackY: trackY)
             drawTicks(&context, size: size, trackY: trackY)
             drawRunMarkers(&context, size: size, trackY: trackY)
-            drawPlayhead(&context, size: size, trackY: trackY)
         }
     }
 
@@ -62,24 +122,23 @@ struct PadPlaybackScrubber: View {
             track, with: .color(.secondary.opacity(0.25)),
             style: StrokeStyle(lineWidth: 3, lineCap: .round)
         )
-
-        var progress = Path()
-        progress.move(to: CGPoint(x: 0, y: trackY))
-        progress.addLine(to: CGPoint(x: timeline.fraction(at: position) * size.width, y: trackY))
-        context.stroke(
-            progress, with: .color(.accentColor.opacity(0.45)),
-            style: StrokeStyle(lineWidth: 3, lineCap: .round)
-        )
     }
 
     /// One tick per edit, deduplicated per pixel and author so a long session
-    /// doesn't stroke thousands of overlapping lines.
+    /// doesn't stroke thousands of overlapping lines. Dedup keys are packed
+    /// integers, not per-item strings, to keep the draw allocation-free (#1873).
     private func drawTicks(_ context: inout GraphicsContext, size: CGSize, trackY: CGFloat) {
-        var drawn = Set<String>()
+        var authorIndexes: [String: Int] = [:]
+        for (index, author) in timeline.authors.enumerated() {
+            authorIndexes[author] = index
+        }
+        let authorCount = max(timeline.authors.count, 1)
+        var drawn = Set<Int>()
         for index in timeline.items.indices {
             let item = timeline.items[index]
             let tickX = (timeline.fraction(at: index) * size.width).rounded()
-            guard drawn.insert("\(Int(tickX))|\(item.author)").inserted else { continue }
+            let key = Int(tickX) * authorCount + (authorIndexes[item.author] ?? 0)
+            guard drawn.insert(key).inserted else { continue }
             var tick = Path()
             tick.move(to: CGPoint(x: tickX, y: trackY - 5))
             tick.addLine(to: CGPoint(x: tickX, y: trackY + 5))
@@ -104,19 +163,6 @@ struct PadPlaybackScrubber: View {
             diamond.closeSubpath()
             context.fill(diamond, with: .color(.orange))
         }
-    }
-
-    private func drawPlayhead(_ context: inout GraphicsContext, size: CGSize, trackY: CGFloat) {
-        let playheadX = timeline.fraction(at: position) * size.width
-        var playhead = Path()
-        playhead.move(to: CGPoint(x: playheadX, y: trackY - 8))
-        playhead.addLine(to: CGPoint(x: playheadX, y: trackY + 8))
-        context.stroke(
-            playhead, with: .color(.accentColor),
-            style: StrokeStyle(lineWidth: 2, lineCap: .round)
-        )
-        let knob = Path(ellipseIn: CGRect(x: playheadX - 3.5, y: trackY - 3.5, width: 7, height: 7))
-        context.fill(knob, with: .color(.accentColor))
     }
 }
 

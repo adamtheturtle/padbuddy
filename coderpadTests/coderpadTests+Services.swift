@@ -12,7 +12,7 @@ import Testing
 
 @Suite("Open Pad service id extraction")
 struct ServicesProviderTests {
-    private let hosts: Set<String> = ["app.coderpad.io:443", "pads.acme.example:443"]
+    private let hosts: Set<String> = ["https://app.coderpad.io:443", "https://pads.acme.example:443"]
 
     @Test
     func `extracts the id from a CoderPad web URL`() {
@@ -72,6 +72,26 @@ struct ServicesProviderTests {
         ) == nil)
         #expect(ServicesProvider.padID(
             fromSelection: "coderpad://pad/a%20b", allowedEndpoints: hosts
+        ) == nil)
+    }
+
+    @Test
+    func `rejects a plain-HTTP link to an HTTPS-only server (#1933)`() {
+        #expect(ServicesProvider.padID(
+            fromSelection: "http://app.coderpad.io:443/ABC123", allowedEndpoints: hosts
+        ) == nil)
+        #expect(ServicesProvider.padID(
+            fromSelection: "http://app.coderpad.io/ABC123", allowedEndpoints: hosts
+        ) == nil)
+    }
+
+    @Test
+    func `rejects repeated or unknown pad-page suffixes (#1936)`() {
+        #expect(ServicesProvider.padID(
+            fromSelection: "https://app.coderpad.io/ABC123/playback/playback", allowedEndpoints: hosts
+        ) == nil)
+        #expect(ServicesProvider.padID(
+            fromSelection: "https://app.coderpad.io/ABC123/settings", allowedEndpoints: hosts
         ) == nil)
     }
 

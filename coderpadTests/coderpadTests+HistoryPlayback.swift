@@ -96,6 +96,38 @@ struct PadPlaybackTimelineTests {
         #expect(timeline.index(atFraction: 2) == 2)
     }
 
+    /// Same-millisecond edits in different files order by file id, so an API
+    /// reload that reorders the files replays identically (#1880).
+    @Test
+    func `same-millisecond cross-file edits order by file id, not array order`() {
+        let fileA = makeFile("alpha", title: "a.py", entries: [edit("a", by: "Basil", at: 1_000)])
+        let fileB = makeFile("beta", title: "b.py", entries: [edit("b", by: "Sybil", at: 1_000)])
+
+        let forward = PadPlaybackTimeline(histories: [fileA, fileB])
+        let reversed = PadPlaybackTimeline(histories: [fileB, fileA])
+
+        #expect(forward.items.map(\.fileID) == ["alpha", "beta"])
+        #expect(forward.items == reversed.items)
+    }
+
+    /// Clock skew in the feed: entries whose timestamps go backwards still
+    /// produce a timeline whose timestamps never decrease, so playback can't
+    /// show a later snapshot of a file before an earlier one (#1879).
+    /// `PadHistory` sorts its entries on construction and the timeline lifts
+    /// any timestamp below its per-file predecessor as a second guard.
+    @Test
+    func `out-of-order feed timestamps still yield a non-decreasing timeline`() {
+        let timeline = PadPlaybackTimeline(histories: [
+            makeFile("main", title: "main.py", entries: [
+                edit("b", by: "Basil", at: 5_000), edit("a", by: "Basil", at: 3_000)
+            ])
+        ])
+
+        #expect(timeline.items.map(\.timestamp) == [3_000, 5_000])
+        #expect(timeline.items.map(\.snapshotIndex) == [0, 1])
+        #expect(timeline.items.map(\.timestamp) == timeline.items.map(\.timestamp).sorted())
+    }
+
     @Test
     func `identical timestamps fall back to even index spacing`() {
         let timeline = PadPlaybackTimeline(histories: [

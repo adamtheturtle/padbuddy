@@ -44,6 +44,9 @@
         }
       }
     },
+    "“%@” isn't a valid email address." : {
+
+    },
     "“%@” will be permanently deleted. This can't be undone." : {
       "localizations" : {
         "es" : {
@@ -53,6 +56,9 @@
           }
         }
       }
+    },
+    "\"%@\" will be removed. Screen will stop sending event callbacks until a new webhook is set." : {
+
     },
     "(no email)" : {
       "localizations" : {
@@ -150,6 +156,16 @@
     "%@ activity" : {
 
     },
+    "%@ and %lld more" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ and %2$lld more"
+          }
+        }
+      }
+    },
     "%@ filter" : {
       "localizations" : {
         "es" : {
@@ -203,6 +219,16 @@
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Del %1$@ al %2$@"
+          }
+        }
+      }
+    },
+    "%@ Undo available for the next %lld seconds." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ Undo available for the next %2$lld seconds."
           }
         }
       }
@@ -870,6 +896,9 @@
         }
       }
     },
+    "^[%lld recorded entries](inflect: true) couldn't be read and were skipped." : {
+
+    },
     "⌘⇧N New Question, ⌘⌥C Copy Pad URL, ⌘↩ Open Pad in Browser." : {
       "localizations" : {
         "es" : {
@@ -1269,6 +1298,12 @@
           }
         }
       }
+    },
+    "and %lld more participants" : {
+
+    },
+    "Animated: open full size to play" : {
+
     },
     "Anonymized" : {
       "localizations" : {
@@ -2156,6 +2191,26 @@
     "Couldn’t create pad. %@" : {
 
     },
+    "Couldn't delete %lld of ^[%lld pads](inflect: true): %@. %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Couldn't delete %1$lld of ^[%2$lld pads](inflect: true): %3$@. %4$@"
+          }
+        }
+      }
+    },
+    "Couldn't delete %lld of ^[%lld questions](inflect: true): %@. %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Couldn't delete %1$lld of ^[%2$lld questions](inflect: true): %3$@. %4$@"
+          }
+        }
+      }
+    },
     "Couldn't delete pad" : {
       "localizations" : {
         "es" : {
@@ -2771,6 +2826,7 @@
       }
     },
     "Deleting %lld pads..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2781,11 +2837,32 @@
       }
     },
     "Deleting %lld questions..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
             "state" : "machine_translated",
             "value" : "Eliminando %lld preguntas..."
+          }
+        }
+      }
+    },
+    "Deleting ^[%lld pads](inflect: true): %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Deleting ^[%1$lld pads](inflect: true): %2$@"
+          }
+        }
+      }
+    },
+    "Deleting ^[%lld questions](inflect: true): %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Deleting ^[%1$lld questions](inflect: true): %2$@"
           }
         }
       }
@@ -3176,6 +3253,9 @@
           }
         }
       }
+    },
+    "Enter a valid recruiter email address." : {
+
     },
     "Enter the pad's identifier - letters and numbers only." : {
 
@@ -3924,6 +4004,9 @@
         }
       }
     },
+    "Latest version" : {
+
+    },
     "Launch at login" : {
       "localizations" : {
         "es" : {
@@ -4027,6 +4110,9 @@
           }
         }
       }
+    },
+    "Loading whiteboard" : {
+
     },
     "Loading…" : {
       "extractionState" : "stale",
@@ -4451,6 +4537,9 @@
           }
         }
       }
+    },
+    "No CoderPad pad link or id was found in the selection." : {
+
     },
     "No events yet." : {
       "localizations" : {
@@ -6148,6 +6237,7 @@
       }
     },
     "Screen will stop sending event callbacks until a new webhook is set." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -7113,6 +7203,9 @@
     "The pad stats request failed." : {
 
     },
+    "The report is too large to open." : {
+
+    },
     "The request failed (HTTP %lld)." : {
       "localizations" : {
         "es" : {
@@ -7143,6 +7236,9 @@
         }
       }
     },
+    "The selected pad link couldn't be converted to an app link." : {
+
+    },
     "The server couldn't find that. It may have already been deleted." : {
       "localizations" : {
         "es" : {
@@ -7152,6 +7248,9 @@
           }
         }
       }
+    },
+    "The server did not return a PDF report." : {
+
     },
     "The server is read-only by default. When on, the assistant can also create and edit pads and questions (never delete them). Changes take effect after you restart the assistant. Only turn this on if you trust the assistant with your live interview content." : {
       "localizations" : {
@@ -7271,6 +7370,9 @@
           }
         }
       }
+    },
+    "This question has no description, candidate instructions, starter code, or solution to print." : {
+
     },
     "This section shows everything in the list." : {
       "localizations" : {
@@ -7500,6 +7602,9 @@
           }
         }
       }
+    },
+    "Untitled" : {
+
     },
     "Untitled account" : {
       "localizations" : {

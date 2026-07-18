@@ -26,7 +26,8 @@
                            userData _: String?,
                            error: AutoreleasingUnsafeMutablePointer<NSString>?) {
             guard let id = Self.padID(from: pasteboard) else {
-                error?.pointee = "No CoderPad pad link or id was found in the selection." as NSString
+                error?.pointee =
+                    String(localized: "No CoderPad pad link or id was found in the selection.") as NSString
                 return
             }
             // `padID` only returns PadIDValidation-normalized ids, and the link is
@@ -37,7 +38,13 @@
             components.scheme = "coderpad"
             components.host = "pad"
             components.path = "/\(id)"
-            guard let deepLink = components.url else { return }
+            guard let deepLink = components.url else {
+                // Never fail silently: the Services menu shows this to the user
+                // instead of appearing to do nothing (#1937).
+                error?.pointee =
+                    String(localized: "The selected pad link couldn't be converted to an app link.") as NSString
+                return
+            }
 
             AppActivator.bringToFront()
             URLOpener.open(deepLink)
@@ -59,12 +66,13 @@
 
         // swiftlint:enable legacy_objc_type
 
-        /// The web endpoints (lowercased `host:port`) a selected link may point at
-        /// to count as a pad link (#795): the hosted service plus every configured
-        /// account's custom server. Keyed by host AND resolved port, so two custom
-        /// servers sharing a host on different ports are not interchangeable
-        /// (#1248). Anything else (an arbitrary selected URL) must not be mistaken
-        /// for a pad.
+        /// The web endpoints (lowercased `scheme://host:port`) a selected link may
+        /// point at to count as a pad link (#795): the hosted service plus every
+        /// configured account's custom server. Keyed by scheme, host, AND resolved
+        /// port, so two custom servers sharing a host on different ports are not
+        /// interchangeable (#1248), and a plain-HTTP link can't impersonate an
+        /// HTTPS-only server by spelling out its port (#1933). Anything else (an
+        /// arbitrary selected URL) must not be mistaken for a pad.
         static var allowedPadLinkEndpoints: Set<String> {
             var endpoints: Set<String> = []
             if let endpoint = endpointIdentity(of: CoderPadClient.defaultBaseURL) {
@@ -78,24 +86,34 @@
             return endpoints
         }
 
-        /// A URL's lowercased `host:port` identity, defaulting the port from the
-        /// scheme so `https://example.com` and `https://example.com:443` compare
-        /// equal.
+        /// A URL's lowercased `scheme://host:port` identity, defaulting the port
+        /// from the scheme so `https://example.com` and `https://example.com:443`
+        /// compare equal. The scheme is part of the identity: `http://host:443`
+        /// must not match an HTTPS-only configured server (#1933).
         static func endpointIdentity(of url: URL) -> String? {
-            guard let host = url.host()?.lowercased(), !host.isEmpty else { return nil }
+            guard let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https",
+                  let host = url.host()?.lowercased(), !host.isEmpty else { return nil }
 
-            let port = url.port ?? (url.scheme?.lowercased() == "http" ? 80 : 443)
-            return "\(host):\(port)"
+            let port = url.port ?? (scheme == "http" ? 80 : 443)
+            return "\(scheme)://\(host):\(port)"
         }
 
         /// Web-app routes served on the same hosts as pads (dashboard pages, auth,
         /// account management, and similar). A first path component naming one of
         /// these is app navigation, never a pad id (#1044).
+        /// deny-listed defensively and broadly (#1935): a miss opens a bogus pad
+        /// request, which the app then fails to load - annoying, not dangerous - so
+        /// the list errs toward inclusion of plausible web-app words.
         private static let nonPadRoutes: Set<String> = [
-            "account", "accounts", "admin", "api", "billing", "candidates", "dashboard",
-            "docs", "help", "interviews", "login", "logout", "pads", "profile",
-            "questions", "register", "sandbox", "screen", "screens", "settings",
-            "signup", "team", "teams", "users"
+            "about", "account", "accounts", "admin", "api", "auth", "billing", "blog",
+            "callback", "candidates", "careers", "contact", "dashboard", "docs",
+            "drafts", "features", "help", "integrations", "interviews", "invitations",
+            "invite", "invoices", "jobs", "legal", "live", "login", "logout", "oauth",
+            "onboarding", "organizations", "pads", "password", "plans", "pricing",
+            "privacy", "profile", "questions", "quickstart", "register", "reports",
+            "sandbox", "screen", "screens", "search", "security", "settings", "signin",
+            "signout", "signup", "sso", "status", "support", "team", "teams",
+            "templates", "terms", "tests", "users"
         ]
 
         /// Path components that may trail a pad id in a shareable pad URL, like
@@ -151,7 +169,10 @@
         /// as the id, so `.../dashboard` opened a bogus pad (#1044).
         private static func padID(fromWebPathComponents components: [String]) -> String? {
             let parts = components.filter { $0 != "/" && !$0.isEmpty }
-            guard let first = parts.first,
+            // At most `<id>` or `<id>/<suffix>`: a repeated or stacked suffix like
+            // `/<id>/playback/playback` is not a shareable pad URL (#1936).
+            guard parts.count <= 2,
+                  let first = parts.first,
                   let id = PadIDValidation.normalize(first),
                   !nonPadRoutes.contains(id.lowercased()),
                   parts.dropFirst().allSatisfy({ padPathSuffixes.contains($0.lowercased()) })

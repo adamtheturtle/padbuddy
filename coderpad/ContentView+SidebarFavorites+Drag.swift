@@ -16,7 +16,7 @@ extension Sidebar {
     /// The largest payload a favorite drag may carry: a real payload is a few
     /// hundred bytes, and an external provider advertising our type must not be
     /// able to force a large allocation in the app (#1676).
-    static let maxFavoritePayloadBytes = 16_384
+    nonisolated static let maxFavoritePayloadBytes = 16_384
 
     /// Decodes every favorite-drop provider first, then hands the drops to
     /// `perform` together in the providers' original order: per-provider

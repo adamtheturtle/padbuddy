@@ -35,6 +35,20 @@ nonisolated struct PadPlaybackTimeline: Hashable {
     /// which would otherwise read as dozens of participants.
     let participantAuthors: [String]
 
+    /// One file item's place on the timeline, for the per-file lookup index.
+    struct SnapshotRef: Hashable {
+        let position: Int
+        let snapshotIndex: Int
+    }
+
+    /// Item positions per author, ascending, so activity lanes and lane jumps
+    /// read one author's edits directly instead of scanning the whole timeline
+    /// per author (#1872, #1883).
+    let authorPositions: [String: [Int]]
+    /// Each file's items in playhead order, so the visible-snapshot lookup is a
+    /// binary search rather than a linear walk per rendered playhead (#1871).
+    private let filePositions: [String: [SnapshotRef]]
+
     /// The largest epoch-milliseconds value the timeline accepts (year 3000).
     /// History timestamps are remote data: extreme values like `Int64.min`/`max`
     /// would overflow the interval arithmetic below and trap while opening
@@ -50,25 +64,35 @@ nonisolated struct PadPlaybackTimeline: Hashable {
         var seenIDs = Set<String>()
         let uniqueHistories = histories.filter { seenIDs.insert($0.id).inserted }
 
-        var merged: [(fileOrder: Int, item: PadPlaybackItem)] = []
-        for (fileOrder, history) in uniqueHistories.enumerated() {
+        var merged: [PadPlaybackItem] = []
+        for history in uniqueHistories {
+            // A file's snapshots are causally ordered; a timestamp that goes
+            // backwards mid-file (clock skew in the feed) is lifted to its
+            // predecessor so playback can never show a later snapshot before an
+            // earlier one of the same file (#1879).
+            var previousTimestamp = Self.timestampRange.lowerBound
             for snapshot in history.snapshots {
-                merged.append((fileOrder, PadPlaybackItem(
+                let clamped = min(max(snapshot.entry.timestamp, Self.timestampRange.lowerBound),
+                                  Self.timestampRange.upperBound)
+                let monotonic = max(clamped, previousTimestamp)
+                previousTimestamp = monotonic
+                merged.append(PadPlaybackItem(
                     fileID: history.id,
                     snapshotIndex: snapshot.index,
-                    timestamp: min(max(snapshot.entry.timestamp, Self.timestampRange.lowerBound),
-                                   Self.timestampRange.upperBound),
+                    timestamp: monotonic,
                     author: snapshot.entry.author
-                )))
+                ))
             }
         }
         // Explicit tie-breakers rather than relying on sort stability: edits in
-        // the same millisecond keep file order, then per-file edit order.
+        // the same millisecond order by file id, then per-file edit order. The
+        // id, not the array position, so an API reload that reorders the files
+        // replays the same edits in the same sequence (#1880).
         merged.sort {
-            ($0.item.timestamp, $0.fileOrder, $0.item.snapshotIndex)
-                < ($1.item.timestamp, $1.fileOrder, $1.item.snapshotIndex)
+            ($0.timestamp, $0.fileID, $0.snapshotIndex)
+                < ($1.timestamp, $1.fileID, $1.snapshotIndex)
         }
-        items = merged.map(\.item)
+        items = merged
 
         var seen = Set<String>()
         var ordered: [String] = []
@@ -77,6 +101,16 @@ nonisolated struct PadPlaybackTimeline: Hashable {
         }
         authors = ordered
         participantAuthors = ordered.filter(PadPlaybackAuthors.isParticipant)
+
+        var byAuthor: [String: [Int]] = [:]
+        var byFile: [String: [SnapshotRef]] = [:]
+        for (position, item) in items.enumerated() {
+            byAuthor[item.author, default: []].append(position)
+            byFile[item.fileID, default: []]
+                .append(SnapshotRef(position: position, snapshotIndex: item.snapshotIndex))
+        }
+        authorPositions = byAuthor
+        filePositions = byFile
     }
 
     var startTimestamp: Int64 { items.first?.timestamp ?? 0 }
@@ -147,29 +181,47 @@ nonisolated struct PadPlaybackTimeline: Hashable {
     /// The snapshot of `fileID` visible at the playhead: its most recent edit at
     /// or before position. Nil when the file hasn't been touched yet, so the UI
     /// can say so instead of showing the file's final contents out of time.
+    /// Binary search over the file's own items, not a walk of the whole
+    /// timeline, since this runs for every rendered playhead (#1871).
     func snapshotIndex(of fileID: String, at position: Int) -> Int? {
-        guard items.indices.contains(position) else { return nil }
-        for index in stride(from: position, through: 0, by: -1)
-            where items[index].fileID == fileID {
-            return items[index].snapshotIndex
+        guard items.indices.contains(position), let refs = filePositions[fileID] else { return nil }
+        var low = 0
+        var high = refs.count - 1
+        var result: Int?
+        while low <= high {
+            let mid = (low + high) / 2
+            if refs[mid].position <= position {
+                result = refs[mid].snapshotIndex
+                low = mid + 1
+            } else {
+                high = mid - 1
+            }
         }
-        return nil
+        return result
     }
 
     /// The edit by `author` closest in session time to `fraction`, so clicking
-    /// a person's activity lane jumps to what they were doing there.
+    /// a person's activity lane jumps to what they were doing there. Binary
+    /// search over that author's own edits (#1883); ties keep the earlier edit.
     func index(ofAuthor author: String, nearestToFraction fraction: Double) -> Int? {
-        guard !items.isEmpty else { return nil }
-        let anchor = index(atFraction: fraction)
-        let anchorTime = items[anchor].timestamp
-        var best: Int?
-        var bestDistance = Int64.max
-        for (index, item) in items.enumerated() where item.author == author {
-            let distance = abs(item.timestamp - anchorTime)
-            if distance < bestDistance {
-                bestDistance = distance
-                best = index
+        guard let positions = authorPositions[author], !positions.isEmpty, !items.isEmpty else { return nil }
+
+        let anchorTime = items[index(atFraction: fraction)].timestamp
+        var low = 0
+        var high = positions.count - 1
+        while low < high {
+            let mid = (low + high) / 2
+            if items[positions[mid]].timestamp < anchorTime {
+                low = mid + 1
+            } else {
+                high = mid
             }
+        }
+        var best = positions[low]
+        if low > 0,
+           abs(items[positions[low - 1]].timestamp - anchorTime)
+           <= abs(items[best].timestamp - anchorTime) {
+            best = positions[low - 1]
         }
         return best
     }

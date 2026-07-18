@@ -37,12 +37,16 @@ struct HistoryPlaybackView: View {
     /// matching what the card showed before playback existed.
     @State var position: Int
     /// A file the user picked to view instead of the one being edited at the
-    /// playhead. Cleared whenever the playhead moves, so playing and scrubbing
-    /// always follow the action.
+    /// playhead. Cleared when the user scrubs or steps (following the action),
+    /// but kept while the play loop advances, so watching one file during a
+    /// replay isn't overridden on every tick (#1877).
     @State var manualFileID: String?
     @State var isPlaying = false
     @State var playbackSpeed = 1.0
     @State var playbackTask: Task<Void, Never>?
+    /// Identifies the newest timeline rebuild, so a slower off-main rebuild for
+    /// an older histories value can't overwrite a newer one (#1870).
+    @State var rebuildGeneration = 0
     /// Identifies the current playback session, so a cancelled older task can't
     /// switch off a newer session's `isPlaying` indicator on its way out (#1168).
     @State var playbackGeneration = 0
@@ -66,7 +70,7 @@ struct HistoryPlaybackView: View {
                     position: position,
                     runMarkers: runMarkers,
                     color: color(forAuthor:),
-                    onScrub: { setPosition($0) }
+                    onScrub: { userSetPosition($0) }
                 )
                 if timeline.participantAuthors.count > 1 {
                     authorLanes
@@ -79,13 +83,15 @@ struct HistoryPlaybackView: View {
             codeBody
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .onChange(of: position) { manualFileID = nil }
         .onChange(of: histories) {
-            // Replacing the timeline under a running replay would let the old
-            // task keep advancing the new timeline with stale gaps and a stale
-            // position (#1167).
-            stopPlayback()
+            // The rebuild itself stops any running replay first (#1167, #1868).
             rebuildTimeline()
+        }
+        .onChange(of: playbackSpeed) {
+            // A sleeping play step keeps the delay it computed at the old
+            // speed; restarting the loop retimes the pending gap so a speed
+            // change takes effect immediately (#1878).
+            if isPlaying { startPlayback() }
         }
         .onDisappear { stopPlayback() }
     }
@@ -112,20 +118,29 @@ extension HistoryPlaybackView {
     }
 
     /// Where code runs happened, as track positions, so the timeline marks the
-    /// moments a candidate executed their solution.
+    /// moments a candidate executed their solution. Deduplicated per rendered
+    /// half-pixel and bounded, so a pathological event feed can't stroke
+    /// thousands of overlapping diamonds every frame (#1882).
     private var runMarkers: [Double] {
-        events.compactMap { event in
+        var seenBuckets = Set<Int>()
+        var markers: [Double] = []
+        for event in events {
             guard ["ran", "executed"].contains(event.kind.lowercased()),
-                  let createdAt = event.createdAt else { return nil }
+                  let createdAt = event.createdAt else { continue }
             // Event dates are remote data: a date outside the timeline's sane
             // range would trap the Double→Int64 conversion (#1171). Out-of-range
             // events simply draw no marker.
             let milliseconds = createdAt.timeIntervalSince1970 * 1_000
             guard milliseconds >= Double(PadPlaybackTimeline.timestampRange.lowerBound),
-                  milliseconds <= Double(PadPlaybackTimeline.timestampRange.upperBound) else { return nil }
+                  milliseconds <= Double(PadPlaybackTimeline.timestampRange.upperBound),
+                  let fraction = timeline.fraction(atMilliseconds: Int64(milliseconds)) else { continue }
 
-            return timeline.fraction(atMilliseconds: Int64(milliseconds))
+            if seenBuckets.insert(Int(fraction * 2_000)).inserted {
+                markers.append(fraction)
+                if markers.count >= 500 { break }
+            }
         }
+        return markers
     }
 
     // MARK: Header
@@ -160,7 +175,9 @@ extension HistoryPlaybackView {
                 .lineLimit(1)
         }
         if let displayedSnapshot {
-            if let author = PadPlaybackAuthors.displayName(displayedSnapshot.entry.author) {
+            // The same label the lanes use: a participant with a machine-token
+            // identifier reads as "Participant N", never as the raw id (#1876).
+            if let author = headerAuthorLabel(displayedSnapshot.entry.author) {
                 MetaLabel(text: author, systemImage: "person")
             }
             MetaLabel(
@@ -170,8 +187,16 @@ extension HistoryPlaybackView {
         }
     }
 
+    /// The header's author line: participants get their lane label (name or
+    /// anonymized "Participant N"), seeds get their display name when they have
+    /// one, and machine tokens get nothing (#1876).
+    private func headerAuthorLabel(_ author: String) -> String? {
+        if timeline.participantAuthors.contains(author) { return laneName(for: author) }
+        return PadPlaybackAuthors.displayName(author)
+    }
+
     /// Picking a file views it as of the current playhead without moving the
-    /// playhead; the next scrub or play step goes back to following the edits.
+    /// playhead; the next scrub or step goes back to following the edits.
     private var fileSelection: Binding<String> {
         Binding {
             displayedFileID ?? histories.first?.id ?? ""
@@ -208,14 +233,14 @@ extension HistoryPlaybackView {
 
     @ViewBuilder
     private var stepButtons: some View {
-        Button { setPosition(0) } label: {
+        Button { userSetPosition(0) } label: {
             Image(systemName: "backward.end")
         }
         .help("Show first edit")
         .accessibilityLabel("Show first edit")
         .disabled(position == 0)
 
-        Button { setPosition(position - 1) } label: {
+        Button { userSetPosition(position - 1) } label: {
             Image(systemName: "chevron.left")
         }
         .help("Show previous edit")
@@ -229,14 +254,14 @@ extension HistoryPlaybackView {
         .accessibilityLabel(isPlaying ? "Pause playback" : "Play the session")
         .disabled(timeline.items.count < 2)
 
-        Button { setPosition(position + 1) } label: {
+        Button { userSetPosition(position + 1) } label: {
             Image(systemName: "chevron.right")
         }
         .help("Show next edit")
         .accessibilityLabel("Show next edit")
         .disabled(position >= timeline.items.count - 1)
 
-        Button { setPosition(timeline.items.count - 1) } label: {
+        Button { userSetPosition(timeline.items.count - 1) } label: {
             Image(systemName: "forward.end")
         }
         .help("Show latest edit")
@@ -260,12 +285,17 @@ extension HistoryPlaybackView {
 
     // MARK: Activity lanes
 
+    /// How many participant lanes render before the list is summarized: a
+    /// malformed or enormous session must not stack an unbounded lane per
+    /// connection id (#1874).
+    static let maxAuthorLanes = 12
+
     /// One compact lane per participant showing when they edited, like the web
     /// playback's attendee activity timeline. Clicking a lane jumps to that
     /// person's nearest edit. Template and upload seeds get no lane.
     private var authorLanes: some View {
         VStack(alignment: .leading, spacing: 4) {
-            ForEach(timeline.participantAuthors, id: \.self) { author in
+            ForEach(timeline.participantAuthors.prefix(Self.maxAuthorLanes), id: \.self) { author in
                 PadPlaybackAuthorLane(
                     timeline: timeline,
                     author: author,
@@ -273,10 +303,15 @@ extension HistoryPlaybackView {
                     color: color(forAuthor: author),
                     onJump: { fraction in
                         if let index = timeline.index(ofAuthor: author, nearestToFraction: fraction) {
-                            setPosition(index)
+                            userSetPosition(index)
                         }
                     }
                 )
+            }
+            if timeline.participantAuthors.count > Self.maxAuthorLanes {
+                Text("and \(timeline.participantAuthors.count - Self.maxAuthorLanes) more participants")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -288,10 +323,17 @@ extension HistoryPlaybackView {
     }
 
     /// Participants get palette colors; template and upload seeds draw gray so
-    /// their ticks read as background scaffolding, not activity.
+    /// their ticks read as background scaffolding, not activity. Past the
+    /// palette, colors are generated on distinct hues rather than cycling, so
+    /// two participants never share a color (#1875).
     private func color(forAuthor author: String) -> Color {
         guard let index = timeline.participantAuthors.firstIndex(of: author) else { return .gray }
-        return Self.authorPalette[index % Self.authorPalette.count]
+        if index < Self.authorPalette.count { return Self.authorPalette[index] }
+
+        let extraCount = max(timeline.participantAuthors.count - Self.authorPalette.count, 1)
+        let extraIndex = index - Self.authorPalette.count
+        return Color(hue: Double(extraIndex) / Double(extraCount) * 0.9,
+                     saturation: 0.65, brightness: 0.75)
     }
 
     // MARK: Code
@@ -342,9 +384,12 @@ extension HistoryPlaybackView {
         return Duration.seconds(seconds).formatted(.time(pattern: pattern))
     }
 
+    /// One shared style instance rather than a fresh one per body pass (#1884).
+    private static let historyDateStyle = Date.FormatStyle(date: .long, time: .shortened)
+
     private func historyDate(_ milliseconds: Int64) -> String {
         Date(timeIntervalSince1970: TimeInterval(milliseconds) / 1_000)
-            .formatted(date: .long, time: .shortened)
+            .formatted(Self.historyDateStyle)
     }
 }
 
