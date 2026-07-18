@@ -142,7 +142,8 @@ nonisolated enum MockScreenResponses {
     }
 
     /// One page of sessions for `GET /tests`, honoring the `campaignId`/`candidateEmail`
-    /// filters and `start`/`limit` offset pagination.
+    /// filters, the `from`/`to` epoch-millisecond activity bounds (the Date Range picker,
+    /// #999), and `start`/`limit` offset pagination.
     private static func testsPage(state: MockScreenState, query: [String: String]) -> Result {
         var tests = state.allTests()
         if let campaignID = query["campaignId"].flatMap(Int.init) {
@@ -150,6 +151,15 @@ nonisolated enum MockScreenResponses {
         }
         if let email = query["candidateEmail"] {
             tests = tests.filter { ($0["candidate_email"] as? String) == email }
+        }
+        // Mirror the live API's date bounds: a session is in range by its activity
+        // timestamp (falling back to send time). Without this the Demo account's
+        // Date Range picker silently did nothing (#999).
+        if let fromMillis = query["from"].flatMap(Int.init) {
+            tests = tests.filter { activityMillis($0) >= fromMillis }
+        }
+        if let toMillis = query["to"].flatMap(Int.init) {
+            tests = tests.filter { activityMillis($0) <= toMillis }
         }
 
         let total = tests.count
@@ -164,6 +174,12 @@ nonisolated enum MockScreenResponses {
         ]
         if hasMore { pagination["next_start"] = end }
         return json(200, ["tests": window, "pagination": pagination])
+    }
+
+    /// A session's activity instant in epoch milliseconds, for the `from`/`to` bounds:
+    /// `last_activity_time` first, then `send_time`, matching the fixtures' fields.
+    private static func activityMillis(_ test: [String: Any]) -> Int {
+        (test["last_activity_time"] as? Int) ?? (test["send_time"] as? Int) ?? 0
     }
 
     /// A single session for `GET /tests/:id`. Drops the report's community-score buckets

@@ -185,6 +185,40 @@ struct CodeExportPathTests {
     }
 
     @Test
+    func `unique relative paths rename case-only collisions (#1040)`() {
+        // Case-insensitive volumes (APFS default) treat README.md and readme.md as
+        // one file, so the second must be renamed, keeping its own casing.
+        let paths = PadDetailView.uniqueRelativePaths([
+            "README.md",
+            "readme.md",
+            "src/Main.java",
+            "src/main.java"
+        ])
+
+        #expect(paths == [
+            "README.md",
+            "readme-2.md",
+            "src/Main.java",
+            "src/main-2.java"
+        ])
+    }
+
+    @Test
+    func `folder download path plan renames exact and case-only collisions (#1040)`() {
+        let files = [
+            CodeFile(id: "1", path: "README.md", contents: "a", language: nil),
+            CodeFile(id: "2", path: "readme.md", contents: "b", language: nil),
+            CodeFile(id: "3", path: "readme.md", contents: "c", language: nil)
+        ]
+
+        #expect(CodeExportPathPlan.uniqueRelativePaths(for: files) == [
+            "README.md",
+            "readme-2.md",
+            "readme-3.md"
+        ])
+    }
+
+    @Test
     func `path plan rejects file directory collisions`() throws {
         let files = [
             CodeFile(id: "1", path: "src", contents: "", language: nil),

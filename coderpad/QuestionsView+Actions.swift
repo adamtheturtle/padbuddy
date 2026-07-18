@@ -58,12 +58,15 @@ extension QuestionsView {
 
     /// Delete several selected questions at once, looping the same per-question API
     /// path the detail view uses (delete, then broadcast so every list drops the row
-    /// and the selection follows). Surfaces a failure in the alert.
-    func bulkDelete(_ questions: [Question]) async {
+    /// and the selection follows). Surfaces a failure in the alert. `account` is the
+    /// account that owned the questions when the delete was scheduled — the undo grace
+    /// period can outlive an account switch, and the broadcast must stay scoped to the
+    /// account actually deleted from, not whatever is current at fire time (#1013).
+    func bulkDelete(_ questions: [Question], account: UUID?) async {
         for question in questions {
             do {
                 try await client.deleteQuestion(id: question.id)
-                AppRouter.questionDeleted(id: question.id, account: accounts.currentAccountID)
+                AppRouter.questionDeleted(id: question.id, account: account)
             } catch {
                 bulkDeleteError = error.localizedDescription
             }

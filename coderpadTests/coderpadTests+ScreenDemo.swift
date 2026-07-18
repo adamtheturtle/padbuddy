@@ -39,6 +39,20 @@ struct ScreenDemoDataTests {
     }
 
     @Test
+    func `the demo honors the from date bound so the Date Range picker works (#999)`() async throws {
+        let client = ScreenClient.mock(key: "demo-tests-from")
+        let all = try await client.listAllTests(campaignID: 101)
+        #expect(all.count == 5)
+
+        // Campaign 101's fixture activity ages are ~0.2, 0.5, 5, 8, and 11 days:
+        // "Last 7 days" must drop the two older sessions.
+        let sevenDaysAgo = Int(Date().addingTimeInterval(-7 * 24 * 3600).timeIntervalSince1970 * 1000)
+        let recent = try await client.listAllTests(campaignID: 101, from: sevenDaysAgo)
+        #expect(recent.count == 3)
+        #expect(recent.allSatisfy { ($0.lastActivityTime ?? 0) >= sevenDaysAgo })
+    }
+
+    @Test
     func `a completed demo session decodes its report with technologies and skills`() async throws {
         let detail = try await ScreenClient.mock(key: "demo-report").getTest(id: 5001)
         #expect(detail.report?.score == 88)

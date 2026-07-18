@@ -201,6 +201,10 @@ extension MergedQuestionsView {
                 Text(bulkDeleteError ?? "")
             }
             .overlay(alignment: .bottom) { bulkDeleteUndoBanner }
+            // A pending bulk delete must die with the list: once the view (and its
+            // Undo banner) is gone, letting the grace-period task fire would delete
+            // with no remaining way to undo (#1018, mirroring #870).
+            .onDisappear { cancelBulkDelete() }
     }
 
     var content: some View {

@@ -24,17 +24,25 @@ extension PadDetailView {
     }
 }
 
-private enum SaveCodePathHelpers {
+/// Shared by the pad "Save All Code"/zip export (via `PadDetailView.uniqueRelativePaths`)
+/// and the per-environment folder download (via `CodeExportPathPlan`). `nonisolated` so
+/// the iOS `FileDocument` export path can call it off the main actor.
+nonisolated enum SaveCodePathHelpers {
+    /// Renames collisions so every returned path is unique. Uniqueness is judged
+    /// case-insensitively: macOS/iOS volumes are case-insensitive by default, so
+    /// `README.md` and `readme.md` would silently overwrite each other on disk even
+    /// though the backend treats them as distinct files (#1040). Original casing is
+    /// preserved in the returned paths.
     static func uniqueRelativePaths(_ paths: [String]) -> [String] {
         var used = Set<String>()
         return paths.map { path in
             var candidate = path
             var copyNumber = 2
-            while used.contains(candidate) {
+            while used.contains(candidate.lowercased()) {
                 candidate = copyPath(path, number: copyNumber)
                 copyNumber += 1
             }
-            used.insert(candidate)
+            used.insert(candidate.lowercased())
             return candidate
         }
     }

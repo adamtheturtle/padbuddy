@@ -42,6 +42,15 @@ nonisolated enum CodeExportPathPlan {
         return components.isEmpty ? [file.name] : components
     }
 
+    /// A unique relative path per file, in order: exact and case-insensitive collisions
+    /// are renamed with a copy number so no file silently overwrites another on a
+    /// case-insensitive volume (#1040).
+    static func uniqueRelativePaths(for files: [CodeFile]) -> [String] {
+        SaveCodePathHelpers.uniqueRelativePaths(
+            files.map { components(for: $0).joined(separator: "/") }
+        )
+    }
+
     static func validateNoFileDirectoryConflicts(_ files: [CodeFile]) throws {
         var filePaths = Set<String>()
         var directoryPaths = Set<String>()
@@ -130,10 +139,10 @@ extension EnvironmentCodeCard {
             }
             try fileManager.createDirectory(at: destination, withIntermediateDirectories: true)
 
-            for file in files {
-                // Keep the file's relative path, dropping any `.`/`..` segments so a
-                // crafted path can't escape the destination folder.
-                let relative = CodeExportPathPlan.components(for: file).joined(separator: "/")
+            // Each file keeps its relative path (traversal segments already dropped by
+            // the plan), renamed where paths collide exactly or by letter case only —
+            // otherwise the later write would silently clobber the earlier file (#1040).
+            for (file, relative) in zip(files, CodeExportPathPlan.uniqueRelativePaths(for: files)) {
                 let fileURL = destination.appendingPathComponent(relative.isEmpty ? file.name : relative)
                 try fileManager.createDirectory(at: fileURL.deletingLastPathComponent(),
                                                 withIntermediateDirectories: true)

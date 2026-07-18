@@ -97,13 +97,17 @@ extension QuestionsView {
             message: String(localized: "Deleting \(items.count) questions...")
         )
         pendingBulkDeleteUndo = pending
+        // Capture the owning account now: the task can fire after an account switch,
+        // and per-org question ids collide across accounts, so broadcasting under the
+        // then-current account would clean up the wrong account (#1013, like #757).
+        let owningAccount = accounts.currentAccountID
         bulkDeleteUndoTask = Task { @MainActor in
             try? await Task.sleep(for: BulkDeleteUndo.gracePeriod)
             guard !Task.isCancelled, pendingBulkDeleteUndo?.id == pending.id else { return }
 
             pendingBulkDeleteUndo = nil
             bulkDeleteUndoTask = nil
-            await bulkDelete(items)
+            await bulkDelete(items, account: owningAccount)
         }
     }
 
