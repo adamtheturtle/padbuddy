@@ -35,8 +35,11 @@ struct MergedOrganizationView: View {
     @State private var customEnd = Date()
 
     init() {
+        // Keyless accounts are excluded so a cached org from before the key was
+        // removed can't seed a stale card over the "no API key" note (#1033).
         let cachedOrgs = AccountsStore.shared.mergeableAccounts.compactMap { account -> (UUID, Organization)? in
-            guard let organization = OrganizationCacheStore.shared.get(account.id) else { return nil }
+            guard !account.apiKey.isEmpty,
+                  let organization = OrganizationCacheStore.shared.get(account.id) else { return nil }
 
             return (account.id, organization)
         }
@@ -197,7 +200,19 @@ struct MergedOrganizationView: View {
         Card {
             VStack(alignment: .leading, spacing: 10) {
                 AccountSectionHeader(account: account)
-                if let org = orgByAccount[account.id] {
+                // The keyless branch comes first so an org card left over from
+                // before the key was removed can never win over the "no API key"
+                // note (#1033).
+                if account.apiKey.isEmpty {
+                    Text("No API key for this account.")
+                        .font(.callout).foregroundStyle(.secondary)
+                } else if let org = orgByAccount[account.id] {
+                    // A recorded refresh failure must stay visible even while a
+                    // cached breakdown is shown, or stale org data poses as
+                    // current - mirroring MergedQuotaView (#996).
+                    if let error = accountErrors[account.id] {
+                        StaleRefreshBanner(message: error) { Task { await reload() } }
+                    }
                     orgBreakdown(org, account: account)
                 } else if let error = accountErrors[account.id] {
                     // The unauthorized message points the user at this account's
@@ -210,9 +225,6 @@ struct MergedOrganizationView: View {
                         Button("Open Account Settings") { openAccountSettings(account) }
                             .linkButtonStyle()
                     }
-                } else if account.apiKey.isEmpty {
-                    Text("No API key for this account.")
-                        .font(.callout).foregroundStyle(.secondary)
                 } else {
                     ProgressView().controlSize(.small)
                 }
@@ -245,25 +257,49 @@ struct MergedOrganizationView: View {
         }
     }
 
-    // MARK: - Loading
+}
 
-    /// A token covering the merged account set (ids + key emptiness) so the load
-    /// task restarts when an account is added, removed, or rekeyed — matching
-    /// `MergedPadsView.accountKey`.
-    private var accountKey: String {
-        accounts.mergeableAccounts.map { "\($0.id.uuidString):\($0.apiKey.isEmpty ? 0 : 1)" }
-            .joined(separator: ",")
+// MARK: - Loading
+
+private extension MergedOrganizationView {
+    /// A token covering the set of accounts being merged (ids, keys, and endpoints),
+    /// so the load task restarts when an account is added, removed, rekeyed, or its
+    /// Server URL changes - matching `MergedPadsView.accountKey`. Encoding only key
+    /// presence missed non-empty rekeys and endpoint edits, leaving a stale or
+    /// wrong-org directory painting as current (#993/#1033).
+    var accountKey: String {
+        accounts.mergeableAccounts.map {
+            FilterSignature.make([
+                $0.id.uuidString,
+                $0.apiKey.trimmingCharacters(in: .whitespacesAndNewlines),
+                $0.resolvedBaseURL.absoluteString
+            ])
+        }
+        .joined(separator: ",")
     }
 
-    private func seedFromCache() {
-        for account in accounts.mergeableAccounts where orgByAccount[account.id] == nil {
+    /// Drops the in-memory entries for accounts whose key was removed, so a card
+    /// cached before the removal can't outlive the "no API key" note (#1033).
+    func clearKeylessEntries() {
+        for account in accounts.mergeableAccounts where account.apiKey.isEmpty {
+            orgByAccount[account.id] = nil
+            statsByAccount[account.id] = nil
+            accountErrors[account.id] = nil
+        }
+    }
+
+    func seedFromCache() {
+        clearKeylessEntries()
+        for account in accounts.mergeableAccounts
+            where orgByAccount[account.id] == nil && !account.apiKey.isEmpty {
             orgByAccount[account.id] = orgCache.get(account.id)
         }
     }
 
     /// Fan out a fresh org/stats/quota fetch across every account concurrently,
     /// applying each account's result as it lands and isolating its failure.
-    private func reload() async {
+    func reload() async {
+        clearKeylessEntries()
         let mergeable = accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }
         guard !mergeable.isEmpty else { return }
 
@@ -305,14 +341,14 @@ struct MergedOrganizationView: View {
         }
     }
 
-    private func scheduleStatsReload() {
+    func scheduleStatsReload() {
         statsTask?.cancel()
         statsTask = Task { await reloadStats() }
     }
 
     /// Refetch just the stats for the new window across every account, leaving the
     /// loaded orgs and quotas in place.
-    private func reloadStats() async {
+    func reloadStats() async {
         let mergeable = accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }
         guard !mergeable.isEmpty else { return }
 
@@ -331,39 +367,5 @@ struct MergedOrganizationView: View {
                 if let stats { statsByAccount[id] = stats }
             }
         }
-    }
-}
-
-private struct AggregateStatTile: View {
-    let title: LocalizedStringKey
-    let value: String
-    let systemImage: String
-    let tint: Color
-
-    var body: some View {
-        Card {
-            VStack(alignment: .leading, spacing: 6) {
-                Image(systemName: systemImage)
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(tint)
-                    .accessibilityHidden(true)
-                Text(title)
-                    .font(.caption2.weight(.semibold))
-                    .tracking(0.6)
-                    .foregroundStyle(.secondary)
-                    .textCase(.uppercase)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-                    .allowsTightening(true)
-                Text(value)
-                    .font(.title2.weight(.semibold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(title)
-        .accessibilityValue(value)
     }
 }

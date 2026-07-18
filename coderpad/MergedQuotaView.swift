@@ -62,7 +62,12 @@ struct MergedQuotaView: View {
     private func accountSection(_ account: Account) -> some View {
         VStack(alignment: .leading, spacing: 14) {
             AccountSectionHeader(account: account)
-            if let quota = quotaByAccount[account.id] {
+            // The keyless branch comes first so a quota card left over from before
+            // the key was removed can never win over the "no API key" note (#1031).
+            if account.apiKey.isEmpty {
+                Text("No API key for this account.")
+                    .font(.callout).foregroundStyle(.secondary)
+            } else if let quota = quotaByAccount[account.id] {
                 // A recorded refresh failure must stay visible even while cached
                 // numbers are shown, or stale usage poses as current (#800).
                 if let error = accountErrors[account.id] {
@@ -71,9 +76,6 @@ struct MergedQuotaView: View {
                 QuotaDetail(quota: quota)
             } else if let error = accountErrors[account.id] {
                 Label(error, systemImage: "exclamationmark.triangle")
-                    .font(.callout).foregroundStyle(.secondary)
-            } else if account.apiKey.isEmpty {
-                Text("No API key for this account.")
                     .font(.callout).foregroundStyle(.secondary)
             } else {
                 ProgressView().controlSize(.small)
@@ -84,16 +86,35 @@ struct MergedQuotaView: View {
 
     // MARK: - Loading
 
-    /// A token covering the merged account set (ids + key emptiness) so the load
-    /// task restarts when an account is added, removed, or rekeyed — matching
-    /// `MergedPadsView.accountKey`.
+    /// A token covering the set of accounts being merged (ids, keys, and endpoints),
+    /// so the load task restarts when an account is added, removed, rekeyed, or its
+    /// Server URL changes - matching `MergedPadsView.accountKey`. Encoding only key
+    /// presence missed non-empty rekeys and endpoint edits, leaving a stale or
+    /// wrong-org quota card painting as current (#993/#1031).
     private var accountKey: String {
-        accounts.mergeableAccounts.map { "\($0.id.uuidString):\($0.apiKey.isEmpty ? 0 : 1)" }
-            .joined(separator: ",")
+        accounts.mergeableAccounts.map {
+            FilterSignature.make([
+                $0.id.uuidString,
+                $0.apiKey.trimmingCharacters(in: .whitespacesAndNewlines),
+                $0.resolvedBaseURL.absoluteString
+            ])
+        }
+        .joined(separator: ",")
+    }
+
+    /// Drops the in-memory entries for accounts whose key was removed, so a card
+    /// cached before the removal can't outlive the "No API key" note (#1031).
+    private func clearKeylessEntries() {
+        for account in accounts.mergeableAccounts where account.apiKey.isEmpty {
+            quotaByAccount[account.id] = nil
+            accountErrors[account.id] = nil
+        }
     }
 
     private func seedFromCache() {
-        for account in accounts.mergeableAccounts where quotaByAccount[account.id] == nil {
+        clearKeylessEntries()
+        for account in accounts.mergeableAccounts
+            where quotaByAccount[account.id] == nil && !account.apiKey.isEmpty {
             quotaByAccount[account.id] = cache.get(account.id)
         }
     }
@@ -102,6 +123,7 @@ struct MergedQuotaView: View {
     /// result as it lands and recording one account's failure without disturbing
     /// the others.
     private func reload() async {
+        clearKeylessEntries()
         let mergeable = accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }
         guard !mergeable.isEmpty else { return }
 

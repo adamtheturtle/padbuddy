@@ -8,7 +8,12 @@ import SwiftUI
 
 struct OrganizationView: View {
     let client: CoderPadClient
-    @State private var accounts = AccountsStore.shared
+    /// The account this view shows, captured at construction (the caller keys the
+    /// view `.id(account.id)` per account, so the current account at init time is
+    /// the owning one). Org and quota responses are cached strictly under this id,
+    /// never under whatever account is current when a slow reload lands after an
+    /// account switch (#991) - mirroring `QuotaView.accountID` (#797).
+    private let accountID: UUID?
     @State private var orgCache = OrganizationCacheStore.shared
     @State private var quotaCache = QuotaCacheStore.shared
     @State private var organization: Organization?
@@ -29,6 +34,7 @@ struct OrganizationView: View {
     init(client: CoderPadClient) {
         self.client = client
         let accountID = AccountsStore.shared.currentAccountID
+        self.accountID = accountID
         _organization = State(initialValue: accountID.flatMap { OrganizationCacheStore.shared.get($0) })
         _quota = State(initialValue: accountID.flatMap { QuotaCacheStore.shared.get($0) })
     }
@@ -45,7 +51,7 @@ struct OrganizationView: View {
                 // Show the last-loaded org/quota immediately so re-entering the
                 // section doesn't flash a spinner; reload refreshes them in place.
                 // Stats are period-dependent, so they reload rather than restore.
-                if let id = accounts.currentAccountID {
+                if let id = accountID {
                     if organization == nil { organization = orgCache.get(id) }
                     if quota == nil { quota = quotaCache.get(id) }
                 }
@@ -86,6 +92,14 @@ struct OrganizationView: View {
             if period == .custom { customRangeHeader }
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
+                    // A failed refresh over previously loaded org data must not
+                    // pose as current (#990): keep the cached content but mark it
+                    // stale with a retry, mirroring QuotaView's banner (#800).
+                    if let error {
+                        StaleRefreshBanner(message: error.localizedDescription) {
+                            Task { await reload() }
+                        }
+                    }
                     statTiles
                     if let supported = organization?.singleSignOnSupported {
                         singleSignOnSection(supported)
@@ -318,7 +332,10 @@ private extension OrganizationView {
             quota = fetchedQuota
             // Warm the shared caches so re-entering Organization — or visiting
             // the Quota section — shows data instantly instead of a spinner.
-            if let id = accounts.currentAccountID {
+            // Strictly under the captured owning account, not the live current
+            // one: an in-flight reload finishing after an account switch must not
+            // write this account's data into the new account's cache (#991).
+            if let id = accountID {
                 orgCache.set(id, organization: fetchedOrg)
                 if let fetchedQuota { quotaCache.set(id, quota: fetchedQuota) }
             }
