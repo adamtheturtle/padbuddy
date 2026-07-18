@@ -20,9 +20,14 @@ final class AccountHealthMonitor {
     static let shared = AccountHealthMonitor()
 
     private let monitor: BuddyAppKit.AccountHealthMonitor<UUID>
+    /// Bad keys detected on NON-current accounts by the rotation sweep (#1777);
+    /// the generic monitor only tracks the account its probe closure names.
+    private var sweepUnauthorized: Set<UUID> = []
+    /// The sweep task for non-current accounts; see ``start(every:)``.
+    @ObservationIgnored private var sweepLoop: Task<Void, Never>?
 
     var unauthorizedAccountIDs: Set<UUID> {
-        monitor.unauthorizedAccountIDs
+        monitor.unauthorizedAccountIDs.union(sweepUnauthorized)
     }
 
     var lastChecked: Date? {
@@ -52,24 +57,58 @@ final class AccountHealthMonitor {
         )
     }
 
-    /// Re-checks the current account's key on a fixed interval (default 30 min).
-    /// Idempotent: repeated calls keep the single existing timer.
+    /// Re-checks the current account's key on a fixed interval (default 30 min),
+    /// and sweeps every other eligible account on the same cadence: revoked
+    /// credentials on a non-current account (All Accounts mode, a pinned widget)
+    /// must surface without a manual account switch (#1777). Idempotent: repeated
+    /// calls keep the single existing timers.
     func start(every interval: Duration = .seconds(1800)) {
         monitor.start(every: interval)
+        guard sweepLoop == nil else { return }
+
+        let interval = interval > .zero ? interval : .milliseconds(1)
+        sweepLoop = Task { [weak self] in
+            for await _ in AsyncTimerSequence.repeating(every: interval) {
+                await self?.checkOtherAccounts()
+            }
+        }
     }
 
     // Deliberate monitor lifecycle API, kept for start/stop symmetry.
     // periphery:ignore
     func stop() {
         monitor.stop()
+        sweepLoop?.cancel()
+        sweepLoop = nil
     }
 
     func checkCurrentAccount() async {
         await monitor.check()
     }
 
+    /// Probes every eligible non-current account's key (#1777). Sequential to keep
+    /// the background load low, like the pads refresher's sweep.
+    private func checkOtherAccounts() async {
+        let currentID = AccountsStore.shared.currentAccount?.id
+        for account in AccountsStore.shared.accounts where account.id != currentID {
+            guard account.isBadKeyDemo || (!account.isMock && !account.apiKey.isEmpty) else { continue }
+
+            do {
+                _ = try await account.makeClient().quota()
+                sweepUnauthorized.remove(account.id)
+            } catch {
+                if (error as? CoderPadError)?.isUnauthorized == true {
+                    sweepUnauthorized.insert(account.id)
+                }
+            }
+        }
+        // Verdicts for removed accounts must not linger.
+        let live = Set(AccountsStore.shared.accounts.map(\.id))
+        sweepUnauthorized.formIntersection(live)
+    }
+
     func isUnauthorized(_ accountID: UUID) -> Bool {
-        monitor.isUnauthorized(accountID)
+        monitor.isUnauthorized(accountID) || sweepUnauthorized.contains(accountID)
     }
 
     /// Clear a stale unauthorized verdict, e.g. when the account's key is changed
@@ -77,6 +116,7 @@ final class AccountHealthMonitor {
     /// revoked, but until then the banner shouldn't claim the new key is bad.
     func clearUnauthorized(_ accountID: UUID) {
         monitor.clearUnauthorized(accountID)
+        sweepUnauthorized.remove(accountID)
     }
 }
 
@@ -134,6 +174,11 @@ final class PadsBackgroundRefresher {
     /// absent in All Accounts mode, where the old current-only refresh did nothing.
     /// Sequential on purpose: one list fetch at a time keeps the background load low.
     func refreshAllAccounts() async {
+        // Snapshots for accounts that no longer exist must not accumulate for the
+        // process lifetime (#1778).
+        let live = Set(AccountsStore.shared.accounts.map(\.id))
+        previousActivity = previousActivity.filter { live.contains($0.key) }
+
         // One alert per account: the notifier coalesces onto per-account
         // identifiers (#1144, refining #1038 - the old single identifier meant
         // per-account calls cancelled each other, which forced a merged,
@@ -146,6 +191,10 @@ final class PadsBackgroundRefresher {
 
             let client = account.makeClient()
             guard let fetched = try? await client.listPads(sort: "updated_at,desc") else { continue }
+            // The account can be removed or re-keyed while its fetch was in
+            // flight; `set` would reject the stale result, but the change diff
+            // and notification must not fire either (#1779).
+            guard AccountsStore.shared.isCurrentClient(client, for: account.id) else { continue }
 
             let changes = ownedChanges(account: account, fetched: fetched)
             // `set` cascades to the widget snapshot and the active-pads Dock badge.
@@ -175,8 +224,8 @@ final class PadActivityMonitor {
     private init() {}
 
     func record(changedCount: Int) {
-        if changedCount > 0 {
-            unseenChangedCount = changedCount
-        }
+        // Zero clears too: a refresh that found no changes must not leave an
+        // obsolete nonzero activity indicator standing forever (#1780).
+        unseenChangedCount = changedCount
     }
 }

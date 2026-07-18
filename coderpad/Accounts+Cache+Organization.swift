@@ -6,6 +6,7 @@
 //  that file within the lint length limit.
 //
 
+import CryptoKit
 import Foundation
 import os
 
@@ -25,7 +26,15 @@ final class OrganizationCacheStore {
     /// payload (#374). Keyed by client rather than account because those callers hold
     /// only a `CoderPadClient`, not an account id. Memory-only, like `byAccount`.
     private var byClient: [String: Organization] = [:]
-    private var inFlight: [String: Task<Organization, any Error>] = [:]
+    /// Each in-flight fetch with a per-task token, so a completing task's cleanup
+    /// only removes *itself*: an unconditional clear could erase a newer task for
+    /// the same identity and defeat coalescing (#1775).
+    private var inFlight: [String: (token: UUID, task: Task<Organization, any Error>)] = [:]
+    /// Client keys in least- to most-recently-used order; the cache holds full
+    /// organization payloads and must not grow for the process lifetime as
+    /// accounts re-key or endpoints multiply (#1773).
+    private var clientLRU: [String] = []
+    private static let clientLimit = 16
 
     private init() {}
 
@@ -53,7 +62,8 @@ final class OrganizationCacheStore {
     func remove(baseURL: URL, apiKey: String) {
         let key = Self.clientKey(baseURL: baseURL, apiKey: apiKey)
         byClient[key] = nil
-        inFlight[key]?.cancel()
+        clientLRU.removeAll { $0 == key }
+        inFlight[key]?.task.cancel()
         inFlight[key] = nil
     }
 
@@ -73,11 +83,17 @@ final class OrganizationCacheStore {
     private func fetch(_ client: CoderPadClient, key: String) async throws -> Organization {
         // Coalesce: a concurrent caller for the same client awaits the same task rather
         // than starting a second identical request.
-        if let existing = inFlight[key] { return try await existing.value }
+        if let existing = inFlight[key] { return try await existing.task.value }
 
+        let token = UUID()
         let task = Task { try await client.organization() }
-        inFlight[key] = task
-        defer { inFlight[key] = nil }
+        inFlight[key] = (token, task)
+        defer {
+            // Only this task's own registration is cleared: an account removed and
+            // re-added while this task unwound may have started a newer fetch under
+            // the same identity, and erasing it would defeat coalescing (#1775).
+            if inFlight[key]?.token == token { inFlight[key] = nil }
+        }
         do {
             let org = try await task.value
             // A fetch cancelled by account teardown may still complete (the request
@@ -85,16 +101,28 @@ final class OrganizationCacheStore {
             // repopulate the just-purged credentials and members (#718).
             if !task.isCancelled {
                 byClient[key] = org
+                touchClientKey(key)
             }
             return org
         } catch {
+            // The error text can carry server-provided detail; it stays private in
+            // production logs while the host remains public for diagnosis (#1776).
             Self.logger.warning(
                 """
                 Organization fetch failed for host '\(Self.safeHost(client), privacy: .public)': \
-                \(error.localizedDescription, privacy: .public)
+                \(error.localizedDescription, privacy: .private)
                 """
             )
             throw error
+        }
+    }
+
+    /// Marks a client key most-recently-used and evicts the oldest past the cap (#1773).
+    private func touchClientKey(_ key: String) {
+        clientLRU.removeAll { $0 == key }
+        clientLRU.append(key)
+        while clientLRU.count > Self.clientLimit {
+            byClient[clientLRU.removeFirst()] = nil
         }
     }
 
@@ -115,7 +143,12 @@ final class OrganizationCacheStore {
     }
 
     private static func clientKey(baseURL: URL, apiKey: String) -> String {
-        "\(baseURL.absoluteString)|\(apiKey)"
+        // Length-prefixed then digested: an opaque identity that can't collide on
+        // a separator character inside the URL or key (#1772) and never retains
+        // the raw credential in a debuggable structure (#1774).
+        let url = baseURL.absoluteString
+        let material = "\(url.utf8.count):\(url)|\(apiKey.utf8.count):\(apiKey)"
+        return SHA256.hash(data: Data(material.utf8)).map { String(format: "%02x", $0) }.joined()
     }
 
     private static func safeHost(_ client: CoderPadClient) -> String {
