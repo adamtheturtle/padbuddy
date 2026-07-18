@@ -135,8 +135,12 @@ extension PadDetailView {
         deletionTask = Task {
             try? await Task.sleep(for: Self.deletionGracePeriod)
             if Task.isCancelled { return }
-            await deletePad()
+            // The grace period is over: drop the banner (and its Undo) BEFORE the
+            // irreversible API request starts. An Undo pressed mid-request would
+            // pretend to cancel a deletion the server may still complete (#1753);
+            // mirrors the question detail's #725 fix.
             deletionTask = nil
+            await deletePad()
         }
     }
 
@@ -217,7 +221,11 @@ extension PadDetailView {
         isLoading = false
 
         await loadHistories(for: loadedEnvironments)
-        if failedIDs.isEmpty {
+        // Only a fully consistent snapshot is cached: after a failed events fetch,
+        // `self.events` still holds the previous load's events, and persisting them
+        // alongside fresh environments would serve a mixed pad snapshot as
+        // authoritative on re-entry (#1752).
+        if failedIDs.isEmpty, loadError == nil {
             PadDetailCacheStore.shared.set(pad.id, client: client, events: self.events,
                                            environments: loadedEnvironments, histories: histories)
         }
