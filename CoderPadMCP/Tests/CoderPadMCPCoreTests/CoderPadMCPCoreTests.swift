@@ -226,6 +226,27 @@ struct AggregationTests {
     }
 
     @Test
+    func `padMatches folds state synonyms so "active" matches "started" (#1014)`() {
+        let started: [String: Any] = ["state": "started", "language": "python3"]
+        #expect(padMatches(started, owner: nil, state: "active", language: nil))
+        #expect(padMatches(started, owner: nil, state: "Started", language: nil))
+        #expect(!padMatches(started, owner: nil, state: "ended", language: nil))
+        #expect(padMatches(["state": "finished"], owner: nil, state: "ended", language: nil))
+
+        #expect(canonicalPadState("running") == "active")
+        #expect(canonicalPadState("draft") == "pending")
+        #expect(canonicalPadState("weird") == "weird")
+    }
+
+    @Test
+    func `aggregateCounts buckets state by canonical spelling (#1014)`() {
+        let raw: [[String: Any]] = [
+            ["state": "started"], ["state": "active"], ["state": "finished"], ["state": "ended"]
+        ]
+        #expect(aggregateCounts(pads: raw, field: "state") == ["active": 2, "ended": 2])
+    }
+
+    @Test
     func `filtersEcho includes only non-empty filters`() {
         let echo = filtersEcho(owner: "a@x.com", state: "", language: nil)
         #expect(echo["owner"] as? String == "a@x.com")
@@ -258,6 +279,17 @@ struct AggregationTests {
         #expect(counts["2026-01"] == 2)
         #expect(counts["2026-02"] == 1)
         #expect(counts["unknown"] == 1)
+    }
+
+    @Test
+    func `month buckets and month-date bounds normalize non-UTC created_at (#1034, #1035)`() {
+        let offset: [String: Any] = ["created_at": "2024-03-31T23:00:00-05:00"]
+        let utc: [String: Any] = ["created_at": "2024-04-01T04:00:00Z"]
+
+        #expect(aggregateCounts(pads: [offset, utc], field: "month") == ["2024-04": 2])
+        #expect(withinDateRange(offset, after: "2024-04", before: nil))
+        #expect(!withinDateRange(offset, after: nil, before: "2024-03-31"))
+        #expect(withinDateRange(offset, after: "2024-04-01", before: "2024-04-01"))
     }
 
     @Test
@@ -478,6 +510,24 @@ struct PadCodeTests {
         #expect(payload["pad_id"] as? String == "abc123")
         #expect(payload["title"] as? String == "T")
         #expect((payload["files"] as? [[String: Any]])?.count == 1)
+    }
+
+    @Test
+    func `padCodePayload marks failed environment fetches as incomplete`() {
+        let pad: [String: Any] = ["title": "T", "pad_environment_ids": [1, 2]]
+        let env = PadCodeEnvironment(id: 1, object: [
+            "file_contents": [["path": "a.py", "contents": "print(1)"]]
+        ])
+        let payload = padCodePayload(
+            id: "abc", pad: pad, environments: [env], failedEnvironmentIDs: [2], maxFileChars: nil
+        )
+        #expect(payload["incomplete"] as? Bool == true)
+        #expect(payload["missing_environment_ids"] as? [Int] == [2])
+        #expect((payload["files"] as? [[String: Any]])?.count == 1)
+
+        let complete = padCodePayload(id: "abc", pad: pad, environments: [env], maxFileChars: nil)
+        #expect(complete["incomplete"] == nil)
+        #expect(complete["missing_environment_ids"] == nil)
     }
 
     @Test

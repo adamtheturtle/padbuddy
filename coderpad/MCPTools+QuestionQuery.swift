@@ -61,8 +61,11 @@ nonisolated extension MCPTools {
     /// paging the whole bank through the API — and falls back to paging the API, then to a
     /// stale cache when the API can't be reached (offline).
     private static func fetchAllQuestions(accountID: String, key: String, base: URL) async -> QuestionScan {
+        // A cache-served scan carries no totalReported: that field is reserved for the
+        // API's own "total", so `total_reported_by_api` never claims API provenance for
+        // a local snapshot count (#1028). `scanned` already reports the snapshot size.
         if let cached = cachedQuestionDicts(accountID: accountID, requireFresh: true) {
-            return QuestionScan(questions: cached, totalReported: cached.count, fromCache: true)
+            return QuestionScan(questions: cached, fromCache: true)
         }
 
         let scan = await pageAllQuestionsFromAPI(key: key, base: base)
@@ -71,7 +74,7 @@ nonisolated extension MCPTools {
         // cached content (#828).
         if scan.error?.isConnectivityFailure == true,
            let cached = cachedQuestionDicts(accountID: accountID, requireFresh: false) {
-            return QuestionScan(questions: cached, totalReported: cached.count, fromCache: true)
+            return QuestionScan(questions: cached, fromCache: true)
         }
         return scan
     }

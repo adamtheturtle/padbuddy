@@ -46,8 +46,11 @@ nonisolated extension MCPTools {
     /// org through the API — and falls back to paging the API, then to a stale cache when
     /// the API can't be reached (offline).
     private static func fetchAllPads(accountID: String, key: String, base: URL) async -> PadScan {
+        // A cache-served scan carries no totalReported: that field is reserved for the
+        // API's own "total", so `total_reported_by_api` never claims API provenance for
+        // a local snapshot count (#1028). `scanned` already reports the snapshot size.
         if let cached = cachedPadDicts(accountID: accountID, requireFresh: true) {
-            return PadScan(pads: cached, totalReported: cached.count, fromCache: true)
+            return PadScan(pads: cached, fromCache: true)
         }
 
         let scan = await pageAllPadsFromAPI(key: key, base: base)
@@ -56,7 +59,7 @@ nonisolated extension MCPTools {
         // cached content (#828).
         if scan.error?.isConnectivityFailure == true,
            let cached = cachedPadDicts(accountID: accountID, requireFresh: false) {
-            return PadScan(pads: cached, totalReported: cached.count, fromCache: true)
+            return PadScan(pads: cached, fromCache: true)
         }
         return scan
     }

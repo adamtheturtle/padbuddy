@@ -171,6 +171,99 @@ import Testing
             #expect(updated.contains("command = \"/new/PadBuddy\""))
             #expect(!updated.contains("/old/PadBuddy"))
         }
+
+        // MARK: - Multi-line arrays and strings (#1037)
+
+        @Test
+        func `replacement removes a padbuddy table containing a multi-line array whole`() {
+            let existing = """
+            [mcp_servers.padbuddy]
+            command = "/old/PadBuddy"
+            matrix = [
+            [1, 2],
+            [3, 4]
+            ]
+
+            [mcp_servers.other]
+            command = "/bin/other"
+            """
+            let block = MCPClientInstall.codexServerBlock(executablePath: "/new/PadBuddy")
+            let updated = MCPClientInstall.replacingCodexServer(in: existing, with: block)
+            #expect(updated.contains("command = \"/new/PadBuddy\""))
+            #expect(!updated.contains("/old/PadBuddy"))
+            #expect(!updated.contains("[1, 2]"))
+            #expect(!updated.contains("[3, 4]"))
+            #expect(updated.contains("[mcp_servers.other]"))
+            #expect(MCPClientInstall.codexPadbuddyDeclaration(in: updated) == .table)
+        }
+
+        @Test
+        func `a header-looking line inside a multi-line string is not a declaration`() {
+            let toml = """
+            [mcp_servers.other]
+            notes = \"\"\"
+            [mcp_servers.padbuddy]
+            command = "/fake"
+            \"\"\"
+            """
+            #expect(MCPClientInstall.codexPadbuddyDeclaration(in: toml) == .notDeclared)
+
+            let literal = """
+            [mcp_servers.other]
+            notes = '''
+            [mcp_servers.padbuddy]
+            '''
+            """
+            #expect(MCPClientInstall.codexPadbuddyDeclaration(in: literal) == .notDeclared)
+        }
+
+        @Test
+        func `a header-looking line inside a multi-line array is not a declaration`() {
+            let toml = """
+            [profiles]
+            matrix = [
+            "[mcp_servers.padbuddy]",
+            2,
+            ]
+            """
+            #expect(MCPClientInstall.codexPadbuddyDeclaration(in: toml) == .notDeclared)
+        }
+
+        @Test
+        func `a real padbuddy table after a multi-line construct is still found`() {
+            let toml = """
+            [profiles]
+            matrix = [
+            1,
+            2,
+            ]
+
+            [mcp_servers.padbuddy]
+            command = "/old/PadBuddy"
+            """
+            #expect(MCPClientInstall.codexPadbuddyDeclaration(in: toml) == .table)
+
+            let block = MCPClientInstall.codexServerBlock(executablePath: "/new/PadBuddy")
+            let updated = MCPClientInstall.replacingCodexServer(in: toml, with: block)
+            #expect(updated.contains("command = \"/new/PadBuddy\""))
+            #expect(!updated.contains("/old/PadBuddy"))
+            #expect(updated.contains("matrix = ["))
+        }
+
+        @Test
+        func `escapes and comments do not derail the multi-line scanner`() {
+            // An escaped quote inside a basic string, a comment containing brackets, and a
+            // single-line pair of strings must all leave the scanner balanced.
+            let toml = """
+            [profiles]
+            note = "an \\" escaped quote"
+            other = 'literal [ bracket'
+            # a comment with [ and " and '''
+            [mcp_servers.padbuddy]
+            command = "/old/PadBuddy"
+            """
+            #expect(MCPClientInstall.codexPadbuddyDeclaration(in: toml) == .table)
+        }
     }
 
 #endif

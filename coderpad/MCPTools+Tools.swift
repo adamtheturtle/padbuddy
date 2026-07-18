@@ -52,14 +52,21 @@ nonisolated extension MCPTools {
         }
 
         var environments: [CoderPadToolCore.PadCodeEnvironment] = []
+        var failedEnvironmentIDs: [Int] = []
         for environmentID in environmentIDs(in: pad) {
             let response = await get("/api/pad_environments/\(environmentID)", key: key, base: base)
-            guard !response.isError, let object = jsonObject(response.text) else { continue }
+            guard !response.isError, let object = jsonObject(response.text) else {
+                failedEnvironmentIDs.append(environmentID)
+                continue
+            }
 
             environments.append(CoderPadToolCore.PadCodeEnvironment(id: environmentID, object: object))
         }
 
-        let payload = padCodePayload(id: id, pad: pad, environments: environments, maxFileChars: maxFileChars)
+        let payload = padCodePayload(
+            id: id, pad: pad, environments: environments,
+            failedEnvironmentIDs: failedEnvironmentIDs, maxFileChars: maxFileChars
+        )
         guard let data = try? JSONSerialization.data(
             withJSONObject: payload, options: [.prettyPrinted, .sortedKeys]
         ) else {

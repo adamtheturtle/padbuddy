@@ -211,6 +211,15 @@ struct ResourcesTests {
     }
 
     @Test
+    func `parseResourceURI decodes each segment exactly once (#1030)`() {
+        // An encoded "/" inside a segment must not split it into extra segments.
+        #expect(parseResourceURI("coderpad://account/Team%20A%2FB/quota") == .accountQuota("Team A/B"))
+        // A value whose single decode yields a %-sequence must not be decoded again.
+        #expect(parseResourceURI("coderpad://account/50%2520off/quota") == .accountQuota("50%20off"))
+        #expect(parseResourceURI("coderpad://pad/a%2520b") == .pad("a%20b"))
+    }
+
+    @Test
     func `parseResourceURI rejects unknown or malformed URIs`() {
         #expect(parseResourceURI("https://example.com/pad/1") == nil)
         #expect(parseResourceURI("coderpad://unknown") == nil)

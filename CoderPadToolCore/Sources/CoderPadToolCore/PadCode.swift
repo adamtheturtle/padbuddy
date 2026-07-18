@@ -113,13 +113,24 @@ public func padCodeFiles(
     return files
 }
 
-/// The full get_pad_code payload for a pad.
+/// The full get_pad_code payload for a pad. Environments whose fetch failed must be
+/// reported in `failedEnvironmentIDs`: the payload then carries `incomplete: true` and
+/// `missing_environment_ids`, so a caller is never silently handed a partial file set
+/// (#1015/#1036).
 public func padCodePayload(
-    id: String, pad: [String: Any], environments: [PadCodeEnvironment], maxFileChars: Int?
+    id: String, pad: [String: Any], environments: [PadCodeEnvironment],
+    failedEnvironmentIDs: [Int] = [], maxFileChars: Int?
 ) -> [String: Any] {
-    [
+    var payload: [String: Any] = [
         "pad_id": id,
         "title": pad["title"] as? String ?? "",
         "files": padCodeFiles(pad: pad, environments: environments, maxFileChars: maxFileChars)
     ]
+    if !failedEnvironmentIDs.isEmpty {
+        payload["incomplete"] = true
+        payload["missing_environment_ids"] = failedEnvironmentIDs
+        payload["incomplete_note"] = "Some pad environments could not be fetched; "
+            + "the files list is missing their contents. Retry to get the full code."
+    }
+    return payload
 }

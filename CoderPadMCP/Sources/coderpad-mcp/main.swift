@@ -488,14 +488,21 @@ private func padCodeJSON(id: String, maxFileChars: Int?, account: MCPAccount) as
     }
 
     var environments: [PadCodeEnvironment] = []
+    var failedEnvironmentIDs: [Int] = []
     for environmentID in environmentIDs(in: pad) {
         let environmentResponse = await apiGet("/api/pad_environments/\(environmentID)", account: account)
-        guard environmentResponse.ok, let object = jsonObject(environmentResponse.body) else { continue }
+        guard environmentResponse.ok, let object = jsonObject(environmentResponse.body) else {
+            failedEnvironmentIDs.append(environmentID)
+            continue
+        }
 
         environments.append(PadCodeEnvironment(id: environmentID, object: object))
     }
 
-    let payload = padCodePayload(id: id, pad: pad, environments: environments, maxFileChars: maxFileChars)
+    let payload = padCodePayload(
+        id: id, pad: pad, environments: environments,
+        failedEnvironmentIDs: failedEnvironmentIDs, maxFileChars: maxFileChars
+    )
     guard let data = try? JSONSerialization.data(
         withJSONObject: payload, options: [.prettyPrinted, .sortedKeys]
     ) else {
@@ -539,6 +546,10 @@ private func readResource(_ request: ResourceRequest, uri: String, account: MCPA
     case let .padCode(id):
         let json = try await padCodeJSON(id: id, maxFileChars: nil, account: account)
         return ReadResource.Result(contents: [.text(json, uri: uri, mimeType: "application/json")])
+    case .accountQuota, .accountOrganization, .accountPad, .accountPadCode, .accountQuestion:
+        // The caller resolves the account and passes `request.unqualified`, so these
+        // only arrive if a new call site forgets to; strip the qualifier and recurse.
+        return try await readResource(request.unqualified, uri: uri, account: account)
     }
 }
 
@@ -560,6 +571,10 @@ private struct PadPageScan {
     var pagesFetched = 0
     var truncated = false
     var error: APIResponse?
+    /// Set when a 2xx page decoded to JSON but lacked the expected records array —
+    /// an API schema change or 200-wrapped error page, which must be surfaced rather
+    /// than silently counted as zero rows (#1024).
+    var invalidShape: String?
 }
 
 /// Pages `/api/pads/` from the first page following `next_page`, accumulating every
@@ -577,8 +592,13 @@ private func fetchAllPads(account: MCPAccount) async -> PadPageScan {
             return scan
         }
 
+        guard let pads = object["pads"] as? [[String: Any]] else {
+            scan.invalidShape = invalidListResponseMessage("/api/pads/", expecting: "pads", body: response.body)
+            return scan
+        }
+
         if scan.totalReported == nil { scan.totalReported = object["total"] as? Int }
-        if let pads = object["pads"] as? [[String: Any]] { scan.pads.append(contentsOf: pads) }
+        scan.pads.append(contentsOf: pads)
         scan.pagesFetched += 1
         guard let next = nextPageToken(object["next_page"]) else { return scan }
 
@@ -599,6 +619,7 @@ private func countPads(arguments: [String: Value]?, account: MCPAccount) async -
 
     let scan = await fetchAllPads(account: account)
     if let error = scan.error { return toolResult(error) }
+    if let message = scan.invalidShape { return errorResult(message) }
 
     let matched = scan.pads.filter {
         padMatches($0, owner: owner, state: state, language: language)
@@ -641,6 +662,7 @@ private func aggregatePadsTool(groupBy: String, arguments: [String: Value]?, acc
 
     let scan = await fetchAllPads(account: account)
     if let error = scan.error { return toolResult(error) }
+    if let message = scan.invalidShape { return errorResult(message) }
 
     let matched = scan.pads.filter {
         padMatches($0, owner: owner, state: state, language: language)
@@ -685,7 +707,10 @@ private func listPadsCompact(arguments: [String: Value]?, account: MCPAccount) a
     let response = await apiGet("/api/pads/", account: account, query: pagingQuery(arguments))
     guard response.ok, let object = jsonObject(response.body) else { return toolResult(response) }
 
-    let pads = (object["pads"] as? [[String: Any]]) ?? []
+    guard let pads = object["pads"] as? [[String: Any]] else {
+        return errorResult(invalidListResponseMessage("/api/pads/", expecting: "pads", body: response.body))
+    }
+
     let compact = compactPads(pads)
 
     var result: [String: Any] = ["pads": compact, "count": compact.count]
@@ -704,6 +729,8 @@ private struct QuestionPageScan {
     var pagesFetched = 0
     var truncated = false
     var error: APIResponse?
+    /// See `PadPageScan.invalidShape` (#1024).
+    var invalidShape: String?
 }
 
 /// Pages `/api/questions/` from the first page following `next_page`, accumulating every
@@ -721,8 +748,15 @@ private func fetchAllQuestions(account: MCPAccount) async -> QuestionPageScan {
             return scan
         }
 
+        guard let questions = object["questions"] as? [[String: Any]] else {
+            scan.invalidShape = invalidListResponseMessage(
+                "/api/questions/", expecting: "questions", body: response.body
+            )
+            return scan
+        }
+
         if scan.totalReported == nil { scan.totalReported = object["total"] as? Int }
-        if let questions = object["questions"] as? [[String: Any]] { scan.questions.append(contentsOf: questions) }
+        scan.questions.append(contentsOf: questions)
         scan.pagesFetched += 1
         guard let next = nextPageToken(object["next_page"]) else { return scan }
 
@@ -744,6 +778,7 @@ private func countQuestions(arguments: [String: Value]?, account: MCPAccount) as
 
     let scan = await fetchAllQuestions(account: account)
     if let error = scan.error { return toolResult(error) }
+    if let message = scan.invalidShape { return errorResult(message) }
 
     let matched = scan.questions.filter {
         questionMatches($0, owner: owner, author: author, language: language, type: type)
@@ -787,6 +822,7 @@ private func aggregateQuestionsTool(groupBy: String, arguments: [String: Value]?
 
     let scan = await fetchAllQuestions(account: account)
     if let error = scan.error { return toolResult(error) }
+    if let message = scan.invalidShape { return errorResult(message) }
 
     let matched = scan.questions.filter {
         questionMatches($0, owner: owner, author: author, language: language, type: type)
@@ -831,7 +867,10 @@ private func listQuestionsCompact(arguments: [String: Value]?, account: MCPAccou
     let response = await apiGet("/api/questions/", account: account, query: pagingQuery(arguments))
     guard response.ok, let object = jsonObject(response.body) else { return toolResult(response) }
 
-    let questions = (object["questions"] as? [[String: Any]]) ?? []
+    guard let questions = object["questions"] as? [[String: Any]] else {
+        return errorResult(invalidListResponseMessage("/api/questions/", expecting: "questions", body: response.body))
+    }
+
     let compact = compactQuestions(questions)
 
     var result: [String: Any] = ["questions": compact, "count": compact.count]

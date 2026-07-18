@@ -247,14 +247,7 @@ nonisolated enum MCPTools {
     /// previewed rather than echoed in full so an HTML error page doesn't flood the
     /// assistant.
     static func invalidListResponse(_ path: String, expecting key: String, body: String) -> Outcome {
-        let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
-        let preview = trimmed.count > 200 ? String(trimmed.prefix(200)) + "…" : trimmed
-        return Outcome(
-            text: "The \(path) response wasn't the expected JSON object with a \"\(key)\" "
-                + "array; the upstream server may have returned a proxy or error page. "
-                + "Response begins: \(preview)",
-            isError: true
-        )
+        Outcome(text: invalidListResponseMessage(path, expecting: key, body: body), isError: true)
     }
 
     // MARK: - Argument coercion

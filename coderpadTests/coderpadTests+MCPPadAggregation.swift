@@ -60,6 +60,30 @@ struct MCPPadAggregationTests {
     }
 
     @Test
+    func `state filter folds API synonyms so "active" matches "started" (#1014)`() {
+        let started: [String: Any] = ["state": "started", "language": "python3"]
+        #expect(padMatches(started, owner: nil, state: "active", language: nil))
+        #expect(padMatches(started, owner: nil, state: "Started", language: nil))
+        #expect(!padMatches(started, owner: nil, state: "ended", language: nil))
+        let finished: [String: Any] = ["state": "finished"]
+        #expect(padMatches(finished, owner: nil, state: "ended", language: nil))
+
+        #expect(canonicalPadState("running") == "active")
+        #expect(canonicalPadState("draft") == "pending")
+        #expect(canonicalPadState("Deleted") == "deleted")
+        #expect(canonicalPadState("weird") == "weird")
+    }
+
+    @Test
+    func `state aggregation buckets by canonical spelling (#1014)`() {
+        let raw: [[String: Any]] = [
+            ["state": "started"], ["state": "active"], ["state": "finished"], ["state": "ended"]
+        ]
+        let counts = aggregateCounts(pads: raw, field: "state")
+        #expect(counts == ["active": 2, "ended": 2])
+    }
+
+    @Test
     func `aggregateField normalizes synonyms and rejects unknown`() {
         #expect(aggregateField(for: "owner") == "owner_email")
         #expect(aggregateField(for: "Created_At") == "month")
@@ -105,6 +129,22 @@ struct MCPPadAggregationTests {
         // A record with no created_at fails any present bound.
         #expect(!withinDateRange(pads[3], after: "2026-01", before: nil))
         #expect(withinDateRange(pads[3], after: nil, before: nil))
+    }
+
+    @Test
+    func `month buckets and month-date bounds normalize non-UTC created_at (#1034, #1035)`() {
+        // 2024-03-31T23:00-05:00 is 2024-04-01T04:00Z: it must bucket and filter as
+        // April in UTC regardless of the offset spelling the source used.
+        let offset: [String: Any] = ["created_at": "2024-03-31T23:00:00-05:00"]
+        let utc: [String: Any] = ["created_at": "2024-04-01T04:00:00Z"]
+
+        let months = aggregateCounts(pads: [offset, utc], field: "month")
+        #expect(months == ["2024-04": 2])
+
+        #expect(withinDateRange(offset, after: "2024-04", before: nil))
+        #expect(!withinDateRange(offset, after: nil, before: "2024-03-31"))
+        #expect(withinDateRange(offset, after: "2024-04-01", before: "2024-04-01"))
+        #expect(withinDateRange(utc, after: "2024-04", before: nil))
     }
 
     @Test

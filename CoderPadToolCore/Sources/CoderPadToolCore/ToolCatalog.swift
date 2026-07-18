@@ -72,8 +72,11 @@ private func withAccount(_ properties: [String: [String: Any]] = [:]) -> [String
 private var padFilterProperties: [String: [String: Any]] {
     [
         "owner": mcpStringSchema("Only pads whose owner_email matches this, case-insensitively."),
-        "state": mcpStringSchema("Only pads in this state (e.g. \"active\", \"ended\")."),
-        "language": mcpStringSchema("Only pads in this language (e.g. \"python\")."),
+        "state": mcpStringSchema(
+            "Only pads in this state (e.g. \"active\", \"ended\", \"pending\"). API synonyms "
+                + "are folded in, so \"active\" also matches pads the API reports as \"started\"."
+        ),
+        "language": mcpStringSchema("Only pads in this exact language code (e.g. \"python3\", \"javascript\")."),
         "created_after": mcpStringSchema(mcpDateBoundDescription(bound: "on or after")),
         "created_before": mcpStringSchema(mcpDateBoundDescription(bound: "on or before"))
     ]
@@ -83,7 +86,7 @@ private var questionFilterProperties: [String: [String: Any]] {
     [
         "owner": mcpStringSchema("Only questions whose owner_email matches this, case-insensitively."),
         "author": mcpStringSchema("Only questions whose author_name matches this, case-insensitively."),
-        "language": mcpStringSchema("Only questions in this language (e.g. \"python\")."),
+        "language": mcpStringSchema("Only questions in this exact language code (e.g. \"python3\", \"javascript\")."),
         "type": mcpStringSchema("Only questions of this pad_type (e.g. \"sandbox\", \"take_home\")."),
         "created_after": mcpStringSchema(mcpDateBoundDescription(bound: "on or after")),
         "created_before": mcpStringSchema(mcpDateBoundDescription(bound: "on or before"))

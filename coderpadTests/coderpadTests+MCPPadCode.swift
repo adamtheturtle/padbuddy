@@ -83,4 +83,20 @@ struct MCPPadCodeTests {
         #expect(files.count == 1)
         #expect((files[0]["contents"] as? String)?.contains("6 more characters") == true)
     }
+
+    @Test
+    func `payload marks failed environment fetches as incomplete`() {
+        let pad: [String: Any] = ["title": "T", "pad_environment_ids": [1, 2]]
+        let env = CoderPadToolCore.PadCodeEnvironment(id: 1, object: [
+            "file_contents": [["path": "a.py", "contents": "print(1)"]]
+        ])
+        let payload = padCodePayload(
+            id: "abc", pad: pad, environments: [env], failedEnvironmentIDs: [2], maxFileChars: nil
+        )
+        #expect(payload["incomplete"] as? Bool == true)
+        #expect(payload["missing_environment_ids"] as? [Int] == [2])
+
+        let complete = padCodePayload(id: "abc", pad: pad, environments: [env], maxFileChars: nil)
+        #expect(complete["incomplete"] == nil)
+    }
 }

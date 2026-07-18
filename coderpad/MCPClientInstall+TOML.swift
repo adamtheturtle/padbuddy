@@ -13,6 +13,98 @@ import Foundation
 
 #if os(macOS)
 
+    /// Tracks whether successive physical lines sit inside a multi-line TOML construct —
+    /// a `"""`/`'''` string or an array value whose brackets haven't closed yet — so the
+    /// line-based detector and rewriter never mistake a continuation line that happens to
+    /// start with `[` for a table header (#1037). Internal for tests.
+    struct TOMLLineState {
+        private enum StringState { case notInString, multilineBasic, multilineLiteral }
+        private var stringState = StringState.notInString
+        private var bracketDepth = 0
+
+        /// Whether the next physical line begins inside a multi-line construct.
+        var isInsideMultilineConstruct: Bool { stringState != .notInString || bracketDepth > 0 }
+
+        /// Consumes one physical line, updating the string/bracket state. Table headers
+        /// self-balance their brackets, so only an unfinished array value leaves depth > 0.
+        mutating func consume(_ line: String) {
+            let characters = Array(line)
+            var index = 0
+            while index < characters.count {
+                let next: Int? = switch stringState {
+                case .multilineBasic: consumeInMultilineBasic(characters, at: index)
+                case .multilineLiteral: consumeInMultilineLiteral(characters, at: index)
+                case .notInString: consumeOutsideString(characters, at: index)
+                }
+                guard let next else { return } // comment ran to the end of the line
+
+                index = next
+            }
+        }
+
+        private mutating func consumeInMultilineBasic(_ characters: [Character], at index: Int) -> Int? {
+            if characters[index] == "\\" { return index + 2 }
+            if matches(characters, at: index, "\"\"\"") {
+                stringState = .notInString
+                return index + 3
+            }
+            return index + 1
+        }
+
+        private mutating func consumeInMultilineLiteral(_ characters: [Character], at index: Int) -> Int? {
+            if matches(characters, at: index, "'''") {
+                stringState = .notInString
+                return index + 3
+            }
+            return index + 1
+        }
+
+        private mutating func consumeOutsideString(_ characters: [Character], at index: Int) -> Int? {
+            switch characters[index] {
+            case "#": return nil // comment runs to the end of the line
+            case "\"" where matches(characters, at: index, "\"\"\""):
+                stringState = .multilineBasic
+                return index + 3
+            case "'" where matches(characters, at: index, "'''"):
+                stringState = .multilineLiteral
+                return index + 3
+            case "\"": return indexAfterBasicString(characters, from: index + 1)
+            case "'": return indexAfterLiteralString(characters, from: index + 1)
+            case "[": bracketDepth += 1; return index + 1
+            case "]": bracketDepth = max(0, bracketDepth - 1); return index + 1
+            default: return index + 1
+            }
+        }
+
+        private func matches(_ characters: [Character], at index: Int, _ token: String) -> Bool {
+            let tokenCharacters = Array(token)
+            guard index + tokenCharacters.count <= characters.count else { return false }
+
+            return Array(characters[index ..< index + tokenCharacters.count]) == tokenCharacters
+        }
+
+        /// The index just past a single-line basic string opened before `from`, honoring
+        /// backslash escapes; an unterminated string (invalid TOML) runs to the line's end.
+        private func indexAfterBasicString(_ characters: [Character], from: Int) -> Int {
+            var index = from
+            while index < characters.count {
+                if characters[index] == "\\" { index += 2; continue }
+                if characters[index] == "\"" { return index + 1 }
+                index += 1
+            }
+            return index
+        }
+
+        private func indexAfterLiteralString(_ characters: [Character], from: Int) -> Int {
+            var index = from
+            while index < characters.count {
+                if characters[index] == "'" { return index + 1 }
+                index += 1
+            }
+            return index
+        }
+    }
+
     extension MCPClientInstall {
         /// Thrown when the existing config declares `mcp_servers.padbuddy` in a form the
         /// line-based rewriter can't safely replace (dotted key, inline table, array of tables).
@@ -33,11 +125,17 @@ import Foundation
 
         /// Scans TOML text for any declaration that resolves to the `mcp_servers.padbuddy` key
         /// path: table headers (with optional whitespace or quoted keys), top-level dotted keys,
-        /// and keys inside a `[mcp_servers]` table. Internal for tests.
+        /// and keys inside a `[mcp_servers]` table. Lines inside a multi-line array or string
+        /// are continuations of a value, never declarations (#1037). Internal for tests.
         static func codexPadbuddyDeclaration(in text: String) -> CodexDeclaration {
             var currentTable: [String] = []
             var found = CodexDeclaration.notDeclared
+            var state = TOMLLineState()
             for rawLine in text.components(separatedBy: "\n") {
+                let wasContinuation = state.isInsideMultilineConstruct
+                state.consume(rawLine)
+                if wasContinuation { continue }
+
                 let line = rawLine.trimmingCharacters(in: .whitespaces)
                 if line.isEmpty || line.hasPrefix("#") { continue }
 
@@ -138,22 +236,32 @@ import Foundation
 
         /// Replaces the existing `[mcp_servers.padbuddy]` table (its header through the line before
         /// the next table header, or the end of file) with `block`, leaving every other table
-        /// untouched. Internal for tests.
+        /// untouched. The next-header search is multi-line aware: a `[` that merely continues a
+        /// multi-line array or string is part of the table body, not a new table (#1037).
+        /// Internal for tests.
         static func replacingCodexServer(in text: String, with block: String) -> String {
             let lines = text.components(separatedBy: "\n")
             var result: [String] = []
+            var state = TOMLLineState()
             var index = 0
             while index < lines.count {
-                if tomlHeaderKeyPath(lines[index].trimmingCharacters(in: .whitespaces))
-                    == ["mcp_servers", "padbuddy"],
-                    !lines[index].trimmingCharacters(in: .whitespaces).hasPrefix("[[") {
+                let wasContinuation = state.isInsideMultilineConstruct
+                if !wasContinuation,
+                   tomlHeaderKeyPath(lines[index].trimmingCharacters(in: .whitespaces))
+                   == ["mcp_servers", "padbuddy"],
+                   !lines[index].trimmingCharacters(in: .whitespaces).hasPrefix("[[") {
                     result.append(contentsOf: block.components(separatedBy: "\n"))
+                    state.consume(lines[index])
                     index += 1
-                    while index < lines.count,
-                          !lines[index].trimmingCharacters(in: .whitespaces).hasPrefix("[") {
+                    while index < lines.count {
+                        if !state.isInsideMultilineConstruct,
+                           lines[index].trimmingCharacters(in: .whitespaces).hasPrefix("[") { break }
+
+                        state.consume(lines[index])
                         index += 1
                     }
                 } else {
+                    state.consume(lines[index])
                     result.append(lines[index])
                     index += 1
                 }

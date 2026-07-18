@@ -155,10 +155,13 @@ public func parseResourceURI(_ uri: String) -> ResourceRequest? {
     }
 
     // For coderpad://pad/x the host is "pad" and the path is "/x"; normalize both into
-    // one list of segments so the matching below reads uniformly.
+    // one list of segments so the matching below reads uniformly. Split the still-encoded
+    // path so an encoded "/" inside a segment survives, then decode each segment exactly
+    // once — `components.path`/`.host` are already decoded, so decoding them again would
+    // mangle values and break the round-trip with `resourcePathComponent` (#1030).
     var segments: [String] = []
-    if let host = components.host, !host.isEmpty { segments.append(host) }
-    segments += components.path.split(separator: "/").map(String.init)
+    if let host = components.percentEncodedHost, !host.isEmpty { segments.append(host) }
+    segments += components.percentEncodedPath.split(separator: "/").map(String.init)
     let decoded = segments.map { $0.removingPercentEncoding ?? $0 }
 
     return parseUnqualifiedResource(decoded) ?? parseAccountResource(decoded)
