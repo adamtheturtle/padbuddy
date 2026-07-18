@@ -261,9 +261,9 @@ extension PadDetailView {
     }
 
     func commitOwner(_ email: String) async {
-        // .whitespacesAndNewlines, not .whitespaces: a pasted address can carry a
-        // trailing newline, which would be sent to the server verbatim (#783).
-        let normalized = email.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Trimmed (a pasted address can carry a trailing newline, #783) and with
+        // the domain lowercased so one mailbox has one stored spelling (#1941).
+        let normalized = EmailValidation.normalized(email)
 
         // A free-typed owner must at least look like an email before it's sent:
         // the control is presented as an owner selector, and posting arbitrary

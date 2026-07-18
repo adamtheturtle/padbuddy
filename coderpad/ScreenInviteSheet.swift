@@ -235,10 +235,12 @@ struct ScreenInviteSheet: View {
     private func send() async {
         isSending = true
         defer { isSending = false }
+        // Addresses go out normalized (trimmed, domain lowercased) so the same
+        // mailbox always reaches the API in one canonical spelling (#1941).
         let invitation = ScreenInvitation(
-            candidateEmail: trimmedOrNil(candidateEmail),
+            candidateEmail: trimmedOrNil(EmailValidation.normalized(candidateEmail)),
             candidateName: trimmedOrNil(candidateName),
-            recruiterEmail: trimmedOrNil(recruiterEmail),
+            recruiterEmail: trimmedOrNil(EmailValidation.normalized(recruiterEmail)),
             tags: trimmedOrNil(tags, limit: 500),
             sendInvitationEmail: sendEmail
         )
