@@ -92,6 +92,10 @@ struct MergedPadsView: View {
     /// Account-scoped rows rather than bare `Pad`s so each delete routes to its own
     /// account's client (#758). Separate from `padPendingDelete` (the single
     /// swipe/context delete) so the two confirmations don't interfere.
+    /// Bumped by every mutation of `padsByAccount` (seed, reload, insert, edit,
+    /// delete), so `scopedSignature` can key the row memo on it instead of hashing
+    /// every pad model per render (#1234).
+    @State var padsRevision = 0
     @State var padsPendingBulkDelete: [AccountScoped<Account, Pad>]?
     @State var pendingBulkDeleteUndo: PendingBulkDelete<AccountScoped<Account, Pad>>?
     @State var bulkDeleteUndoTask: Task<Void, Never>?

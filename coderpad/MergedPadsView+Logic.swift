@@ -55,21 +55,17 @@ extension MergedPadsView {
             .filter { !$0.isEmpty }).sorted()
     }
 
-    /// A cheap hash of everything `scoped` (and the chip-option lists) depends on: the
-    /// sort and, per mergeable account, its id and every pad. `Pad` is `Hashable`, so
-    /// any displayed-field change invalidates the memo (the cached rows carry these
-    /// `Pad` values into the list). O(n) hashing replaces the O(n log n) sort + three
-    /// Set passes that previously ran every render.
+    /// A cheap signature of everything `scoped` (and the chip-option lists) depends
+    /// on: the sort, the mergeable account set, and `padsRevision` — bumped by every
+    /// mutation of `padsByAccount`. The revision stands in for the row contents, so
+    /// the per-render O(n) full-model hash over every merged pad (a main-actor stall
+    /// on large orgs) is gone (#1234).
     func scopedSignature(mergeable: [Account]) -> Int {
         var hasher = Hasher()
         hasher.combine(sort)
+        hasher.combine(padsRevision)
         for account in mergeable {
             hasher.combine(account.id)
-            let pads = padsByAccount[account.id] ?? []
-            hasher.combine(pads.count)
-            for pad in pads {
-                hasher.combine(pad)
-            }
         }
         return hasher.finalize()
     }
@@ -283,9 +279,12 @@ extension MergedPadsView {
     /// Show the cached pads for every account immediately, before any network
     /// fetch, so the merged list is populated on appear.
     func seedFromCache() {
+        var changed = false
         for account in accounts.mergeableAccounts where padsByAccount[account.id] == nil {
             padsByAccount[account.id] = cache.get(account.id)
+            changed = true
         }
+        if changed { padsRevision += 1 }
         publishRoutes()
     }
 
@@ -298,7 +297,10 @@ extension MergedPadsView {
             padsByAccount[account.id] = warm
             changed = true
         }
-        if changed { publishRoutes() }
+        if changed {
+            padsRevision += 1
+            publishRoutes()
+        }
     }
 
     /// Fan out a fresh fetch across every account concurrently. Results are applied
@@ -363,6 +365,7 @@ extension MergedPadsView {
         // UUID can't inherit an old failure or stale list (#1230).
         padsByAccount = padsByAccount.filter { mergeableIDs.contains($0.key) }
         accountErrors = accountErrors.filter { mergeableIDs.contains($0.key) }
+        padsRevision += 1
         publishRoutes()
         // Stamp the refresh time for the "Updated X ago" freshness cue (#619).
         lastRefreshed = Date()

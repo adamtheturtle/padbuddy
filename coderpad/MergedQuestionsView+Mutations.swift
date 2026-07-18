@@ -62,6 +62,7 @@ extension MergedQuestionsView {
         guard let owner else { return }
 
         questionsByAccount[owner] = questionsByAccount[owner]?.filter { $0.id != id }
+        questionsRevision += 1
         publishRoutes()
     }
 
@@ -74,6 +75,7 @@ extension MergedQuestionsView {
 
         questions.insert(question, at: 0)
         questionsByAccount[account.id] = questions
+        questionsRevision += 1
         cache.set(account.id, questions: questions, via: account.makeClient())
         publishRoutes()
     }

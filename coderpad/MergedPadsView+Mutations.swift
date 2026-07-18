@@ -22,6 +22,7 @@ extension MergedPadsView {
 
         pads[index] = pad
         padsByAccount[accountID] = pads
+        padsRevision += 1
         // Pad slugs can collide across custom servers, so also require the edited
         // pad to belong to the account whose pad is routed into the detail pane;
         // an account-less broadcast keeps the old slug-only behavior.
@@ -44,6 +45,7 @@ extension MergedPadsView {
         guard let owner else { return }
 
         padsByAccount[owner] = padsByAccount[owner]?.filter { $0.id != id }
+        padsRevision += 1
         publishRoutes()
     }
 
@@ -67,6 +69,7 @@ extension MergedPadsView {
 
         pads.insert(pad, at: 0)
         padsByAccount[account.id] = pads
+        padsRevision += 1
         cache.set(account.id, pads: pads, via: account.makeClient())
         publishRoutes()
     }

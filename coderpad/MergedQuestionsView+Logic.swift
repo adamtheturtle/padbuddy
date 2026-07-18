@@ -47,21 +47,17 @@ extension MergedQuestionsView {
             .filter { !$0.isEmpty }).sorted()
     }
 
-    /// A cheap hash of everything `scoped` (and the chip-option lists) depends on:
-    /// per mergeable account, its id and every question. `Question` is `Hashable`, so
-    /// any change to a displayed field invalidates the memo — the cached rows carry
-    /// these values into both the filter pass and the list. O(n) hashing replaces the
-    /// per-render array rebuild + two full Set passes.
+    /// A cheap signature of everything `scoped` (and the chip-option lists) depends
+    /// on: the sort, the mergeable account set, and `questionsRevision` — bumped by
+    /// every mutation of `questionsByAccount`. The revision stands in for the row
+    /// contents, so the per-render O(n) full-model hash over every merged question
+    /// (a main-actor stall on large orgs) is gone (#1235).
     func scopedSignature(mergeable: [Account]) -> Int {
         var hasher = Hasher()
         hasher.combine(sort)
+        hasher.combine(questionsRevision)
         for account in mergeable {
             hasher.combine(account.id)
-            let questions = questionsByAccount[account.id] ?? []
-            hasher.combine(questions.count)
-            for question in questions {
-                hasher.combine(question)
-            }
         }
         return hasher.finalize()
     }
@@ -286,9 +282,12 @@ extension MergedQuestionsView {
     // MARK: - Loading
 
     func seedFromCache() {
+        var changed = false
         for account in accounts.mergeableAccounts where questionsByAccount[account.id] == nil {
             questionsByAccount[account.id] = cache.get(account.id)
+            changed = true
         }
+        if changed { questionsRevision += 1 }
         publishRoutes()
     }
 
@@ -301,7 +300,10 @@ extension MergedQuestionsView {
             questionsByAccount[account.id] = warm
             changed = true
         }
-        if changed { publishRoutes() }
+        if changed {
+            questionsRevision += 1
+            publishRoutes()
+        }
     }
 
     func reload() async {
@@ -366,6 +368,7 @@ extension MergedQuestionsView {
         // UUID can't inherit an old failure or stale list (#1230).
         questionsByAccount = questionsByAccount.filter { mergeableIDs.contains($0.key) }
         accountErrors = accountErrors.filter { mergeableIDs.contains($0.key) }
+        questionsRevision += 1
         publishRoutes()
         // The defer above clears isLoading once EVERY account has answered; clearing
         // it per-result made the first fast account end the loading state while
