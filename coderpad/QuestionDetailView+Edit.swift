@@ -134,7 +134,16 @@ extension QuestionDetailView {
     }
 
     private func scheduleSeedDrafts() {
-        DispatchQueue.main.async { seedDrafts() }
+        // Claim the newest generation: the displayed question can change again
+        // before the queued block runs, and a stale callback would seed the
+        // language/type drafts from the wrong question (#1192).
+        draftSeedGeneration &+= 1
+        let generation = draftSeedGeneration
+        DispatchQueue.main.async {
+            guard generation == draftSeedGeneration else { return }
+
+            seedDrafts()
+        }
     }
 
     /// Seeds the metadata drafts on appear and keeps each in sync with server-side

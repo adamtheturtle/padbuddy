@@ -196,6 +196,7 @@ extension Account: StorableAccount {
     FavoritesOrderStore.shared.remove(account: id)
     PadOpenedStore.shared.remove(account: id)
     AccountScopedDefaults.purge(account: id)
+    InlineEditDrafts.shared.removeAll(account: id)
 }
 
 /// Purges the client-keyed caches — cached organization members (and the API key

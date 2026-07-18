@@ -74,6 +74,9 @@ struct QuestionDetailView: View {
     @State var latestQuestion: Question?
     @State var selectedPane: QuestionDetailPane = .prompt
     @State var titleEditRequest = 0
+    /// Generation counter for the deferred draft seeding (see `scheduleSeedDrafts`),
+    /// so a stale queued seed can't overwrite a newer question's drafts (#1192).
+    @State var draftSeedGeneration = 0
 
     private var detailToolbarLeadingPlacement: ToolbarItemPlacement {
         #if os(macOS)

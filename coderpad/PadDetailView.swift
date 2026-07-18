@@ -50,6 +50,9 @@ struct PadDetailView: View {
     @State var mutateError: String?
     @State var titleEditRequest = 0
     @State var deletionTask: Task<Void, Never>?
+    /// Generation counter for the deferred draft seeding (see `scheduleSeedDrafts`),
+    /// so a stale queued seed can't overwrite a newer pad's drafts (#1192).
+    @State private var draftSeedGeneration = 0
     #if !os(macOS)
         /// The document staged for the iPad's `.fileExporter` (Save All Code / Export Markdown).
         /// `nil` dismisses the export sheet.
@@ -297,7 +300,16 @@ struct PadDetailView: View {
     }
 
     private func scheduleSeedDrafts() {
-        DispatchQueue.main.async { seedDrafts() }
+        // Claim the newest generation: the displayed pad can change again before
+        // the queued block runs, and a stale callback would seed the drafts from
+        // the wrong pad (#1192, mirroring the question detail's guard).
+        draftSeedGeneration &+= 1
+        let generation = draftSeedGeneration
+        DispatchQueue.main.async {
+            guard generation == draftSeedGeneration else { return }
+
+            seedDrafts()
+        }
     }
 
     /// Seeds the editable drafts on appear and whenever a different pad is shown,

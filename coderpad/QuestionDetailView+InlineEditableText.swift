@@ -14,16 +14,48 @@ import SwiftUI
 final class InlineEditDrafts {
     static let shared = InlineEditDrafts()
 
+    /// At most this many stashes are retained; the least recently stashed is
+    /// evicted first. Unbounded growth would retain arbitrarily many private
+    /// prompts/solutions for the life of the process (#1195).
+    private let capacity = 32
+
     private var drafts: [String: String] = [:]
+    /// Stash order, oldest first, for capacity eviction.
+    private var order: [String] = []
 
     func stash(_ draft: String, for key: String) {
+        order.removeAll { $0 == key }
+        order.append(key)
         drafts[key] = draft
+        while order.count > capacity, let oldest = order.first {
+            order.removeFirst()
+            drafts.removeValue(forKey: oldest)
+        }
     }
 
     /// Removes and returns the stashed draft for `key`, so a draft is resumed at
     /// most once.
     func take(for key: String) -> String? {
+        order.removeAll { $0 == key }
+        return drafts.removeValue(forKey: key)
+    }
+
+    /// Drops the stash for `key` without resuming it — a save that succeeded after
+    /// its editor unmounted must not reopen stale editing over the saved source (#1193).
+    func clear(for key: String) {
+        order.removeAll { $0 == key }
         drafts.removeValue(forKey: key)
+    }
+
+    /// Drops every stash belonging to `account`, so a removed account's unsaved
+    /// private content doesn't outlive it and can't be restored into another
+    /// organization's fields (#1194). Keys embed the owning account's UUID (see
+    /// `QuestionDetailView.inlineDraftKey` and the pad notes key).
+    func removeAll(account: UUID) {
+        let marker = "/\(account.uuidString)/"
+        for key in drafts.keys where key.contains(marker) {
+            clear(for: key)
+        }
     }
 }
 
@@ -152,6 +184,18 @@ struct InlineEditableText: View {
                         useLatestSource()
                     }
                 }
+                // Let the user inspect what changed remotely before choosing "Save
+                // Anyway" (which overwrites it) or "Use Latest" (which discards the
+                // draft), so a manual merge is possible instead of a blind pick (#1196).
+                DisclosureGroup("Latest version") {
+                    MarkdownText(baseText.isEmpty ? String(localized: "Empty") : baseText)
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .environment(\.isRasterizedForPrint, true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.top, 4)
+                }
+                .font(.callout)
             }
             HStack(spacing: 8) {
                 Spacer(minLength: 0)
@@ -192,9 +236,20 @@ struct InlineEditableText: View {
         // On failure the detail view surfaces the error in its alert; keep the
         // editor open so the unsaved text isn't lost.
         if saved {
+            // The view can unmount while the save is in flight, in which case
+            // `onDisappear` already stashed the draft; a save that then succeeds
+            // must clear that stash, or returning later reopens stale editing
+            // over the now-saved source (#1193).
+            InlineEditDrafts.shared.clear(for: draftKey)
             editing = false
             focused = false
             sourceChanged = false
+        } else if text != baseText {
+            // Re-evaluate the conflict after the await: the source can be replaced
+            // while the request is in flight, and a retried Save must present as
+            // "Save Anyway" against the new base, never as a clean save (#1197).
+            baseText = text
+            sourceChanged = draft != text
         }
     }
 

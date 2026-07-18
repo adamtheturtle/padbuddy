@@ -209,8 +209,11 @@ extension PadDetailView {
     /// field. Keep the card visible even when empty so notes can be added in place.
     private var notesCard: some View {
         DetailSection(title: "Notes", systemImage: "note.text") {
+            // The draft key is account-qualified: pad slugs collide across custom
+            // servers, and a process-global key by bare slug could restore one
+            // organization's unsaved notes into another's pad (#1194).
             InlineEditableText(text: pad.notes ?? "", placeholder: "Empty", label: "notes",
-                               draftKey: "pad/\(pad.id)/notes") {
+                               draftKey: "pad/\(owningAccountID?.uuidString ?? "current")/\(pad.id)/notes") {
                 await commitNotes($0)
             }
         }
