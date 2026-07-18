@@ -146,7 +146,14 @@ struct SettingsView: View {
     /// the row so its inline editor appears, then clearing the request so it fires
     /// only once.
     private func openPendingEdit(_ id: UUID?) {
-        guard let id, store.accounts.contains(where: { $0.id == id }) else { return }
+        guard let id else { return }
+        guard store.accounts.contains(where: { $0.id == id }) else {
+            // The requested account is gone (removed before Settings opened):
+            // consume the request instead of leaving it pending to fire against
+            // an unrelated future state (#1614).
+            navigation.accountToEdit = nil
+            return
+        }
 
         navigation.selectedTab = .accounts
         guard addingAccount == nil else {

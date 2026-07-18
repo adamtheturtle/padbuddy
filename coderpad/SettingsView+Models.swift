@@ -110,8 +110,15 @@ enum BrowserSettings {
 
     #if os(macOS)
         private static func displayName(for appURL: URL) -> String {
-            FileManager.default.displayName(atPath: appURL.path)
+            let raw = FileManager.default.displayName(atPath: appURL.path)
                 .replacingOccurrences(of: ".app", with: "")
+            // Local app metadata is still input (#1618): control characters or an
+            // absurdly long name must not disrupt the picker's layout or its
+            // accessibility labels.
+            let cleaned = String(raw.unicodeScalars.filter { !CharacterSet.controlCharacters.contains($0) })
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let bounded = String(cleaned.prefix(60))
+            return bounded.isEmpty ? String(localized: "Unnamed app") : bounded
         }
     #endif
 }

@@ -64,7 +64,7 @@ struct MCPActivityView: View {
     }
 
     private func launchLabel(_ launch: MCPActivityEntry) -> String {
-        if let account = launch.account, !account.isEmpty {
+        if let account = MCPActivityLog.sanitizedField(launch.account, cap: 100) {
             return "Server last ran for \(account)"
         }
         return "Server last ran"
@@ -76,10 +76,12 @@ struct MCPActivityView: View {
                 Image(systemName: call.succeeded == false ? "exclamationmark.circle" : "checkmark.circle")
                     .foregroundStyle(call.succeeded == false ? .orange : .green)
                     .accessibilityHidden(true)
-                Text(call.tool ?? "-")
+                // Re-bounded at render (#1626): entries written before the
+                // write-side caps (#1758) may carry oversized strings.
+                Text(MCPActivityLog.sanitizedField(call.tool, cap: 64) ?? "-")
                     .font(.system(.callout, design: .monospaced))
                 Spacer()
-                if let account = call.account, !account.isEmpty {
+                if let account = MCPActivityLog.sanitizedField(call.account, cap: 100) {
                     Text(account)
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -105,11 +107,12 @@ struct MCPActivityView: View {
     }
 
     private func callAccessibilityLabel(_ call: MCPActivityEntry) -> String {
+        let tool = MCPActivityLog.sanitizedField(call.tool, cap: 64) ?? "tool"
         let status = call.succeeded == false ? "error" : "ok"
         if call.succeeded == false, let reason = call.failureReason, !reason.isEmpty {
-            return "\(call.tool ?? "tool"), \(status), \(reason)"
+            return "\(tool), \(status), \(reason)"
         }
-        return "\(call.tool ?? "tool"), \(status)"
+        return "\(tool), \(status)"
     }
 }
 

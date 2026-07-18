@@ -31,11 +31,25 @@ final class MCPActivityStore {
         entries.filter { $0.kind == .call }.reversed()
     }
 
+    /// The newest entry already announced to assistive tech, so each poll only
+    /// announces genuinely new activity (#1627). Nil until the first load, which
+    /// sets the baseline silently.
+    @ObservationIgnored private var announcedLatestID: UUID?
+
     func refresh() {
         let diagnostics = MCPActivityLog.loadWithDiagnostics()
         entries = diagnostics.entries
         unreadableLines = diagnostics.unreadableLines
         MCPActivityLog.trimIfNeeded()
+
+        // Screen-reader users can't see the "last ran"/call times tick over as
+        // the poll updates them; announce fresh server activity as a status
+        // change instead (#1627).
+        let latest = entries.last?.id
+        if let latest, announcedLatestID != nil, latest != announcedLatestID {
+            AccessibilityNotification.Announcement(String(localized: "New MCP server activity")).post()
+        }
+        announcedLatestID = latest
     }
 
     /// Refresh now, then every few seconds until the enclosing `.task` is cancelled (the
@@ -43,7 +57,14 @@ final class MCPActivityStore {
     func poll() async {
         while !Task.isCancelled {
             refresh()
-            try? await Task.sleep(for: .seconds(3))
+            do {
+                try await Task.sleep(for: .seconds(3))
+            } catch {
+                // A cancelled sleep ends the loop immediately: spinning through
+                // refresh/log reads until the next top-of-loop check would churn
+                // disk during teardown (#1624).
+                return
+            }
         }
     }
 }
@@ -89,21 +110,26 @@ extension SettingsView {
     }
 
     private func launchLabel(_ launch: MCPActivityEntry) -> String {
-        if let account = launch.account, !account.isEmpty {
+        if let account = MCPActivityLog.sanitizedField(launch.account, cap: 100) {
             return "Server last ran for \(account)"
         }
         return "Server last ran"
     }
 
     private func mcpCallRow(_ call: MCPActivityEntry) -> some View {
-        HStack(spacing: 10) {
+        // Log-sourced fields are re-bounded at render too (#1626): entries
+        // written before the write-side caps (#1758) may carry oversized or
+        // control-laden strings.
+        let tool = MCPActivityLog.sanitizedField(call.tool, cap: 64)
+        let account = MCPActivityLog.sanitizedField(call.account, cap: 100)
+        return HStack(spacing: 10) {
             Image(systemName: call.succeeded == false ? "exclamationmark.circle" : "checkmark.circle")
                 .foregroundStyle(call.succeeded == false ? .orange : .green)
                 .accessibilityHidden(true)
-            Text(call.tool ?? "—")
+            Text(tool ?? "—")
                 .font(.system(.callout, design: .monospaced))
             Spacer()
-            if let account = call.account, !account.isEmpty {
+            if let account {
                 Text(account)
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -115,7 +141,7 @@ extension SettingsView {
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel(
-            "\(call.tool ?? "tool"), \(call.succeeded == false ? "error" : "ok")"
+            "\(tool ?? "tool"), \(call.succeeded == false ? "error" : "ok")"
         )
     }
 }

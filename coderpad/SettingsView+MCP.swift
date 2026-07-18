@@ -29,6 +29,12 @@ extension SettingsView {
 
             Section {
                 Toggle("Enable the MCP server", isOn: $mcpServerEnabled)
+                    .onChange(of: mcpServerEnabled) { _, isOn in
+                        // Least privilege: disabling the server also withdraws the
+                        // write opt-in, so a later re-enable starts read-only and
+                        // write access needs fresh consent (#1621).
+                        if !isOn { mcpServerAllowWrites = false }
+                    }
             } footer: {
                 Text("""
                 When off, the server refuses to run, so assistants you've already added \

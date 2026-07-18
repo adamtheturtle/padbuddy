@@ -4338,6 +4338,9 @@
         }
       }
     },
+    "New MCP server activity" : {
+
+    },
     "New pad" : {
       "localizations" : {
         "es" : {
@@ -7595,6 +7598,9 @@
           }
         }
       }
+    },
+    "Unnamed app" : {
+
     },
     "Unset" : {
       "localizations" : {
