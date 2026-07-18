@@ -232,11 +232,19 @@ struct ContentView: View {
             }
             return account.resolvedBaseURL.appending(path: id)
         }
-        for account in store.accounts {
-            guard let pad = PadsCacheStore.shared.get(account.id).first(where: { $0.id == id })
-            else { continue }
-
+        // A bare slug resolves from the caches only when exactly one account holds
+        // it, or via the current account's own copy: duplicate slugs on custom
+        // servers must not open whichever account happened to be listed first (#1672).
+        let holders = store.accounts.filter { account in
+            PadsCacheStore.shared.get(account.id).contains { $0.id == id }
+        }
+        if holders.count == 1, let account = holders.first,
+           let pad = PadsCacheStore.shared.get(account.id).first(where: { $0.id == id }) {
             return pad.webURL(fallbackBase: account.resolvedBaseURL)
+        }
+        if let current = store.currentAccount,
+           let pad = PadsCacheStore.shared.get(current.id).first(where: { $0.id == id }) {
+            return pad.webURL(fallbackBase: current.resolvedBaseURL)
         }
         let base = store.currentAccount?.resolvedBaseURL ?? CoderPadClient.defaultBaseURL
         return base.appending(path: id)

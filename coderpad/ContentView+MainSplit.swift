@@ -59,7 +59,8 @@ struct MainSplit: View {
 
     /// When the previous selection change landed, so the next change can be classified
     /// as part of a sweep (debounce) or a deliberate move (apply at once). See #395.
-    @State var lastDetailChange: Date?
+    @State var lastPadDetailChange: Date?
+    @State var lastQuestionDetailChange: Date?
 
     // Caches observed so a selection saved last session can be restored once the list
     // (warmed from disk on first read) has the matching row. See #273.

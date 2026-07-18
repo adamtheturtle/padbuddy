@@ -47,19 +47,32 @@ struct AccountFocusEntity: AppEntity, Identifiable {
 }
 
 /// Supplies the configured accounts to the Focus-filter picker. The account store is
-/// main-actor bound, so each lookup hops to the main actor before reading it.
+/// main-actor bound, so each lookup hops to the main actor before reading it. Only
+/// usable accounts (a key to fetch with, or the demo) are offered: scoping a Focus
+/// to an account that can't load anything would strand the whole app in a broken
+/// scope for the Focus's duration (#1659).
 struct AccountFocusEntityQuery: EntityQuery {
     func entities(for identifiers: [String]) async throws -> [AccountFocusEntity] {
         await MainActor.run {
-            AccountsStore.shared.accounts
-                .filter { identifiers.contains($0.id.uuidString) }
-                .map(AccountFocusEntity.init(account:))
+            // Emit in the framework's requested identifier order, not the store's
+            // account order, so Focus configuration resolution lines up (#1660).
+            let usable = usableAccounts()
+            return identifiers.compactMap { identifier in
+                usable.first { $0.id.uuidString == identifier }.map(AccountFocusEntity.init(account:))
+            }
         }
     }
 
     func suggestedEntities() async throws -> [AccountFocusEntity] {
         await MainActor.run {
-            AccountsStore.shared.accounts.map(AccountFocusEntity.init(account:))
+            usableAccounts().map(AccountFocusEntity.init(account:))
+        }
+    }
+
+    @MainActor
+    private func usableAccounts() -> [Account] {
+        AccountsStore.shared.accounts.filter { account in
+            (account.isMock || !account.apiKey.isEmpty) && !account.hasMalformedBaseURLOverride
         }
     }
 }

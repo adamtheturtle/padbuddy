@@ -43,6 +43,10 @@
                 } label: {
                     accountMenuRow(for: account)
                 }
+                // An account with no key or a malformed endpoint can't load
+                // anything; selecting it swapped the working account for a broken
+                // scope (#1670). Manage Accounts remains the way to fix it.
+                .disabled(!account.isMock && (account.apiKey.isEmpty || account.hasMalformedBaseURLOverride))
             }
 
             if !store.accounts.isEmpty {

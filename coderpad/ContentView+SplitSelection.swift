@@ -100,7 +100,7 @@ extension MainSplit {
     /// out (abandoned if the selection changes again first). This keeps single clicks
     /// instant (#395) while still collapsing a fast sweep to its final row (#326).
     func settleDetailPad() async {
-        let rapid = registerSelectionChange()
+        let rapid = registerSelectionChange(lastChange: &lastPadDetailChange)
         if detailPad == padSelection { return }
         if detailPad != nil, padSelection != nil, rapid {
             try? await Task.sleep(for: Self.detailSettle)
@@ -111,7 +111,7 @@ extension MainSplit {
 
     /// The question counterpart to ``settleDetailPad``.
     func settleDetailQuestion() async {
-        let rapid = registerSelectionChange()
+        let rapid = registerSelectionChange(lastChange: &lastQuestionDetailChange)
         if detailQuestion == questionSelection { return }
         if detailQuestion != nil, questionSelection != nil, rapid {
             try? await Task.sleep(for: Self.detailSettle)
@@ -122,11 +122,14 @@ extension MainSplit {
 
     /// Records this selection change and reports whether it arrived quickly enough after
     /// the previous one to be part of an arrow-key sweep (rather than a deliberate click
-    /// or slow navigation, which land after the settle window). See #395.
-    func registerSelectionChange() -> Bool {
+    /// or slow navigation, which land after the settle window). See #395. The timestamp
+    /// is per kind: pads and questions sharing one made the first question selection
+    /// right after a pad selection read as a rapid sweep, delaying a deliberate detail
+    /// open (#1666).
+    func registerSelectionChange(lastChange: inout Date?) -> Bool {
         let now = Date()
-        let rapid = lastDetailChange.map { now.timeIntervalSince($0) < Self.detailSettleSeconds } ?? false
-        lastDetailChange = now
+        let rapid = lastChange.map { now.timeIntervalSince($0) < Self.detailSettleSeconds } ?? false
+        lastChange = now
         return rapid
     }
 }

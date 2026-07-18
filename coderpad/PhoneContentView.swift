@@ -80,7 +80,15 @@
                 if unlimited, windowNav.section == .quota { windowNav.section = .pads }
             }
             .onChange(of: screenSectionAvailable) { _, available in
-                if !available, windowNav.section == .screen { windowNav.section = .pads }
+                guard !available else { return }
+
+                if windowNav.section == .screen { windowNav.section = .pads }
+                // Drop the Screen stack and selection too: left intact, re-enabling
+                // Screen reopened a stale campaign from the previous configuration (#1669).
+                screenPath = []
+                windowNav.screenCampaignSelection = nil
+                windowNav.screenTestsSubtitle = ""
+                windowNav.screenTestsSubtitleOwner = nil
             }
         }
 
@@ -109,6 +117,16 @@
             questionPath = []
             screenPath = []
             windowNav.screenCampaignSelection = nil
+            // The Screen detail's published subtitle/owner belong to the previous
+            // account's drill-down; left behind, a later Screen detail inherited
+            // another account's subtitle and routing (#1668).
+            windowNav.screenTestsSubtitle = ""
+            windowNav.screenTestsSubtitleOwner = nil
+            // A new organization must not open pre-filtered by the previous
+            // account's searches (#1683).
+            padSearch = ""
+            questionSearch = ""
+            screenSearch = ""
         }
 
         private var padsTab: some View {
@@ -218,7 +236,9 @@
                 .searchable(
                     text: $screenSearch,
                     placement: .navigationBarDrawer(displayMode: .automatic),
-                    prompt: Text("Search campaigns")
+                    // Once a campaign is pushed the same field filters its
+                    // candidates, so the prompt must say so (#1667).
+                    prompt: screenPath.isEmpty ? Text("Search campaigns") : Text("Search candidates")
                 )
                 .navigationDestination(for: PhoneRoute.self) { routeDestination($0) }
             }
