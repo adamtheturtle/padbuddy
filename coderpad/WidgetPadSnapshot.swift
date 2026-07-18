@@ -62,6 +62,14 @@ nonisolated struct WidgetOpenPadRequest: Codable {
     let account: String?
 }
 
+/// A pending handoff request of either kind, tagged so a drain can replay New Pad
+/// and Open Pad requests together in the order the user issued them. Draining each
+/// kind in its own loop let an older New Pad win over a newer Open Pad (#1045).
+nonisolated enum WidgetPendingRequest {
+    case newPad(WidgetNewPadRequest)
+    case openPad(WidgetOpenPadRequest)
+}
+
 /// Writes the recent-pads snapshots into the App Group container shared with the
 /// widget (the widget reads them back through its own parallel `WidgetSharedStore`
 /// in `RecentPadsWidget/WidgetSharedSnapshot.swift`). All members are `nonisolated`
@@ -90,6 +98,8 @@ nonisolated enum WidgetSharedStore {
     private static let newPadRequestPrefix = "pending-new-pad-"
     private static let openPadRequestPrefix = "pending-open-pad-"
     private static let requestFileExtension = ".json"
+    private static let newPadPurpose = "new pad handoff request"
+    private static let openPadPurpose = "open pad handoff request"
     private static let logger = Logger(subsystem: "com.coderpad.app", category: "widget-shared-store")
 
     /// Darwin notification posted when a New Pad request is recorded, so a running app
@@ -186,10 +196,6 @@ nonisolated enum WidgetSharedStore {
                     let name = url.lastPathComponent
                     return name == legacyFileName || (name.hasPrefix(prefix) && name.hasSuffix(requestFileExtension))
                 }
-                .sorted { lhs, rhs in
-                    requestSortKey(lhs.lastPathComponent, legacyFileName: legacyFileName)
-                        < requestSortKey(rhs.lastPathComponent, legacyFileName: legacyFileName)
-                }
         } catch {
             logger.error("""
             Widget shared store list failed for \(purpose, privacy: .public): \
@@ -199,8 +205,14 @@ nonisolated enum WidgetSharedStore {
         }
     }
 
-    private static func requestSortKey(_ fileName: String, legacyFileName: String) -> String {
-        fileName == legacyFileName ? "0-\(legacyFileName)" : "1-\(fileName)"
+    /// The millisecond timestamp embedded in a request filename, used to order a
+    /// combined drain across both request kinds (#1045). The legacy fixed-name files
+    /// predate any timestamped request, so they sort first as 0.
+    private static func requestTimestamp(fileName: String) -> Int64 {
+        for prefix in [newPadRequestPrefix, openPadRequestPrefix] where fileName.hasPrefix(prefix) {
+            return Int64(fileName.dropFirst(prefix.count).prefix(while: \.isNumber)) ?? 0
+        }
+        return 0
     }
 
     private static func remove(_ fileName: String, purpose: String) {
@@ -246,28 +258,27 @@ nonisolated enum WidgetSharedStore {
         }
     }
 
-    private static func takePendingRequest<Request: Decodable>(
-        legacyFileName: String,
-        prefix: String,
+    /// Claims, decodes, and deletes a single request file. Nil when another process
+    /// won the claim race or when the payload fails to decode.
+    private static func takeRequest<Request: Decodable>(
+        at url: URL,
         purpose: String,
         as type: Request.Type
     ) -> Request? {
-        for url in pendingRequestURLs(legacyFileName: legacyFileName, prefix: prefix, purpose: purpose) {
-            guard let claimedURL = claim(url: url, purpose: purpose) else { continue }
+        guard let claimedURL = claim(url: url, purpose: purpose) else { return nil }
 
-            defer { try? FileManager.default.removeItem(at: claimedURL) }
-            guard let data = loadData(url: claimedURL, purpose: purpose) else { continue }
+        defer { try? FileManager.default.removeItem(at: claimedURL) }
+        guard let data = loadData(url: claimedURL, purpose: purpose) else { return nil }
 
-            do {
-                return try JSONDecoder().decode(type, from: data)
-            } catch {
-                logger.error("""
-                Widget shared store decode failed for \(purpose, privacy: .public): \
-                \(error.localizedDescription, privacy: .public)
-                """)
-            }
+        do {
+            return try JSONDecoder().decode(type, from: data)
+        } catch {
+            logger.error("""
+            Widget shared store decode failed for \(purpose, privacy: .public): \
+            \(error.localizedDescription, privacy: .public)
+            """)
+            return nil
         }
-        return nil
     }
 
     /// Atomically replaces `account`'s snapshot (or the default snapshot when nil). A
@@ -289,8 +300,8 @@ nonisolated enum WidgetSharedStore {
 
     /// Records a New Pad request for the app to pick up on its next activation, written
     /// as a file (not `UserDefaults`) so it's seen immediately across the App Group with
-    /// no suite-cache delay. Idempotent — `takePendingNewPad` is the single consumer and
-    /// deletes the file, so re-recording the same request before consumption is harmless.
+    /// no suite-cache delay. Idempotent: `takePendingRequestsInOrder` is the single
+    /// consumer and deletes the file, so re-recording before consumption is harmless.
     /// A no-op when the container is unavailable. Mirrors the widget target's copy
     /// (`RecentPadsWidget/WidgetSharedSnapshot.swift`); it lives here too so the app-target
     /// twin of `CreatePadIntent` — the one that lets the Control Center button open the
@@ -299,7 +310,7 @@ nonisolated enum WidgetSharedStore {
     static func requestNewPad(account: String?, question: Int?) -> Bool {
         guard save(WidgetNewPadRequest(account: account, question: question),
                    fileName: requestFileName(prefix: newPadRequestPrefix),
-                   purpose: "new pad handoff request") else {
+                   purpose: newPadPurpose) else {
             return false
         }
 
@@ -316,7 +327,7 @@ nonisolated enum WidgetSharedStore {
     static func requestOpenPad(id: String, account: String?) -> Bool {
         guard save(WidgetOpenPadRequest(id: id, account: account),
                    fileName: requestFileName(prefix: openPadRequestPrefix),
-                   purpose: "open pad handoff request") else {
+                   purpose: openPadPurpose) else {
             return false
         }
 
@@ -346,39 +357,34 @@ nonisolated enum WidgetSharedStore {
         )
     }
 
-    /// Returns and clears any pending New Pad request the widget/Control Center button
-    /// recorded, so the app performs it once on activation. Nil when none is pending.
-    static func takePendingNewPad() -> WidgetNewPadRequest? {
-        let purpose = "new pad handoff request"
-        guard let request = takePendingRequest(
-            legacyFileName: newPadRequestFile,
-            prefix: newPadRequestPrefix,
-            purpose: purpose,
-            as: WidgetNewPadRequest.self
-        ) else { return nil }
+    /// Returns and clears every pending widget/Shortcuts request, of both kinds, in
+    /// the order the user issued them. The request filenames embed a millisecond
+    /// timestamp, so a single combined drain can replay them chronologically and the
+    /// user's most recent action ends up on top (#1045). Empty when none is pending.
+    static func takePendingRequestsInOrder() -> [WidgetPendingRequest] {
+        let candidates = pendingRequestURLs(
+            legacyFileName: newPadRequestFile, prefix: newPadRequestPrefix, purpose: newPadPurpose
+        ).map { (url: $0, isNewPad: true) } + pendingRequestURLs(
+            legacyFileName: openPadRequestFile, prefix: openPadRequestPrefix, purpose: openPadPurpose
+        ).map { (url: $0, isNewPad: false) }
 
-        logger.info("""
-        Drained new pad handoff request accountScoped=\((request.account?.isEmpty == false), privacy: .public) \
-        questionSeeded=\(request.question != nil, privacy: .public)
-        """)
-        return request
-    }
-
-    /// Returns and clears any pending iPad widget request to open an existing pad.
-    static func takePendingOpenPad() -> WidgetOpenPadRequest? {
-        let purpose = "open pad handoff request"
-        guard let request = takePendingRequest(
-            legacyFileName: openPadRequestFile,
-            prefix: openPadRequestPrefix,
-            purpose: purpose,
-            as: WidgetOpenPadRequest.self
-        ) else { return nil }
-
-        logger.info("""
-        Drained open pad handoff request accountScoped=\
-        \((request.account?.isEmpty == false), privacy: .public)
-        """)
-        return request
+        let requests: [WidgetPendingRequest] = candidates
+            .sorted {
+                (requestTimestamp(fileName: $0.url.lastPathComponent), $0.url.lastPathComponent)
+                    < (requestTimestamp(fileName: $1.url.lastPathComponent), $1.url.lastPathComponent)
+            }
+            .compactMap { candidate in
+                if candidate.isNewPad {
+                    return takeRequest(at: candidate.url, purpose: newPadPurpose, as: WidgetNewPadRequest.self)
+                        .map(WidgetPendingRequest.newPad)
+                }
+                return takeRequest(at: candidate.url, purpose: openPadPurpose, as: WidgetOpenPadRequest.self)
+                    .map(WidgetPendingRequest.openPad)
+            }
+        if !requests.isEmpty {
+            logger.info("Drained \(requests.count, privacy: .public) pending widget requests in order")
+        }
+        return requests
     }
 
     /// Removes a removed account's per-account snapshot and favourites so they stop

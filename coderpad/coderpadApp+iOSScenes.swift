@@ -105,19 +105,25 @@
                 }
         }
 
+        /// Replays every queued request in the order the user issued it, so the most
+        /// recent action ends up on top. Draining each kind in its own loop always ran
+        /// New Pad last, letting an older New Pad tap beat a newer Open Pad tap (#1045).
         @MainActor
         static func drainPendingWidgetRequests() {
-            while let request = WidgetSharedStore.takePendingOpenPad() {
-                if let account = request.account,
-                   let uuid = UUID(uuidString: account),
-                   AccountsStore.shared.accounts.contains(where: { $0.id == uuid }) {
-                    AccountsStore.shared.showAllAccounts = false
-                    AccountsStore.shared.currentAccountID = uuid
+            for pending in WidgetSharedStore.takePendingRequestsInOrder() {
+                switch pending {
+                case let .openPad(request):
+                    if let account = request.account,
+                       let uuid = UUID(uuidString: account),
+                       AccountsStore.shared.accounts.contains(where: { $0.id == uuid }) {
+                        AccountsStore.shared.showAllAccounts = false
+                        AccountsStore.shared.currentAccountID = uuid
+                    }
+                    AppNavigation.shared.showPads(PadsRequest(selectPadID: request.id))
+
+                case let .newPad(request):
+                    AppNavigation.shared.routeNewPad(account: request.account, seedQuestionID: request.question)
                 }
-                AppNavigation.shared.showPads(PadsRequest(selectPadID: request.id))
-            }
-            while let request = WidgetSharedStore.takePendingNewPad() {
-                AppNavigation.shared.routeNewPad(account: request.account, seedQuestionID: request.question)
             }
         }
     }

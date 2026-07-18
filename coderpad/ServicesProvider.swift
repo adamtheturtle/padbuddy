@@ -67,11 +67,26 @@
             return hosts
         }
 
+        /// Web-app routes served on the same hosts as pads (dashboard pages, auth,
+        /// account management, and similar). A first path component naming one of
+        /// these is app navigation, never a pad id (#1044).
+        private static let nonPadRoutes: Set<String> = [
+            "account", "accounts", "admin", "api", "billing", "candidates", "dashboard",
+            "docs", "help", "interviews", "login", "logout", "pads", "profile",
+            "questions", "register", "sandbox", "screen", "screens", "settings",
+            "signup", "team", "teams", "users"
+        ]
+
+        /// Path components that may trail a pad id in a shareable pad URL, like
+        /// `https://app.coderpad.io/ABC123/playback`. Anything else after the id means
+        /// the link points somewhere deeper in the web app, not at a pad.
+        private static let padPathSuffixes: Set<String> = ["playback"]
+
         /// Pure string → id extraction, kept separate so it's unit-testable. Accepts a
         /// CoderPad web URL from a known host (the id is its first path component), a
         /// `coderpad://pad/<id>` deep link, or a bare alphanumeric id token. Returns nil
-        /// for anything else, so selecting arbitrary prose or an unrelated web link
-        /// doesn't fire a bogus open (#795).
+        /// for anything else, so selecting arbitrary prose, an unrelated web link, or a
+        /// non-pad page of the CoderPad web app doesn't fire a bogus open (#795, #1044).
         static func padID(fromSelection raw: String, allowedHosts: Set<String>) -> String? {
             let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else { return nil }
@@ -88,9 +103,7 @@
                         return nil
                     }
 
-                    // The pad id is the first real path component, e.g.
-                    // https://app.coderpad.io/ABC123 or .../ABC123/playback.
-                    return url.pathComponents.first { $0 != "/" && !$0.isEmpty }
+                    return padID(fromWebPathComponents: url.pathComponents)
                 }
             }
 
@@ -102,6 +115,23 @@
             }
 
             return trimmed
+        }
+
+        /// Extracts a pad id from an allowed-host URL's path. A pad link's path is a
+        /// single slug-like component (the id), optionally followed by known pad-page
+        /// suffixes like `playback`. The web app serves many non-pad routes on the same
+        /// host, so the first component must also validate as a plausible pad id and
+        /// not name a known app route; previously ANY first path component was taken
+        /// as the id, so `.../dashboard` opened a bogus pad (#1044).
+        private static func padID(fromWebPathComponents components: [String]) -> String? {
+            let parts = components.filter { $0 != "/" && !$0.isEmpty }
+            guard let first = parts.first,
+                  let id = PadIDValidation.normalize(first),
+                  !nonPadRoutes.contains(id.lowercased()),
+                  parts.dropFirst().allSatisfy({ padPathSuffixes.contains($0.lowercased()) })
+            else { return nil }
+
+            return id
         }
     }
 #endif

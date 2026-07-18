@@ -12,38 +12,76 @@
     import AppKit
 
     extension AppDelegate {
-        /// Observes the Darwin notification `WidgetSharedStore.requestNewPad` posts, so a
-        /// widget / Control Center New Pad tap is drained even when the app is already
-        /// frontmost — a case where no activation transition fires
-        /// `applicationDidBecomeActive` (#485). Registered once for the app's lifetime. The C
-        /// callback can't capture context, so it just hops to the main actor and calls the
-        /// shared drain; `takePendingNewPad` deletes the file, so a double fire with
-        /// `applicationDidBecomeActive` is harmless (whichever loses gets nil).
+        /// Observes the Darwin notifications `WidgetSharedStore.requestNewPad` and
+        /// `requestOpenPad` post, so a widget / Control Center / Shortcuts request is
+        /// drained even when the app is already frontmost, a case where no activation
+        /// transition fires `applicationDidBecomeActive` (#485, #1046). Registered once
+        /// for the app's lifetime. The C callback can't capture context, so it just hops
+        /// to the main actor and calls the shared drain; the drain deletes each file, so
+        /// a double fire with `applicationDidBecomeActive` is harmless (whichever loses
+        /// finds the queue empty).
         func registerNewPadRequestObserver() {
-            CFNotificationCenterAddObserver(
-                CFNotificationCenterGetDarwinNotifyCenter(),
-                Unmanaged.passUnretained(self).toOpaque(),
-                { _, _, _, _, _ in
-                    // `Self` here would capture the dynamic Self type, which a C function
-                    // pointer can't form from — name the type explicitly.
-                    // swiftlint:disable:next prefer_self_in_static_references
-                    Task { @MainActor in AppDelegate.drainPendingNewPad() }
-                },
-                WidgetSharedStore.newPadRequestNotification as CFString,
-                nil,
-                .deliverImmediately
-            )
+            let notifications = [
+                WidgetSharedStore.newPadRequestNotification,
+                WidgetSharedStore.openPadRequestNotification
+            ]
+            for notification in notifications {
+                CFNotificationCenterAddObserver(
+                    CFNotificationCenterGetDarwinNotifyCenter(),
+                    Unmanaged.passUnretained(self).toOpaque(),
+                    { _, _, _, _, _ in
+                        // `Self` here would capture the dynamic Self type, which a C function
+                        // pointer can't form from — name the type explicitly.
+                        // swiftlint:disable:next prefer_self_in_static_references
+                        Task { @MainActor in AppDelegate.drainPendingWidgetRequests() }
+                    },
+                    notification as CFString,
+                    nil,
+                    .deliverImmediately
+                )
+            }
         }
 
-        /// Performs any pending widget / Control Center New Pad request and clears it. Shared
-        /// by `applicationDidBecomeActive` (cold launch / background→foreground) and the Darwin
-        /// observer (already-frontmost taps, #485). Drains every queued entry; whichever
-        /// activation path runs second simply finds the queue empty.
+        /// The `applicationDidBecomeActive` entry point (cold launch and
+        /// background→foreground); kept under its historical name for that call site.
+        /// Now also drains Shortcuts Open Pad requests, which previously sat orphaned
+        /// on disk forever because only iPadOS consumed them (#1046).
         @MainActor
         static func drainPendingNewPad() {
-            while let request = WidgetSharedStore.takePendingNewPad() {
-                createPadInBrowser(account: request.account, question: request.question)
+            drainPendingWidgetRequests()
+        }
+
+        /// Performs every pending widget / Control Center / Shortcuts request and clears
+        /// it, replaying both kinds in the order the user issued them so the most recent
+        /// action ends up on top (#1045). Shared by `applicationDidBecomeActive` and the
+        /// Darwin observer (already-frontmost requests, #485); whichever activation path
+        /// runs second simply finds the queue empty.
+        @MainActor
+        static func drainPendingWidgetRequests() {
+            for pending in WidgetSharedStore.takePendingRequestsInOrder() {
+                switch pending {
+                case let .newPad(request):
+                    createPadInBrowser(account: request.account, question: request.question)
+
+                case let .openPad(request):
+                    showPad(request)
+                }
             }
+        }
+
+        /// Routes a Shortcuts "Open Pad" request: switches to the request's account when
+        /// it is still configured, then selects the pad in the Pads list: the same
+        /// semantics as the iPad drain (`drainPendingWidgetRequests` in
+        /// coderpadApp+iOSScenes.swift), so the intent behaves identically everywhere.
+        @MainActor
+        private static func showPad(_ request: WidgetOpenPadRequest) {
+            if let account = request.account,
+               let uuid = UUID(uuidString: account),
+               AccountsStore.shared.accounts.contains(where: { $0.id == uuid }) {
+                AccountsStore.shared.showAllAccounts = false
+                AccountsStore.shared.currentAccountID = uuid
+            }
+            AppNavigation.shared.showPads(PadsRequest(selectPadID: request.id))
         }
 
         /// Creates a pad through the API and opens it in the user's browser — the same
