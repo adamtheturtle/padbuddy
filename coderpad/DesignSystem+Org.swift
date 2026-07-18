@@ -112,6 +112,10 @@ final class OrgDirectory {
         defer { inFlight = nil }
         let client = account.makeClient()
         if let org = try? await OrganizationCacheStore.shared.organization(via: client) {
+            // A session change cancels the navigation loader that called this;
+            // a stale load must not overwrite the new session's directory (#1239).
+            guard !Task.isCancelled else { return }
+
             var map: [String: String] = [:]
             for user in org.users {
                 if let name = user.name, !name.isEmpty {
@@ -159,6 +163,10 @@ final class OrgDirectory {
             }
             return collected
         }
+        // A session change cancels the navigation loader that called this; a stale
+        // merged load must not overwrite the new session's directory (#1239).
+        guard !Task.isCancelled else { return }
+
         var merged: [String: String] = [:]
         for (account, map) in maps {
             merged.merge(map) { first, _ in first }

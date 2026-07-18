@@ -65,14 +65,29 @@ enum NavigationSessionLoader {
         monitor: AccountHealthMonitor,
         active section: AppSection
     ) async {
+        // The session this loader was started for. The account or merged mode can
+        // change while the awaits below run (the hosting `.task(id:)` cancels this
+        // task, but cancellation only helps where it's checked): a stale loader
+        // must not run the health check - which reads the *current* account - for
+        // the session that replaced it (#1245), nor keep applying work after the
+        // new session began (#1239).
+        let session = NavigationSessionKey(accountID: store.currentAccountID, merged: store.isMergedView)
+        func sessionStillCurrent() -> Bool {
+            !Task.isCancelled
+                && session == NavigationSessionKey(accountID: store.currentAccountID,
+                                                   merged: store.isMergedView)
+        }
+
         if store.isMergedView {
             let accounts = store.mergeableAccounts
             // Warm inactive merged sections right away - concurrently with directory and
             // health checks - so the first switch can render cached rows instead of spinners.
             async let warmed: Void = prefetchInactiveMergedSections(accounts: accounts, active: section)
             await directory.loadMerged(for: accounts)
-            await monitor.checkCurrentAccount()
-            monitor.start()
+            if sessionStillCurrent() {
+                await monitor.checkCurrentAccount()
+                monitor.start()
+            }
             await warmed
         } else if let account = store.currentAccount {
             // Warm the list(s) not currently on screen right away - concurrently with
@@ -80,8 +95,10 @@ enum NavigationSessionLoader {
             // first switch to Pads/Questions has data ready instead of a spinner.
             async let warmed: Void = prefetchInactiveSections(account: account, active: section)
             await directory.load(for: account)
-            await monitor.checkCurrentAccount()
-            monitor.start()
+            if sessionStillCurrent() {
+                await monitor.checkCurrentAccount()
+                monitor.start()
+            }
             await warmed
         }
     }
@@ -111,6 +128,12 @@ enum NavigationSessionLoader {
     }
 
     private static func prefetchMergedPads(_ targets: [(id: UUID, client: CoderPadClient)]) async {
+        // Per-account write tokens captured before the fetches begin: a slow warm
+        // that completes after a fresher (user-initiated) write must not replace
+        // it (#1242).
+        let tokens = Dictionary(uniqueKeysWithValues: targets.map {
+            ($0.id, PadsCacheStore.shared.writeGeneration[$0.id] ?? 0)
+        })
         await withTaskGroup(of: (UUID, [Pad]?).self) { group in
             for target in targets {
                 group.addTask {
@@ -125,7 +148,8 @@ enum NavigationSessionLoader {
 
             let clientsByID = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, $0.client) })
             for await (id, pads) in group {
-                if let pads, let client = clientsByID[id] {
+                if let pads, let client = clientsByID[id],
+                   (PadsCacheStore.shared.writeGeneration[id] ?? 0) == tokens[id] {
                     PadsCacheStore.shared.set(id, pads: pads, via: client)
                 }
             }
@@ -133,6 +157,10 @@ enum NavigationSessionLoader {
     }
 
     private static func prefetchMergedQuestions(_ targets: [(id: UUID, client: CoderPadClient)]) async {
+        // See prefetchMergedPads for the write-token rationale (#1242).
+        let tokens = Dictionary(uniqueKeysWithValues: targets.map {
+            ($0.id, QuestionsCacheStore.shared.writeGeneration[$0.id] ?? 0)
+        })
         await withTaskGroup(of: (UUID, [Question]?).self) { group in
             for target in targets {
                 group.addTask {
@@ -147,7 +175,8 @@ enum NavigationSessionLoader {
 
             let clientsByID = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, $0.client) })
             for await (id, questions) in group {
-                if let questions, let client = clientsByID[id] {
+                if let questions, let client = clientsByID[id],
+                   (QuestionsCacheStore.shared.writeGeneration[id] ?? 0) == tokens[id] {
                     QuestionsCacheStore.shared.set(id, questions: questions, via: client)
                 }
             }
@@ -204,31 +233,52 @@ enum NavigationSessionLoader {
     // logged (privacy-safe: account id + error text) rather than swallowed, so a
     // consistently failing warm is diagnosable from Console (#1243).
     private static func prefetchPads(id: UUID, client: CoderPadClient) async {
+        // Write-token coordination (#1242): every write re-checks that no OTHER
+        // writer (a user-initiated reload finishing after this warm began) touched
+        // the account since this warm's previous write. When one did, the warm
+        // stops writing - the fresher result wins - rather than replacing it.
+        var token = PadsCacheStore.shared.writeGeneration[id] ?? 0
+        func writeIfCurrent(_ pads: [Pad], persist: Bool) {
+            guard (PadsCacheStore.shared.writeGeneration[id] ?? 0) == token else { return }
+
+            PadsCacheStore.shared.set(id, pads: pads, via: client, persist: persist)
+            token = PadsCacheStore.shared.writeGeneration[id] ?? 0
+        }
+
         var latest: [Pad] = []
         do {
             for try await snapshot in client.listPadsIncrementally() {
                 latest = snapshot
-                PadsCacheStore.shared.set(id, pads: snapshot, via: client, persist: false)
+                writeIfCurrent(snapshot, persist: false)
             }
-            PadsCacheStore.shared.set(id, pads: latest, via: client)
+            writeIfCurrent(latest, persist: true)
         } catch {
             logPrefetchFailure("pads", account: id, error: error)
-            if !latest.isEmpty { PadsCacheStore.shared.set(id, pads: latest, via: client, persist: false) }
+            if !latest.isEmpty { writeIfCurrent(latest, persist: false) }
         }
     }
 
     private static func prefetchQuestions(id: UUID, client: CoderPadClient) async {
+        // See prefetchPads for the write-token rationale (#1242).
+        var token = QuestionsCacheStore.shared.writeGeneration[id] ?? 0
+        func writeIfCurrent(_ questions: [Question], persist: Bool) {
+            guard (QuestionsCacheStore.shared.writeGeneration[id] ?? 0) == token else { return }
+
+            QuestionsCacheStore.shared.set(id, questions: questions, via: client, persist: persist)
+            token = QuestionsCacheStore.shared.writeGeneration[id] ?? 0
+        }
+
         var latest: [Question] = []
         do {
             for try await snapshot in client.listQuestionsIncrementally() {
                 latest = snapshot
-                QuestionsCacheStore.shared.set(id, questions: snapshot, via: client, persist: false)
+                writeIfCurrent(snapshot, persist: false)
             }
-            QuestionsCacheStore.shared.set(id, questions: latest, via: client)
+            writeIfCurrent(latest, persist: true)
         } catch {
             logPrefetchFailure("questions", account: id, error: error)
             if !latest.isEmpty {
-                QuestionsCacheStore.shared.set(id, questions: latest, via: client, persist: false)
+                writeIfCurrent(latest, persist: false)
             }
         }
     }
