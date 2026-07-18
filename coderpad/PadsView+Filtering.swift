@@ -18,7 +18,14 @@ extension PadsView {
     /// `refreshFiltered()` recomputes it once at the top of `body`, so every read in
     /// that pass is O(1) and always current.
     var filtered: [Pad] {
-        filteredCache.pads
+        // Rows scheduled for bulk deletion leave the list for the undo grace
+        // period, so they can't be opened, edited, or re-selected while doomed;
+        // Undo brings them straight back untouched (#1262). Applied on top of the
+        // memo (not inside it) so the cache key needn't track the pending batch.
+        guard let pending = pendingBulkDeleteUndo else { return filteredCache.pads }
+
+        let doomed = Set(pending.items.map(\.id))
+        return filteredCache.pads.filter { !doomed.contains($0.id) }
     }
 
     func refreshFiltered() {

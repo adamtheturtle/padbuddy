@@ -334,9 +334,17 @@ extension MergedQuestionsView {
 
     /// Delete several selected questions at once, each against its own account's
     /// client (per-org), looping the same delete-then-broadcast path the detail view
-    /// uses so every list drops the row and the selection follows. Surfaces a failure.
+    /// uses so every list drops the row and the selection follows. Failures are
+    /// aggregated into one report naming the questions that remain, rather than each
+    /// failure overwriting the previous one (#1208).
     func bulkDelete(_ rows: [MergedQuestionRow]) async {
+        var failedTitles: [String] = []
+        var lastError: String?
         for row in rows {
+            // Navigating away cancels the batch task via `onDisappear`; stop the
+            // remaining destructive requests instead of firing them unobserved (#1257).
+            guard !Task.isCancelled else { return }
+
             // The undo grace period can outlive an account change: a row whose
             // account was removed or re-keyed meanwhile must not fire a
             // destructive delete through credentials the user just revoked or
@@ -348,8 +356,14 @@ extension MergedQuestionsView {
                 try await row.account.makeClient().deleteQuestion(id: row.item.id)
                 AppRouter.questionDeleted(id: row.item.id, account: row.account.id)
             } catch {
-                bulkDeleteError = error.localizedDescription
+                failedTitles.append(row.item.displayTitle)
+                lastError = error.localizedDescription
             }
+        }
+        if let lastError {
+            bulkDeleteError = BulkDeleteUndo.questionFailureReport(
+                failedTitles: failedTitles, total: rows.count, lastError: lastError
+            )
         }
     }
 

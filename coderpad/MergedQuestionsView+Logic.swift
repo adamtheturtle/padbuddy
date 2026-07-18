@@ -75,7 +75,13 @@ extension MergedQuestionsView {
     /// Filtered rows arranged by the active sort, matching `QuestionsView.sorted`.
     /// Memoized into `sortedCache` once per render by `refreshSorted()`.
     var sorted: [MergedQuestionRow] {
-        sortedCache.rows
+        // Rows scheduled for bulk deletion leave the list for the undo grace
+        // period, so they can't be opened, edited, or re-selected while doomed;
+        // Undo brings them straight back untouched (#1262).
+        guard let pending = pendingBulkDeleteUndo else { return sortedCache.rows }
+
+        let doomed = Set(pending.items.map(\.id))
+        return sortedCache.rows.filter { !doomed.contains($0.id) }
     }
 
     /// Rebuild the memoized filtered + sorted rows for one render. Folds the filter

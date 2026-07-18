@@ -58,18 +58,35 @@ extension QuestionsView {
 
     /// Delete several selected questions at once, looping the same per-question API
     /// path the detail view uses (delete, then broadcast so every list drops the row
-    /// and the selection follows). Surfaces a failure in the alert. `account` is the
-    /// account that owned the questions when the delete was scheduled — the undo grace
-    /// period can outlive an account switch, and the broadcast must stay scoped to the
-    /// account actually deleted from, not whatever is current at fire time (#1013).
+    /// and the selection follows). `account` is the account that owned the questions
+    /// when the delete was scheduled — the undo grace period can outlive an account
+    /// switch, and the broadcast must stay scoped to the account actually deleted
+    /// from, not whatever is current at fire time (#1013). Failures are aggregated
+    /// into one report naming the questions that remain, rather than each failure
+    /// overwriting the previous one (#1208).
     func bulkDelete(_ questions: [Question], account: UUID?) async {
+        var failedTitles: [String] = []
+        var lastError: String?
         for question in questions {
+            // Navigating away cancels the batch task via `onDisappear`; stop the
+            // remaining destructive requests instead of firing them unobserved.
+            // Likewise stop if the owning account was removed mid-batch — its
+            // credentials were just revoked (#1257).
+            guard !Task.isCancelled else { return }
+            if let account, !accounts.accounts.contains(where: { $0.id == account }) { return }
+
             do {
                 try await client.deleteQuestion(id: question.id)
                 AppRouter.questionDeleted(id: question.id, account: account)
             } catch {
-                bulkDeleteError = error.localizedDescription
+                failedTitles.append(question.displayTitle)
+                lastError = error.localizedDescription
             }
+        }
+        if let lastError {
+            bulkDeleteError = BulkDeleteUndo.questionFailureReport(
+                failedTitles: failedTitles, total: questions.count, lastError: lastError
+            )
         }
     }
 

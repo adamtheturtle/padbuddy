@@ -83,7 +83,13 @@ extension MergedPadsView {
     }
 
     var filtered: [AccountScoped<Account, Pad>] {
-        filteredCache.rows
+        // Rows scheduled for bulk deletion leave the list for the undo grace
+        // period, so they can't be opened, edited, or re-selected while doomed;
+        // Undo brings them straight back untouched (#1262).
+        guard let pending = pendingBulkDeleteUndo else { return filteredCache.rows }
+
+        let doomed = Set(pending.items.map(\.id))
+        return filteredCache.rows.filter { !doomed.contains($0.id) }
     }
 
     func refreshFiltered() {
