@@ -161,12 +161,19 @@ extension PadDetailView {
     }
 
     func load() async {
+        // One request at a time: over cached content `isLoading` stays false, so
+        // without this guard repeated Retry clicks each launched another events
+        // fetch plus every environment request, racing their completions (#787).
+        guard !isRefreshing else { return }
+
+        isRefreshing = true
+        defer { isRefreshing = false }
+
         // Only show the blocking spinner when there's nothing to show yet. When the
         // pad was seeded from the session cache (or a prior load), refresh silently
         // over the existing content instead of flashing the spinner on top (#323).
         let hasContent = !events.isEmpty || !environments.isEmpty
         if !hasContent { isLoading = true }
-        loadError = nil
 
         async let events = client.padEvents(padID: pad.id)
         async let envs = loadEnvironments()
@@ -185,6 +192,10 @@ extension PadDetailView {
                 ($0.createdAt ?? .distantPast) < ($1.createdAt ?? .distantPast)
             }
             self.events = loadedEvents
+            // Cleared on success rather than up front, so the failure card (and its
+            // now-disabled Retry) stays visible while the retry is in flight instead
+            // of flashing away and back if the retry also fails (#787).
+            loadError = nil
             // Warm the session cache so a later return to this pad is instant.
             PadDetailCacheStore.shared.set(pad.id, client: client, events: loadedEvents,
                                            environments: loadedEnvironments)
@@ -266,12 +277,18 @@ extension PadDetailView {
     }
 
     private func loadEnvironments() async -> [PadEnvironment] {
+        // `pad_environment_ids` comes straight off the wire, so collapse duplicates
+        // first: a repeated id both fetched (and displayed) the same environment
+        // twice and trapped the ordering map's `uniqueKeysWithValues` below (#786).
+        var seenIDs = Set<Int>()
+        let ids = pad.padEnvironmentIDs.filter { seenIDs.insert($0).inserted }
+
         // Fan the per-id fetches out concurrently rather than awaiting each in turn,
         // so an N-environment pad pays ~1×RTT instead of N×RTT before its code
         // preview appears (#371). Order is restored by id afterward, since task
         // groups yield results as they finish.
         let environments = await withTaskGroup(of: PadEnvironment?.self) { group in
-            for id in pad.padEnvironmentIDs {
+            for id in ids {
                 group.addTask { try? await client.padEnvironment(id: id) }
             }
             var collected: [PadEnvironment] = []
@@ -280,7 +297,7 @@ extension PadDetailView {
             }
             return collected
         }
-        let order = Dictionary(uniqueKeysWithValues: pad.padEnvironmentIDs.enumerated().map { ($1, $0) })
+        let order = Dictionary(uniqueKeysWithValues: ids.enumerated().map { ($1, $0) })
         return environments.sorted { (order[$0.id] ?? 0) < (order[$1.id] ?? 0) }
     }
 }

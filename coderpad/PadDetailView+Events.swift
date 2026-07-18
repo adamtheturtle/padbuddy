@@ -45,10 +45,18 @@ extension PadDetailView {
                 .foregroundStyle(.orange)
                 .font(.callout)
             // Inline recovery so a failed fetch doesn't force a navigate-away-and-back
-            // or a global reload (#621). Disabled while a retry is already in flight.
-            Button("Retry") { Task { await load() } }
-                .controlSize(.small)
-                .disabled(isLoading)
+            // or a global reload (#621). Disabled (with progress) while a retry is in
+            // flight — `isRefreshing` covers silent refreshes over cached content,
+            // where `isLoading` stays false, so clicks can't stack requests (#787).
+            HStack(spacing: 8) {
+                Button("Retry") { Task { await load() } }
+                    .controlSize(.small)
+                    .disabled(isRefreshing)
+                if isRefreshing {
+                    ProgressView()
+                        .controlSize(.small)
+                }
+            }
         }
     }
 
