@@ -7,12 +7,14 @@ import SwiftUI
 
 // File-scope and nonisolated (mirroring `QuestionDetailPane`): nested in the
 // view, its members inherited MainActor isolation, which the nonisolated
-// `DetailChipItem` conformance can't cross.
-private nonisolated enum PadDetailSection: String, CaseIterable, DetailChipItem {
-    case summary
+// `DetailChipItem` conformance can't cross. The summary (header, properties,
+// participants, activity) is not a pane - it always renders above the selected
+// pane's content, the way question detail always shows its summary card.
+nonisolated enum PadDetailSection: String, CaseIterable, DetailChipItem {
     case notes
     case code
     case whiteboard
+    case history
     case events
 
     var id: Self {
@@ -21,20 +23,20 @@ private nonisolated enum PadDetailSection: String, CaseIterable, DetailChipItem 
 
     var label: LocalizedStringKey {
         switch self {
-        case .summary: "Summary"
         case .notes: "Notes"
         case .code: "Code"
         case .whiteboard: "Whiteboard"
+        case .history: "History"
         case .events: "Events"
         }
     }
 
     var systemImage: String {
         switch self {
-        case .summary: "info.circle"
         case .notes: "note.text"
         case .code: "chevron.left.forwardslash.chevron.right"
         case .whiteboard: "scribble.variable"
+        case .history: "clock.arrow.circlepath"
         case .events: "list.bullet.rectangle"
         }
     }
@@ -42,75 +44,86 @@ private nonisolated enum PadDetailSection: String, CaseIterable, DetailChipItem 
 
 extension PadDetailView {
     var detailScroll: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                VStack(alignment: .leading, spacing: detailSectionSpacing) {
-                    summaryCard
-                        .id(PadDetailSection.summary)
-                    notesCard
-                        .id(PadDetailSection.notes)
-                    Divider()
-                    let codeEnvironments = environments.filter { !displayFiles(for: $0).isEmpty }
-                    if !codeEnvironments.isEmpty {
-                        VStack(alignment: .leading, spacing: detailSectionSpacing) {
-                            ForEach(codeEnvironments) { env in
-                                let files = displayFiles(for: env)
-                                EnvironmentCodeCard(
-                                    files: files,
-                                    isActive: env.id == pad.activeEnvironmentID,
-                                    showActiveBadge: environments.count > 1,
-                                    language: env.language,
-                                    padID: pad.id,
-                                    dark: colorScheme == .dark,
-                                    exampleQuestionID: env.exampleQuestionID
-                                )
-                            }
-                        }
-                        .id(PadDetailSection.code)
-                    }
-                    if whiteboardURL != nil {
-                        whiteboardCard
-                            .id(PadDetailSection.whiteboard)
-                    }
-                    if hasHistory {
-                        historyCard
-                    }
-                    eventsCard
-                        .id(PadDetailSection.events)
-                }
-                .padding(.horizontal, detailHorizontalPadding)
-                .padding(.top, detailTopPadding)
-                .padding(.bottom, detailBottomPadding)
-                .frame(maxWidth: .infinity, alignment: .leading)
+        ScrollView {
+            VStack(alignment: .leading, spacing: detailSectionSpacing) {
+                summaryCard
+                Divider()
+                selectedSectionContent
             }
-            .safeAreaInset(edge: .top, spacing: 0) {
-                sectionNavigator(proxy: proxy)
-            }
+            .padding(.horizontal, detailHorizontalPadding)
+            .padding(.top, detailTopPadding)
+            .padding(.bottom, detailBottomPadding)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .safeAreaInset(edge: .top, spacing: 0) {
+            sectionSwitcher
         }
     }
 
     private var availableSections: [PadDetailSection] {
         PadDetailSection.allCases.filter { section in
             switch section {
-            case .summary, .notes, .events:
+            case .notes, .events:
                 true
             case .code:
                 codeCardCount > 0
             case .whiteboard:
                 whiteboardURL != nil
+            case .history:
+                hasHistory
             }
         }
     }
 
-    /// Shares question detail's pinned chip bar; here the chips are momentary
-    /// scroll-to-section buttons (no `selection`), since a pad reads as one
-    /// document rather than exclusive panes.
-    private func sectionNavigator(proxy: ScrollViewProxy) -> some View {
+    /// The section actually shown: falls back to Notes (always available) when
+    /// the selected chip disappears, e.g. a reload drops the pad's only code
+    /// environment while Code is selected.
+    private var activeSection: PadDetailSection {
+        availableSections.contains(selectedSection) ? selectedSection : .notes
+    }
+
+    /// Shares question detail's pinned chip bar; the chips bind `selection` and
+    /// switch mutually exclusive panes (#980), so a pad's long code, history,
+    /// and event timeline no longer stack into one endless scroll.
+    private var sectionSwitcher: some View {
         DetailChipBar(items: availableSections,
+                      selection: activeSection,
                       horizontalPadding: detailHorizontalPadding,
                       accessibilityLabel: "Pad detail sections") { section in
-            withAnimation(.snappy(duration: 0.2)) {
-                proxy.scrollTo(section, anchor: .top)
+            withAnimation(.snappy(duration: 0.18)) {
+                selectedSection = section
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var selectedSectionContent: some View {
+        switch activeSection {
+        case .notes:
+            notesCard
+        case .code:
+            codeCards
+        case .whiteboard:
+            whiteboardCard
+        case .history:
+            historyCard
+        case .events:
+            eventsCard
+        }
+    }
+
+    private var codeCards: some View {
+        VStack(alignment: .leading, spacing: detailSectionSpacing) {
+            ForEach(environments.filter { !displayFiles(for: $0).isEmpty }) { env in
+                EnvironmentCodeCard(
+                    files: displayFiles(for: env),
+                    isActive: env.id == pad.activeEnvironmentID,
+                    showActiveBadge: environments.count > 1,
+                    language: env.language,
+                    padID: pad.id,
+                    dark: colorScheme == .dark,
+                    exampleQuestionID: env.exampleQuestionID
+                )
             }
         }
     }

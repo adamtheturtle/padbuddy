@@ -21,6 +21,10 @@ struct PadDetailView: View {
     /// Starts true so the Events section shows its spinner on the first frame
     /// rather than flashing "No events yet." before `load()` begins.
     @State var isLoading = true
+    /// The pane the chip bar shows (#980). Notes first: it's the pad's only
+    /// long-form editable field and the one pane every pad has. The view is
+    /// recreated per pad (`.id(pad.id)`), so each pad starts here.
+    @State var selectedSection: PadDetailSection = .notes
     @State var isLoadingHistory = false
     // Inline-editable field drafts, seeded from the pad and committed one field at
     // a time. Each control binds to its draft for an immediate, optimistic update;
