@@ -58,6 +58,12 @@ extension QuestionsView {
                                           systemImage: isActiveSearch(item.search) ? "checkmark" : item.icon)
                                 }
                             }
+
+                            Button {
+                                favoritesOnly = true
+                            } label: {
+                                Label("Favorite Questions", systemImage: favoritesOnly ? "checkmark" : "star.fill")
+                            }
                         } label: {
                             Label("Suggestions", systemImage: "line.3.horizontal.decrease.circle")
                         }

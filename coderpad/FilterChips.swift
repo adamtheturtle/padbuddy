@@ -213,6 +213,42 @@ struct DateRangeFilterChip: View {
     }
 }
 
+/// A boolean preset chip: one tap toggles the bound filter on or off, with no menu
+/// behind it. Wears the same idle pill / active accent-glass capsule styling as the
+/// menu-backed chips so it reads as part of the same filter bar (used by the
+/// Questions "Favorites" filter, #1008).
+struct ToggleFilterChip: View {
+    let title: String
+    let icon: String
+    @Binding var isOn: Bool
+    @Environment(\.colorSchemeContrast) private var contrast
+
+    var body: some View {
+        Button {
+            isOn.toggle()
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: icon).font(.caption).accessibilityHidden(true)
+                Text(title).font(.callout).lineLimit(1)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 10).padding(.vertical, 5)
+        .foregroundStyle(chipLabelColor(isActive: isOn))
+        .chipCapsule(
+            glassTint: isOn ? .accentColor : nil,
+            fallbackFill: isOn ? Color.accentColor.opacity(0.18) : Color.chipIdleFill,
+            fallbackStroke: isOn ? Color.accentColor.opacity(0.4) : Color.subtleStroke,
+            fallbackStrokeWidth: ChipContrast.lineWidth(contrast)
+        )
+        .fixedSize()
+        // Announce the on/off state to VoiceOver; the visual accent fill alone
+        // doesn't reach assistive tech.
+        .accessibilityAddTraits(isOn ? .isSelected : [])
+    }
+}
+
 #Preview("Filter chips — idle vs active") {
     VStack(alignment: .leading, spacing: 20) {
         Text("Filter chips (capsule pills)").font(.headline)
@@ -226,6 +262,9 @@ struct DateRangeFilterChip: View {
             FilterChipMenu(title: "Language", icon: "chevron.left.slash.chevron.right",
                            selected: .constant(Optional("Python")),
                            options: ["Python", "Swift"], formatter: { $0 })
+            // Boolean preset chip, idle and toggled on.
+            ToggleFilterChip(title: "Favorites", icon: "star", isOn: .constant(false))
+            ToggleFilterChip(title: "Favorites", icon: "star", isOn: .constant(true))
         }
 
         Text("Saved-search tokens (rounded rectangles)").font(.headline)

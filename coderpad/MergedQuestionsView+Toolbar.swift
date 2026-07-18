@@ -46,6 +46,12 @@ extension MergedQuestionsView {
                         } label: {
                             Label("Drafts", systemImage: draftFilter == "draft" ? "checkmark" : "doc.badge.ellipsis")
                         }
+
+                        Button {
+                            favoritesOnly = true
+                        } label: {
+                            Label("Favorite Questions", systemImage: favoritesOnly ? "checkmark" : "star.fill")
+                        }
                     } label: {
                         Label("Suggestions", systemImage: "line.3.horizontal.decrease.circle")
                     }

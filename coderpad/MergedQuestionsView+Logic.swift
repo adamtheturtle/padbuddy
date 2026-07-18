@@ -255,7 +255,10 @@ extension MergedQuestionsView {
             typeFilter,
             draftFilter,
             accountFilter?.uuidString,
-            mineOnly ? "mine" : nil
+            mineOnly ? "mine" : nil,
+            // In the signature so a favorites-only toggle still fires the
+            // persistence `onChange` (#1008).
+            favoritesOnly ? "favorites" : nil
         ])
     }
 

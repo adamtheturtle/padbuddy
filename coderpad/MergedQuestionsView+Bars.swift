@@ -51,6 +51,13 @@ extension MergedQuestionsView {
                 formatter: { $0 == "draft" ? String(localized: "Draft") : String(localized: "Published") }
             )
             .measuresFilterBarWidth()
+            // Only shown while some account has starred questions: unstarring the
+            // last favorite auto-clears the filter (see `toggleFavorite`), and an
+            // always-empty Favorites view isn't worth a chip (#1008).
+            if hasAnyFavorites {
+                ToggleFilterChip(title: String(localized: "Favorites"), icon: "star", isOn: $favoritesOnly)
+                    .measuresFilterBarWidth()
+            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)

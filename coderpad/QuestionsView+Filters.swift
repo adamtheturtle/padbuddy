@@ -29,6 +29,13 @@ extension QuestionsView {
                            selected: $draftFilter, options: ["draft", "published"],
                            formatter: { $0 == "draft" ? String(localized: "Draft") : String(localized: "Published") })
                 .measuresFilterBarWidth()
+            // Only shown while the account has starred questions: unstarring the
+            // last favorite auto-clears the filter (see `toggleFavorite`), and an
+            // always-empty Favorites view isn't worth a chip (#1008).
+            if hasAnyFavorites {
+                ToggleFilterChip(title: String(localized: "Favorites"), icon: "star", isOn: $favoritesOnly)
+                    .measuresFilterBarWidth()
+            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -53,6 +60,14 @@ extension QuestionsView {
         typeFilter = nil
         draftFilter = nil
         favoritesOnly = false
+    }
+
+    /// Whether the current account has at least one starred question, gating the
+    /// Favorites preset chip. A live store read (not the per-render `favoriteIDSet`
+    /// memo), so the chip and the auto-clear guard both see a star toggled this
+    /// same pass; mirrors `MergedQuestionsView.hasAnyFavorites`.
+    var hasAnyFavorites: Bool {
+        !favorites.favorites(account: accounts.currentAccountID).isEmpty
     }
 
     var hasActiveFilters: Bool {

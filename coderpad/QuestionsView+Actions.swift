@@ -76,8 +76,10 @@ extension QuestionsView {
         favorites.toggle(question.id, title: question.displayTitle, account: account, undoManager: undoManager)
         // Unstarring the last favorite hides the Favorites chip, so drop the
         // filter too — otherwise it would strand the list on an empty result with
-        // no visible control to turn it back off.
-        if favoritesOnly, favoriteIDSet.isEmpty {
+        // no visible control to turn it back off. Read the store live: the
+        // memoized `favoriteIDSet` is only rebuilt at the top of `body`, so it
+        // still contains the id the toggle above just removed (#1008).
+        if favoritesOnly, !hasAnyFavorites {
             favoritesOnly = false
         }
     }
