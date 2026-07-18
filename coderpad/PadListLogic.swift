@@ -161,6 +161,15 @@ nonisolated struct PadFileHistory: Identifiable, Hashable {
     let history: PadHistory
     let snapshots: [PadHistorySnapshot]
 
+    /// Caps for snapshot construction (#1763): histories are remote data, and
+    /// replaying an unbounded entry list into full per-edit snapshots could consume
+    /// unbounded CPU and memory. An overlong history keeps its most recent
+    /// `maxSnapshotEntries` edits (older ones are replayed into the starting
+    /// contents so the kept snapshots stay correct), and snapshot retention stops
+    /// once the stored contents pass the byte budget.
+    static let maxSnapshotEntries = 10_000
+    static let maxSnapshotBytes = 64_000_000
+
     init(id: String, title: String, language: String?, history: PadHistory) {
         self.id = id
         self.title = title
@@ -168,11 +177,22 @@ nonisolated struct PadFileHistory: Identifiable, Hashable {
         self.history = history
 
         var contents = ""
-        snapshots = history.entries.enumerated().map { index, entry in
+        let entries = history.entries
+        let overflow = max(0, entries.count - Self.maxSnapshotEntries)
+        for entry in entries.prefix(overflow) {
             contents = entry.applying(to: contents)
-            return PadHistorySnapshot(index: index, entry: entry, contents: contents,
-                                      changeLine: Self.changeLine(of: entry, in: contents))
         }
+        var built: [PadHistorySnapshot] = []
+        var storedBytes = 0
+        for (index, entry) in entries.dropFirst(overflow).enumerated() {
+            contents = entry.applying(to: contents)
+            storedBytes += contents.utf8.count
+            guard storedBytes <= Self.maxSnapshotBytes else { break }
+
+            built.append(PadHistorySnapshot(index: index, entry: entry, contents: contents,
+                                            changeLine: Self.changeLine(of: entry, in: contents)))
+        }
+        snapshots = built
     }
 
     var latestEntry: PadHistoryEntry? {

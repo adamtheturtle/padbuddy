@@ -5,6 +5,7 @@
 //  The per-pad detail cache, split out of Accounts+Cache.swift for file length.
 //
 
+import CryptoKit
 import Foundation
 
 /// Holds the last-loaded events and environments per pad, so re-selecting a pad
@@ -16,15 +17,27 @@ import Foundation
 final class PadDetailCacheStore {
     static let shared = PadDetailCacheStore()
 
+    /// A client identity as the cache tracks it: the server plus a digest of the
+    /// API key. The digest, never the key itself — cache keys sit in an
+    /// observable dictionary for the whole session and must not keep raw
+    /// credentials resident for memory inspection (#1767).
+    struct ClientIdentity: Hashable {
+        var baseURL: URL
+        var apiKeyDigest: String
+
+        init(baseURL: URL, apiKey: String) {
+            self.baseURL = baseURL
+            apiKeyDigest = SHA256.hash(data: Data(apiKey.utf8)).map { String(format: "%02x", $0) }.joined()
+        }
+    }
+
     struct Key: Hashable {
         var padID: String
-        var baseURL: URL
-        var apiKey: String
+        var identity: ClientIdentity
 
         init(padID: String, client: CoderPadClient) {
             self.padID = padID
-            baseURL = client.baseURL
-            apiKey = client.apiKey
+            identity = ClientIdentity(baseURL: client.baseURL, apiKey: client.apiKey)
         }
     }
 
@@ -41,15 +54,32 @@ final class PadDetailCacheStore {
     /// preserves the instant re-open behaviour (#323) while bounding memory, mirroring
     /// the count caps the other in-process caches already use.
     private static let limit = 12
+    /// The largest single entry worth keeping resident (#1768): one pathological pad
+    /// (an enormous history or file set) must not defeat the count cap. Oversized
+    /// loads still display; they just aren't cached for re-open.
+    private static let maxEntryBytes = 8_000_000
 
     private(set) var byPad: [Key: Entry] = [:]
     /// Cache keys in least- to most-recently-opened order, so an overflow evicts the
     /// least-recently-used entry. Bookkeeping only, so it stays out of observation.
     @ObservationIgnored private var lru: [Key] = []
+    /// Client identities torn down by account removal/re-key. A detail request begun
+    /// under old credentials can complete after the purge; its late `set` must not
+    /// reinsert candidate data under the retired key (#1765). An identity that
+    /// becomes live again (the account re-added) is reinstated by
+    /// `ClientCacheTeardown.reconcile`.
+    @ObservationIgnored private var retired: Set<ClientIdentity> = []
     private init() {}
 
     func get(_ padID: String, client: CoderPadClient) -> Entry? {
-        byPad[Key(padID: padID, client: client)]
+        let key = Key(padID: padID, client: client)
+        guard let entry = byPad[key] else { return nil }
+
+        // A read is a use: a frequently reopened pad whose refresh keeps failing
+        // must not be evicted as if it were never accessed (#1766).
+        lru.removeAll { $0 == key }
+        lru.append(key)
+        return entry
     }
 
     func set(_ padID: String, client: CoderPadClient, events: [PadEvent], environments: [PadEnvironment]) {
@@ -64,7 +94,20 @@ final class PadDetailCacheStore {
     }
 
     private func set(_ key: Key, events: [PadEvent], environments: [PadEnvironment], histories: [PadFileHistory]) {
-        byPad[key] = Entry(events: events, environments: environments, histories: histories)
+        // A late load that outlived its account's removal or re-key must not
+        // repopulate the cache under the retired identity (#1765).
+        guard !retired.contains(key.identity) else { return }
+
+        let entry = Entry(events: events, environments: environments, histories: histories)
+        guard Self.approximateBytes(of: entry) <= Self.maxEntryBytes else {
+            // Over the byte cap (#1768): drop any stale cached copy too, so a
+            // re-open can't serve an older, smaller snapshot as current.
+            byPad[key] = nil
+            lru.removeAll { $0 == key }
+            return
+        }
+
+        byPad[key] = entry
         // Mark this pad most-recently-used, then evict the oldest while over the cap.
         // `set` runs on every open (load() refreshes), so set-order tracks open-order.
         lru.removeAll { $0 == key }
@@ -72,6 +115,23 @@ final class PadDetailCacheStore {
         while lru.count > Self.limit {
             byPad[lru.removeFirst()] = nil
         }
+    }
+
+    /// A rough resident-size estimate: file and snapshot contents dominate a pad
+    /// detail entry; events contribute a small fixed cost each (#1768).
+    private static func approximateBytes(of entry: Entry) -> Int {
+        var total = entry.events.count * 200
+        for environment in entry.environments {
+            for file in environment.fileContents {
+                total += file.contents?.utf8.count ?? 0
+            }
+        }
+        for history in entry.histories {
+            for snapshot in history.snapshots {
+                total += snapshot.contents.utf8.count
+            }
+        }
+        return total
     }
 
     func remove(_ padID: String, client: CoderPadClient) {
@@ -82,12 +142,21 @@ final class PadDetailCacheStore {
 
     /// Drops every cached detail fetched with this client identity, so removing
     /// or re-keying an account leaves none of its candidate code, event logs, or
-    /// histories resident (#884, #719).
+    /// histories resident (#884, #719), and retires the identity so an in-flight
+    /// load can't repopulate it (#1765).
     func remove(baseURL: URL, apiKey: String) {
-        let stale = byPad.keys.filter { $0.baseURL == baseURL && $0.apiKey == apiKey }
+        let identity = ClientIdentity(baseURL: baseURL, apiKey: apiKey)
+        retired.insert(identity)
+        let stale = byPad.keys.filter { $0.identity == identity }
         for key in stale {
             byPad[key] = nil
         }
         lru.removeAll(where: stale.contains)
+    }
+
+    /// Marks a live client identity cacheable again: an account re-added with the
+    /// same credentials must not stay blocked by its earlier retirement (#1765).
+    func reinstate(baseURL: URL, apiKey: String) {
+        retired.remove(ClientIdentity(baseURL: baseURL, apiKey: apiKey))
     }
 }

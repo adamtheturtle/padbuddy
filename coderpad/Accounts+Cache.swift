@@ -71,6 +71,25 @@ final class PadsCacheStore {
         return []
     }
 
+    /// Warms the in-memory snapshot from disk off the main actor, so the first
+    /// list render after launch finds memory already populated instead of doing
+    /// a large JSON read/decode inside `body` (#1769). `get`'s synchronous disk
+    /// fallback remains for accounts added mid-session.
+    func prewarm(_ accountID: UUID) {
+        guard padsByAccount[accountID] == nil, !diskConsulted.contains(accountID) else { return }
+
+        Task {
+            let disk = await Task.detached(priority: .utility) {
+                CacheDisk.load([Pad].self, kind: "pads", account: accountID)
+            }.value
+            // A load or removal that landed meanwhile wins over the prewarm.
+            guard padsByAccount[accountID] == nil, !diskConsulted.contains(accountID) else { return }
+
+            diskConsulted.insert(accountID)
+            if let disk { padsByAccount[accountID] = disk }
+        }
+    }
+
     /// `persist: false` updates only the in-memory snapshot, skipping the disk write —
     /// used when streaming pages so intermediate snapshots warm the UI without churning
     /// the disk; the caller persists once with the final, complete list.
@@ -205,6 +224,22 @@ final class QuestionsCacheStore {
             }
         }
         return []
+    }
+
+    /// Warms the in-memory snapshot from disk off the main actor; see
+    /// ``PadsCacheStore/prewarm(_:)`` (#1769).
+    func prewarm(_ accountID: UUID) {
+        guard questionsByAccount[accountID] == nil, !diskConsulted.contains(accountID) else { return }
+
+        Task {
+            let disk = await Task.detached(priority: .utility) {
+                CacheDisk.load([Question].self, kind: "questions", account: accountID)
+            }.value
+            guard questionsByAccount[accountID] == nil, !diskConsulted.contains(accountID) else { return }
+
+            diskConsulted.insert(accountID)
+            if let disk { questionsByAccount[accountID] = disk }
+        }
     }
 
     /// `persist: false` updates only the in-memory snapshot, skipping disk, Spotlight,

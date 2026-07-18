@@ -241,6 +241,11 @@ enum ClientCacheTeardown {
             OrganizationCacheStore.shared.remove(baseURL: previous.baseURL, apiKey: previous.apiKey)
             PadDetailCacheStore.shared.remove(baseURL: previous.baseURL, apiKey: previous.apiKey)
         }
+        // A live identity is cacheable even if it was retired earlier (the same
+        // account re-added), so late-load protection can't block it forever (#1765).
+        for identity in current.values {
+            PadDetailCacheStore.shared.reinstate(baseURL: identity.baseURL, apiKey: identity.apiKey)
+        }
         lastKnown = current
     }
 }

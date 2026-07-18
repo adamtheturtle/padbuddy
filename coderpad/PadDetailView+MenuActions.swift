@@ -235,6 +235,7 @@ extension PadDetailView {
         let requests = historyRequests(for: environments)
         guard !requests.isEmpty else {
             histories = []
+            historyLoadFailures = 0
             return
         }
 
@@ -242,22 +243,31 @@ extension PadDetailView {
         defer { isLoadingHistory = false }
 
         let client = client
-        func fetch(_ request: PadHistoryRequest) async -> PadFileHistory? {
-            guard let history = try? await client.padHistory(historyURL: request.url),
-                  !history.isEmpty else { return nil }
+        // A failed fetch is distinguished from a genuinely empty history, so the
+        // card can say some files' history couldn't be loaded instead of showing
+        // silently incomplete playback (#1762); Refresh retries them.
+        func fetch(_ request: PadHistoryRequest) async -> (history: PadFileHistory?, failed: Bool) {
+            do {
+                let history = try await client.padHistory(historyURL: request.url)
+                guard !history.isEmpty else { return (nil, false) }
 
-            return PadFileHistory(
-                id: request.url,
-                title: request.title,
-                language: request.language,
-                history: history
-            )
+                return (PadFileHistory(
+                    id: request.url,
+                    title: request.title,
+                    language: request.language,
+                    history: history
+                ), false)
+            } catch {
+                return (nil, true)
+            }
         }
 
         // Bounded fan-out (#1750): a pad with many environments/files must not
         // fire every history fetch at once; a fresh request starts as each one
         // finishes, keeping at most `width` in flight.
-        let loaded = await withTaskGroup(of: PadFileHistory?.self) { group in
+        let (loaded, failures) = await withTaskGroup(
+            of: (history: PadFileHistory?, failed: Bool).self
+        ) { group in
             let width = 4
             var iterator = requests.makeIterator()
             var started = 0
@@ -267,18 +277,21 @@ extension PadDetailView {
             }
 
             var collected: [PadFileHistory] = []
-            for await history in group {
-                if let history {
+            var failed = 0
+            for await result in group {
+                if let history = result.history {
                     collected.append(history)
                 }
+                if result.failed { failed += 1 }
                 if let request = iterator.next() {
                     group.addTask { await fetch(request) }
                 }
             }
-            return collected
+            return (collected, failed)
         }
         let order = Dictionary(uniqueKeysWithValues: requests.enumerated().map { ($1.url, $0) })
         histories = loaded.sorted { (order[$0.id] ?? 0) < (order[$1.id] ?? 0) }
+        historyLoadFailures = failures
     }
 
     private func historyRequests(for environments: [PadEnvironment]) -> [PadHistoryRequest] {

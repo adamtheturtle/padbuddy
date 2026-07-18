@@ -34,6 +34,10 @@ struct PadDetailView: View {
     /// recreated per pad (`.id(pad.id)`), so each pad starts here.
     @State var selectedSection: PadDetailSection = .notes
     @State var isLoadingHistory = false
+    /// How many files' history fetches failed on the last load, so the History
+    /// card can say playback is incomplete instead of silently omitting files
+    /// (#1762). Refresh retries them.
+    @State var historyLoadFailures = 0
     // Inline-editable field drafts, seeded from the pad and committed one field at
     // a time. Each control binds to its draft for an immediate, optimistic update;
     // a failed save reverts the draft to the pad's value (see PadDetailView+Edit).

@@ -3689,6 +3689,9 @@
     "History file" : {
 
     },
+    "History for ^[%lld files](inflect: true) couldn't be loaded. Refresh to retry." : {
+
+    },
     "https://app.coderpad.io/…" : {
       "localizations" : {
         "es" : {

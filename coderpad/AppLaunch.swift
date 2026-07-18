@@ -57,6 +57,13 @@ enum AppLaunch {
         // Questions section has been opened this session (#411). The per-account sync
         // otherwise only fires when an account's questions load or a favourite toggles.
         WidgetSync.syncAllFavorites(AccountsStore.shared.accounts)
+        // Warm each account's list caches from disk off the main actor, so the
+        // first list render finds memory populated instead of doing a large JSON
+        // read/decode inside body (#1769).
+        for account in AccountsStore.shared.accounts {
+            PadsCacheStore.shared.prewarm(account.id)
+            QuestionsCacheStore.shared.prewarm(account.id)
+        }
         startCloudSync()
         // Signing into iCloud while the app is running must start sync too: the
         // bootstrap above returns immediately without an identity token and was

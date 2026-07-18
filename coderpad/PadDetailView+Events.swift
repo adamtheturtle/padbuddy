@@ -12,6 +12,14 @@ extension PadDetailView {
                 ProgressView().controlSize(.small)
             }
         } content: {
+            if historyLoadFailures > 0 {
+                // A failed history fetch must be distinguishable from "this pad
+                // has no history": say playback is incomplete and how to retry
+                // (#1762).
+                Text("History for ^[\(historyLoadFailures) files](inflect: true) couldn't be loaded. Refresh to retry.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
             if !histories.isEmpty {
                 HistoryPlaybackView(histories: histories, events: events, dark: colorScheme == .dark)
             }
