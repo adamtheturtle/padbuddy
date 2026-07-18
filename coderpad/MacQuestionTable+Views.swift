@@ -8,6 +8,7 @@
 
 #if os(macOS)
 import AppKit
+import FastList
 import SwiftUI
 
 final class MacQuestionTableView: NSTableView {

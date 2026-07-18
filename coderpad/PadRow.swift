@@ -3,6 +3,7 @@
 //  coderpad
 //
 
+import FastList
 import SwiftUI
 
 /// The pad row's static title/metadata/date block — the bulk of the row's render

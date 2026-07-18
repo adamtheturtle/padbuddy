@@ -5,6 +5,7 @@
 
 #if os(macOS)
 import AppKit
+import FastList
 import SwiftUI
 
 /// Native AppKit renderer for the macOS Questions lists. The generic `FastList` path

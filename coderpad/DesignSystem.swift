@@ -20,10 +20,10 @@ import SwiftUI
 @_exported import PrintableView
 
 // The NSTableView-backed list (`FastList`, `SwipeAction`, `MenuItem`) was lifted out
-// of `BuddyDesignSystem` into the standalone `FastList` package (#548). Re-exported here
-// so the four list columns keep using it unqualified, the same way the rest of the
-// design system is shared.
-@_exported import FastList
+// of `BuddyDesignSystem` into the standalone `FastList` package (#548). It is *not*
+// re-exported here: each list surface imports FastList explicitly, so the app's
+// real coupling to the package stays visible per file while its API surface is
+// narrowed (#683, FastList#4).
 
 extension Spacing {
     /// Vertical rhythm between fields in compact detail groups.

@@ -10,6 +10,7 @@
 #if os(macOS)
     import AppKit
 #endif
+import FastList
 import SwiftUI
 
 /// The test sessions for one campaign (`GET /tests`, all pages via

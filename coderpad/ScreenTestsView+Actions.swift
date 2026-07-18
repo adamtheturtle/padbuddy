@@ -11,6 +11,7 @@
 #if os(macOS)
     import AppKit
 #endif
+import FastList
 import SwiftUI
 
 extension ScreenTestsView {

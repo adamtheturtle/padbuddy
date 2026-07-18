@@ -10,6 +10,7 @@
     import AppKit
 #endif
 import AsyncAlgorithms
+import FastList
 import MacPullToRefresh
 import SwiftUI
 

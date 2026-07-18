@@ -3,6 +3,7 @@
 //  coderpad
 //
 
+import FastList
 import SwiftUI
 
 /// Strings and badges the question row renders, precomputed when the list cache changes
