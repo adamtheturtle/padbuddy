@@ -40,7 +40,8 @@ extension MergedPadsView {
         var rows: [AccountScoped<Account, Pad>] = []
         for account in mergeable {
             for pad in padsByAccount[account.id] ?? [] {
-                rows.append(AccountScoped(account: account, item: pad, id: pad.id))
+                rows.append(AccountScoped(account: account, item: pad,
+                                          id: Self.rowID(account: account.id, pad: pad.id)))
             }
         }
         let sorted = sort.sorted(rows, by: \.item, tieBreaker: \.id)
@@ -71,6 +72,14 @@ extension MergedPadsView {
             }
         }
         return hasher.finalize()
+    }
+
+    /// The account-namespaced row id used for selection and list identity. Pad
+    /// slugs are only unique per server, so two custom CoderPad servers can issue
+    /// the same slug; the slug alone would collapse those rows into one identity
+    /// and route actions to the wrong account (#758).
+    static func rowID(account: UUID, pad: String) -> String {
+        "\(account.uuidString):\(pad)"
     }
 
     var filtered: [AccountScoped<Account, Pad>] {
@@ -131,29 +140,40 @@ extension MergedPadsView {
         row.account.owns(row.item.ownerEmail)
     }
 
-    func pad(forID id: String) -> Pad? {
-        // Resolve the owning account in O(1) via the route map and index into just
-        // that account's pads, rather than scanning every account's full array (#368).
-        if let accountID = router.padAccountID[id],
-           let match = padsByAccount[accountID]?.first(where: { $0.id == id }) {
-            return match
-        }
-        // Fallback: the route map can lag a just-inserted pad, so scan as before.
-        for pads in padsByAccount.values {
-            if let match = pads.first(where: { $0.id == id }) { return match }
-        }
+    /// The scoped row for a namespaced row id, used to resolve the List selection
+    /// back to a specific account's pad (not just the first slug match, which can
+    /// be the wrong account when two custom servers share a slug, #758).
+    func row(forRowID rowID: String) -> AccountScoped<Account, Pad>? {
+        scoped.first { $0.id == rowID }
+    }
+
+    /// The row to select after the row with `rowID` is deleted: the next visible
+    /// row, then the previous, mirroring `MergedQuestionsView.neighborRowID`, so
+    /// deleting the open pad keeps the detail pane populated. Returns a namespaced
+    /// row id since selection is keyed by row, not bare pad slug (#758).
+    func neighborRowID(forDeletedRowID rowID: String) -> String? {
+        let visible = filtered
+        guard let index = visible.firstIndex(where: { $0.id == rowID }) else { return visible.first?.id }
+
+        if visible.indices.contains(index + 1) { return visible[index + 1].id }
+        if visible.indices.contains(index - 1) { return visible[index - 1].id }
         return nil
     }
 
-    /// The pad to select after the pad with `id` is deleted: the next visible row,
-    /// then the previous, mirroring `PadsView.neighborSelection`.
-    func neighborSelection(forDeleted id: String) -> Pad? {
-        let visible = filtered.map(\.item)
-        guard let index = visible.firstIndex(where: { $0.id == id }) else { return visible.first }
+    /// Bridge a List selection change to the `Pad` binding and publish the row's
+    /// source account so the detail pane routes to the right client (#758). A nil
+    /// id clears the selection; a non-nil id that doesn't resolve yet (e.g. a row
+    /// inserted this render) is left untouched so it isn't transiently blanked.
+    func selectRow(_ rowID: String?) {
+        guard let rowID else {
+            selection = nil
+            router.selectedPadAccountID = nil
+            return
+        }
+        guard let scopedRow = row(forRowID: rowID) else { return }
 
-        if visible.indices.contains(index + 1) { return visible[index + 1] }
-        if visible.indices.contains(index - 1) { return visible[index - 1] }
-        return nil
+        selection = scopedRow.item
+        router.selectedPadAccountID = scopedRow.account.id
     }
 
     // MARK: - Options
@@ -195,8 +215,17 @@ extension MergedPadsView {
             creatingForAccount = newPadDefaultAccount
         }
         if let id = request.selectPadID {
-            selectedIDs = [id]
-            pendingScrollToID = id
+            // `selectPadID` arrives as a bare slug from process-wide entry points
+            // (e.g. the command palette in merged mode), but this list keys its
+            // selection by account-namespaced row id (#758). Resolve it against the
+            // loaded rows; when the row hasn't loaded yet, park the slug and let
+            // `resolvePendingSlugSelection()` finish once it appears.
+            if let scopedRow = scoped.first(where: { $0.item.id == id }) {
+                selectedIDs = [scopedRow.id]
+                pendingScrollToID = scopedRow.id
+            } else {
+                pendingSelectPadSlug = id
+            }
         }
     }
 
@@ -305,6 +334,9 @@ extension MergedPadsView {
         // earliest the saved selection can be resolved. Idempotent (guarded by
         // `didRestoreSelection`), so the per-refresh calls after this are no-ops.
         restoreSelectedPadIfNeeded()
+        // Same timing for a favourite tapped before the list loaded: its slug can
+        // only resolve to a namespaced row id once the row exists (#758).
+        resolvePendingSlugSelection()
     }
 
     /// Publish the pad -> account map so the detail pane and row actions can route
@@ -332,8 +364,9 @@ extension MergedPadsView {
     }
 
     func removePad(id: String) {
-        // Pad ids are global slugs, so the route map points at the single owning
-        // account — drop the row from just that account rather than scanning and
+        // The deletion broadcast carries only the slug (carrying the account is
+        // tracked as #761), so resolve the owning account via the route map and
+        // drop the row from just that account rather than scanning and
         // rebuilding every account's array (#368).
         if let accountID = router.padAccountID[id],
            padsByAccount[accountID]?.contains(where: { $0.id == id }) == true {
@@ -355,23 +388,6 @@ extension MergedPadsView {
         publishRoutes()
     }
 
-    // MARK: - Actions
-
-    func openPad(_ pad: Pad) {
-        guard let url = pad.webURL else { return }
-
-        BrowserSettings.openExternally(url)
-    }
-
-    func deletePad(_ pad: Pad) async {
-        let client = (router.account(forPadID: pad.id) ?? accounts.currentAccount)?.makeClient()
-        guard let client else { return }
-
-        do {
-            try await client.deletePad(id: pad.id)
-            AppRouter.padDeleted(id: pad.id)
-        } catch {
-            deleteError = error.localizedDescription
-        }
-    }
+    // The open/delete row actions live in MergedPadsView+Dialogs.swift (next to
+    // the confirmations that trigger them) to keep this file under the length lint.
 }

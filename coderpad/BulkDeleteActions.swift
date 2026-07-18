@@ -45,11 +45,13 @@ extension PadsView {
 }
 
 extension MergedPadsView {
-    func scheduleBulkDelete(_ pads: [Pad]) {
-        guard !pads.isEmpty else { return }
+    /// Takes account-scoped rows rather than bare `Pad`s so each delete routes to
+    /// its own row's account client, never a slug-matched guess (#758).
+    func scheduleBulkDelete(_ rows: [AccountScoped<Account, Pad>]) {
+        guard !rows.isEmpty else { return }
 
         padsPendingBulkDelete = nil
-        let items = BulkDeleteUndo.mergedItems(existing: pendingBulkDeleteUndo?.items ?? [], adding: pads)
+        let items = BulkDeleteUndo.mergedItems(existing: pendingBulkDeleteUndo?.items ?? [], adding: rows)
         bulkDeleteUndoTask?.cancel()
         let pending = PendingBulkDelete(
             items: items,
@@ -63,8 +65,8 @@ extension MergedPadsView {
             pendingBulkDeleteUndo = nil
             bulkDeleteUndoTask = nil
 
-            for pad in items {
-                await deletePad(pad)
+            for row in items {
+                await deletePad(row)
             }
         }
     }

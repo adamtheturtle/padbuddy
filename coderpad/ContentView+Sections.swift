@@ -111,7 +111,7 @@ struct SectionDetail: View {
                 if let client = padClient(for: pad) {
                     PadDetailView(client: client, pad: pad)
                         .advertisesPadActivity(url: pad.webURL, title: pad.title)
-                        .id(pad.id)
+                        .id(padDetailID(for: pad))
                 } else {
                     unresolvedRoutePlaceholder(systemImage: "doc.text")
                 }
@@ -185,14 +185,28 @@ struct SectionDetail: View {
         }
     }
 
-    /// The client a selected pad's detail should use: in the combined view, the
-    /// account that pad came from (resolved through `MergedRouting`); otherwise the
-    /// single current account. Never falls back to an arbitrary account (#912).
+    /// The client a selected pad's detail should use. Pad slugs are only unique per
+    /// server, so two custom servers can share one; in the combined view prefer the
+    /// account the list published for the *selected* pad, then the (collision-prone)
+    /// route map (#758). Never falls back to an arbitrary account (#912).
     private func padClient(for pad: Pad) -> CoderPadClient? {
         if store.isMergedView {
-            return router.account(forPadID: pad.id)?.makeClient()
+            let account = router.selectedPadAccountID.flatMap { id in store.accounts.first { $0.id == id } }
+                ?? router.account(forPadID: pad.id)
+            return account?.makeClient()
         }
         return store.currentAccount?.makeClient()
+    }
+
+    /// The pad detail view's identity. Namespaced by the selected account in the
+    /// combined view so switching between two accounts' pads that share a slug
+    /// (possible across custom servers, #758) recreates the detail pane instead of
+    /// reusing stale state - the pad counterpart to `questionDetailID`.
+    private func padDetailID(for pad: Pad) -> String {
+        if store.isMergedView, let account = router.selectedPadAccountID {
+            return "\(account.uuidString):\(pad.id)"
+        }
+        return pad.id
     }
 
     /// The account a selected question belongs to. Per-org question ids collide

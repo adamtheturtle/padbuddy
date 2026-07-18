@@ -57,10 +57,13 @@ struct MergedPadsView: View {
     @Binding var selection: Pad?
     /// The row whose detail is shown: the "primary" of the multi-selection, derived
     /// from `selectedIDs` (see `MultiSelectLogic.primaryID`). Stays the single source
-    /// for the detail pane, command target, and per-row bridging.
+    /// for the detail pane, command target, and per-row bridging. Holds the
+    /// account-namespaced row id (`rowID(account:pad:)`), not the bare slug: pad
+    /// slugs are only unique per server, so two custom servers can collide (#758).
     @State var selectedID: String?
-    /// The List's selection. A set so several rows can be selected for a bulk action
-    /// (Copy links, Delete); `selectedID`/`selection` track the primary within it.
+    /// The List's selection, keyed by namespaced row id like `selectedID`. A set so
+    /// several rows can be selected for a bulk action (Copy links, Delete);
+    /// `selectedID`/`selection` track the primary within it.
     @State var selectedIDs: Set<String> = []
     /// Whether the saved selection has been restored this session. Gates persistence
     /// so the empty startup state never clobbers the stored id, and keeps the restore
@@ -77,11 +80,12 @@ struct MergedPadsView: View {
     /// Whether the saved filters have been restored this session. Gates persistence
     /// so the empty startup state never clobbers a saved snapshot, mirroring `PadsView`.
     @State var didRestoreFilters = false
-    /// The pads queued for a multi-row delete, awaiting the confirmation dialog.
-    /// Separate from `padPendingDelete` (the single swipe/context delete) so the two
-    /// confirmations don't interfere.
-    @State var padsPendingBulkDelete: [Pad]?
-    @State var pendingBulkDeleteUndo: PendingBulkDelete<Pad>?
+    /// The rows queued for a multi-row delete, awaiting the confirmation dialog.
+    /// Account-scoped rows rather than bare `Pad`s so each delete routes to its own
+    /// account's client (#758). Separate from `padPendingDelete` (the single
+    /// swipe/context delete) so the two confirmations don't interfere.
+    @State var padsPendingBulkDelete: [AccountScoped<Account, Pad>]?
+    @State var pendingBulkDeleteUndo: PendingBulkDelete<AccountScoped<Account, Pad>>?
     @State var bulkDeleteUndoTask: Task<Void, Never>?
     @Binding var search: String
 
@@ -100,8 +104,15 @@ struct MergedPadsView: View {
     /// 24 hours re-filter even if no account's pad cache changes.
     @State var dateFilterClockTick = 0
 
-    @State var padPendingDelete: Pad?
+    /// The row awaiting the single-delete confirmation. Account-scoped so the
+    /// delete routes to the row's own account, never a slug-matched guess (#758).
+    @State var padPendingDelete: AccountScoped<Account, Pad>?
     @State var deleteError: String?
+    /// A bare pad slug from a process-wide request (e.g. the command palette in
+    /// merged mode) whose row hadn't loaded when the request was consumed. Selection
+    /// is keyed by account-namespaced row id (#758), so the slug is parked here and
+    /// resolved by `resolvePendingSlugSelection()` once a matching row appears.
+    @State var pendingSelectPadSlug: String?
     /// Debounces marking a pad "opened" until the selection settles, so arrowing
     /// through the merged list doesn't rebuild it on every transient row (see the
     /// single-account `PadsView` for the rationale).

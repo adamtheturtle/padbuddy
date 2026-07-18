@@ -20,8 +20,11 @@ import Foundation
 @Observable
 final class MergedRouting {
 
-    /// pad id -> owning account id. Pad ids are CoderPad slugs (globally unique), so
-    /// this is unambiguous across accounts.
+    /// pad id -> owning account id. Pad slugs are only unique per server, so two
+    /// custom CoderPad servers can issue the same slug and this map collapses on
+    /// collision (last-published account wins). Disambiguation for the *selected*
+    /// pad therefore goes through `selectedPadAccountID`, set by the combined
+    /// list (#758).
     private(set) var padAccountID: [String: UUID] = [:]
     /// question id -> owning account id. Question ids are numbered **per org**, so
     /// two accounts routinely share the same id; this map collapses on collision
@@ -35,6 +38,12 @@ final class MergedRouting {
     /// accounts share a per-org question id.
     var selectedQuestionAccountID: UUID?
 
+    /// The account of the currently-selected merged pad. Set by the combined pads
+    /// list as its selection changes (it knows each row's source account), so the
+    /// detail pane routes to the right client even when two custom servers share
+    /// a pad slug (#758).
+    var selectedPadAccountID: UUID?
+
     /// The account of the campaign drilled into in the combined Screen view (#442).
     /// Set by `MergedScreenView` as the drill-down changes, so the detail column
     /// routes a selected test session's report to that account's `ScreenClient` —
@@ -43,7 +52,7 @@ final class MergedRouting {
     var selectedScreenAccountID: UUID?
 
     // The pending sidebar-favourite selections (`pendingMergedFavoriteQuestion`,
-    // `pendingMergedFavoritePadID`) live on `AppNavigation`: they are durable
+    // `pendingMergedFavoritePad`) live on `AppNavigation`: they are durable
     // navigation *requests* also queued by global entry points (Spotlight, the
     // command palette), while this type holds only this window's routing state.
 

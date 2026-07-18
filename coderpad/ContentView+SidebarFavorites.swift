@@ -205,9 +205,9 @@ extension Sidebar {
         switch item.ref {
         case let .pad(padID):
             sidebarSubRow(label: item.title, icon: "doc.text") {
-                if item.account != nil {
+                if let account = item.account {
                     sectionBinding.wrappedValue = .pads
-                    nav.selectMergedFavoritePad(id: padID)
+                    nav.selectMergedFavoritePad(account: account, id: padID)
                 } else {
                     nav.showFavoritePad(id: padID)
                 }

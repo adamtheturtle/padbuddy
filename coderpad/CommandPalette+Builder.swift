@@ -156,8 +156,17 @@ enum CommandPaletteBuilder {
 
     /// Switches to `account` (only if it isn't already current - per-org question ids
     /// collide, so the owning account must be selected first, exactly as the Spotlight
-    /// result path does) and selects the pad once its list has it.
+    /// result path does) and selects the pad once its list has it. In merged mode the
+    /// account travels with the request instead, mirroring `showQuestion(id:account:)`:
+    /// pad slugs are only unique per server, so two custom servers can share one and
+    /// the bare slug could select the wrong account's row (#758).
     private static func jump(toPad id: String, in account: UUID) {
+        if AccountsStore.shared.isMergedView,
+           AccountsStore.shared.accounts.contains(where: { $0.id == account }) {
+            AppNavigation.shared.section = .pads
+            AppNavigation.shared.selectMergedFavoritePad(account: account, id: id)
+            return
+        }
         if AccountsStore.shared.currentAccountID != account,
            AccountsStore.shared.accounts.contains(where: { $0.id == account }) {
             AccountsStore.shared.currentAccountID = account

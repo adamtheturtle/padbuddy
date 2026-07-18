@@ -38,6 +38,9 @@ extension MergedPadsView {
                 // Reopen the pad selected last session, once the seeded cache (or the
                 // reload below) provides a list to resolve it against.
                 restoreSelectedPadIfNeeded()
+                // A favourite tapped before the list loaded parked its bare slug;
+                // resolve it to a namespaced row id now that rows may exist (#758).
+                resolvePendingSlugSelection()
                 // Initial load, then refresh on the fixed app cadence.
                 await reload()
                 while !Task.isCancelled {
@@ -54,7 +57,14 @@ extension MergedPadsView {
                 // the restored owner/search fields while preserving the rest.
                 restoreFilters()
                 applyPendingRequest()
-                selectedIDs = selection.map { [$0.id] } ?? []
+                // Prefer the row in the account the selection was made in (tracked
+                // by the router): pad slugs are only unique per server, so the bare
+                // slug can otherwise re-select a different account's same-slug row (#758).
+                let restored = selection.flatMap { sel in
+                    scoped.first { $0.item.id == sel.id && $0.account.id == router.selectedPadAccountID }
+                        ?? scoped.first { $0.item.id == sel.id }
+                }
+                selectedIDs = restored.map { [$0.id] } ?? []
             }
             .onChange(of: cache.padsByAccount) { _, _ in hydrateFromCacheIfEmpty() }
             // Re-persist whenever any filter changes; `filterSignature` shifts for
@@ -71,9 +81,9 @@ extension MergedPadsView {
                 // a separate `onChange(selectedID)`: each extra state write re-runs `body`
                 // and rebuilds the list's prepared rows, so collapsing the cascade removes a
                 // full rebuild per click on a large merged list (mirrors the PadsView fix).
-                if selection?.id != primary {
-                    selection = primary.flatMap { id in pad(forID: id) }
-                }
+                // `selectRow` also publishes the row's source account so the detail pane
+                // routes to the right client when two servers share a pad slug (#758).
+                selectRow(primary)
                 Task { @MainActor in persistSelectedPad() }
             }
     }
@@ -95,15 +105,16 @@ extension MergedPadsView {
             .onChange(of: nav.mergedPadsActiveRequest, initial: true) { _, request in
                 consumeMergedPadsActiveRequest(request)
             }
-            // A favourite pad tapped in the merged sidebar arrives here by id (pad ids
-            // are globally unique, so no account need travel with it). Cleared once
-            // consumed; left as the selection if the row hasn't loaded yet — the same
-            // best-effort the per-account view uses.
-            .onChange(of: nav.pendingMergedFavoritePadID) { _, id in
-                guard let id else { return }
+            // A favourite pad tapped in the merged sidebar arrives here with its
+            // account: pad slugs are only unique per server, so the slug alone could
+            // select a different account's same-slug row (#758). Cleared once
+            // consumed; left untouched if the row hasn't loaded yet (the row id
+            // simply won't resolve, the same best-effort the per-account view uses).
+            .onChange(of: nav.pendingMergedFavoritePad) { _, request in
+                guard let request else { return }
 
-                nav.pendingMergedFavoritePadID = nil
-                selectedIDs = [id]
+                nav.pendingMergedFavoritePad = nil
+                selectedIDs = [Self.rowID(account: request.account, pad: request.id)]
             }
             // Consume navigation requests routed to Pads. In merged mode this includes
             // owner/search requests from person links as well as New Pad deep links;
@@ -113,16 +124,27 @@ extension MergedPadsView {
                 // Debounced off the click's synchronous path: `markOpened` mutates the shared
                 // Observable open-history store every row reads, so it rebuilds the whole
                 // list. Only the pad you settle on (not every row arrowed past) is marked.
-                if let newValue, let account = router.account(forPadID: newValue.id)?.id {
-                    markOpenedTask?.cancel()
-                    markOpenedTask = Task { @MainActor in
-                        try? await Task.sleep(for: .milliseconds(500))
-                        guard !Task.isCancelled else { return }
-
-                        openedStore.markOpened(newValue.id, account: account)
-                    }
+                // The account comes from the router's selected-pad account (published by
+                // `selectRow`), falling back to the route map: two custom servers can share
+                // a slug, so the map alone can point at the wrong account (#758).
+                guard let newValue else {
+                    if selectedID != nil { selectedID = nil }
+                    return
                 }
-                if selectedID != newValue?.id { selectedID = newValue?.id }
+                let account = router.selectedPadAccountID ?? router.account(forPadID: newValue.id)?.id
+                guard let account else { return }
+
+                markOpenedTask?.cancel()
+                markOpenedTask = Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(500))
+                    guard !Task.isCancelled else { return }
+
+                    openedStore.markOpened(newValue.id, account: account)
+                }
+                // Keep the primary row id in step when the selection was set from
+                // outside the list; compare namespaced row ids, never bare slugs (#758).
+                let rowID = Self.rowID(account: account, pad: newValue.id)
+                if selectedID != rowID { selectedID = rowID }
             }
     }
 
@@ -184,18 +206,21 @@ extension MergedPadsView {
             }
             .task {
                 for await id in AppRouter.padDeletions {
-                    // Drop the deleted id from the selection. If it was the primary,
-                    // a neighbor (computed while the row is still present) takes over
-                    // only when no other rows remain selected; otherwise the primary
+                    // Drop every selected row whose pad matches the deleted slug (the
+                    // broadcast carries no account yet, #761). If the primary was among
+                    // them, a neighbor - computed while the row is still present - takes
+                    // over only when no other rows remain selected; otherwise the primary
                     // falls to a still-selected row via the `selectedIDs` observer.
-                    let wasPrimary = selection?.id == id
-                    let neighbor = wasPrimary ? neighborSelection(forDeleted: id) : nil
-                    selectedIDs.remove(id)
+                    let removed = selectedIDs.filter { row(forRowID: $0)?.item.id == id }
+                    let wasPrimary = selectedID.map { removed.contains($0) } ?? false
+                    let neighbor = wasPrimary
+                        ? selectedID.flatMap { neighborRowID(forDeletedRowID: $0) } : nil
+                    selectedIDs.subtract(removed)
                     removePad(id: id)
                     // Keep the disk cache, Spotlight index, and widget in step.
                     cache.removePad(id: id)
                     if wasPrimary, selectedIDs.isEmpty {
-                        selectedIDs = neighbor.map { [$0.id] } ?? []
+                        selectedIDs = neighbor.map { [$0] } ?? []
                     }
                 }
             }
@@ -246,21 +271,23 @@ extension MergedPadsView {
             .focusedSceneValue(\.focusedPad, selection)
         // Edit ▸ Copy / ⌘C copies the selected pads' web URLs (one per line)
         // while the list holds focus, matching the row's "Copy Pad URL" action
-        // and extending it to a multi-row selection. The O(N) `selectedPadsInOrder`
+        // and extending it to a multi-row selection. The O(N) `selectedRowsInOrder`
         // scan is built lazily (only on an actual copy); the per-render gate is the
         // O(1) empty-selection check, so it stays off the click path.
         #if os(macOS)
             .onCopyCommand(perform: copyLinkCommand(hasSelection: !selectedIDs.isEmpty) {
-                selectedPadsInOrder.map(\.url).joined(separator: "\n")
+                selectedRowsInOrder.map(\.item.url).joined(separator: "\n")
             })
         #endif
     }
 
-    /// The selected pads in the order they appear in the list (rather than the
+    /// The selected rows in the order they appear in the list (rather than the
     /// selection set's arbitrary order), so a multi-row Copy or Delete reads top to
-    /// bottom. Resolved against `filtered` — the rows the user can actually see.
-    var selectedPadsInOrder: [Pad] {
-        filtered.compactMap { selectedIDs.contains($0.item.id) ? $0.item : nil }
+    /// bottom. Rows rather than bare `Pad`s so each carries its source account for
+    /// per-account routing (#758). Resolved against `filtered` — the rows the user
+    /// can actually see.
+    var selectedRowsInOrder: [AccountScoped<Account, Pad>] {
+        filtered.filter { selectedIDs.contains($0.id) }
     }
 
     private var padList: some View {
@@ -280,7 +307,7 @@ extension MergedPadsView {
                                         undoManager: undoManager)
                 }
             )
-            .fastListRowManualSelection(id: row.item.id, selection: $selectedIDs)
+            .fastListRowManualSelection(id: row.id, selection: $selectedIDs)
             // iPad: drag onto the sidebar Favorites to pin, or out to Safari/Notes/Split View.
             .favoriteDraggable(padFavoritePayload(row), title: row.item.title.isEmpty ? row.item.id : row.item.title)
             // iPad: the row's context menu with a compact preview (macOS uses the FastList
@@ -312,7 +339,7 @@ extension MergedPadsView {
         .swipeActions(edge: .trailing) { row in
             isReadOnly ? [] : [SwipeAction(title: String(localized: "Delete"), role: .destructive,
                                            systemImage: "trash") {
-                    padPendingDelete = row.item
+                    padPendingDelete = row
                 }]
         }
         #if os(macOS)

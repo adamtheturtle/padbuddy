@@ -84,17 +84,26 @@ final class AppNavigation {
         let id: Int
     }
 
-    /// A favourite pad chosen from the sidebar in the merged view. Pad ids are
-    /// CoderPad slugs, so - unlike questions - no account needs to travel with it:
-    /// the id alone selects the right row. Consumed and cleared by `MergedPadsView`.
-    var pendingMergedFavoritePadID: String?
+    /// A favourite pad chosen from the sidebar (or the command palette) while in
+    /// the combined "All Accounts" view, carrying its account so the combined pads
+    /// list selects the right row - pad slugs are only unique per server, so two
+    /// custom CoderPad servers can issue the same slug and the id alone is
+    /// ambiguous (#758). Consumed and cleared by `MergedPadsView`.
+    var pendingMergedFavoritePad: MergedFavoritePad?
+
+    /// Switch-to-merged-pads request for a favourite: the pad slug and the
+    /// account it belongs to.
+    struct MergedFavoritePad: Equatable {
+        let account: UUID
+        let id: String
+    }
 
     func selectMergedFavoriteQuestion(account: UUID, id: Int) {
         pendingMergedFavoriteQuestion = MergedFavorite(account: account, id: id)
     }
 
-    func selectMergedFavoritePad(id: String) {
-        pendingMergedFavoritePadID = id
+    func selectMergedFavoritePad(account: UUID, id: String) {
+        pendingMergedFavoritePad = MergedFavoritePad(account: account, id: id)
     }
 
     /// A question id whose detail pane should immediately create a pad and open it

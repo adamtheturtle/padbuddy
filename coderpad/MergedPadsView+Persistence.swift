@@ -137,17 +137,19 @@ extension MergedPadsView {
 
     // MARK: - Selection persistence
 
-    /// The single key for the merged list's open pad. Pad ids are globally unique
-    /// across accounts, so the merged selection needs no account namespacing (unlike
-    /// merged questions, whose per-org ids collide and must carry their account).
+    /// The single key for the merged list's open pad, stored as the account-
+    /// namespaced row id (`rowID(account:pad:)`). Pad slugs are only unique per
+    /// server, so two custom CoderPad servers can issue the same slug and the bare
+    /// slug couldn't say which account's pad to reopen - the persisted value must
+    /// carry its account (#758), just like merged questions.
     static var selectedPadKey: String {
         "pads.merged.selectedPad"
     }
 
-    /// Persist the id of the pad shown in the detail pane so the merged list reopens
-    /// to it next launch. Skipped until the restore has run so the empty startup
-    /// state can't clobber the saved id; clearing the selection removes the stored id
-    /// so a blank detail pane is restored faithfully too.
+    /// Persist the namespaced row id of the pad shown in the detail pane so the
+    /// merged list reopens to it next launch. Skipped until the restore has run so
+    /// the empty startup state can't clobber the saved id; clearing the selection
+    /// removes the stored id so a blank detail pane is restored faithfully too.
     func persistSelectedPad() {
         guard didRestoreSelection else { return }
 
@@ -159,14 +161,14 @@ extension MergedPadsView {
     }
 
     /// The single key for the merged list's free-scroll position (top visible row),
-    /// no account namespacing for the same reason as `selectedPadKey`.
+    /// stored as the namespaced row id for the same reason as `selectedPadKey` (#758).
     static var topRowKey: String {
         "pads.merged.topRow"
     }
 
-    /// Persist the id of the row at the top of the viewport so an *unselected* merged
-    /// list reopens scrolled to roughly where it was left (#273). Guarded by the
-    /// selection restore so the empty startup state can't clobber it.
+    /// Persist the namespaced id of the row at the top of the viewport so an
+    /// *unselected* merged list reopens scrolled to roughly where it was left (#273).
+    /// Guarded by the selection restore so the empty startup state can't clobber it.
     func persistTopRow(_ id: String?) {
         guard didRestoreSelection else { return }
 
@@ -186,28 +188,77 @@ extension MergedPadsView {
     /// Restore the previously-open pad once a list exists to resolve it against.
     /// Marks the restore complete as soon as pads load (so later changes persist),
     /// then reselects via `PadsView.padToRestore` — the same pure, unit-tested
-    /// decision the single-account list uses. Reads the source dictionary rather than
-    /// the per-render `scoped` memo, which can still be empty right after a cache seed.
+    /// decision the single-account list uses, over namespaced row ids (#758). Reads
+    /// the source dictionary rather than the per-render `scoped` memo, which can
+    /// still be empty right after a cache seed.
     func restoreSelectedPadIfNeeded() {
-        let availableIDs = Set(padsByAccount.values.flatMap(\.self).map(\.id))
-        guard !didRestoreSelection, !availableIDs.isEmpty else { return }
+        var availableRowIDs: Set<String> = []
+        // The first row id per slug, for normalizing a value saved by a build
+        // before #758 (a bare slug, no account prefix).
+        var rowIDBySlug: [String: String] = [:]
+        for account in accounts.mergeableAccounts {
+            for pad in padsByAccount[account.id] ?? [] {
+                let rowID = Self.rowID(account: account.id, pad: pad.id)
+                availableRowIDs.insert(rowID)
+                if rowIDBySlug[pad.id] == nil { rowIDBySlug[pad.id] = rowID }
+            }
+        }
+        guard !didRestoreSelection, !availableRowIDs.isEmpty else { return }
 
         didRestoreSelection = true
+        let hasPendingOpen = nav.pendingMergedFavoritePad != nil || pendingSelectPadSlug != nil
         if let id = PadsView.padToRestore(
-            savedID: UserDefaults.standard.string(forKey: Self.selectedPadKey),
+            savedID: Self.normalizedSavedRowID(
+                UserDefaults.standard.string(forKey: Self.selectedPadKey), rowIDBySlug: rowIDBySlug
+            ),
             hasSelection: selection != nil,
-            hasPendingOpen: nav.pendingMergedFavoritePadID != nil,
-            availableIDs: availableIDs
+            hasPendingOpen: hasPendingOpen,
+            availableIDs: availableRowIDs
         ) {
             selectedIDs = [id]
             // Bring the restored row into view; the List won't scroll to it on its own.
             pendingScrollToID = id
-        } else if selection == nil, nav.pendingMergedFavoritePadID == nil,
-                  let topID = UserDefaults.standard.string(forKey: Self.topRowKey),
-                  availableIDs.contains(topID) {
+        } else if selection == nil, !hasPendingOpen,
+                  let topID = Self.normalizedSavedRowID(
+                      UserDefaults.standard.string(forKey: Self.topRowKey), rowIDBySlug: rowIDBySlug
+                  ),
+                  availableRowIDs.contains(topID) {
             // Nothing to reselect — return the unselected list to where it was scrolled
             // last session (#273), without selecting anything.
             pendingScrollToID = topID
+        }
+    }
+
+    /// Normalizes a persisted selection/top-row value onto today's account-
+    /// namespaced row ids (#758). A current value ("<account uuid>:<slug>") passes
+    /// through untouched; a legacy value from a build before #758 - a bare slug -
+    /// maps to the first loaded row holding that slug, so the saved place survives
+    /// the format change instead of being silently dropped.
+    static func normalizedSavedRowID(_ saved: String?, rowIDBySlug: [String: String]) -> String? {
+        guard let saved else { return nil }
+        if let separator = saved.firstIndex(of: ":"),
+           UUID(uuidString: String(saved[..<separator])) != nil {
+            return saved
+        }
+        return rowIDBySlug[saved]
+    }
+
+    /// Completes a slug-only selection request once a matching row loads: the
+    /// merged list keys selection by account-namespaced row id (#758), so a bare
+    /// slug from a process-wide request (`PadsRequest.selectPadID`) can only be
+    /// honored after its row exists. Called from the same lifecycle points as
+    /// `restoreSelectedPadIfNeeded()`; first matching account wins (a genuine
+    /// cross-server collision can't be told apart by slug alone).
+    func resolvePendingSlugSelection() {
+        guard let slug = pendingSelectPadSlug else { return }
+
+        for account in accounts.mergeableAccounts
+            where padsByAccount[account.id]?.contains(where: { $0.id == slug }) == true {
+            pendingSelectPadSlug = nil
+            let rowID = Self.rowID(account: account.id, pad: slug)
+            selectedIDs = [rowID]
+            pendingScrollToID = rowID
+            return
         }
     }
 }

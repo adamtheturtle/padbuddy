@@ -20,24 +20,24 @@ extension MergedPadsView {
     /// used). A multi-row selection acts on the whole selection, Finder-style;
     /// otherwise it's the single-row menu. (Share is reachable from the detail pane.)
     func padTableMenuItems(_ row: AccountScoped<Account, Pad>) -> [MenuItem] {
-        if selectedIDs.count > 1, selectedIDs.contains(row.item.id) {
-            let pads = selectedPadsInOrder
+        if selectedIDs.count > 1, selectedIDs.contains(row.id) {
+            let rows = selectedRowsInOrder
             return [
-                .button(title: String(localized: "Copy \(pads.count) Pad Links")) {
-                    Clipboard.copy(pads.map(\.url).joined(separator: "\n"))
+                .button(title: String(localized: "Copy \(rows.count) Pad Links")) {
+                    Clipboard.copy(rows.map(\.item.url).joined(separator: "\n"))
                 },
                 .separator,
-                .button(title: String(localized: "Delete \(pads.count) Pads…"),
+                .button(title: String(localized: "Delete \(rows.count) Pads…"),
                         isEnabled: !isReadOnly,
                         role: .destructive) {
-                    padsPendingBulkDelete = pads
+                    padsPendingBulkDelete = rows
                 }
             ]
         }
         let starred = favoritePads.isFavorite(row.item.id, account: row.account.id)
         return [
             .button(title: String(localized: "Open Pad")) {
-                selectedIDs = [row.item.id]
+                selectedIDs = [row.id]
                 openPad(row.item)
             },
             .button(title: starred ? String(localized: "Remove from Favorites")
@@ -57,7 +57,7 @@ extension MergedPadsView {
             },
             .separator,
             .button(title: String(localized: "Delete…"), isEnabled: !isReadOnly, role: .destructive) {
-                padPendingDelete = row.item
+                padPendingDelete = row
             }
         ]
     }
@@ -84,8 +84,8 @@ extension MergedPadsView {
     // (so it drops onto the sidebar Favorites and pins to the right account, #297).
     #if os(macOS)
         func padPasteboardItem(_ row: AccountScoped<Account, Pad>) -> NSPasteboardItem? {
-            if selectedIDs.count > 1, selectedIDs.contains(row.item.id) {
-                return multiLinkPasteboardItem(selectedPadsInOrder.map(\.url))
+            if selectedIDs.count > 1, selectedIDs.contains(row.id) {
+                return multiLinkPasteboardItem(selectedRowsInOrder.map(\.item.url))
             }
 
             guard let url = row.item.webURL else { return nil }
