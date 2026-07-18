@@ -23,6 +23,13 @@ struct ScreenTestDetailView: View {
     /// The freshest copy, refetched via `getTest` for community stats / latest report;
     /// falls back to the `test` passed from the list until the refetch lands.
     @State private var detail: ScreenTestSession?
+    /// Which (session, client) produced `detail`: numeric session ids collide across
+    /// Screen accounts, so an id-only identity let a reused view show or refetch the
+    /// wrong account's report (#1860).
+    @State private var detailFor: FetchIdentity?
+    /// Monotonic id of the newest `refetch()`: without it, a slow response for a
+    /// previous selection could land after a newer one and overwrite `detail` (#1861).
+    @State private var fetchGeneration = 0
     /// A failed refetch (#921): the list's copy stays on screen, but flagged stale
     /// rather than silently posing as the session's current state.
     @State private var refreshError: String?
@@ -40,9 +47,22 @@ struct ScreenTestDetailView: View {
         @State private var pendingReportExport: ScreenReportExportDocument?
     #endif
 
-    /// The session to display: the refetched copy when available, else the list's.
+    /// Session identity for fetches: the id plus the client's account coordinates,
+    /// because per-account session ids collide (#1860).
+    private struct FetchIdentity: Hashable {
+        let testID: Int
+        let apiKey: String
+        let baseURL: URL
+    }
+
+    private var fetchIdentity: FetchIdentity {
+        FetchIdentity(testID: test.id, apiKey: client.apiKey, baseURL: client.baseURL)
+    }
+
+    /// The session to display: the refetched copy when it belongs to the current
+    /// (session, client) identity, else the list's.
     private var session: ScreenTestSession {
-        detail ?? test
+        (detailFor == fetchIdentity ? detail : nil) ?? test
     }
 
     var body: some View {
@@ -62,7 +82,7 @@ struct ScreenTestDetailView: View {
             .padding(20)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .task(id: test.id) { await refetch() }
+        .task(id: fetchIdentity) { await refetch() }
         .alert("Couldn't open the report",
                isPresented: .init(get: { reportError != nil }, set: { if !$0 { reportError = nil } })) {
             Button("OK", role: .cancel) {}
@@ -246,38 +266,37 @@ struct ScreenTestDetailView: View {
     }
 }
 
-// MARK: - Formatting, fetching, and report export
+// MARK: - Fetching and report export
+// (Formatting + the export document + previews live in
+// ScreenTestDetailView+Formatting.swift, split for file length.)
 
 private extension ScreenTestDetailView {
-    // MARK: Formatting
-
-    /// `score` is an API percentage (0-100), not raw points, so it renders with a
-    /// percent sign rather than over the raw `totalPoints` denominator (#995).
-    func scoreText(_ score: Double) -> String {
-        "\(Int(score.rounded()))%"
-    }
-
-    func pointsText(_ points: Int, outOf total: Int?) -> String {
-        if let total, total > 0 { return "\(points)/\(total)" }
-        return "\(points)"
-    }
-
-    func durationText(_ seconds: Int) -> String {
-        Duration.seconds(seconds).formatted(.units(allowed: [.hours, .minutes], width: .abbreviated))
-    }
-
-    // MARK: Data
 
     func refetch() async {
+        let identity = fetchIdentity
+        if detailFor != identity {
+            // The view was reused for another session or account; drop the previous
+            // copy so it can't render for the new identity (#1860).
+            detail = nil
+            detailFor = nil
+            refreshError = nil
+        }
+        fetchGeneration += 1
+        let generation = fetchGeneration
         // Non-fatal: the list already gave us a usable session, so a failed refetch
         // leaves the existing data in place - but flagged stale rather than silently
         // presented as the current state (#921).
         do {
-            detail = try await client.getTest(id: test.id, withCommunityStats: true)
+            let fresh = try await client.getTest(id: identity.testID, withCommunityStats: true)
+            guard generation == fetchGeneration else { return }
+
+            detail = fresh
+            detailFor = identity
             refreshError = nil
         } catch {
             // Switching sessions cancels this task; that's not a refresh failure.
-            guard !Task.isCancelled else { return }
+            // The generation guard keeps a superseded fetch's error out too (#1861).
+            guard generation == fetchGeneration, !Task.isCancelled else { return }
 
             refreshError = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
         }
@@ -294,6 +313,18 @@ private extension ScreenTestDetailView {
                 includeRank: exportIncludeRank ? true : nil,
                 includeComparativeScore: exportIncludeComparative ? true : nil
             )
+            // The bytes are handed to external viewers / written where the user
+            // picked, so require an actual PDF of sane size: a malicious or broken
+            // response must not exhaust memory or smuggle arbitrary content to a
+            // viewer under a .pdf name (#1862).
+            guard data.count <= Self.maxReportBytes else {
+                reportError = String(localized: "The report is too large to open.")
+                return
+            }
+            guard data.starts(with: Self.pdfMagic) else {
+                reportError = String(localized: "The server did not return a PDF report.")
+                return
+            }
             if save {
                 saveReport(data)
             } else {
@@ -317,6 +348,11 @@ private extension ScreenTestDetailView {
         }
     }
 
+    /// A generous ceiling for a single candidate report (#1862).
+    static var maxReportBytes: Int { 50 * 1024 * 1024 }
+    /// Every PDF starts with this marker; anything else isn't a report (#1862).
+    static var pdfMagic: [UInt8] { Array("%PDF-".utf8) }
+
     /// Offers a save panel (sandbox-safe: the user grants write access to the chosen
     /// location) and writes the fetched PDF there.
     func saveReport(_ data: Data) {
@@ -337,52 +373,4 @@ private extension ScreenTestDetailView {
             pendingReportExport = ScreenReportExportDocument(data: data)
         #endif
     }
-}
-
-#if !os(macOS)
-    /// A fetched Screen report PDF staged for the iPad's `.fileExporter` (#808).
-    private struct ScreenReportExportDocument: FileDocument {
-        static var readableContentTypes: [UTType] { [] }
-        static var writableContentTypes: [UTType] { [.pdf] }
-
-        private let data: Data
-
-        init(data: Data) {
-            self.data = data
-        }
-
-        init(configuration _: ReadConfiguration) throws {
-            throw CocoaError(.fileReadCorruptFile)
-        }
-
-        func fileWrapper(configuration _: WriteConfiguration) throws -> FileWrapper {
-            FileWrapper(regularFileWithContents: data)
-        }
-    }
-#endif
-
-#Preview("Completed report") {
-    // Build the sample session in its own statements to keep the view
-    // expression under the 250ms type-check budget (warnings-as-errors).
-    let report = ScreenReport(
-        score: 78, points: 78, duration: 3120, warnings: ["Left full screen twice"],
-        totalPoints: 100, comparativeScore: 64
-    )
-    let session = ScreenTestSession(
-        id: 1, status: "completed",
-        report: report,
-        candidateName: "Ada Lovelace", candidateEmail: "ada@example.com",
-        tags: ["referral"], sendTime: 1_699_000_000_000, endTime: 1_700_000_000_000
-    )
-    ScreenTestDetailView(client: .live(apiKey: "preview"), test: session)
-        .frame(width: 460, height: 600)
-}
-
-#Preview("Not completed") {
-    let session = ScreenTestSession(
-        id: 2, status: "waiting",
-        candidateName: "Alan Turing", sendTime: 1_700_000_000_000
-    )
-    ScreenTestDetailView(client: .live(apiKey: "preview"), test: session)
-        .frame(width: 460, height: 600)
 }

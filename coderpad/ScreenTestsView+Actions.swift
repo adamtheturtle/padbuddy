@@ -25,11 +25,14 @@ extension ScreenTestsView {
             .separator
         ]
         if test.status == "waiting" {
-            items.append(.button(title: String(localized: "Resend Invitation")) { Task { await resend(test) } })
-            items.append(.button(title: String(localized: "Cancel Invitation")) { Task { await cancel(test) } })
+            items.append(.button(title: String(localized: "Resend Invitation"),
+                                 isEnabled: !isReadOnly) { Task { await resend(test) } })
+            items.append(.button(title: String(localized: "Cancel Invitation"),
+                                 isEnabled: !isReadOnly) { Task { await cancel(test) } })
             items.append(.separator)
         }
-        items.append(.button(title: String(localized: "Delete Test Session"), role: .destructive) {
+        items.append(.button(title: String(localized: "Delete Test Session"),
+                             isEnabled: !isReadOnly, role: .destructive) {
             testPendingDelete = test
         })
         return items
@@ -72,10 +75,12 @@ extension ScreenTestsView {
 
     func resend(_ test: ScreenTestSession) async {
         // The command can be invoked repeatedly (menu, focused commands) while a
-        // resend is in flight; each duplicate would email the candidate again (#900).
-        guard resendingIDs.insert(test.id).inserted else { return }
+        // mutation is in flight; each duplicate would email the candidate again
+        // (#900), and a concurrent cancel could revoke the invitation being resent
+        // (#1854). Offline, the write can only fail - don't start it (#1855).
+        guard !isReadOnly, mutatingIDs.insert(test.id).inserted else { return }
 
-        defer { resendingIDs.remove(test.id) }
+        defer { mutatingIDs.remove(test.id) }
         do {
             try await client.resendTest(id: test.id)
             showResentConfirmation = true
@@ -85,6 +90,11 @@ extension ScreenTestsView {
     }
 
     func cancel(_ test: ScreenTestSession) async {
+        // Same in-flight and read-only gate as resend: duplicate invocations raced
+        // the row reload and sent concurrent cancellation requests (#1852, #1855).
+        guard !isReadOnly, mutatingIDs.insert(test.id).inserted else { return }
+
+        defer { mutatingIDs.remove(test.id) }
         do {
             try await client.cancelTest(id: test.id)
             // The server mutation succeeded: refresh this row before the full reload,
@@ -98,6 +108,7 @@ extension ScreenTestsView {
             } else {
                 tests.removeAll { $0.id == test.id }
             }
+            refreshDerived()
             await load()
         } catch {
             actionError = message(for: error)
@@ -105,6 +116,12 @@ extension ScreenTestsView {
     }
 
     func delete(_ test: ScreenTestSession) async {
+        // Duplicate destructive requests raced each other and reloaded the list
+        // after another deletion already succeeded (#1853); offline the request can
+        // only fail (#1855).
+        guard !isReadOnly, mutatingIDs.insert(test.id).inserted else { return }
+
+        defer { mutatingIDs.remove(test.id) }
         do {
             try await client.deleteTest(id: test.id)
             // The server mutation succeeded: remove the row locally first, so a
@@ -112,6 +129,7 @@ extension ScreenTestsView {
             // banner reports the reload failure separately.
             selectedIDs.remove(test.id)
             tests.removeAll { $0.id == test.id }
+            refreshDerived()
             await load()
         } catch {
             actionError = message(for: error)

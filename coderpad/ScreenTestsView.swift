@@ -31,6 +31,9 @@ struct ScreenTestsView: View {
     /// This window's published navigation state (injected by `ContentView`), the
     /// home of the candidate-count subtitle this list publishes (#887).
     @Environment(WindowNavigation.self) private var windowNav
+    /// Offline read-only state (#1855): the invite/resend/cancel/delete write paths
+    /// disable rather than offering mutations that can only fail.
+    @Environment(\.isReadOnly) var isReadOnly
     @State var accounts = AccountsStore.shared
     @Environment(\.openWindow) var openWindow
     @State var tests: [ScreenTestSession] = []
@@ -48,9 +51,11 @@ struct ScreenTestsView: View {
     /// slower response can't overwrite the current date range's list (#885).
     @State private var loadGeneration = 0
     @State private var showInvite = false
-    /// Sessions with a resend in flight, so repeated Resend commands can't email
-    /// the same candidate twice (#900).
-    @State var resendingIDs: Set<Int> = []
+    /// Sessions with any mutation (resend, cancel, or delete) in flight: repeated
+    /// commands can't email the same candidate twice (#900) or duplicate a
+    /// destructive request (#1852, #1853), and one shared set means resend and
+    /// cancel can't run concurrently against the same invitation (#1854).
+    @State var mutatingIDs: Set<Int> = []
     @State var testPendingDelete: ScreenTestSession?
     @State var actionError: String?
     @State var showResentConfirmation = false
@@ -107,8 +112,8 @@ struct ScreenTestsView: View {
             // clobber the clipboard with an empty payload (#809). Filter changes are
             // rare user actions, so the O(N) prune stays off the render path - the
             // copy gate itself must remain the O(1) `selectedIDs` check (#395).
-            .onChange(of: statusFilter) { _, _ in pruneHiddenSelection() }
-            .onChange(of: search) { _, _ in pruneHiddenSelection() }
+            .onChange(of: statusFilter) { _, _ in refreshDerived() }
+            .onChange(of: search) { _, _ in refreshDerived() }
             .onReloadRequest { await load() }
             // This list lives in the detail column (#448); publish the candidate count so the
             // campaigns column can show it as the window subtitle while a campaign is selected
@@ -157,6 +162,7 @@ struct ScreenTestsView: View {
                 Label("Invite Candidate", systemImage: "person.badge.plus")
             }
             .help("Invite a candidate to this campaign.")
+            .disabled(isReadOnly)
         }
         ToolbarItem(id: "status-filter", placement: .automatic) {
             Menu {
@@ -193,27 +199,46 @@ struct ScreenTestsView: View {
         }
     }
 
-    /// The distinct statuses present, for the filter menu.
-    private var statuses: [String] {
-        Array(Set(tests.map(\.status))).sorted()
-    }
+    /// The distinct normalized statuses present, for the filter menu. Cached rather
+    /// than rebuilt from a fresh Set on every body pass (#1859).
+    @State private var statuses: [String] = []
 
     /// Tests matching the status + search filters, most-recent activity first.
-    private var filtered: [ScreenTestSession] {
-        let query = search.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        return tests
+    /// Cached: body, count, selection, and copy paths all read it, and recomputing
+    /// the O(n log n) filter+sort per render made large campaigns pay repeatedly for
+    /// every state settle (#1858; the #395 lesson). Refreshed from every input
+    /// mutation: load, row mutations, and the filter/search onChange handlers.
+    @State private(set) var filtered: [ScreenTestSession] = []
+
+    /// Recomputes ``filtered`` and ``statuses``, then prunes any selection the new
+    /// filter hides (#809).
+    func refreshDerived() {
+        statuses = Array(Set(tests.map { Self.normalizedStatus($0.status) })).sorted()
+        let query = search.trimmingCharacters(in: .whitespacesAndNewlines)
+        filtered = tests
             .filter { test in
-                (statusFilter == nil || test.status == statusFilter)
+                (statusFilter == nil || Self.normalizedStatus(test.status) == statusFilter)
                     && (query.isEmpty || matchesQuery(test, query))
             }
             .sorted { lhs, rhs in
                 (lhs.lastActivityDate ?? .distantPast) > (rhs.lastActivityDate ?? .distantPast)
             }
+        pruneHiddenSelection()
     }
 
+    /// Statuses are compared normalized - trimmed and lowercased - so API casing or
+    /// whitespace variants of one status can't yield duplicate filter choices or
+    /// miss semantically identical rows (#1857).
+    private static func normalizedStatus(_ status: String) -> String {
+        status.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    }
+
+    /// Locale-aware, case- and diacritic-insensitive matching (#1856):
+    /// `lowercased()` comparisons mishandle locale-specific casing such as the
+    /// Turkish dotless I.
     private func matchesQuery(_ test: ScreenTestSession, _ query: String) -> Bool {
-        (test.candidateName?.lowercased().contains(query) ?? false)
-            || (test.candidateEmail?.lowercased().contains(query) ?? false)
+        (test.candidateName?.localizedStandardContains(query) ?? false)
+            || (test.candidateEmail?.localizedStandardContains(query) ?? false)
     }
 
     private var countSubtitle: String {
@@ -256,7 +281,7 @@ struct ScreenTestsView: View {
 
             tests = fetched
             loadError = nil
-            pruneHiddenSelection()
+            refreshDerived()
         } catch {
             guard generation == loadGeneration else { return }
 

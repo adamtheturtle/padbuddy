@@ -79,6 +79,16 @@ struct ScreenTestWindow: View {
             }
         }
         .task(id: value) { await load() }
+        // A legacy value (no account) restored before the accounts store finished
+        // loading captured no fallback, leaving the window following whichever
+        // account was selected later (#1863): capture the first account that
+        // appears, making the owner sticky from then on, and fill the window in.
+        .onChange(of: accounts.currentAccountID) { _, _ in
+            guard value?.account == nil, fallbackAccountID == nil else { return }
+
+            captureFallbackAccountIfNeeded()
+            if fetched == nil { Task { await refresh() } }
+        }
         .onReloadRequest { await refresh() }
     }
 
