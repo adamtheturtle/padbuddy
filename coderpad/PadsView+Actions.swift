@@ -38,7 +38,13 @@ extension PadsView {
             seedQuestionID = request.seedQuestionID
             showCreate = true
         }
-        if let id = request.selectPadID { selectPad(id: id) }
+        // Apply an account-scoped selection only when this list shows that account:
+        // the request can outlive an account switch, and pad slugs collide across
+        // custom servers, so the bare id must not select another account's pad (#1255).
+        if let id = request.selectPadID,
+           request.selectPadAccountID == nil || request.selectPadAccountID == accounts.currentAccountID {
+            selectPad(id: id)
+        }
     }
 
     /// Selects the pad with `id`, deferring until the list loads it when the favorite

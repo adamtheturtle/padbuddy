@@ -296,6 +296,19 @@ struct PadsView: View {
                 }
             }
             .task {
+                for await creation in AppRouter.padCreations {
+                    // A pad created outside the lists (widget, menu-bar extra, New Pad
+                    // from Question) appears immediately rather than waiting for the
+                    // next reload (#1251). Scoped to this list's account; the shared
+                    // cache is updated by the creator, so only the rows update here.
+                    guard creation.account == nil || creation.account == owningAccountID,
+                          !pads.contains(where: { $0.id == creation.pad.id }) else { continue }
+
+                    pads.insert(creation.pad, at: 0)
+                    padsRevision += 1
+                }
+            }
+            .task {
                 for await deletion in AppRouter.padDeletions {
                     // Same account scoping as the update stream (#761).
                     guard deletion.account == nil || deletion.account == owningAccountID else { continue }

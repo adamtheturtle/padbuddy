@@ -101,6 +101,18 @@ final class PadsCacheStore {
         }
     }
 
+    /// Insert a just-created pad at the top of `account`'s cached list, so
+    /// Spotlight, the widget, the Dock badge, and any list mounting later see it
+    /// immediately instead of waiting for the next full reload (#1251). A no-op
+    /// when the pad is already cached, so a duplicated create broadcast can't
+    /// produce a duplicate row (#1218).
+    func insertPad(_ pad: Pad, account accountID: UUID, via client: CoderPadClient) {
+        let pads = get(accountID)
+        guard !pads.contains(where: { $0.id == pad.id }) else { return }
+
+        set(accountID, pads: [pad] + pads, via: client)
+    }
+
     /// `isRekey: true` drops the widget snapshot without tombstoning the account:
     /// a re-keyed account persists, so the removal tombstone (never cleared for a
     /// still-present account) would silently block every future widget refresh and

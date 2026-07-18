@@ -113,13 +113,20 @@
             for pending in WidgetSharedStore.takePendingRequestsInOrder() {
                 switch pending {
                 case let .openPad(request):
+                    // The validated account travels with the navigation request: it
+                    // can outlive further view/account switches, and a bare pad id
+                    // must not resolve under a different account (#1255).
+                    var owner: UUID?
                     if let account = request.account,
                        let uuid = UUID(uuidString: account),
                        AccountsStore.shared.accounts.contains(where: { $0.id == uuid }) {
                         AccountsStore.shared.showAllAccounts = false
                         AccountsStore.shared.currentAccountID = uuid
+                        owner = uuid
                     }
-                    AppNavigation.shared.showPads(PadsRequest(selectPadID: request.id))
+                    AppNavigation.shared.showPads(
+                        PadsRequest(selectPadID: request.id, selectPadAccountID: owner)
+                    )
 
                 case let .newPad(request):
                     AppNavigation.shared.routeNewPad(account: request.account, seedQuestionID: request.question)

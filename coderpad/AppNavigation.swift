@@ -24,6 +24,12 @@ struct PadsRequest: Equatable {
     /// sidebar that routes it holds favorite ids, not the loaded `Pad`s (mirrors
     /// `QuestionsRequest.selectQuestionID`).
     var selectPadID: String?
+    /// The account that owns `selectPadID`, when the requester knows it. Pad slugs
+    /// collide across custom servers, and a queued request can outlive further
+    /// account or view switches before the Pads pane consumes it, so a bare id
+    /// must not be resolved under a different account (#1255). Nil for legacy
+    /// id-only requesters, which keep the old id-only matching.
+    var selectPadAccountID: UUID?
 }
 
 /// The Questions-pane equivalent of `PadsRequest`.

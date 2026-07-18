@@ -218,6 +218,11 @@ extension MergedPadsView {
                 }
             }
             .task {
+                for await creation in AppRouter.padCreations {
+                    applyCreated(creation)
+                }
+            }
+            .task {
                 for await deletion in AppRouter.padDeletions {
                     // Drop every selected row whose pad matches the deleted slug,
                     // scoped to the owning account when the broadcast carries one so a

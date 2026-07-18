@@ -96,6 +96,20 @@ enum AppRouter {
         }
     }
 
+    /// Broadcast that a pad was just created outside the list views — the widget /
+    /// Control Center path, the menu-bar extra, and "New Pad from Question" — so
+    /// every mounted list inserts the row immediately instead of leaving it
+    /// invisible until the next full reload (#1251).
+    static func padCreated(_ pad: Pad, account: UUID?) {
+        center.post(name: .padCreated, object: pad, userInfo: userInfo(account))
+    }
+
+    static var padCreations: AsyncStream<PadMutation> {
+        payloadStream(.padCreated) { note in
+            (note.object as? Pad).map { PadMutation(pad: $0, account: account(from: note)) }
+        }
+    }
+
     /// Broadcast that the pad with `id` (owned by `account`) was deleted, so
     /// lists drop the row.
     static func padDeleted(id: String, account: UUID?) {
@@ -176,6 +190,7 @@ private extension Notification.Name {
     static let openPadByURLRequested = Notification.Name("coderpad.openPadByURLRequested")
     static let commandPaletteRequested = Notification.Name("coderpad.commandPaletteRequested")
     static let padUpdated = Notification.Name("coderpad.padUpdated")
+    static let padCreated = Notification.Name("coderpad.padCreated")
     static let padDeleted = Notification.Name("coderpad.padDeleted")
     static let questionUpdated = Notification.Name("coderpad.questionUpdated")
     static let questionDeleted = Notification.Name("coderpad.questionDeleted")

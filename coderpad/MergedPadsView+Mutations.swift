@@ -47,8 +47,24 @@ extension MergedPadsView {
         publishRoutes()
     }
 
+    /// A pad created outside the lists (widget, menu-bar extra, New Pad from
+    /// Question) appears immediately in its account's rows rather than waiting for
+    /// the next reload (#1251). Ignored when the broadcast's account isn't one of
+    /// the merged accounts.
+    func applyCreated(_ creation: PadMutation) {
+        guard let accountID = creation.account,
+              let account = accounts.mergeableAccounts.first(where: { $0.id == accountID }) else { return }
+
+        insert(creation.pad, into: account)
+    }
+
+    /// Insert a just-created pad at the top of its account's rows. A no-op when the
+    /// account already holds the pad, so a repeated create notification can't
+    /// produce duplicate rows sharing one identity (#1218).
     func insert(_ pad: Pad, into account: Account) {
         var pads = padsByAccount[account.id] ?? []
+        guard !pads.contains(where: { $0.id == pad.id }) else { return }
+
         pads.insert(pad, at: 0)
         padsByAccount[account.id] = pads
         cache.set(account.id, pads: pads, via: account.makeClient())

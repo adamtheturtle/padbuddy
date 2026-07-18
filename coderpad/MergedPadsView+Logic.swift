@@ -230,9 +230,14 @@ extension MergedPadsView {
             // `selectPadID` arrives as a bare slug from process-wide entry points
             // (e.g. the command palette in merged mode), but this list keys its
             // selection by account-namespaced row id (#758). Resolve it against the
-            // loaded rows; when the row hasn't loaded yet, park the slug and let
+            // loaded rows — honoring the owning account when the request carries
+            // one, since slugs collide across custom servers (#1255); when the row
+            // hasn't loaded yet, park the slug and let
             // `resolvePendingSlugSelection()` finish once it appears.
-            if let scopedRow = scoped.first(where: { $0.item.id == id }) {
+            let owner = request.selectPadAccountID
+            if let scopedRow = scoped.first(where: {
+                $0.item.id == id && (owner == nil || $0.account.id == owner)
+            }) {
                 selectedIDs = [scopedRow.id]
                 pendingScrollToID = scopedRow.id
             } else {

@@ -103,6 +103,11 @@
             let client = account.makeClient()
             do {
                 let pad = try await client.createPad(body)
+                // Publish the created pad to the shared cache (Spotlight, widget,
+                // Dock badge) and to every mounted list, so it doesn't stay
+                // invisible in-app until the next full reload (#1251).
+                PadsCacheStore.shared.insertPad(pad, account: account.id, via: client)
+                AppRouter.padCreated(pad, account: account.id)
                 // Fall back to the canonical {base}/{id} address when the response's
                 // url is absent/malformed, so the created pad is never lost (#781).
                 openPadURL(pad.webURL(fallbackBase: account.resolvedBaseURL))

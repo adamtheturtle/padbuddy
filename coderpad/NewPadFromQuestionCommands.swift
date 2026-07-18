@@ -8,24 +8,52 @@
 //  stays out of the `App` body and only this submenu rebuilds when questions load.
 //
 
+import os
 import SwiftUI
 
 @MainActor
 enum NewPadFromQuestionRunner {
+    /// Account-namespaced keys of creates already in flight, so repeated menu or
+    /// palette activations can't create several pads from the same question before
+    /// the first create returns (#1250).
+    private static var inFlight: Set<String> = []
+
     /// Creates a pad directly from `question` and opens it in the user's browser.
     /// On failure it falls back to the in-app create sheet seeded
     /// with the question, matching the app's other create-pad recovery paths.
     static func createAndOpen(question: Question, account: Account) {
+        let key = "\(account.id.uuidString):\(question.id)"
+        guard inFlight.insert(key).inserted else { return }
+
         let client = account.makeClient()
         let accountID = account.id
         let body = PadCreate.fromQuestion(question)
         Task { @MainActor in
+            defer { inFlight.remove(key) }
             do {
                 let pad = try await client.createPad(body)
+                // Publish the created pad to the shared cache (Spotlight, widget,
+                // Dock badge) and to every mounted list, so it doesn't stay
+                // invisible in-app until the next full reload (#1251).
+                PadsCacheStore.shared.insertPad(pad, account: accountID, via: client)
+                AppRouter.padCreated(pad, account: accountID)
                 // The canonical {base}/{id} fallback (#781): a response with a missing
                 // or malformed url must not silently lose the just-created pad (#1004).
                 BrowserSettings.openExternally(pad.webURL(fallbackBase: account.resolvedBaseURL))
             } catch {
+                // The create can outlive its account: routing the fallback sheet at
+                // an account removed mid-flight would present a create flow against
+                // credentials the user just discarded, so log and drop it (#1252).
+                guard AccountsStore.shared.accounts.contains(where: { $0.id == accountID }) else {
+                    persistenceLogger.warning(
+                        """
+                        New Pad from Question failed and its account \
+                        \(accountID.uuidString, privacy: .public) was removed mid-create; \
+                        dropping the fallback: \(error.localizedDescription, privacy: .public)
+                        """
+                    )
+                    return
+                }
                 AppNavigation.shared.routeNewPad(account: accountID.uuidString, seedQuestionID: question.id)
             }
         }

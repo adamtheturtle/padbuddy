@@ -12,6 +12,15 @@
     import AppKit
     import os
 
+    /// The tail of the serial widget-request drain chain: each drain awaits the one
+    /// before it, so queued requests replay strictly in the order the user issued
+    /// them and their pad creates run one at a time instead of as a burst of
+    /// detached tasks (#1253, #1254).
+    @MainActor
+    private enum WidgetRequestDrain {
+        static var tail: Task<Void, Never>?
+    }
+
     extension AppDelegate {
         /// Observes the Darwin notifications `WidgetSharedStore.requestNewPad` and
         /// `requestOpenPad` post, so a widget / Control Center / Shortcuts request is
@@ -56,16 +65,31 @@
         /// it, replaying both kinds in the order the user issued them so the most recent
         /// action ends up on top (#1045). Shared by `applicationDidBecomeActive` and the
         /// Darwin observer (already-frontmost requests, #485); whichever activation path
-        /// runs second simply finds the queue empty.
+        /// runs second simply finds the queue empty. Each drain chains onto the previous
+        /// one and awaits every create, so queued creates run serially in request order
+        /// rather than as concurrent detached tasks (#1253), and a drain that races a
+        /// Darwin re-delivery takes the queue only after the prior batch fully finished
+        /// (#1254).
         @MainActor
         static func drainPendingWidgetRequests() {
-            for pending in WidgetSharedStore.takePendingRequestsInOrder() {
-                switch pending {
-                case let .newPad(request):
-                    createPadInBrowser(account: request.account, question: request.question)
+            let previous = WidgetRequestDrain.tail
+            WidgetRequestDrain.tail = Task { @MainActor in
+                await previous?.value
+                // A double-delivered intent can record identical requests back to
+                // back; within one batch a repeated identical New Pad request is a
+                // duplicate delivery, not a second tap — one tap makes one pad (#1254).
+                var startedCreates = Set<String>()
+                for pending in WidgetSharedStore.takePendingRequestsInOrder() {
+                    switch pending {
+                    case let .newPad(request):
+                        let key = "\(request.account ?? "")|\(request.question.map(String.init) ?? "")"
+                        guard startedCreates.insert(key).inserted else { continue }
 
-                case let .openPad(request):
-                    showPad(request)
+                        await createPadInBrowser(account: request.account, question: request.question)
+
+                    case let .openPad(request):
+                        showPad(request)
+                    }
                 }
             }
         }
@@ -74,15 +98,20 @@
         /// it is still configured, then selects the pad in the Pads list: the same
         /// semantics as the iPad drain (`drainPendingWidgetRequests` in
         /// coderpadApp+iOSScenes.swift), so the intent behaves identically everywhere.
+        /// The validated account travels with the navigation request: the request can
+        /// outlive further view/account switches, and a bare pad id must not resolve
+        /// under a different account (#1255).
         @MainActor
         private static func showPad(_ request: WidgetOpenPadRequest) {
+            var owner: UUID?
             if let account = request.account,
                let uuid = UUID(uuidString: account),
                AccountsStore.shared.accounts.contains(where: { $0.id == uuid }) {
                 AccountsStore.shared.showAllAccounts = false
                 AccountsStore.shared.currentAccountID = uuid
+                owner = uuid
             }
-            AppNavigation.shared.showPads(PadsRequest(selectPadID: request.id))
+            AppNavigation.shared.showPads(PadsRequest(selectPadID: request.id, selectPadAccountID: owner))
         }
 
         /// Creates a pad through the API and opens it in the user's browser — the same
@@ -92,7 +121,7 @@
         /// there's no usable account or the request fails, it falls back to opening the
         /// in-app create flow so a tap is never silently lost.
         @MainActor
-        static func createPadInBrowser(account: String?, question: Int?) {
+        static func createPadInBrowser(account: String?, question: Int?) async {
             let store = AccountsStore.shared
             let route = AppNavigation.resolveNewPadRoute(
                 account: account,
@@ -117,26 +146,29 @@
             let client = account.makeClient()
             let accountID = account.id
             let fallbackBase = account.resolvedBaseURL
-            Task { @MainActor in
-                do {
-                    let pad = try await client.createPad(body)
-                    // Fall back to the canonical {base}/{id} address when the response's
-                    // url is absent/malformed, so the created pad is never lost (#781).
-                    openCreatedPad(pad.webURL(fallbackBase: fallbackBase))
-                } catch {
-                    // Offline or a transient API error: surface the in-app create flow so the
-                    // user can retry, rather than failing silently. Log why (privacy-safe:
-                    // the account id and error text, never the key) so a repeated fallback
-                    // - e.g. a revoked key - is diagnosable from Console (#688).
-                    persistenceLogger.warning(
-                        """
-                        Widget New Pad API create failed for account \
-                        \(accountID.uuidString, privacy: .public); falling back to the in-app \
-                        create sheet: \(error.localizedDescription, privacy: .public)
-                        """
-                    )
-                    routeNewPadViaDeepLink(account: accountID.uuidString, question: route.seedQuestionID)
-                }
+            do {
+                let pad = try await client.createPad(body)
+                // Publish the created pad to the shared cache (Spotlight, widget, Dock
+                // badge) and to every mounted list, so it doesn't stay invisible
+                // in-app until the next full reload (#1251).
+                PadsCacheStore.shared.insertPad(pad, account: accountID, via: client)
+                AppRouter.padCreated(pad, account: accountID)
+                // Fall back to the canonical {base}/{id} address when the response's
+                // url is absent/malformed, so the created pad is never lost (#781).
+                openCreatedPad(pad.webURL(fallbackBase: fallbackBase))
+            } catch {
+                // Offline or a transient API error: surface the in-app create flow so the
+                // user can retry, rather than failing silently. Log why (privacy-safe:
+                // the account id and error text, never the key) so a repeated fallback
+                // - e.g. a revoked key - is diagnosable from Console (#688).
+                persistenceLogger.warning(
+                    """
+                    Widget New Pad API create failed for account \
+                    \(accountID.uuidString, privacy: .public); falling back to the in-app \
+                    create sheet: \(error.localizedDescription, privacy: .public)
+                    """
+                )
+                routeNewPadViaDeepLink(account: accountID.uuidString, question: route.seedQuestionID)
             }
         }
 
