@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import os
 import SwiftUI
 
 /// Restart key for the per-session load task: the chosen account plus whether the
@@ -177,51 +178,76 @@ enum NavigationSessionLoader {
 
     /// Fetches whichever lists aren't currently displayed and stores them in the
     /// shared caches. The visible section loads itself, so this skips it to avoid
-    /// a duplicate request.
+    /// a duplicate request. The pads, questions, and quota warms run concurrently:
+    /// they hit independent endpoints, and chaining them made the last section's
+    /// warm wait out both earlier fetches for no reason (#1244).
     private static func prefetchInactiveSections(account: Account, active: AppSection) async {
         guard account.isMock || !account.apiKey.isEmpty else { return }
 
         let client = account.makeClient()
         let id = account.id
 
-        // On a mid-stream paging failure, the partial list must stay memory-only
-        // (persist: false): the streamed snapshots already warmed the UI, and running
-        // the persist cascade would commit a truncated list as authoritative — writing
-        // it to disk, reconciling the unfetched items OUT of Spotlight, and shrinking
-        // the widget/badge/MCP counts — while silently replacing the previous complete
-        // snapshot (#1025, #1039). Only a completed stream persists.
-        if active != .pads {
-            var latest: [Pad] = []
-            do {
-                for try await snapshot in client.listPadsIncrementally() {
-                    latest = snapshot
-                    PadsCacheStore.shared.set(id, pads: snapshot, via: client, persist: false)
-                }
-                PadsCacheStore.shared.set(id, pads: latest, via: client)
-            } catch {
-                if !latest.isEmpty { PadsCacheStore.shared.set(id, pads: latest, via: client, persist: false) }
-            }
-        }
-
-        if active != .questions {
-            var latest: [Question] = []
-            do {
-                for try await snapshot in client.listQuestionsIncrementally() {
-                    latest = snapshot
-                    QuestionsCacheStore.shared.set(id, questions: snapshot, via: client, persist: false)
-                }
-                QuestionsCacheStore.shared.set(id, questions: latest, via: client)
-            } catch {
-                if !latest.isEmpty {
-                    QuestionsCacheStore.shared.set(id, questions: latest, via: client, persist: false)
-                }
-            }
-        }
-
+        async let pads: Void = active == .pads ? () : prefetchPads(id: id, client: client)
+        async let questions: Void = active == .questions ? () : prefetchQuestions(id: id, client: client)
         // Warm the quota too, so the sidebar/tab set knows up front whether the plan
         // is unlimited without the user having to open Quota or Organization first.
-        if let quota = try? await client.quota() {
-            QuotaCacheStore.shared.set(id, quota: quota, via: client)
+        async let quota: Void = prefetchQuota(id: id, client: client)
+        _ = await (pads, questions, quota)
+    }
+
+    // On a mid-stream paging failure, the partial list must stay memory-only
+    // (persist: false): the streamed snapshots already warmed the UI, and running
+    // the persist cascade would commit a truncated list as authoritative — writing
+    // it to disk, reconciling the unfetched items OUT of Spotlight, and shrinking
+    // the widget/badge/MCP counts — while silently replacing the previous complete
+    // snapshot (#1025, #1039). Only a completed stream persists. Failures are
+    // logged (privacy-safe: account id + error text) rather than swallowed, so a
+    // consistently failing warm is diagnosable from Console (#1243).
+    private static func prefetchPads(id: UUID, client: CoderPadClient) async {
+        var latest: [Pad] = []
+        do {
+            for try await snapshot in client.listPadsIncrementally() {
+                latest = snapshot
+                PadsCacheStore.shared.set(id, pads: snapshot, via: client, persist: false)
+            }
+            PadsCacheStore.shared.set(id, pads: latest, via: client)
+        } catch {
+            logPrefetchFailure("pads", account: id, error: error)
+            if !latest.isEmpty { PadsCacheStore.shared.set(id, pads: latest, via: client, persist: false) }
         }
+    }
+
+    private static func prefetchQuestions(id: UUID, client: CoderPadClient) async {
+        var latest: [Question] = []
+        do {
+            for try await snapshot in client.listQuestionsIncrementally() {
+                latest = snapshot
+                QuestionsCacheStore.shared.set(id, questions: snapshot, via: client, persist: false)
+            }
+            QuestionsCacheStore.shared.set(id, questions: latest, via: client)
+        } catch {
+            logPrefetchFailure("questions", account: id, error: error)
+            if !latest.isEmpty {
+                QuestionsCacheStore.shared.set(id, questions: latest, via: client, persist: false)
+            }
+        }
+    }
+
+    private static func prefetchQuota(id: UUID, client: CoderPadClient) async {
+        do {
+            let quota = try await client.quota()
+            QuotaCacheStore.shared.set(id, quota: quota, via: client)
+        } catch {
+            logPrefetchFailure("quota", account: id, error: error)
+        }
+    }
+
+    private static func logPrefetchFailure(_ kind: String, account: UUID, error: any Error) {
+        persistenceLogger.info(
+            """
+            Background \(kind, privacy: .public) warm failed for account \
+            \(account.uuidString, privacy: .public): \(error.localizedDescription, privacy: .public)
+            """
+        )
     }
 }
