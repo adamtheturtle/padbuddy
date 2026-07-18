@@ -117,8 +117,11 @@ enum NavigationSessionLoader {
                 }
             }
 
+            let clientsByID = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, $0.client) })
             for await (id, pads) in group {
-                if let pads { PadsCacheStore.shared.set(id, pads: pads) }
+                if let pads, let client = clientsByID[id] {
+                    PadsCacheStore.shared.set(id, pads: pads, via: client)
+                }
             }
         }
     }
@@ -136,8 +139,11 @@ enum NavigationSessionLoader {
                 }
             }
 
+            let clientsByID = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, $0.client) })
             for await (id, questions) in group {
-                if let questions { QuestionsCacheStore.shared.set(id, questions: questions) }
+                if let questions, let client = clientsByID[id] {
+                    QuestionsCacheStore.shared.set(id, questions: questions, via: client)
+                }
             }
         }
     }
@@ -155,8 +161,11 @@ enum NavigationSessionLoader {
                 }
             }
 
+            let clientsByID = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, $0.client) })
             for await (id, quota) in group {
-                if let quota { QuotaCacheStore.shared.set(id, quota: quota) }
+                if let quota, let client = clientsByID[id] {
+                    QuotaCacheStore.shared.set(id, quota: quota, via: client)
+                }
             }
         }
     }
@@ -181,11 +190,11 @@ enum NavigationSessionLoader {
             do {
                 for try await snapshot in client.listPadsIncrementally() {
                     latest = snapshot
-                    PadsCacheStore.shared.set(id, pads: snapshot, persist: false)
+                    PadsCacheStore.shared.set(id, pads: snapshot, via: client, persist: false)
                 }
-                PadsCacheStore.shared.set(id, pads: latest)
+                PadsCacheStore.shared.set(id, pads: latest, via: client)
             } catch {
-                if !latest.isEmpty { PadsCacheStore.shared.set(id, pads: latest, persist: false) }
+                if !latest.isEmpty { PadsCacheStore.shared.set(id, pads: latest, via: client, persist: false) }
             }
         }
 
@@ -194,18 +203,20 @@ enum NavigationSessionLoader {
             do {
                 for try await snapshot in client.listQuestionsIncrementally() {
                     latest = snapshot
-                    QuestionsCacheStore.shared.set(id, questions: snapshot, persist: false)
+                    QuestionsCacheStore.shared.set(id, questions: snapshot, via: client, persist: false)
                 }
-                QuestionsCacheStore.shared.set(id, questions: latest)
+                QuestionsCacheStore.shared.set(id, questions: latest, via: client)
             } catch {
-                if !latest.isEmpty { QuestionsCacheStore.shared.set(id, questions: latest, persist: false) }
+                if !latest.isEmpty {
+                    QuestionsCacheStore.shared.set(id, questions: latest, via: client, persist: false)
+                }
             }
         }
 
         // Warm the quota too, so the sidebar/tab set knows up front whether the plan
         // is unlimited without the user having to open Quota or Organization first.
         if let quota = try? await client.quota() {
-            QuotaCacheStore.shared.set(id, quota: quota)
+            QuotaCacheStore.shared.set(id, quota: quota, via: client)
         }
     }
 }

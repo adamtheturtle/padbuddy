@@ -308,6 +308,7 @@ private extension MergedOrganizationView {
         let requestedWindow = window
         let requestedToken = statsWindowToken
         let targets = mergeable.map { (id: $0.id, client: $0.makeClient()) }
+        let clientsByID = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, $0.client) })
         await withTaskGroup(of: (UUID, Organization?, OrganizationStats?, Quota?, String?).self) { group in
             for target in targets {
                 group.addTask {
@@ -326,7 +327,9 @@ private extension MergedOrganizationView {
             for await (id, org, stats, quota, errorText) in group {
                 if let org {
                     orgByAccount[id] = org
-                    orgCache.set(id, organization: org)
+                    if let client = clientsByID[id] {
+                        orgCache.set(id, organization: org, via: client)
+                    }
                     accountErrors[id] = nil
                 } else if let errorText {
                     accountErrors[id] = errorText
@@ -336,7 +339,9 @@ private extension MergedOrganizationView {
                 // reloadStats is the authority now), drop these to avoid overwriting
                 // fresh stats with counts for the old period. #384/#798
                 if let stats, requestedToken == statsWindowToken { statsByAccount[id] = stats }
-                if let quota { quotaCache.set(id, quota: quota) }
+                if let quota, let client = clientsByID[id] {
+                    quotaCache.set(id, quota: quota, via: client)
+                }
             }
         }
     }

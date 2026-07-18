@@ -193,7 +193,7 @@ extension PadsView {
                     pads = snapshot
                     padsRevision += 1
                     if let id = accounts.currentAccountID {
-                        cache.set(id, pads: snapshot, persist: false)
+                        cache.set(id, pads: snapshot, via: client, persist: false)
                     }
                 }
             }
@@ -221,7 +221,7 @@ extension PadsView {
         PadUpdateNotifier.shared.notify(changes: myChanges)
         previousActivity = Self.activitySnapshot(of: fetched)
         if let id = accounts.currentAccountID {
-            cache.set(id, pads: fetched)
+            cache.set(id, pads: fetched, via: client)
         }
         hasLoadedOnce = true
         // Cold start with an empty cache: the list first appears here, so this is the

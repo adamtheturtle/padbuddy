@@ -174,13 +174,13 @@
             var errors: [String] = []
             switch padsResult {
             case let .success(pads):
-                PadsCacheStore.shared.set(account.id, pads: pads)
+                PadsCacheStore.shared.set(account.id, pads: pads, via: client)
             case let .failure(error):
                 errors.append("Pads: \(error.localizedDescription)")
             }
             switch questionsResult {
             case let .success(questions):
-                QuestionsCacheStore.shared.set(account.id, questions: questions)
+                QuestionsCacheStore.shared.set(account.id, questions: questions, via: client)
             case let .failure(error):
                 errors.append("Questions: \(error.localizedDescription)")
             }

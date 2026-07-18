@@ -69,7 +69,15 @@ final class PadsCacheStore {
     /// `persist: false` updates only the in-memory snapshot, skipping the disk write —
     /// used when streaming pages so intermediate snapshots warm the UI without churning
     /// the disk; the caller persists once with the final, complete list.
-    func set(_ accountID: UUID, pads: [Pad], persist: Bool = true) {
+    ///
+    /// `client` is the client the pads were fetched through: a load can outlive the
+    /// removal or re-key of its account, and caching its late result would resurrect
+    /// data teardown just purged — into memory, disk, Spotlight, the widget, and the
+    /// Dock badge (#754). Results whose credentials no longer match the account are
+    /// dropped.
+    func set(_ accountID: UUID, pads: [Pad], via client: CoderPadClient, persist: Bool = true) {
+        guard AccountsStore.shared.isCurrentClient(client, for: accountID) else { return }
+
         padsByAccount[accountID] = pads
         diskConsulted.insert(accountID)
         guard persist else { return }
@@ -99,7 +107,12 @@ final class PadsCacheStore {
     /// leave the widget blank until an unrelated account-list change (#1022).
     func remove(_ accountID: UUID, isRekey: Bool = false) {
         padsByAccount[accountID] = nil
-        diskConsulted.remove(accountID)
+        // Mark the disk snapshot as consulted rather than forgetting it: the file
+        // deletion below runs asynchronously on the write queue, and an unmarked
+        // account would let any `get` in that window rehydrate the just-purged
+        // snapshot from disk back into memory (#755). The file is gone afterwards,
+        // so a re-added account with the same id starts empty either way.
+        diskConsulted.insert(accountID)
         writeQueue.enqueue {
             CacheDisk.delete(kind: "pads", account: accountID)
         }
@@ -169,7 +182,13 @@ final class QuestionsCacheStore {
     /// `persist: false` updates only the in-memory snapshot, skipping disk, Spotlight,
     /// favorites, and widget side effects. Used while streaming pages so a canceled view
     /// load still leaves warm rows for a quick section switch back.
-    func set(_ accountID: UUID, questions: [Question], persist: Bool = true) {
+    ///
+    /// `client` is the client the questions were fetched through; results whose
+    /// credentials no longer match the account are dropped, so a load that outlived
+    /// its account's removal or re-key can't resurrect purged data (#754).
+    func set(_ accountID: UUID, questions: [Question], via client: CoderPadClient, persist: Bool = true) {
+        guard AccountsStore.shared.isCurrentClient(client, for: accountID) else { return }
+
         questionsByAccount[accountID] = questions
         diskConsulted.insert(accountID)
         guard persist else { return }
@@ -188,7 +207,10 @@ final class QuestionsCacheStore {
 
     func remove(_ accountID: UUID) {
         questionsByAccount[accountID] = nil
-        diskConsulted.remove(accountID)
+        // Consulted, not forgotten: see PadsCacheStore.remove — an unmarked account
+        // could rehydrate the purged snapshot from disk before the queued file
+        // deletion runs (#755).
+        diskConsulted.insert(accountID)
         writeQueue.enqueue {
             CacheDisk.delete(kind: "questions", account: accountID)
         }
@@ -253,7 +275,12 @@ final class OrganizationCacheStore {
         byAccount[accountID]
     }
 
-    func set(_ accountID: UUID, organization: Organization) {
+    /// `client` is the client the organization was fetched through; a result whose
+    /// credentials no longer match the account is dropped, so a load that outlived
+    /// the account's removal or re-key can't resurrect its member directory (#754).
+    func set(_ accountID: UUID, organization: Organization, via client: CoderPadClient) {
+        guard AccountsStore.shared.isCurrentClient(client, for: accountID) else { return }
+
         byAccount[accountID] = organization
     }
 
@@ -356,7 +383,11 @@ final class QuotaCacheStore {
         byAccount[accountID]
     }
 
-    func set(_ accountID: UUID, quota: Quota) {
+    /// `client` is the client the quota was fetched through; a stale result from a
+    /// removed or re-keyed account's outstanding load is dropped (#754).
+    func set(_ accountID: UUID, quota: Quota, via client: CoderPadClient) {
+        guard AccountsStore.shared.isCurrentClient(client, for: accountID) else { return }
+
         byAccount[accountID] = quota
     }
 

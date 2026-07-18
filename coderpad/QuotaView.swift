@@ -175,7 +175,7 @@ struct QuotaView: View {
             let fetched = try await client.quota()
             quota = fetched
             if let id = accountID {
-                cache.set(id, quota: fetched)
+                cache.set(id, quota: fetched, via: client)
             }
         } catch {
             self.error = error

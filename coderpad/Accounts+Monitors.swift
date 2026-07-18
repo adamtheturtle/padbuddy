@@ -149,7 +149,7 @@ final class PadsBackgroundRefresher {
 
             changes += ownedChanges(account: account, fetched: fetched)
             // `set` cascades to the widget snapshot and the active-pads Dock badge.
-            PadsCacheStore.shared.set(account.id, pads: fetched)
+            PadsCacheStore.shared.set(account.id, pads: fetched, via: client)
         }
         PadUpdateNotifier.shared.notify(changes: changes)
     }

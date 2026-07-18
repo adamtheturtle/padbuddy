@@ -365,14 +365,14 @@ struct QuestionsView: View {
                     questions = snapshot
                     questionsRevision += 1
                     if let id = accounts.currentAccountID {
-                        cache.set(id, questions: snapshot, persist: false)
+                        cache.set(id, questions: snapshot, via: client, persist: false)
                     }
                 }
             }
             questions = fetched
             questionsRevision += 1
             if let id = accounts.currentAccountID {
-                cache.set(id, questions: fetched)
+                cache.set(id, questions: fetched, via: client)
             }
         } catch {
             // Keep whatever is already on screen; the error view only takes over when

@@ -336,8 +336,8 @@ private extension OrganizationView {
             // one: an in-flight reload finishing after an account switch must not
             // write this account's data into the new account's cache (#991).
             if let id = accountID {
-                orgCache.set(id, organization: fetchedOrg)
-                if let fetchedQuota { quotaCache.set(id, quota: fetchedQuota) }
+                orgCache.set(id, organization: fetchedOrg, via: client)
+                if let fetchedQuota { quotaCache.set(id, quota: fetchedQuota, via: client) }
             }
         } catch {
             self.error = error

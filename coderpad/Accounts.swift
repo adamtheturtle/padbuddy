@@ -70,6 +70,21 @@ extension KeychainAccountStore where Account == CoderPad.Account {
         }
     }
 
+    /// True when `client`'s credentials are still exactly what account `accountID`
+    /// resolves to. Cache setters use this to reject results from loads that
+    /// outlived an account removal or re-key (#754): a loader's client embeds the
+    /// credentials it fetched with, so a removed account (no id) or a re-keyed one
+    /// (different key/server) fails the comparison and the late result is dropped
+    /// instead of resurrecting purged data. Compares against `makeClient()` rather
+    /// than the raw stored fields so mock/demo clients (whose identity is derived,
+    /// not stored) validate the same way real ones do.
+    func isCurrentClient(_ client: CoderPadClient, for accountID: UUID) -> Bool {
+        guard let account = accounts.first(where: { $0.id == accountID }) else { return false }
+
+        let current = account.makeClient()
+        return current.baseURL == client.baseURL && current.apiKey == client.apiKey
+    }
+
     func addDemoBadKeyIfMissing() {
         if !accounts.contains(where: \.isBadKeyDemo) {
             add(.demoBadKey())

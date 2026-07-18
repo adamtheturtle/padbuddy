@@ -130,6 +130,7 @@ struct MergedQuotaView: View {
         isLoading = true
         defer { isLoading = false }
         let targets = mergeable.map { (id: $0.id, client: $0.makeClient()) }
+        let clientsByID = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, $0.client) })
         await withTaskGroup(of: (UUID, Quota?, String?).self) { group in
             for target in targets {
                 group.addTask {
@@ -145,7 +146,9 @@ struct MergedQuotaView: View {
                 if let quota {
                     quotaByAccount[id] = quota
                     accountErrors[id] = nil
-                    cache.set(id, quota: quota)
+                    if let client = clientsByID[id] {
+                        cache.set(id, quota: quota, via: client)
+                    }
                 } else {
                     accountErrors[id] = errorText
                 }
