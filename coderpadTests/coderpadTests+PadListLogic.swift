@@ -286,6 +286,24 @@ struct PadEventGroupingTests {
     }
 }
 
+@Suite("Pad history replay")
+struct PadHistoryReplayTests {
+    @Test
+    func `file history precomputes one snapshot per edit`() {
+        let history = PadHistory(entries: [
+            PadHistoryEntry(id: "a", author: "Basil", operations: [.insert("h")], timestamp: 1),
+            PadHistoryEntry(id: "b", author: "Basil", operations: [.retain(1), .insert("i")], timestamp: 2),
+            PadHistoryEntry(id: "c", author: "Sybil", operations: [.retain(2), .insert("!")], timestamp: 3)
+        ])
+
+        let file = PadFileHistory(id: "history-url", title: "main.py", language: "python", history: history)
+
+        #expect(file.snapshots.map(\.contents) == ["h", "hi", "hi!"])
+        #expect(file.snapshots.map(\.index) == [0, 1, 2])
+        #expect(file.latestEntry?.id == "c")
+    }
+}
+
 // Serialized: OrgDirectory.load reaches a mock client and the suite asserts on
 // the resulting shared lookup; keeping it serial avoids interleaving loads.
 @Suite("Org directory", .serialized)

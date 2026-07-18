@@ -315,6 +315,7 @@ final class PadDetailCacheStore {
     struct Entry {
         var events: [PadEvent]
         var environments: [PadEnvironment]
+        var histories: [PadFileHistory]
     }
 
     /// How many pads' detail payloads stay resident at once. Each entry holds a pad's
@@ -337,7 +338,17 @@ final class PadDetailCacheStore {
 
     func set(_ padID: String, client: CoderPadClient, events: [PadEvent], environments: [PadEnvironment]) {
         let key = Key(padID: padID, client: client)
-        byPad[key] = Entry(events: events, environments: environments)
+        let histories = byPad[key]?.histories ?? []
+        set(key, events: events, environments: environments, histories: histories)
+    }
+
+    func set(_ padID: String, client: CoderPadClient, events: [PadEvent], environments: [PadEnvironment],
+             histories: [PadFileHistory]) {
+        set(Key(padID: padID, client: client), events: events, environments: environments, histories: histories)
+    }
+
+    private func set(_ key: Key, events: [PadEvent], environments: [PadEnvironment], histories: [PadFileHistory]) {
+        byPad[key] = Entry(events: events, environments: environments, histories: histories)
         // Mark this pad most-recently-used, then evict the oldest while over the cap.
         // `set` runs on every open (load() refreshes), so set-order tracks open-order.
         lru.removeAll { $0 == key }

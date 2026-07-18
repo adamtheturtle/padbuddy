@@ -88,6 +88,26 @@ struct MockServerTests {
     }
 
     @Test
+    func `seeded demo pads expose loadable file history`() async throws {
+        let pads = try await client.listPads()
+        let environmentIDs = pads.flatMap(\.padEnvironmentIDs)
+
+        for environmentID in environmentIDs {
+            let environment = try await client.padEnvironment(id: environmentID)
+            guard let historyURL = environment.fileContents.compactMap(\.history).first else {
+                continue
+            }
+
+            let history = try await client.padHistory(historyURL: historyURL)
+
+            #expect(!history.isEmpty)
+            return
+        }
+
+        Issue.record("Expected at least one seeded demo pad file to expose history")
+    }
+
+    @Test
     func `listQuestions returns the seeded questions`() async throws {
         let questions = try await client.listQuestions()
         #expect(questions.count == 7)

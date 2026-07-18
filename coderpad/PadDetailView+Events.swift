@@ -6,6 +6,20 @@
 import SwiftUI
 
 extension PadDetailView {
+    var historyCard: some View {
+        DetailSection(title: "History", systemImage: "clock.arrow.circlepath") {
+            if isLoadingHistory {
+                ProgressView().controlSize(.small)
+            }
+        } content: {
+            if !histories.isEmpty {
+                HistoryPlaybackView(histories: histories, events: events, dark: colorScheme == .dark)
+            }
+        }
+    }
+}
+
+extension PadDetailView {
     var eventsCard: some View {
         DetailSection(title: "Events", systemImage: "list.bullet.rectangle") {
             if isLoading {

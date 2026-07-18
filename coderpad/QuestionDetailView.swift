@@ -6,7 +6,7 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-enum QuestionDetailPane: String, CaseIterable, Identifiable {
+nonisolated enum QuestionDetailPane: String, CaseIterable, DetailChipItem {
     case prompt
     case materials
     case solution

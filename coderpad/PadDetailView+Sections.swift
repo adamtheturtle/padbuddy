@@ -5,6 +5,41 @@
 
 import SwiftUI
 
+// File-scope and nonisolated (mirroring `QuestionDetailPane`): nested in the
+// view, its members inherited MainActor isolation, which the nonisolated
+// `DetailChipItem` conformance can't cross.
+private nonisolated enum PadDetailSection: String, CaseIterable, DetailChipItem {
+    case summary
+    case notes
+    case code
+    case whiteboard
+    case events
+
+    var id: Self {
+        self
+    }
+
+    var label: LocalizedStringKey {
+        switch self {
+        case .summary: "Summary"
+        case .notes: "Notes"
+        case .code: "Code"
+        case .whiteboard: "Whiteboard"
+        case .events: "Events"
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .summary: "info.circle"
+        case .notes: "note.text"
+        case .code: "chevron.left.forwardslash.chevron.right"
+        case .whiteboard: "scribble.variable"
+        case .events: "list.bullet.rectangle"
+        }
+    }
+}
+
 extension PadDetailView {
     var detailScroll: some View {
         ScrollViewReader { proxy in
@@ -37,6 +72,9 @@ extension PadDetailView {
                         whiteboardCard
                             .id(PadDetailSection.whiteboard)
                     }
+                    if hasHistory {
+                        historyCard
+                    }
                     eventsCard
                         .id(PadDetailSection.events)
                 }
@@ -64,55 +102,15 @@ extension PadDetailView {
         }
     }
 
+    /// Shares question detail's pinned chip bar; here the chips are momentary
+    /// scroll-to-section buttons (no `selection`), since a pad reads as one
+    /// document rather than exclusive panes.
     private func sectionNavigator(proxy: ScrollViewProxy) -> some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(availableSections) { section in
-                    Button {
-                        withAnimation(.snappy(duration: 0.2)) {
-                            proxy.scrollTo(section, anchor: .top)
-                        }
-                    } label: {
-                        Label(section.title, systemImage: section.systemImage)
-                    }
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                }
-            }
-            .padding(.horizontal, detailHorizontalPadding)
-            .padding(.vertical, 8)
-        }
-        .background(.bar)
-    }
-
-    private enum PadDetailSection: String, CaseIterable, Identifiable {
-        case summary
-        case notes
-        case code
-        case whiteboard
-        case events
-
-        var id: Self {
-            self
-        }
-
-        var title: LocalizedStringKey {
-            switch self {
-            case .summary: "Summary"
-            case .notes: "Notes"
-            case .code: "Code"
-            case .whiteboard: "Whiteboard"
-            case .events: "Events"
-            }
-        }
-
-        var systemImage: String {
-            switch self {
-            case .summary: "info.circle"
-            case .notes: "note.text"
-            case .code: "chevron.left.forwardslash.chevron.right"
-            case .whiteboard: "scribble.variable"
-            case .events: "list.bullet.rectangle"
+        DetailChipBar(items: availableSections,
+                      horizontalPadding: detailHorizontalPadding,
+                      accessibilityLabel: "Pad detail sections") { section in
+            withAnimation(.snappy(duration: 0.2)) {
+                proxy.scrollTo(section, anchor: .top)
             }
         }
     }
@@ -340,6 +338,10 @@ extension PadDetailView {
     /// language, so the header chip would just repeat it.
     private var codeCardCount: Int {
         environments.count(where: { !displayFiles(for: $0).isEmpty })
+    }
+
+    var hasHistory: Bool {
+        isLoadingHistory || !histories.isEmpty
     }
 
     /// The non-empty files of an environment, each paired with a language

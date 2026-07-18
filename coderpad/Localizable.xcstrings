@@ -137,6 +137,19 @@
         }
       }
     },
+    "%@ / %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ / %2$@"
+          }
+        }
+      }
+    },
+    "%@ activity" : {
+
+    },
     "%@ filter" : {
       "localizations" : {
         "es" : {
@@ -146,6 +159,9 @@
           }
         }
       }
+    },
+    "%@ has no edits yet at this point in the session." : {
+
     },
     "%@ of %@ pads used" : {
       "localizations" : {
@@ -777,6 +793,9 @@
         }
       }
     },
+    "%lld×" : {
+
+    },
     "%lldm" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -917,6 +936,9 @@
           }
         }
       }
+    },
+    "Account Unavailable" : {
+
     },
     "Accounts" : {
       "localizations" : {
@@ -1362,6 +1384,9 @@
         }
       }
     },
+    "Author" : {
+
+    },
     "Auto-filled from your organization" : {
       "localizations" : {
         "en-GB" : {
@@ -1427,6 +1452,9 @@
           }
         }
       }
+    },
+    "Campaign" : {
+
     },
     "Campaigns" : {
       "localizations" : {
@@ -1559,6 +1587,7 @@
       }
     },
     "Candidates" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -1567,6 +1596,9 @@
           }
         }
       }
+    },
+    "Changed elsewhere" : {
+
     },
     "Choose one of your saved accounts in Settings." : {
       "localizations" : {
@@ -1887,6 +1919,9 @@
         }
       }
     },
+    "Configured" : {
+
+    },
     "Connect an assistant to the server and its tool calls show up here." : {
       "localizations" : {
         "es" : {
@@ -2102,6 +2137,7 @@
       }
     },
     "Couldn’t create pad" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2110,6 +2146,9 @@
           }
         }
       }
+    },
+    "Couldn’t create pad. %@" : {
+
     },
     "Couldn't delete pad" : {
       "localizations" : {
@@ -2191,6 +2230,9 @@
         }
       }
     },
+    "Couldn't prepare the code archive to save." : {
+
+    },
     "Couldn't reach CoderPad. Check your connection and try again." : {
       "localizations" : {
         "es" : {
@@ -2221,6 +2263,9 @@
         }
       }
     },
+    "Couldn't refresh - showing the last loaded data." : {
+
+    },
     "Couldn’t save question" : {
       "localizations" : {
         "es" : {
@@ -2230,6 +2275,9 @@
           }
         }
       }
+    },
+    "Couldn't save the code" : {
+
     },
     "Couldn't validate this key. Try again." : {
       "localizations" : {
@@ -2350,6 +2398,9 @@
           }
         }
       }
+    },
+    "Custom files" : {
+
     },
     "Custom…" : {
       "localizations" : {
@@ -2734,6 +2785,7 @@
       }
     },
     "Deleting the pad is permanent and cannot be undone." : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -2793,6 +2845,9 @@
           }
         }
       }
+    },
+    "Dismiss" : {
+
     },
     "Dock and menu bar" : {
       "localizations" : {
@@ -2957,6 +3012,16 @@
         }
       }
     },
+    "Edit %lld of %lld" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Edit %1$lld of %2$lld"
+          }
+        }
+      }
+    },
     "Edit Pad…" : {
       "localizations" : {
         "es" : {
@@ -2966,6 +3031,9 @@
           }
         }
       }
+    },
+    "Edit Question…" : {
+
     },
     "Edit title" : {
       "localizations" : {
@@ -3077,6 +3145,9 @@
         }
       }
     },
+    "Ended %@" : {
+
+    },
     "Ending the interview stops the live session for all participants." : {
       "localizations" : {
         "es" : {
@@ -3087,6 +3158,9 @@
         }
       }
     },
+    "Enter a valid candidate email address." : {
+
+    },
     "Enter a valid https:// URL." : {
       "localizations" : {
         "es" : {
@@ -3096,6 +3170,9 @@
           }
         }
       }
+    },
+    "Enter the pad's identifier - letters and numbers only." : {
+
     },
     "Europe" : {
       "localizations" : {
@@ -3233,6 +3310,9 @@
         }
       }
     },
+    "Favorite Questions" : {
+
+    },
     "Favorited" : {
       "localizations" : {
         "en-GB" : {
@@ -3279,6 +3359,12 @@
 
     },
     "Fetching recent pads…" : {
+
+    },
+    "File" : {
+
+    },
+    "File %lld" : {
 
     },
     "Files" : {
@@ -3511,6 +3597,12 @@
         }
       }
     },
+    "History" : {
+
+    },
+    "History file" : {
+
+    },
     "https://app.coderpad.io/…" : {
       "localizations" : {
         "es" : {
@@ -3543,6 +3635,9 @@
           }
         }
       }
+    },
+    "In %@…" : {
+
     },
     "In Progress" : {
       "localizations" : {
@@ -3605,6 +3700,7 @@
       }
     },
     "Interviewer" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -3615,6 +3711,7 @@
       }
     },
     "Interviewers" : {
+      "extractionState" : "stale",
       "localizations" : {
         "es" : {
           "stringUnit" : {
@@ -4236,6 +4333,9 @@
         }
       }
     },
+    "No" : {
+
+    },
     "No %@ filter. Activate to choose one." : {
       "localizations" : {
         "es" : {
@@ -4506,6 +4606,12 @@
         }
       }
     },
+    "Not configured" : {
+
+    },
+    "Notes" : {
+
+    },
     "Nothing selected" : {
       "localizations" : {
         "es" : {
@@ -4595,6 +4701,9 @@
           }
         }
       }
+    },
+    "Only one edit" : {
+
     },
     "Open" : {
       "localizations" : {
@@ -4992,6 +5101,9 @@
         }
       }
     },
+    "Organization details couldn't be loaded, so the Owner and Team choices may be incomplete." : {
+
+    },
     "Organizations" : {
       "localizations" : {
         "en-GB" : {
@@ -5098,6 +5210,9 @@
         }
       }
     },
+    "Pad detail sections" : {
+
+    },
     "Pad ID" : {
       "localizations" : {
         "es" : {
@@ -5191,6 +5306,9 @@
         }
       }
     },
+    "Participant %lld" : {
+
+    },
     "Participants" : {
       "localizations" : {
         "es" : {
@@ -5241,6 +5359,9 @@
         }
       }
     },
+    "Pause playback" : {
+
+    },
     "Pending" : {
       "localizations" : {
         "es" : {
@@ -5290,6 +5411,15 @@
           }
         }
       }
+    },
+    "Play the session" : {
+
+    },
+    "Playback speed" : {
+
+    },
+    "Playback timeline" : {
+
     },
     "Points" : {
       "localizations" : {
@@ -5521,6 +5651,12 @@
         }
       }
     },
+    "Questions and organization details couldn't be loaded, so the Question, Owner, and Team choices may be incomplete." : {
+
+    },
+    "Questions couldn't be loaded, so the Question choices may be incomplete." : {
+
+    },
     "Questions from your accounts' banks will appear here." : {
       "localizations" : {
         "es" : {
@@ -5600,6 +5736,12 @@
           }
         }
       }
+    },
+    "Recorded on this device. Tool names and times only, never pad or candidate content." : {
+
+    },
+    "Recorded on this Mac. Tool names and times only, never pad or candidate content." : {
+
     },
     "Recruiter email" : {
       "localizations" : {
@@ -5883,6 +6025,9 @@
           }
         }
       }
+    },
+    "Save Anyway" : {
+
     },
     "Save Code" : {
       "extractionState" : "stale",
@@ -6338,6 +6483,12 @@
         }
       }
     },
+    "Show first edit" : {
+
+    },
+    "Show latest edit" : {
+
+    },
     "Show my active pads on the app icon" : {
       "localizations" : {
         "es" : {
@@ -6357,6 +6508,9 @@
           }
         }
       }
+    },
+    "Show next edit" : {
+
     },
     "Show Only %@" : {
       "localizations" : {
@@ -6430,6 +6584,9 @@
         }
       }
     },
+    "Show previous edit" : {
+
+    },
     "Show Questions from %@" : {
       "localizations" : {
         "es" : {
@@ -6439,6 +6596,9 @@
           }
         }
       }
+    },
+    "Show recent activity" : {
+
     },
     "Show Screen API key" : {
       "localizations" : {
@@ -6611,6 +6771,9 @@
         }
       }
     },
+    "Speed" : {
+
+    },
     "Started" : {
       "localizations" : {
         "es" : {
@@ -6720,6 +6883,9 @@
           }
         }
       }
+    },
+    "Summary" : {
+
     },
     "Switch account" : {
       "localizations" : {
@@ -6882,6 +7048,9 @@
         }
       }
     },
+    "The account this item belongs to couldn't be determined. Select it in the list again." : {
+
+    },
     "The Add Account flow auto-fills the name from your org and uses the +/− button set." : {
       "localizations" : {
         "es" : {
@@ -6932,6 +7101,12 @@
         }
       }
     },
+    "The on-device model couldn't generate an explanation for this file." : {
+
+    },
+    "The pad stats request failed." : {
+
+    },
     "The request failed (HTTP %lld)." : {
       "localizations" : {
         "es" : {
@@ -6981,6 +7156,9 @@
           }
         }
       }
+    },
+    "The Server URL isn't a valid web address. Enter a full URL starting with https://, or leave the field blank to use the standard CoderPad server." : {
+
     },
     "The test session was created." : {
       "localizations" : {
@@ -7167,6 +7345,9 @@
           }
         }
       }
+    },
+    "Title changed elsewhere." : {
+
     },
     "To" : {
       "localizations" : {
@@ -7396,6 +7577,9 @@
           }
         }
       }
+    },
+    "Use Latest" : {
+
     },
     "Use system default (%@)" : {
       "localizations" : {
@@ -7638,6 +7822,9 @@
         }
       }
     },
+    "When off, the server refuses to run, so assistants you've already added lose access the next time they start." : {
+
+    },
     "Which CoderPad Screen region your key belongs to." : {
       "localizations" : {
         "es" : {
@@ -7667,6 +7854,9 @@
           }
         }
       }
+    },
+    "Yes" : {
+
     },
     "You appear to be offline. Check your internet connection and try again." : {
       "localizations" : {

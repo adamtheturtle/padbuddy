@@ -15,6 +15,19 @@ nonisolated let persistenceLogger = Logger(subsystem: "com.coderpad.app", catego
 /// the store (e.g. window sizing), so it's a shared global.
 let coderpadIsUITesting = ProcessInfo.processInfo.arguments.contains("-uiTesting")
 
+/// True when this process is the unit-test host (XCTest injected a test bundle into
+/// the app). The app then renders a placeholder instead of the full UI and skips
+/// launch side effects, so live account/cache loading can't race test execution -
+/// a use-after-free in that race crashed the host a few seconds into every full
+/// suite run, failing all in-flight tests (#978). UI tests are unaffected: the
+/// tested app is a separate process with no XCTest configuration in its environment.
+let coderpadIsHostingUnitTests: Bool = {
+    let environment = ProcessInfo.processInfo.environment
+    return environment["XCTestConfigurationFilePath"] != nil
+        || environment["XCTestBundlePath"] != nil
+        || environment["XCTestSessionIdentifier"] != nil
+}()
+
 /// The app's account store is the generic ``KeychainAccountStore`` (BuddyAppKit, #513)
 /// specialised to ``Account``; the typealias + a `shared` accessor keep every call site
 /// unchanged while the storage mechanics live in the shared package.

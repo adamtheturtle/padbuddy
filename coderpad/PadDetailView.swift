@@ -16,10 +16,12 @@ struct PadDetailView: View {
     let pad: Pad
     @State var events: [PadEvent] = []
     @State var environments: [PadEnvironment] = []
+    @State var histories: [PadFileHistory] = []
     @State var loadError: (any Error)?
     /// Starts true so the Events section shows its spinner on the first frame
     /// rather than flashing "No events yet." before `load()` begins.
     @State var isLoading = true
+    @State var isLoadingHistory = false
     // Inline-editable field drafts, seeded from the pad and committed one field at
     // a time. Each control binds to its draft for an immediate, optimistic update;
     // a failed save reverts the draft to the pad's value (see PadDetailView+Edit).
@@ -72,6 +74,7 @@ struct PadDetailView: View {
         if let cached = PadDetailCacheStore.shared.get(pad.id, client: client) {
             _events = State(initialValue: cached.events)
             _environments = State(initialValue: cached.environments)
+            _histories = State(initialValue: cached.histories)
             _isLoading = State(initialValue: false)
         }
     }
@@ -129,6 +132,7 @@ struct PadDetailView: View {
                 .help("Watch the session playback")
                 .accessibilityLabel("Watch playback")
             }
+            .defaultCustomization(.hidden)
         }
         ToolbarSpacer(.fixed)
         ToolbarItem(id: "delete", placement: detailToolbarTrailingPlacement) {

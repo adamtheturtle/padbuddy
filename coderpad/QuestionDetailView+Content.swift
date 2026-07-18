@@ -11,13 +11,32 @@ extension QuestionDetailView {
             VStack(alignment: .leading, spacing: 18) {
                 summaryCard
                 Divider()
-                contentModePicker
                 selectedPaneContent
             }
             .padding(.horizontal, detailHorizontalPadding)
             .padding(.top, detailTopPadding)
             .padding(.bottom, detailBottomPadding)
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        // Pinned above the scroll like pad detail's section navigator, so the
+        // pane switch stays reachable after scrolling a long prompt instead of
+        // scrolling away with the content it used to sit in.
+        .safeAreaInset(edge: .top, spacing: 0) {
+            paneSwitcher
+        }
+    }
+
+    /// Shares pad detail's pinned chip bar; here the chips bind `selection` and
+    /// switch mutually exclusive panes, which keeps the Solution off screen
+    /// until explicitly asked for (it shouldn't sit visible during a screen share).
+    private var paneSwitcher: some View {
+        DetailChipBar(items: QuestionDetailPane.allCases,
+                      selection: selectedPane,
+                      horizontalPadding: detailHorizontalPadding,
+                      accessibilityLabel: "Question detail section") { pane in
+            withAnimation(.snappy(duration: 0.18)) {
+                selectedPane = pane
+            }
         }
     }
 
@@ -43,46 +62,6 @@ extension QuestionDetailView {
         #else
             Spacing.paneV
         #endif
-    }
-
-    var contentModePicker: some View {
-        HStack(spacing: 4) {
-            ForEach(QuestionDetailPane.allCases) { pane in
-                contentModeButton(for: pane)
-            }
-        }
-        .padding(4)
-        .glassEffect(.regular, in: .rect(cornerRadius: 16))
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Question detail section")
-    }
-
-    private func contentModeButton(for pane: QuestionDetailPane) -> some View {
-        let isSelected = selectedPane == pane
-
-        return Button {
-            withAnimation(.snappy(duration: 0.18)) {
-                selectedPane = pane
-            }
-        } label: {
-            Label {
-                Text(pane.label)
-                    .lineLimit(1)
-            } icon: {
-                Image(systemName: pane.systemImage)
-            }
-            .font(.callout.weight(isSelected ? .semibold : .medium))
-            .foregroundStyle(isSelected ? Color.primary : Color.secondary)
-            .frame(maxWidth: .infinity)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .contentShape(.rect(cornerRadius: 12))
-        }
-        .buttonStyle(.plain)
-        .glassEffect(isSelected ? .regular.tint(.accentColor.opacity(0.24)) : .regular.interactive(),
-                     in: .rect(cornerRadius: 12))
-        .accessibilityLabel(pane.label)
-        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
     @ViewBuilder

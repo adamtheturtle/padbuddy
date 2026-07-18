@@ -102,7 +102,30 @@ enum AppEntryPoint {
                 MCPServer.runUntilExit(directory: MCPAccountLoader.directory())
             }
         #endif
-        CoderpadApp.main()
+        // The unit-test host runs an inert placeholder app instead of the real one:
+        // the live scene graph observes @AppStorage/@FocusedValue state, and a test
+        // writing UserDefaults from its own thread re-evaluated the app/commands
+        // bodies on that thread, where the dynamic MainActor check dereferenced the
+        // test task's already-freed executor and crashed the host a few seconds
+        // into every full-suite run (#978). UI tests are unaffected: they launch
+        // the app as a separate process with no XCTest configuration in its
+        // environment.
+        if coderpadIsHostingUnitTests {
+            UnitTestHostApp.main()
+        } else {
+            CoderpadApp.main()
+        }
+    }
+}
+
+/// The inert app the unit-test host presents; see ``AppEntryPoint/main()``.
+struct UnitTestHostApp: App {
+    var body: some Scene {
+        WindowGroup {
+            Text(verbatim: "Hosting unit tests")
+                .foregroundStyle(.secondary)
+                .padding()
+        }
     }
 }
 

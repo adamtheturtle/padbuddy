@@ -23,6 +23,12 @@ enum AppLaunch {
     /// delegate's `applicationDidFinishLaunching(_:)`, so any preference migrations
     /// here are in place before the delegate reads them (e.g. `applyDockVisibility`).
     static func run() {
+        // The unit-test host skips all launch side effects: background refreshers,
+        // cloud sync, and monitors race test execution against live account and
+        // cache loading (a use-after-free there crashed the host mid-suite, #978),
+        // and they pollute the persisted state tests run against.
+        guard !coderpadIsHostingUnitTests else { return }
+
         // Carry an existing "Hide Dock icon" choice into the new presence preference.
         // The delegate applies the resulting visibility once the app has launched.
         GeneralSettings.migratePresenceIfNeeded()

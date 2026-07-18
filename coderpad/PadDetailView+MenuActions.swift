@@ -10,6 +10,12 @@
 
 import SwiftUI
 
+private struct PadHistoryRequest {
+    let url: String
+    let title: String
+    let language: String?
+}
+
 extension PadDetailView {
     /// Honors a "Watch Playback" request from the Pad menu, opening the session
     /// playback exactly as the toolbar's Watch button does.
@@ -161,15 +167,16 @@ extension PadDetailView {
         let hasContent = !events.isEmpty || !environments.isEmpty
         if !hasContent { isLoading = true }
         loadError = nil
-        defer { isLoading = false }
+
+        async let events = client.padEvents(padID: pad.id)
+        async let envs = loadEnvironments()
+        // Assign environments first — `loadEnvironments` can't throw — so a
+        // failing events fetch doesn't leave environments (and the Save All Code
+        // availability that depends on them) stale. Both still run concurrently.
+        let loadedEnvironments = await envs
+        environments = loadedEnvironments
+
         do {
-            async let events = client.padEvents(padID: pad.id)
-            async let envs = loadEnvironments()
-            // Assign environments first — `loadEnvironments` can't throw — so a
-            // failing events fetch doesn't leave environments (and the Save All Code
-            // availability that depends on them) stale. Both still run concurrently.
-            let loadedEnvironments = await envs
-            environments = loadedEnvironments
             // The API returns events newest-first; display them oldest-first so the
             // log reads top-to-bottom in chronological order (and so the grouping
             // logic, which collapses consecutive same-kind events into an
@@ -184,6 +191,78 @@ extension PadDetailView {
         } catch {
             loadError = error
         }
+        isLoading = false
+
+        await loadHistories(for: loadedEnvironments)
+        PadDetailCacheStore.shared.set(pad.id, client: client, events: self.events, environments: loadedEnvironments,
+                                       histories: histories)
+    }
+
+    private func loadHistories(for environments: [PadEnvironment]) async {
+        let requests = historyRequests(for: environments)
+        guard !requests.isEmpty else {
+            histories = []
+            return
+        }
+
+        isLoadingHistory = true
+        defer { isLoadingHistory = false }
+
+        let loaded = await withTaskGroup(of: PadFileHistory?.self) { group in
+            for request in requests {
+                group.addTask {
+                    guard let history = try? await client.padHistory(historyURL: request.url) else {
+                        return nil
+                    }
+                    guard !history.isEmpty else { return nil }
+
+                    return PadFileHistory(
+                        id: request.url,
+                        title: request.title,
+                        language: request.language,
+                        history: history
+                    )
+                }
+            }
+
+            var collected: [PadFileHistory] = []
+            for await history in group {
+                if let history {
+                    collected.append(history)
+                }
+            }
+            return collected
+        }
+        let order = Dictionary(uniqueKeysWithValues: requests.enumerated().map { ($1.url, $0) })
+        histories = loaded.sorted { (order[$0.id] ?? 0) < (order[$1.id] ?? 0) }
+    }
+
+    private func historyRequests(for environments: [PadEnvironment]) -> [PadHistoryRequest] {
+        var requests: [PadHistoryRequest] = []
+        var seen = Set<String>()
+
+        func append(url: String?, title: String, language: String?) {
+            // History URLs are API data; fetch only HTTPS URLs on trusted origins so a
+            // malicious record can't make the app request localhost or the LAN (#856).
+            guard let url, !url.isEmpty,
+                  PadHistoryURLValidation.isAllowed(url, accountBaseURL: client.baseURL),
+                  seen.insert(url).inserted else { return }
+
+            requests.append(PadHistoryRequest(url: url, title: title, language: language))
+        }
+
+        for environment in environments {
+            let displayFiles = displayFiles(for: environment)
+            for (index, file) in environment.fileContents.enumerated() {
+                let displayFile = displayFiles.indices.contains(index) ? displayFiles[index] : nil
+                let title = displayFile?.path
+                    ?? file.path
+                    ?? String(localized: "File \(index + 1)")
+                append(url: file.history, title: title, language: displayFile?.language)
+            }
+        }
+
+        return requests
     }
 
     private func loadEnvironments() async -> [PadEnvironment] {
