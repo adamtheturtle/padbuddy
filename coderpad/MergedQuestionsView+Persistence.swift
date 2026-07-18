@@ -39,8 +39,9 @@ extension MergedQuestionsView {
         search = saved.search
         languageFilter = saved.languageFilter
         ownerFilter = saved.ownerFilter
-        typeFilter = saved.typeFilter
-        draftFilter = saved.draftFilter
+        // Restored validated, matching `QuestionsView.apply` (#1651, #1653).
+        typeFilter = FilterValueValidation.interviewType(saved.typeFilter)
+        draftFilter = FilterValueValidation.draftState(saved.draftFilter)
     }
 
     func clearAllFilters() {

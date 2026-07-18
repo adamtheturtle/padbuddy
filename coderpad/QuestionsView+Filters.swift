@@ -49,8 +49,11 @@ extension QuestionsView {
         search = saved.search
         languageFilter = saved.languageFilter
         ownerFilter = saved.ownerFilter
-        typeFilter = saved.typeFilter
-        draftFilter = saved.draftFilter
+        // Enum-like fields restore validated: a stale or corrupt snapshot value
+        // would otherwise open the list permanently empty behind an opaque
+        // filter (#1651, #1653).
+        typeFilter = FilterValueValidation.interviewType(saved.typeFilter)
+        draftFilter = FilterValueValidation.draftState(saved.draftFilter)
     }
 
     func clearAllFilters() {

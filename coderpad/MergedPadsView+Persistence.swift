@@ -119,7 +119,8 @@ extension MergedPadsView {
         stateFilter = saved.stateFilter
         languageFilter = saved.languageFilter
         ownerFilter = saved.ownerFilter
-        typeFilter = saved.typeFilter
+        // Restored validated, matching `PadsView.apply` (#1652).
+        typeFilter = FilterValueValidation.interviewType(saved.typeFilter)
         updatedWindow = saved.updatedWindow ?? DateWindow()
         createdWindow = saved.createdWindow ?? DateWindow()
     }

@@ -31,18 +31,27 @@ enum StatsPeriod: String, CaseIterable, Identifiable {
         case .days7: 7
         case .days30: 30
         case .days90: 90
-        case .months12: 365
-        case .custom: nil
+        case .months12, .custom: nil
         }
     }
 
     /// The (start, end) window ending now for the selected preset, or `nil` for
-    /// `.custom` where the dates come from the view's own pickers.
+    /// `.custom` where the dates come from the view's own pickers. "Last N days"
+    /// covers exactly N calendar dates — today plus the N-1 previous ones,
+    /// anchored at the first day's start; subtracting N whole days from `now`
+    /// included a sliver of an (N+1)th date, so the preset label and the
+    /// analytics window disagreed (#1657). "Last 12 months" subtracts calendar
+    /// months rather than a fixed 365 days (#1658).
     func range(now: Date = Date()) -> (start: Date, end: Date)? {
+        let calendar = Calendar.current
+        if self == .months12 {
+            let anchor = calendar.date(byAdding: .month, value: -12, to: now) ?? now
+            return (calendar.startOfDay(for: anchor), now)
+        }
         guard let days else { return nil }
 
-        let start = Calendar.current.date(byAdding: .day, value: -days, to: now) ?? now
-        return (start, now)
+        let anchor = calendar.date(byAdding: .day, value: -(days - 1), to: now) ?? now
+        return (calendar.startOfDay(for: anchor), now)
     }
 }
 

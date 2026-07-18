@@ -77,7 +77,9 @@ extension PadsView {
         languageFilter = saved.languageFilter
         ownerFilter = saved.ownerFilter
         teamFilter = saved.teamFilter
-        typeFilter = saved.typeFilter
+        // Restored validated: a stale or corrupt type value would otherwise apply
+        // as an opaque filter whose only possible result is an empty list (#1652).
+        typeFilter = FilterValueValidation.interviewType(saved.typeFilter)
         updatedWindow = saved.updatedWindow ?? DateWindow()
         createdWindow = saved.createdWindow ?? DateWindow()
     }

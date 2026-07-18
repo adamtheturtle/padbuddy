@@ -33,8 +33,12 @@ extension PadsView {
         chipOptionsCache.states = Array(Set(pads.map(\.status))).sorted { $0.label < $1.label }
         chipOptionsCache.languages = Array(Set(pads.compactMap { $0.language?.lowercased() })
             .filter { !$0.isEmpty }).sorted()
-        chipOptionsCache.owners = Array(Set(pads.map(\.ownerEmail)).filter { !$0.isEmpty }).sorted()
-        chipOptionsCache.teams = Array(Set(pads.compactMap { $0.team?.name })).sorted()
+        // Whitespace-only owner/team values would render blank-looking, hard to
+        // deselect options (#1661, mirroring the question owners fix in #1662).
+        chipOptionsCache.owners = Array(Set(pads.map(\.ownerEmail))
+            .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }).sorted()
+        chipOptionsCache.teams = Array(Set(pads.compactMap { $0.team?.name })
+            .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }).sorted()
         chipOptionsCache.padsRevision = padsRevision
     }
 

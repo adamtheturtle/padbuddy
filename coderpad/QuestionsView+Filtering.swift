@@ -86,7 +86,10 @@ extension QuestionsView {
         // the same pass so the filter bar's several reads don't each rebuild a Set.
         listCache.languages = Array(Set(questions.compactMap { $0.language?.lowercased() })
             .filter { !$0.isEmpty }).sorted()
-        listCache.owners = Array(Set(questions.map(\.ownerEmail)).filter { !$0.isEmpty }).sorted()
+        // Whitespace-only owner emails would render blank-looking, hard to
+        // deselect Owner options and can persist unusable filters (#1662).
+        listCache.owners = Array(Set(questions.map(\.ownerEmail))
+            .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }).sorted()
     }
 
     /// Arrange `items` by the active sort. Favorites keep their natural position;
