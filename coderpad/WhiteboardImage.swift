@@ -3,7 +3,9 @@
 //  coderpad
 //
 
+import CryptoKit
 import ImageIO
+import os
 import SwiftUI
 
 /// A remote image downsampled to roughly its display size and cached across view
@@ -20,10 +22,13 @@ struct WhiteboardImage: View {
     let url: URL
 
     @State private var phase: Phase = .loading
+    /// Which URL `phase` describes, so a reused view never shows the previous
+    /// drawing while the new one loads (#1923).
+    @State private var phaseFor: URL?
 
     private enum Phase {
         case loading
-        case success(PlatformImage)
+        case success(PlatformImage, isAnimated: Bool)
         case failure
     }
 
@@ -41,27 +46,51 @@ struct WhiteboardImage: View {
                 ProgressView().controlSize(.small)
             }
             .frame(height: 180)
+            .accessibilityLabel(Text("Loading whiteboard"))
 
-        case let .success(image):
+        case let .success(image, isAnimated):
             // The enclosing Button carries the "Open the whiteboard full size"
             // label, so the image itself is decorative for VoiceOver.
             Image(platformImage: image)
                 .resizable()
                 .scaledToFit()
                 .accessibilityHidden(true)
+                .overlay(alignment: .bottomTrailing) {
+                    if isAnimated {
+                        // The inline thumbnail flattens animated formats to their
+                        // first frame; say so rather than silently stilling the
+                        // drawing (#1927).
+                        Label("Animated: open full size to play", systemImage: "play.circle.fill")
+                            .font(.caption2)
+                            .padding(4)
+                            .background(.thinMaterial, in: Capsule())
+                            .padding(6)
+                    }
+                }
 
         case .failure:
             ZStack {
                 Color.subtleStroke
-                Label("Couldn’t load whiteboard", systemImage: "photo")
-                    .foregroundStyle(.secondary)
-                    .font(.callout)
+                VStack(spacing: 6) {
+                    Label("Couldn’t load whiteboard", systemImage: "photo")
+                        .foregroundStyle(.secondary)
+                        .font(.callout)
+                    // An inline recovery path, so a transient network failure isn't
+                    // stuck until the pad is re-selected (#1922, #1930).
+                    Button("Retry") { Task { await load() } }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                }
             }
             .frame(height: 120)
         }
     }
 
     private func load() async {
+        if phaseFor != url {
+            phase = .loading
+            phaseFor = url
+        }
         // The drawing URL is API data: refuse anything but a plausible HTTPS
         // image host, so a malicious or misconfigured record can't point the app
         // at loopback, LAN, or plaintext resources (#1158).
@@ -75,7 +104,7 @@ struct WhiteboardImage: View {
         // width in pixels rather than decoding the source at full resolution.
         let scale = PlatformScreen.backingScaleFactor
         let maxPixelSize = Int(600 * scale)
-        let key = "\(url.absoluteString)|\(maxPixelSize)"
+        let key = WhiteboardImageCache.cacheKey(url: url, maxPixelSize: maxPixelSize)
 
         let cached = WhiteboardImageCache.shared.image(forKey: key)
         if let cached {
@@ -83,41 +112,35 @@ struct WhiteboardImage: View {
             // change behind an unchanged URL, so every load revalidates through the
             // URL cache (conditional GET when the server offers validators) and
             // refreshes the decoded copy (#792).
-            phase = .success(cached)
-        } else {
-            phase = .loading
+            phase = .success(cached.image, isAnimated: cached.isAnimated)
         }
 
         do {
-            let data = try await Self.fetchBounded(
-                url: url,
-                maxBytes: Self.maxDownloadBytes,
-                session: WhiteboardImageCache.shared.session
+            let downsampled = try await WhiteboardImageCache.shared.loadDownsampled(
+                url: url, maxPixelSize: maxPixelSize, key: key
             )
-            // Don't start a decode for a view that's already gone: the detached
-            // task below outlives cancellation once started, so rapid pad
-            // switching would otherwise pile up full decodes (#1160).
+            // `.task(id: url)` cancelled this task if the URL moved on; a late
+            // result must not overwrite the newer URL's image (#793).
             try Task.checkCancellation()
-            // Downsample off the main actor; ImageIO does the heavy decode.
-            let downsampled = await Task.detached(priority: .utility) {
-                WhiteboardImageCache.downsample(data: data, maxPixelSize: maxPixelSize)
-            }.value
-            // `.task(id: url)` cancelled this task if the URL moved on, but the
-            // detached downsample doesn't inherit that: a late result must not
-            // overwrite the newer URL's image (#793).
-            try Task.checkCancellation()
-            guard let image = downsampled?.image else {
+            guard let downsampled else {
                 if cached == nil { phase = .failure }
                 return
             }
 
-            WhiteboardImageCache.shared.store(image, forKey: key)
-            phase = .success(image)
+            let entry = WhiteboardImageCache.Entry(image: downsampled.image, isAnimated: downsampled.isAnimated)
+            WhiteboardImageCache.shared.store(entry, forKey: key)
+            withAnimation(cached == nil ? .default : nil) {
+                phase = .success(downsampled.image, isAnimated: downsampled.isAnimated)
+            }
         } catch {
             guard !Task.isCancelled else { return }
 
             // A failed revalidation keeps showing the cached thumbnail rather than
-            // flashing a failure over a perfectly presentable image.
+            // flashing a failure over a perfectly presentable image — but it is
+            // logged, not swallowed (#1561, #1930).
+            WhiteboardImageCache.logger.error(
+                "Whiteboard load failed: \(error.localizedDescription, privacy: .public)"
+            )
             if cached == nil { phase = .failure }
         }
     }
@@ -141,33 +164,6 @@ struct WhiteboardImage: View {
         let isIPv6Literal = host.contains(":")
         return !isIPv4Literal && !isIPv6Literal
     }
-
-    /// Streams the response, rejecting it as soon as it exceeds `maxBytes`: the
-    /// eventual thumbnail is pixel-capped, and downloading an unbounded body
-    /// first would let a large or malicious response exhaust memory and
-    /// bandwidth anyway (#1159). Nonisolated so the byte loop runs off the main
-    /// actor; URLSession still populates the shared `URLCache` for the
-    /// revalidation path (#792).
-    nonisolated private static func fetchBounded(
-        url: URL,
-        maxBytes: Int,
-        session: URLSession
-    ) async throws -> Data {
-        let (bytes, response) = try await session.bytes(from: url)
-        if response.expectedContentLength > 0, response.expectedContentLength > Int64(maxBytes) {
-            throw URLError(.dataLengthExceedsMaximum)
-        }
-
-        var data = Data()
-        if response.expectedContentLength > 0 {
-            data.reserveCapacity(Int(min(response.expectedContentLength, Int64(maxBytes))))
-        }
-        for try await byte in bytes {
-            data.append(byte)
-            guard data.count <= maxBytes else { throw URLError(.dataLengthExceedsMaximum) }
-        }
-        return data
-    }
 }
 
 /// Shared cache + loader for whiteboard thumbnails: a persistent `URLCache` for the
@@ -176,18 +172,37 @@ struct WhiteboardImage: View {
 @MainActor
 final class WhiteboardImageCache {
     static let shared = WhiteboardImageCache()
+    nonisolated static let logger = Logger(subsystem: "com.coderpad.app", category: "whiteboard")
+
+    /// A decoded thumbnail plus whether its source had multiple frames, boxed for
+    /// `NSCache` (which stores objects, not tuples).
+    final class Entry {
+        let image: PlatformImage
+        let isAnimated: Bool
+
+        init(image: PlatformImage, isAnimated: Bool) {
+            self.image = image
+            self.isAnimated = isAnimated
+        }
+    }
 
     // Decoded, downsampled thumbnails. Each is a few MB of uncompressed bitmap, so an
     // uncapped map grew without bound across a long session of viewing whiteboards
-    // (#422, a cause of #418). NSCache bounds it by count and also evicts automatically
-    // under memory pressure — the idiomatic fit for a decoded-image cache.
+    // (#422, a cause of #418). NSCache bounds it by count AND by decoded byte cost
+    // (#1560, #1919), and also evicts automatically under memory pressure.
     // swiftlint:disable:next legacy_objc_type
-    private let memory: NSCache<NSString, PlatformImage> = {
+    private let memory: NSCache<NSString, Entry> = {
         // swiftlint:disable:next legacy_objc_type
-        let cache = NSCache<NSString, PlatformImage>()
+        let cache = NSCache<NSString, Entry>()
         cache.countLimit = 32
+        cache.totalCostLimit = 64 * 1024 * 1024
         return cache
     }()
+
+    /// Fetch-and-decode tasks in flight, keyed like the memory cache, so several
+    /// concurrently mounted views of one drawing share a single download and decode
+    /// instead of duplicating both (#1920).
+    private var inFlight: [String: Task<DownsampledImage?, any Error>] = [:]
 
     let session: URLSession
 
@@ -204,33 +219,118 @@ final class WhiteboardImageCache {
         // bytes froze it forever (#792). With validators this is a cheap conditional
         // GET; the decoded memory cache still makes re-selection instant.
         config.requestCachePolicy = .useProtocolCachePolicy
+        // Explicit time bounds to go with the byte bound: a stalled or trickling
+        // response must not hold the slot open indefinitely (#1924).
+        config.timeoutIntervalForRequest = 30
+        config.timeoutIntervalForResource = 120
         session = URLSession(configuration: config)
     }
 
-    func image(forKey key: String) -> PlatformImage? {
+    /// The cache identity for one drawing at one pixel cap. Hashed, so signed or
+    /// token-bearing image URLs aren't retained verbatim in long-lived cache keys
+    /// (#1557, #1925); the pixel size keys per display scale.
+    nonisolated static func cacheKey(url: URL, maxPixelSize: Int) -> String {
+        let digest = SHA256.hash(data: Data("\(url.absoluteString)|\(maxPixelSize)".utf8))
+        return digest.map { String(format: "%02x", $0) }.joined()
+    }
+
+    func image(forKey key: String) -> Entry? {
         // swiftlint:disable:next legacy_objc_type
         memory.object(forKey: key as NSString)
     }
 
-    func store(_ image: PlatformImage, forKey key: String) {
+    func store(_ entry: Entry, forKey key: String) {
+        let pixels = entry.image.size.width * entry.image.size.height
         // swiftlint:disable:next legacy_objc_type
-        memory.setObject(image, forKey: key as NSString)
+        memory.setObject(entry, forKey: key as NSString, cost: Int(pixels) * 4)
+    }
+
+    /// Fetches (bounded, validated) and downsamples one drawing, coalescing
+    /// concurrent requests for the same key (#1920). A caller whose view goes away
+    /// just stops awaiting; the shared work finishes for the remaining callers.
+    func loadDownsampled(url: URL, maxPixelSize: Int, key: String) async throws -> DownsampledImage? {
+        if let existing = inFlight[key] {
+            return try await existing.value
+        }
+
+        let session = session
+        let task = Task {
+            let data = try await Self.fetchBounded(
+                url: url, maxBytes: WhiteboardImage.maxDownloadBytes, session: session
+            )
+            // Downsample off the main actor; ImageIO does the heavy decode.
+            return await Task.detached(priority: .utility) {
+                Self.downsample(data: data, maxPixelSize: maxPixelSize)
+            }.value
+        }
+        inFlight[key] = task
+        defer { inFlight[key] = nil }
+        return try await task.value
+    }
+
+    /// Streams the response, rejecting it as soon as it exceeds `maxBytes`: the
+    /// eventual thumbnail is pixel-capped, and downloading an unbounded body
+    /// first would let a large or malicious response exhaust memory and
+    /// bandwidth anyway (#1159). Only successful image responses count: an error
+    /// page or non-image payload must not reach the decoder (#1918). Nonisolated
+    /// so the byte loop runs off the main actor; URLSession still populates the
+    /// shared `URLCache` for the revalidation path (#792).
+    private nonisolated static func fetchBounded(
+        url: URL,
+        maxBytes: Int,
+        session: URLSession
+    ) async throws -> Data {
+        let (bytes, response) = try await session.bytes(from: url)
+        if let http = response as? HTTPURLResponse, !(200 ... 299).contains(http.statusCode) {
+            throw URLError(.badServerResponse)
+        }
+        guard response.mimeType?.lowercased().hasPrefix("image/") ?? false else {
+            throw URLError(.cannotDecodeContentData)
+        }
+        if response.expectedContentLength > 0, response.expectedContentLength > Int64(maxBytes) {
+            throw URLError(.dataLengthExceedsMaximum)
+        }
+
+        var data = Data()
+        if response.expectedContentLength > 0 {
+            data.reserveCapacity(Int(min(response.expectedContentLength, Int64(maxBytes))))
+        }
+        for try await byte in bytes {
+            data.append(byte)
+            guard data.count <= maxBytes else { throw URLError(.dataLengthExceedsMaximum) }
+        }
+        return data
     }
 
     /// A box so the immutable, freshly decoded image can cross the actor boundary
     /// out of the detached downsample task under strict concurrency.
     struct DownsampledImage: @unchecked Sendable {
         let image: PlatformImage
+        let isAnimated: Bool
     }
+
+    /// The largest source canvas the decoder will accept on either edge: a
+    /// plausible drawing is far smaller, and a decompression-bomb canvas is how a
+    /// malicious record turns a small download into gigabytes of bitmap (#1556).
+    nonisolated static let maxSourcePixelsPerEdge = 20_000
 
     /// Decode `data` to an image no larger than `maxPixelSize` on its longest edge
     /// using ImageIO's thumbnail path, so a large whiteboard never decodes at full
-    /// resolution for an inline thumbnail.
+    /// resolution for an inline thumbnail. Sources with implausible or missing
+    /// pixel dimensions are rejected before any decode (#1556).
     nonisolated static func downsample(data: Data, maxPixelSize: Int) -> DownsampledImage? {
         guard let source = CGImageSourceCreateWithData(
             data as CFData,
             [kCGImageSourceShouldCache: false] as CFDictionary
         ) else {
+            return nil
+        }
+
+        let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any]
+        guard let width = properties?[kCGImagePropertyPixelWidth] as? Int,
+              let height = properties?[kCGImagePropertyPixelHeight] as? Int,
+              width > 0, height > 0,
+              width <= maxSourcePixelsPerEdge, height <= maxSourcePixelsPerEdge else {
             return nil
         }
 
@@ -245,6 +345,6 @@ final class WhiteboardImageCache {
         }
 
         let image = PlatformImage.fromCGImage(cgImage)
-        return DownsampledImage(image: image)
+        return DownsampledImage(image: image, isAnimated: CGImageSourceGetCount(source) > 1)
     }
 }
