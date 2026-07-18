@@ -62,7 +62,20 @@ struct Sidebar: View {
                     // a non-navigable "Unlimited" indicator stands in for the Quota row
                     // (#306). Untagged, so it never claims the selection.
                     if quotaIsUnlimited {
-                        unlimitedQuotaRow.sidebarGroupRow()
+                        #if os(macOS)
+                            // Keep the DEFAULT row insets and add the same internal
+                            // horizontal padding as `sectionRow`, so the infinity icon
+                            // lines up with the section icons above — the zeroed-inset
+                            // group treatment left this row further left than every
+                            // other section row (#1048).
+                            unlimitedQuotaRow
+                                .padding(.horizontal, 6)
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                                .selectionDisabled()
+                        #else
+                            unlimitedQuotaRow.sidebarGroupRow()
+                        #endif
                     }
                 }
 
