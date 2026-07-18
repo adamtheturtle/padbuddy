@@ -207,12 +207,23 @@ final class AppNavigation {
         mergedPadsActiveRequest = !currentlyOn
     }
 
-    /// Switch to a combined list's plain, unfiltered root, clearing its "Mine"
-    /// preset — the merged counterpart to tapping the "Pads"/"Questions" row.
+    /// Switch to a combined list's plain, unfiltered root — the merged counterpart
+    /// to tapping the "Pads"/"Questions" row. Clears the "Mine"/"Active" presets and
+    /// queues an empty wholesale search so the merged view also resets its search
+    /// text and every filter, exactly as the single-account root row does; the
+    /// presets alone left a lingering search/language/owner filter applied (#1001).
     func showMergedRoot(kind: SavedSearchKind) {
         switch kind {
-        case .pads: section = .pads; mergedPadsMineRequest = false; mergedPadsActiveRequest = false
-        case .questions: section = .questions; mergedQuestionsMineRequest = false
+        case .pads:
+            section = .pads
+            mergedPadsMineRequest = false
+            mergedPadsActiveRequest = false
+            padsRequest = PadsRequest(applySearch: NamedSearch(name: ""))
+
+        case .questions:
+            section = .questions
+            mergedQuestionsMineRequest = false
+            questionsRequest = QuestionsRequest(applySearch: NamedSearch(name: ""))
         }
     }
 

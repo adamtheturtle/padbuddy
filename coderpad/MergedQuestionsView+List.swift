@@ -45,8 +45,10 @@ extension MergedQuestionsView {
             }
             .onAppear {
                 // Restore the filters the list was left with last session before
-                // bridging the selection, so the list opens in the same view.
+                // applying any queued navigation request, so a New Question or
+                // wholesale-search request can override the restored state (#1000).
                 restoreFilters()
+                applyPendingRequest()
                 // Prefer the row in the account the selection was made in (tracked
                 // by the router): per-org question ids collide, so the bare id can
                 // otherwise re-select a different account's same-id row (#710).
@@ -81,11 +83,17 @@ extension MergedQuestionsView {
             // so it selects the right row even when two orgs share a per-org id. Cleared
             // once consumed; left untouched if the row hasn't loaded yet (the row id
             // simply won't resolve, the same best-effort the per-account view uses).
-            .onChange(of: nav.pendingMergedFavoriteQuestion) { _, request in
+            // `initial: true` because the tap can also switch the section: the pending
+            // favourite is then set before this list mounts, and a change-only observer
+            // never fires for it, dropping the favourite (#1016). Scroll the row into
+            // view too - the selection alone can land off-screen in a long list (#1019).
+            .onChange(of: nav.pendingMergedFavoriteQuestion, initial: true) { _, request in
                 guard let request else { return }
 
                 nav.pendingMergedFavoriteQuestion = nil
-                selectedRowIDs = [Self.rowID(account: request.account, question: request.id)]
+                let rowID = Self.rowID(account: request.account, question: request.id)
+                selectedRowIDs = [rowID]
+                pendingScrollToRowID = rowID
             }
             // Keep the sidebar's "My Questions" row in sync with this list's "Mine"
             // preset: publish the live state and consume any sidebar toggle, the
@@ -94,6 +102,14 @@ extension MergedQuestionsView {
             .onChange(of: nav.mergedQuestionsMineRequest, initial: true) { _, request in
                 consumeMergedQuestionsMineRequest(request)
             }
+            // Consume navigation requests routed to Questions (New Question, a
+            // wholesale search) so they work in merged mode too, keeping the
+            // semantics aligned with `QuestionsView` and `MergedPadsView` (#1000).
+            .onChange(of: nav.questionsRequest, initial: true) { _, _ in scheduleApplyPendingRequest() }
+    }
+
+    private func scheduleApplyPendingRequest() {
+        DispatchQueue.main.async { applyPendingRequest() }
     }
 
     private func publishMergedQuestionsMineOnly(_ isOn: Bool) {

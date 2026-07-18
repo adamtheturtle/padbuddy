@@ -109,6 +109,13 @@ struct MergedScreenView: View {
 
     private func publishSelectedCampaign(_ id: String?) {
         let scoped = scopedCampaign(id: id)
+        // A selected id that doesn't resolve yet means the buckets simply haven't
+        // loaded (this view is recreated on every section switch): publishing the
+        // nils would wipe the still-valid published selection *and* its account
+        // routing, blanking the detail column on re-entry (#998). `load()`
+        // re-publishes once the buckets fill.
+        if id != nil, scoped == nil { return }
+
         let campaign = scoped?.campaign
         let accountID = scoped?.accountID
         let windowNav = windowNav
@@ -315,6 +322,10 @@ struct MergedScreenView: View {
             }
         }
         pruneVanishedSelection()
+        // Re-publish now that the buckets are filled: a selection restored before
+        // this load couldn't publish (see `publishSelectedCampaign`), leaving the
+        // detail column blank and unrouted on section re-entry (#998).
+        publishSelectedCampaign(selectedScopedID)
     }
 
     /// Drops buckets loaded under superseded credentials: they're stale the moment
@@ -357,41 +368,5 @@ struct MergedScreenView: View {
     }
 }
 
-extension ScopedScreenCampaign {
-    var copyText: String {
-        "\(campaign.name)\t\(account.name)"
-    }
-}
-
-/// One merged campaign row: the campaign's own row plus a label naming its source
-/// account, matching the account tag on merged pad/question rows.
-struct MergedScreenCampaignRow: View {
-    let scoped: ScopedScreenCampaign
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            ScreenCampaignRow(campaign: scoped.campaign)
-            AccountMetaLabel(account: scoped.account)
-        }
-        .contentShape(Rectangle())
-    }
-}
-
-#Preview("Merged campaign rows") {
-    // Build the sample data in its own statements so the List ViewBuilder
-    // expression stays under the 250ms type-check budget (warnings-as-errors
-    // makes an overrun a fatal build error).
-    let backend = ScopedScreenCampaign(
-        accountID: UUID(), account: RowAccount(Account(name: "Acme", apiKey: "")),
-        campaign: ScreenCampaign(id: 1, name: "Backend Engineer", languages: ["python"], pinned: true)
-    )
-    let frontend = ScopedScreenCampaign(
-        accountID: UUID(), account: RowAccount(Account(name: "Globex", apiKey: "")),
-        campaign: ScreenCampaign(id: 2, name: "Frontend Engineer", languages: ["javascript"])
-    )
-    List {
-        MergedScreenCampaignRow(scoped: backend)
-        MergedScreenCampaignRow(scoped: frontend)
-    }
-    .frame(width: 460, height: 200)
-}
+// `MergedScreenCampaignRow` and `ScopedScreenCampaign.copyText` live in
+// MergedScreenView+Row.swift to keep this file under the length limit.

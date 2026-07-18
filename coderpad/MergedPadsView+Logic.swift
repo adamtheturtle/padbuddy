@@ -207,7 +207,13 @@ extension MergedPadsView {
         guard let request = nav.padsRequest else { return }
 
         nav.padsRequest = nil
-        if let saved = request.applySearch { apply(saved) }
+        if let saved = request.applySearch {
+            apply(saved)
+            // A wholesale search replaces the whole filter state; the account filter
+            // isn't part of `NamedSearch`, so clear it explicitly or the sidebar's
+            // root "Pads" row leaves it applied (#1001).
+            accountFilter = nil
+        }
         if let owner = request.ownerEmail { ownerFilter = owner }
         if let query = request.search { search = query }
         if request.startCreating, !isReadOnly {

@@ -209,6 +209,44 @@ extension MergedQuestionsView {
             + (favoritesOnly ? 1 : 0)
     }
 
+    /// The account a global "New Question" targets in merged mode: the current
+    /// account when it can create, else the first mergeable account that can.
+    /// Mirrors `MergedPadsView.newPadDefaultAccount`.
+    var newQuestionDefaultAccount: Account? {
+        if let current = accounts.currentAccount, !current.apiKey.isEmpty { return current }
+        return accounts.mergeableAccounts.first { !$0.apiKey.isEmpty }
+    }
+
+    /// Applies a request queued by `AppNavigation`, matching the single-account
+    /// Questions pane. Without this consumer every global New Question entry point
+    /// (⌘⇧N, the deep link, the palette) only switched sections in merged mode, and
+    /// the unconsumed request later fired a surprise create sheet the moment a
+    /// single-account Questions list mounted (#1000).
+    func applyPendingRequest() {
+        guard let request = nav.questionsRequest else { return }
+
+        nav.questionsRequest = nil
+        if let saved = request.applySearch {
+            apply(saved)
+            // A wholesale search replaces the whole filter state; the account filter
+            // isn't part of `NamedSearch`, so clear it explicitly or the sidebar's
+            // root "Questions" row leaves it applied (#1001).
+            accountFilter = nil
+        }
+        if let query = request.search { search = query }
+        if request.startCreating, !isReadOnly {
+            creatingForAccount = newQuestionDefaultAccount
+        }
+        if let id = request.selectQuestionID,
+           let scopedRow = scoped.first(where: { $0.item.id == id }) {
+            // Best-effort: per-org question ids collide across accounts, so a bare
+            // id request (queued by single-account entry points) selects the first
+            // matching row. Account-carrying requests use `pendingMergedFavoriteQuestion`.
+            selectedRowIDs = [scopedRow.id]
+            pendingScrollToRowID = scopedRow.id
+        }
+    }
+
     var filterSignature: String {
         FilterSignature.make([
             search.trimmingCharacters(in: .whitespacesAndNewlines),

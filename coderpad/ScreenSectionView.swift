@@ -88,6 +88,12 @@ struct ScreenCampaignsView: View {
 
     private func publishSelectedCampaign(_ id: Int?) {
         let campaign = campaigns.first { $0.id == id }
+        // A selected id that doesn't resolve yet means the list simply hasn't
+        // loaded (this view is recreated on every section switch): publishing the
+        // nil would wipe the still-valid published selection and blank the detail
+        // column on re-entry (#997). `load()` re-publishes once rows exist.
+        if id != nil, campaign == nil { return }
+
         let windowNav = windowNav
         guard windowNav.screenCampaignSelection != campaign else { return }
 
@@ -203,6 +209,10 @@ struct ScreenCampaignsView: View {
             if let id = selectedCampaignID, !campaigns.contains(where: { $0.id == id }) {
                 selectedCampaignID = nil
             }
+            // Re-publish now that rows exist: a selection restored before this load
+            // couldn't publish (see `publishSelectedCampaign`), and a renamed
+            // campaign should refresh the published copy (#997).
+            publishSelectedCampaign(selectedCampaignID)
         } catch {
             loadError = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
         }
