@@ -146,8 +146,11 @@ struct ContentView: View {
             // The "Open Pad by ID" intent routes through durable AppNavigation state so a
             // cold-launch request isn't dropped: consume whatever is already pending on
             // appear, and react to any value set afterwards.
-            .task { scheduleConsumeOpenPadID() }
-            .onChange(of: nav.openPadID) { _, _ in scheduleConsumeOpenPadID() }
+            // Focus-gated like the other mailbox requests: every window used to
+            // schedule consumption, so a background window could clear the Open
+            // Pad intent and fire the browser open instead of the frontmost one
+            // (#1671).
+            .consumesWindowRequest(nav.openPadID) { consumeOpenPadID() }
             // Section switches are per-window (#907): the mailbox carries the request
             // and only this window applies it while focused, so a menu command, deep
             // link, or sidebar tap can't retarget every other open window.
@@ -196,10 +199,6 @@ struct ContentView: View {
             .sheet(isPresented: $showCommandPalette) {
                 CoderPadCommandPalette()
             }
-    }
-
-    private func scheduleConsumeOpenPadID() {
-        DispatchQueue.main.async { consumeOpenPadID() }
     }
 
     /// Opens any pad id queued by the "Open Pad by ID" intent, then clears it so it
