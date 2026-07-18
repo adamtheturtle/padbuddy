@@ -337,6 +337,13 @@ extension MergedQuestionsView {
     /// uses so every list drops the row and the selection follows. Surfaces a failure.
     func bulkDelete(_ rows: [MergedQuestionRow]) async {
         for row in rows {
+            // The undo grace period can outlive an account change: a row whose
+            // account was removed or re-keyed meanwhile must not fire a
+            // destructive delete through credentials the user just revoked or
+            // replaced (#1259).
+            guard let current = accounts.accounts.first(where: { $0.id == row.account.id }),
+                  !current.pointsAtDifferentBackend(than: row.account) else { continue }
+
             do {
                 try await row.account.makeClient().deleteQuestion(id: row.item.id)
                 AppRouter.questionDeleted(id: row.item.id, account: row.account.id)

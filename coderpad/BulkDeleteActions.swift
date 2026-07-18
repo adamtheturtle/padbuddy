@@ -66,6 +66,13 @@ extension MergedPadsView {
             bulkDeleteUndoTask = nil
 
             for row in items {
+                // The grace period can outlive an account change: a row whose
+                // account was removed or re-keyed meanwhile must not fire a
+                // destructive delete through credentials the user just revoked
+                // or replaced (#1258).
+                guard let current = accounts.accounts.first(where: { $0.id == row.account.id }),
+                      !current.pointsAtDifferentBackend(than: row.account) else { continue }
+
                 await deletePad(row)
             }
         }
