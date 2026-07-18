@@ -33,8 +33,8 @@ enum NewPadFromQuestionRunner {
 }
 
 struct NewPadFromQuestionCommands: Commands {
-    /// Observed so the submenu tracks the current account and its loaded questions, and
-    /// disables itself while offline - mirroring the menu-bar extra.
+    /// Observed so the submenu tracks the active account set and its loaded
+    /// questions, and disables itself while offline - mirroring the menu-bar extra.
     @State private var accounts = AccountsStore.shared
     @State private var questionsCache = QuestionsCacheStore.shared
     @State private var network = NetworkMonitor.shared
@@ -43,32 +43,66 @@ struct NewPadFromQuestionCommands: Commands {
     /// favourites lead the list, so the most-used ones are always present.
     private let limit = 12
 
+    /// One submenu row: a question paired with its owning account, so the merged
+    /// "All Accounts" mode creates the pad against the question's own account
+    /// rather than whichever account happens to be current (#1009). The id is
+    /// account-namespaced because per-org question ids collide across accounts.
+    private struct Row: Identifiable {
+        let question: Question
+        let account: Account
+        var id: String { "\(account.id.uuidString):\(question.id)" }
+    }
+
     var body: some Commands {
         CommandGroup(after: .newItem) {
-            if let account = accounts.currentAccount {
-                let questions = questionsCache.cached(account.id)
-                if !questions.isEmpty {
-                    let favoriteIDs = Set(FavoriteQuestionsStore.shared.favorites(account: account.id))
-                    let ordered = questions.filter { favoriteIDs.contains($0.id) }
-                        + questions.filter { !favoriteIDs.contains($0.id) }
-                    Menu("New Pad from Question") {
-                        ForEach(ordered.prefix(limit)) { question in
-                            Button {
-                                NewPadFromQuestionRunner.createAndOpen(question: question, account: account)
-                            } label: {
-                                // Starred questions lead the list and carry the star, so a
-                                // frequently used question is the first one-click pad.
-                                if favoriteIDs.contains(question.id) {
-                                    Label(question.displayTitle, systemImage: "star.fill")
-                                } else {
-                                    Text(question.displayTitle)
-                                }
+            let rows = orderedRows()
+            if !rows.isEmpty {
+                Menu("New Pad from Question") {
+                    ForEach(rows.prefix(limit)) { row in
+                        Button {
+                            NewPadFromQuestionRunner.createAndOpen(question: row.question, account: row.account)
+                        } label: {
+                            // Starred questions lead the list and carry the star, so a
+                            // frequently used question is the first one-click pad.
+                            if isFavorite(row) {
+                                Label(rowLabel(row), systemImage: "star.fill")
+                            } else {
+                                Text(rowLabel(row))
                             }
                         }
+                        .disabled(row.account.isMock == false && row.account.apiKey.isEmpty)
                     }
-                    .disabled((account.isMock == false && account.apiKey.isEmpty) || network.isOffline)
                 }
+                .disabled(network.isOffline)
             }
         }
+    }
+
+    /// The accounts whose cached questions feed the submenu: every mergeable
+    /// account in All Accounts mode (matching the menu-bar extra, #674), else just
+    /// the current one (#1009).
+    private var sourceAccounts: [Account] {
+        if accounts.isMergedView { return accounts.mergeableAccounts }
+        return [accounts.currentAccount].compactMap(\.self)
+    }
+
+    /// Every source account's cached questions, favourites (across all accounts)
+    /// first - the same ordering the menu-bar extra's `questionsForMenu()` uses.
+    private func orderedRows() -> [Row] {
+        let rows = sourceAccounts.flatMap { account in
+            questionsCache.cached(account.id).map { Row(question: $0, account: account) }
+        }
+        return rows.filter(isFavorite) + rows.filter { !isFavorite($0) }
+    }
+
+    private func isFavorite(_ row: Row) -> Bool {
+        FavoriteQuestionsStore.shared.favorites(account: row.account.id).contains(row.question.id)
+    }
+
+    /// The row title, naming the owning account in merged mode so same-named
+    /// questions from different orgs stay distinguishable (mirrors the menu-bar
+    /// extra's `questionRowLabel`).
+    private func rowLabel(_ row: Row) -> String {
+        accounts.isMergedView ? "\(row.question.displayTitle) · \(row.account.name)" : row.question.displayTitle
     }
 }
