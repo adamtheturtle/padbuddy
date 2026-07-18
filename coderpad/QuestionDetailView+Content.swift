@@ -308,9 +308,10 @@ extension QuestionDetailView {
                 if instructions.isEmpty {
                     // #333: keep the section visible when there are no instructions
                     // yet, so the first part can be added in place.
+                    let emptyKey = inlineDraftKey("instructions-0-\(InlineEditDrafts.contentToken(""))")
                     InlineEditableText(text: "", placeholder: "Empty",
                                        label: "candidate instructions",
-                                       draftKey: inlineDraftKey("instructions-0")) {
+                                       draftKey: emptyKey) {
                         await commitInstruction(at: 0, text: $0)
                     }
                 } else {
@@ -344,10 +345,14 @@ extension QuestionDetailView {
                 Chip(text: String(localized: "Hidden by default"),
                      systemImage: "eye.slash", tint: .gray)
             }
+            // The key carries a token of the part's mount-time text as well as its
+            // index: instruction parts have no server ids, and an index-only key
+            // could restore a stashed draft into a different part after a server
+            // update inserts or reorders parts while the pane is unmounted (#1798).
             InlineEditableText(
                 text: item.instructions, placeholder: "Empty",
                 label: total > 1 ? "part \(index + 1)" : "candidate instructions",
-                draftKey: inlineDraftKey("instructions-\(index)")
+                draftKey: inlineDraftKey("instructions-\(index)-\(InlineEditDrafts.contentToken(item.instructions))")
             ) {
                 await commitInstruction(at: index, text: $0)
             }

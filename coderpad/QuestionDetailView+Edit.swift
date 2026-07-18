@@ -259,6 +259,8 @@ extension QuestionDetailView {
     /// title control can leave edit mode. On failure the control keeps its draft open,
     /// so this uses `saveContent` to report success instead of the `revert`-based `save`.
     func commitTitle(_ newTitle: String) async -> Bool {
+        // Trimmed: a whitespace-only rename would render blank labels (#1801).
+        let newTitle = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         guard newTitle != question.title else { return true }
 
         return await saveContent(QuestionUpdate(id: question.id, title: newTitle)) {
@@ -275,9 +277,17 @@ extension QuestionDetailView {
     }
 
     func commitType(_ padType: String) async {
+        // Only a known interview type commits (#1808): the picker's fallback row
+        // tags the question's own raw API value, and re-sending an unvalidated
+        // string would PUT it alongside a derived take_home flag.
+        guard let type = InterviewType(rawType: padType) else {
+            draftPadType = currentType
+            return
+        }
+
         // `take_home` and `pad_type` are coupled, so a type change commits both.
-        await save(QuestionUpdate(id: question.id, takeHome: padType == "take-home", padType: padType),
-                   optimistic: { optimisticQuestion(padType: padType) },
+        await save(QuestionUpdate(id: question.id, takeHome: type == .takeHome, padType: type.rawValue),
+                   optimistic: { optimisticQuestion(padType: type.rawValue) },
                    revert: {
                        draftPadType = currentType
                    })

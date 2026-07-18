@@ -240,6 +240,10 @@ extension PadDetailView {
     /// title control can leave edit mode. On failure the control keeps its draft open
     /// for retry, so this path reports the error without reverting local field state.
     func commitTitle(_ newTitle: String) async -> Bool {
+        // Trimmed before sending: a whitespace-only rename slips past the
+        // empty-title fallbacks and renders blank list, sidebar, and browser
+        // labels (#1800).
+        let newTitle = newTitle.trimmingCharacters(in: .whitespacesAndNewlines)
         guard newTitle != pad.title else { return true }
 
         do {

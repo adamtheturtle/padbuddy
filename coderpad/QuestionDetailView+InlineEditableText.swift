@@ -47,6 +47,15 @@ final class InlineEditDrafts {
         drafts.removeValue(forKey: key)
     }
 
+    /// A short, session-stable token of a field's mount-time content, for keys
+    /// whose fields have no server identity (candidate-instruction parts): a
+    /// stash bound to the text it was opened over can never be restored into a
+    /// different part after a reorder (#1798). Session-scoped like the stash
+    /// itself, so per-launch hash randomization is fine.
+    nonisolated static func contentToken(_ text: String) -> String {
+        String(text.hashValue, radix: 36, uppercase: false)
+    }
+
     /// Drops every stash belonging to `account`, so a removed account's unsaved
     /// private content doesn't outlive it and can't be restored into another
     /// organization's fields (#1194). Keys embed the owning account's UUID (see
@@ -224,6 +233,10 @@ struct InlineEditableText: View {
     }
 
     private func cancel() {
+        // An explicit cancel abandons the edit everywhere: a stash left by an
+        // earlier unmount (e.g. one skipped by the read-only resume guard) must
+        // not reopen the abandoned edit on a later mount (#1806).
+        InlineEditDrafts.shared.clear(for: draftKey)
         editing = false
         focused = false
         sourceChanged = false
