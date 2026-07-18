@@ -39,6 +39,27 @@ nonisolated enum Keychain {
         store.delete(account: account)
     }
 
+    /// Whether the local accounts snapshot is *definitively absent*: the probe
+    /// completed and reported `errSecItemNotFound`. Any other failure (locked,
+    /// denied, interaction not allowed) means secure storage is unavailable —
+    /// which must not be mistaken for "no accounts", or legacy migration and
+    /// empty UI state would run over the user's real snapshot (#1157).
+    static func accountsSnapshotIsDefinitivelyAbsent() -> Bool {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: accountsAccount,
+            kSecMatchLimit as String: kSecMatchLimitOne
+        ]
+        let status = SecItemCopyMatching(query as CFDictionary, nil)
+        if status != errSecSuccess, status != errSecItemNotFound {
+            persistenceLogger.error(
+                "Keychain accounts probe failed (OSStatus \(status)); treating storage as unavailable."
+            )
+        }
+        return status == errSecItemNotFound
+    }
+
     /// Reconciles the existing local account blob with the user's iCloud Keychain copy
     /// before `AccountsStore` loads. A fresh device adopts the synced snapshot and a
     /// local-only install seeds iCloud Keychain once - but the cloud copy only replaces

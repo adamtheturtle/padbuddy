@@ -102,8 +102,12 @@ extension Account: StorableAccount {
 
     /// A changed API key or server points at a potentially different backend (even a
     /// different org), so the store invalidates this account's caches on update.
+    /// Servers compare by canonical identity, not raw URL strings: a cosmetic edit
+    /// (letter case, a trailing slash, an explicit default port) is the same
+    /// backend and must not purge caches, favorites, widget data, and per-account
+    /// UI state (#1156).
     nonisolated func pointsAtDifferentBackend(than other: Account) -> Bool {
-        apiKey != other.apiKey || baseURL != other.baseURL
+        apiKey != other.apiKey || overrideServerIdentity != other.overrideServerIdentity
     }
 }
 
@@ -126,7 +130,15 @@ extension Account: StorableAccount {
         decode: { (try? JSONDecoder().decode([LenientElement<Account>].self, from: $0))?.compactMap(\.value) ?? [] },
         isTestingMode: coderpadIsUITesting,
         seedForTesting: { [.demo()] },
-        migrateIfEmpty: migrateLegacyAccounts,
+        migrateIfEmpty: {
+            // Migrate only when the accounts snapshot is *definitively absent*: a
+            // locked or denied Keychain also reads as "no accounts", and running
+            // legacy migration then would seed empty/legacy state over the user's
+            // real, temporarily unreadable snapshot (#1157).
+            guard Keychain.accountsSnapshotIsDefinitivelyAbsent() else { return nil }
+
+            return migrateLegacyAccounts()
+        },
         onAccountsChanged: { accounts in
             if !coderpadIsUITesting {
                 Keychain.mirrorAccountsToiCloudKeychain(try? JSONEncoder().encode(accounts))

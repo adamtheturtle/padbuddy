@@ -19,30 +19,67 @@ enum PadActivity {
     /// when `webpageURL` isn't consulted.
     static let urlKey = "url"
 
+    /// The normalized origins (scheme + host + resolved port) pad activities may
+    /// point at: the hosted service plus every configured account's server.
+    /// Whole origins rather than bare hostnames: an account configured for HTTPS
+    /// must not have its Handoff trust extended to plain HTTP or a different
+    /// port on the same host (#1152).
     @MainActor
-    static var trustedPadHosts: Set<String> {
-        var hosts: Set<String> = []
-        if let host = CoderPadClient.defaultBaseURL.host() {
-            hosts.insert(host.lowercased())
+    static var trustedPadOrigins: Set<String> {
+        var origins: Set<String> = []
+        if let origin = origin(of: CoderPadClient.defaultBaseURL) {
+            origins.insert(origin)
         }
         for account in AccountsStore.shared.accounts {
-            if let host = account.resolvedBaseURL.host() {
-                hosts.insert(host.lowercased())
+            if let origin = origin(of: account.resolvedBaseURL) {
+                origins.insert(origin)
             }
         }
-        return hosts
+        return origins
     }
+
+    /// A URL's normalized `scheme://host:port` origin, defaulting the port from
+    /// the scheme so `https://example.com` and `https://example.com:443` compare
+    /// equal. Nil for non-HTTP(S) or hostless URLs.
+    nonisolated static func origin(of url: URL) -> String? {
+        guard let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https",
+              let host = url.host()?.lowercased(), !host.isEmpty else { return nil }
+
+        let port = url.port ?? (scheme == "http" ? 80 : 443)
+        return "\(scheme)://\(host):\(port)"
+    }
+
+    /// Web-app routes served on the same origins as pads; a first path component
+    /// naming one of these is app navigation, never a pad. Mirrors the Open Pad
+    /// service's list (#1044).
+    private static let nonPadRoutes: Set<String> = [
+        "account", "accounts", "admin", "api", "billing", "candidates", "dashboard",
+        "docs", "help", "interviews", "login", "logout", "pads", "profile",
+        "questions", "register", "sandbox", "screen", "screens", "settings",
+        "signup", "team", "teams", "users"
+    ]
+
+    /// Path components that may trail a pad id in a shareable pad URL.
+    private static let padPathSuffixes: Set<String> = ["playback"]
 
     @MainActor
     static func isTrustedPadURL(_ url: URL) -> Bool {
-        guard let scheme = url.scheme?.lowercased(),
-              scheme == "http" || scheme == "https",
-              let host = url.host()?.lowercased(),
-              trustedPadHosts.contains(host) else {
+        guard let origin = origin(of: url), trustedPadOrigins.contains(origin) else {
             return false
         }
 
-        return url.pathComponents.contains { $0 != "/" && !$0.isEmpty }
+        // The activity type claims to restore a pad, so the path must actually be
+        // a pad route — a single id-shaped component (optionally + a known pad
+        // page like /playback) — not /dashboard, /admin, or any other same-origin
+        // page an incoming activity happens to name (#1153).
+        let parts = url.pathComponents.filter { $0 != "/" && !$0.isEmpty }
+        guard let first = parts.first,
+              let id = PadIDValidation.normalize(first),
+              !nonPadRoutes.contains(id.lowercased()),
+              parts.dropFirst().allSatisfy({ padPathSuffixes.contains($0.lowercased()) })
+        else { return false }
+
+        return true
     }
 }
 

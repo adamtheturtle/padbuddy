@@ -154,12 +154,17 @@ struct Account: Identifiable, Codable, Hashable {
 
     /// The account's Server URL override, parsed fallibly: the trimmed non-empty
     /// override as a usable HTTP(S) URL with a host, or nil when the field is blank
-    /// or the text doesn't parse to one.
-    var baseURLOverride: URL? {
+    /// or the text doesn't parse to one. Embedded credentials, a query, or a
+    /// fragment are rejected outright: the resolved URL feeds authenticated API
+    /// calls and synced account metadata, and `https://user:pass@host?token=…#…`
+    /// must not ride along into either (#1155).
+    nonisolated var baseURLOverride: URL? {
         let trimmed = baseURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         guard !trimmed.isEmpty, let url = URL(string: trimmed),
               let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https",
-              let host = url.host, !host.isEmpty
+              let host = url.host, !host.isEmpty,
+              url.user == nil, url.password == nil,
+              url.query == nil, url.fragment == nil
         else { return nil }
 
         return url
@@ -180,6 +185,13 @@ struct Account: Identifiable, Codable, Hashable {
         baseURLOverride ?? CoderPadClient.defaultBaseURL
     }
 
+    /// The canonical identity of the URL override, or nil when the account uses
+    /// the hosted default. Nonisolated (unlike `serverIdentity`, whose hosted
+    /// fallback is MainActor-bound) so backend comparisons can run off-actor (#1156).
+    nonisolated var overrideServerIdentity: String? {
+        baseURLOverride.map(Self.serverIdentity(of:))
+    }
+
     /// The resolved server URL reduced to a canonical identity for duplicate-account
     /// detection: scheme and host folded to lowercase, a default port (80/443)
     /// dropped, and trailing slashes removed, so cosmetic spellings of the same
@@ -189,7 +201,7 @@ struct Account: Identifiable, Codable, Hashable {
         Self.serverIdentity(of: resolvedBaseURL)
     }
 
-    static func serverIdentity(of url: URL) -> String {
+    nonisolated static func serverIdentity(of url: URL) -> String {
         guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
             return url.absoluteString
         }
