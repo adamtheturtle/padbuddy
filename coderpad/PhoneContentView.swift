@@ -246,9 +246,19 @@
             .tag(AppSection.screen)
             // The campaigns list publishes its selection for a split-view detail column
             // that doesn't exist in the compact shell; mirror it into this tab's path so
-            // a selected campaign pushes its test sessions (#837).
+            // a selected campaign pushes its test sessions (#837). Only while Screen is
+            // the active tab: every tab stays constructed, and a background update
+            // pushing this stack surprised users with an already-pushed detail on their
+            // next visit (#1687). Activating the tab reconciles the path below.
             .onChange(of: windowNav.screenCampaignSelection) { _, selection in
+                guard windowNav.section == .screen else { return }
+
                 syncScreenPath(with: selection)
+            }
+            .onChange(of: windowNav.section) { _, section in
+                guard section == .screen else { return }
+
+                syncScreenPath(with: windowNav.screenCampaignSelection)
             }
             .onChange(of: screenPath) { _, path in
                 if path.isEmpty { windowNav.screenCampaignSelection = nil }

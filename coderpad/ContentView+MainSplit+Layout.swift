@@ -60,6 +60,20 @@ extension MainSplit {
             // sidebar is collapsed — with no sidebar divider to track it draws a stray
             // vertical line right after the leading actions (#337).
             .background(SidebarSeparatorHider(collapsed: columnVisibility != .all))
+            // Remap a collapsed sidebar across the 2-/3-column switch: a collapse
+            // stored as .detailOnly by a two-column section hides BOTH the sidebar
+            // and the list once a three-column section mounts, and a three-column
+            // collapse (.doubleColumn) reads as sidebar-visible in a two-column
+            // one, revealing a sidebar the user had collapsed (#1663).
+            .onChange(of: showsDetailColumn) { hadThreeColumns, hasThreeColumns in
+                guard columnVisibility != .all else { return }
+
+                if hasThreeColumns, !hadThreeColumns, columnVisibility == .detailOnly {
+                    columnVisibility = .doubleColumn
+                } else if hadThreeColumns, !hasThreeColumns, columnVisibility == .doubleColumn {
+                    columnVisibility = .detailOnly
+                }
+            }
             // Enable View ▸ Customize Toolbar… — SwiftUI leaves the merged window
             // toolbar's `allowsUserCustomization` off for this split + search setup,
             // disabling the menu item even though every toolbar is customizable (#408).
