@@ -113,6 +113,10 @@
             for pending in WidgetSharedStore.takePendingRequestsInOrder() {
                 switch pending {
                 case let .openPad(request):
+                    // The request file is cross-process App Group data: a malformed
+                    // id must not become a pending selection request (#1809).
+                    guard let padID = PadIDValidation.normalize(request.id) else { continue }
+
                     // The validated account travels with the navigation request: it
                     // can outlive further view/account switches, and a bare pad id
                     // must not resolve under a different account (#1255).
@@ -125,7 +129,7 @@
                         owner = uuid
                     }
                     AppNavigation.shared.showPads(
-                        PadsRequest(selectPadID: request.id, selectPadAccountID: owner)
+                        PadsRequest(selectPadID: padID, selectPadAccountID: owner)
                     )
 
                 case let .newPad(request):

@@ -103,6 +103,10 @@
         /// under a different account (#1255).
         @MainActor
         private static func showPad(_ request: WidgetOpenPadRequest) {
+            // The request file is cross-process App Group data: a malformed id
+            // must not become a misleading pending selection request (#1809).
+            guard let padID = PadIDValidation.normalize(request.id) else { return }
+
             var owner: UUID?
             if let account = request.account,
                let uuid = UUID(uuidString: account),
@@ -111,7 +115,7 @@
                 AccountsStore.shared.currentAccountID = uuid
                 owner = uuid
             }
-            AppNavigation.shared.showPads(PadsRequest(selectPadID: request.id, selectPadAccountID: owner))
+            AppNavigation.shared.showPads(PadsRequest(selectPadID: padID, selectPadAccountID: owner))
         }
 
         /// Creates a pad through the API and opens it in the user's browser — the same
@@ -128,9 +132,19 @@
                 seedQuestionID: question,
                 availableAccountIDs: store.accounts.map(\.id)
             )
-            let resolved = route.accountID.flatMap { id in
-                store.accounts.first { $0.id == id }
-            } ?? store.currentAccount
+            let resolved: Account?
+            if let routedID = route.accountID {
+                resolved = store.accounts.first { $0.id == routedID }
+            } else if let requested = account, !requested.isEmpty {
+                // The widget named an account that is no longer configured:
+                // creating in whichever account happens to be current could put
+                // the pad in the wrong organization (#1811). Surface the in-app
+                // create flow so the user picks the account explicitly.
+                routeNewPadViaDeepLink(account: nil, question: nil)
+                return
+            } else {
+                resolved = store.currentAccount
+            }
 
             guard let account = resolved else {
                 // No account configured yet — open the app so the user can add one.
