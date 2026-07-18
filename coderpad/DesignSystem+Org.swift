@@ -70,8 +70,15 @@ final class OrgDirectory {
     /// in the New Pad / New Question sheets. `nil` until the org loads or when the
     /// org reports no default.
     private(set) var defaultLanguage: String?
-    private var loadedAccountID: UUID?
+    /// The client identity (account + endpoint + key) the directory was loaded
+    /// through, so editing an account's credentials or server reloads instead of
+    /// no-opping on a matching account id (#1690). Nil in merged mode.
+    private var loadedClientKey: String?
     private var inFlight: UUID?
+    /// Orders overlapping `load`/`loadMerged` calls: whichever started last wins,
+    /// so a slow response for the previous view mode can't overwrite the
+    /// directory the current mode just applied (#1692).
+    private var loadGeneration = 0
 
     /// Seed the name map from disk so pad/question rows resolve owner names on the
     /// very first render after a cold launch, instead of flashing the raw email
@@ -95,96 +102,142 @@ final class OrgDirectory {
         if store.isMergedView {
             var merged: [String: String] = [:]
             for account in store.mergeableAccounts {
-                merged.merge(DirectoryCache.load(account: account.id)) { first, _ in first }
+                merged.merge(normalizedKeys(DirectoryCache.load(account: account.id))) { first, _ in first }
             }
             return merged
         }
         if let id = store.currentAccount?.id {
-            return DirectoryCache.load(account: id)
+            return normalizedKeys(DirectoryCache.load(account: id))
         }
         return [:]
     }
 
+    /// Normalizes a persisted (possibly legacy, raw-cased) map onto the lowercased
+    /// keys lookups use (#1689).
+    private static func normalizedKeys(_ map: [String: String]) -> [String: String] {
+        var normalized: [String: String] = [:]
+        for (email, name) in map {
+            let key = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            guard !key.isEmpty, normalized[key] == nil else { continue }
+
+            normalized[key] = name
+        }
+        return normalized
+    }
+
+    /// A stable identity for the credentials a directory load runs through (#1690).
+    private static func clientKey(for account: Account) -> String {
+        "\(account.id.uuidString)|\(account.resolvedBaseURL.absoluteString)|\(account.apiKey.hashValue)"
+    }
+
     func load(for account: Account) async {
-        guard loadedAccountID != account.id, inFlight != account.id else { return }
+        let clientKey = Self.clientKey(for: account)
+        guard loadedClientKey != clientKey, inFlight != account.id else { return }
 
         inFlight = account.id
+        loadGeneration += 1
+        let generation = loadGeneration
         defer { inFlight = nil }
         let client = account.makeClient()
         if let org = try? await OrganizationCacheStore.shared.organization(via: client) {
             // A session change cancels the navigation loader that called this;
-            // a stale load must not overwrite the new session's directory (#1239).
-            guard !Task.isCancelled else { return }
+            // a stale load must not overwrite the new session's directory (#1239),
+            // and an overlapping merged load that started later wins (#1692).
+            guard !Task.isCancelled, generation == loadGeneration else { return }
 
-            var map: [String: String] = [:]
-            for user in org.users {
-                if let name = user.name, !name.isEmpty {
-                    map[user.email] = name
-                }
-            }
+            let map = Self.nameMap(of: org)
             nameByEmail = map
             revision += 1
             defaultLanguage = org.organizationDefaultLanguage.flatMap { $0.isEmpty ? nil : $0 }
-            loadedAccountID = account.id
-            // Persist for the next cold launch. Skip an empty map so a transient
-            // fetch hiccup can't wipe a previously good snapshot.
-            if !map.isEmpty { DirectoryCache.save(map, account: account.id) }
+            loadedClientKey = clientKey
+            // Persist for the next cold launch. The fetch succeeded, so an empty
+            // map is the organization's real state: writing it through is what
+            // stops removed members reappearing from a stale snapshot (#1694).
+            DirectoryCache.save(map, account: account.id)
         }
+    }
+
+    /// The email → display-name map of an organization's members. Emails are
+    /// normalized (trimmed, lowercased) so owner records with case variations
+    /// resolve the same member (#1689); names are trimmed and whitespace-only
+    /// ones dropped so they can't override the email with a blank label (#1696).
+    private nonisolated static func nameMap(of org: Organization) -> [String: String] {
+        var map: [String: String] = [:]
+        for user in org.users {
+            let email = user.email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            guard !email.isEmpty, map[email] == nil,
+                  let name = user.name?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !name.isEmpty else { continue }
+
+            map[email] = name
+        }
+        return map
     }
 
     /// Load and union the member directories of several accounts at once, for the
     /// combined "All Accounts" view where owner emails span every org. Fetches each
     /// account's organization concurrently and merges the name maps so a pad from
-    /// any account can still resolve its owner's display name. `loadedAccountID` is
+    /// any account can still resolve its owner's display name. `loadedClientKey` is
     /// cleared so a later single-account `load` refreshes rather than no-ops.
     func loadMerged(for accounts: [Account]) async {
         let realAccounts = accounts.filter { !$0.apiKey.isEmpty }
         guard !realAccounts.isEmpty else { return }
 
-        let maps = await withTaskGroup(of: (UUID, [String: String]).self) { group -> [(UUID, [String: String])] in
+        loadGeneration += 1
+        let generation = loadGeneration
+        let mapsByID = await withTaskGroup(of: (UUID, [String: String]?).self) { group -> [UUID: [String: String]] in
             for account in realAccounts {
                 let client = account.makeClient()
                 let id = account.id
                 group.addTask {
                     guard let org = try? await OrganizationCacheStore.shared.organization(via: client) else {
-                        return (id, [:])
+                        return (id, nil)
                     }
 
-                    var map: [String: String] = [:]
-                    for user in org.users where !(user.name ?? "").isEmpty {
-                        map[user.email] = user.name
-                    }
-                    return (id, map)
+                    return (id, Self.nameMap(of: org))
                 }
             }
-            var collected: [(UUID, [String: String])] = []
-            for await pair in group {
-                collected.append(pair)
+            var collected: [UUID: [String: String]] = [:]
+            for await (id, map) in group {
+                collected[id] = map
             }
             return collected
         }
         // A session change cancels the navigation loader that called this; a stale
-        // merged load must not overwrite the new session's directory (#1239).
-        guard !Task.isCancelled else { return }
+        // merged load must not overwrite the new session's directory (#1239), and
+        // an overlapping single-account load that started later wins (#1692).
+        guard !Task.isCancelled, generation == loadGeneration else { return }
 
+        // Merge in the accounts' configured order, not the task group's completion
+        // order, so an email shared by two organizations always resolves to the
+        // same name across refreshes (#1691).
         var merged: [String: String] = [:]
-        for (account, map) in maps {
+        for account in realAccounts {
+            guard let map = mapsByID[account.id] else { continue }
+
             merged.merge(map) { first, _ in first }
             // Persist each account's own map (not the union) so a later single-account
-            // launch seeds from just that account. Skip empties to preserve a good
-            // snapshot through a transient fetch hiccup.
-            if !map.isEmpty { DirectoryCache.save(map, account: account) }
+            // launch seeds from just that account. A fetched empty map is the org's
+            // real state and overwrites the snapshot (#1694); only failed fetches
+            // (nil above) leave the previous snapshot alone.
+            DirectoryCache.save(map, account: account.id)
         }
         nameByEmail = merged
         revision += 1
-        loadedAccountID = nil
+        // The merged view spans organizations with potentially different default
+        // languages; keeping the previous single account's default would seed
+        // new-item flows with the wrong org's language (#1693).
+        defaultLanguage = nil
+        loadedClientKey = nil
     }
 
     func name(for email: String) -> String? {
-        let trimmed = email.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
+        // Emails are stored normalized (trimmed, lowercased), so a record with
+        // different casing still resolves the same member (#1689).
+        let normalized = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !normalized.isEmpty else { return nil }
 
-        return nameByEmail[trimmed]
+        return nameByEmail[normalized]
     }
 
     func display(_ email: String) -> String {
@@ -195,14 +248,30 @@ final class OrgDirectory {
 /// Disk backing for `OrgDirectory`'s email -> name map, one JSON file per account
 /// under Application Support (via the shared `CacheDisk`). Lets owner names resolve
 /// on the first render after a cold launch, the same stale-while-revalidate trick
-/// the pads and questions lists already use.
+/// the pads and questions lists already use. Snapshots are stamped and expire
+/// after 30 days: without a refresh in that window, outdated member names must
+/// not keep presenting indefinitely (#1695).
 private enum DirectoryCache {
+    /// The stamped snapshot format; legacy files (a bare `[String: String]`) still
+    /// read, they just carry no stamp and are treated as fresh until re-saved.
+    private nonisolated struct Snapshot: Codable {
+        let names: [String: String]
+        let savedAt: Date
+    }
+
+    private nonisolated static let maxAge: TimeInterval = 30 * 24 * 60 * 60
+
     nonisolated static func load(account: UUID) -> [String: String] {
-        CacheDisk.load([String: String].self, kind: "directory", account: account) ?? [:]
+        if let snapshot = CacheDisk.load(Snapshot.self, kind: "directory", account: account) {
+            guard Date().timeIntervalSince(snapshot.savedAt) <= maxAge else { return [:] }
+
+            return snapshot.names
+        }
+        return CacheDisk.load([String: String].self, kind: "directory", account: account) ?? [:]
     }
 
     nonisolated static func save(_ map: [String: String], account: UUID) {
-        CacheDisk.save(map, kind: "directory", account: account)
+        CacheDisk.save(Snapshot(names: map, savedAt: Date()), kind: "directory", account: account)
     }
 }
 
