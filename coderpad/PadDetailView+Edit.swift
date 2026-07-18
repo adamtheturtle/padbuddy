@@ -84,11 +84,8 @@ extension PadDetailView {
     /// account switches made elsewhere (#873). Falls back to the current account
     /// for clients that don't match a stored account byte-for-byte (e.g. mocks).
     private var keyOwnerEmail: String? {
-        let match = AccountsStore.shared.accounts.first {
-            $0.apiKey.trimmingCharacters(in: .whitespacesAndNewlines) == client.apiKey
-                && $0.resolvedBaseURL == client.baseURL
-        }
-        return (match ?? AccountsStore.shared.currentAccount)?.userEmail
+        let store = AccountsStore.shared
+        return (store.account(matching: client) ?? store.currentAccount)?.userEmail
     }
 
     var propertiesCard: some View {

@@ -306,14 +306,23 @@ struct PadDetailView: View {
             .onChange(of: pad.executionEnabled) { _, newValue in draftExecution = newValue ?? true }
     }
 
-    /// Whether the displayed pad is a favorite of the current account, so the
+    /// The account the displayed pad belongs to, resolved from the view's own
+    /// client: a standalone pad window or a merged row can belong to a non-current
+    /// account, and keying favorites by the current account starred the pad under
+    /// whichever account happened to be selected elsewhere (#986). Falls back to
+    /// the current account for clients that don't match a stored account (mocks).
+    private var owningAccountID: UUID? {
+        (accounts.account(matching: client) ?? accounts.currentAccount)?.id
+    }
+
+    /// Whether the displayed pad is a favorite of its owning account, so the
     /// toolbar star can reflect and toggle its state.
     private var isFavorite: Bool {
-        favorites.isFavorite(pad.id, account: accounts.currentAccountID)
+        favorites.isFavorite(pad.id, account: owningAccountID)
     }
 
     func toggleFavorite() {
-        guard let account = accounts.currentAccountID else { return }
+        guard let account = owningAccountID else { return }
 
         favorites.toggle(pad.id, title: pad.title, account: account, undoManager: undoManager)
     }

@@ -57,6 +57,19 @@ extension KeychainAccountStore where Account == CoderPad.Account {
         }
     }
 
+    /// The stored account whose credentials `client` was built from. Views handed a
+    /// client directly (standalone pad windows, merged rows) can belong to a
+    /// non-current account, so account-scoped reads and writes must resolve the
+    /// owner from the client identity rather than assume the globally current
+    /// account (#873, #986). Nil when no stored account matches byte-for-byte
+    /// (e.g. mock clients).
+    func account(matching client: CoderPadClient) -> Account? {
+        accounts.first {
+            $0.apiKey.trimmingCharacters(in: .whitespacesAndNewlines) == client.apiKey
+                && $0.resolvedBaseURL == client.baseURL
+        }
+    }
+
     func addDemoBadKeyIfMissing() {
         if !accounts.contains(where: \.isBadKeyDemo) {
             add(.demoBadKey())

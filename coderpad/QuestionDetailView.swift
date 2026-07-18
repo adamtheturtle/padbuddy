@@ -295,14 +295,25 @@ struct QuestionDetailView: View {
         }
     }
 
-    /// Whether the displayed question is a favorite of the current account, so the
+    /// The account whose favorites the star reads and writes. `accountID` is the
+    /// question's owning account (question ids are only unique per organization);
+    /// in All Accounts the *current* account is merely the last single-account
+    /// selection, so keying favorites by it starred the same numeric id under the
+    /// wrong account and the detail star disagreed with the merged list's
+    /// (#696, #868). Falls back to the current account only when the owner is
+    /// genuinely unknown.
+    private var owningAccountID: UUID? {
+        accountID ?? accounts.currentAccountID
+    }
+
+    /// Whether the displayed question is a favorite of its owning account, so the
     /// toolbar star can reflect and toggle its state.
     private var isFavorite: Bool {
-        favorites.isFavorite(question.id, account: accounts.currentAccountID)
+        favorites.isFavorite(question.id, account: owningAccountID)
     }
 
     private func toggleFavorite() {
-        guard let account = accounts.currentAccountID else { return }
+        guard let account = owningAccountID else { return }
 
         favorites.toggle(question.id, title: question.displayTitle, account: account, undoManager: undoManager)
     }
