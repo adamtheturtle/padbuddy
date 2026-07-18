@@ -30,6 +30,10 @@ struct HighlightedCode: View, Equatable {
     /// viewer) — inside the detail pane's own vertical scroll the fixed height is
     /// what avoids the combinatorial re-measure hang (#494), so the card keeps it.
     var fillsHeight = false
+    /// A 0-based line to keep in view, scrolled to whenever it changes: session
+    /// playback follows the line being edited (#983). Nil (every other call site)
+    /// never scrolls programmatically.
+    var focusLine: Int?
 
     /// The highlighted result, filled in by an off-main pass; plain `contents`
     /// renders until it lands so the main thread isn't blocked tokenizing (#372).
@@ -47,6 +51,9 @@ struct HighlightedCode: View, Equatable {
     /// which has no hover, the button is always shown.
     @State private var isHovering = false
 
+    /// Snap (not animate) the playback follow-scroll when Reduce Motion is on.
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     /// Briefly flips the copy button to a checkmark after a successful copy, so a
     /// click gives visible confirmation. Reset after a short delay.
     @State private var didCopy = false
@@ -54,11 +61,15 @@ struct HighlightedCode: View, Equatable {
     @State private var copyTask: Task<Void, Never>?
     @State private var copyResetTask: Task<Void, Never>?
 
+    /// Where the scroll sits, so playback can move it to the edited line (#983).
+    @State private var scrollPosition = ScrollPosition()
+
     /// Compare only the inputs (not the @State result) so SwiftUI keeps skipping
     /// re-renders for unrelated reasons, e.g. the file sidebar's resize drag.
     static func == (lhs: Self, rhs: Self) -> Bool {
         lhs.contents == rhs.contents && lhs.language == rhs.language
             && lhs.dark == rhs.dark && lhs.fillsHeight == rhs.fillsHeight
+            && lhs.focusLine == rhs.focusLine
     }
 
     var body: some View {
@@ -70,6 +81,13 @@ struct HighlightedCode: View, Equatable {
                 .padding(.vertical, 8)
         }
         .defaultScrollAnchor(.topLeading)
+        .scrollPosition($scrollPosition)
+        .onChange(of: focusLine) { _, newValue in
+            scroll(toLine: newValue, animated: !reduceMotion)
+        }
+        .onAppear {
+            scroll(toLine: focusLine, animated: false)
+        }
         // A *determinate* height, not `maxHeight: 360`. This scroll is vertical and
         // lives inside the detail pane's own vertical scroll; a flexible `maxHeight`
         // range made the outer scroll re-measure this view's full (un-clamped) content
@@ -121,6 +139,35 @@ struct HighlightedCode: View, Equatable {
         if let highlighted, highlightedContents == contents { return highlighted }
         return AttributedString(contents)
     }
+
+    /// Scrolls so `line` sits about a third of the way down the viewport - in view
+    /// with the context around it, without pinning the action to an edge (#983).
+    /// The offset is estimated from the monospaced line height: the content is one
+    /// `Text`, so there's no per-line view identity to scroll to.
+    private func scroll(toLine line: Int?, animated: Bool) {
+        guard let line else { return }
+
+        let target = max(0, CGFloat(line) * Self.lineHeight + 8 - 360 / 3)
+        if animated {
+            withAnimation(.snappy(duration: 0.2)) {
+                scrollPosition.scrollTo(y: target)
+            }
+        } else {
+            scrollPosition.scrollTo(y: target)
+        }
+    }
+
+    /// The height of one rendered line of `.callout` monospaced source.
+    private static let lineHeight: CGFloat = {
+        #if os(macOS)
+            let size = NSFont.preferredFont(forTextStyle: .callout).pointSize
+            let font = NSFont.monospacedSystemFont(ofSize: size, weight: .regular)
+            return ceil(font.ascender - font.descender + font.leading)
+        #else
+            let size = UIFont.preferredFont(forTextStyle: .callout).pointSize
+            return ceil(UIFont.monospacedSystemFont(ofSize: size, weight: .regular).lineHeight)
+        #endif
+    }()
 
     /// The copy button overlaid on the code block. Backed by a material so it
     /// stays legible over any syntax colours, and confirms with a brief checkmark.

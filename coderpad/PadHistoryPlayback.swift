@@ -289,7 +289,8 @@ extension HistoryPlaybackView {
                 HighlightedCode(
                     contents: displayedSnapshot.contents,
                     language: displayedFile.language,
-                    dark: dark
+                    dark: dark,
+                    focusLine: displayedSnapshot.changeLine
                 )
                 .equatable()
                 // The same backing the code card gives its code pane, so replayed

@@ -302,6 +302,21 @@ struct PadHistoryReplayTests {
         #expect(file.snapshots.map(\.index) == [0, 1, 2])
         #expect(file.latestEntry?.id == "c")
     }
+
+    @Test
+    func `snapshots record the line their edit lands on`() {
+        let history = PadHistory(entries: [
+            PadHistoryEntry(id: "a", author: "Basil", operations: [.insert("a\nb\nc")], timestamp: 1),
+            // Retain past both newlines (4 UTF-16 units: a, newline, b, newline),
+            // then insert on the third line.
+            PadHistoryEntry(id: "b", author: "Basil", operations: [.retain(4), .insert("X")], timestamp: 2)
+        ])
+
+        let file = PadFileHistory(id: "history-url", title: "main.py", language: "python", history: history)
+
+        #expect(file.snapshots.map(\.contents) == ["a\nb\nc", "a\nb\nXc"])
+        #expect(file.snapshots.map(\.changeLine) == [0, 2])
+    }
 }
 
 // Serialized: OrgDirectory.load reaches a mock client and the suite asserts on

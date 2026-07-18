@@ -168,12 +168,28 @@ nonisolated struct PadFileHistory: Identifiable, Hashable {
         var contents = ""
         snapshots = history.entries.enumerated().map { index, entry in
             contents = entry.applying(to: contents)
-            return PadHistorySnapshot(index: index, entry: entry, contents: contents)
+            return PadHistorySnapshot(index: index, entry: entry, contents: contents,
+                                      changeLine: Self.changeLine(of: entry, in: contents))
         }
     }
 
     var latestEntry: PadHistoryEntry? {
         history.entries.last
+    }
+
+    /// The 0-based line an entry's edit lands on in the post-edit contents, so
+    /// playback can scroll the code to where the change is happening (#983).
+    /// The edit position is the entry's leading retain run (operations are an
+    /// OT sequence: retains position the cursor, then inserts/deletes act there),
+    /// counted in UTF-16 code units like the history itself.
+    private static func changeLine(of entry: PadHistoryEntry, in contents: String) -> Int {
+        var offset = 0
+        for operation in entry.operations {
+            guard case .retain(let count) = operation else { break }
+            offset += count
+        }
+        let newline = "\n".utf16.first
+        return contents.utf16.prefix(offset).count(where: { $0 == newline })
     }
 }
 
@@ -185,6 +201,8 @@ nonisolated struct PadHistorySnapshot: Identifiable, Hashable {
     let index: Int
     let entry: PadHistoryEntry
     let contents: String
+    /// The 0-based line of this entry's edit; see `PadFileHistory.changeLine`.
+    let changeLine: Int
 }
 
 enum PadEventGrouping {
