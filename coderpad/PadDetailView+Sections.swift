@@ -193,7 +193,8 @@ extension PadDetailView {
     /// field. Keep the card visible even when empty so notes can be added in place.
     private var notesCard: some View {
         DetailSection(title: "Notes", systemImage: "note.text") {
-            InlineEditableText(text: pad.notes ?? "", placeholder: "Empty", label: "notes") {
+            InlineEditableText(text: pad.notes ?? "", placeholder: "Empty", label: "notes",
+                               draftKey: "pad/\(pad.id)/notes") {
                 await commitNotes($0)
             }
         }

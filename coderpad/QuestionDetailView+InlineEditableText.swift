@@ -5,6 +5,28 @@
 
 import SwiftUI
 
+/// In-progress inline edits that outlive their editor's view. Question detail's
+/// Prompt/Materials/Solution panes are mutually exclusive `switch` branches, so a
+/// tab switch unmounts the pane and destroys the editor's `@State` draft; without
+/// this stash a routine hop between tabs silently discarded unsaved text (#1020).
+/// Session-scoped only - drafts are never persisted.
+@MainActor
+final class InlineEditDrafts {
+    static let shared = InlineEditDrafts()
+
+    private var drafts: [String: String] = [:]
+
+    func stash(_ draft: String, for key: String) {
+        drafts[key] = draft
+    }
+
+    /// Removes and returns the stashed draft for `key`, so a draft is resumed at
+    /// most once.
+    func take(for key: String) -> String? {
+        drafts.removeValue(forKey: key)
+    }
+}
+
 /// A long-form field that reads as rendered Markdown until you click its hover
 /// pencil, when it becomes a text editor with Save / Cancel. Each commit sends a
 /// single-field `PUT` for the question (see `QuestionDetailView` commits), so the
@@ -17,6 +39,9 @@ struct InlineEditableText: View {
     /// Human-readable name of this field, used for the pencil's help/accessibility
     /// label (e.g. "description", "part 2").
     var label: String
+    /// Stable identity of this field across mounts (question/pad id + field), so an
+    /// in-progress edit survives its pane being unmounted by a tab switch (#1020).
+    let draftKey: String
     /// Commits the edited text, returning `true` on success so the editor closes.
     let onSave: (String) async -> Bool
 
@@ -40,7 +65,29 @@ struct InlineEditableText: View {
         .onChange(of: text) { _, newValue in
             handleSourceChange(newValue)
         }
+        .onAppear { resumeStashedDraft() }
+        // Unmounted mid-edit (e.g. the hosting tab switched away): stash the dirty
+        // draft so coming back resumes the edit instead of losing it (#1020).
+        .onDisappear {
+            if editing, draft != text {
+                InlineEditDrafts.shared.stash(draft, for: draftKey)
+            }
+        }
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.12), value: hovered)
+    }
+
+    /// Reopens the editor with a draft stashed when this field was last unmounted
+    /// mid-edit. A stash matching the current source is dropped instead: the edit
+    /// either got saved after the unmount or no longer changes anything.
+    private func resumeStashedDraft() {
+        guard !isReadOnly, let stored = InlineEditDrafts.shared.take(for: draftKey),
+              stored != text else { return }
+
+        draft = stored
+        baseText = text
+        sourceChanged = false
+        editing = true
+        focused = true
     }
 
     private var display: some View {

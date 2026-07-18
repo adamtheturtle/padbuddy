@@ -309,7 +309,10 @@ extension QuestionDetailView {
                     // #333: keep the section visible when there are no instructions
                     // yet, so the first part can be added in place.
                     InlineEditableText(text: "", placeholder: "Empty",
-                                       label: "candidate instructions") { await commitInstruction(at: 0, text: $0) }
+                                       label: "candidate instructions",
+                                       draftKey: inlineDraftKey("instructions-0")) {
+                        await commitInstruction(at: 0, text: $0)
+                    }
                 } else {
                     // Each part is edited independently (#334): committing one part
                     // resends the whole list with only that part's text changed.
@@ -343,7 +346,8 @@ extension QuestionDetailView {
             }
             InlineEditableText(
                 text: item.instructions, placeholder: "Empty",
-                label: total > 1 ? "part \(index + 1)" : "candidate instructions"
+                label: total > 1 ? "part \(index + 1)" : "candidate instructions",
+                draftKey: inlineDraftKey("instructions-\(index)")
             ) {
                 await commitInstruction(at: index, text: $0)
             }

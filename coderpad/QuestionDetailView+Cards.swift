@@ -163,9 +163,16 @@ extension QuestionDetailView {
         Card {
             VStack(alignment: .leading, spacing: 10) {
                 SectionHeader(title: title, systemImage: "doc.text")
-                InlineEditableText(text: text, placeholder: placeholder, label: label, onSave: onSave)
+                InlineEditableText(text: text, placeholder: placeholder, label: label,
+                                   draftKey: inlineDraftKey(label), onSave: onSave)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    /// Identity for a field's stashed in-progress edit (#1020): account-qualified,
+    /// since per-org question ids collide across accounts in the combined view.
+    func inlineDraftKey(_ field: String) -> String {
+        "question/\(accountID?.uuidString ?? "current")/\(question.id)/\(field)"
     }
 }
