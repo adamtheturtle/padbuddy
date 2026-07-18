@@ -158,7 +158,11 @@ enum AppRouter {
         _ name: Notification.Name,
         _ transform: @escaping @Sendable (Notification) -> T?
     ) -> AsyncStream<T> {
-        AsyncStream { continuation in
+        // Bounded buffering: a slow or suspended consumer under a high mutation
+        // rate must not accumulate an unbounded in-memory queue (#1826). Keeping
+        // the newest events is correct for this router's payloads — they carry
+        // current record state, and consumers reconcile via reloads anyway.
+        AsyncStream(bufferingPolicy: .bufferingNewest(64)) { continuation in
             let task = Task { @MainActor in
                 for await note in center.notifications(named: name) {
                     if let value = transform(note) { continuation.yield(value) }
