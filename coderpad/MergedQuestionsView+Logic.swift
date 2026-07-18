@@ -105,13 +105,16 @@ extension MergedQuestionsView {
         sortedCache.key = key
         sortedCache.favoritesByAccount = favoritesByAccount
         let searchQuery = search.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Both sides lowercased/case-insensitive; mirrors the single-account
+        // list (#1644, #1650).
+        let languageQuery = languageFilter?.lowercased()
         let filtered = scoped.filter { row in
             let item = row.item
             return (accountFilter == nil || row.account.id == accountFilter)
                 && (!mineOnly || isMine(row))
                 && (!favoritesOnly || (favoritesByAccount[row.account.id]?.contains(item.id) ?? false))
-                && (languageFilter == nil || (item.language ?? "").lowercased() == languageFilter)
-                && (ownerFilter == nil || item.ownerEmail == ownerFilter)
+                && (languageQuery == nil || (item.language ?? "").lowercased() == languageQuery)
+                && (ownerFilter.map { item.ownerEmail.caseInsensitiveCompare($0) == .orderedSame } ?? true)
                 && (typeFilter == nil || item.interviewType.rawValue == typeFilter)
                 && (draftFilter == nil
                     || (draftFilter == "draft" && item.isDraft == true)

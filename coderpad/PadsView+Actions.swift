@@ -153,9 +153,11 @@ extension PadsView {
 
     /// Restore the persisted live filters for this view's account, once. A deep-link
     /// request (handled by `applyPendingRequest`) is applied afterward so it always
-    /// wins over a restored snapshot.
+    /// wins over a restored snapshot. Guarded so a later `onAppear` (tab switch,
+    /// window reopen) can't reapply the saved snapshot over filters the user
+    /// changed this session (#1638).
     func restoreFilters() {
-        guard let account = owningAccountID else { return }
+        guard !didRestoreFilters, let account = owningAccountID else { return }
 
         didRestoreFilters = true
         guard let data = UserDefaults.standard.data(forKey: Self.liveFilterKey(account)),

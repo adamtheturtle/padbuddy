@@ -203,11 +203,16 @@ struct DateRangeFilterChip: View {
     }
 
     /// Commit the picker as an inclusive whole-day range: from the start of the
-    /// "From" day to the last second of the "To" day.
+    /// "From" day to the last representable instant of the "To" day. The end is
+    /// the moment just before the next midnight, not 23:59:59 exactly, so records
+    /// timestamped during the final fractional second still fall inside the
+    /// intended end date (#1642); `DateWindow.contains` compares inclusively.
     private func applyCustom() {
         let calendar = Calendar.current
         let start = calendar.startOfDay(for: draftStart)
-        let end = calendar.date(bySettingHour: 23, minute: 59, second: 59, of: draftEnd) ?? draftEnd
+        let end = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: draftEnd))
+            .map { Date(timeIntervalSinceReferenceDate: $0.timeIntervalSinceReferenceDate.nextDown) }
+            ?? draftEnd
         window = DateWindow(customStart: start, customEnd: end)
         showCustom = false
     }

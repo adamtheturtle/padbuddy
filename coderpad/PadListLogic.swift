@@ -124,7 +124,9 @@ enum PadListLogic {
         let createdValue = pad.createdAt ?? .distantPast
         return (criteria.state == nil || pad.status == criteria.state) &&
             (language == nil || (pad.language ?? "").lowercased() == language) &&
-            (criteria.owner == nil || pad.ownerEmail == criteria.owner) &&
+            // Emails are case-insensitive: the Me shortcut or a persisted filter
+            // may carry a different casing than the API's owner values (#1643).
+            (criteria.owner.map { pad.ownerEmail.caseInsensitiveCompare($0) == .orderedSame } ?? true) &&
             (criteria.team == nil || pad.team?.name == criteria.team) &&
             (criteria.type == nil || pad.interviewType?.rawValue == criteria.type) &&
             criteria.updated.contains(updatedValue, now: now) &&

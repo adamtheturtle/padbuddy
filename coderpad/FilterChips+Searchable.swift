@@ -81,6 +81,14 @@ struct SearchableFilterChip: View {
         .accessibilityLabel("\(title) filter")
         .accessibilityValue(selected.map(formatter) ?? "All")
         .accessibilityHint(accessibilityHint)
+        // The chip advertises button semantics but is a tap-gesture label, so
+        // assistive technologies need an explicit activation to open it (#1649).
+        .accessibilityAction { presented.toggle() }
+        // A stale query from the previous popover session would filter the next
+        // open down to "No matches" out of nowhere (#1648).
+        .onChange(of: presented) { _, isPresented in
+            if !isPresented { search = "" }
+        }
         .popover(isPresented: $presented, arrowEdge: .top) {
             SearchableFilterPopover(
                 title: title,
@@ -228,6 +236,14 @@ private struct SearchableFilterPopover: View {
             .textFieldStyle(.roundedBorder)
     }
 
+    /// The member rows, with the current user's email removed when the pinned
+    /// "Me" row already covers it: listing it twice would show two choices for
+    /// the same filter (#1647).
+    private var nonMeOptions: [String] {
+        guard let meEmail else { return options }
+        return options.filter { $0.caseInsensitiveCompare(meEmail) != .orderedSame }
+    }
+
     private var rows: some View {
         VStack(alignment: .leading, spacing: 0) {
             if let meEmail {
@@ -249,7 +265,7 @@ private struct SearchableFilterPopover: View {
                 presented = false
             }
             Divider()
-            ForEach(options, id: \.self) { option in
+            ForEach(nonMeOptions, id: \.self) { option in
                 PopoverSelectionRow(
                     label: formatter(option),
                     subtitle: formatter(option) == option ? nil : option,

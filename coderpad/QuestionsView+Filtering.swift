@@ -61,10 +61,14 @@ extension QuestionsView {
         listCache.favoriteIDSet = favoriteIDs
         let favoriteFilter = favoritesOnly ? favoriteIDs : nil
         let searchQuery = search.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Both sides lowercased/case-insensitive: a saved or deep-linked filter
+        // may carry "Swift" or a mixed-case email while the API values differ
+        // only in casing (#1644, #1650).
+        let languageQuery = languageFilter?.lowercased()
         let filtered = questions.filter { question in
             (favoriteFilter?.contains(question.id) ?? true) &&
-                (languageFilter == nil || (question.language ?? "").lowercased() == languageFilter) &&
-                (ownerFilter == nil || question.ownerEmail == ownerFilter) &&
+                (languageQuery == nil || (question.language ?? "").lowercased() == languageQuery) &&
+                (ownerFilter.map { question.ownerEmail.caseInsensitiveCompare($0) == .orderedSame } ?? true) &&
                 (typeFilter == nil || question.interviewType.rawValue == typeFilter) &&
                 (draftFilter == nil
                     || (draftFilter == "draft" && question.isDraft == true)

@@ -128,8 +128,10 @@ extension QuestionsView {
     /// request (handled by `applyPendingRequest`) is applied afterward so it always
     /// wins over a restored snapshot. The `Favorites` preset isn't part of the saved
     /// `NamedSearch`, matching how `PadsView` leaves its "Mine" preset unpersisted.
+    /// Guarded so a later `onAppear` (tab switch, window reopen) can't reapply the
+    /// saved snapshot over filters the user changed this session (#1639).
     func restoreFilters() {
-        guard let account = accounts.currentAccountID else { return }
+        guard !didRestoreFilters, let account = accounts.currentAccountID else { return }
 
         didRestoreFilters = true
         guard let data = UserDefaults.standard.data(forKey: Self.liveFilterKey(account)),

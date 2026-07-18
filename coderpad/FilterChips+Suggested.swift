@@ -24,10 +24,13 @@ extension DefaultSearch {
     /// by the pad chip bar and the sidebar so the two never drift.
     static func padDefaults(me currentUserEmail: String?) -> [DefaultSearch] {
         var result: [DefaultSearch] = []
-        if let currentUserEmail, !currentUserEmail.isEmpty {
+        // Trimmed, not just non-empty: a whitespace-only account email must not
+        // create a My Pads preset that filters by whitespace and misleadingly
+        // returns nothing (#1645).
+        if let email = currentUserEmail?.trimmingCharacters(in: .whitespacesAndNewlines), !email.isEmpty {
             result.append(DefaultSearch(
                 id: "my-pads", icon: "person.fill",
-                search: NamedSearch(name: String(localized: "My Pads"), ownerFilter: currentUserEmail)
+                search: NamedSearch(name: String(localized: "My Pads"), ownerFilter: email)
             ))
         }
         result.append(DefaultSearch(id: "active", icon: "bolt.fill",
@@ -41,10 +44,11 @@ extension DefaultSearch {
     /// question chip bar and the sidebar so the two never drift.
     static func questionDefaults(me currentUserEmail: String?) -> [DefaultSearch] {
         var result: [DefaultSearch] = []
-        if let currentUserEmail, !currentUserEmail.isEmpty {
+        // Trimmed, not just non-empty; mirrors `padDefaults` (#1646).
+        if let email = currentUserEmail?.trimmingCharacters(in: .whitespacesAndNewlines), !email.isEmpty {
             result.append(DefaultSearch(
                 id: "my-questions", icon: "person.fill.questionmark",
-                search: NamedSearch(name: String(localized: "My Questions"), ownerFilter: currentUserEmail)
+                search: NamedSearch(name: String(localized: "My Questions"), ownerFilter: email)
             ))
         }
         result.append(DefaultSearch(id: "drafts", icon: "doc.badge.ellipsis",
