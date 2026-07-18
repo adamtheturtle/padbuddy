@@ -191,43 +191,8 @@ extension PadsView {
         error = nil
         defer { if generation == reloadGeneration { isLoading = false } }
         do {
-            // Render page 1 the moment it lands, then keep growing the list as the
-            // remaining pages stream in. Snapshots arrive sorted updated_at,desc from the
-            // server, so each one only appends below — no reshuffle as the list fills in.
-            let isInitialLoad = pads.isEmpty
-            var fetched: [Pad] = []
-            var receivedSnapshot = false
-            for try await snapshot in client.listPadsIncrementally() {
-                guard generation == reloadGeneration else { return }
-
-                receivedSnapshot = true
-
-                // The first snapshot is page 1 — the most-recently-updated pads, already
-                // usable. Drop the blocking spinner now and let the rest stream in
-                // silently behind the already-visible list, rather than spinning until
-                // the last page lands.
-                if isLoading {
-                    isLoading = false
-                }
-                fetched = snapshot
-                // Paint progressively on the first load; on a refresh keep the current
-                // list until the full result is in, so a later page failing can't
-                // transiently shrink the visible list to just page 1.
-                if isInitialLoad {
-                    pads = snapshot
-                    padsRevision += 1
-                    if let id = owningID {
-                        cache.set(id, pads: snapshot, via: client, persist: false)
-                    }
-                }
-            }
-            guard generation == reloadGeneration else { return }
-
-            // A stream that completed without emitting a single snapshot has nothing
-            // to say: replacing a previously loaded list with the empty default would
-            // wipe valid rows and run deletion/activity bookkeeping over a phantom
-            // result (#1203). A genuinely empty org still emits its (empty) page 1.
-            guard receivedSnapshot else { return }
+            guard let fetched = try await streamPads(generation: generation, owningID: owningID),
+                  generation == reloadGeneration else { return }
 
             pads = fetched
             padsRevision += 1
@@ -237,6 +202,44 @@ extension PadsView {
 
             self.error = error
         }
+    }
+
+    /// Streams the paged pad list, painting progressively on the first load, and
+    /// returns the final complete snapshot — or nil when the stream went stale
+    /// (superseded generation) or completed without emitting a single snapshot.
+    /// The nil-on-empty-stream case matters: replacing a previously loaded list
+    /// with the empty default would wipe valid rows and run deletion/activity
+    /// bookkeeping over a phantom result (#1203); a genuinely empty org still
+    /// emits its (empty) page 1.
+    private func streamPads(generation: Int, owningID: UUID?) async throws -> [Pad]? {
+        // Render page 1 the moment it lands, then keep growing the list as the
+        // remaining pages stream in. Snapshots arrive sorted updated_at,desc from the
+        // server, so each one only appends below — no reshuffle as the list fills in.
+        let isInitialLoad = pads.isEmpty
+        var fetched: [Pad]?
+        for try await snapshot in client.listPadsIncrementally() {
+            guard generation == reloadGeneration else { return nil }
+
+            // The first snapshot is page 1 — the most-recently-updated pads, already
+            // usable. Drop the blocking spinner now and let the rest stream in
+            // silently behind the already-visible list, rather than spinning until
+            // the last page lands.
+            if isLoading {
+                isLoading = false
+            }
+            fetched = snapshot
+            // Paint progressively on the first load; on a refresh keep the current
+            // list until the full result is in, so a later page failing can't
+            // transiently shrink the visible list to just page 1.
+            if isInitialLoad {
+                pads = snapshot
+                padsRevision += 1
+                if let id = owningID {
+                    cache.set(id, pads: snapshot, via: client, persist: false)
+                }
+            }
+        }
+        return fetched
     }
 
     /// Records the activity diff, refreshes the per-pad timestamp snapshot, and
