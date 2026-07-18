@@ -82,9 +82,15 @@ struct ScreenTestRow: View {
     }
 
     /// The most informative date: when the test ended, else when it was sent.
+    /// An end date only reads "Completed" when the session actually completed:
+    /// aborted/expired sessions end too, and labeling their end date "Completed"
+    /// misrepresents what happened (#1012).
     private var dateText: String? {
         if let end = test.endDate {
-            return String(localized: "Completed \(end.formatted(date: .abbreviated, time: .omitted))")
+            let day = end.formatted(date: .abbreviated, time: .omitted)
+            return test.status == "completed"
+                ? String(localized: "Completed \(day)")
+                : String(localized: "Ended \(day)")
         }
         if let sent = test.sendDate {
             return String(localized: "Sent \(sent.formatted(date: .abbreviated, time: .omitted))")

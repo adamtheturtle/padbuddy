@@ -110,7 +110,11 @@ struct ScreenTestDetailView: View {
                     LabeledRow(label: "Started", value: date.formatted(date: .long, time: .shortened))
                 }
                 if let date = session.endDate {
-                    LabeledRow(label: "Completed", value: date.formatted(date: .long, time: .shortened))
+                    // "Completed" only when the session actually completed; an aborted or
+                    // cancelled session also carries an end_time, so label those ends
+                    // neutrally rather than contradicting the status badge (#1012).
+                    LabeledRow(label: session.status == "completed" ? "Completed" : "Ended",
+                               value: date.formatted(date: .long, time: .shortened))
                 }
                 if let date = session.lastActivityDate {
                     LabeledRow(label: "Last activity", value: date.formatted(date: .long, time: .shortened))
@@ -129,7 +133,7 @@ struct ScreenTestDetailView: View {
             VStack(alignment: .leading, spacing: 12) {
                 VStack(alignment: .leading, spacing: 8) {
                     if let score = report.score {
-                        LabeledRow(label: "Score", value: scoreText(score, outOf: report.totalPoints))
+                        LabeledRow(label: "Score", value: scoreText(score))
                     }
                     if let points = report.points {
                         LabeledRow(label: "Points", value: pointsText(points, outOf: report.totalPoints))
@@ -173,7 +177,7 @@ struct ScreenTestDetailView: View {
                         Text(name).font(.callout.weight(.medium))
                         Spacer(minLength: 0)
                         if let score = result.score {
-                            Text(scoreText(score, outOf: result.totalPoints))
+                            Text(scoreText(score))
                                 .font(.callout.monospacedDigit())
                                 .foregroundStyle(.secondary)
                         }
@@ -183,7 +187,7 @@ struct ScreenTestDetailView: View {
                             Text(skill).font(.caption).foregroundStyle(.secondary)
                             Spacer(minLength: 0)
                             if let score = value.score {
-                                Text(scoreText(score, outOf: value.totalPoints))
+                                Text(scoreText(score))
                                     .font(.caption.monospacedDigit())
                                     .foregroundStyle(.secondary)
                             }
@@ -247,9 +251,10 @@ struct ScreenTestDetailView: View {
 private extension ScreenTestDetailView {
     // MARK: Formatting
 
-    func scoreText(_ score: Double, outOf total: Int?) -> String {
-        if let total, total > 0 { return "\(Int(score.rounded()))/\(total)" }
-        return "\(Int(score.rounded()))"
+    /// `score` is an API percentage (0-100), not raw points, so it renders with a
+    /// percent sign rather than over the raw `totalPoints` denominator (#995).
+    func scoreText(_ score: Double) -> String {
+        "\(Int(score.rounded()))%"
     }
 
     func pointsText(_ points: Int, outOf total: Int?) -> String {

@@ -168,7 +168,7 @@ struct AccountEditor: View {
                         ToolbarItem(placement: .confirmationAction) {
                             Button("Save") {
                                 finalizeNameIfNeeded()
-                                onSave(draft)
+                                onSave(draft.normalizedForStorage)
                             }
                             .disabled(!canSave)
                         }
@@ -278,7 +278,7 @@ struct AccountEditor: View {
     private var editorWatchers: some View {
         editorForm
             .onChange(of: draft.apiKey) { _, _ in validation = .idle; scopeWarning = nil }
-            .onChange(of: draft.baseURL) { _, _ in validation = .idle }
+            .onChange(of: draft.baseURL) { _, _ in validation = .idle; scopeWarning = nil }
             // A changed Screen key or region invalidates any prior Screen validation result.
             // Screen credentials don't gate `canSave`, so saved accounts autosave them too.
             .onChange(of: draft.screenApiKey) { _, _ in screenValidation = .idle; commitLiveEdit() }
