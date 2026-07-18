@@ -65,6 +65,28 @@ struct MCPWriteToolsTests {
         #expect(padSeedValidationError(questionID: 123, contents: "print(1)")?.contains("mutually exclusive") == true)
     }
 
+    /// Non-positive question ids and whitespace-only contents are malformed
+    /// seeds, not real ones (#1610, #1611).
+    @Test
+    func `pad seed validation rejects malformed seeds`() {
+        #expect(padSeedValidationError(questionID: 0, contents: nil)?.contains("positive") == true)
+        #expect(padSeedValidationError(questionID: -3, contents: nil)?.contains("positive") == true)
+        #expect(padSeedValidationError(questionID: nil, contents: "   ")?.contains("whitespace") == true)
+        #expect(padSeedValidationError(questionID: nil, contents: "")?.contains("whitespace") == true)
+        #expect(padSeedValidationError(questionID: nil, contents: nil) == nil)
+    }
+
+    /// Pagination inputs have documented maximums, so an enormous page or
+    /// offset can't stress the backend or overflow downstream arithmetic (#1612).
+    @Test
+    func `pagination validation enforces upper bounds`() {
+        #expect(pageValidationError(maxPaginationPage) == nil)
+        #expect(pageValidationError(maxPaginationPage + 1) != nil)
+        #expect(screenPaginationValidationError(start: maxPaginationStart + 1, limit: nil) != nil)
+        #expect(screenPaginationValidationError(start: nil, limit: maxPaginationLimit + 1) != nil)
+        #expect(screenPaginationValidationError(start: 0, limit: maxPaginationLimit) == nil)
+    }
+
     @Test
     func `screen tools appear only when Screen is enabled`() {
         let without = toolNames(allowWrites: false, screenEnabled: false)

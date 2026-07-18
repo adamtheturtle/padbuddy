@@ -14,18 +14,33 @@
 import Foundation
 
 /// Whether a question passes the optional owner/author/language/type filters
-/// (case-insensitive exact match; an empty/absent filter always passes).
+/// (case-insensitive exact match on trimmed values; an empty/absent filter always
+/// passes). The type comparison folds interview-type spellings so a tool value of
+/// `take-home` matches the API's `take_home` and vice versa (#1609), mirroring the
+/// app UI's `InterviewType(rawType:)` normalization.
 public func questionMatches(
     _ question: [String: Any], owner: String?, author: String?, language: String?, type: String?
 ) -> Bool {
-    func equals(_ field: String, _ wanted: String?) -> Bool {
-        guard let wanted, !wanted.isEmpty else { return true }
+    func equals(_ field: String, _ wanted: String?, normalize: (String) -> String = { $0.lowercased() }) -> Bool {
+        let cleaned = wanted?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let cleaned, !cleaned.isEmpty else { return true }
 
-        return (question[field] as? String)?.lowercased() == wanted.lowercased()
+        return (question[field] as? String)
+            .map { normalize($0.trimmingCharacters(in: .whitespacesAndNewlines)) } == normalize(cleaned)
     }
 
     return equals("owner_email", owner) && equals("author_name", author)
-        && equals("language", language) && equals("pad_type", type)
+        && equals("language", language)
+        && equals("pad_type", type, normalize: canonicalInterviewType)
+}
+
+/// Folds the interview-type spellings the API and docs have used (`take-home`,
+/// `take_home`, `takehome`; `live`) onto one canonical token for comparison (#1609).
+public func canonicalInterviewType(_ raw: String) -> String {
+    raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        .lowercased()
+        .replacingOccurrences(of: "-", with: "")
+        .replacingOccurrences(of: "_", with: "")
 }
 
 /// Echoes the active question filters back into a result, for clarity on what was counted.
@@ -57,12 +72,13 @@ public let compactQuestionKeys = [
     "id", "title", "owner_email", "author_name", "language", "pad_type", "is_draft", "created_at"
 ]
 
-/// Projects questions down to the compact key set.
+/// Projects questions down to the compact key set. Only scalar values survive,
+/// like `compactPads` (#1608).
 public func compactQuestions(_ questions: [[String: Any]]) -> [[String: Any]] {
     questions.map { question in
         var row: [String: Any] = [:]
-        for key in compactQuestionKeys where question[key] != nil {
-            row[key] = question[key]
+        for key in compactQuestionKeys {
+            if let value = compactScalar(question[key]) { row[key] = value }
         }
         return row
     }

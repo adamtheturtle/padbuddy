@@ -177,4 +177,76 @@ struct MCPPadAggregationTests {
         #expect(Set(compact[0].keys) == Set(compactPadKeys))
         #expect(compact[0]["contents"] == nil)
     }
+
+    /// Proxies can re-encode the token as another numeric form or pad it with
+    /// whitespace; neither must silently end pagination (#1599). Booleans are
+    /// not tokens.
+    @Test
+    func `nextPageToken accepts numeric forms and trims strings`() {
+        #expect(nextPageToken(" 7 ") == "7")
+        #expect(nextPageToken("   ") == nil)
+        #expect(nextPageToken(Int64(3)) == "3")
+        #expect(nextPageToken(3.5) == "3.5")
+        #expect(nextPageToken(true) == nil)
+    }
+
+    /// Filter inputs and API values are trimmed before matching, and padded
+    /// state values fold to their canonical spelling (#1600, #1601).
+    @Test
+    func `matches trims whitespace-padded arguments and API values`() {
+        #expect(padMatches(pads[0], owner: " a@x.com ", state: nil, language: nil))
+        #expect(padMatches(pads[0], owner: nil, state: " ACTIVE ", language: " python "))
+        #expect(padMatches(pads[0], owner: "   ", state: nil, language: nil))
+        #expect(canonicalPadState(" started ") == "active")
+    }
+
+    /// An error page echoing a long token-shaped run must not flow to the MCP
+    /// client (#1602).
+    @Test
+    func `the invalid-response preview redacts token-shaped runs`() {
+        let body = "unauthorized: api key sk-EXAMPLEEXAMPLEEXAMPLEEXAMPLE was rejected"
+        let message = invalidListResponseMessage("/pads", expecting: "pads", body: body)
+        #expect(!message.contains("EXAMPLEEXAMPLE"))
+        #expect(message.contains("[redacted]"))
+    }
+
+    /// An inverted range is a caller error, not a legitimate empty result
+    /// (#1604). Month/date bounds count as whole inclusive periods.
+    @Test
+    func `date bound validation rejects inverted ranges`() {
+        #expect(dateBoundValidationError(after: "2025-02", before: "2025-01") != nil)
+        #expect(dateBoundValidationError(after: "2025-01-02", before: "2025-01-01") != nil)
+        // The same month is a valid one-month window, not an inversion.
+        #expect(dateBoundValidationError(after: "2025-01", before: "2025-01") == nil)
+        // A timestamp inside the before-month's period is fine.
+        #expect(dateBoundValidationError(after: "2025-01-20T00:00:00Z", before: "2025-01") == nil)
+        #expect(dateBoundValidationError(after: "2025-01", before: "2025-12") == nil)
+    }
+
+    /// Remote fields are untrusted: group keys are capped in length and
+    /// cardinality, and the group limit is clamped (#1606, #1607).
+    @Test
+    func `aggregation bounds group keys, cardinality, and limits`() {
+        let longOwner = String(repeating: "a", count: 500)
+        let counts = aggregateCounts(pads: [["owner_email": longOwner]], field: "owner_email")
+        #expect(counts.keys.allSatisfy { $0.count <= maxAggregateKeyLength })
+
+        let many = (0 ..< (maxAggregateGroups + 5)).map { ["owner_email": "owner\($0)@x.com"] }
+        let capped = aggregateCounts(pads: many, field: "owner_email")
+        #expect(capped.count <= maxAggregateGroups + 1)
+        #expect(capped["other"] == 5)
+
+        #expect(topGroups(["a": 1], limit: -3).isEmpty)
+    }
+
+    /// A response nesting a huge object under an allowed key would defeat the
+    /// compact projection (#1608).
+    @Test
+    func `compact drops nested values and caps strings`() {
+        let rows = compactPads([["id": "P1", "title": ["nested": "blob"], "state": "started"]])
+        #expect(rows[0]["id"] as? String == "P1")
+        #expect(rows[0]["title"] == nil)
+        let long = compactPads([["title": String(repeating: "x", count: 5_000)]])
+        #expect((long[0]["title"] as? String)?.count ?? 0 <= 1_001)
+    }
 }

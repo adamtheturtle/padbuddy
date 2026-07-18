@@ -10,22 +10,33 @@
 
 import Foundation
 
-/// Interprets a `next_page` value (a string token, or an int in some responses); nil
-/// means there are no more pages.
+/// Interprets a `next_page` value (a string token, or a number in some responses); nil
+/// means there are no more pages. Strings are trimmed and numbers accepted in any JSON
+/// numeric form, so a proxy that re-encodes the token as a Double or pads it with
+/// whitespace can't silently truncate pagination (#1599). Booleans are not tokens.
 public func nextPageToken(_ value: Any?) -> String? {
+    if value is Bool { return nil }
     switch value {
-    case let token as String: token.isEmpty ? nil : token
-    case let number as Int: String(number)
-    default: nil
+    case let token as String:
+        let trimmed = token.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    case let number as Int:
+        return String(number)
+    case let number as NSNumber:
+        return number.stringValue
+    default:
+        return nil
     }
 }
 
 /// Folds the API's pad-state synonyms onto one canonical spelling, mirroring the app's
 /// `PadState(apiState:)`: the Interview API reports a live pad as "started" while the
 /// tool catalog (and the app UI) say "active", so comparing raw strings would make the
-/// documented filter value unmatchable (#1014). Unknown states pass through lowercased.
+/// documented filter value unmatchable (#1014). Values are trimmed first so a padded
+/// API value like " started " doesn't become its own unknown group (#1601). Unknown
+/// states pass through trimmed and lowercased.
 public func canonicalPadState(_ raw: String) -> String {
-    switch raw.lowercased() {
+    switch raw.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
     case "started", "active", "running": "active"
     case "ended", "finished", "completed": "ended"
     case "pending", "draft": "pending"
@@ -34,13 +45,17 @@ public func canonicalPadState(_ raw: String) -> String {
 }
 
 /// Whether a pad passes the optional owner/state/language filters (case-insensitive
-/// exact match; an empty/absent filter always passes). The state comparison folds API
-/// synonyms first, so `state:"active"` matches pads the API reports as "started".
+/// exact match; an empty/absent filter always passes). Both sides are trimmed so a
+/// whitespace-padded tool argument matches like the config parsers do (#1600). The
+/// state comparison folds API synonyms first, so `state:"active"` matches pads the
+/// API reports as "started".
 public func padMatches(_ pad: [String: Any], owner: String?, state: String?, language: String?) -> Bool {
     func equals(_ field: String, _ wanted: String?, normalize: (String) -> String = { $0.lowercased() }) -> Bool {
-        guard let wanted, !wanted.isEmpty else { return true }
+        let cleaned = wanted?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let cleaned, !cleaned.isEmpty else { return true }
 
-        return (pad[field] as? String).map(normalize) == normalize(wanted)
+        return (pad[field] as? String)
+            .map { normalize($0.trimmingCharacters(in: .whitespacesAndNewlines)) } == normalize(cleaned)
     }
 
     return equals("owner_email", owner)
@@ -53,11 +68,23 @@ public func padMatches(_ pad: [String: Any], owner: String?, state: String?, lan
 /// silently counted as zero rows (#829, #830, #1024, #1026). The body is previewed rather
 /// than echoed in full so an HTML error page doesn't flood the assistant.
 public func invalidListResponseMessage(_ path: String, expecting key: String, body: String) -> String {
-    let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
-    let preview = trimmed.count > 200 ? String(trimmed.prefix(200)) + "…" : trimmed
-    return "The \(path) response wasn't the expected JSON object with a \"\(key)\" "
-        + "array; the upstream server may have returned a proxy or error page. "
-        + "Response begins: \(preview)"
+    let preview = sanitizedBodyPreview(body)
+    let message = "The \(path) response wasn't the expected JSON object with a \"\(key)\" "
+        + "array; the upstream server may have returned a proxy or error page."
+    return preview.isEmpty ? message : message + " Response begins: \(preview)"
+}
+
+/// A body preview safe to hand back to the MCP client: whitespace runs collapse to
+/// one line, long unbroken token-shaped runs are redacted (a proxy error page can
+/// echo credentials or session tokens, #1602), and the result is capped.
+private func sanitizedBodyPreview(_ body: String) -> String {
+    var text = body.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+    text = text.replacingOccurrences(
+        of: #"[A-Za-z0-9+/_=\-]{20,}"#, with: "[redacted]", options: .regularExpression
+    )
+    guard text.count > 200 else { return text }
+
+    return String(text.prefix(200)) + "…"
 }
 
 /// The UTC calendar prefix (YYYY-MM or YYYY-MM-DD, per `count`) of an ISO-8601
@@ -69,11 +96,31 @@ public func invalidListResponseMessage(_ path: String, expecting key: String, bo
 func utcCreatedPrefix(_ created: String, count: Int) -> String {
     guard let date = iso8601Date(from: created) else { return String(created.prefix(count)) }
 
-    let formatter = DateFormatter()
-    formatter.locale = Locale(identifier: "en_US_POSIX")
-    formatter.timeZone = TimeZone(secondsFromGMT: 0)
-    formatter.dateFormat = "yyyy-MM-dd"
-    return String(formatter.string(from: date).prefix(count))
+    return String(DateParsers.utcDayFormatter.string(from: date).prefix(count))
+}
+
+/// Shared parser/formatter instances: `DateFormatter` and `ISO8601DateFormatter`
+/// are documented thread-safe on modern OS releases, and a count/aggregate scan
+/// parses one date per record - allocating a fresh formatter each time dominated
+/// large scans (#1605).
+private enum DateParsers {
+    static let utcDayFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter
+    }()
+
+    // ISO8601DateFormatter lacks a Sendable annotation but is documented
+    // thread-safe; these instances are configured once and only read after.
+    nonisolated(unsafe) static let iso8601 = ISO8601DateFormatter()
+
+    nonisolated(unsafe) static let iso8601Fractional: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions.insert(.withFractionalSeconds)
+        return formatter
+    }()
 }
 
 /// Whether a record's `created_at` falls within an optional [after, before] range. Month
@@ -109,7 +156,44 @@ public func withinDateRange(_ record: [String: Any], after: String?, before: Str
 public func dateBoundValidationError(after: String?, before: String?) -> String? {
     if let error = dateBoundValidationError(name: "created_after", value: after) { return error }
     if let error = dateBoundValidationError(name: "created_before", value: before) { return error }
+    // An inverted range silently yields zero records, which reads as a legitimate
+    // empty result (#1604). Month/date bounds compare as whole inclusive periods
+    // (a before of 2025-01 spans all of January), matching `withinDateRange`.
+    if let after, let lower = dateBound(from: after).flatMap({ orderingInstant($0, isUpper: false) }),
+       let before, let upper = dateBound(from: before).flatMap({ orderingInstant($0, isUpper: true) }),
+       lower > upper {
+        return "created_after must not be later than created_before."
+    }
     return nil
+}
+
+/// The instant a bound occupies for range-ordering purposes: timestamps are exact,
+/// and month/date bounds resolve to the start of their period as a lower bound or
+/// its final second as an upper bound (they filter as whole inclusive periods).
+private func orderingInstant(_ bound: DateBound, isUpper: Bool) -> Date? {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? calendar.timeZone
+    switch bound {
+    case let .timestamp(date):
+        return date
+
+    case let .month(value):
+        let parts = value.split(separator: "-").compactMap { Int($0) }
+        guard parts.count == 2,
+              let start = calendar.date(from: DateComponents(year: parts[0], month: parts[1])) else { return nil }
+        guard isUpper else { return start }
+
+        return calendar.date(byAdding: DateComponents(month: 1, second: -1), to: start)
+
+    case let .day(value):
+        let parts = value.split(separator: "-").compactMap { Int($0) }
+        guard parts.count == 3,
+              let start = calendar.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2]))
+        else { return nil }
+        guard isUpper else { return start }
+
+        return calendar.date(byAdding: DateComponents(day: 1, second: -1), to: start)
+    }
 }
 
 private func dateBoundValidationError(name: String, value: String?) -> String? {
@@ -140,12 +224,9 @@ private func dateBound(from value: String) -> DateBound? {
 }
 
 private func iso8601Date(from value: String) -> Date? {
-    let formatter = ISO8601DateFormatter()
-    if let date = formatter.date(from: value) { return date }
+    if let date = DateParsers.iso8601.date(from: value) { return date }
 
-    let fractionalFormatter = ISO8601DateFormatter()
-    fractionalFormatter.formatOptions.insert(.withFractionalSeconds)
-    return fractionalFormatter.date(from: value)
+    return DateParsers.iso8601Fractional.date(from: value)
 }
 
 private func isValidMonthBound(_ value: String) -> Bool {
@@ -214,10 +295,16 @@ public func aggregateField(for groupBy: String) -> String? {
 /// the first 7 chars of created_at (YYYY-MM); "state" buckets by the canonical state
 /// spelling (so a group value can be fed straight back as a filter); missing/empty
 /// values bucket as "unknown".
+/// Group-key sanity caps (#1606): remote fields are untrusted, and unbounded keys or
+/// cardinality can allocate massive maps and return huge payloads even after
+/// `topGroups` trims the answer. Overflow groups tally under "other".
+public let maxAggregateGroups = 1_000
+public let maxAggregateKeyLength = 128
+
 public func aggregateCounts(pads: [[String: Any]], field: String) -> [String: Int] {
     var counts: [String: Int] = [:]
     for pad in pads {
-        let key: String
+        var key: String
         if field == "month" {
             let created = (pad["created_at"] as? String) ?? ""
             key = created.count >= 7 ? utcCreatedPrefix(created, count: 7) : "unknown"
@@ -225,6 +312,8 @@ public func aggregateCounts(pads: [[String: Any]], field: String) -> [String: In
             let raw = (pad[field] as? String).flatMap { $0.isEmpty ? nil : $0 }
             key = raw.map { field == "state" ? canonicalPadState($0) : $0 } ?? "unknown"
         }
+        if key.count > maxAggregateKeyLength { key = String(key.prefix(maxAggregateKeyLength)) }
+        if counts[key] == nil, counts.count >= maxAggregateGroups { key = "other" }
         counts[key, default: 0] += 1
     }
     return counts
@@ -242,23 +331,42 @@ public struct AggregateGroup: Equatable {
 }
 
 /// Sorts counts by count descending, then key ascending (deterministic), and caps to
-/// `limit` groups.
+/// `limit` groups. The limit is clamped to 0...maxAggregateGroups so a negative or
+/// enormous caller value can't trap or return every high-cardinality group (#1607).
 public func topGroups(_ counts: [String: Int], limit: Int) -> [AggregateGroup] {
+    let clamped = min(max(limit, 0), maxAggregateGroups)
     let sorted = counts.sorted { $0.value != $1.value ? $0.value > $1.value : $0.key < $1.key }
-    return sorted.prefix(limit).map { AggregateGroup(value: $0.key, count: $0.value) }
+    return sorted.prefix(clamped).map { AggregateGroup(value: $0.key, count: $0.value) }
 }
 
 /// The fields kept by list_pads_compact, dropping the verbose blob so far more rows
 /// fit per response.
 public let compactPadKeys = ["id", "title", "owner_email", "state", "language", "created_at"]
 
-/// Projects pads down to the compact key set.
+/// Projects pads down to the compact key set. Only scalar values survive (#1608):
+/// a response nesting a huge object under an allowed key would defeat the entire
+/// point of the compact projection.
 public func compactPads(_ pads: [[String: Any]]) -> [[String: Any]] {
     pads.map { pad in
         var row: [String: Any] = [:]
-        for key in compactPadKeys where pad[key] != nil {
-            row[key] = pad[key]
+        for key in compactPadKeys {
+            if let value = compactScalar(pad[key]) { row[key] = value }
         }
         return row
+    }
+}
+
+/// The scalar (string/number/bool/null) form of a compact-row value, with strings
+/// capped; nested arrays/objects are dropped rather than copied through (#1608).
+func compactScalar(_ value: Any?) -> Any? {
+    switch value {
+    case let string as String:
+        return string.count > 1_000 ? String(string.prefix(1_000)) + "…" : string
+    case let number as NSNumber:
+        return number
+    case is NSNull:
+        return NSNull()
+    default:
+        return nil
     }
 }

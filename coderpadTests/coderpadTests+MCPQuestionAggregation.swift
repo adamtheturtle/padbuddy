@@ -34,6 +34,16 @@ struct MCPQuestionAggregationTests {
         ))
     }
 
+    /// Interview-type spellings fold to one canonical token, so the tool value
+    /// `take-home` matches the API's `take_home` and vice versa (#1609).
+    @Test
+    func `type filter folds interview-type spellings`() {
+        #expect(questionMatches(questions[1], owner: nil, author: nil, language: nil, type: "take-home"))
+        #expect(questionMatches(questions[1], owner: nil, author: nil, language: nil, type: "takehome"))
+        #expect(questionMatches(questions[1], owner: nil, author: nil, language: nil, type: " take_home "))
+        #expect(!questionMatches(questions[0], owner: nil, author: nil, language: nil, type: "take-home"))
+    }
+
     @Test
     func `matches treats empty and absent filters as wildcards`() {
         #expect(questionMatches(questions[0], owner: "", author: "", language: "", type: ""))
