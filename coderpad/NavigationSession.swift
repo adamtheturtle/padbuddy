@@ -19,10 +19,15 @@ func navigationStatusBanner(
     network: NetworkMonitor,
     monitor: AccountHealthMonitor
 ) -> some View {
-    // Offline takes precedence: when there's no path to CoderPad nothing can
-    // be edited regardless of the key, so show the offline banner and skip the
-    // now-moot unauthorized one (#321).
-    if network.isOffline {
+    // A failed Keychain write outranks everything: the user's account changes
+    // will silently revert on relaunch unless they act, and neither network nor
+    // key state fixes that (#770).
+    if store.persistenceFailed {
+        AccountPersistenceBanner(store: store)
+    } else if network.isOffline {
+        // Offline takes precedence over the key state: when there's no path to
+        // CoderPad nothing can be edited regardless of the key, so show the
+        // offline banner and skip the now-moot unauthorized one (#321).
         OfflineBanner()
     } else if !store.isMergedView, let id = store.currentAccountID, monitor.isUnauthorized(id) {
         // In the combined view, per-account fetch failures surface inline in the

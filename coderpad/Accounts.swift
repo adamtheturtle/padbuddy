@@ -151,9 +151,10 @@ extension Account: StorableAccount {
         },
         // Re-key shares the removal teardown but must not tombstone the widget
         // snapshot: the account persists, so the tombstone would block every
-        // future widget refresh (#1022).
-        onRemoved: { tearDownAccountData($0, isRekey: false) },
-        onRekeyed: { tearDownAccountData($0, isRekey: true) },
+        // future widget refresh (#1022). The hooks hand over the full removed /
+        // previous account (buddy-kit 0.15.0); teardown is keyed by its id.
+        onRemoved: { tearDownAccountData($0.id, isRekey: false) },
+        onRekeyed: { tearDownAccountData($0.id, isRekey: true) },
         logger: persistenceLogger
     )
 }

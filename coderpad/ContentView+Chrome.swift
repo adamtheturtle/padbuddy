@@ -44,6 +44,39 @@ struct UnauthorizedBanner: View {
     }
 }
 
+/// Shown while the latest accounts snapshot failed to write to the Keychain: the
+/// change the UI just accepted only lives in memory and would silently revert on
+/// relaunch (#770). Offers the store's retry, which re-enqueues the full snapshot.
+struct AccountPersistenceBanner: View {
+    let store: AccountsStore
+
+    var body: some View {
+        HStack(spacing: 10) {
+            // Decorative: the banner text states the problem, so the symbol is
+            // hidden from VoiceOver rather than announced before the message.
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Account changes couldn't be saved")
+                    .font(.callout.weight(.semibold))
+                    .accessibilityAddTraits(.isHeader)
+                Text("Writing to the Keychain failed, so recent account changes will be lost when the app quits.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Button("Retry") {
+                store.retryPersistence()
+            }
+            .controlSize(.small)
+        }
+        .padding(.horizontal, Spacing.bannerH)
+        .padding(.vertical, 10)
+        .background(Color.orange.opacity(0.18))
+    }
+}
+
 /// Shown across the top of the window while the app is offline, mirroring the
 /// `UnauthorizedBanner`'s look so a read-only state reads the same whether the key
 /// was rejected or the network dropped (#321). No buttons: connectivity returns on

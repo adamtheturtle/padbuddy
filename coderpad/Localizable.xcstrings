@@ -937,6 +937,9 @@
         }
       }
     },
+    "Account changes couldn't be saved" : {
+
+    },
     "Account Unavailable" : {
 
     },
@@ -7854,6 +7857,9 @@
           }
         }
       }
+    },
+    "Writing to the Keychain failed, so recent account changes will be lost when the app quits." : {
+
     },
     "Yes" : {
 
