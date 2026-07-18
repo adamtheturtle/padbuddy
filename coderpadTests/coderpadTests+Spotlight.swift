@@ -49,9 +49,30 @@ struct SpotlightIdentifierPersistenceTests {
 
         #expect(SpotlightIndexer.padRef(fromItemIdentifier: "question:42") == nil)
         #expect(SpotlightIndexer.padRef(fromItemIdentifier: "pad:") == nil)
-        // A slug that merely contains a colon without a UUID prefix stays one id.
-        let colonSlug = SpotlightIndexer.padRef(fromItemIdentifier: "pad:not-a-uuid:xyz")
-        #expect(colonSlug?.account == nil)
-        #expect(colonSlug?.id == "not-a-uuid:xyz")
+        // Since #1731, ids normalize through PadIDValidation (ASCII letters and
+        // numbers only), so a colon-carrying body that isn't a valid namespaced
+        // identifier is rejected rather than treated as one legacy slug.
+        #expect(SpotlightIndexer.padRef(fromItemIdentifier: "pad:not-a-uuid:xyz") == nil)
+    }
+
+    /// A namespaced identifier that ends at the account (`pad:<uuid>:`) is
+    /// corrupt: it must be rejected, not routed as a legacy pad whose slug is
+    /// the UUID-and-colon body (#1965).
+    @Test
+    func `a namespaced pad identifier with no trailing pad id is rejected`() {
+        let account = UUID()
+        #expect(SpotlightIndexer.padRef(fromItemIdentifier: "pad:\(account.uuidString):") == nil)
+        #expect(SpotlightIndexer.padRef(fromItemIdentifier: "pad:\(account.uuidString)") == nil)
+        #expect(SpotlightIndexer.padRef(fromItemIdentifier: "pad:\(account.uuidString): ") == nil)
+    }
+
+    /// Server question ids are positive; zero or negative values only come from
+    /// crafted or corrupted identifiers and must not navigate (#1966).
+    @Test
+    func `non-positive question ids are rejected`() {
+        let account = UUID()
+        #expect(SpotlightIndexer.questionRef(fromItemIdentifier: "question:\(account.uuidString):42")?.id == 42)
+        #expect(SpotlightIndexer.questionRef(fromItemIdentifier: "question:\(account.uuidString):0") == nil)
+        #expect(SpotlightIndexer.questionRef(fromItemIdentifier: "question:\(account.uuidString):-7") == nil)
     }
 }
