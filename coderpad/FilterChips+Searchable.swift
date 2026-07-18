@@ -233,7 +233,10 @@ private struct SearchableFilterPopover: View {
             if let meEmail {
                 PopoverSelectionRow(
                     label: String(localized: "Me"),
-                    subtitle: formatter(meEmail) == meEmail ? meEmail : formatter(meEmail),
+                    // The email when a display name resolves (nil when the email is
+                    // all we have), matching the member rows below so "Me" says which
+                    // address it maps to (#992).
+                    subtitle: formatter(meEmail) == meEmail ? nil : meEmail,
                     isSelected: selected == meEmail
                 ) {
                     selected = meEmail

@@ -144,7 +144,7 @@
                     .font(.caption).foregroundStyle(.secondary)
                 ForEach(live.prefix(topCount)) { row in
                     Button {
-                        openPad(row.pad)
+                        openPad(row)
                     } label: {
                         Label(padRowLabel(row), systemImage: "dot.radiowaves.left.and.right")
                     }
@@ -252,7 +252,7 @@
             } else {
                 ForEach(myPads.prefix(topCount)) { row in
                     Button {
-                        openPad(row.pad)
+                        openPad(row)
                     } label: {
                         Text(padRowLabel(row))
                     }

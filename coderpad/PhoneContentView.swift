@@ -69,6 +69,35 @@
             // selections the same way.
             .onChange(of: store.currentAccountID) { _, _ in clearNavigationState() }
             .onChange(of: store.isMergedView) { _, _ in clearNavigationState() }
+            // Step away when the active section becomes unavailable for the *same*
+            // account - quota resolving to unlimited, or the Screen key being
+            // removed - or the tab disappears from the TabView while `nav.section`
+            // still points at it, leaving a blank selection (#1006). Mirrors the
+            // regular-width sidebar's handlers.
+            .onChange(of: quotaIsUnlimited) { _, unlimited in
+                if unlimited, nav.section == .quota { nav.section = .pads }
+            }
+            .onChange(of: screenSectionAvailable) { _, available in
+                if !available, nav.section == .screen { nav.section = .pads }
+            }
+        }
+
+        /// Whether the current account's plan is unlimited (no Quota tab), read from
+        /// the quota cache exactly like `Sidebar.quotaIsUnlimited`; reading it in
+        /// `body` (via `onChange`) also makes the cache observable here, so the tab
+        /// set re-evaluates when the session load reveals an unlimited plan.
+        private var quotaIsUnlimited: Bool {
+            guard !store.isMergedView, let id = store.currentAccountID else { return false }
+
+            return QuotaCacheStore.shared.get(id)?.unlimited == true
+        }
+
+        /// Whether the Screen tab should appear, mirroring `Sidebar.screenSectionAvailable`.
+        private var screenSectionAvailable: Bool {
+            if store.isMergedView {
+                return store.mergeableAccounts.contains { $0.makeScreenClient() != nil }
+            }
+            return store.currentAccount?.makeScreenClient() != nil
         }
 
         private func clearNavigationState() {

@@ -69,11 +69,11 @@
             myOwnedPads.filter { $0.pad.status == .active }
         }
 
-        /// Opens `pad` in the user's configured browser.
-        func openPad(_ pad: Pad) {
-            guard let url = pad.webURL else { return }
-
-            openPadURL(url)
+        /// Opens a row's pad in the user's configured browser, resolving the URL via
+        /// the row's own account base when the pad's `url` field is absent or
+        /// malformed, so self-hosted/regional pads still open (#1010).
+        func openPad(_ row: MenuBarPadRow) {
+            openPadURL(row.pad.webURL(fallbackBase: row.account.resolvedBaseURL))
         }
 
         /// Opens a pad URL from the menu bar in the user's configured browser.

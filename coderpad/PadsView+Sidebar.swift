@@ -322,11 +322,13 @@ extension PadsView {
         ]
     }
 
-    /// Open a pad in the user's configured browser.
+    /// Open a pad in the user's configured browser. Resolved via the account's
+    /// base URL when the pad's own `url` field is absent or malformed, so pads
+    /// from self-hosted/regional servers still open (#1010), matching the
+    /// ID-routed (#731) and create-and-open (#781) paths.
     func openPad(_ pad: Pad) {
-        guard let url = pad.webURL else { return }
-
-        BrowserSettings.openExternally(url)
+        let base = accounts.currentAccount?.resolvedBaseURL ?? CoderPadClient.defaultBaseURL
+        BrowserSettings.openExternally(pad.webURL(fallbackBase: base))
     }
 
     /// Opens a pad's native detail in its own window (#354), the pad counterpart to

@@ -69,6 +69,10 @@ struct MergedPadsView: View {
     /// so the empty startup state never clobbers the stored id, and keeps the restore
     /// to once, mirroring `PadsView`.
     @State var didRestoreSelection = false
+    /// Set while the launch restore reselects the saved row, so that reselection
+    /// isn't marked "opened" - which would clear the pad's "new activity" dot
+    /// before the user ever saw it (#1043). Consumed once, mirroring `PadsView`.
+    @State var isRestoringSelection = false
     /// A one-shot request to scroll the restored row into view on launch; a `List`
     /// won't scroll to a programmatic selection on its own. Consumed and cleared by
     /// the `ScrollViewReader` in the list.

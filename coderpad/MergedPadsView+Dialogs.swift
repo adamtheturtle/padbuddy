@@ -14,10 +14,18 @@ import SwiftUI
 extension MergedPadsView {
     // MARK: - Actions
 
+    /// Open a pad in the user's configured browser. Resolved via the owning
+    /// account's base URL when the pad's own `url` field is absent or malformed,
+    /// so pads from self-hosted/regional servers still open (#1010). The selected
+    /// row's published account is preferred over the collision-prone route map,
+    /// then the current account, mirroring the detail pane's routing (#758).
     func openPad(_ pad: Pad) {
-        guard let url = pad.webURL else { return }
-
-        BrowserSettings.openExternally(url)
+        let routed = selection?.id == pad.id
+            ? router.selectedPadAccountID.flatMap { id in accounts.accounts.first { $0.id == id } }
+            : nil
+        let account = routed ?? router.account(forPadID: pad.id) ?? accounts.currentAccount
+        let base = account?.resolvedBaseURL ?? CoderPadClient.defaultBaseURL
+        BrowserSettings.openExternally(pad.webURL(fallbackBase: base))
     }
 
     /// Delete a row's pad against its own account's client. The row carries its

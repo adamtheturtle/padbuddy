@@ -140,12 +140,20 @@ extension MergedPadsView {
                 let account = router.selectedPadAccountID ?? router.account(forPadID: newValue.id)?.id
                 guard let account else { return }
 
-                markOpenedTask?.cancel()
-                markOpenedTask = Task { @MainActor in
-                    try? await Task.sleep(for: .milliseconds(500))
-                    guard !Task.isCancelled else { return }
+                // A selection restored from the last session must not be re-marked
+                // opened, or a pad that changed while the app was closed would lose
+                // its "new activity" dot before being seen (#1043). Consumed once,
+                // mirroring `PadsView`.
+                if isRestoringSelection {
+                    isRestoringSelection = false
+                } else {
+                    markOpenedTask?.cancel()
+                    markOpenedTask = Task { @MainActor in
+                        try? await Task.sleep(for: .milliseconds(500))
+                        guard !Task.isCancelled else { return }
 
-                    openedStore.markOpened(newValue.id, account: account)
+                        openedStore.markOpened(newValue.id, account: account)
+                    }
                 }
                 // Keep the primary row id in step when the selection was set from
                 // outside the list; compare namespaced row ids, never bare slugs (#758).

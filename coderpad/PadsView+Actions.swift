@@ -31,7 +31,9 @@ extension PadsView {
         if let saved = request.applySearch { apply(saved) }
         if let owner = request.ownerEmail { ownerFilter = owner }
         if let query = request.search { search = query }
-        if request.startCreating {
+        // Offline the app is read-only: opening the create sheet would offer a
+        // submit that can only fail, so drop the request like the merged view (#1002).
+        if request.startCreating, !isReadOnly {
             seedQuestionID = request.seedQuestionID
             showCreate = true
         }

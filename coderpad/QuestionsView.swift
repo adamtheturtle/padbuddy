@@ -302,7 +302,9 @@ struct QuestionsView: View {
         nav.questionsRequest = nil
         if let saved = request.applySearch { apply(saved) }
         if let query = request.search { search = query }
-        if request.startCreating { showCreate = true }
+        // Offline the app is read-only: opening the create sheet would offer a
+        // submit that can only fail, so drop the request like the merged view (#1002).
+        if request.startCreating, !isReadOnly { showCreate = true }
         if let id = request.selectQuestionID { selectQuestion(id: id) }
     }
 
