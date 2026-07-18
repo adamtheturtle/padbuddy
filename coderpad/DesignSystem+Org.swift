@@ -61,6 +61,11 @@ final class OrgDirectory {
     static let placeholder = OrgDirectory()
 
     private(set) var nameByEmail: [String: String] = [:]
+    /// Bumped whenever `nameByEmail` is replaced, so list memo caches can key on
+    /// directory *content* changes. Keying on the map's count missed a reload
+    /// where members were renamed but the count stayed equal, leaving filtered
+    /// results computed against the old names (#1198, #1214).
+    private(set) var revision = 0
     /// The organization's default coding language, used to pre-select the picker
     /// in the New Pad / New Question sheets. `nil` until the org loads or when the
     /// org reports no default.
@@ -114,6 +119,7 @@ final class OrgDirectory {
                 }
             }
             nameByEmail = map
+            revision += 1
             defaultLanguage = org.organizationDefaultLanguage.flatMap { $0.isEmpty ? nil : $0 }
             loadedAccountID = account.id
             // Persist for the next cold launch. Skip an empty map so a transient
@@ -162,6 +168,7 @@ final class OrgDirectory {
             if !map.isEmpty { DirectoryCache.save(map, account: account) }
         }
         nameByEmail = merged
+        revision += 1
         loadedAccountID = nil
     }
 

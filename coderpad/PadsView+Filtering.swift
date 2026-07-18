@@ -39,7 +39,7 @@ extension PadsView {
             filterSignature: filterSignature,
             sortRawValue: sort.rawValue,
             dateFilterTimeToken: dateFilterTimeToken(now: now),
-            directoryCount: directory.nameByEmail.count
+            directoryRevision: directory.revision
         )
         guard filteredCache.key != key else { return }
 

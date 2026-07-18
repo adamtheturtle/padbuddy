@@ -103,7 +103,7 @@ extension MergedPadsView {
             scopedSignature: scopedCache.signature ?? 0,
             filterSignature: filterSignature,
             dateFilterTimeToken: dateFilterTimeToken(now: now),
-            directoryCount: directory.nameByEmail.count
+            directoryRevision: directory.revision
         )
         guard filteredCache.key != key else { return }
 
