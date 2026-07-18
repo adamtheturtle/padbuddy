@@ -166,7 +166,10 @@ struct FindAction: Equatable {
     let perform: () -> Void
 
     static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.id == rhs.id
+        // The shortcut capability participates: a pane that keeps its id but
+        // changes whether it installs its own ⌘F must read as a change, or the
+        // iPad command registration stays in the wrong state (#1706).
+        lhs.id == rhs.id && lhs.hasSystemFindShortcut == rhs.hasSystemFindShortcut
     }
 }
 

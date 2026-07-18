@@ -16,11 +16,21 @@ struct EmailLink: View {
     var body: some View {
         if email.isEmpty {
             Text("(no email)").foregroundStyle(.secondary)
-        } else if let url = URL(string: "mailto:\(email)") {
+        } else if let url = Self.mailtoURL(for: email) {
             Link(email, destination: url)
         } else {
             Text(email)
         }
+    }
+
+    /// Built with URLComponents so query/fragment characters in a malformed API
+    /// email value are percent-encoded into the address instead of rewriting the
+    /// mailto destination or silently failing (#1697).
+    static func mailtoURL(for email: String) -> URL? {
+        var components = URLComponents()
+        components.scheme = "mailto"
+        components.path = email
+        return components.url
     }
 }
 

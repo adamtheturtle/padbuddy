@@ -42,7 +42,13 @@ extension String {
             return String(localized: "Plain text")
         default:
             if lowered.hasPrefix("multifile_") {
-                let base = String(lowered.dropFirst("multifile_".count))
+                // Strip every stacked prefix in one pass: language values come
+                // from the API, and a crafted "multifile_multifile_…" string must
+                // not recurse (and re-localize) once per prefix (#1702).
+                var base = lowered
+                while base.hasPrefix("multifile_") {
+                    base = String(base.dropFirst("multifile_".count))
+                }
                 return base.isEmpty
                     ? String(localized: "Project")
                     : String(localized: "\(base.coderPadLanguageDisplayName) Project",
@@ -73,12 +79,19 @@ enum CoderPadLinks {
         let version = info?["CFBundleShortVersionString"] as? String ?? "?"
         let build = info?["CFBundleVersion"] as? String ?? "?"
         let osVersion = ProcessInfo.processInfo.operatingSystemVersionString
+        // Label the OS line per platform: reports sent from iPad carried a
+        // misleading "macOS:" diagnostic (#1705).
+        #if os(macOS)
+            let osLabel = "macOS"
+        #else
+            let osLabel = "iPadOS/iOS"
+        #endif
         let body = """
 
 
         ---
         App version: \(version) (\(build))
-        macOS: \(osVersion)
+        \(osLabel): \(osVersion)
         """
         var components = URLComponents()
         components.scheme = "mailto"
@@ -117,13 +130,16 @@ enum CoderPadLanguages {
         "plaintext"
     ]
 
-    /// Returns whether `language` can be used with CoderPad's pad-creation API.
-    /// Project environments are displayed for existing pads/questions, but new ones
-    /// must be created in the web app.
+    /// Returns whether `language` can be used with CoderPad's pad-creation API:
+    /// only trimmed, picker-supported codes qualify. Project environments are
+    /// displayed for existing pads/questions, but new ones must be created in the
+    /// web app; unknown (#1703) and whitespace-only (#1704) values used to pass
+    /// this gate and pre-fill the create flow with a value the server rejects.
     static func canCreatePad(with language: String?) -> Bool {
-        guard let language, !language.isEmpty else { return false }
+        guard let language else { return false }
 
-        return !language.lowercased().hasPrefix("multifile_")
+        let normalized = language.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return pickerOptions.contains(normalized)
     }
 
     /// Where to create the project and framework environments (React, Django, Rails,

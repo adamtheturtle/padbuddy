@@ -21,7 +21,7 @@ extension QuestionsView {
             error: error,
             loadingMessage: "",
             onReload: { await reload() },
-            errorView: { error, retry in APIErrorView(error: error, onRetry: retry) },
+            errorView: { error, retry in APIErrorView(error: error, onRetry: retry, accountID: owningAccountID) },
             savedSearches: { EmptyView() },
             filters: { filterBar },
             list: { questionsList }
