@@ -180,8 +180,9 @@ extension PadDetailView {
         // Assign environments first — `loadEnvironments` can't throw — so a
         // failing events fetch doesn't leave environments (and the Save All Code
         // availability that depends on them) stale. Both still run concurrently.
-        let loadedEnvironments = await envs
+        let (loadedEnvironments, failedIDs) = await envs
         environments = loadedEnvironments
+        failedEnvironmentIDs = failedIDs
 
         do {
             // The API returns events newest-first; display them oldest-first so the
@@ -196,17 +197,24 @@ extension PadDetailView {
             // now-disabled Retry) stays visible while the retry is in flight instead
             // of flashing away and back if the retry also fails (#787).
             loadError = nil
-            // Warm the session cache so a later return to this pad is instant.
-            PadDetailCacheStore.shared.set(pad.id, client: client, events: loadedEvents,
-                                           environments: loadedEnvironments)
+            // Warm the session cache so a later return to this pad is instant — but
+            // only with the complete environment set: caching a partial one would
+            // serve missing candidate code as authoritative to re-entry, print, and
+            // Save All Code until the next successful reload (#713).
+            if failedIDs.isEmpty {
+                PadDetailCacheStore.shared.set(pad.id, client: client, events: loadedEvents,
+                                               environments: loadedEnvironments)
+            }
         } catch {
             loadError = error
         }
         isLoading = false
 
         await loadHistories(for: loadedEnvironments)
-        PadDetailCacheStore.shared.set(pad.id, client: client, events: self.events, environments: loadedEnvironments,
-                                       histories: histories)
+        if failedIDs.isEmpty {
+            PadDetailCacheStore.shared.set(pad.id, client: client, events: self.events,
+                                           environments: loadedEnvironments, histories: histories)
+        }
     }
 
     private func loadHistories(for environments: [PadEnvironment]) async {
@@ -276,7 +284,7 @@ extension PadDetailView {
         return requests
     }
 
-    private func loadEnvironments() async -> [PadEnvironment] {
+    private func loadEnvironments() async -> (loaded: [PadEnvironment], failedIDs: [Int]) {
         // `pad_environment_ids` comes straight off the wire, so collapse duplicates
         // first: a repeated id both fetched (and displayed) the same environment
         // twice and trapped the ordering map's `uniqueKeysWithValues` below (#786).
@@ -286,18 +294,23 @@ extension PadDetailView {
         // Fan the per-id fetches out concurrently rather than awaiting each in turn,
         // so an N-environment pad pays ~1×RTT instead of N×RTT before its code
         // preview appears (#371). Order is restored by id afterward, since task
-        // groups yield results as they finish.
-        let environments = await withTaskGroup(of: PadEnvironment?.self) { group in
+        // groups yield results as they finish. Every requested id is tracked, so a
+        // failed fetch surfaces as an explicit incomplete-code warning instead of
+        // silently rendering fewer files (#713).
+        let results = await withTaskGroup(of: (id: Int, environment: PadEnvironment?).self) { group in
             for id in ids {
-                group.addTask { try? await client.padEnvironment(id: id) }
+                group.addTask { (id, try? await client.padEnvironment(id: id)) }
             }
-            var collected: [PadEnvironment] = []
-            for await env in group {
-                if let env { collected.append(env) }
+            var collected: [(id: Int, environment: PadEnvironment?)] = []
+            for await result in group {
+                collected.append(result)
             }
             return collected
         }
         let order = Dictionary(uniqueKeysWithValues: ids.enumerated().map { ($1, $0) })
-        return environments.sorted { (order[$0.id] ?? 0) < (order[$1.id] ?? 0) }
+        let loaded = results.compactMap(\.environment).sorted { (order[$0.id] ?? 0) < (order[$1.id] ?? 0) }
+        let failed = results.filter { $0.environment == nil }.map(\.id)
+            .sorted { (order[$0] ?? 0) < (order[$1] ?? 0) }
+        return (loaded, failed)
     }
 }

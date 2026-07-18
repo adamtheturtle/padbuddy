@@ -16,6 +16,10 @@ struct PadDetailView: View {
     let pad: Pad
     @State var events: [PadEvent] = []
     @State var environments: [PadEnvironment] = []
+    /// Environment ids whose fetch failed on the last load: the code cards show
+    /// only the surviving environments, so these drive an explicit incomplete-code
+    /// warning and block caching the partial result as complete (#713).
+    @State var failedEnvironmentIDs: [Int] = []
     @State var histories: [PadFileHistory] = []
     @State var loadError: (any Error)?
     /// Starts true so the Events section shows its spinner on the first frame
