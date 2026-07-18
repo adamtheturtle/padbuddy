@@ -232,6 +232,17 @@ final class OrganizationCacheStore {
         byAccount[accountID] = nil
     }
 
+    /// Drops the cache entry and cancels any in-flight fetch derived from this
+    /// client identity, so a removed or re-keyed account leaves neither its API
+    /// key nor its organization/member directory resident (#718, #883). The
+    /// account-keyed snapshot is removed separately via ``remove(_:)``.
+    func remove(baseURL: URL, apiKey: String) {
+        let key = Self.clientKey(baseURL: baseURL, apiKey: apiKey)
+        byClient[key] = nil
+        inFlight[key]?.cancel()
+        inFlight[key] = nil
+    }
+
     /// Fetch the organization for `client`, coalescing concurrent callers onto one
     /// request and serving a cached copy when one exists — stale-while-revalidate: a
     /// cached hit returns immediately and kicks off a background refresh. Only throws
@@ -255,7 +266,12 @@ final class OrganizationCacheStore {
         defer { inFlight[key] = nil }
         do {
             let org = try await task.value
-            byClient[key] = org
+            // A fetch cancelled by account teardown may still complete (the request
+            // isn't obliged to honour cancellation); caching its result would
+            // repopulate the just-purged credentials and members (#718).
+            if !task.isCancelled {
+                byClient[key] = org
+            }
             return org
         } catch {
             Self.logger.warning(
@@ -281,7 +297,11 @@ final class OrganizationCacheStore {
     }
 
     private static func clientKey(_ client: CoderPadClient) -> String {
-        "\(client.baseURL.absoluteString)|\(client.apiKey)"
+        clientKey(baseURL: client.baseURL, apiKey: client.apiKey)
+    }
+
+    private static func clientKey(baseURL: URL, apiKey: String) -> String {
+        "\(baseURL.absoluteString)|\(apiKey)"
     }
 
     private static func safeHost(_ client: CoderPadClient) -> String {
@@ -291,81 +311,8 @@ final class OrganizationCacheStore {
     }
 }
 
-/// Holds the last-loaded events and environments per pad, so re-selecting a pad
-/// the user already opened this session shows its detail instantly while a
-/// background refresh runs, instead of a blocking spinner on every switch (#323).
-/// Memory-only: this data is session-scoped and refreshed on every open, so —
-/// like `OrganizationCacheStore` — there's no disk backing.
-@Observable
-final class PadDetailCacheStore {
-    static let shared = PadDetailCacheStore()
-
-    struct Key: Hashable {
-        var padID: String
-        var baseURL: URL
-        var apiKey: String
-
-        init(padID: String, client: CoderPadClient) {
-            self.padID = padID
-            baseURL = client.baseURL
-            apiKey = client.apiKey
-        }
-    }
-
-    struct Entry {
-        var events: [PadEvent]
-        var environments: [PadEnvironment]
-        var histories: [PadFileHistory]
-    }
-
-    /// How many pads' detail payloads stay resident at once. Each entry holds a pad's
-    /// full event log and all of its environments (which carry code-file contents), so
-    /// an uncapped map grew without bound for the whole session — hundreds of KB per
-    /// long pad (#421, a cause of #418). Keeping the most-recently-opened handful
-    /// preserves the instant re-open behaviour (#323) while bounding memory, mirroring
-    /// the count caps the other in-process caches already use.
-    private static let limit = 12
-
-    private(set) var byPad: [Key: Entry] = [:]
-    /// Cache keys in least- to most-recently-opened order, so an overflow evicts the
-    /// least-recently-used entry. Bookkeeping only, so it stays out of observation.
-    @ObservationIgnored private var lru: [Key] = []
-    private init() {}
-
-    func get(_ padID: String, client: CoderPadClient) -> Entry? {
-        byPad[Key(padID: padID, client: client)]
-    }
-
-    func set(_ padID: String, client: CoderPadClient, events: [PadEvent], environments: [PadEnvironment]) {
-        let key = Key(padID: padID, client: client)
-        let histories = byPad[key]?.histories ?? []
-        set(key, events: events, environments: environments, histories: histories)
-    }
-
-    func set(_ padID: String, client: CoderPadClient, events: [PadEvent], environments: [PadEnvironment],
-             histories: [PadFileHistory]) {
-        set(Key(padID: padID, client: client), events: events, environments: environments, histories: histories)
-    }
-
-    private func set(_ key: Key, events: [PadEvent], environments: [PadEnvironment], histories: [PadFileHistory]) {
-        byPad[key] = Entry(events: events, environments: environments, histories: histories)
-        // Mark this pad most-recently-used, then evict the oldest while over the cap.
-        // `set` runs on every open (load() refreshes), so set-order tracks open-order.
-        lru.removeAll { $0 == key }
-        lru.append(key)
-        while lru.count > Self.limit {
-            byPad[lru.removeFirst()] = nil
-        }
-    }
-
-    // Deliberate cache-eviction API, kept for lifecycle symmetry.
-    // periphery:ignore
-    func remove(_ padID: String, client: CoderPadClient) {
-        let key = Key(padID: padID, client: client)
-        byPad[key] = nil
-        lru.removeAll { $0 == key }
-    }
-}
+// PadDetailCacheStore (the per-pad detail cache) lives in
+// Accounts+Cache+PadDetail.swift, split out for file length.
 
 /// Holds the last-loaded quota per account, for the same reason as
 /// `OrganizationCacheStore`. Shared by both the Quota and Organization sections,

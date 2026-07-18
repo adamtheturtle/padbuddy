@@ -120,6 +120,9 @@ extension Account: StorableAccount {
             // renames. Takes the array directly — the Observation macro fires this during
             // the store's init, where reaching back into the singleton would deadlock.
             WidgetSync.syncAccounts(accounts)
+            // Purge the client-keyed caches of any account that just vanished or
+            // changed credentials (#718, #883, #884).
+            ClientCacheTeardown.reconcile(accounts)
         },
         onCurrentChanged: { account in
             // Repaint the unconfigured Recent Pads widget for the newly selected account
@@ -159,6 +162,9 @@ extension Account: StorableAccount {
 /// pad-open history) — so a removed key leaves nothing behind
 /// and a re-keyed account (possibly a different org) can't re-attach stale per-org data
 /// (a leftover favorite id could even reattach to an unrelated question). #379
+///
+/// The caches keyed by client identity rather than account id are purged separately by
+/// ``ClientCacheTeardown``, which recovers the removed account's old credentials.
 @MainActor private func tearDownAccountData(_ id: UUID) {
     PadsCacheStore.shared.remove(id)
     QuestionsCacheStore.shared.remove(id)
@@ -171,6 +177,38 @@ extension Account: StorableAccount {
     FavoritesOrderStore.shared.remove(account: id)
     PadOpenedStore.shared.remove(account: id)
     AccountScopedDefaults.purge(account: id)
+}
+
+/// Purges the client-keyed caches — cached organization members (and the API key
+/// embedded in the cache key), any in-flight organization fetch, and every cached
+/// pad detail, candidate code included — when an account disappears or changes
+/// credentials. Those caches are keyed by server + API key, but the store's
+/// remove/rekey hooks deliver only the account id, after the old value is already
+/// gone. So this watches the accounts array itself, diffing each change against
+/// the previous snapshot to recover the vanished credentials (#718, #883, #884, #719).
+@MainActor
+enum ClientCacheTeardown {
+    private struct Identity: Hashable {
+        let baseURL: URL
+        let apiKey: String
+    }
+
+    private static var lastKnown: [UUID: Identity] = [:]
+
+    static func reconcile(_ accounts: [Account]) {
+        var current: [UUID: Identity] = [:]
+        for account in accounts {
+            let client = account.makeClient()
+            current[account.id] = Identity(baseURL: client.baseURL, apiKey: client.apiKey)
+        }
+        // The first call (during the store's init) sees an empty snapshot, so a
+        // fresh launch purges nothing.
+        for (id, previous) in lastKnown where current[id] != previous {
+            OrganizationCacheStore.shared.remove(baseURL: previous.baseURL, apiKey: previous.apiKey)
+            PadDetailCacheStore.shared.remove(baseURL: previous.baseURL, apiKey: previous.apiKey)
+        }
+        lastKnown = current
+    }
 }
 
 /// Purges every per-account UserDefaults key on account removal or re-key: live

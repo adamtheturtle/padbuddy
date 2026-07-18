@@ -143,4 +143,54 @@ struct EditAndCacheTests {
         #expect(store.get(padID, client: first) != nil)
         #expect(store.get(padID, client: second) == nil)
     }
+
+    @Test @MainActor
+    func `pad detail cache drops every entry for a torn-down client identity (#884)`() throws {
+        let store = PadDetailCacheStore.shared
+        let removed = try CoderPadClient.live(
+            apiKey: "key-gone-\(UUID().uuidString)",
+            baseURL: #require(URL(string: "https://gone.example.com"))
+        )
+        let kept = try CoderPadClient.live(
+            apiKey: "key-kept-\(UUID().uuidString)",
+            baseURL: #require(URL(string: "https://kept.example.com"))
+        )
+        let padA = "pad-a-\(UUID().uuidString)"
+        let padB = "pad-b-\(UUID().uuidString)"
+        store.set(padA, client: removed, events: [], environments: [])
+        store.set(padB, client: removed, events: [], environments: [])
+        store.set(padA, client: kept, events: [], environments: [])
+
+        store.remove(baseURL: removed.baseURL, apiKey: removed.apiKey)
+
+        #expect(store.get(padA, client: removed) == nil)
+        #expect(store.get(padB, client: removed) == nil)
+        #expect(store.get(padA, client: kept) != nil)
+    }
+
+    @Test @MainActor
+    func `account removal and rekey purge the client-keyed detail cache (#884, #718)`() {
+        let store = PadDetailCacheStore.shared
+        var account = Account(name: "Teardown", apiKey: "key-\(UUID().uuidString)")
+        let padID = "pad-\(UUID().uuidString)"
+
+        ClientCacheTeardown.reconcile([account])
+        store.set(padID, client: account.makeClient(), events: [], environments: [])
+
+        // A rename keeps the same credentials, so nothing is purged.
+        account.name = "Renamed"
+        ClientCacheTeardown.reconcile([account])
+        #expect(store.get(padID, client: account.makeClient()) != nil)
+
+        // Re-keying purges the entries fetched with the old key.
+        let oldClient = account.makeClient()
+        account.apiKey = "key-\(UUID().uuidString)"
+        ClientCacheTeardown.reconcile([account])
+        #expect(store.get(padID, client: oldClient) == nil)
+
+        // Removal purges the entries fetched with the account's final key.
+        store.set(padID, client: account.makeClient(), events: [], environments: [])
+        ClientCacheTeardown.reconcile([])
+        #expect(store.get(padID, client: account.makeClient()) == nil)
+    }
 }
