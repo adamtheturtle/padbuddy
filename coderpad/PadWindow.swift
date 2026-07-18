@@ -68,6 +68,10 @@ struct PadWindow: View {
                         .advertisesPadActivity(url: pad.webURL, title: pad.title)
                 }
                 .navigationTitle(pad.title.isEmpty ? pad.id : pad.title)
+                // Feed the Pad menu the same way the list views do: its commands
+                // read `focusedPad` and disable on nil, so without this the whole
+                // menu greys out whenever a standalone pad window is key (#1047).
+                .focusedSceneValue(\.focusedPad, pad)
             } else if value == nil || loadFailed {
                 // The system can restore this window without a value, or the fetch
                 // can fail (e.g. the pad was deleted); show a placeholder rather

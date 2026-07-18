@@ -118,7 +118,14 @@ enum CommandPaletteBuilder {
                 subtitle: account.userEmail.isEmpty ? "Switch account" : account.userEmail,
                 systemImage: "person.crop.circle",
                 searchText: "\(account.name) \(account.userEmail)"
-            ) { AccountsStore.shared.currentAccountID = account.id }
+            ) {
+                // Leave All Accounts mode too: `isMergedView` is derived from
+                // `showAllAccounts`, so setting only the current id leaves the
+                // merged view showing and the switch reads as a no-op (#987).
+                // Mirrors every other switch site (account footer, menu bar).
+                AccountsStore.shared.showAllAccounts = false
+                AccountsStore.shared.currentAccountID = account.id
+            }
         }
     }
 
