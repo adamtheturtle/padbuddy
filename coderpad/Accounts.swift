@@ -164,9 +164,11 @@ extension Account: StorableAccount {
         // Re-key shares the removal teardown but must not tombstone the widget
         // snapshot: the account persists, so the tombstone would block every
         // future widget refresh (#1022). The hooks hand over the full removed /
-        // previous account (buddy-kit 0.15.0); teardown is keyed by its id.
-        onRemoved: { tearDownAccountData($0.id, isRekey: false) },
-        onRekeyed: { tearDownAccountData($0.id, isRekey: true) },
+        // previous account (buddy-kit 0.15.0); teardown is keyed by its id, plus
+        // its stable sync identity so the cloud-mirrored favorite order can be
+        // deleted too (#1150).
+        onRemoved: { tearDownAccountData($0.id, syncID: $0.syncID, isRekey: false) },
+        onRekeyed: { tearDownAccountData($0.id, syncID: $0.syncID, isRekey: true) },
         logger: persistenceLogger
     )
 }
@@ -196,7 +198,7 @@ extension Account: StorableAccount {
 ///
 /// The caches keyed by client identity rather than account id are purged separately by
 /// ``ClientCacheTeardown``, which recovers the removed account's old credentials.
-@MainActor private func tearDownAccountData(_ id: UUID, isRekey: Bool) {
+@MainActor private func tearDownAccountData(_ id: UUID, syncID: String?, isRekey: Bool) {
     PadsCacheStore.shared.remove(id, isRekey: isRekey)
     QuestionsCacheStore.shared.remove(id)
     OrganizationCacheStore.shared.remove(id)
@@ -205,7 +207,7 @@ extension Account: StorableAccount {
     AccountHealthMonitor.shared.clearUnauthorized(id)
     FavoritePadsStore.shared.remove(account: id)
     FavoriteQuestionsStore.shared.remove(account: id)
-    FavoritesOrderStore.shared.remove(account: id)
+    FavoritesOrderStore.shared.remove(account: id, syncID: syncID)
     PadOpenedStore.shared.remove(account: id)
     AccountScopedDefaults.purge(account: id)
     InlineEditDrafts.shared.removeAll(account: id)
