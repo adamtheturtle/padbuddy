@@ -16,9 +16,13 @@ enum OnDeviceModelParsing {
     /// omitted are simply absent from the result.
     static func labeledSections(_ reply: String, labels: [String]) -> [String: String] {
         var positions: [(label: String, range: Range<String.Index>)] = []
-        var seen = Set<String>()
+        // Labels must appear in the requested order: the model is instructed to
+        // reply with the sections in exactly that order, and matching any label
+        // anywhere let source code echoed inside one section (a line starting
+        // "SUMMARY:") hijack a later section's start (#1716).
+        var nextLabelIndex = 0
         var lineStart = reply.startIndex
-        while lineStart < reply.endIndex {
+        while lineStart < reply.endIndex, nextLabelIndex < labels.count {
             var lineEnd = lineStart
             while lineEnd < reply.endIndex, !reply[lineEnd].isNewline {
                 lineEnd = reply.index(after: lineEnd)
@@ -30,10 +34,11 @@ enum OnDeviceModelParsing {
             }
 
             let line = reply[labelStart ..< lineEnd]
-            for label in labels where !seen.contains(label) {
+            for offset in nextLabelIndex ..< labels.count {
+                let label = labels[offset]
                 if let range = line.range(of: label + ":", options: [.anchored, .caseInsensitive]) {
                     positions.append((label, range))
-                    seen.insert(label)
+                    nextLabelIndex = offset + 1
                     break
                 }
             }
@@ -54,13 +59,17 @@ enum OnDeviceModelParsing {
         return result
     }
 
-    /// Parses `key: value` lines into a map keyed by a normalized (lowercased, spaces and
-    /// hyphens removed) key, so `dateRange`, `date range`, and `date-range` all land under
-    /// `daterange`. Blank values and the model's ways of saying "not set" (`nil`, `none`,
-    /// `n/a`, `null`, `-`) are dropped, and surrounding quotes are stripped. Suits the flat
-    /// filter replies where each field is a single line.
+    /// Parses `key: value` lines into a map keyed by a normalized (lowercased; spaces,
+    /// hyphens, and underscores removed) key, so `dateRange`, `date range`, `date-range`,
+    /// and `date_range` all land under `daterange` (#1714). Blank values and the model's
+    /// ways of saying "not set" (`nil`, `none`, `n/a`, `null`, `-`) are dropped, and
+    /// surrounding quotes are stripped. A key the model repeats with *conflicting*
+    /// values is dropped entirely rather than trusting whichever occurrence came last
+    /// (#1715); repeating the same value is harmless and kept. Suits the flat filter
+    /// replies where each field is a single line.
     static func keyedFields(_ reply: String) -> [String: String] {
         var result: [String: String] = [:]
+        var conflicted = Set<String>()
         for rawLine in reply.split(whereSeparator: \.isNewline) {
             let line = String(rawLine)
             guard let colon = line.firstIndex(of: ":") else { continue }
@@ -70,6 +79,7 @@ enum OnDeviceModelParsing {
                 .lowercased()
                 .replacingOccurrences(of: " ", with: "")
                 .replacingOccurrences(of: "-", with: "")
+                .replacingOccurrences(of: "_", with: "")
             guard !key.isEmpty else { continue }
 
             var value = String(line[line.index(after: colon)...]).trimmingCharacters(in: .whitespacesAndNewlines)
@@ -77,7 +87,14 @@ enum OnDeviceModelParsing {
             let lowered = value.lowercased()
             guard !value.isEmpty, !["nil", "none", "n/a", "null", "-"].contains(lowered) else { continue }
 
+            if let existing = result[key], existing != value {
+                conflicted.insert(key)
+                continue
+            }
             result[key] = value
+        }
+        for key in conflicted {
+            result.removeValue(forKey: key)
         }
         return result
     }
