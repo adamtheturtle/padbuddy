@@ -53,7 +53,7 @@ extension Sidebar {
     /// actions rather than a selection. The highlight always names the active pane
     /// instead of vanishing onto a suggested row.
     private func isRootSelected(_ value: AppSection) -> Bool {
-        nav.section == value
+        section == value
     }
 
     /// The top-to-bottom order of the navigable top-level sections, shared by the
@@ -140,7 +140,7 @@ extension Sidebar {
             let order = sectionOrder
             guard !order.isEmpty else { return }
 
-            let currentIndex = order.firstIndex(of: nav.section) ?? 0
+            let currentIndex = order.firstIndex(of: section) ?? 0
             let nextIndex = (currentIndex + delta + order.count) % order.count
             selectRoot(order[nextIndex])
         }

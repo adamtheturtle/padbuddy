@@ -211,7 +211,7 @@ struct OpenActivePadsIntent: AppIntent {
         try await Task.sleep(for: .milliseconds(200))
         await MainActor.run {
             if AccountsStore.shared.isMergedView {
-                AppNavigation.shared.section = .pads
+                AppNavigation.shared.sectionRequest = .pads
                 AppNavigation.shared.mergedPadsActiveRequest = true
             } else {
                 let active = NamedSearch(name: String(localized: "Active Pads"), stateFilter: .active)

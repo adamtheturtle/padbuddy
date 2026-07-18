@@ -170,7 +170,7 @@ enum CommandPaletteBuilder {
     private static func jump(toPad id: String, in account: UUID) {
         if AccountsStore.shared.isMergedView,
            AccountsStore.shared.accounts.contains(where: { $0.id == account }) {
-            AppNavigation.shared.section = .pads
+            AppNavigation.shared.sectionRequest = .pads
             AppNavigation.shared.selectMergedFavoritePad(account: account, id: id)
             return
         }

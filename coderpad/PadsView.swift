@@ -187,9 +187,10 @@ struct PadsView: View {
                 }
             }
             .onAppear {
-                // Restore first so a deep-link request can still override it below.
+                // Restore first so a deep-link request can still override it (the
+                // pending request itself is consumed by the focus-gated observer
+                // below, which also runs on appear).
                 restoreFilters()
-                applyPendingRequest()
                 selectedIDs = selection.map { [$0.id] } ?? []
             }
             // The List edits `selectedIDs`; derive the primary row from it so the
@@ -222,7 +223,10 @@ struct PadsView: View {
     /// The request / account-change / filter / selection observers.
     private var decoratedObservers: some View {
         decoratedLifecycle
-            .onChange(of: nav.padsRequest) { _, _ in applyPendingRequest() }
+            // Focus-gated: with several windows on Pads, whichever view observed
+            // the process-wide request first used to consume it, so a filter or
+            // favorite aimed at the focused window could apply elsewhere (#910).
+            .consumesWindowRequest(nav.padsRequest) { applyPendingRequest() }
             .onChange(of: cache.padsByAccount) { _, _ in
                 guard pads.isEmpty, let id = accounts.currentAccountID else { return }
 

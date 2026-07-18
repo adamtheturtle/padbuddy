@@ -11,9 +11,8 @@
 
     struct PhoneContentView: View {
         @State var store = AccountsStore.shared
-        @State private var nav = AppNavigation.shared
-        /// This window's published navigation state (injected by `ContentView`), the
-        /// home of the per-scene Screen campaign selection (#888).
+        /// This window's published navigation state (injected by `ContentView`): the
+        /// per-scene Screen campaign selection (#888) and visible section (#907).
         @Environment(WindowNavigation.self) private var windowNav
         @State private var network = NetworkMonitor.shared
         @Environment(\.openAppSettings) var openSettings
@@ -30,9 +29,12 @@
         @State private var screenSearch = ""
 
         var body: some View {
-            VStack(spacing: 0) {
+            // The visible section is this window's own (#907); the shared
+            // AppNavigation keeps only the request mailbox.
+            @Bindable var windowNav = windowNav
+            return VStack(spacing: 0) {
                 navigationStatusBanner(store: store, network: network, monitor: monitor)
-                TabView(selection: $nav.section) {
+                TabView(selection: $windowNav.section) {
                     padsTab
                     questionsTab
                     organizationTab
@@ -47,17 +49,17 @@
                 }
             }
             .task(id: NavigationSessionKey(accountID: store.currentAccountID, merged: store.isMergedView)) {
-                nav.section = NavigationSessionLoader.availableSection(from: nav.section)
+                windowNav.section = NavigationSessionLoader.availableSection(from: windowNav.section)
                 await NavigationSessionLoader.load(
                     store: store,
                     directory: directory,
                     monitor: monitor,
-                    active: nav.section
+                    active: windowNav.section
                 )
             }
-            .onChange(of: nav.section) { _, section in
+            .onChange(of: windowNav.section) { _, section in
                 let available = NavigationSessionLoader.availableSection(from: section)
-                nav.section = available
+                windowNav.section = available
                 Task {
                     await NavigationSessionLoader.warmInactiveSections(store: store, active: available)
                 }
@@ -71,14 +73,14 @@
             .onChange(of: store.isMergedView) { _, _ in clearNavigationState() }
             // Step away when the active section becomes unavailable for the *same*
             // account - quota resolving to unlimited, or the Screen key being
-            // removed - or the tab disappears from the TabView while `nav.section`
+            // removed - or the tab disappears from the TabView while the section
             // still points at it, leaving a blank selection (#1006). Mirrors the
             // regular-width sidebar's handlers.
             .onChange(of: quotaIsUnlimited) { _, unlimited in
-                if unlimited, nav.section == .quota { nav.section = .pads }
+                if unlimited, windowNav.section == .quota { windowNav.section = .pads }
             }
             .onChange(of: screenSectionAvailable) { _, available in
-                if !available, nav.section == .screen { nav.section = .pads }
+                if !available, windowNav.section == .screen { windowNav.section = .pads }
             }
         }
 

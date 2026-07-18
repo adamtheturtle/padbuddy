@@ -52,11 +52,11 @@ extension MergedPadsView {
                 }
             }
             .onAppear {
-                // Restore the filters the list was left with last session before
-                // applying any queued navigation request, so person links can override
-                // the restored owner/search fields while preserving the rest.
+                // Restore the filters the list was left with last session; any queued
+                // navigation request is consumed by the focus-gated observer (which
+                // also runs on appear), so person links can still override the
+                // restored owner/search fields while preserving the rest.
                 restoreFilters()
-                applyPendingRequest()
                 // Prefer the row in the account the selection was made in (tracked
                 // by the router): pad slugs are only unique per server, so the bare
                 // slug can otherwise re-select a different account's same-slug row (#758).
@@ -96,26 +96,28 @@ extension MergedPadsView {
             // it changed — chip or sidebar) and consume any toggle the sidebar
             // queued. `initial: true` covers the value already set on appear.
             .onChange(of: mineOnly, initial: true) { _, isOn in publishMergedPadsMineOnly(isOn) }
-            .onChange(of: nav.mergedPadsMineRequest, initial: true) { _, request in
-                consumeMergedPadsMineRequest(request)
+            // Focus-gated (#910): a background window's merged list must not steal
+            // a toggle aimed at the focused one.
+            .consumesWindowRequest(nav.mergedPadsMineRequest) {
+                consumeMergedPadsMineRequest(nav.mergedPadsMineRequest)
             }
             // The same publish/consume dance for the "Active Pads" preset, which the
             // sidebar drives through `stateFilter` rather than a dedicated flag.
             .onChange(of: stateFilter, initial: true) { _, state in publishMergedPadsActiveOnly(state == .active) }
-            .onChange(of: nav.mergedPadsActiveRequest, initial: true) { _, request in
-                consumeMergedPadsActiveRequest(request)
+            .consumesWindowRequest(nav.mergedPadsActiveRequest) {
+                consumeMergedPadsActiveRequest(nav.mergedPadsActiveRequest)
             }
             // A favourite pad tapped in the merged sidebar arrives here with its
             // account: pad slugs are only unique per server, so the slug alone could
             // select a different account's same-slug row (#758). Cleared once
             // consumed; left untouched if the row hasn't loaded yet (the row id
             // simply won't resolve, the same best-effort the per-account view uses).
-            // `initial: true` because the tap can also switch the section: the pending
-            // favourite is then set before this list mounts, and a change-only observer
-            // never fires for it, dropping the favourite (#1016). Scroll the row into
+            // Focus-gated and attempted on appear: the tap can also switch the
+            // section, so the pending favourite is set before this list mounts and
+            // a change-only observer would drop it (#1016). Scroll the row into
             // view too - the selection alone can land off-screen in a long list (#1019).
-            .onChange(of: nav.pendingMergedFavoritePad, initial: true) { _, request in
-                guard let request else { return }
+            .consumesWindowRequest(nav.pendingMergedFavoritePad) {
+                guard let request = nav.pendingMergedFavoritePad else { return }
 
                 nav.pendingMergedFavoritePad = nil
                 let rowID = Self.rowID(account: request.account, pad: request.id)
@@ -125,7 +127,8 @@ extension MergedPadsView {
             // Consume navigation requests routed to Pads. In merged mode this includes
             // owner/search requests from person links as well as New Pad deep links;
             // `applyPendingRequest()` keeps those semantics aligned with `PadsView`.
-            .onChange(of: nav.padsRequest, initial: true) { _, _ in scheduleApplyPendingRequest() }
+            // Focus-gated so a background window's list can't steal them (#910).
+            .consumesWindowRequest(nav.padsRequest) { applyPendingRequest() }
             .onChange(of: selection) { _, newValue in
                 // Debounced off the click's synchronous path: `markOpened` mutates the shared
                 // Observable open-history store every row reads, so it rebuilds the whole
@@ -203,10 +206,6 @@ extension MergedPadsView {
             let target: PadState? = request ? .active : (stateFilter == .active ? nil : stateFilter)
             if stateFilter != target { stateFilter = target }
         }
-    }
-
-    private func scheduleApplyPendingRequest() {
-        DispatchQueue.main.async { applyPendingRequest() }
     }
 
     /// The reload / pad-update / pad-deletion router streams.

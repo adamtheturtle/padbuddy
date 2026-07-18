@@ -112,7 +112,9 @@ struct QuestionsView: View {
     /// independently here, so none exceeds the budget. Order is preserved. (#427)
     private var decorated: some View {
         decoratedObservers
-            .onChange(of: nav.questionsRequest) { _, _ in applyPendingRequest() }
+            // Focus-gated so a background window can't consume a request aimed at
+            // the focused one (#910); also runs on appear and when focus arrives.
+            .consumesWindowRequest(nav.questionsRequest) { applyPendingRequest() }
             // Persist the live filter snapshot whenever any filter changes. Keyed off a
             // stable digest because a fresh `captureCurrentSearch` carries a new UUID
             // each call and would fire endlessly.
@@ -267,9 +269,10 @@ struct QuestionsView: View {
     private var decoratedObservers: some View {
         decoratedStreams
             .onAppear {
-                // Restore first so a deep-link/favorite request can still override it.
+                // Restore first so a deep-link/favorite request can still override
+                // it (the request is consumed by the focus-gated observer, which
+                // also runs on appear).
                 restoreFilters()
-                applyPendingRequest()
                 selectedQuestionIDs = selection.map { [$0.id] } ?? []
             }
             // The List edits `selectedQuestionIDs`; derive the primary row from it so

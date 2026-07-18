@@ -281,23 +281,19 @@ struct PadDetailView: View {
 
     /// Wires the Pad menu commands (Edit, End, Delete, Watch, Save All Code), which
     /// arrive via `AppNavigation`, to their in-pane equivalents. Split out of `body`
-    /// so the modifier chain stays within the type-checker's reach.
+    /// so the modifier chain stays within the type-checker's reach. Consumption is
+    /// focus-gated: the same pad can be open in the main split and a standalone
+    /// window at once, and whichever copy's observer fired first used to consume
+    /// the command - so a Delete/End confirmation could appear behind the focused
+    /// window, and Edit/Playback/Save could seem to do nothing (#871).
     private func menuRouting(_ content: some View) -> some View {
         content
-            .onAppear {
-                consumePendingEdit()
-                consumePendingEnd()
-                consumePendingDelete()
-                consumePendingWatch()
-                consumePendingSaveCode()
-                consumePendingFavoriteToggle()
-            }
-            .onChange(of: nav.editPadID) { _, _ in consumePendingEdit() }
-            .onChange(of: nav.endPadID) { _, _ in consumePendingEnd() }
-            .onChange(of: nav.deletePadID) { _, _ in consumePendingDelete() }
-            .onChange(of: nav.watchPlaybackPadID) { _, _ in consumePendingWatch() }
-            .onChange(of: nav.saveCodePadID) { _, _ in consumePendingSaveCode() }
-            .onChange(of: nav.toggleFavoritePadID) { _, _ in consumePendingFavoriteToggle() }
+            .consumesWindowRequest(nav.editPadID) { consumePendingEdit() }
+            .consumesWindowRequest(nav.endPadID) { consumePendingEnd() }
+            .consumesWindowRequest(nav.deletePadID) { consumePendingDelete() }
+            .consumesWindowRequest(nav.watchPlaybackPadID) { consumePendingWatch() }
+            .consumesWindowRequest(nav.saveCodePadID) { consumePendingSaveCode() }
+            .consumesWindowRequest(nav.toggleFavoritePadID) { consumePendingFavoriteToggle() }
     }
 
     private func scheduleSeedDrafts() {

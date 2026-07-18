@@ -18,6 +18,12 @@ import Foundation
 
 @Observable
 final class WindowNavigation {
+    /// This window's visible section. Per scene, so navigating in one main window
+    /// no longer retargets every other one (#907). Process-wide section *requests*
+    /// (menu commands, deep links, intents, the sidebar's showX helpers) stay on
+    /// `AppNavigation.shared` as `sectionRequest`, which the focused window
+    /// consumes and applies here.
+    var section: AppSection = .pads
     /// The visible list section's result-count summary (e.g. "12 pads"), published by
     /// the active list pane via ``publishSectionCount(_:)`` and shown by `MainSplit` as
     /// the window's toolbar subtitle beneath the section title. Routed through the
@@ -74,9 +80,7 @@ final class WindowNavigation {
     /// what left the toolbar blank for a frame when switching sections (the new pane's
     /// count arrived after the section change had already cleared the old one).
     func publishSectionCount(_ subtitle: String) {
-        // The active section is still process-global; when #907 moves it per scene
-        // this should read the owning window's section instead.
-        let section = AppNavigation.shared.section
+        let section = self.section
         guard sectionCountSubtitle != subtitle || sectionCountSection != section else { return }
 
         sectionCountSubtitle = subtitle

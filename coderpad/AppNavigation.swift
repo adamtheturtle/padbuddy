@@ -47,7 +47,28 @@ final class AppNavigation {
     static let shared = AppNavigation()
     private init() {}
 
-    var section: AppSection = .pads
+    /// A pending section switch, consumed (and cleared) by the focused window,
+    /// which applies it to its own `WindowNavigation.section`. A request rather
+    /// than live state: the visible section itself is per window (#907), so a
+    /// process-wide value here would retarget every open window at once.
+    var sectionRequest: AppSection?
+
+    /// A pending Go > Next/Previous Section step, resolved by the focused window
+    /// against its *own* current section. Carries a token so repeated identical
+    /// steps still read as changes.
+    var sectionCycleRequest: SectionCycleRequest?
+
+    struct SectionCycleRequest: Equatable {
+        let delta: Int
+        let token: UUID
+    }
+
+    /// Moves the focused window's section forward (`+1`) or back (`-1`) through
+    /// the navigable section order, wrapping at the ends. Backs the Go menu's
+    /// Next/Previous items on both platforms.
+    func cycleSection(by delta: Int) {
+        sectionCycleRequest = SectionCycleRequest(delta: delta, token: UUID())
+    }
 
     /// Consumed and cleared by PadsView when it appears or this value changes.
     var padsRequest: PadsRequest?
@@ -169,18 +190,18 @@ final class AppNavigation {
 
     /// Switch to a section with no pending request.
     func show(_ section: AppSection) {
-        self.section = section
+        sectionRequest = section
     }
 
     /// Switch to Pads and queue a request for the list to apply on appear.
     func showPads(_ request: PadsRequest = PadsRequest()) {
-        section = .pads
+        sectionRequest = .pads
         padsRequest = request
     }
 
     /// Switch to Questions and queue a request for the list to apply on appear.
     func showQuestions(_ request: QuestionsRequest = QuestionsRequest()) {
-        section = .questions
+        sectionRequest = .questions
         questionsRequest = request
     }
 
@@ -199,8 +220,8 @@ final class AppNavigation {
     /// the merged view consumes the request, applies it, and republishes.
     func toggleMergedMine(kind: SavedSearchKind, currentlyOn: Bool) {
         switch kind {
-        case .pads: section = .pads; mergedPadsMineRequest = !currentlyOn
-        case .questions: section = .questions; mergedQuestionsMineRequest = !currentlyOn
+        case .pads: sectionRequest = .pads; mergedPadsMineRequest = !currentlyOn
+        case .questions: sectionRequest = .questions; mergedQuestionsMineRequest = !currentlyOn
         }
     }
 
@@ -209,7 +230,7 @@ final class AppNavigation {
     /// independent of "Mine", so both presets can apply together, matching the
     /// removed in-list chips.
     func toggleMergedPadsActive(currentlyOn: Bool) {
-        section = .pads
+        sectionRequest = .pads
         mergedPadsActiveRequest = !currentlyOn
     }
 
@@ -221,13 +242,13 @@ final class AppNavigation {
     func showMergedRoot(kind: SavedSearchKind) {
         switch kind {
         case .pads:
-            section = .pads
+            sectionRequest = .pads
             mergedPadsMineRequest = false
             mergedPadsActiveRequest = false
             padsRequest = PadsRequest(applySearch: NamedSearch(name: ""))
 
         case .questions:
-            section = .questions
+            sectionRequest = .questions
             mergedQuestionsMineRequest = false
             questionsRequest = QuestionsRequest(applySearch: NamedSearch(name: ""))
         }
@@ -248,7 +269,7 @@ final class AppNavigation {
         guard AccountsStore.shared.accounts.contains(where: { $0.id == account }) else { return false }
 
         if AccountsStore.shared.isMergedView {
-            section = .questions
+            sectionRequest = .questions
             selectMergedFavoriteQuestion(account: account, id: id)
         } else {
             AccountsStore.shared.currentAccountID = account

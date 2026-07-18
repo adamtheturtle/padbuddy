@@ -225,22 +225,21 @@ struct QuestionDetailView: View {
         #endif
     }
 
+    /// Consumption is focus-gated: question ids collide across accounts, so with
+    /// A/42 and B/42 open in separate windows either detail could consume a
+    /// command aimed at the other - creating from, favoriting, or presenting
+    /// deletion in the wrong organization (#869). Only the focused window's
+    /// detail consumes now.
     private func withNavigationConsumption(_ content: some View) -> some View {
         content
-            .onAppear {
-                consumePendingPadCreation()
-                consumePendingEdit()
-                consumePendingDelete()
-                consumePendingFavoriteToggle()
-            }
             // Navigating away hides the undo banner - the only remaining way to stop
             // a pending deletion - so the armed task must not outlive it. Cancel the
             // grace period instead of letting the delete finish invisibly (#870).
             .onDisappear { cancelDeletion() }
-            .onChange(of: nav.createPadForQuestionID) { _, _ in consumePendingPadCreation() }
-            .onChange(of: nav.editQuestionID) { _, _ in consumePendingEdit() }
-            .onChange(of: nav.deleteQuestionID) { _, _ in consumePendingDelete() }
-            .onChange(of: nav.toggleFavoriteQuestionID) { _, _ in consumePendingFavoriteToggle() }
+            .consumesWindowRequest(nav.createPadForQuestionID) { consumePendingPadCreation() }
+            .consumesWindowRequest(nav.editQuestionID) { consumePendingEdit() }
+            .consumesWindowRequest(nav.deleteQuestionID) { consumePendingDelete() }
+            .consumesWindowRequest(nav.toggleFavoriteQuestionID) { consumePendingFavoriteToggle() }
     }
 
     /// Consumes an "Edit Question" request routed via `AppNavigation` from the

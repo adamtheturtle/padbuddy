@@ -99,14 +99,9 @@
         }
 
         private func cycleSection(by delta: Int) {
-            let order = AppSection.navigable
-            guard !order.isEmpty else { return }
-
-            let current = AppNavigation.shared.section
-            let index = order.firstIndex(of: current) ?? 0
-            let count = order.count
-            let next = order[((index + delta) % count + count) % count]
-            AppNavigation.shared.show(next)
+            // Queued as a request the focused window resolves against its own
+            // section, which is per-window since #907.
+            AppNavigation.shared.cycleSection(by: delta)
         }
     }
 #endif

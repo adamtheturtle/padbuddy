@@ -96,7 +96,7 @@ struct ContentView: View {
             #endif
         } else {
             MainSplit(
-                section: $nav.section,
+                section: $windowNav.section,
                 directory: directory,
                 monitor: monitor
             )
@@ -148,6 +148,33 @@ struct ContentView: View {
             // appear, and react to any value set afterwards.
             .task { scheduleConsumeOpenPadID() }
             .onChange(of: nav.openPadID) { _, _ in scheduleConsumeOpenPadID() }
+            // Section switches are per-window (#907): the mailbox carries the request
+            // and only this window applies it while focused, so a menu command, deep
+            // link, or sidebar tap can't retarget every other open window.
+            .consumesWindowRequest(nav.sectionRequest) { consumeSectionRequest() }
+            .consumesWindowRequest(nav.sectionCycleRequest) { consumeSectionCycle() }
+    }
+
+    private func consumeSectionRequest() {
+        guard let section = nav.sectionRequest else { return }
+
+        nav.sectionRequest = nil
+        windowNav.section = section
+    }
+
+    /// Steps this window's section through the navigable order, wrapping at the
+    /// ends - resolved here (not at the menu command) so the step is relative to
+    /// this window's own section rather than a process-wide one (#907).
+    private func consumeSectionCycle() {
+        guard let request = nav.sectionCycleRequest else { return }
+
+        nav.sectionCycleRequest = nil
+        let order = AppSection.navigable
+        guard !order.isEmpty else { return }
+
+        let index = order.firstIndex(of: windowNav.section) ?? 0
+        let count = order.count
+        windowNav.section = order[((index + request.delta) % count + count) % count]
     }
 
     private func presentedSheets(_ content: some View) -> some View {

@@ -219,20 +219,12 @@ struct CoderpadApp: App {
         }
     }
 
-    /// Moves the visible section forward (`+1`) or back (`-1`) through the currently
-    /// navigable section order, wrapping at the ends. Backs the Go menu's
-    /// Next/Previous items. Uses `AppSection.navigable` - the same source as the
-    /// sidebar - so Quota and Screen are included whenever they're shown (#481);
-    /// the old hardcoded `[.pads, .questions, .organization]` skipped them.
+    /// Moves the visible section forward (`+1`) or back (`-1`), wrapping at the
+    /// ends. Backs the Go menu's Next/Previous items. Queued as a request that the
+    /// focused window resolves against its *own* section (per-window since #907)
+    /// and the navigable order (Quota/Screen included whenever shown, #481).
     func cycleSection(by delta: Int) {
-        let order = AppSection.navigable
-        guard !order.isEmpty else { return }
-
-        let current = AppNavigation.shared.section
-        let index = order.firstIndex(of: current) ?? 0
-        let count = order.count
-        let next = order[((index + delta) % count + count) % count]
-        AppNavigation.shared.show(next)
+        AppNavigation.shared.cycleSection(by: delta)
     }
 
     /// The Dynamic Type size to pin for marketing-screenshot capture, read from
