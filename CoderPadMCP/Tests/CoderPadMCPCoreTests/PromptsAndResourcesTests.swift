@@ -183,6 +183,25 @@ struct ResourcesTests {
         #expect(parseResourceURI("coderpad://question/42") == .question(42))
     }
 
+    /// URI schemes and route literals are case-insensitive per standard; ids
+    /// keep their exact case (#1581).
+    @Test
+    func `parseResourceURI accepts mixed-case schemes and route literals`() {
+        #expect(parseResourceURI("CODERPAD://Quota") == .quota)
+        #expect(parseResourceURI("CoderPad://PAD/AbC123") == .pad("AbC123"))
+        #expect(parseResourceURI("coderpad://pad/abc123/CODE") == .padCode("abc123"))
+    }
+
+    /// Decoded dot navigation, separators inside pad ids, and control characters
+    /// must never be treated as identifiers (#1580).
+    @Test
+    func `parseResourceURI rejects traversal and control segments`() {
+        #expect(parseResourceURI("coderpad://pad/%2E%2E") == nil)
+        #expect(parseResourceURI("coderpad://pad/a%2Fb") == nil)
+        #expect(parseResourceURI("coderpad://account/%2E%2E/quota") == nil)
+        #expect(parseResourceURI("coderpad://pad/a%00b") == nil)
+    }
+
     @Test
     func `parseResourceURI maps account-qualified shapes`() {
         #expect(parseResourceURI("coderpad://account/Acme%20EU/quota") == .accountQuota("Acme EU"))

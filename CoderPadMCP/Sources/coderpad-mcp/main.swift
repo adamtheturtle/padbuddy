@@ -61,6 +61,10 @@ private let accountSet: MCPAccountSet = {
                 + names.joined(separator: ", ")
                 + "); mark only one account as the default.\n"
 
+        case MCPConfigError.noDefaultAccount:
+            "coderpad-mcp: a config with multiple accounts must mark one as the default "
+                + "(\"default\": true); relying on array order could silently switch organizations.\n"
+
         case let MCPConfigError.invalidScreenRegion(account, region):
             "coderpad-mcp: account \"\(account)\" has unsupported screen_region \"\(region)\"; "
                 + "use \"us\" or \"eu\".\n"

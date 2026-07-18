@@ -187,7 +187,7 @@ struct AccountsTests {
     @Test
     func `config screen regions accept documented values case-insensitively`() throws {
         let config: [String: Any] = ["accounts": [
-            ["name": "Acme", "api_key": "a", "screen_region": "US"],
+            ["name": "Acme", "api_key": "a", "screen_region": "US", "default": true],
             ["name": "Beta", "api_key": "b", "screen_region": " eu "]
         ]]
         let set = try makeAccountSet(config: config, environment: [:])
@@ -206,14 +206,34 @@ struct AccountsTests {
         }
     }
 
+    /// A single-account config still needs no explicit default; a multi-account
+    /// config must mark one, so a JSON reformat can never silently redirect
+    /// unqualified tool calls to another organization (#1586).
     @Test
-    func `config without a marked default uses the first account`() throws {
+    func `multi-account config without a marked default is rejected`() throws {
+        let single: [String: Any] = ["accounts": [["name": "Acme", "api_key": "a"]]]
+        #expect(try makeAccountSet(config: single, environment: [:]).defaultAccount.name == "Acme")
+
         let config: [String: Any] = ["accounts": [
             ["name": "Acme", "api_key": "a"],
             ["name": "Beta", "api_key": "b"]
         ]]
-        let set = try makeAccountSet(config: config, environment: [:])
-        #expect(set.defaultAccount.name == "Acme")
+        #expect(throws: MCPConfigError.noDefaultAccount) {
+            try makeAccountSet(config: config, environment: [:])
+        }
+    }
+
+    /// A name matching more than one configured account is ambiguous and
+    /// resolves to nil instead of whichever was listed first (#1582).
+    @Test
+    func `resolve returns nil for ambiguous case-insensitive matches`() {
+        let make: (String) -> MCPAccount = { name in
+            MCPAccount(name: name, apiKey: "k", baseURL: URL(string: "https://app.coderpad.io")!,
+                       screenAPIKey: nil, screenRegion: "us")
+        }
+        let set = MCPAccountSet(accounts: [make("Acme"), make("ACME")], defaultName: "Acme", allowWrites: false)
+        #expect(set.resolve("acme") == nil)
+        #expect(set.resolve("Acme") == nil)
     }
 
     @Test

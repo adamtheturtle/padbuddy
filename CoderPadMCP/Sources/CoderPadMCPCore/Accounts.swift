@@ -66,13 +66,19 @@ public struct MCPAccountSet: Equatable, Sendable {
     /// Resolves a tool call's `account` argument to a configured account by name
     /// (case-insensitive). A nil/empty name resolves to the default; a non-empty name
     /// that matches nothing returns nil so the caller can report the available accounts.
+    /// A name matching more than one account (a normalization variant the config
+    /// duplicate check didn't fold) is ambiguous and also returns nil rather than
+    /// silently targeting whichever was listed first (#1582).
     public func resolve(_ name: String?) -> MCPAccount? {
         guard let name, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return defaultAccount
         }
 
         let wanted = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        return accounts.first { $0.name.caseInsensitiveCompare(wanted) == .orderedSame }
+        let matches = accounts.filter { $0.name.caseInsensitiveCompare(wanted) == .orderedSame }
+        guard matches.count == 1 else { return nil }
+
+        return matches[0]
     }
 
     /// Whether any account has Screen configured — the screen_* tools are advertised
@@ -82,15 +88,18 @@ public struct MCPAccountSet: Equatable, Sendable {
     }
 
     /// The directory returned by `list_accounts`: names, base URLs, and flags, never the
-    /// API keys.
+    /// API keys. The Screen region is included so a key/region mismatch is visible
+    /// from the client rather than discovered on the first failing request (#1587).
     public func directory() -> [[String: Any]] {
         accounts.map { account in
-            [
+            var entry: [String: Any] = [
                 "name": account.name,
                 "base_url": account.baseURL.absoluteString,
                 "is_default": account.name == defaultName,
                 "screen_configured": account.screenEnabled
             ]
+            if account.screenEnabled { entry["screen_region"] = account.screenRegion }
+            return entry
         }
     }
 }
@@ -101,6 +110,11 @@ public enum MCPConfigError: Error, Equatable {
     case missingAPIKey(account: String)
     case duplicateName(String)
     case multipleDefaultAccounts([String])
+    /// A multi-account config must declare its default explicitly: falling back
+    /// to whichever account the JSON array happens to list first would let a
+    /// config reformat silently redirect unqualified tool calls to another
+    /// organization (#1586).
+    case noDefaultAccount
     case invalidScreenRegion(account: String, region: String)
     case invalidBaseURL(account: String, baseURL: String)
 }
@@ -140,6 +154,17 @@ private func trimmedNonEmpty(_ raw: String?) -> String? {
     return value
 }
 
+/// An account name suitable for tool arguments and resource URIs (#1583): control
+/// characters are stripped and the length capped, so a malformed config value can't
+/// produce an unusable resource catalog. Nil when nothing usable remains.
+private func sanitizedAccountName(_ raw: String?) -> String? {
+    guard var value = trimmedNonEmpty(raw) else { return nil }
+
+    value = String(value.unicodeScalars.filter { !CharacterSet.controlCharacters.contains($0) })
+    value = String(value.prefix(100)).trimmingCharacters(in: .whitespacesAndNewlines)
+    return value.isEmpty ? nil : value
+}
+
 private func parseBaseURL(_ raw: String?, account: String) throws -> URL {
     guard let value = trimmedNonEmpty(raw) else { return URL(string: "https://app.coderpad.io")! }
     guard
@@ -147,11 +172,23 @@ private func parseBaseURL(_ raw: String?, account: String) throws -> URL {
         let scheme = url.scheme?.lowercased(),
         ["http", "https"].contains(scheme),
         let host = url.host(),
-        !host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        !host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+        // A base URL is an origin plus optional path prefix - never a query,
+        // fragment, or embedded credentials. REST clients append their own API
+        // paths to it, and stray components could redirect authenticated
+        // requests to an unexpected endpoint (#1585).
+        url.query() == nil, url.fragment() == nil,
+        url.user == nil, url.password == nil
     else {
         throw MCPConfigError.invalidBaseURL(account: account, baseURL: value)
     }
 
+    // Normalized without a trailing slash so appended API paths can't double a
+    // separator (#1585).
+    if url.path() == "/" || url.absoluteString.hasSuffix("/"),
+       let trimmedURL = URL(string: String(url.absoluteString.reversed().drop(while: { $0 == "/" }).reversed())) {
+        return trimmedURL
+    }
     return url
 }
 
@@ -230,7 +267,7 @@ public func makeAccountSet(config: [String: Any]?, environment: [String: String]
         var defaultNames: [String] = []
         var seen = Set<String>()
         for entry in rawAccounts {
-            let name = trimmedNonEmpty(entry["name"] as? String) ?? "account-\(accounts.count + 1)"
+            let name = sanitizedAccountName(entry["name"] as? String) ?? "account-\(accounts.count + 1)"
             guard let key = trimmedNonEmpty(entry["api_key"] as? String) else {
                 throw MCPConfigError.missingAPIKey(account: name)
             }
@@ -251,9 +288,14 @@ public func makeAccountSet(config: [String: Any]?, environment: [String: String]
         guard defaultNames.count <= 1 else {
             throw MCPConfigError.multipleDefaultAccounts(defaultNames)
         }
+        // A multi-account config must say which account is the default: JSON
+        // array order can change during merges/reformatting and must never
+        // silently redirect unqualified tool calls (#1586).
+        guard let defaultName = defaultNames.first ?? (accounts.count == 1 ? accounts[0].name : nil) else {
+            throw MCPConfigError.noDefaultAccount
+        }
 
         let allowWrites = envWrites || (config["allow_writes"] as? Bool == true)
-        let defaultName = defaultNames.first ?? accounts[0].name
         return MCPAccountSet(accounts: accounts, defaultName: defaultName, allowWrites: allowWrites)
     }
 

@@ -148,9 +148,12 @@ public enum ResourceRequest: Equatable {
 }
 
 /// Parses a `coderpad://` URI into a request, or nil when it doesn't match any known
-/// resource. Tolerates a trailing slash and percent-encoded ids.
+/// resource. Tolerates a trailing slash and percent-encoded ids. The scheme and route
+/// literals (`pad`, `question`, `account`, `quota`, `organization`, `code`) compare
+/// case-insensitively per URI convention (#1581); ids keep their exact case.
 public func parseResourceURI(_ uri: String) -> ResourceRequest? {
-    guard let components = URLComponents(string: uri), components.scheme == resourceScheme else {
+    guard let components = URLComponents(string: uri),
+          components.scheme?.lowercased() == resourceScheme else {
         return nil
     }
 
@@ -164,47 +167,62 @@ public func parseResourceURI(_ uri: String) -> ResourceRequest? {
     segments += components.percentEncodedPath.split(separator: "/").map(String.init)
     let decoded = segments.map { $0.removingPercentEncoding ?? $0 }
 
+    // Decoded segments are untrusted: dot navigation or a decoded separator must
+    // never survive into an identifier that downstream URL construction could
+    // re-interpret (#1580).
+    guard decoded.allSatisfy(isSafeDecodedSegment) else { return nil }
+
     return parseUnqualifiedResource(decoded) ?? parseAccountResource(decoded)
 }
 
+/// Whether a percent-decoded URI segment is safe to treat as an identifier or
+/// account name: never dot navigation or control characters (#1580). A decoded
+/// "/" is allowed here because account names round-trip encoded slashes (#1030);
+/// pad ids additionally reject it via `isSafePadID`.
+private func isSafeDecodedSegment(_ segment: String) -> Bool {
+    segment != "." && segment != ".."
+        && !segment.unicodeScalars.contains { CharacterSet.controlCharacters.contains($0) }
+}
+
+/// Pad ids flow into downstream REST URL construction, so a decoded separator
+/// must never survive inside one (#1580).
+private func isSafePadID(_ id: String) -> Bool {
+    !id.isEmpty && !id.contains("/")
+}
+
+/// Whether a route literal matches, case-insensitively (#1581).
+private func isRoute(_ segment: String?, _ literal: String) -> Bool {
+    segment?.lowercased() == literal
+}
+
 private func parseUnqualifiedResource(_ decoded: [String]) -> ResourceRequest? {
-    switch decoded.first {
-    case "quota" where decoded.count == 1:
-        .quota
-    case "organization" where decoded.count == 1:
-        .organization
-    case "pad":
-        parsePadResource(Array(decoded.dropFirst()))
-    case "question":
-        parseQuestionResource(Array(decoded.dropFirst()))
-    default:
-        nil
-    }
+    if isRoute(decoded.first, "quota"), decoded.count == 1 { return .quota }
+    if isRoute(decoded.first, "organization"), decoded.count == 1 { return .organization }
+    if isRoute(decoded.first, "pad") { return parsePadResource(Array(decoded.dropFirst())) }
+    if isRoute(decoded.first, "question") { return parseQuestionResource(Array(decoded.dropFirst())) }
+    return nil
 }
 
 private func parseAccountResource(_ decoded: [String]) -> ResourceRequest? {
-    guard decoded.count >= 3, decoded[0] == "account", !decoded[1].isEmpty else { return nil }
+    guard decoded.count >= 3, isRoute(decoded[0], "account"), !decoded[1].isEmpty else { return nil }
 
     let account = decoded[1]
-    switch decoded[2] {
-    case "quota" where decoded.count == 3:
-        return .accountQuota(account)
-    case "organization" where decoded.count == 3:
-        return .accountOrganization(account)
-    case "pad":
+    if isRoute(decoded[2], "quota"), decoded.count == 3 { return .accountQuota(account) }
+    if isRoute(decoded[2], "organization"), decoded.count == 3 { return .accountOrganization(account) }
+    if isRoute(decoded[2], "pad") {
         return parseAccountPadResource(account: account, tail: Array(decoded.dropFirst(3)))
-    case "question":
-        return parseAccountQuestionResource(account: account, tail: Array(decoded.dropFirst(3)))
-    default:
-        return nil
     }
+    if isRoute(decoded[2], "question") {
+        return parseAccountQuestionResource(account: account, tail: Array(decoded.dropFirst(3)))
+    }
+    return nil
 }
 
 private func parsePadResource(_ tail: [String]) -> ResourceRequest? {
     switch tail.count {
-    case 1 where !tail[0].isEmpty:
+    case 1 where isSafePadID(tail[0]):
         .pad(tail[0])
-    case 2 where !tail[0].isEmpty && tail[1] == "code":
+    case 2 where isSafePadID(tail[0]) && isRoute(tail[1], "code"):
         .padCode(tail[0])
     default:
         nil
@@ -219,9 +237,9 @@ private func parseQuestionResource(_ tail: [String]) -> ResourceRequest? {
 
 private func parseAccountPadResource(account: String, tail: [String]) -> ResourceRequest? {
     switch tail.count {
-    case 1 where !tail[0].isEmpty:
+    case 1 where isSafePadID(tail[0]):
         .accountPad(account: account, id: tail[0])
-    case 2 where !tail[0].isEmpty && tail[1] == "code":
+    case 2 where isSafePadID(tail[0]) && isRoute(tail[1], "code"):
         .accountPadCode(account: account, id: tail[0])
     default:
         nil
@@ -255,5 +273,9 @@ public func resolveResourceAccount(_ request: ResourceRequest, accountSet: MCPAc
 private func resourcePathComponent(_ value: String) -> String {
     var allowed = CharacterSet.urlPathAllowed
     allowed.remove(charactersIn: "/")
-    return value.addingPercentEncoding(withAllowedCharacters: allowed) ?? value
+    if let encoded = value.addingPercentEncoding(withAllowedCharacters: allowed) { return encoded }
+
+    // Guaranteed byte-level fallback: returning the raw value here could emit a
+    // slash or control character into a URI and change resource routing (#1584).
+    return value.utf8.map { String(format: "%%%02X", $0) }.joined()
 }
