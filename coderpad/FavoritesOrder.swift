@@ -29,45 +29,46 @@ import SwiftUI
 @Observable
 final class FavoritesOrderStore {
     static let shared = FavoritesOrderStore()
-    private var byAccount: [UUID: [FavoriteRef]] = [:]
-    private var mergedOrder: [MergedFavoriteRef] = []
+    // Stored state and persistence keys are internal (not private) because the
+    // iCloud mirroring half of the store lives in FavoritesOrder+Cloud.swift.
+    var byAccount: [UUID: [FavoriteRef]] = [:]
+    var mergedOrder: [MergedFavoriteRef] = []
     /// When each account's order was last rearranged on any device, so two Macs'
     /// orders can be reconciled last-reorder-wins: the plain array union always
     /// kept the local positions, so a drag on one Mac never landed on the other
     /// (#739). Mirrored to iCloud alongside the orders.
-    private var orderChangedAt: [UUID: Date] = [:]
-    private static let key = "favoritesOrder.v1"
-    private static let mergedKey = "favoritesMergedOrder.v1"
-    private static let stampsKey = "favoritesOrder.changedAt.v1"
+    var orderChangedAt: [UUID: Date] = [:]
+    static let key = "favoritesOrder.v1"
+    static let mergedKey = "favoritesMergedOrder.v1"
+    static let stampsKey = "favoritesOrder.changedAt.v1"
     /// When the merged (cross-account) order was last rearranged on any device,
     /// so devices reconcile it last-reorder-wins like the per-account orders (#1151).
-    private var mergedChangedAt: Date?
+    var mergedChangedAt: Date?
     /// The iCloud mirror, keyed by each account's stable sync id rather than the
     /// per-device `UUID`, under its own key (#536).
-    private static let cloudKey = "favoritesOrder.cloud.v1"
-    private static let cloudStampsKey = "favoritesOrder.changedAt.cloud.v1"
-    private static let mergedStampKey = "favoritesMergedOrder.changedAt.v1"
-    private static let cloudMergedKey = "favoritesMergedOrder.cloud.v1"
-    private static let cloudMergedStampKey = "favoritesMergedOrder.changedAt.cloud.v1"
+    static let cloudKey = "favoritesOrder.cloud.v1"
+    static let cloudStampsKey = "favoritesOrder.changedAt.cloud.v1"
+    static let mergedStampKey = "favoritesMergedOrder.changedAt.v1"
+    static let cloudMergedKey = "favoritesMergedOrder.cloud.v1"
+    static let cloudMergedStampKey = "favoritesMergedOrder.changedAt.cloud.v1"
     /// Held so the external-change observation task isn't cancelled; the store is a
     /// singleton that lives for the whole process, so it's never explicitly stopped.
     private var cloudObserverTask: Task<Void, Never>?
 
-    /// A merged-order entry as mirrored to iCloud: the account travels as its
-    /// stable sync id, not the per-device UUID (#1151).
-    private struct CloudMergedRef: Codable {
-        let account: String
-        let ref: FavoriteRef
-    }
+    /// Sanity caps for the persisted and mirrored blobs (#1788): more refs than a
+    /// sidebar could ever hold means corrupt or injected data, and decoding it
+    /// verbatim would burn launch memory, sidebar work, and cloud writes.
+    static let maxOrderEntriesPerAccount = 1_000
+    static let maxMergedOrderEntries = 2_000
 
     private init() {
         if let data = UserDefaults.standard.data(forKey: Self.key),
            let decoded = try? JSONDecoder().decode([UUID: [FavoriteRef]].self, from: data) {
-            byAccount = decoded
+            byAccount = decoded.mapValues { Array($0.prefix(Self.maxOrderEntriesPerAccount)) }
         }
         if let data = UserDefaults.standard.data(forKey: Self.mergedKey),
            let decoded = try? JSONDecoder().decode([MergedFavoriteRef].self, from: data) {
-            mergedOrder = decoded
+            mergedOrder = Array(decoded.prefix(Self.maxMergedOrderEntries))
         }
         if let data = UserDefaults.standard.data(forKey: Self.stampsKey),
            let decoded = try? JSONDecoder().decode([UUID: Date].self, from: data) {
@@ -100,10 +101,12 @@ extension FavoritesOrderStore {
     func order(present: [FavoriteRef], account: UUID?) -> [FavoriteRef] {
         guard let account else { return present }
 
+        // Deduplicated while filtering: a corrupt or legacy stored array with
+        // repeated refs must not hand the sidebar duplicate row identities (#1782).
         let presentSet = Set(present)
-        var result = (byAccount[account] ?? []).filter { presentSet.contains($0) }
-        let have = Set(result)
-        result.append(contentsOf: present.filter { !have.contains($0) })
+        var seen = Set<FavoriteRef>()
+        var result = (byAccount[account] ?? []).filter { presentSet.contains($0) && seen.insert($0).inserted }
+        result.append(contentsOf: present.filter { !seen.contains($0) })
         return result
     }
 
@@ -147,10 +150,11 @@ extension FavoritesOrderStore {
     /// The combined-view favourites in their stored cross-account order. This is separate
     /// from the per-account order above because merged rows can be dragged across accounts.
     func merged(present: [MergedFavoriteRef]) -> [MergedFavoriteRef] {
+        // Deduplicated while filtering, like `order(present:account:)` (#1783).
         let presentSet = Set(present)
-        var result = mergedOrder.filter { presentSet.contains($0) }
-        let have = Set(result)
-        result.append(contentsOf: present.filter { !have.contains($0) })
+        var seen = Set<MergedFavoriteRef>()
+        var result = mergedOrder.filter { presentSet.contains($0) && seen.insert($0).inserted }
+        result.append(contentsOf: present.filter { !seen.contains($0) })
         return result
     }
 
@@ -203,25 +207,7 @@ extension FavoritesOrderStore {
         saveMerged()
     }
 
-    /// Deletes a removed account's entries from the mirrored cloud blobs (#1150).
-    private func removeFromCloud(syncID: String) {
-        guard CloudSyncStore.shared.isAvailable else { return }
-
-        if let data = CloudSyncStore.shared.data(forKey: Self.cloudKey),
-           var cloud = try? JSONDecoder().decode([String: [FavoriteRef]].self, from: data),
-           cloud.removeValue(forKey: syncID) != nil,
-           let updated = try? JSONEncoder().encode(cloud) {
-            CloudSyncStore.shared.mirror(updated, forKey: Self.cloudKey)
-        }
-        if let data = CloudSyncStore.shared.data(forKey: Self.cloudStampsKey),
-           var stamps = try? JSONDecoder().decode([String: Date].self, from: data),
-           stamps.removeValue(forKey: syncID) != nil,
-           let updated = try? JSONEncoder().encode(stamps) {
-            CloudSyncStore.shared.mirror(updated, forKey: Self.cloudStampsKey)
-        }
-    }
-
-    private func save() {
+    func save() {
         do {
             let data = try JSONEncoder().encode(byAccount)
             UserDefaults.standard.set(data, forKey: Self.key)
@@ -234,7 +220,7 @@ extension FavoritesOrderStore {
         mirrorToCloud()
     }
 
-    private func saveMerged() {
+    func saveMerged() {
         do {
             let data = try JSONEncoder().encode(mergedOrder)
             UserDefaults.standard.set(data, forKey: Self.mergedKey)
@@ -246,27 +232,6 @@ extension FavoritesOrderStore {
             UserDefaults.standard.set(mergedChangedAt, forKey: Self.mergedStampKey)
         }
         mirrorMergedToCloud()
-    }
-
-    /// Mirrors the merged (cross-account) order to iCloud with accounts mapped to
-    /// their stable sync ids: the class contract says the interleaved order syncs,
-    /// but it used to be device-local (#1151). Entries whose account has no sync
-    /// identity are skipped rather than leaking a per-device UUID.
-    private func mirrorMergedToCloud() {
-        guard CloudSyncStore.shared.isAvailable else { return }
-
-        let syncID: (UUID) -> String? = { uuid in
-            AccountsStore.shared.accounts.first { $0.id == uuid }?.syncID
-        }
-        let cloudRefs: [CloudMergedRef] = mergedOrder.compactMap { entry in
-            syncID(entry.account).map { CloudMergedRef(account: $0, ref: entry.ref) }
-        }
-        if let data = try? JSONEncoder().encode(cloudRefs) {
-            CloudSyncStore.shared.mirror(data, forKey: Self.cloudMergedKey)
-        }
-        if let mergedChangedAt, let data = try? JSONEncoder().encode(mergedChangedAt) {
-            CloudSyncStore.shared.mirror(data, forKey: Self.cloudMergedStampKey)
-        }
     }
 
     private func restore(_ entries: [FavoriteRef], account: UUID, undoManager: UndoManager?, actionName: String) {
@@ -303,90 +268,8 @@ extension FavoritesOrderStore {
         undoManager.setActionName(actionName)
     }
 
-    /// Pushes the current order (and its per-account rearrange stamps, #739) up to
-    /// iCloud, keyed by each account's stable sync id. No-op when iCloud is
-    /// unavailable (#536).
-    private func mirrorToCloud() {
-        guard CloudSyncStore.shared.isAvailable else { return }
-
-        let syncID: (UUID) -> String? = { uuid in
-            AccountsStore.shared.accounts.first { $0.id == uuid }?.syncID
-        }
-        if let data = try? JSONEncoder().encode(CloudSyncMerge.toCloud(byAccount, syncID: syncID)) {
-            CloudSyncStore.shared.mirror(data, forKey: Self.cloudKey)
-        }
-        if let data = try? JSONEncoder().encode(CloudSyncMerge.toCloud(orderChangedAt, syncID: syncID)) {
-            CloudSyncStore.shared.mirror(data, forKey: Self.cloudStampsKey)
-        }
-    }
-
-    /// Pulls the iCloud order and reconciles it per account, last-reorder-wins: a
-    /// cloud order stamped newer than the local one is adopted wholesale (any refs
-    /// it doesn't mention are re-appended by the on-read reconciliation), so a drag
-    /// on one Mac finally lands on the others (#739). Without a newer cloud stamp
-    /// the previous behavior holds: union keeping local positions and appending
-    /// cloud-only refs. Reconciliation on read still drops any ref that isn't an
-    /// actual favourite, so a stale ref can't surface. Called once accounts have
-    /// loaded and on every external iCloud change. No-op when iCloud is
-    /// unavailable (#536).
-    func syncFromCloud() {
-        guard let data = CloudSyncStore.shared.data(forKey: Self.cloudKey),
-              let cloud = try? JSONDecoder().decode([String: [FavoriteRef]].self, from: data) else { return }
-
-        let uuidForSyncID: (String) -> UUID? = { identity in
-            AccountsStore.shared.accounts.first { $0.syncID == identity }?.id
-        }
-        var cloudStamps: [UUID: Date] = [:]
-        if let data = CloudSyncStore.shared.data(forKey: Self.cloudStampsKey),
-           let decoded = try? JSONDecoder().decode([String: Date].self, from: data) {
-            for (identity, stamp) in decoded {
-                guard let uuid = uuidForSyncID(identity) else { continue }
-
-                cloudStamps[uuid] = stamp
-            }
-        }
-        var merged = CloudSyncMerge.mergeArrays(cloud: cloud, into: byAccount,
-                                                uuidForSyncID: uuidForSyncID)
-        var stamps = orderChangedAt
-        for (identity, cloudList) in cloud {
-            guard let uuid = uuidForSyncID(identity),
-                  let cloudStamp = cloudStamps[uuid],
-                  cloudStamp > (orderChangedAt[uuid] ?? .distantPast) else { continue }
-
-            merged[uuid] = cloudList
-            stamps[uuid] = cloudStamp
-        }
-        if merged != byAccount || stamps != orderChangedAt {
-            byAccount = merged
-            orderChangedAt = stamps
-            save()
-        }
-        syncMergedFromCloud(uuidForSyncID: uuidForSyncID)
-    }
-
-    /// Adopts the cloud merged (cross-account) order when it is stamped newer than
-    /// the local one, mapping stable sync ids back to this device's account UUIDs;
-    /// unmapped accounts drop and the on-read reconciliation re-appends anything
-    /// missing (#1151).
-    private func syncMergedFromCloud(uuidForSyncID: (String) -> UUID?) {
-        guard let stampData = CloudSyncStore.shared.data(forKey: Self.cloudMergedStampKey),
-              let cloudStamp = try? JSONDecoder().decode(Date.self, from: stampData),
-              cloudStamp > (mergedChangedAt ?? .distantPast),
-              let data = CloudSyncStore.shared.data(forKey: Self.cloudMergedKey),
-              let cloudRefs = try? JSONDecoder().decode([CloudMergedRef].self, from: data)
-        else { return }
-
-        let adopted: [MergedFavoriteRef] = cloudRefs.compactMap { entry in
-            uuidForSyncID(entry.account).map { MergedFavoriteRef(account: $0, ref: entry.ref) }
-        }
-        guard adopted != mergedOrder else {
-            mergedChangedAt = cloudStamp
-            UserDefaults.standard.set(cloudStamp, forKey: Self.mergedStampKey)
-            return
-        }
-
-        mergedOrder = adopted
-        mergedChangedAt = cloudStamp
-        saveMerged()
-    }
 }
+
+// The iCloud mirroring/reconciliation half of the store - mirrorToCloud,
+// syncFromCloud, and the removed-account cloud cleanup - lives in
+// FavoritesOrder+Cloud.swift to keep this file within the length lint.

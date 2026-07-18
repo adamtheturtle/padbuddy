@@ -48,10 +48,28 @@ final class FavoritePadsStore {
     /// singleton that lives for the whole process, so it's never explicitly stopped.
     private var cloudObserverTask: Task<Void, Never>?
 
+    /// Sanity caps for the persisted and mirrored favorites (#1788): more entries
+    /// than a sidebar could ever show, or titles far past any real pad name, mean
+    /// corrupt or injected data - decoding them verbatim would burn launch
+    /// memory, sidebar work, and cloud writes.
+    static let maxEntriesPerAccount = 500
+    static let maxTitleLength = 256
+
+    /// Clamps a decoded entries array to the sanity caps (#1788).
+    private static func sanitized(_ entries: [FavoritePad]) -> [FavoritePad] {
+        entries.prefix(maxEntriesPerAccount).map { entry in
+            var entry = entry
+            if entry.title.count > maxTitleLength {
+                entry.title = String(entry.title.prefix(maxTitleLength))
+            }
+            return entry
+        }
+    }
+
     private init() {
         if let data = UserDefaults.standard.data(forKey: Self.key),
            let decoded = try? JSONDecoder().decode([UUID: [FavoritePad]].self, from: data) {
-            byAccount = decoded
+            byAccount = decoded.mapValues(Self.sanitized)
         }
         if let data = UserDefaults.standard.data(forKey: Self.tombstonesKey),
            let decoded = try? JSONDecoder().decode([UUID: [String: Date]].self, from: data) {
@@ -160,8 +178,11 @@ final class FavoritePadsStore {
         )
         var changed = false
         for index in entries.indices {
+            // Trimmed, not just non-empty: a whitespace-only pad name must not
+            // replace a usable stored label with a blank sidebar row (#1786).
             guard let title = titles[entries[index].id],
-                  !title.isEmpty, title != entries[index].title else { continue }
+                  !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                  title != entries[index].title else { continue }
 
             entries[index].title = title
             changed = true
@@ -262,7 +283,10 @@ final class FavoritePadsStore {
     /// when iCloud is unavailable (#536).
     func syncFromCloud() {
         guard let data = CloudSyncStore.shared.data(forKey: Self.cloudKey),
-              let cloud = try? JSONDecoder().decode([String: [FavoritePad]].self, from: data) else { return }
+              let decoded = try? JSONDecoder().decode([String: [FavoritePad]].self, from: data) else { return }
+
+        // The mirror is cross-device input: clamp it like the local blob (#1788).
+        let cloud = decoded.mapValues(Self.sanitized)
 
         let uuidForSyncID: (String) -> UUID? = { identity in
             AccountsStore.shared.accounts.first { $0.syncID == identity }?.id
