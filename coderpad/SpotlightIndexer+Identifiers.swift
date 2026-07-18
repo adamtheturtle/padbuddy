@@ -32,12 +32,18 @@ extension SpotlightIndexer {
 
         let body = id.dropFirst(padPrefix.count)
         guard !body.isEmpty else { return nil }
+        // Normalize through the shared pad-id validation, so a crafted or
+        // corrupted identifier carrying traversal-like or unsupported characters
+        // can't flow into navigation (#1731).
         if let separator = body.firstIndex(of: ":"),
            let account = UUID(uuidString: String(body[..<separator])),
-           body.index(after: separator) < body.endIndex {
-            return (account, String(body[body.index(after: separator)...]))
+           body.index(after: separator) < body.endIndex,
+           let padID = PadIDValidation.normalize(String(body[body.index(after: separator)...])) {
+            return (account, padID)
         }
-        return (nil, String(body))
+        guard let padID = PadIDValidation.normalize(String(body)) else { return nil }
+
+        return (nil, padID)
     }
 
     /// The bare pad id of a result identifier, for callers that don't route by
@@ -62,7 +68,10 @@ extension SpotlightIndexer {
         let body = id.dropFirst(questionPrefix.count)
         guard let separator = body.firstIndex(of: ":"),
               let account = UUID(uuidString: String(body[..<separator])),
-              let questionID = Int(body[body.index(after: separator)...]) else { return nil }
+              let questionID = Int(body[body.index(after: separator)...]),
+              // Server question ids are positive; zero/negative values only come
+              // from crafted or corrupted identifiers (#1732).
+              questionID > 0 else { return nil }
 
         return (account, questionID)
     }
@@ -77,12 +86,27 @@ extension SpotlightIndexer {
         map.reduce(into: [:]) { $0[$1.key.uuidString] = $1.value.sorted() }
     }
 
-    nonisolated static func decodeIdentifierMap(_ raw: [String: [String]]) -> [UUID: Set<String>] {
-        raw.reduce(into: [:]) { result, entry in
-            guard let uuid = UUID(uuidString: entry.key) else { return }
+    /// Sanity caps for the persisted bookkeeping (#1733): more accounts than the
+    /// app could ever hold, more identifiers than an org realistically indexes,
+    /// or identifier strings far past the namespaced format's size mean corrupt
+    /// or injected defaults, and decoding them verbatim would burn launch memory
+    /// and reconciliation time.
+    private nonisolated static let maxPersistedAccounts = 64
+    private nonisolated static let maxPersistedIdentifiersPerAccount = 50_000
+    private nonisolated static let maxPersistedIdentifierLength = 512
 
-            result[uuid] = Set(entry.value)
+    nonisolated static func decodeIdentifierMap(_ raw: [String: [String]]) -> [UUID: Set<String>] {
+        var result: [UUID: Set<String>] = [:]
+        for entry in raw {
+            guard result.count < maxPersistedAccounts, let uuid = UUID(uuidString: entry.key) else { continue }
+
+            result[uuid] = Set(
+                entry.value
+                    .prefix(maxPersistedIdentifiersPerAccount)
+                    .filter { $0.count <= maxPersistedIdentifierLength }
+            )
         }
+        return result
     }
 
     nonisolated static func loadPersistedIdentifiers(key: String) -> [UUID: Set<String>] {

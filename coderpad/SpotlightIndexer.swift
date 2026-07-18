@@ -24,19 +24,34 @@ enum SpotlightIndexer {
     nonisolated static let padPrefix = "pad:"
     nonisolated static let questionPrefix = "question:"
     private typealias SpotlightFinish = @Sendable () -> Void
-    private typealias SpotlightErrorCompletion = @Sendable ((any Error)?) -> Void
+    typealias SpotlightErrorCompletion = @Sendable ((any Error)?) -> Void
     private typealias SpotlightOperation = @Sendable (@escaping SpotlightFinish) -> Void
 
     private nonisolated static let operationQueue = DispatchQueue(label: "com.coderpad.app.spotlight.operations")
-    private nonisolated static let enrichmentLock = NSLock()
-    private nonisolated(unsafe) static var questionEnrichmentGenerations: [String: Int] = [:]
+    // Internal (not private): the single-item removal + persistence halves in
+    // SpotlightIndexer+Removals.swift mutate these under the same lock.
+    nonisolated static let enrichmentLock = NSLock()
+    nonisolated(unsafe) static var questionEnrichmentGenerations: [String: Int] = [:]
+    /// Monotonic source for enrichment generations, so a value is never reused
+    /// after its map entry is cleaned up on completion (#1727).
+    nonisolated(unsafe) static var enrichmentGenerationCounter = 0
+    /// Fingerprints (title + language + description) of questions already
+    /// enriched, recorded when the model pass is *scheduled*: repeated refreshes
+    /// of unchanged questions no longer restart model work (#1725), and the
+    /// enrichment cap counts only questions still needing work, so a large org's
+    /// tail is reached across passes instead of starving forever (#1724). Pruned
+    /// alongside the identifier bookkeeping.
+    nonisolated(unsafe) static var enrichedQuestionFingerprints: [String: Int] = [:]
     // Seeded from UserDefaults so reconciliation spans launches: an item deleted
     // server-side while the app was closed must still be detected as stale on the
     // first refresh after relaunch, or it lingers in system search forever (#733).
-    private nonisolated(unsafe) static var indexedPadIdentifiersByAccount: [UUID: Set<String>] =
+    nonisolated(unsafe) static var indexedPadIdentifiersByAccount: [UUID: Set<String>] =
         loadPersistedIdentifiers(key: PersistenceKey.pads)
-    private nonisolated(unsafe) static var indexedQuestionIdentifiersByAccount: [UUID: Set<String>] =
+    nonisolated(unsafe) static var indexedQuestionIdentifiersByAccount: [UUID: Set<String>] =
         loadPersistedIdentifiers(key: PersistenceKey.questions)
+    /// Whether persisted bookkeeping has been checked against the configured
+    /// accounts this launch (#1734).
+    @MainActor private static var didPruneOrphanedAccounts = false
 
     /// UserDefaults keys mirroring the in-memory indexed-identifier bookkeeping.
     /// Only populated while the user has Spotlight indexing enabled; `clearAll()`
@@ -49,9 +64,9 @@ enum SpotlightIndexer {
     /// Each enrichment runs the language model, so a big org's full list would be
     /// far too costly to summarize in one go; the cap keeps it bounded and the
     /// dropped remainder is logged rather than silently skipped.
-    private static let maxKeywordEnrichments = 50
+    static let maxKeywordEnrichments = 50
 
-    private nonisolated static func domain(_ account: UUID) -> String {
+    nonisolated static func domain(_ account: UUID) -> String {
         account.uuidString
     }
 
@@ -61,99 +76,106 @@ enum SpotlightIndexer {
     /// indexing one account's question overwrites another's same-id entry, and a
     /// single-account delete removes the other account's item too (#378). (Pads use
     /// global slug ids, so they need no such namespacing.)
-    private nonisolated static func questionIdentifier(id: Int, account: UUID) -> String {
+    nonisolated static func questionIdentifier(id: Int, account: UUID) -> String {
         "\(questionPrefix)\(account.uuidString):\(id)"
+    }
+
+    /// A presentable Spotlight title: trimmed, with whitespace-only values
+    /// treated as absent so results never show blank labels (#1728).
+    nonisolated static func presentableTitle(_ raw: String, fallback: String) -> String {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? fallback : trimmed
     }
 
     /// Indexes (or re-indexes) the account's pads. No-op unless the user enabled it.
     static func updatePads(_ pads: [Pad], account: UUID) {
         guard GeneralSettings.spotlightIndexing else { return }
 
+        pruneOrphanedAccountsOnce()
         let identifiers = Set(pads.map { padIdentifier(id: $0.id, account: account) })
         reconcilePadIdentifiers(identifiers, account: account)
 
-        let items = pads.map { pad -> CSSearchableItem in
+        // The description names the pad's state only: owner emails are identity
+        // data the opt-in copy never mentioned, and they don't belong in system
+        // search (#1736). Records are reduced to the three strings each item
+        // needs on the main actor (`status.label` is main-actor presentation);
+        // the heavy CSSearchableItem construction happens per chunk (#1729).
+        let records = pads.map { pad in
+            PadIndexRecord(
+                identifier: padIdentifier(id: pad.id, account: account),
+                title: presentableTitle(pad.title, fallback: pad.id),
+                description: pad.status.label
+            )
+        }
+        indexChunked(records) { record in
             let attrs = CSSearchableItemAttributeSet(contentType: .text)
-            attrs.title = pad.title.isEmpty ? pad.id : pad.title
-            attrs.contentDescription = [pad.status.label, pad.ownerEmail]
-                .filter { !$0.isEmpty }.joined(separator: " · ")
-            return CSSearchableItem(uniqueIdentifier: padIdentifier(id: pad.id, account: account),
+            attrs.title = record.title
+            attrs.contentDescription = record.description
+            return CSSearchableItem(uniqueIdentifier: record.identifier,
                                     domainIdentifier: domain(account),
                                     attributeSet: attrs)
         }
-        index(items)
+    }
+
+    /// The strings one pad's Spotlight item needs, captured on the main actor so
+    /// the chunked item construction can run off it (#1729).
+    private nonisolated struct PadIndexRecord: Sendable {
+        let identifier: String
+        let title: String
+        let description: String
     }
 
     /// Indexes (or re-indexes) the account's questions. No-op unless enabled.
     static func updateQuestions(_ questions: [Question], account: UUID) {
         guard GeneralSettings.spotlightIndexing else { return }
 
+        pruneOrphanedAccountsOnce()
         let identifiers = Set(questions.map { questionIdentifier(id: $0.id, account: account) })
         reconcileQuestionIdentifiers(identifiers, account: account)
 
-        let items = questions.map { question -> CSSearchableItem in
+        // Language only: author names are identity data the opt-in copy never
+        // mentioned (#1736).
+        indexChunked(questions) { question in
             let attrs = CSSearchableItemAttributeSet(contentType: .text)
-            attrs.title = question.title.isEmpty ? "#\(question.id)" : question.title
-            attrs.contentDescription = [question.language, question.authorName]
-                .compactMap(\.self).filter { !$0.isEmpty }.joined(separator: " · ")
+            attrs.title = presentableTitle(question.title, fallback: "#\(question.id)")
+            attrs.contentDescription = question.language ?? ""
             return CSSearchableItem(uniqueIdentifier: questionIdentifier(id: question.id, account: account),
                                     domainIdentifier: domain(account),
                                     attributeSet: attrs)
         }
-        index(items)
         enrichQuestionKeywords(questions, account: account)
     }
 
-    /// Re-indexes a bounded set of questions with on-device-generated keywords so
-    /// Spotlight finds them by topic, not just by words in their title. Runs only
-    /// when the model is available and indexing is on, on top of the items already
-    /// indexed above — so it never indexes anything the user didn't opt into. The
-    /// indexing-on gate is re-checked per item so turning the feature off mid-pass
-    /// stops adding more.
-    private static func enrichQuestionKeywords(_ questions: [Question], account: UUID) {
-        guard SpotlightSummarizer.isAvailable else { return }
+    /// Drops persisted bookkeeping (and index domains) for accounts that no
+    /// longer exist — a removal that bypassed the normal teardown path would
+    /// otherwise keep its identifiers in memory forever and skew reconciliation
+    /// scans (#1734). Once per launch, from the MainActor entry points.
+    @MainActor
+    private static func pruneOrphanedAccountsOnce() {
+        guard !didPruneOrphanedAccounts else { return }
 
-        let candidates = questions.filter { ($0.description?.isEmpty == false) }
-        guard !candidates.isEmpty else { return }
+        didPruneOrphanedAccounts = true
+        let known = Set(AccountsStore.shared.accounts.map(\.id))
+        let orphans: Set<UUID> = enrichmentLock.withLock {
+            let orphans = Set(indexedPadIdentifiersByAccount.keys)
+                .union(indexedQuestionIdentifiersByAccount.keys)
+                .subtracting(known)
+            guard !orphans.isEmpty else { return [] }
 
-        let bounded = Array(candidates.prefix(maxKeywordEnrichments))
-        if candidates.count > bounded.count {
-            logger.info(
-                """
-                Spotlight keyword enrichment limited to \
-                \(maxKeywordEnrichments, privacy: .public) of \
-                \(candidates.count, privacy: .public) questions this pass
-                """
-            )
+            for orphan in orphans {
+                indexedPadIdentifiersByAccount.removeValue(forKey: orphan)
+                indexedQuestionIdentifiersByAccount.removeValue(forKey: orphan)
+            }
+            persistPadIdentifiers()
+            persistQuestionIdentifiers()
+            return orphans
         }
-        let generationByIdentifier = Dictionary(uniqueKeysWithValues: bounded.map { question in
-            let identifier = questionIdentifier(id: question.id, account: account)
-            return (identifier, nextQuestionEnrichmentGeneration(for: identifier))
-        })
-
-        Task {
-            for question in bounded {
-                guard GeneralSettings.spotlightIndexing else { return }
-
-                let identifier = questionIdentifier(id: question.id, account: account)
-                guard let generation = generationByIdentifier[identifier] else { continue }
-                guard let keywords = await SpotlightSummarizer.keywords(
-                    title: question.title,
-                    language: question.language,
-                    description: question.description ?? ""
-                ) else { continue }
-                guard isCurrentQuestionEnrichment(identifier: identifier, generation: generation) else { continue }
-                guard accountStillExists(account) else { continue }
-
-                let attrs = CSSearchableItemAttributeSet(contentType: .text)
-                attrs.title = question.title.isEmpty ? "#\(question.id)" : question.title
-                attrs.contentDescription = [question.language, question.authorName]
-                    .compactMap(\.self).filter { !$0.isEmpty }.joined(separator: " · ")
-                attrs.keywords = keywords
-                let item = CSSearchableItem(uniqueIdentifier: identifier,
-                                            domainIdentifier: domain(account),
-                                            attributeSet: attrs)
-                index([item])
+        for orphan in orphans {
+            enqueueDelete(operation: "remove orphaned account domain") { completion in
+                CSSearchableIndex.default().deleteSearchableItems(
+                    withDomainIdentifiers: [domain(orphan)],
+                    completionHandler: completion
+                )
             }
         }
     }
@@ -180,6 +202,7 @@ enum SpotlightIndexer {
             // ever detect it again - a permanent Spotlight resurrection (#1021).
             for identifier in stale {
                 questionEnrichmentGenerations.removeValue(forKey: identifier)
+                enrichedQuestionFingerprints.removeValue(forKey: identifier)
             }
             return stale
         }
@@ -197,29 +220,8 @@ enum SpotlightIndexer {
         }
     }
 
-    private nonisolated static func nextQuestionEnrichmentGeneration(for identifier: String) -> Int {
-        enrichmentLock.withLock {
-            let next = (questionEnrichmentGenerations[identifier] ?? 0) + 1
-            questionEnrichmentGenerations[identifier] = next
-            return next
-        }
-    }
-
-    private nonisolated static func isCurrentQuestionEnrichment(identifier: String, generation: Int) -> Bool {
-        enrichmentLock.withLock {
-            questionEnrichmentGenerations[identifier] == generation
-        }
-    }
-
-    private nonisolated static func invalidateQuestionEnrichment(account: UUID) {
-        let prefix = "\(questionPrefix)\(account.uuidString):"
-        enrichmentLock.withLock {
-            questionEnrichmentGenerations = questionEnrichmentGenerations.filter { !$0.key.hasPrefix(prefix) }
-        }
-    }
-
     @MainActor
-    private static func accountStillExists(_ account: UUID) -> Bool {
+    static func accountStillExists(_ account: UUID) -> Bool {
         AccountsStore.shared.accounts.contains { $0.id == account }
     }
 
@@ -246,6 +248,7 @@ enum SpotlightIndexer {
             indexedPadIdentifiersByAccount.removeAll()
             indexedQuestionIdentifiersByAccount.removeAll()
             questionEnrichmentGenerations.removeAll()
+            enrichedQuestionFingerprints.removeAll()
             UserDefaults.standard.removeObject(forKey: PersistenceKey.pads)
             UserDefaults.standard.removeObject(forKey: PersistenceKey.questions)
         }
@@ -254,7 +257,35 @@ enum SpotlightIndexer {
         }
     }
 
-    private static func index(_ items: [CSSearchableItem]) {
+    /// How many records one CoreSpotlight write carries. Mapping an entire large
+    /// org into `CSSearchableItem`s up front spiked memory; chunking builds each
+    /// batch's items inside its own queued operation instead (#1729).
+    private nonisolated static let indexChunkSize = 500
+
+    private nonisolated static func indexChunked<Record: Sendable>(
+        _ records: [Record],
+        makeItem: @escaping @Sendable (Record) -> CSSearchableItem
+    ) {
+        var start = 0
+        while start < records.count {
+            let chunk = Array(records[start ..< min(start + indexChunkSize, records.count)])
+            enqueueSpotlightOperation { finish in
+                guard UserDefaults.standard.bool(forKey: GeneralSettings.Key.spotlightIndexing) else {
+                    finish()
+                    return
+                }
+                CSSearchableIndex.default().indexSearchableItems(chunk.map(makeItem)) { error in
+                    if let error {
+                        logger.error("Spotlight index failed: \(error.localizedDescription, privacy: .private)")
+                    }
+                    finish()
+                }
+            }
+            start += indexChunkSize
+        }
+    }
+
+    static func index(_ items: [CSSearchableItem]) {
         guard !items.isEmpty else { return }
 
         enqueueSpotlightOperation { finish in
@@ -270,14 +301,15 @@ enum SpotlightIndexer {
             }
             CSSearchableIndex.default().indexSearchableItems(items) { error in
                 if let error {
-                    logger.error("Spotlight index failed: \(error.localizedDescription, privacy: .public)")
+                    // `.private`: system error text can echo identifiers (#1735).
+                    logger.error("Spotlight index failed: \(error.localizedDescription, privacy: .private)")
                 }
                 finish()
             }
         }
     }
 
-    private nonisolated static func enqueueDelete(
+    nonisolated static func enqueueDelete(
         operation: String,
         _ body: @escaping @Sendable (@escaping SpotlightErrorCompletion) -> Void
     ) {
@@ -293,100 +325,26 @@ enum SpotlightIndexer {
         operationQueue.async {
             let semaphore = DispatchSemaphore(value: 0)
             body { semaphore.signal() }
-            semaphore.wait()
+            // Bounded wait: a CoreSpotlight completion that never arrives must not
+            // wedge every later index/delete operation forever (#1730).
+            if semaphore.wait(timeout: .now() + 30) == .timedOut {
+                logger.error("Spotlight operation timed out after 30s; continuing with the next operation")
+            }
         }
     }
 
     private nonisolated static func logDeletionFailure(_ error: (any Error)?, operation: String) {
         guard let error else { return }
 
+        // `.private` for the error text: it can echo identifiers (#1735).
         logger.error("""
         Spotlight delete failed for \(operation, privacy: .public): \
-        \(error.localizedDescription, privacy: .public)
+        \(error.localizedDescription, privacy: .private)
         """)
     }
 
 }
 
-// MARK: - Single-item removals
-
-extension SpotlightIndexer {
-    /// Removes a single pad from the index (e.g. when it's deleted). Re-indexing
-    /// the remaining list only adds/updates items, so a dropped pad needs an
-    /// explicit delete by identifier or it lingers in system search. Deletes the
-    /// pad's namespaced identifier for every account that holds it, plus the legacy
-    /// global form so pre-#759 items indexed before the namespacing are cleaned too.
-    static func removePad(id: String) {
-        let identifiers: [String] = enrichmentLock.withLock {
-            var identifiers = [padPrefix + id]
-            for account in indexedPadIdentifiersByAccount.keys {
-                identifiers.append(padIdentifier(id: id, account: account))
-            }
-            for (account, held) in indexedPadIdentifiersByAccount {
-                indexedPadIdentifiersByAccount[account] = held.subtracting(identifiers)
-            }
-            persistPadIdentifiers()
-            return identifiers
-        }
-        enqueueDelete(operation: "remove pad item") { completion in
-            CSSearchableIndex.default().deleteSearchableItems(
-                withIdentifiers: identifiers,
-                completionHandler: completion
-            )
-        }
-    }
-
-    /// Account-scoped variant of ``removePad(id:)``: deletes only the owning
-    /// account's namespaced identifier (plus the legacy global form, which predates
-    /// the namespacing), so a deletion in one account can't drop a colliding slug
-    /// another custom server issued (#761).
-    static func removePad(id: String, account: UUID) {
-        let identifiers = [padIdentifier(id: id, account: account), padPrefix + id]
-        enrichmentLock.withLock {
-            indexedPadIdentifiersByAccount[account]?.subtract(identifiers)
-            persistPadIdentifiers()
-        }
-        enqueueDelete(operation: "remove pad item") { completion in
-            CSSearchableIndex.default().deleteSearchableItems(
-                withIdentifiers: identifiers,
-                completionHandler: completion
-            )
-        }
-    }
-
-    /// Removes a single question from the index (e.g. when it's deleted). Scoped to
-    /// the owning account so a delete in one account can't drop another account's
-    /// same-id question from system search (#378).
-    static func removeQuestion(id: Int, account: UUID) {
-        let identifier = questionIdentifier(id: id, account: account)
-        enrichmentLock.withLock {
-            indexedQuestionIdentifiersByAccount[account]?.remove(identifier)
-            questionEnrichmentGenerations.removeValue(forKey: identifier)
-            persistQuestionIdentifiers()
-        }
-        enqueueDelete(operation: "remove question item") { completion in
-            CSSearchableIndex.default()
-                .deleteSearchableItems(
-                    withIdentifiers: [identifier],
-                    completionHandler: completion
-                )
-        }
-    }
-}
-
-// MARK: - Indexed-identifier bookkeeping persistence (#733)
-
-extension SpotlightIndexer {
-    /// Both persist helpers must be called while holding `enrichmentLock`,
-    /// alongside the in-memory mutation they mirror. The stateless
-    /// encode/decode/load halves live in `SpotlightIndexer+Identifiers.swift`.
-    private nonisolated static func persistPadIdentifiers() {
-        UserDefaults.standard.set(encodeIdentifierMap(indexedPadIdentifiersByAccount),
-                                  forKey: PersistenceKey.pads)
-    }
-
-    private nonisolated static func persistQuestionIdentifiers() {
-        UserDefaults.standard.set(encodeIdentifierMap(indexedQuestionIdentifiersByAccount),
-                                  forKey: PersistenceKey.questions)
-    }
-}
+// The single-item removals and the indexed-identifier persistence live in
+// SpotlightIndexer+Removals.swift; the on-device keyword enrichment in
+// SpotlightIndexer+Enrichment.swift (both split for the length lints).
