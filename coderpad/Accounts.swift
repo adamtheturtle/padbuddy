@@ -134,8 +134,11 @@ extension Account: StorableAccount {
                 WidgetSync.clearCurrent()
             }
         },
-        onRemoved: tearDownAccountData,
-        onRekeyed: tearDownAccountData,
+        // Re-key shares the removal teardown but must not tombstone the widget
+        // snapshot: the account persists, so the tombstone would block every
+        // future widget refresh (#1022).
+        onRemoved: { tearDownAccountData($0, isRekey: false) },
+        onRekeyed: { tearDownAccountData($0, isRekey: true) },
         logger: persistenceLogger
     )
 }
@@ -165,8 +168,8 @@ extension Account: StorableAccount {
 ///
 /// The caches keyed by client identity rather than account id are purged separately by
 /// ``ClientCacheTeardown``, which recovers the removed account's old credentials.
-@MainActor private func tearDownAccountData(_ id: UUID) {
-    PadsCacheStore.shared.remove(id)
+@MainActor private func tearDownAccountData(_ id: UUID, isRekey: Bool) {
+    PadsCacheStore.shared.remove(id, isRekey: isRekey)
     QuestionsCacheStore.shared.remove(id)
     OrganizationCacheStore.shared.remove(id)
     QuotaCacheStore.shared.remove(id)

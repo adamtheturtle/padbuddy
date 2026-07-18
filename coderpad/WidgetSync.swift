@@ -127,6 +127,23 @@ enum WidgetSync {
         }
     }
 
+    /// Drops a re-keyed account's snapshot (its pads belong to the old backend)
+    /// WITHOUT tombstoning it: the account persists across a re-key, and the
+    /// tombstone is never cleared for a still-present account, so it would block
+    /// every future refresh and leave the widget blank indefinitely (#1022). Also
+    /// clears any tombstone left from the remove-vs-rekey ordering, and the
+    /// default snapshot when the re-keyed account is the current one.
+    static func clearAccount(_ accountID: UUID, isCurrent: Bool) {
+        writeQueue.async {
+            removedAccounts.remove(accountID)
+            WidgetSharedStore.deletePads(account: accountID.uuidString)
+            if isCurrent {
+                WidgetSharedStore.save([])
+            }
+            WidgetCenter.shared.reloadAllTimelines()
+        }
+    }
+
     private static func recentSnapshots(from pads: [Pad]) -> [WidgetPadSnapshot] {
         pads
             .sorted { lhs, rhs in

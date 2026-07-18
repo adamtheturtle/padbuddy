@@ -93,14 +93,23 @@ final class PadsCacheStore {
         }
     }
 
-    func remove(_ accountID: UUID) {
+    /// `isRekey: true` drops the widget snapshot without tombstoning the account:
+    /// a re-keyed account persists, so the removal tombstone (never cleared for a
+    /// still-present account) would silently block every future widget refresh and
+    /// leave the widget blank until an unrelated account-list change (#1022).
+    func remove(_ accountID: UUID, isRekey: Bool = false) {
         padsByAccount[accountID] = nil
         diskConsulted.remove(accountID)
         writeQueue.enqueue {
             CacheDisk.delete(kind: "pads", account: accountID)
         }
         // Drop the account's mirrored widget snapshot and refresh the picker index.
-        WidgetSync.removeAccount(accountID)
+        if isRekey {
+            WidgetSync.clearAccount(accountID,
+                                    isCurrent: accountID == AccountsStore.shared.currentAccount?.id)
+        } else {
+            WidgetSync.removeAccount(accountID)
+        }
         // Removing an account drops its pads from the badge's all-accounts total.
         DockBadgeController.refresh()
     }
@@ -108,10 +117,18 @@ final class PadsCacheStore {
     /// Drop a single deleted pad from the cache so it stops appearing in Spotlight
     /// and the Recent Pads widget — re-indexing only adds/updates, so the deleted
     /// row needs an explicit removal. Finds the owning account by the (globally
-    /// unique) pad id, then persists the reduced list.
+    /// unique) pad id, then persists the reduced list. Warms each account from disk
+    /// via `get` rather than scanning only the in-memory lists: deletion cleanup
+    /// exists precisely for the cold-cache case (#721), and gating on residency
+    /// left the widget snapshot and disk cache stale (#1032). Accounts already
+    /// consulted resolve from memory, so the warm-cache path is unchanged.
     func removePad(id padID: String) {
         SpotlightIndexer.removePad(id: padID)
-        for (accountID, pads) in padsByAccount where pads.contains(where: { $0.id == padID }) {
+        let knownAccounts = Set(AccountsStore.shared.accounts.map(\.id)).union(padsByAccount.keys)
+        for accountID in knownAccounts {
+            let pads = get(accountID)
+            guard pads.contains(where: { $0.id == padID }) else { continue }
+
             let reduced = pads.filter { $0.id != padID }
             padsByAccount[accountID] = reduced
             WidgetSync.refresh(pads: reduced, account: accountID,
@@ -182,15 +199,27 @@ final class QuestionsCacheStore {
     /// explicit removal. Per-org ids aren't unique across accounts, so when the
     /// owning `account` is known only that account is touched; otherwise every
     /// account holding the id is updated (the prior, id-only behavior).
+    ///
+    /// Warms each target account from disk via `get` rather than gating on the
+    /// in-memory list: deletion cleanup exists precisely for the cold-cache case
+    /// (#721), and skipping cold accounts left Spotlight and the disk cache stale
+    /// (#1032). Spotlight persists independently of the list cache, so when the
+    /// owning account is known its index entry is cleared unconditionally; the
+    /// id-only sweep keeps the containment gate because per-org ids collide
+    /// across accounts.
     func removeQuestion(id questionID: Int, account: UUID? = nil) {
-        let targets = account.map { [$0] } ?? Array(questionsByAccount.keys)
+        let targets = account.map { [$0] }
+            ?? Array(Set(AccountsStore.shared.accounts.map(\.id)).union(questionsByAccount.keys))
         for accountID in targets {
-            guard let questions = questionsByAccount[accountID],
-                  questions.contains(where: { $0.id == questionID }) else { continue }
-
+            let questions = get(accountID)
+            let holdsQuestion = questions.contains { $0.id == questionID }
             // Spotlight identifiers are namespaced per account (#378), so remove
             // from the index inside the loop — once per account that holds the id.
-            SpotlightIndexer.removeQuestion(id: questionID, account: accountID)
+            if account != nil || holdsQuestion {
+                SpotlightIndexer.removeQuestion(id: questionID, account: accountID)
+            }
+            guard holdsQuestion else { continue }
+
             let reduced = questions.filter { $0.id != questionID }
             questionsByAccount[accountID] = reduced
             writeQueue.enqueue {
