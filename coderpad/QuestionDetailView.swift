@@ -190,10 +190,12 @@ struct QuestionDetailView: View {
             .focusedSceneValue(\.focusedQuestionURL, question.webURL(baseURL: client.baseURL))
             // Publish a print rendering so File ▸ Print (⌘P) can produce a hard copy
             // or PDF of the prompt, instructions, and solution.
-            .focusedSceneValue(\.printAction, PrintAction(id: "question-\(question.id)") {
+            .focusedSceneValue(\.printAction, PrintAction(id: "question-\(question.id)",
+                                                          contentFingerprint: question.hashValue) {
                 printQuestionDocument()
             })
-            .focusedSceneValue(\.exportMarkdownAction, PrintAction(id: "question-\(question.id)") {
+            .focusedSceneValue(\.exportMarkdownAction, PrintAction(id: "question-\(question.id)",
+                                                                   contentFingerprint: question.hashValue) {
                 exportMarkdown()
             })
     }

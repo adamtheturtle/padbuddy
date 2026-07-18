@@ -55,17 +55,25 @@ extension FocusedValues {
 
 struct ScreenCampaignAction: Equatable {
     let id: String
+    /// A hash of the content the closures captured (the campaign's name), so a
+    /// refresh that keeps the id but changes the record re-publishes instead of
+    /// deduplicating onto a closure holding the stale snapshot (#1707).
+    var contentFingerprint: Int = 0
     let copyName: () -> Void
     let showTests: () -> Void
 
     static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.id == rhs.id
+        lhs.id == rhs.id && lhs.contentFingerprint == rhs.contentFingerprint
     }
 }
 
 struct ScreenTestAction: Equatable {
     let id: Int
     let status: String
+    /// A hash of the content the closures captured, so a refreshed record with
+    /// the same id/status re-publishes instead of keeping commands bound to the
+    /// stale snapshot (#1708).
+    var contentFingerprint: Int = 0
     let copySummary: () -> Void
     let openWindow: () -> Void
     let resend: () -> Void
@@ -77,7 +85,7 @@ struct ScreenTestAction: Equatable {
     }
 
     static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.id == rhs.id && lhs.status == rhs.status
+        lhs.id == rhs.id && lhs.status == rhs.status && lhs.contentFingerprint == rhs.contentFingerprint
     }
 }
 
@@ -196,10 +204,14 @@ struct PrintAction: Equatable {
     /// Identifies the printable content (e.g. "question-42"), so re-publishes for
     /// the same content compare equal while a genuine selection change differs.
     let id: String
+    /// A hash of the content the closure captured, so an update that keeps the
+    /// same pad/question id still re-publishes — otherwise ⌘P could render the
+    /// earlier snapshot the deduplicated closure holds (#1710).
+    var contentFingerprint: Int = 0
     let perform: () -> Void
 
     static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.id == rhs.id
+        lhs.id == rhs.id && lhs.contentFingerprint == rhs.contentFingerprint
     }
 }
 
@@ -218,10 +230,16 @@ struct SidebarToggleAction: Equatable {
     /// Whether the sidebar is currently collapsed, so the menu item can read
     /// "Show Sidebar" vs "Hide Sidebar".
     let collapsed: Bool
+    /// Identifies the publishing split *instance* (the caller passes a stable
+    /// per-identity `@State` UUID): comparing `collapsed` alone let a rebuilt
+    /// split with the same visible state deduplicate onto a closure tied to the
+    /// old instance's detached state, leaving the View menu toggling nothing
+    /// (#1709).
+    let instanceToken: UUID
     let perform: () -> Void
 
     static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.collapsed == rhs.collapsed
+        lhs.collapsed == rhs.collapsed && lhs.instanceToken == rhs.instanceToken
     }
 }
 

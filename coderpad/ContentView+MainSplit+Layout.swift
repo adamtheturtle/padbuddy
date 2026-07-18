@@ -172,7 +172,9 @@ extension MainSplit {
             // command is enabled only while the main window is frontmost.
             .focusedSceneValue(
                 \.sidebarToggleAction,
-                SidebarToggleAction(collapsed: columnVisibility != .all, perform: toggleSidebar)
+                SidebarToggleAction(collapsed: columnVisibility != .all,
+                                    instanceToken: sidebarToggleToken,
+                                    perform: toggleSidebar)
             )
     }
 }

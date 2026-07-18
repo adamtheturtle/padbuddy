@@ -113,6 +113,11 @@ struct MainSplit: View {
     /// the system's standard sidebar toggle (and ⌃⌘S) flips it, while the
     /// width-driven auto-collapse below shares the same state.
     @State var columnVisibility: NavigationSplitViewVisibility = .all
+    /// Stable per-instance identity for the published sidebar toggle: a rebuilt
+    /// split with the same visible state must re-publish rather than leave the
+    /// View menu holding a closure tied to the old instance's detached state
+    /// (#1709). `@State`, so re-publishes within one identity stay equal.
+    @State var sidebarToggleToken = UUID()
 
     /// Chooses the visible column when the split collapses into one column on iPhone.
     /// Section changes move forward to the list/content column; row selections move

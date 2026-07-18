@@ -233,12 +233,13 @@ struct PadDetailView: View {
             .focusedSceneValue(\.focusedPadIsFavorite, isFavorite)
             // Publish a print rendering so File ▸ Print (⌘P) can produce a hard copy
             // or PDF of the pad's summary and code (whatever has loaded so far).
-            .focusedSceneValue(\.printAction, PrintAction(id: "pad-\(pad.id)") {
+            .focusedSceneValue(\.printAction, PrintAction(id: "pad-\(pad.id)", contentFingerprint: pad.hashValue) {
                 printPadDocument()
             })
             // Publish a Markdown export action so File ▸ Export as Markdown… can write the
             // pad's summary and code to a .md file (#524).
-            .focusedSceneValue(\.exportMarkdownAction, PrintAction(id: "pad-\(pad.id)") {
+            .focusedSceneValue(\.exportMarkdownAction, PrintAction(id: "pad-\(pad.id)",
+                                                                   contentFingerprint: pad.hashValue) {
                 exportMarkdown()
             })
             // Publish whether there's anything to save so File ▸ Save All Code… can disable

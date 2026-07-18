@@ -38,7 +38,8 @@ extension ScreenTestsView {
     var selectedTestAction: ScreenTestAction? {
         guard let selectedTest else { return nil }
 
-        return ScreenTestAction(id: selectedTest.id, status: selectedTest.status) {
+        return ScreenTestAction(id: selectedTest.id, status: selectedTest.status,
+                                contentFingerprint: selectedTest.screenCopyText.hashValue) {
             Clipboard.copy(selectedTest.screenCopyText)
         } openWindow: {
             openTestWindow(selectedTest)

@@ -118,7 +118,8 @@ struct ScreenCampaignsView: View {
     private var selectedCampaignAction: ScreenCampaignAction? {
         guard let selectedCampaign else { return nil }
 
-        return ScreenCampaignAction(id: "screen-campaign-\(selectedCampaign.id)") {
+        return ScreenCampaignAction(id: "screen-campaign-\(selectedCampaign.id)",
+                                    contentFingerprint: selectedCampaign.name.hashValue) {
             Clipboard.copy(selectedCampaign.name)
         } showTests: {
             selectedCampaignID = selectedCampaign.id

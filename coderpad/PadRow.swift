@@ -62,7 +62,7 @@ private struct PadRowInfo: View, Equatable {
             changedIndicator
                 .frame(width: 8)
             VStack(alignment: .leading, spacing: 4) {
-                Text(pad.title.isEmpty ? pad.id : pad.title)
+                Text(pad.displayListTitle)
                     .font(.callout.weight(.medium))
                     .foregroundStyle(Color.fastListRowPrimaryLabel)
                     .lineLimit(expandsForDynamicType ? 2 : 1)
@@ -133,7 +133,7 @@ private struct PadRowInfo: View, Equatable {
     }
 
     private var accessibilityLabel: String {
-        var parts = [pad.title.isEmpty ? pad.id : pad.title, pad.status.label]
+        var parts = [pad.displayListTitle, pad.status.label]
         if let account { parts.append(account.name) }
         if let language = pad.language, !language.isEmpty {
             parts.append(language.coderPadLanguageDisplayName)
@@ -210,7 +210,13 @@ struct FavoriteStarButton: View {
         // Highlight the star under the iPad trackpad/Magic Keyboard pointer (#586).
         .pointerHoverEffect()
         #if os(macOS)
+            // While invisible, the star must be neither clickable nor a VoiceOver
+            // stop: an invisible-but-live control toggled favorites on stray
+            // clicks and gave VoiceOver an undiscoverable element (#1711). The
+            // row's context menu still offers the favorite toggle throughout.
             .opacity(isFavorite || isRowHovered ? 1 : 0)
+            .allowsHitTesting(isFavorite || isRowHovered)
+            .accessibilityHidden(!(isFavorite || isRowHovered))
         #else
             .opacity(1)
         #endif
@@ -233,6 +239,16 @@ struct FavoriteStarButton: View {
         #else
             18
         #endif
+    }
+}
+
+extension Pad {
+    /// The row's primary label: the trimmed title, or the slug when the title is
+    /// empty *or whitespace-only* — an all-whitespace API title used to render a
+    /// blank primary label and blank favorite/accessibility text (#1713).
+    var displayListTitle: String {
+        let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? id : trimmed
     }
 }
 
@@ -315,7 +331,7 @@ struct PadRowHostableContent: View {
     private var favoriteButton: some View {
         FavoriteStarButton(
             isFavorite: isFavorite,
-            title: pad.title.isEmpty ? pad.id : pad.title,
+            title: pad.displayListTitle,
             onToggle: onToggleFavorite,
             isRowHovered: isHovering
         )
