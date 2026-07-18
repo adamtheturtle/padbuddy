@@ -22,7 +22,9 @@ struct AppNavigationRouteTests {
         #expect(route.seedQuestionID == 42)
     }
 
-    @Test func `new pad route keeps seed for current account requests`() {
+    @Test func `new pad route drops seed for accountless requests`() {
+        // Per-org question ids are meaningless without their owning account: a
+        // stale widget/deep link seed must not apply to the current account (#1829).
         let route = AppNavigation.resolveNewPadRoute(
             account: nil,
             seedQuestionID: 42,
@@ -30,7 +32,19 @@ struct AppNavigationRouteTests {
         )
 
         #expect(route.accountID == nil)
-        #expect(route.seedQuestionID == 42)
+        #expect(route.seedQuestionID == nil)
+    }
+
+    @Test func `new pad route drops non-positive seeds`() {
+        let accountID = UUID()
+        let route = AppNavigation.resolveNewPadRoute(
+            account: accountID.uuidString,
+            seedQuestionID: -3,
+            availableAccountIDs: [accountID]
+        )
+
+        #expect(route.accountID == accountID)
+        #expect(route.seedQuestionID == nil)
     }
 
     @Test func `new pad route drops seed when requested account is missing`() {

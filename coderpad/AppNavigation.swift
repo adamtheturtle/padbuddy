@@ -323,14 +323,20 @@ final class AppNavigation {
         seedQuestionID: Int?,
         availableAccountIDs: some Collection<UUID>
     ) -> (accountID: UUID?, seedQuestionID: Int?) {
+        // Zero/negative seeds are malformed deep-link data, never real question
+        // ids (#1828).
+        let validSeed = seedQuestionID.flatMap { $0 > 0 ? $0 : nil }
         guard let account, !account.isEmpty else {
-            return (nil, seedQuestionID)
+            // Per-org question ids are meaningless without their owning account:
+            // a seed arriving accountless (a stale widget or deep link) must not
+            // apply another organization's id to the current account (#1829).
+            return (nil, nil)
         }
         guard let uuid = UUID(uuidString: account),
               availableAccountIDs.contains(uuid) else {
             return (nil, nil)
         }
 
-        return (uuid, seedQuestionID)
+        return (uuid, validSeed)
     }
 }
