@@ -18,17 +18,32 @@ nonisolated enum PadHistoryURLValidation {
     private static let trustedHostSuffixes = ["coderpad.io", "firebaseio.com", "firebasedatabase.app"]
 
     /// Whether `urlString` may be fetched for pad history: HTTPS on a trusted origin or
-    /// on the account's own API host, and never an IP literal or local name.
+    /// on the account's own API origin, and never an IP literal or local name.
+    /// Embedded credentials and fragments are rejected outright — history metadata is
+    /// untrusted, and neither belongs in a fetch the app performs (#1749). A query is
+    /// allowed because Firebase history URLs legitimately carry one.
     static func isAllowed(_ urlString: String, accountBaseURL: URL) -> Bool {
         guard let url = URL(string: urlString),
               url.scheme?.lowercased() == "https",
               let host = url.host?.lowercased(), !host.isEmpty,
+              url.user == nil, url.password == nil, url.fragment == nil,
               !isLocalOrIPLiteral(host)
         else { return false }
 
-        if let accountHost = accountBaseURL.host?.lowercased(), host == accountHost { return true }
+        // The account match compares the full origin: same host but a different
+        // port is another service on that machine, not the account's API (#1748).
+        if let accountHost = accountBaseURL.host?.lowercased(), host == accountHost,
+           (url.port ?? 443) == (accountBaseURL.port ?? defaultPort(of: accountBaseURL)) {
+            return true
+        }
 
-        return trustedHostSuffixes.contains { host == $0 || host.hasSuffix("." + $0) }
+        // Trusted public origins serve history on the standard HTTPS port only.
+        return (url.port ?? 443) == 443
+            && trustedHostSuffixes.contains { host == $0 || host.hasSuffix("." + $0) }
+    }
+
+    private static func defaultPort(of url: URL) -> Int {
+        url.scheme?.lowercased() == "http" ? 80 : 443
     }
 
     /// IP literals and local names are the classic SSRF targets (127.0.0.1,

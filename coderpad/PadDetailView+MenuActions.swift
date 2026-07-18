@@ -227,27 +227,38 @@ extension PadDetailView {
         isLoadingHistory = true
         defer { isLoadingHistory = false }
 
-        let loaded = await withTaskGroup(of: PadFileHistory?.self) { group in
-            for request in requests {
-                group.addTask {
-                    guard let history = try? await client.padHistory(historyURL: request.url) else {
-                        return nil
-                    }
-                    guard !history.isEmpty else { return nil }
+        let client = client
+        func fetch(_ request: PadHistoryRequest) async -> PadFileHistory? {
+            guard let history = try? await client.padHistory(historyURL: request.url),
+                  !history.isEmpty else { return nil }
 
-                    return PadFileHistory(
-                        id: request.url,
-                        title: request.title,
-                        language: request.language,
-                        history: history
-                    )
-                }
+            return PadFileHistory(
+                id: request.url,
+                title: request.title,
+                language: request.language,
+                history: history
+            )
+        }
+
+        // Bounded fan-out (#1750): a pad with many environments/files must not
+        // fire every history fetch at once; a fresh request starts as each one
+        // finishes, keeping at most `width` in flight.
+        let loaded = await withTaskGroup(of: PadFileHistory?.self) { group in
+            let width = 4
+            var iterator = requests.makeIterator()
+            var started = 0
+            while started < width, let request = iterator.next() {
+                group.addTask { await fetch(request) }
+                started += 1
             }
 
             var collected: [PadFileHistory] = []
             for await history in group {
                 if let history {
                     collected.append(history)
+                }
+                if let request = iterator.next() {
+                    group.addTask { await fetch(request) }
                 }
             }
             return collected
@@ -288,8 +299,10 @@ extension PadDetailView {
         // `pad_environment_ids` comes straight off the wire, so collapse duplicates
         // first: a repeated id both fetched (and displayed) the same environment
         // twice and trapped the ordering map's `uniqueKeysWithValues` below (#786).
+        // Zero/negative ids from corrupt records are dropped too — they can only
+        // produce pointless invalid requests (#1751).
         var seenIDs = Set<Int>()
-        let ids = pad.padEnvironmentIDs.filter { seenIDs.insert($0).inserted }
+        let ids = pad.padEnvironmentIDs.filter { $0 > 0 && seenIDs.insert($0).inserted }
 
         // Fan the per-id fetches out concurrently rather than awaiting each in turn,
         // so an N-environment pad pays ~1×RTT instead of N×RTT before its code

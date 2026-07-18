@@ -88,8 +88,12 @@ enum PadActivity {
 /// or untrusted URLs, so Handoff cannot become an arbitrary external-open command.
 @MainActor
 func padActivityURL(_ activity: NSUserActivity) -> URL? {
-    let candidate = activity.webpageURL
-        ?? (activity.userInfo?[PadActivity.urlKey] as? String).flatMap(URL.init(string:))
+    // Cap the incoming userInfo string before parsing: a real pad URL is short,
+    // and a crafted multi-megabyte activity payload must not reach URL parsing
+    // and the external-open path at all (#1747).
+    let userInfoURL = (activity.userInfo?[PadActivity.urlKey] as? String)
+        .flatMap { $0.count <= 2_048 ? URL(string: $0) : nil }
+    let candidate = activity.webpageURL ?? userInfoURL
     guard let candidate, PadActivity.isTrustedPadURL(candidate) else { return nil }
 
     return candidate
