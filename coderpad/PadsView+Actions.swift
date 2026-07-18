@@ -254,10 +254,11 @@ extension PadsView {
         // colleague's pad activity across the org is noise, not signal (#424). The Dock
         // badge keeps counting per its own configurable scope (#399/#400); this only
         // narrows the opt-in Notification Center alerts.
-        let myChanges = accounts.accounts.first(where: { $0.id == account }).map { owner in
+        let owner = accounts.accounts.first(where: { $0.id == account })
+        let myChanges = owner.map { owner in
             changes.filter { owner.owns($0.pad.ownerEmail) }
         } ?? []
-        PadUpdateNotifier.shared.notify(changes: myChanges)
+        PadUpdateNotifier.shared.notify(changes: myChanges, account: owner)
         previousActivity = Self.activitySnapshot(of: fetched)
         if let id = account {
             cache.set(id, pads: fetched, via: client)

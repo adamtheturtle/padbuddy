@@ -103,17 +103,50 @@ nonisolated enum MCPActivityLog {
 
     // MARK: - Reading (app)
 
+    /// How long entries are retained. The log stores account display names in a
+    /// shared on-disk file, and a low-use install must not preserve them
+    /// indefinitely — anything older is dropped by `trimIfNeeded` (#1145).
+    static let retention: TimeInterval = 30 * 24 * 60 * 60
+
     /// The most recent entries, newest last, decoding tolerantly (a malformed line, e.g.
     /// from a torn concurrent append, is skipped rather than failing the whole read).
     static func load() -> [MCPActivityEntry] {
         store?.load() ?? []
     }
 
-    /// Rewrite the file to only the last `maxEntries` lines, so the debug log can't grow
-    /// without bound. The same lock as append/clear keeps the rewrite from dropping a
-    /// concurrent headless tool-call record.
+    /// The entries plus how many stored lines failed to decode, so the activity
+    /// view can say unreadable entries were skipped — a corrupted log (torn write,
+    /// failed lock) must be distinguishable from "no MCP use" (#1146). The count
+    /// is exact whenever the file is within its cap (its steady state after
+    /// trims); between trims it can undercount.
+    static func loadWithDiagnostics() -> (entries: [MCPActivityEntry], unreadableLines: Int) {
+        guard let store else { return ([], 0) }
+
+        let entries = store.load()
+        let url = store.directory.appending(path: "mcp-activity.jsonl")
+        guard let text = try? String(contentsOf: url, encoding: .utf8) else { return (entries, 0) }
+
+        let lineCount = text.split(separator: "\n", omittingEmptySubsequences: true).count
+        return (entries, max(0, min(lineCount, maxEntries) - entries.count))
+    }
+
+    /// Rewrite the file to only the last `maxEntries` lines and drop entries past
+    /// the retention window (#1145), so the debug log can't grow without bound or
+    /// retain account names indefinitely. The same lock as append/clear keeps the
+    /// rewrite from dropping a concurrent headless tool-call record.
     static func trimIfNeeded() {
-        withLockedStore { $0.trim() }
+        withLockedStore { store in
+            store.trim()
+            let entries = store.load()
+            let cutoff = Date().addingTimeInterval(-retention)
+            let retained = entries.filter { $0.time >= cutoff }
+            guard retained.count != entries.count else { return }
+
+            store.clear()
+            for entry in retained {
+                store.append(entry)
+            }
+        }
     }
 
     /// Delete the log, e.g. so it doesn't outlive the data it describes.

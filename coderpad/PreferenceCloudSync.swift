@@ -29,24 +29,33 @@ final class PreferenceCloudSync {
     /// The UserDefaults keys that sync, gathered here so the policy is auditable in one
     /// place against the #536 inventory. Anything not listed stays device-local - most
     /// importantly credentials (handled by iCloud Keychain, not KVS) and window/UI state.
-    static let syncedKeys: [String] = [
-        // Continuity preferences.
-        "pads.sort",
-        "questions.sort",
-        "pads.merged.liveFilter",
-        "questions.merged.liveFilter",
-        // App-global settings.
-        "general.appearance",
-        "general.presence",
-        "general.dockBadgeScope",
-        "general.spotlightIndexing",
-        "general.notifyOnPadUpdates",
-        "browser.defaultBrowserBundleID",
-        "browser.openInBackground"
-    ]
+    static let syncedKeys: [String] = {
+        var keys = [
+            // Continuity preferences.
+            "pads.sort",
+            "questions.sort",
+            "pads.merged.liveFilter",
+            "questions.merged.liveFilter",
+            // App-global settings.
+            "general.appearance",
+            "general.dockBadgeScope",
+            "general.spotlightIndexing",
+            "general.notifyOnPadUpdates",
+            "browser.defaultBrowserBundleID"
+        ]
+        #if os(macOS)
+            // macOS-only behaviours stay between Macs: iOS has no menu-bar/Dock
+            // presence to represent or change (#1142), and no background-open
+            // affordance - syncing them wrote inert, unexplained preferences onto
+            // iOS and churned KVS for nothing (#1141).
+            keys += ["general.presence", "browser.openInBackground"]
+        #endif
+        return keys
+    }()
 
     private var defaultsObserver: (any NSObjectProtocol)?
     private var cloudObserver: (any NSObjectProtocol)?
+    private var mirrorTask: Task<Void, Never>?
 
     private init() {}
 
@@ -65,7 +74,7 @@ final class PreferenceCloudSync {
             forName: UserDefaults.didChangeNotification, object: UserDefaults.standard, queue: .main
         ) { _ in
             // Delivered on the posting (main) thread for the standard defaults.
-            MainActor.assumeIsolated { Self.shared.mirrorChangedToCloud() }
+            MainActor.assumeIsolated { Self.shared.scheduleMirror() }
         }
         cloudObserver = NotificationCenter.default.addObserver(
             forName: CloudSyncStore.didChangeExternally, object: nil, queue: .main
@@ -79,10 +88,25 @@ final class PreferenceCloudSync {
         }
     }
 
+    /// Coalesces a burst of defaults writes into one mirror pass. Multi-step
+    /// restores (e.g. applying a merged live-filter snapshot field by field) post
+    /// several intermediate values; mirroring each one stamped-latest could
+    /// overwrite another device's complete selection with a transient
+    /// half-applied blob (#1148).
+    private func scheduleMirror() {
+        mirrorTask?.cancel()
+        mirrorTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled else { return }
+
+            mirrorChangedToCloud()
+        }
+    }
+
     /// Pushes any synced key whose local value differs from the cloud copy, stamping a
     /// revision alongside it (both in the cloud and locally) so pulls can order the
-    /// writers (#766). Cheap enough to run on every defaults change: the list is short
-    /// and KVS reads are in-memory.
+    /// writers (#766). Cheap enough to run on every (debounced) defaults change: the
+    /// list is short and KVS reads are in-memory.
     private func mirrorChangedToCloud() {
         for key in Self.syncedKeys {
             let local = UserDefaults.standard.object(forKey: key)
@@ -94,10 +118,15 @@ final class PreferenceCloudSync {
             // pulled yet (this scan runs on EVERY defaults change, for every key);
             // pushing over it would stamp a fresher revision onto the stale value and
             // silently revert the other Mac's change everywhere (#1017, #1023). Adopt
-            // it now instead of waiting for the external-change notification.
+            // it now instead of waiting for the external-change notification. Equal
+            // revisions break the tie by value (#1147), so both devices settle on the
+            // same side instead of each keeping its own write.
             let cloudRevision = CloudSyncStore.shared.object(forKey: Self.cloudRevisionKey(key)) as? Double ?? 0
             let localRevision = UserDefaults.standard.double(forKey: Self.localRevisionKey(key))
-            guard cloudRevision <= localRevision else {
+            let cloudWins = cloudRevision > localRevision
+                || (cloudRevision == localRevision
+                    && cloud.map { Self.tieBreakFavorsCloud(local: local, cloud: $0) } == true)
+            guard !cloudWins else {
                 pull(key: key)
                 continue
             }
@@ -110,14 +139,18 @@ final class PreferenceCloudSync {
     }
 
     /// Pulls one key's cloud value into UserDefaults when it differs AND its revision
-    /// stamp is at least as new as the last local write - last-writer-wins needs to
-    /// know the writer order, so a newer offline local edit survives startup instead
-    /// of being reverted by an older cloud copy (#766). Missing revisions count as 0,
-    /// so a pre-revision cloud value still seeds a never-locally-written key (the
-    /// fresh-Mac case). A missing cloud value never clears a local one (deletions
-    /// don't propagate, matching the collection stores). Writing the value re-posts
-    /// `didChangeNotification`, but the resulting push is a no-op because the two
-    /// sides now match - this is what makes the sync converge instead of looping.
+    /// stamp orders it as the newer write - last-writer-wins needs to know the writer
+    /// order, so a newer offline local edit survives startup instead of being
+    /// reverted by an older cloud copy (#766). Missing revisions count as 0, so a
+    /// pre-revision cloud value still seeds a never-locally-written key (the
+    /// fresh-Mac case). Two devices can stamp the exact same timestamp; equal
+    /// revisions with differing values break the tie deterministically by value, so
+    /// every device converges on the same side instead of whichever notification
+    /// arrived last winning per-device (#1147). A missing cloud value never clears a
+    /// local one (deletions don't propagate, matching the collection stores).
+    /// Writing the value re-posts `didChangeNotification`, but the resulting push is
+    /// a no-op because the two sides now match - this is what makes the sync
+    /// converge instead of looping.
     private func pull(key: String) {
         guard let cloud = CloudSyncStore.shared.object(forKey: key) else { return }
 
@@ -126,11 +159,26 @@ final class PreferenceCloudSync {
 
         let cloudRevision = CloudSyncStore.shared.object(forKey: Self.cloudRevisionKey(key)) as? Double ?? 0
         let localRevision = UserDefaults.standard.double(forKey: Self.localRevisionKey(key))
-        guard cloudRevision >= localRevision else { return }
+        guard cloudRevision > localRevision
+            || (cloudRevision == localRevision && Self.tieBreakFavorsCloud(local: local, cloud: cloud))
+        else { return }
 
         UserDefaults.standard.set(cloud, forKey: key)
         UserDefaults.standard.set(cloudRevision, forKey: Self.localRevisionKey(key))
         applySideEffects(forPulledKey: key)
+    }
+
+    /// The deterministic equal-revision tie-breaker (#1147): a never-written local
+    /// side always adopts the cloud (the fresh-device seed), otherwise the value
+    /// whose canonical description sorts higher wins - both devices compare the
+    /// same two values the same way, so exactly one side adopts and they converge.
+    /// Internal for tests.
+    static func tieBreakFavorsCloud(local: Any?, cloud: Any) -> Bool {
+        guard let local else { return true }
+
+        let localDescription = (local as? NSObject)?.description ?? String(describing: local)
+        let cloudDescription = (cloud as? NSObject)?.description ?? String(describing: cloud)
+        return cloudDescription > localDescription
     }
 
     /// Runs the side effects a locally toggled control would have run for `key`, so a

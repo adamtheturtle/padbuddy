@@ -8,6 +8,7 @@
 #else
     import UIKit
 #endif
+import os
 import SwiftUI
 
 /// An installed app that can open http(s) links, shown in the "Default browser" picker.
@@ -46,9 +47,24 @@ enum BrowserSettings {
         #if os(macOS)
             let config = NSWorkspace.OpenConfiguration()
             config.activates = !openInBackground
-            let appURL = defaultBrowserBundleID.flatMap {
-                NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0)
-            } ?? NSWorkspace.shared.urlForApplication(toOpen: probeURL)
+            var chosenAppURL: URL?
+            if let bundleID = defaultBrowserBundleID {
+                chosenAppURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID)
+                if chosenAppURL == nil {
+                    // The chosen browser is gone (uninstalled/renamed): clear the
+                    // stale preference so Settings shows the Default choice that's
+                    // actually in effect, instead of displaying an unavailable
+                    // browser while every link silently opens elsewhere (#1140).
+                    UserDefaults.standard.removeObject(forKey: Key.defaultBrowserBundleID)
+                    persistenceLogger.notice(
+                        """
+                        Default browser \(bundleID, privacy: .public) is no longer installed; \
+                        reverting to the system default.
+                        """
+                    )
+                }
+            }
+            let appURL = chosenAppURL ?? NSWorkspace.shared.urlForApplication(toOpen: probeURL)
             if let appURL {
                 NSWorkspace.shared.open([url], withApplicationAt: appURL, configuration: config)
             } else {

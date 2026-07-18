@@ -51,12 +51,14 @@ final class PadUpdateNotifier: NSObject {
     static let shared = PadUpdateNotifier()
 
     private let center = UNUserNotificationCenter.current()
-    private var notificationGeneration = 0
-    private var notificationTask: Task<Void, Never>?
+    /// Per-identifier coalescing state: repeated bursts for one account replace
+    /// that account's own alert, while different accounts' alerts stand side by
+    /// side instead of cancelling each other (#1144, refining #1038).
+    private var notificationGenerations: [String: Int] = [:]
+    private var notificationTasks: [String: Task<Void, Never>] = [:]
 
-    /// A single, stable identifier so repeated bursts of activity coalesce into one
-    /// alert ("3 pads updated" replaces "2 pads updated") rather than stacking up a
-    /// pile of banners — the same "never noisy" intent as the self-clearing badge.
+    /// The stable identifier prefix; the owning account's id is appended so each
+    /// organization coalesces onto its own alert (#1144).
     private static let notificationID = "coderpad.padUpdates"
 
     override private init() {
@@ -109,19 +111,24 @@ final class PadUpdateNotifier: NSObject {
         return settings.authorizationStatus != .denied && settings.badgeSetting == .enabled
     }
 
-    /// Post an alert summarizing pads that just gained activity. A no-op unless the
-    /// user opted in, and skipped while the app is active so it only fires for
-    /// background activity. Authorization is requested lazily the first time so a user
-    /// who flipped the toggle before granting permission is still prompted.
-    func notify(changes: [PadChange]) {
+    /// Post an alert summarizing pads that just gained activity in `account`. A
+    /// no-op unless the user opted in, and skipped while the app is active so it
+    /// only fires for background activity. Authorization is never requested here:
+    /// the Settings toggle's own flow prompts (#836), so a background refresh
+    /// can't surface the system permission dialog at an arbitrary moment (#1143).
+    func notify(changes: [PadChange], account: Account? = nil) {
         guard GeneralSettings.notifyOnPadUpdates,
               !changes.isEmpty,
               !appIsActive else { return }
 
-        notificationGeneration += 1
-        let generation = notificationGeneration
-        notificationTask?.cancel()
-        notificationTask = Task { await post(changes: changes, generation: generation) }
+        let identifier = account.map { "\(Self.notificationID).\($0.id.uuidString)" } ?? Self.notificationID
+        let generation = (notificationGenerations[identifier] ?? 0) + 1
+        notificationGenerations[identifier] = generation
+        notificationTasks[identifier]?.cancel()
+        notificationTasks[identifier] = Task {
+            await post(changes: changes, accountName: account?.name,
+                       identifier: identifier, generation: generation)
+        }
     }
 
     /// Whether the app is frontmost, used to suppress alerts you'd already see. Spelled
@@ -134,25 +141,30 @@ final class PadUpdateNotifier: NSObject {
         #endif
     }
 
-    private func post(changes: [PadChange], generation: Int) async {
+    private func post(changes: [PadChange], accountName: String?, identifier: String, generation: Int) async {
         let settings = await center.notificationSettings()
-        guard isCurrentNotification(generation) else { return }
+        // Re-check activity after every await too: the app can come to the front
+        // while settings are being read, and an alert (let alone a permission
+        // prompt) must not fire for a foregrounded refresh (#1143).
+        guard isCurrent(identifier: identifier, generation: generation), !appIsActive else { return }
 
         switch settings.authorizationStatus {
-        case .notDetermined:
-            guard await (try? center.requestAuthorization(options: [.alert, .sound])) == true else { return }
-
-        case .denied:
+        case .notDetermined, .denied:
+            // Undetermined just means no alert yet: the permission prompt belongs
+            // to the Settings toggle's flow, never to a background refresh (#1143).
             return
 
         default:
             break
         }
 
-        guard isCurrentNotification(generation) else { return }
-
         let content = UNMutableNotificationContent()
         content.sound = .default
+        // Name the organization so a multi-account user can tell whose pads have
+        // activity (#1144); single-account setups skip the redundant subtitle.
+        if let accountName, !accountName.isEmpty, AccountsStore.shared.accounts.count > 1 {
+            content.subtitle = accountName
+        }
         if changes.count == 1, let change = changes.first {
             // Lead with the pad's own name so the alert names what changed, and
             // put the kind of activity in the body.
@@ -167,18 +179,18 @@ final class PadUpdateNotifier: NSObject {
             content.userInfo = ["url": "coderpad://pads"]
         }
 
-        guard isCurrentNotification(generation) else { return }
+        guard isCurrent(identifier: identifier, generation: generation), !appIsActive else { return }
 
         let request = UNNotificationRequest(
-            identifier: Self.notificationID,
+            identifier: identifier,
             content: content,
             trigger: nil
         )
         try? await center.add(request)
     }
 
-    private func isCurrentNotification(_ generation: Int) -> Bool {
-        !Task.isCancelled && generation == notificationGeneration
+    private func isCurrent(identifier: String, generation: Int) -> Bool {
+        !Task.isCancelled && generation == notificationGenerations[identifier]
     }
 
     /// A one-line body for a burst of changes. When they're all the same kind we

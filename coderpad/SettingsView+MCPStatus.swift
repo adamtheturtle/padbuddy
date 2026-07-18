@@ -17,6 +17,9 @@ import SwiftUI
 @Observable
 final class MCPActivityStore {
     private(set) var entries: [MCPActivityEntry] = []
+    /// Stored lines that failed to decode on the last load, so the pane can flag
+    /// a damaged log instead of it silently reading as no MCP use (#1146).
+    private(set) var unreadableLines = 0
 
     /// The most recent `launch` entry, surfaced as the "last ran" line.
     var lastLaunch: MCPActivityEntry? {
@@ -29,7 +32,9 @@ final class MCPActivityStore {
     }
 
     func refresh() {
-        entries = MCPActivityLog.load()
+        let diagnostics = MCPActivityLog.loadWithDiagnostics()
+        entries = diagnostics.entries
+        unreadableLines = diagnostics.unreadableLines
         MCPActivityLog.trimIfNeeded()
     }
 
@@ -49,7 +54,7 @@ extension SettingsView {
     /// it doesn't add noise before the user has wired up a client.
     @ViewBuilder
     var mcpActivitySection: some View {
-        if mcpActivity.lastLaunch != nil || !mcpActivity.recentCalls.isEmpty {
+        if mcpActivity.lastLaunch != nil || !mcpActivity.recentCalls.isEmpty || mcpActivity.unreadableLines > 0 {
             Section {
                 if let launch = mcpActivity.lastLaunch {
                     LabeledContent {
@@ -60,6 +65,16 @@ extension SettingsView {
                     }
                 }
 
+                if mcpActivity.unreadableLines > 0 {
+                    // A damaged log must not silently read as "no MCP use" (#1146).
+                    let count = mcpActivity.unreadableLines
+                    Label(
+                        "^[\(count) recorded entries](inflect: true) couldn't be read and were skipped.",
+                        systemImage: "exclamationmark.triangle"
+                    )
+                    .foregroundStyle(.orange)
+                }
+
                 ForEach(mcpActivity.recentCalls.prefix(20)) { call in
                     mcpCallRow(call)
                 }
@@ -67,7 +82,7 @@ extension SettingsView {
                 Text("Activity")
             } footer: {
                 Text("Recorded on this Mac. Tool names and times only, never pad or "
-                    + "candidate content.")
+                    + "candidate content. Entries are removed after 30 days.")
                     .foregroundStyle(.secondary)
             }
         }

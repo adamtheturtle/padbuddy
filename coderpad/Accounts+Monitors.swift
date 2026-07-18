@@ -134,11 +134,11 @@ final class PadsBackgroundRefresher {
     /// absent in All Accounts mode, where the old current-only refresh did nothing.
     /// Sequential on purpose: one list fetch at a time keeps the background load low.
     func refreshAllAccounts() async {
-        // Accumulate every account's classified changes and post ONE alert after the
-        // sweep: notify() coalesces onto a single notification identifier and cancels
-        // the in-flight post, so per-account calls in one sweep left only the last
-        // account's alert standing and silently dropped the others' (#1038).
-        var changes: [PadChange] = []
+        // One alert per account: the notifier coalesces onto per-account
+        // identifiers (#1144, refining #1038 - the old single identifier meant
+        // per-account calls cancelled each other, which forced a merged,
+        // unattributed alert), so each organization's activity is named and
+        // stands on its own.
         for account in AccountsStore.shared.accounts {
             // Skip mock/demo accounts (their data is static, so a refresh would only
             // churn the widget timeline) and any account without a key to fetch with.
@@ -147,11 +147,11 @@ final class PadsBackgroundRefresher {
             let client = account.makeClient()
             guard let fetched = try? await client.listPads(sort: "updated_at,desc") else { continue }
 
-            changes += ownedChanges(account: account, fetched: fetched)
+            let changes = ownedChanges(account: account, fetched: fetched)
             // `set` cascades to the widget snapshot and the active-pads Dock badge.
             PadsCacheStore.shared.set(account.id, pads: fetched, via: client)
+            PadUpdateNotifier.shared.notify(changes: changes, account: account)
         }
-        PadUpdateNotifier.shared.notify(changes: changes)
     }
 
     /// The background-detected activity for one account, feeding the opt-in pad-update
