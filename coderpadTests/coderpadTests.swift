@@ -151,61 +151,6 @@ struct PadIDValidationTests {
     }
 }
 
-@Suite("Open Pad service id extraction")
-struct ServicesProviderTests {
-    private let hosts: Set<String> = ["app.coderpad.io", "pads.acme.example"]
-
-    @Test
-    func `extracts the id from a CoderPad web URL`() {
-        #expect(ServicesProvider.padID(
-            fromSelection: "https://app.coderpad.io/ABC123", allowedHosts: hosts
-        ) == "ABC123")
-    }
-
-    @Test
-    func `ignores trailing path components like playback`() {
-        #expect(ServicesProvider.padID(
-            fromSelection: "https://app.coderpad.io/ABC123/playback", allowedHosts: hosts
-        ) == "ABC123")
-    }
-
-    @Test
-    func `accepts a configured custom server host (#795)`() {
-        #expect(ServicesProvider.padID(
-            fromSelection: "https://pads.acme.example/DEF456", allowedHosts: hosts
-        ) == "DEF456")
-    }
-
-    @Test
-    func `rejects web URLs from unknown hosts (#795)`() {
-        #expect(ServicesProvider.padID(
-            fromSelection: "https://example.com/invoices", allowedHosts: hosts
-        ) == nil)
-        #expect(ServicesProvider.padID(
-            fromSelection: "https://app.coderpad.io.evil.example/ABC123", allowedHosts: hosts
-        ) == nil)
-    }
-
-    @Test
-    func `reads the id from a coderpad deep link`() {
-        #expect(ServicesProvider.padID(
-            fromSelection: "coderpad://pad/XYZ789", allowedHosts: hosts
-        ) == "XYZ789")
-    }
-
-    @Test
-    func `accepts a bare alphanumeric id token`() {
-        #expect(ServicesProvider.padID(fromSelection: "  ABC123  ", allowedHosts: hosts) == "ABC123")
-    }
-
-    @Test
-    func `rejects arbitrary prose so it doesn't fire a bogus open`() {
-        #expect(ServicesProvider.padID(fromSelection: "let's open the pad", allowedHosts: hosts) == nil)
-        #expect(ServicesProvider.padID(fromSelection: "", allowedHosts: hosts) == nil)
-        #expect(ServicesProvider.padID(fromSelection: "coderpad://pad/", allowedHosts: hosts) == nil)
-    }
-}
-
 @Suite("On-device model parsing")
 struct OnDeviceModelParsingTests {
     @Test

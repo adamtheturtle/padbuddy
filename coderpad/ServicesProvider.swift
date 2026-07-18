@@ -29,7 +29,15 @@
                 error?.pointee = "No CoderPad pad link or id was found in the selection." as NSString
                 return
             }
-            guard let deepLink = URL(string: "coderpad://pad/\(id)") else { return }
+            // `padID` only returns PadIDValidation-normalized ids, and the link is
+            // built structurally rather than by string interpolation, so nothing in
+            // the selection can smuggle extra path/query semantics into the deep
+            // link this generates (#1247).
+            var components = URLComponents()
+            components.scheme = "coderpad"
+            components.host = "pad"
+            components.path = "/\(id)"
+            guard let deepLink = components.url else { return }
 
             AppActivator.bringToFront()
             URLOpener.open(deepLink)
@@ -38,33 +46,46 @@
         /// Extracts a pad id from the service pasteboard, preferring a real URL item
         /// over selected text (Safari sends both for a selected link).
         static func padID(from pasteboard: NSPasteboard) -> String? {
-            let hosts = allowedPadLinkHosts
+            let endpoints = allowedPadLinkEndpoints
             if let url = NSURL(from: pasteboard) as URL?,
-               let id = padID(fromSelection: url.absoluteString, allowedHosts: hosts) {
+               let id = padID(fromSelection: url.absoluteString, allowedEndpoints: endpoints) {
                 return id
             }
             if let text = pasteboard.string(forType: .string) {
-                return padID(fromSelection: text, allowedHosts: hosts)
+                return padID(fromSelection: text, allowedEndpoints: endpoints)
             }
             return nil
         }
 
         // swiftlint:enable legacy_objc_type
 
-        /// The web hosts a selected link may point at to count as a pad link (#795):
-        /// the hosted service plus every configured account's custom server. Anything
-        /// else (an arbitrary selected URL) must not be mistaken for a pad.
-        static var allowedPadLinkHosts: Set<String> {
-            var hosts: Set<String> = []
-            if let host = CoderPadClient.defaultBaseURL.host() {
-                hosts.insert(host.lowercased())
+        /// The web endpoints (lowercased `host:port`) a selected link may point at
+        /// to count as a pad link (#795): the hosted service plus every configured
+        /// account's custom server. Keyed by host AND resolved port, so two custom
+        /// servers sharing a host on different ports are not interchangeable
+        /// (#1248). Anything else (an arbitrary selected URL) must not be mistaken
+        /// for a pad.
+        static var allowedPadLinkEndpoints: Set<String> {
+            var endpoints: Set<String> = []
+            if let endpoint = endpointIdentity(of: CoderPadClient.defaultBaseURL) {
+                endpoints.insert(endpoint)
             }
             for account in AccountsStore.shared.accounts {
-                if let host = account.resolvedBaseURL.host() {
-                    hosts.insert(host.lowercased())
+                if let endpoint = endpointIdentity(of: account.resolvedBaseURL) {
+                    endpoints.insert(endpoint)
                 }
             }
-            return hosts
+            return endpoints
+        }
+
+        /// A URL's lowercased `host:port` identity, defaulting the port from the
+        /// scheme so `https://example.com` and `https://example.com:443` compare
+        /// equal.
+        static func endpointIdentity(of url: URL) -> String? {
+            guard let host = url.host()?.lowercased(), !host.isEmpty else { return nil }
+
+            let port = url.port ?? (url.scheme?.lowercased() == "http" ? 80 : 443)
+            return "\(host):\(port)"
         }
 
         /// Web-app routes served on the same hosts as pads (dashboard pages, auth,
@@ -83,23 +104,33 @@
         private static let padPathSuffixes: Set<String> = ["playback"]
 
         /// Pure string → id extraction, kept separate so it's unit-testable. Accepts a
-        /// CoderPad web URL from a known host (the id is its first path component), a
-        /// `coderpad://pad/<id>` deep link, or a bare alphanumeric id token. Returns nil
-        /// for anything else, so selecting arbitrary prose, an unrelated web link, or a
-        /// non-pad page of the CoderPad web app doesn't fire a bogus open (#795, #1044).
-        static func padID(fromSelection raw: String, allowedHosts: Set<String>) -> String? {
+        /// CoderPad web URL from a known endpoint (the id is its first path component),
+        /// a `coderpad://pad/<id>` deep link, or a bare alphanumeric id token. Returns
+        /// nil for anything else, so selecting arbitrary prose, an unrelated web link,
+        /// or a non-pad page of the CoderPad web app doesn't fire a bogus open (#795,
+        /// #1044). Every branch normalizes through `PadIDValidation`, so the returned
+        /// id is always a plain identifier.
+        static func padID(fromSelection raw: String, allowedEndpoints: Set<String>) -> String? {
             let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else { return nil }
 
             if let url = URL(string: trimmed), let scheme = url.scheme?.lowercased() {
                 if scheme == "coderpad" {
+                    // Only the app's own pad deep-link form counts; any other
+                    // coderpad:// selection must not round-trip into a new deep
+                    // link, and a malformed path must not become a bogus open
+                    // request (#1246).
+                    guard url.host()?.lowercased() == "pad" else { return nil }
+
                     let id = url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-                    return id.isEmpty ? nil : id
+                    return PadIDValidation.normalize(id)
                 }
                 if scheme == "http" || scheme == "https" {
                     // Only links to the hosted service or a configured custom server
                     // are pad links; any other web URL is unrelated selection (#795).
-                    guard let host = url.host()?.lowercased(), allowedHosts.contains(host) else {
+                    // Compared by host AND port (#1248).
+                    guard let endpoint = endpointIdentity(of: url),
+                          allowedEndpoints.contains(endpoint) else {
                         return nil
                     }
 
@@ -108,13 +139,8 @@
             }
 
             // A bare token with no URL structure: accept it as the id only when it
-            // looks like one (alphanumeric), so a sentence of selected text is ignored.
-            guard !trimmed.contains(where: \.isWhitespace),
-                  trimmed.unicodeScalars.allSatisfy({ CharacterSet.alphanumerics.contains($0) }) else {
-                return nil
-            }
-
-            return trimmed
+            // validates as one, so a sentence of selected text is ignored.
+            return PadIDValidation.normalize(trimmed)
         }
 
         /// Extracts a pad id from an allowed-host URL's path. A pad link's path is a
