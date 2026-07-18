@@ -37,8 +37,8 @@
                     .onContinueUserActivity(CSSearchableItemActionType) { activity in
                         guard let id = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String else { return }
 
-                        if let padID = SpotlightIndexer.padID(fromItemIdentifier: id) {
-                            AppNavigation.shared.openPad(id: padID)
+                        if let pad = SpotlightIndexer.padRef(fromItemIdentifier: id) {
+                            AppNavigation.shared.openPad(id: pad.id, account: pad.account)
                         } else if let ref = SpotlightIndexer.questionRef(fromItemIdentifier: id) {
                             // If the account was removed but Spotlight still has a stale
                             // result, abort instead of opening another org's colliding id.

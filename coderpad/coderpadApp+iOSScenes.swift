@@ -29,8 +29,8 @@
                     .onContinueUserActivity(CSSearchableItemActionType) { activity in
                         guard let id = activity.userInfo?[CSSearchableItemActivityIdentifier] as? String else { return }
 
-                        if let padID = SpotlightIndexer.padID(fromItemIdentifier: id) {
-                            AppNavigation.shared.openPad(id: padID)
+                        if let pad = SpotlightIndexer.padRef(fromItemIdentifier: id) {
+                            AppNavigation.shared.openPad(id: pad.id, account: pad.account)
                         } else if let ref = SpotlightIndexer.questionRef(fromItemIdentifier: id) {
                             guard AppNavigation.shared.showQuestion(id: ref.id, account: ref.account) else {
                                 SpotlightIndexer.removeQuestion(id: ref.id, account: ref.account)

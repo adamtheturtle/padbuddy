@@ -161,6 +161,12 @@ final class AppNavigation {
     /// intent fires before any view is listening. Consumed/cleared by ContentView.
     var openPadID: String?
 
+    /// The account that owns `openPadID`, when the requester knows it (a namespaced
+    /// Spotlight result). Pad slugs collide across custom servers, so URL resolution
+    /// must prefer the owning account over a cache scan by bare id (#759). Nil for
+    /// id-only requesters (the Open Pad intent, legacy Spotlight items).
+    var openPadAccountID: UUID?
+
     /// Switch to a section with no pending request.
     func show(_ section: AppSection) {
         self.section = section
@@ -259,7 +265,9 @@ final class AppNavigation {
     }
 
     /// Queue a pad id to open in the user's browser, consumed by ContentView.
-    func openPad(id: String) {
+    /// `account` names the owning account when the requester knows it (#759).
+    func openPad(id: String, account: UUID? = nil) {
+        openPadAccountID = account
         openPadID = id
     }
 

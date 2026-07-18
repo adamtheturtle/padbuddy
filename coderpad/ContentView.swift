@@ -182,17 +182,29 @@ struct ContentView: View {
         guard let raw = nav.openPadID else { return }
 
         nav.openPadID = nil
+        let owningAccountID = nav.openPadAccountID
+        nav.openPadAccountID = nil
         guard let id = PadIDValidation.normalize(raw) else { return }
 
-        BrowserSettings.openExternally(padURL(for: id))
+        BrowserSettings.openExternally(padURL(for: id, owningAccountID: owningAccountID))
     }
 
     /// The web URL for a pad id queued by ID-based routing (Spotlight, the Open Pad
-    /// intent, notifications, coderpad://pad/...). Prefers the cached pad's own URL
-    /// from whichever account holds it, then that account's server, then the current
-    /// account's - never a hardcoded host, which sent self-hosted and regional
+    /// intent, notifications, coderpad://pad/...). A request that names its owning
+    /// account (a namespaced Spotlight result) resolves against that account first —
+    /// slugs collide across custom servers, so a cache scan by bare id could pick
+    /// another server's same-slug pad (#759). Otherwise prefers the cached pad's own
+    /// URL from whichever account holds it, then that account's server, then the
+    /// current account's - never a hardcoded host, which sent self-hosted and regional
     /// accounts' pads to app.coderpad.io where they don't exist (#731).
-    private func padURL(for id: String) -> URL {
+    private func padURL(for id: String, owningAccountID: UUID?) -> URL {
+        if let owningAccountID,
+           let account = store.accounts.first(where: { $0.id == owningAccountID }) {
+            if let pad = PadsCacheStore.shared.get(account.id).first(where: { $0.id == id }) {
+                return pad.webURL(fallbackBase: account.resolvedBaseURL)
+            }
+            return account.resolvedBaseURL.appending(path: id)
+        }
         for account in store.accounts {
             guard let pad = PadsCacheStore.shared.get(account.id).first(where: { $0.id == id })
             else { continue }

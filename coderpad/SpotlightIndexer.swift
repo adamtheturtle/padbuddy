@@ -69,7 +69,7 @@ enum SpotlightIndexer {
     static func updatePads(_ pads: [Pad], account: UUID) {
         guard GeneralSettings.spotlightIndexing else { return }
 
-        let identifiers = Set(pads.map { padPrefix + $0.id })
+        let identifiers = Set(pads.map { padIdentifier(id: $0.id, account: account) })
         reconcilePadIdentifiers(identifiers, account: account)
 
         let items = pads.map { pad -> CSSearchableItem in
@@ -77,7 +77,7 @@ enum SpotlightIndexer {
             attrs.title = pad.title.isEmpty ? pad.id : pad.title
             attrs.contentDescription = [pad.status.label, pad.ownerEmail]
                 .filter { !$0.isEmpty }.joined(separator: " · ")
-            return CSSearchableItem(uniqueIdentifier: padPrefix + pad.id,
+            return CSSearchableItem(uniqueIdentifier: padIdentifier(id: pad.id, account: account),
                                     domainIdentifier: domain(account),
                                     attributeSet: attrs)
         }
@@ -242,18 +242,24 @@ enum SpotlightIndexer {
 
     /// Removes a single pad from the index (e.g. when it's deleted). Re-indexing
     /// the remaining list only adds/updates items, so a dropped pad needs an
-    /// explicit delete by identifier or it lingers in system search.
+    /// explicit delete by identifier or it lingers in system search. Deletes the
+    /// pad's namespaced identifier for every account that holds it, plus the legacy
+    /// global form so pre-#759 items indexed before the namespacing are cleaned too.
     static func removePad(id: String) {
-        let identifier = padPrefix + id
-        enrichmentLock.withLock {
+        let identifiers: [String] = enrichmentLock.withLock {
+            var identifiers = [padPrefix + id]
             for account in indexedPadIdentifiersByAccount.keys {
-                indexedPadIdentifiersByAccount[account]?.remove(identifier)
+                identifiers.append(padIdentifier(id: id, account: account))
+            }
+            for (account, held) in indexedPadIdentifiersByAccount {
+                indexedPadIdentifiersByAccount[account] = held.subtracting(identifiers)
             }
             persistPadIdentifiers()
+            return identifiers
         }
         enqueueDelete(operation: "remove pad item") { completion in
             CSSearchableIndex.default().deleteSearchableItems(
-                withIdentifiers: [identifier],
+                withIdentifiers: identifiers,
                 completionHandler: completion
             )
         }

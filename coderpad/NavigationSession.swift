@@ -170,6 +170,12 @@ enum NavigationSessionLoader {
         let client = account.makeClient()
         let id = account.id
 
+        // On a mid-stream paging failure, the partial list must stay memory-only
+        // (persist: false): the streamed snapshots already warmed the UI, and running
+        // the persist cascade would commit a truncated list as authoritative — writing
+        // it to disk, reconciling the unfetched items OUT of Spotlight, and shrinking
+        // the widget/badge/MCP counts — while silently replacing the previous complete
+        // snapshot (#1025, #1039). Only a completed stream persists.
         if active != .pads {
             var latest: [Pad] = []
             do {
@@ -179,8 +185,7 @@ enum NavigationSessionLoader {
                 }
                 PadsCacheStore.shared.set(id, pads: latest)
             } catch {
-                // Partial results still warm the UI; persist whatever arrived.
-                if !latest.isEmpty { PadsCacheStore.shared.set(id, pads: latest) }
+                if !latest.isEmpty { PadsCacheStore.shared.set(id, pads: latest, persist: false) }
             }
         }
 
@@ -193,7 +198,7 @@ enum NavigationSessionLoader {
                 }
                 QuestionsCacheStore.shared.set(id, questions: latest)
             } catch {
-                if !latest.isEmpty { QuestionsCacheStore.shared.set(id, questions: latest) }
+                if !latest.isEmpty { QuestionsCacheStore.shared.set(id, questions: latest, persist: false) }
             }
         }
 

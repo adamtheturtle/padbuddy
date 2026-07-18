@@ -12,9 +12,39 @@ import Foundation
 // MARK: - Result-identifier parsing
 
 extension SpotlightIndexer {
-    /// The pad id encoded in a Spotlight result identifier, or `nil` if it isn't a pad.
+    /// The Spotlight identifier for one pad. Namespaced with the account UUID like
+    /// questions (#378): pad slugs are only unique within one server, so two custom
+    /// CoderPad servers can issue the same slug — a global `pad:<slug>` identifier let
+    /// one account's item overwrite the other's, and a single delete removed both
+    /// (#759). Old-format identifiers are reconciled away by the persisted-identifier
+    /// bookkeeping on the next index pass.
+    nonisolated static func padIdentifier(id: String, account: UUID) -> String {
+        "\(padPrefix)\(account.uuidString):\(id)"
+    }
+
+    /// The account and pad id encoded in a Spotlight result identifier, or `nil` if it
+    /// isn't a pad. New items are account-namespaced (`pad:<uuid>:<slug>`) so a result
+    /// can be routed to the server that owns it — slugs collide across custom servers
+    /// (#759). Items indexed before the namespacing carry no account (`pad:<slug>`)
+    /// and yield a nil account, keeping old taps working until they're reconciled.
+    static func padRef(fromItemIdentifier id: String) -> (account: UUID?, id: String)? {
+        guard id.hasPrefix(padPrefix) else { return nil }
+
+        let body = id.dropFirst(padPrefix.count)
+        guard !body.isEmpty else { return nil }
+        if let separator = body.firstIndex(of: ":"),
+           let account = UUID(uuidString: String(body[..<separator])),
+           body.index(after: separator) < body.endIndex {
+            return (account, String(body[body.index(after: separator)...]))
+        }
+        return (nil, String(body))
+    }
+
+    /// The bare pad id of a result identifier, for callers that don't route by
+    /// account. Prefer ``padRef(fromItemIdentifier:)``, which carries the owning
+    /// account for namespaced items (#759).
     static func padID(fromItemIdentifier id: String) -> String? {
-        id.hasPrefix(padPrefix) ? String(id.dropFirst(padPrefix.count)) : nil
+        padRef(fromItemIdentifier: id)?.id
     }
 
     /// Whether a Spotlight result identifier refers to a question.

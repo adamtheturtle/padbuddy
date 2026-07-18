@@ -31,4 +31,27 @@ struct SpotlightIdentifierPersistenceTests {
         let decoded = SpotlightIndexer.decodeIdentifierMap(raw)
         #expect(decoded == [account: Set(["pad:abc"])])
     }
+
+    @Test
+    func `pad identifiers are account-namespaced and round-trip with the account (#759)`() {
+        let account = UUID()
+        let identifier = SpotlightIndexer.padIdentifier(id: "abc123", account: account)
+        #expect(identifier == "pad:\(account.uuidString):abc123")
+
+        let ref = SpotlightIndexer.padRef(fromItemIdentifier: identifier)
+        #expect(ref?.account == account)
+        #expect(ref?.id == "abc123")
+
+        // Items indexed before the namespacing carry no account but still parse.
+        let legacy = SpotlightIndexer.padRef(fromItemIdentifier: "pad:ABC123")
+        #expect(legacy?.account == nil)
+        #expect(legacy?.id == "ABC123")
+
+        #expect(SpotlightIndexer.padRef(fromItemIdentifier: "question:42") == nil)
+        #expect(SpotlightIndexer.padRef(fromItemIdentifier: "pad:") == nil)
+        // A slug that merely contains a colon without a UUID prefix stays one id.
+        let colonSlug = SpotlightIndexer.padRef(fromItemIdentifier: "pad:not-a-uuid:xyz")
+        #expect(colonSlug?.account == nil)
+        #expect(colonSlug?.id == "not-a-uuid:xyz")
+    }
 }
