@@ -237,8 +237,11 @@ extension QuestionsView {
         #endif
     }
 
-    private var questionListReloadID: [Int] {
-        favoriteIDSet.sorted()
+    private var questionListReloadID: String {
+        let favoriteSignature = favoriteIDSet.sorted().map(String.init).joined(separator: ",")
+        // Fold the content revision in so an in-place edit (rename, language, type)
+        // redraws the visible row: the id list alone can't see it (#1003).
+        return "\(favoriteSignature)#\(questionsRevision)"
     }
 
     /// Opens a question in its own window (double-click / Return), the first click

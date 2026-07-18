@@ -306,12 +306,15 @@ extension MergedQuestionsView {
     }
 
     private var mergedQuestionListReloadID: String {
-        accounts.mergeableAccounts
+        let favoriteSignature = accounts.mergeableAccounts
             .map { account in
                 let ids = favorites.favorites(account: account.id).map(String.init).joined(separator: ",")
                 return "\(account.id.uuidString):\(ids)"
             }
             .joined(separator: "|")
+        // Fold the content revision in so an in-place edit (rename, language, type)
+        // redraws the visible row: the id list alone can't see it (#1003).
+        return "\(favoriteSignature)#\(questionsRevision)"
     }
 
     /// Opens a combined-list question in its own window with its originating account.

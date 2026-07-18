@@ -358,6 +358,10 @@ extension MergedQuestionsView {
 
         questions[index] = question
         questionsByAccount[accountID] = questions
+        questionsRevision += 1
+        // Write the edit through to the cache (deletions already do), so a section
+        // re-entry and Spotlight don't serve the stale pre-edit row (#1005).
+        cache.updateQuestion(question, account: accountID)
         // Question ids collide across accounts, so also require the edited
         // question to belong to the account whose question is currently routed
         // into the detail pane — otherwise account B's edit would silently

@@ -164,6 +164,10 @@ struct QuestionsView: View {
                     questionsRevision += 1
                     selectedQuestionIDs = [created.id]
                     showCreate = false
+                    // Keep the cache in step (as the merged view's insert does), so
+                    // New Pad from Question, Spotlight, and a section re-entry see
+                    // the new question before the next full reload (#1007).
+                    cache.insertQuestion(created, account: accounts.currentAccountID)
                 } onCancel: { showCreate = false }
             }
     }
@@ -223,6 +227,10 @@ struct QuestionsView: View {
                         questions[index] = question
                         questionsRevision += 1
                         if selection?.id == question.id { selection = question }
+                        // Write the edit through to the cache (deletions already do),
+                        // so a section re-entry and Spotlight don't serve the stale
+                        // pre-edit row until the next full reload (#1005).
+                        cache.updateQuestion(question, account: accounts.currentAccountID)
                     }
                 }
             }

@@ -41,6 +41,9 @@ struct MergedQuestionsView: View {
     /// cached-then-refreshed data reads as trustworthy rather than possibly stale (#619).
     @State var lastRefreshed: Date?
     @State var questionsByAccount: [UUID: [Question]] = [:]
+    /// Bumped on any in-place content change so the NSTableView-backed list redraws
+    /// visible rows: its reload identity can't see content-only edits (#1003).
+    @State var questionsRevision = 0
     @State var accountErrors: [UUID: String] = [:]
     @State var isLoading = false
 

@@ -127,6 +127,10 @@ struct QuestionWindow: View {
             loadFailed = false
             refreshError = nil
             AppRouter.questionUpdated(question, account: account.id)
+            // Warm the cache with the freshest copy even when no list is mounted to
+            // receive the broadcast (a lone standalone window), so cache-backed
+            // surfaces don't keep the stale row (#1005). No-op when unchanged.
+            QuestionsCacheStore.shared.updateQuestion(question, account: account.id)
         } catch is CancellationError {
             return
         } catch {

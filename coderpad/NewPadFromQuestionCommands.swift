@@ -22,9 +22,9 @@ enum NewPadFromQuestionRunner {
         Task { @MainActor in
             do {
                 let pad = try await client.createPad(body)
-                guard let url = pad.webURL else { return }
-
-                BrowserSettings.openExternally(url)
+                // The canonical {base}/{id} fallback (#781): a response with a missing
+                // or malformed url must not silently lose the just-created pad (#1004).
+                BrowserSettings.openExternally(pad.webURL(fallbackBase: account.resolvedBaseURL))
             } catch {
                 AppNavigation.shared.routeNewPad(account: accountID.uuidString, seedQuestionID: question.id)
             }

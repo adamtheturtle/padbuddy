@@ -134,6 +134,11 @@ final class PadsBackgroundRefresher {
     /// absent in All Accounts mode, where the old current-only refresh did nothing.
     /// Sequential on purpose: one list fetch at a time keeps the background load low.
     func refreshAllAccounts() async {
+        // Accumulate every account's classified changes and post ONE alert after the
+        // sweep: notify() coalesces onto a single notification identifier and cancels
+        // the in-flight post, so per-account calls in one sweep left only the last
+        // account's alert standing and silently dropped the others' (#1038).
+        var changes: [PadChange] = []
         for account in AccountsStore.shared.accounts {
             // Skip mock/demo accounts (their data is static, so a refresh would only
             // churn the widget timeline) and any account without a key to fetch with.
@@ -142,23 +147,23 @@ final class PadsBackgroundRefresher {
             let client = account.makeClient()
             guard let fetched = try? await client.listPads(sort: "updated_at,desc") else { continue }
 
-            notifyAboutChanges(account: account, fetched: fetched)
+            changes += ownedChanges(account: account, fetched: fetched)
             // `set` cascades to the widget snapshot and the active-pads Dock badge.
             PadsCacheStore.shared.set(account.id, pads: fetched)
         }
+        PadUpdateNotifier.shared.notify(changes: changes)
     }
 
-    /// Posts opt-in pad-update alerts for background-detected activity, so closing
-    /// every window doesn't silently disable notifications (#735). Shares the pad
-    /// list's diff/classification and its "only the user's own pads" narrowing
-    /// (#424); PadUpdateNotifier itself still gates on the preference, permission,
-    /// and the app being inactive.
-    private func notifyAboutChanges(account: Account, fetched: [Pad]) {
+    /// The background-detected activity for one account, feeding the opt-in pad-update
+    /// alerts so closing every window doesn't silently disable notifications (#735).
+    /// Shares the pad list's diff/classification and its "only the user's own pads"
+    /// narrowing (#424); PadUpdateNotifier itself still gates on the preference,
+    /// permission, and the app being inactive.
+    private func ownedChanges(account: Account, fetched: [Pad]) -> [PadChange] {
         defer { previousActivity[account.id] = PadsView.activitySnapshot(of: fetched) }
-        guard let previous = previousActivity[account.id] else { return }
+        guard let previous = previousActivity[account.id] else { return [] }
 
-        let changes = PadsView.padChanges(in: fetched, since: previous)
-        PadUpdateNotifier.shared.notify(changes: changes.filter { account.owns($0.pad.ownerEmail) })
+        return PadsView.padChanges(in: fetched, since: previous).filter { account.owns($0.pad.ownerEmail) }
     }
 }
 
