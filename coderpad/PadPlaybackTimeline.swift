@@ -35,14 +35,29 @@ nonisolated struct PadPlaybackTimeline: Hashable {
     /// which would otherwise read as dozens of participants.
     let participantAuthors: [String]
 
+    /// The largest epoch-milliseconds value the timeline accepts (year 3000).
+    /// History timestamps are remote data: extreme values like `Int64.min`/`max`
+    /// would overflow the interval arithmetic below and trap while opening
+    /// History, so every timestamp is clamped into this range (#1163).
+    static let timestampRange: ClosedRange<Int64> = 0...32_503_680_000_000
+
     init(histories: [PadFileHistory]) {
+        // Items and per-file snapshot lookups are keyed by file id; a malformed
+        // pad returning duplicate ids would give items colliding identities and
+        // let `snapshotIndex(of:at:)` select the other file's edit, so only each
+        // id's first history is merged (#1165) — matching the playback view,
+        // which also resolves a file id to its first history.
+        var seenIDs = Set<String>()
+        let uniqueHistories = histories.filter { seenIDs.insert($0.id).inserted }
+
         var merged: [(fileOrder: Int, item: PadPlaybackItem)] = []
-        for (fileOrder, history) in histories.enumerated() {
+        for (fileOrder, history) in uniqueHistories.enumerated() {
             for snapshot in history.snapshots {
                 merged.append((fileOrder, PadPlaybackItem(
                     fileID: history.id,
                     snapshotIndex: snapshot.index,
-                    timestamp: snapshot.entry.timestamp,
+                    timestamp: min(max(snapshot.entry.timestamp, Self.timestampRange.lowerBound),
+                                   Self.timestampRange.upperBound),
                     author: snapshot.entry.author
                 )))
             }
@@ -180,12 +195,19 @@ nonisolated enum PadPlaybackAuthors {
     }
 
     /// A raw history author, filtered down to something worth showing: numeric
-    /// or letterless connection ids and upload push ids return nil.
+    /// or letterless connection ids, upload push ids, and machine-token shapes
+    /// return nil so the UI falls back to its anonymized "Participant N" label.
     static func displayName(_ raw: String) -> String? {
         let author = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !author.isEmpty, author.count < 80 else { return nil }
         guard author.range(of: #"[A-Za-z]"#, options: .regularExpression) != nil else { return nil }
         guard !isPushID(author) else { return nil }
+
+        // A long unbroken id-charset run is a backend connection token, not a
+        // person's name — letters alone don't make it displayable (#1170).
+        let tokenShape = author.range(of: #"^[A-Za-z0-9_-]{16,}$"#, options: .regularExpression) != nil
+        let hasDigit = author.range(of: #"[0-9]"#, options: .regularExpression) != nil
+        if tokenShape, hasDigit || author.count >= 24 { return nil }
         return author
     }
 }

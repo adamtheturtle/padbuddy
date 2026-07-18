@@ -32,17 +32,20 @@ struct HistoryPlaybackView: View {
         .blue, .green, .orange, .purple, .pink, .teal, .indigo, .brown
     ]
 
-    @State private var timeline: PadPlaybackTimeline
+    @State var timeline: PadPlaybackTimeline
     /// The playhead: an index into `timeline.items`. Starts at the latest edit,
     /// matching what the card showed before playback existed.
-    @State private var position: Int
+    @State var position: Int
     /// A file the user picked to view instead of the one being edited at the
     /// playhead. Cleared whenever the playhead moves, so playing and scrubbing
     /// always follow the action.
-    @State private var manualFileID: String?
-    @State private var isPlaying = false
-    @State private var playbackSpeed = 1.0
-    @State private var playbackTask: Task<Void, Never>?
+    @State var manualFileID: String?
+    @State var isPlaying = false
+    @State var playbackSpeed = 1.0
+    @State var playbackTask: Task<Void, Never>?
+    /// Identifies the current playback session, so a cancelled older task can't
+    /// switch off a newer session's `isPlaying` indicator on its way out (#1168).
+    @State var playbackGeneration = 0
 
     init(histories: [PadFileHistory], events: [PadEvent], dark: Bool) {
         self.histories = histories
@@ -77,7 +80,13 @@ struct HistoryPlaybackView: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .onChange(of: position) { manualFileID = nil }
-        .onChange(of: histories) { rebuildTimeline() }
+        .onChange(of: histories) {
+            // Replacing the timeline under a running replay would let the old
+            // task keep advancing the new timeline with stale gaps and a stale
+            // position (#1167).
+            stopPlayback()
+            rebuildTimeline()
+        }
         .onDisappear { stopPlayback() }
     }
 }
@@ -108,9 +117,14 @@ extension HistoryPlaybackView {
         events.compactMap { event in
             guard ["ran", "executed"].contains(event.kind.lowercased()),
                   let createdAt = event.createdAt else { return nil }
-            return timeline.fraction(
-                atMilliseconds: Int64(createdAt.timeIntervalSince1970 * 1_000)
-            )
+            // Event dates are remote data: a date outside the timeline's sane
+            // range would trap the Double→Int64 conversion (#1171). Out-of-range
+            // events simply draw no marker.
+            let milliseconds = createdAt.timeIntervalSince1970 * 1_000
+            guard milliseconds >= Double(PadPlaybackTimeline.timestampRange.lowerBound),
+                  milliseconds <= Double(PadPlaybackTimeline.timestampRange.upperBound) else { return nil }
+
+            return timeline.fraction(atMilliseconds: Int64(milliseconds))
         }
     }
 
@@ -318,61 +332,6 @@ extension HistoryPlaybackView {
         guard timeline.participantAuthors.contains(author) else { return nil }
 
         return laneName(for: author)
-    }
-
-    // MARK: Playback engine
-
-    private func setPosition(_ index: Int) {
-        position = min(max(0, index), max(0, timeline.items.count - 1))
-    }
-
-    private func togglePlayback() {
-        if isPlaying {
-            stopPlayback()
-        } else {
-            startPlayback()
-        }
-    }
-
-    /// Replays edits at the pace they actually happened, divided by the chosen
-    /// speed, reading `position` fresh each step so scrubbing mid-play just
-    /// moves the replay rather than fighting it.
-    private func startPlayback() {
-        stopPlayback()
-        guard timeline.items.count > 1 else { return }
-        if position >= timeline.items.count - 1 {
-            setPosition(0)
-        }
-        isPlaying = true
-        playbackTask = Task {
-            while !Task.isCancelled, position < timeline.items.count - 1 {
-                let gap = min(timeline.gapSeconds(after: position), Self.maxPlaybackGap)
-                let delay = max(gap / playbackSpeed, Self.minPlaybackStep)
-                do {
-                    try await Task.sleep(for: .seconds(delay))
-                } catch {
-                    break
-                }
-                guard !Task.isCancelled else { break }
-                setPosition(position + 1)
-            }
-            isPlaying = false
-        }
-    }
-
-    private func stopPlayback() {
-        playbackTask?.cancel()
-        playbackTask = nil
-        isPlaying = false
-    }
-
-    private func rebuildTimeline() {
-        // A background refresh replacing the histories keeps the playhead where
-        // it was, except "showing the latest edit" tracks the new latest.
-        let wasAtEnd = position >= timeline.items.count - 1
-        timeline = PadPlaybackTimeline(histories: histories)
-        let last = max(0, timeline.items.count - 1)
-        position = wasAtEnd ? last : min(position, last)
     }
 
     // MARK: Formatting
