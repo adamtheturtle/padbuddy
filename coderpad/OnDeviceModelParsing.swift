@@ -21,8 +21,12 @@ enum OnDeviceModelParsing {
         // anywhere let source code echoed inside one section (a line starting
         // "SUMMARY:") hijack a later section's start (#1716).
         var nextLabelIndex = 0
+        // Lines inside a ``` fence are quoted source, never section headers: a
+        // code block containing "SUMMARY:" must stay content even when the real
+        // section header hasn't appeared yet (#1962).
+        var inFence = false
         var lineStart = reply.startIndex
-        while lineStart < reply.endIndex, nextLabelIndex < labels.count {
+        while lineStart < reply.endIndex {
             var lineEnd = lineStart
             while lineEnd < reply.endIndex, !reply[lineEnd].isNewline {
                 lineEnd = reply.index(after: lineEnd)
@@ -34,12 +38,25 @@ enum OnDeviceModelParsing {
             }
 
             let line = reply[labelStart ..< lineEnd]
-            for offset in nextLabelIndex ..< labels.count {
-                let label = labels[offset]
-                if let range = line.range(of: label + ":", options: [.anchored, .caseInsensitive]) {
-                    positions.append((label, range))
-                    nextLabelIndex = offset + 1
-                    break
+            if line.hasPrefix("```") {
+                inFence.toggle()
+            } else if !inFence {
+                if let last = positions.last,
+                   let range = line.range(of: last.label + ":", options: [.anchored, .caseInsensitive]) {
+                    // The model corrected itself by re-emitting the current
+                    // section's header: the later occurrence wins over the stale
+                    // first answer (#1963). Only the *current* label re-matches;
+                    // an earlier label repeated later stays content (#1716).
+                    positions[positions.count - 1] = (last.label, range)
+                } else {
+                    for offset in nextLabelIndex ..< labels.count {
+                        let label = labels[offset]
+                        if let range = line.range(of: label + ":", options: [.anchored, .caseInsensitive]) {
+                            positions.append((label, range))
+                            nextLabelIndex = offset + 1
+                            break
+                        }
+                    }
                 }
             }
 
@@ -48,7 +65,6 @@ enum OnDeviceModelParsing {
             }
             lineStart = reply.index(after: lineEnd)
         }
-        positions.sort { $0.range.lowerBound < $1.range.lowerBound }
 
         var result: [String: String] = [:]
         for (index, entry) in positions.enumerated() {

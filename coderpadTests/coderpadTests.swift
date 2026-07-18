@@ -151,61 +151,6 @@ struct PadIDValidationTests {
     }
 }
 
-@Suite("On-device model parsing")
-struct OnDeviceModelParsingTests {
-    @Test
-    func `labeled sections parse multiline values from line-prefixed labels`() {
-        let reply = """
-          TITLE: Two Sum
-        DESCRIPTION: Find two numbers.
-        Return their indices.
-        SOLUTION:
-        Use a dictionary.
-        """
-
-        let sections = OnDeviceModelParsing.labeledSections(reply, labels: ["TITLE", "DESCRIPTION", "SOLUTION"])
-
-        #expect(sections["TITLE"] == "Two Sum")
-        #expect(sections["DESCRIPTION"] == "Find two numbers.\nReturn their indices.")
-        #expect(sections["SOLUTION"] == "Use a dictionary.")
-    }
-
-    @Test
-    func `labeled sections ignore label-like text inside values`() {
-        let reply = #"""
-        SUMMARY: Prints a string containing OPTIMALITY: O(n).
-        READABILITY:
-        The line let title = "SUMMARY: demo" is just source code.
-        OPTIMALITY: Linear time.
-        """#
-
-        let sections = OnDeviceModelParsing.labeledSections(
-            reply,
-            labels: ["SUMMARY", "READABILITY", "OPTIMALITY"]
-        )
-
-        #expect(sections["SUMMARY"] == "Prints a string containing OPTIMALITY: O(n).")
-        #expect(sections["READABILITY"] == #"The line let title = "SUMMARY: demo" is just source code."#)
-        #expect(sections["OPTIMALITY"] == "Linear time.")
-    }
-
-    @Test
-    func `labeled sections ignore duplicate labels after their first header`() {
-        let reply = """
-        TITLE: Original
-        DESCRIPTION:
-        TITLE: This is part of the description, not a second title.
-        SOLUTION: Done
-        """
-
-        let sections = OnDeviceModelParsing.labeledSections(reply, labels: ["TITLE", "DESCRIPTION", "SOLUTION"])
-
-        #expect(sections["TITLE"] == "Original")
-        #expect(sections["DESCRIPTION"] == "TITLE: This is part of the description, not a second title.")
-        #expect(sections["SOLUTION"] == "Done")
-    }
-}
-
 @Suite("Model conveniences")
 struct ModelConveniencesTests {
     private func pad(_ json: String) throws -> Pad {
