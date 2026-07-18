@@ -70,21 +70,43 @@ nonisolated enum MCPActivityLog {
     // MARK: - Writing (headless server)
 
     /// Record a `--mcp` process launch serving `account` (its display name, or nil).
+    /// A no-op while the server toggle is off: a headless process that was already
+    /// running when the user disabled the feature must stop recording too (#1761).
     static func recordLaunch(account: String?) {
+        guard UserDefaults.standard.bool(forKey: MCPServer.enabledDefaultsKey) else { return }
+
         withLockedStore { store in
-            store.append(MCPActivityEntry(id: UUID(), time: Date(), kind: .launch, tool: nil, account: account,
+            store.append(MCPActivityEntry(id: UUID(), time: Date(), kind: .launch, tool: nil,
+                                          account: sanitizedField(account, cap: 100),
                                           succeeded: nil, failureReason: nil))
         }
     }
 
     /// Record one tool call: its name, the account served, whether it succeeded,
-    /// and - for failures - a short sanitized reason (#688).
+    /// and - for failures - a short sanitized reason (#688). A no-op while the
+    /// server toggle is off (#1761).
     static func recordCall(tool: String, account: String?, succeeded: Bool, failureReason: String? = nil) {
+        guard UserDefaults.standard.bool(forKey: MCPServer.enabledDefaultsKey) else { return }
+
         withLockedStore { store in
-            store.append(MCPActivityEntry(id: UUID(), time: Date(), kind: .call, tool: tool, account: account,
+            store.append(MCPActivityEntry(id: UUID(), time: Date(), kind: .call,
+                                          tool: sanitizedField(tool, cap: 64),
+                                          account: sanitizedField(account, cap: 100),
                                           succeeded: succeeded,
                                           failureReason: failureReason.flatMap(sanitizedReason)))
         }
+    }
+
+    /// Bounds a recorded tool/account string: first line only, control characters
+    /// stripped, and capped, so one malformed identifier can't make every retained
+    /// JSONL line enormous (#1758).
+    static func sanitizedField(_ value: String?, cap: Int) -> String? {
+        guard let value else { return nil }
+
+        let firstLine = value.split(separator: "\n", omittingEmptySubsequences: true).first.map(String.init) ?? ""
+        let cleaned = String(firstLine.unicodeScalars.filter { !CharacterSet.controlCharacters.contains($0) })
+            .trimmingCharacters(in: .whitespaces)
+        return cleaned.isEmpty ? nil : String(cleaned.prefix(cap))
     }
 
     /// Reduces an error text to a log-safe summary: the first non-empty line,
@@ -110,29 +132,39 @@ nonisolated enum MCPActivityLog {
 
     /// The most recent entries, newest last, decoding tolerantly (a malformed line, e.g.
     /// from a torn concurrent append, is skipped rather than failing the whole read).
+    /// Read under a shared lock so the UI never observes a half-written rewrite from
+    /// a concurrent headless trim/clear (#1755).
     static func load() -> [MCPActivityEntry] {
-        store?.load() ?? []
+        guard let store else { return [] }
+
+        return withActivityLogLock(in: store.directory, exclusive: false) {
+            store.load()
+        } ?? []
     }
 
     /// The entries plus how many stored lines failed to decode, so the activity
     /// view can say unreadable entries were skipped — a corrupted log (torn write,
     /// failed lock) must be distinguishable from "no MCP use" (#1146). The count
     /// is exact whenever the file is within its cap (its steady state after
-    /// trims); between trims it can undercount.
+    /// trims); between trims it can undercount. Read under a shared lock (#1755).
     static func loadWithDiagnostics() -> (entries: [MCPActivityEntry], unreadableLines: Int) {
         guard let store else { return ([], 0) }
 
-        let entries = store.load()
-        let url = store.directory.appending(path: "mcp-activity.jsonl")
-        guard let text = try? String(contentsOf: url, encoding: .utf8) else { return (entries, 0) }
+        return withActivityLogLock(in: store.directory, exclusive: false) {
+            let entries = store.load()
+            let url = store.directory.appending(path: "mcp-activity.jsonl")
+            guard let text = try? String(contentsOf: url, encoding: .utf8) else { return (entries, 0) }
 
-        let lineCount = text.split(separator: "\n", omittingEmptySubsequences: true).count
-        return (entries, max(0, min(lineCount, maxEntries) - entries.count))
+            let lineCount = text.split(separator: "\n", omittingEmptySubsequences: true).count
+            return (entries, max(0, min(lineCount, maxEntries) - entries.count))
+        } ?? ([], 0)
     }
 
     /// Rewrite the file to only the last `maxEntries` lines and drop entries past
     /// the retention window (#1145), so the debug log can't grow without bound or
-    /// retain account names indefinitely. The same lock as append/clear keeps the
+    /// retain account names indefinitely. Also rewrites when the file holds
+    /// unreadable lines, so torn-write debris can't accumulate and slow every
+    /// settings poll forever (#1759). The same lock as append/clear keeps the
     /// rewrite from dropping a concurrent headless tool-call record.
     static func trimIfNeeded() {
         withLockedStore { store in
@@ -140,7 +172,10 @@ nonisolated enum MCPActivityLog {
             let entries = store.load()
             let cutoff = Date().addingTimeInterval(-retention)
             let retained = entries.filter { $0.time >= cutoff }
-            guard retained.count != entries.count else { return }
+            let url = store.directory.appending(path: "mcp-activity.jsonl")
+            let rawLines = (try? String(contentsOf: url, encoding: .utf8))?
+                .split(separator: "\n", omittingEmptySubsequences: true).count ?? entries.count
+            guard retained.count != entries.count || rawLines != entries.count else { return }
 
             store.clear()
             for entry in retained {
@@ -157,30 +192,67 @@ nonisolated enum MCPActivityLog {
     private static func withLockedStore(_ operation: (JSONLLog<MCPActivityEntry>) -> Void) {
         guard let store else { return }
 
-        withActivityLogLock(in: store.directory) {
+        withActivityLogLock(in: store.directory, exclusive: true) {
             operation(store)
         }
     }
 
-    private static func withActivityLogLock(in directory: URL, operation: () -> Void) {
+    /// Runs `operation` under the advisory file lock, or returns nil without running
+    /// it when the lock can't be acquired within the bounded wait. The log stores
+    /// account display names, so the directory and its files are kept user-private
+    /// (0700/0600) as a side effect of taking the lock (#1760).
+    @discardableResult
+    private static func withActivityLogLock<T>(
+        in directory: URL, exclusive: Bool, operation: () -> T
+    ) -> T? {
         #if canImport(Darwin)
-            try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            try? FileManager.default.createDirectory(
+                at: directory, withIntermediateDirectories: true,
+                attributes: [.posixPermissions: 0o700]
+            )
             let lockURL = directory.appending(path: lockFileName)
             if !FileManager.default.fileExists(atPath: lockURL.path) {
-                FileManager.default.createFile(atPath: lockURL.path, contents: nil)
+                FileManager.default.createFile(
+                    atPath: lockURL.path, contents: nil,
+                    attributes: [.posixPermissions: 0o600]
+                )
             }
+            restrictLogPermissions(in: directory)
 
             guard let handle = try? FileHandle(forWritingTo: lockURL) else {
-                operation()
-                return
+                // Never operate on the shared file without the lock: concurrent
+                // unlocked writers are exactly how the JSONL tears (#1756).
+                return nil
             }
             defer { try? handle.close() }
 
-            flock(handle.fileDescriptor, LOCK_EX)
+            // Bounded, non-blocking acquisition: a stalled headless process holding
+            // the lock must not freeze Settings actions running on the main actor
+            // (#1757), and a failed lock must skip the operation rather than write
+            // concurrently (#1756).
+            let kind = exclusive ? LOCK_EX : LOCK_SH
+            var acquired = flock(handle.fileDescriptor, kind | LOCK_NB) == 0
+            var attempts = 0
+            while !acquired, attempts < 20 {
+                usleep(100_000)
+                attempts += 1
+                acquired = flock(handle.fileDescriptor, kind | LOCK_NB) == 0
+            }
+            guard acquired else { return nil }
             defer { flock(handle.fileDescriptor, LOCK_UN) }
-            operation()
+
+            return operation()
         #else
-            operation()
+            return operation()
         #endif
+    }
+
+    /// Keeps the log and lock files user-private: they carry account display names
+    /// and activity timing (#1760).
+    private static func restrictLogPermissions(in directory: URL) {
+        let logPath = directory.appending(path: "mcp-activity.jsonl").path
+        if FileManager.default.fileExists(atPath: logPath) {
+            try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: logPath)
+        }
     }
 }
