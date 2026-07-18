@@ -240,50 +240,6 @@ enum SpotlightIndexer {
         }
     }
 
-    /// Removes a single pad from the index (e.g. when it's deleted). Re-indexing
-    /// the remaining list only adds/updates items, so a dropped pad needs an
-    /// explicit delete by identifier or it lingers in system search. Deletes the
-    /// pad's namespaced identifier for every account that holds it, plus the legacy
-    /// global form so pre-#759 items indexed before the namespacing are cleaned too.
-    static func removePad(id: String) {
-        let identifiers: [String] = enrichmentLock.withLock {
-            var identifiers = [padPrefix + id]
-            for account in indexedPadIdentifiersByAccount.keys {
-                identifiers.append(padIdentifier(id: id, account: account))
-            }
-            for (account, held) in indexedPadIdentifiersByAccount {
-                indexedPadIdentifiersByAccount[account] = held.subtracting(identifiers)
-            }
-            persistPadIdentifiers()
-            return identifiers
-        }
-        enqueueDelete(operation: "remove pad item") { completion in
-            CSSearchableIndex.default().deleteSearchableItems(
-                withIdentifiers: identifiers,
-                completionHandler: completion
-            )
-        }
-    }
-
-    /// Removes a single question from the index (e.g. when it's deleted). Scoped to
-    /// the owning account so a delete in one account can't drop another account's
-    /// same-id question from system search (#378).
-    static func removeQuestion(id: Int, account: UUID) {
-        let identifier = questionIdentifier(id: id, account: account)
-        enrichmentLock.withLock {
-            indexedQuestionIdentifiersByAccount[account]?.remove(identifier)
-            questionEnrichmentGenerations.removeValue(forKey: identifier)
-            persistQuestionIdentifiers()
-        }
-        enqueueDelete(operation: "remove question item") { completion in
-            CSSearchableIndex.default()
-                .deleteSearchableItems(
-                    withIdentifiers: [identifier],
-                    completionHandler: completion
-                )
-        }
-    }
-
     /// Clears everything this app indexed — used when the user turns the feature off.
     static func clearAll() {
         enrichmentLock.withLock {
@@ -350,6 +306,72 @@ enum SpotlightIndexer {
         """)
     }
 
+}
+
+// MARK: - Single-item removals
+
+extension SpotlightIndexer {
+    /// Removes a single pad from the index (e.g. when it's deleted). Re-indexing
+    /// the remaining list only adds/updates items, so a dropped pad needs an
+    /// explicit delete by identifier or it lingers in system search. Deletes the
+    /// pad's namespaced identifier for every account that holds it, plus the legacy
+    /// global form so pre-#759 items indexed before the namespacing are cleaned too.
+    static func removePad(id: String) {
+        let identifiers: [String] = enrichmentLock.withLock {
+            var identifiers = [padPrefix + id]
+            for account in indexedPadIdentifiersByAccount.keys {
+                identifiers.append(padIdentifier(id: id, account: account))
+            }
+            for (account, held) in indexedPadIdentifiersByAccount {
+                indexedPadIdentifiersByAccount[account] = held.subtracting(identifiers)
+            }
+            persistPadIdentifiers()
+            return identifiers
+        }
+        enqueueDelete(operation: "remove pad item") { completion in
+            CSSearchableIndex.default().deleteSearchableItems(
+                withIdentifiers: identifiers,
+                completionHandler: completion
+            )
+        }
+    }
+
+    /// Account-scoped variant of ``removePad(id:)``: deletes only the owning
+    /// account's namespaced identifier (plus the legacy global form, which predates
+    /// the namespacing), so a deletion in one account can't drop a colliding slug
+    /// another custom server issued (#761).
+    static func removePad(id: String, account: UUID) {
+        let identifiers = [padIdentifier(id: id, account: account), padPrefix + id]
+        enrichmentLock.withLock {
+            indexedPadIdentifiersByAccount[account]?.subtract(identifiers)
+            persistPadIdentifiers()
+        }
+        enqueueDelete(operation: "remove pad item") { completion in
+            CSSearchableIndex.default().deleteSearchableItems(
+                withIdentifiers: identifiers,
+                completionHandler: completion
+            )
+        }
+    }
+
+    /// Removes a single question from the index (e.g. when it's deleted). Scoped to
+    /// the owning account so a delete in one account can't drop another account's
+    /// same-id question from system search (#378).
+    static func removeQuestion(id: Int, account: UUID) {
+        let identifier = questionIdentifier(id: id, account: account)
+        enrichmentLock.withLock {
+            indexedQuestionIdentifiersByAccount[account]?.remove(identifier)
+            questionEnrichmentGenerations.removeValue(forKey: identifier)
+            persistQuestionIdentifiers()
+        }
+        enqueueDelete(operation: "remove question item") { completion in
+            CSSearchableIndex.default()
+                .deleteSearchableItems(
+                    withIdentifiers: [identifier],
+                    completionHandler: completion
+                )
+        }
+    }
 }
 
 // MARK: - Indexed-identifier bookkeeping persistence (#733)

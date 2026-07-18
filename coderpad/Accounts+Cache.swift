@@ -129,15 +129,22 @@ final class PadsCacheStore {
 
     /// Drop a single deleted pad from the cache so it stops appearing in Spotlight
     /// and the Recent Pads widget — re-indexing only adds/updates, so the deleted
-    /// row needs an explicit removal. Finds the owning account by the (globally
-    /// unique) pad id, then persists the reduced list. Warms each account from disk
+    /// row needs an explicit removal. Slugs are unique on the hosted service but
+    /// can collide across custom servers, so when the owning `account` is known
+    /// only that account is touched; otherwise every account holding the slug is
+    /// updated (the prior, id-only behavior) (#761). Warms each account from disk
     /// via `get` rather than scanning only the in-memory lists: deletion cleanup
     /// exists precisely for the cold-cache case (#721), and gating on residency
     /// left the widget snapshot and disk cache stale (#1032). Accounts already
     /// consulted resolve from memory, so the warm-cache path is unchanged.
-    func removePad(id padID: String) {
-        SpotlightIndexer.removePad(id: padID)
-        let knownAccounts = Set(AccountsStore.shared.accounts.map(\.id)).union(padsByAccount.keys)
+    func removePad(id padID: String, account: UUID? = nil) {
+        if let account {
+            SpotlightIndexer.removePad(id: padID, account: account)
+        } else {
+            SpotlightIndexer.removePad(id: padID)
+        }
+        let knownAccounts = account.map { [$0] }
+            ?? Array(Set(AccountsStore.shared.accounts.map(\.id)).union(padsByAccount.keys))
         for accountID in knownAccounts {
             let pads = get(accountID)
             guard pads.contains(where: { $0.id == padID }) else { continue }
@@ -368,30 +375,5 @@ final class OrganizationCacheStore {
 }
 
 // PadDetailCacheStore (the per-pad detail cache) lives in
-// Accounts+Cache+PadDetail.swift, split out for file length.
-
-/// Holds the last-loaded quota per account, for the same reason as
-/// `OrganizationCacheStore`. Shared by both the Quota and Organization sections,
-/// so visiting either one warms the other.
-@Observable
-final class QuotaCacheStore {
-    static let shared = QuotaCacheStore()
-    private(set) var byAccount: [UUID: Quota] = [:]
-    private init() {}
-
-    func get(_ accountID: UUID) -> Quota? {
-        byAccount[accountID]
-    }
-
-    /// `client` is the client the quota was fetched through; a stale result from a
-    /// removed or re-keyed account's outstanding load is dropped (#754).
-    func set(_ accountID: UUID, quota: Quota, via client: CoderPadClient) {
-        guard AccountsStore.shared.isCurrentClient(client, for: accountID) else { return }
-
-        byAccount[accountID] = quota
-    }
-
-    func remove(_ accountID: UUID) {
-        byAccount[accountID] = nil
-    }
-}
+// Accounts+Cache+PadDetail.swift and QuotaCacheStore in Accounts+Cache+Quota.swift,
+// both split out for file length.

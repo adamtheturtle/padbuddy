@@ -126,7 +126,7 @@ struct PadWindow: View {
             fetchedFor = value
             loadFailed = false
             refreshError = nil
-            AppRouter.padUpdated(pad)
+            AppRouter.padUpdated(pad, account: account.id)
         } catch is CancellationError {
             return
         } catch {

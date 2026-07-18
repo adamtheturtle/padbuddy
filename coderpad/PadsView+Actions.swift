@@ -12,7 +12,8 @@ extension PadsView {
     func deletePad(_ pad: Pad) async {
         do {
             try await client.deletePad(id: pad.id)
-            AppRouter.padDeleted(id: pad.id)
+            let owner = accounts.account(matching: client)?.id ?? accounts.currentAccountID
+            AppRouter.padDeleted(id: pad.id, account: owner)
         } catch {
             deleteError = error.localizedDescription
         }

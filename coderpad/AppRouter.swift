@@ -6,8 +6,24 @@
 import Foundation
 import SwiftUI
 
-/// A pad mutation broadcast: the updated question and the account that owns it.
-/// The account travels with the payload because per-org question ids collide
+/// A pad mutation broadcast: the updated pad and the account that owns it. Pad
+/// slugs are unique on the hosted service, but independent custom servers can
+/// issue colliding slugs, so consumers scope to the account when one is known
+/// (#761); a nil account falls back to the old slug-only matching.
+struct PadMutation {
+    let pad: Pad
+    let account: UUID?
+}
+
+/// A pad deletion broadcast: the deleted pad's slug and its owning account
+/// (see ``PadMutation`` for why the account is carried).
+struct PadDeletion {
+    let id: String
+    let account: UUID?
+}
+
+/// A question mutation broadcast: the updated question and the account that owns
+/// it. The account travels with the payload because per-org question ids collide
 /// across accounts, so combined-view consumers need it to scope the update.
 struct QuestionMutation {
     let question: Question
@@ -68,21 +84,28 @@ enum AppRouter {
     // MARK: - Pad mutations
 
     /// Broadcast that a pad changed, so every list showing it updates in place.
-    static func padUpdated(_ pad: Pad) {
-        center.post(name: .padUpdated, object: pad)
+    /// The owning `account` is carried so consumers can scope the update: custom
+    /// servers can issue colliding slugs across accounts (#761).
+    static func padUpdated(_ pad: Pad, account: UUID?) {
+        center.post(name: .padUpdated, object: pad, userInfo: userInfo(account))
     }
 
-    static var padUpdates: AsyncStream<Pad> {
-        payloadStream(.padUpdated) { $0.object as? Pad }
+    static var padUpdates: AsyncStream<PadMutation> {
+        payloadStream(.padUpdated) { note in
+            (note.object as? Pad).map { PadMutation(pad: $0, account: account(from: note)) }
+        }
     }
 
-    /// Broadcast that the pad with `id` was deleted, so lists drop the row.
-    static func padDeleted(id: String) {
-        center.post(name: .padDeleted, object: id)
+    /// Broadcast that the pad with `id` (owned by `account`) was deleted, so
+    /// lists drop the row.
+    static func padDeleted(id: String, account: UUID?) {
+        center.post(name: .padDeleted, object: id, userInfo: userInfo(account))
     }
 
-    static var padDeletions: AsyncStream<String> {
-        payloadStream(.padDeleted) { $0.object as? String }
+    static var padDeletions: AsyncStream<PadDeletion> {
+        payloadStream(.padDeleted) { note in
+            (note.object as? String).map { PadDeletion(id: $0, account: account(from: note)) }
+        }
     }
 
     // MARK: - Question mutations
@@ -144,7 +167,7 @@ enum AppRouter {
         note.userInfo?[accountUserInfoKey] as? UUID
     }
 
-    /// `userInfo` key carrying the owning account `UUID` on question broadcasts.
+    /// `userInfo` key carrying the owning account `UUID` on mutation broadcasts.
     private nonisolated static let accountUserInfoKey = "coderpad.account"
 }
 

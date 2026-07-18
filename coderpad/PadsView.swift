@@ -272,7 +272,13 @@ struct PadsView: View {
         decoratedObservers
             .onReloadRequest { await reload() }
             .task {
-                for await updated in AppRouter.padUpdates {
+                for await mutation in AppRouter.padUpdates {
+                    // Scope to this list's account when the broadcast carries one:
+                    // custom servers can issue colliding slugs, and an id-only match
+                    // let account A's edit overwrite account B's same-slug row (#761).
+                    guard mutation.account == nil || mutation.account == owningAccountID else { continue }
+
+                    let updated = mutation.pad
                     if let index = pads.firstIndex(where: { $0.id == updated.id }) {
                         pads[index] = updated
                         padsRevision += 1
@@ -281,7 +287,11 @@ struct PadsView: View {
                 }
             }
             .task {
-                for await id in AppRouter.padDeletions {
+                for await deletion in AppRouter.padDeletions {
+                    // Same account scoping as the update stream (#761).
+                    guard deletion.account == nil || deletion.account == owningAccountID else { continue }
+
+                    let id = deletion.id
                     // Drop the deleted id from the selection. If it was the primary,
                     // move to a neighbor (computed while `pads` still holds the row)
                     // only when no other rows stay selected; otherwise the primary
@@ -293,12 +303,20 @@ struct PadsView: View {
                     padsRevision += 1
                     // Keep the disk cache, Spotlight index, and widget in step;
                     // otherwise the deleted pad lingers there until a full reload.
-                    cache.removePad(id: id)
+                    cache.removePad(id: id, account: deletion.account)
                     if wasPrimary, selectedIDs.isEmpty {
                         selectedIDs = neighbor.map { [$0.id] } ?? []
                     }
                 }
             }
+    }
+
+    /// The account this list belongs to, resolved from its own client so pad
+    /// mutation broadcasts can be matched against the right account: custom
+    /// servers can issue colliding slugs across accounts (#761). Falls back to
+    /// the current account for clients that don't match a stored account (mocks).
+    private var owningAccountID: UUID? {
+        (accounts.account(matching: client) ?? accounts.currentAccount)?.id
     }
 
     /// The new-pad sheet, delete confirmations, and delete-error alert.

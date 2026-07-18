@@ -26,8 +26,8 @@ enum DeletionCleanup {
         guard padTask == nil else { return }
 
         padTask = Task {
-            for await id in AppRouter.padDeletions {
-                cleanUpDeletedPad(id: id)
+            for await deletion in AppRouter.padDeletions {
+                cleanUpDeletedPad(deletion)
             }
         }
         questionTask = Task {
@@ -42,17 +42,20 @@ enum DeletionCleanup {
     /// badge), the favorites entry (#722), the open-history timestamp (#723), and
     /// the in-memory detail cache holding its event log and code (#719).
     ///
-    /// Pad deletion broadcasts carry no account (pad slugs are unique across the
-    /// hosted service), so per-account state is cleared for every configured
-    /// account - matching `PadsCacheStore.removePad`, which also scans them all.
-    static func cleanUpDeletedPad(id: String) {
-        PadsCacheStore.shared.removePad(id: id)
-        for account in AccountsStore.shared.accounts {
-            FavoritePadsStore.shared.remove(id, account: account.id)
-            PadOpenedStore.shared.removePad(id, account: account.id)
+    /// With a known owning account (slugs can collide across custom servers, #761)
+    /// only that account's state is cleared; an account-less broadcast falls back
+    /// to sweeping every configured account - matching `PadsCacheStore.removePad`.
+    static func cleanUpDeletedPad(_ deletion: PadDeletion) {
+        PadsCacheStore.shared.removePad(id: deletion.id, account: deletion.account)
+        let targets = deletion.account
+            .map { id in AccountsStore.shared.accounts.filter { $0.id == id } }
+            ?? AccountsStore.shared.accounts
+        for account in targets {
+            FavoritePadsStore.shared.remove(deletion.id, account: account.id)
+            PadOpenedStore.shared.removePad(deletion.id, account: account.id)
             // The detail cache is keyed by pad + client credentials; every client
             // the app uses comes from an account, so this reaches every entry.
-            PadDetailCacheStore.shared.remove(id, client: account.makeClient())
+            PadDetailCacheStore.shared.remove(deletion.id, client: account.makeClient())
         }
     }
 

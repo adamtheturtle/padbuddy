@@ -81,9 +81,9 @@ extension PadDetailView {
             do {
                 // Refresh so the authoritative ended state/timestamp propagate to the list and detail.
                 let updated = try await client.getPad(id: pad.id)
-                AppRouter.padUpdated(updated)
+                AppRouter.padUpdated(updated, account: owningAccountID)
             } catch {
-                AppRouter.padUpdated(optimisticEndedPad())
+                AppRouter.padUpdated(optimisticEndedPad(), account: owningAccountID)
                 mutateError = """
                 The interview was ended, but the latest pad details couldn't be refreshed. \
                 Reload to confirm the final timestamp.
@@ -112,7 +112,7 @@ extension PadDetailView {
         defer { isMutating = false }
         do {
             try await client.deletePad(id: pad.id)
-            AppRouter.padDeleted(id: pad.id)
+            AppRouter.padDeleted(id: pad.id, account: owningAccountID)
         } catch {
             mutateError = error.localizedDescription
         }

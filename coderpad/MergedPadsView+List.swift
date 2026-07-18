@@ -214,25 +214,32 @@ extension MergedPadsView {
         decoratedSync
             .onReloadRequest { await reload() }
             .task {
-                for await updated in AppRouter.padUpdates {
-                    applyUpdated(updated)
+                for await mutation in AppRouter.padUpdates {
+                    applyUpdated(mutation.pad, account: mutation.account)
                 }
             }
             .task {
-                for await id in AppRouter.padDeletions {
-                    // Drop every selected row whose pad matches the deleted slug (the
-                    // broadcast carries no account yet, #761). If the primary was among
-                    // them, a neighbor - computed while the row is still present - takes
-                    // over only when no other rows remain selected; otherwise the primary
-                    // falls to a still-selected row via the `selectedIDs` observer.
-                    let removed = selectedIDs.filter { row(forRowID: $0)?.item.id == id }
+                for await deletion in AppRouter.padDeletions {
+                    // Drop every selected row whose pad matches the deleted slug,
+                    // scoped to the owning account when the broadcast carries one so a
+                    // colliding slug on another custom server keeps its row (#761). If
+                    // the primary was among them, a neighbor - computed while the row
+                    // is still present - takes over only when no other rows remain
+                    // selected; otherwise the primary falls to a still-selected row
+                    // via the `selectedIDs` observer.
+                    let id = deletion.id
+                    let removed = selectedIDs.filter { rowID in
+                        guard let row = row(forRowID: rowID), row.item.id == id else { return false }
+
+                        return deletion.account == nil || row.account.id == deletion.account
+                    }
                     let wasPrimary = selectedID.map { removed.contains($0) } ?? false
                     let neighbor = wasPrimary
                         ? selectedID.flatMap { neighborRowID(forDeletedRowID: $0) } : nil
                     selectedIDs.subtract(removed)
-                    removePad(id: id)
+                    removePad(id: id, account: deletion.account)
                     // Keep the disk cache, Spotlight index, and widget in step.
-                    cache.removePad(id: id)
+                    cache.removePad(id: id, account: deletion.account)
                     if wasPrimary, selectedIDs.isEmpty {
                         selectedIDs = neighbor.map { [$0] } ?? []
                     }

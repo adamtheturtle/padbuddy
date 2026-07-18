@@ -204,7 +204,7 @@ extension PadDetailView {
 
         do {
             try await client.updatePadWithoutRefetch(PadUpdate(id: pad.id, title: newTitle))
-            AppRouter.padUpdated(optimisticPad(title: newTitle))
+            AppRouter.padUpdated(optimisticPad(title: newTitle), account: owningAccountID)
             return true
         } catch {
             mutateError = error.localizedDescription
@@ -285,7 +285,7 @@ extension PadDetailView {
     private func saveContent(_ body: PadUpdate, optimistic: Pad) async -> Bool {
         do {
             try await client.updatePadWithoutRefetch(body)
-            AppRouter.padUpdated(optimistic)
+            AppRouter.padUpdated(optimistic, account: owningAccountID)
             return true
         } catch {
             mutateError = error.localizedDescription
@@ -302,10 +302,10 @@ extension PadDetailView {
         do {
             if let optimistic {
                 try await client.updatePadWithoutRefetch(body)
-                AppRouter.padUpdated(optimistic)
+                AppRouter.padUpdated(optimistic, account: owningAccountID)
             } else {
                 let updated = try await client.updatePad(body)
-                AppRouter.padUpdated(updated)
+                AppRouter.padUpdated(updated, account: owningAccountID)
             }
         } catch {
             mutateError = error.localizedDescription

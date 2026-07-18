@@ -319,7 +319,9 @@ struct PadDetailView: View {
     /// account, and keying favorites by the current account starred the pad under
     /// whichever account happened to be selected elsewhere (#986). Falls back to
     /// the current account for clients that don't match a stored account (mocks).
-    private var owningAccountID: UUID? {
+    /// Internal (not private): the edit/menu-action extensions stamp it onto pad
+    /// mutation broadcasts so consumers can scope them by account (#761).
+    var owningAccountID: UUID? {
         (accounts.account(matching: client) ?? accounts.currentAccount)?.id
     }
 
