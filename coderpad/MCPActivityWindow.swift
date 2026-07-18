@@ -71,25 +71,45 @@ struct MCPActivityView: View {
     }
 
     private func callRow(_ call: MCPActivityEntry) -> some View {
-        HStack(spacing: 10) {
-            Image(systemName: call.succeeded == false ? "exclamationmark.circle" : "checkmark.circle")
-                .foregroundStyle(call.succeeded == false ? .orange : .green)
-                .accessibilityHidden(true)
-            Text(call.tool ?? "-")
-                .font(.system(.callout, design: .monospaced))
-            Spacer()
-            if let account = call.account, !account.isEmpty {
-                Text(account)
+        VStack(alignment: .leading, spacing: 3) {
+            HStack(spacing: 10) {
+                Image(systemName: call.succeeded == false ? "exclamationmark.circle" : "checkmark.circle")
+                    .foregroundStyle(call.succeeded == false ? .orange : .green)
+                    .accessibilityHidden(true)
+                Text(call.tool ?? "-")
+                    .font(.system(.callout, design: .monospaced))
+                Spacer()
+                if let account = call.account, !account.isEmpty {
+                    Text(account)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                Text(call.time, format: .relative(presentation: .numeric))
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                    .lineLimit(1)
             }
-            Text(call.time, format: .relative(presentation: .numeric))
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            // The sanitized failure summary (#688): why the call errored, so the
+            // user doesn't have to ask the assistant. Older log entries predate
+            // the field and just show ok/error as before.
+            if call.succeeded == false, let reason = call.failureReason, !reason.isEmpty {
+                Text(reason)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(2)
+                    .padding(.leading, 26)
+            }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(call.tool ?? "tool"), \(call.succeeded == false ? "error" : "ok")")
+        .accessibilityLabel(callAccessibilityLabel(call))
+    }
+
+    private func callAccessibilityLabel(_ call: MCPActivityEntry) -> String {
+        let status = call.succeeded == false ? "error" : "ok"
+        if call.succeeded == false, let reason = call.failureReason, !reason.isEmpty {
+            return "\(call.tool ?? "tool"), \(status), \(reason)"
+        }
+        return "\(call.tool ?? "tool"), \(status)"
     }
 }
 

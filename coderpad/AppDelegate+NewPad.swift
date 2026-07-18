@@ -10,6 +10,7 @@
 
 #if os(macOS)
     import AppKit
+    import os
 
     extension AppDelegate {
         /// Observes the Darwin notifications `WidgetSharedStore.requestNewPad` and
@@ -124,7 +125,16 @@
                     openCreatedPad(pad.webURL(fallbackBase: fallbackBase))
                 } catch {
                     // Offline or a transient API error: surface the in-app create flow so the
-                    // user can retry, rather than failing silently.
+                    // user can retry, rather than failing silently. Log why (privacy-safe:
+                    // the account id and error text, never the key) so a repeated fallback
+                    // - e.g. a revoked key - is diagnosable from Console (#688).
+                    persistenceLogger.warning(
+                        """
+                        Widget New Pad API create failed for account \
+                        \(accountID.uuidString, privacy: .public); falling back to the in-app \
+                        create sheet: \(error.localizedDescription, privacy: .public)
+                        """
+                    )
                     routeNewPadViaDeepLink(account: accountID.uuidString, question: route.seedQuestionID)
                 }
             }

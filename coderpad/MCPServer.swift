@@ -110,10 +110,13 @@ private nonisolated struct CoderPadToolProvider: MCPToolProvider {
 
         let arguments = Self.nativeArguments(arguments)
         let outcome = await MCPTools.run(name: name, arguments: arguments, directory: directory)
-        // Report the call (tool name + served account + ok/error only - never arguments)
-        // so the app's MCP status view can show recent activity (#523).
+        // Report the call (tool name + served account + ok/error - never arguments)
+        // so the app's MCP status view can show recent activity (#523). Failures
+        // carry a short sanitized reason so "why did that call fail?" is answerable
+        // from the activity window instead of only from the assistant (#688).
         let served = MCPActivityAttribution.accountName(arguments: arguments, directory: directory)
-        MCPActivityLog.recordCall(tool: name, account: served, succeeded: !outcome.isError)
+        MCPActivityLog.recordCall(tool: name, account: served, succeeded: !outcome.isError,
+                                  failureReason: outcome.isError ? outcome.text : nil)
         return textResult(outcome.text, isError: outcome.isError ? true : nil)
     }
 

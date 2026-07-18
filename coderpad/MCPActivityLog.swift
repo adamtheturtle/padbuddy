@@ -39,6 +39,11 @@ nonisolated struct MCPActivityEntry: Codable, Identifiable, Hashable {
     let account: String?
     /// Whether a `call` succeeded; nil for a `launch`.
     let succeeded: Bool?
+    /// A short, sanitized reason for a failed `call` (first line, capped) so the
+    /// activity view can say *why* a tool errored, not just that it did (#688).
+    /// Never tool arguments or result payloads; nil on success, for launches, and
+    /// for entries written before the field existed.
+    var failureReason: String?
 }
 
 /// Reads and writes the MCP activity log. All members are `nonisolated` so the headless
@@ -68,16 +73,32 @@ nonisolated enum MCPActivityLog {
     static func recordLaunch(account: String?) {
         withLockedStore { store in
             store.append(MCPActivityEntry(id: UUID(), time: Date(), kind: .launch, tool: nil, account: account,
-                                          succeeded: nil))
+                                          succeeded: nil, failureReason: nil))
         }
     }
 
-    /// Record one tool call: its name, the account served, and whether it succeeded.
-    static func recordCall(tool: String, account: String?, succeeded: Bool) {
+    /// Record one tool call: its name, the account served, whether it succeeded,
+    /// and - for failures - a short sanitized reason (#688).
+    static func recordCall(tool: String, account: String?, succeeded: Bool, failureReason: String? = nil) {
         withLockedStore { store in
             store.append(MCPActivityEntry(id: UUID(), time: Date(), kind: .call, tool: tool, account: account,
-                                          succeeded: succeeded))
+                                          succeeded: succeeded,
+                                          failureReason: failureReason.flatMap(sanitizedReason)))
         }
+    }
+
+    /// Reduces an error text to a log-safe summary: the first non-empty line,
+    /// capped at 120 characters. Error texts are validation/HTTP messages, but the
+    /// cap keeps any verbose server body from ballooning the log or echoing
+    /// response payloads into it.
+    static func sanitizedReason(_ text: String) -> String? {
+        let firstLine = text
+            .split(separator: "\n", omittingEmptySubsequences: true)
+            .first
+            .map { $0.trimmingCharacters(in: .whitespaces) } ?? ""
+        guard !firstLine.isEmpty else { return nil }
+
+        return String(firstLine.prefix(120))
     }
 
     // MARK: - Reading (app)

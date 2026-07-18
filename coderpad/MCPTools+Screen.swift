@@ -33,7 +33,7 @@ nonisolated extension MCPTools {
 
         switch name {
         case "screen_list_campaigns":
-            return await screenGet("/campaigns", key: key, base: base)
+            return await screenGet("/campaigns", key: key, base: base, account: credentials.accountName)
 
         case "screen_list_tests":
             if let error = screenPaginationValidationError(
@@ -43,12 +43,13 @@ nonisolated extension MCPTools {
                 return Outcome(text: error, isError: true)
             }
 
-            return await screenGet("/tests", key: key, base: base, query: screenTestsQuery(arguments))
+            return await screenGet("/tests", key: key, base: base, query: screenTestsQuery(arguments),
+                                   account: credentials.accountName)
 
         case "screen_get_test":
             guard let id = int(arguments, "test") else { return missing("test") }
 
-            return await screenGet("/tests/\(id)", key: key, base: base)
+            return await screenGet("/tests/\(id)", key: key, base: base, account: credentials.accountName)
 
         default:
             return Outcome(text: "Unknown tool: \(name)", isError: true)
@@ -74,8 +75,11 @@ nonisolated extension MCPTools {
 
     /// Performs an authenticated Screen GET (the `API-Key` header, not a bearer token) and
     /// returns the raw JSON body verbatim, or an error outcome with the HTTP status.
+    /// Errors name the owning `account` (display name) and the Screen host: with
+    /// several merged accounts the same tool can serve any of them, and an
+    /// unattributed failure doesn't say whose Screen key or region to fix (#688).
     static func screenGet(
-        _ path: String, key: String, base: URL, query: [URLQueryItem] = []
+        _ path: String, key: String, base: URL, query: [URLQueryItem] = [], account: String? = nil
     ) async -> Outcome {
         guard var components = URLComponents(
             url: base.appending(path: screenAPIPrefix + path), resolvingAgainstBaseURL: false
@@ -99,9 +103,21 @@ nonisolated extension MCPTools {
             if (200 ..< 300).contains(status) {
                 return Outcome(text: body, isError: false)
             }
-            return Outcome(text: "HTTP \(status)\n\(body)", isError: true)
+            return Outcome(text: "HTTP \(status)\(attribution(account, base: base))\n\(body)", isError: true)
         } catch {
-            return Outcome(text: "Request to \(path) failed: \(error.localizedDescription)", isError: true)
+            return Outcome(
+                text: "Request to \(path)\(attribution(account, base: base)) failed: \(error.localizedDescription)",
+                isError: true
+            )
         }
+    }
+
+    /// The " for the "Name" account's Screen server (host)" suffix on Screen errors,
+    /// so a merged-mode failure identifies whose credentials and region were used.
+    private static func attribution(_ account: String?, base: URL) -> String {
+        let host = base.host ?? base.absoluteString
+        guard let account, !account.isEmpty else { return " (Screen server \(host))" }
+
+        return " for the \"\(account)\" account's Screen server (\(host))"
     }
 }
