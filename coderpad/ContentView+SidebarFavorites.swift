@@ -82,6 +82,15 @@ extension Sidebar {
             questions.map { ($0.id, $0.title) },
             uniquingKeysWith: { first, _ in first }
         )
+        // Whitespace-only titles count as absent, or they'd beat the slug /
+        // "Question #id" fallbacks and render blank rows (#1680, #1681).
+        func presentable(_ title: String?) -> String? {
+            guard let title else { return nil }
+
+            let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+            return trimmed.isEmpty ? nil : trimmed
+        }
+
         switch ref {
         case let .pad(padID):
             guard favoritePads.favorites(account: account).contains(padID) else { return nil }
@@ -89,20 +98,19 @@ extension Sidebar {
             // Prefer the live cache title (so renames show through), then the title
             // captured when the pad was pinned (#654), and only fall back to the bare
             // slug for a legacy favourite whose pad hasn't loaded yet.
-            let storedPad = storedPadTitles[padID] ?? ""
             return FavoriteEntry(
                 id: namespaced ? "\(account.uuidString)-pad-\(padID)" : "pad-\(padID)",
                 ref: ref,
                 account: namespaced ? account : nil,
-                title: padTitles[padID] ?? (storedPad.isEmpty ? padID : storedPad)
+                title: presentable(padTitles[padID]) ?? presentable(storedPadTitles[padID]) ?? padID
             )
 
         case let .question(questionID):
             guard favorites.favorites(account: account).contains(questionID) else { return nil }
 
-            let stored = storedTitles[questionID] ?? ""
-            let resolved = cacheTitles[questionID]
-                ?? (stored.isEmpty ? "Question #\(questionID)" : stored)
+            let resolved = presentable(cacheTitles[questionID])
+                ?? presentable(storedTitles[questionID])
+                ?? "Question #\(questionID)"
             return FavoriteEntry(
                 id: namespaced ? "\(account.uuidString)-q-\(questionID)" : "q-\(questionID)",
                 ref: ref,
@@ -164,17 +172,24 @@ extension Sidebar {
         }
         .modifier(FavoriteDropChrome(isHighlighted: droppingFavorites))
         .onDrop(of: [.coderpadFavoriteReorder, .coderpadFavorite], isTargeted: $droppingFavorites) { providers in
-            for provider in providers {
-                if provider.hasItemConformingToTypeIdentifier(UTType.coderpadFavoriteReorder.identifier) {
-                    loadFavoriteReorder(from: provider) { reorder in
-                        reorderTargetID = nil
-                        moveFavoriteToEnd(reorder)
-                    }
-                } else {
-                    loadFavoriteDrop(from: provider) { _ = handleFavoriteDrop([$0]) }
+            let reorders = providers.filter {
+                $0.hasItemConformingToTypeIdentifier(UTType.coderpadFavoriteReorder.identifier)
+            }
+            let adds = providers.filter {
+                !$0.hasItemConformingToTypeIdentifier(UTType.coderpadFavoriteReorder.identifier)
+                    && $0.hasItemConformingToTypeIdentifier(UTType.coderpadFavorite.identifier)
+            }
+            if let reorder = reorders.first {
+                loadFavoriteReorder(from: reorder) { reorder in
+                    reorderTargetID = nil
+                    moveFavoriteToEnd(reorder)
                 }
             }
-            return true
+            // Batch-decoded so a multi-item drag pins in its original drag order (#1678).
+            loadFavoriteDrops(from: adds) { _ = handleFavoriteDrop($0) }
+            // Accept only when something usable was actually offered, so the drop
+            // animation doesn't report success for foreign payloads (#1677).
+            return !reorders.isEmpty || !adds.isEmpty
         }
     }
 

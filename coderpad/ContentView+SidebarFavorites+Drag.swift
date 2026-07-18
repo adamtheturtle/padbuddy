@@ -13,15 +13,67 @@ import SwiftUI
 import UniformTypeIdentifiers
 
 extension Sidebar {
-    /// Decodes a dragged-in `FavoriteDrop` from a provider and hands it to `perform`
-    /// on the main actor. Shared by the section container (which appends) and each
-    /// favorite row's drop target (which inserts at the dropped position).
-    func loadFavoriteDrop(from provider: NSItemProvider, perform: @escaping @MainActor (FavoriteDrop) -> Void) {
-        provider.loadDataRepresentation(forTypeIdentifier: UTType.coderpadFavorite.identifier) { data, _ in
-            guard let data, let drop = try? JSONDecoder().decode(FavoriteDrop.self, from: data) else { return }
+    /// The largest payload a favorite drag may carry: a real payload is a few
+    /// hundred bytes, and an external provider advertising our type must not be
+    /// able to force a large allocation in the app (#1676).
+    static let maxFavoritePayloadBytes = 16_384
 
-            Task { @MainActor in perform(drop) }
+    /// Decodes every favorite-drop provider first, then hands the drops to
+    /// `perform` together in the providers' original order: per-provider
+    /// completions land in nondeterministic order, which could pin a multi-item
+    /// drag reversed (#1678). Providers not carrying our type, oversized
+    /// payloads, and drops that fail validation are skipped.
+    func loadFavoriteDrops(
+        from providers: [NSItemProvider],
+        perform: @escaping @MainActor ([FavoriteDrop]) -> Void
+    ) {
+        let favoriteProviders = providers.filter {
+            $0.hasItemConformingToTypeIdentifier(UTType.coderpadFavorite.identifier)
         }
+        guard !favoriteProviders.isEmpty else { return }
+
+        Task { @MainActor in
+            var drops: [FavoriteDrop] = []
+            for provider in favoriteProviders {
+                if let drop = await Self.decodeFavoriteDrop(provider),
+                   let validated = validatedFavoriteDrop(drop) {
+                    drops.append(validated)
+                }
+            }
+            guard !drops.isEmpty else { return }
+
+            perform(drops)
+        }
+    }
+
+    private nonisolated static func decodeFavoriteDrop(_ provider: NSItemProvider) async -> FavoriteDrop? {
+        await withCheckedContinuation { continuation in
+            provider.loadDataRepresentation(forTypeIdentifier: UTType.coderpadFavorite.identifier) { data, _ in
+                guard let data, data.count <= maxFavoritePayloadBytes,
+                      let drop = try? JSONDecoder().decode(FavoriteDrop.self, from: data) else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+                continuation.resume(returning: drop)
+            }
+        }
+    }
+
+    /// Validates a dropped payload at apply time, on the main actor: the payload's
+    /// account must still exist — a drag can outlive account removal, and writing
+    /// through the carried UUID would persist favorites no UI can show or manage
+    /// (#1673, #1679) — and the identifier must be plausible, so an external
+    /// provider can't create corrupt favorite/order records (#1674).
+    private func validatedFavoriteDrop(_ drop: FavoriteDrop) -> FavoriteDrop? {
+        switch drop {
+        case let .pad(account, id, _):
+            guard accounts.accounts.contains(where: { $0.id == account }),
+                  PadIDValidation.normalize(id) != nil else { return nil }
+
+        case let .question(account, id, _):
+            guard accounts.accounts.contains(where: { $0.id == account }), id > 0 else { return nil }
+        }
+        return drop
     }
 
     /// Pins a dropped pad or question immediately before `item` in the combined order, so
@@ -66,7 +118,8 @@ extension Sidebar {
         onReorder: @escaping @MainActor (FavoriteReorder) -> Void
     ) {
         provider.loadDataRepresentation(forTypeIdentifier: UTType.coderpadFavoriteReorder.identifier) { data, _ in
-            guard let data, let reorder = try? JSONDecoder().decode(FavoriteReorder.self, from: data) else { return }
+            guard let data, data.count <= Self.maxFavoritePayloadBytes,
+                  let reorder = try? JSONDecoder().decode(FavoriteReorder.self, from: data) else { return }
 
             Task { @MainActor in onReorder(reorder) }
         }
@@ -128,17 +181,25 @@ extension Sidebar {
                     reorderTargetID = targeted ? rowID : (reorderTargetID == rowID ? nil : reorderTargetID)
                 }
             )) { providers in
-                for provider in providers {
-                    if provider.hasItemConformingToTypeIdentifier(UTType.coderpadFavoriteReorder.identifier) {
-                        loadFavoriteReorder(from: provider) { reorder in
-                            reorderTargetID = nil
-                            onReorder(reorder)
-                        }
-                    } else {
-                        loadFavoriteDrop(from: provider, perform: onAdd)
+                let reorders = providers.filter {
+                    $0.hasItemConformingToTypeIdentifier(UTType.coderpadFavoriteReorder.identifier)
+                }
+                let adds = providers.filter {
+                    !$0.hasItemConformingToTypeIdentifier(UTType.coderpadFavoriteReorder.identifier)
+                        && $0.hasItemConformingToTypeIdentifier(UTType.coderpadFavorite.identifier)
+                }
+                if let reorder = reorders.first {
+                    loadFavoriteReorder(from: reorder) { reorder in
+                        reorderTargetID = nil
+                        onReorder(reorder)
                     }
                 }
-                return true
+                loadFavoriteDrops(from: adds) { drops in
+                    for drop in drops { onAdd(drop) }
+                }
+                // Accept only when something usable was actually offered, so the
+                // drop animation doesn't report success for foreign payloads (#1677).
+                return !reorders.isEmpty || !adds.isEmpty
             }
         // Only rows whose owning account is known can be dragged to reorder.
         if let payload {
@@ -202,9 +263,19 @@ extension Sidebar {
     }
 
     private func favoriteReorderRef(_ dropped: FavoriteReorder) -> (ref: FavoriteRef, account: UUID)? {
+        // Only refs actually favorited in the source account may reorder: a
+        // forged external payload must not inject order records for nonexistent
+        // favorites (#1675).
         switch dropped {
-        case let .pad(account, id): (.pad(id), account)
-        case let .question(account, id): (.question(id), account)
+        case let .pad(account, id):
+            guard favoritePads.isFavorite(id, account: account) else { return nil }
+
+            return (.pad(id), account)
+
+        case let .question(account, id):
+            guard favorites.favorites(account: account).contains(id) else { return nil }
+
+            return (.question(id), account)
         }
     }
 }
