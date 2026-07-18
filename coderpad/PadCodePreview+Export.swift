@@ -90,7 +90,8 @@ extension EnvironmentCodeCard {
     func download(_ file: CodeFile) {
         #if os(macOS)
             let panel = NSSavePanel()
-            panel.nameFieldStringValue = file.name
+            // The file name is remote content: sanitize the suggested name (#1162).
+            panel.nameFieldStringValue = SaveCodePathHelpers.sanitizeComponent(file.name)
             panel.canCreateDirectories = true
             panel.isExtensionHidden = false
             guard panel.runModal() == .OK, let url = panel.url else { return }

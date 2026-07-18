@@ -23,11 +23,16 @@ extension QuestionDetailView {
     func exportMarkdown() {
         let name = question.displayTitle
         let document = questionMarkdownDocument(question, displayName: directory.display)
+        // The title is remote content: sanitize the suggested filename on both
+        // platforms — the macOS panel previously took the raw title, so path
+        // separators/control characters produced invalid or misleading suggested
+        // names (#1162).
+        let fileName = SaveCodePathHelpers.sanitizeComponent(name)
 
         #if os(macOS)
             let panel = NSSavePanel()
             panel.canCreateDirectories = true
-            panel.nameFieldStringValue = "\(name).md"
+            panel.nameFieldStringValue = "\(fileName).md"
             panel.message = "Export \"\(name)\" as Markdown"
             guard panel.runModal() == .OK, let url = panel.url else { return }
 
@@ -40,17 +45,8 @@ extension QuestionDetailView {
             pendingExport = PadExportDocument(
                 text: document,
                 contentType: .plainText,
-                defaultName: "\(questionExportFileName(name)).md"
+                defaultName: "\(fileName).md"
             )
         #endif
     }
-
-    #if !os(macOS)
-        private func questionExportFileName(_ name: String) -> String {
-            let invalid = CharacterSet(charactersIn: "/\\:?%*|\"<>")
-            let cleaned = name.components(separatedBy: invalid).joined(separator: "-")
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            return cleaned.isEmpty ? "Untitled Question" : cleaned
-        }
-    #endif
 }

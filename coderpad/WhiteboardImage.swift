@@ -62,6 +62,14 @@ struct WhiteboardImage: View {
     }
 
     private func load() async {
+        // The drawing URL is API data: refuse anything but a plausible HTTPS
+        // image host, so a malicious or misconfigured record can't point the app
+        // at loopback, LAN, or plaintext resources (#1158).
+        guard Self.isAllowedImageURL(url) else {
+            phase = .failure
+            return
+        }
+
         // The whiteboard renders into the detail pane (a few hundred points wide)
         // and opens full size on tap, so cap the inline copy at a generous pane
         // width in pixels rather than decoding the source at full resolution.
@@ -81,9 +89,17 @@ struct WhiteboardImage: View {
         }
 
         do {
-            let (data, _) = try await WhiteboardImageCache.shared.session.data(from: url)
+            let data = try await Self.fetchBounded(
+                url: url,
+                maxBytes: Self.maxDownloadBytes,
+                session: WhiteboardImageCache.shared.session
+            )
+            // Don't start a decode for a view that's already gone: the detached
+            // task below outlives cancellation once started, so rapid pad
+            // switching would otherwise pile up full decodes (#1160).
+            try Task.checkCancellation()
             // Downsample off the main actor; ImageIO does the heavy decode.
-            let downsampled = await Task.detached {
+            let downsampled = await Task.detached(priority: .utility) {
                 WhiteboardImageCache.downsample(data: data, maxPixelSize: maxPixelSize)
             }.value
             // `.task(id: url)` cancelled this task if the URL moved on, but the
@@ -104,6 +120,53 @@ struct WhiteboardImage: View {
             // flashing a failure over a perfectly presentable image.
             if cached == nil { phase = .failure }
         }
+    }
+
+    /// The whiteboard thumbnail's download budget. The rendered copy is capped at
+    /// 600 points, so anything past this is either a mistake or a resource-
+    /// exhaustion attempt (#1159).
+    static let maxDownloadBytes = 20 * 1024 * 1024
+
+    /// Whether `url` is a plausibly safe remote image source: HTTPS only, with a
+    /// hostname that isn't loopback, mDNS-local, or an IP literal — drawing
+    /// exports are served from hostnames, and a literal is how a malicious
+    /// record reaches loopback or the LAN (#1158).
+    nonisolated static func isAllowedImageURL(_ url: URL) -> Bool {
+        guard url.scheme?.lowercased() == "https",
+              let host = url.host()?.lowercased(), !host.isEmpty,
+              host != "localhost", !host.hasSuffix(".localhost"), !host.hasSuffix(".local")
+        else { return false }
+
+        let isIPv4Literal = host.contains(".") && host.allSatisfy { $0.isNumber || $0 == "." }
+        let isIPv6Literal = host.contains(":")
+        return !isIPv4Literal && !isIPv6Literal
+    }
+
+    /// Streams the response, rejecting it as soon as it exceeds `maxBytes`: the
+    /// eventual thumbnail is pixel-capped, and downloading an unbounded body
+    /// first would let a large or malicious response exhaust memory and
+    /// bandwidth anyway (#1159). Nonisolated so the byte loop runs off the main
+    /// actor; URLSession still populates the shared `URLCache` for the
+    /// revalidation path (#792).
+    nonisolated private static func fetchBounded(
+        url: URL,
+        maxBytes: Int,
+        session: URLSession
+    ) async throws -> Data {
+        let (bytes, response) = try await session.bytes(from: url)
+        if response.expectedContentLength > 0, response.expectedContentLength > Int64(maxBytes) {
+            throw URLError(.dataLengthExceedsMaximum)
+        }
+
+        var data = Data()
+        if response.expectedContentLength > 0 {
+            data.reserveCapacity(Int(min(response.expectedContentLength, Int64(maxBytes))))
+        }
+        for try await byte in bytes {
+            data.append(byte)
+            guard data.count <= maxBytes else { throw URLError(.dataLengthExceedsMaximum) }
+        }
+        return data
     }
 }
 

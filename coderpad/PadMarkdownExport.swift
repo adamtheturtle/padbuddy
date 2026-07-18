@@ -217,8 +217,16 @@ private func codeFenceLanguage(_ language: String?) -> String {
     else { return "" }
 
     if lowered.hasPrefix("multifile_") { lowered = String(lowered.dropFirst("multifile_".count)) }
-    // A fence info string is a single token; keep only the leading word.
-    return lowered.split(whereSeparator: { $0 == " " || $0 == "\t" }).first.map(String.init) ?? ""
+    // A fence info string is a single token of safe characters. The language is
+    // remote content: a newline or backtick in it would escape the fence line and
+    // rewrite the exported document's structure, so keep only the leading run of
+    // token-safe characters (#1161).
+    let token = lowered.prefix { character in
+        character.isLetter || character.isNumber
+            || character == "-" || character == "_" || character == "+"
+            || character == "#" || character == "."
+    }
+    return String(token)
 }
 
 extension FocusedValues {
