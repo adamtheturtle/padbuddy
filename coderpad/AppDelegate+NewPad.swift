@@ -108,9 +108,13 @@
             guard let padID = PadIDValidation.normalize(request.id) else { return }
 
             var owner: UUID?
-            if let account = request.account,
-               let uuid = UUID(uuidString: account),
-               AccountsStore.shared.accounts.contains(where: { $0.id == uuid }) {
+            if let account = request.account, !account.isEmpty {
+                // The request named its account: it must resolve, or the request
+                // is dropped - falling back to a bare-slug selection could open a
+                // same-slug pad in whichever account happens to be current (#2306).
+                guard let uuid = UUID(uuidString: account),
+                      AccountsStore.shared.accounts.contains(where: { $0.id == uuid }) else { return }
+
                 AccountsStore.shared.showAllAccounts = false
                 AccountsStore.shared.currentAccountID = uuid
                 owner = uuid

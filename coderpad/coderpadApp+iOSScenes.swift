@@ -119,11 +119,15 @@
 
                     // The validated account travels with the navigation request: it
                     // can outlive further view/account switches, and a bare pad id
-                    // must not resolve under a different account (#1255).
+                    // must not resolve under a different account (#1255). A named
+                    // account that no longer resolves drops the request - a bare-slug
+                    // fallback could select a same-slug pad in the wrong org (#2306).
                     var owner: UUID?
-                    if let account = request.account,
-                       let uuid = UUID(uuidString: account),
-                       AccountsStore.shared.accounts.contains(where: { $0.id == uuid }) {
+                    if let account = request.account, !account.isEmpty {
+                        guard let uuid = UUID(uuidString: account),
+                              AccountsStore.shared.accounts.contains(where: { $0.id == uuid })
+                        else { continue }
+
                         AccountsStore.shared.showAllAccounts = false
                         AccountsStore.shared.currentAccountID = uuid
                         owner = uuid
