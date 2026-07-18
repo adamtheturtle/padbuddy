@@ -47,6 +47,17 @@ extension SettingsView {
                 mcpWritesSection
 
                 Section {
+                    // The conventional-path fallback can point at nothing (the app
+                    // moved or was renamed); say so instead of handing the user a
+                    // config that silently fails (#1623).
+                    if !FileManager.default.isExecutableFile(atPath: Self.executablePath) {
+                        Label(
+                            "The PadBuddy executable couldn't be found at the path below. "
+                                + "Move PadBuddy to /Applications and reopen Settings.",
+                            systemImage: "exclamationmark.triangle"
+                        )
+                        .foregroundStyle(.orange)
+                    }
                     MCPInstallTabs(executablePath: Self.executablePath)
                 } header: {
                     Text("Add to your assistant")

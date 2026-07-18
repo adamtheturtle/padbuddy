@@ -53,13 +53,25 @@ struct AccountRow: View {
     let isCurrent: Bool
     @State private var monitor = AccountHealthMonitor.shared
 
+    /// The account's name bounded for a one-line row (#1629): control characters
+    /// stripped and the length capped, so a pathological name can't make account
+    /// selection/removal rows ambiguous or blow up VoiceOver labels.
+    private var displayName: String {
+        let cleaned = String(account.name.unicodeScalars.filter { !CharacterSet.controlCharacters.contains($0) })
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleaned.isEmpty else { return String(localized: "Untitled account") }
+
+        return String(cleaned.prefix(80))
+    }
+
     var body: some View {
         HStack(spacing: 10) {
             AvatarCircle(account: account, diameter: 30)
 
             HStack(spacing: 6) {
-                Text(account.name.isEmpty ? String(localized: "Untitled account") : account.name)
+                Text(displayName)
                     .font(.callout.weight(.medium))
+                    .lineLimit(1)
                 if account.isMock {
                     Text("Demo")
                         .font(.caption2)
