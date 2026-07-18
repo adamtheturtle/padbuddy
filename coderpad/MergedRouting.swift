@@ -20,17 +20,18 @@ import Foundation
 @Observable
 final class MergedRouting {
 
-    /// pad id -> owning account id. Pad slugs are only unique per server, so two
-    /// custom CoderPad servers can issue the same slug and this map collapses on
-    /// collision (last-published account wins). Disambiguation for the *selected*
-    /// pad therefore goes through `selectedPadAccountID`, set by the combined
-    /// list (#758).
-    private(set) var padAccountID: [String: UUID] = [:]
-    /// question id -> owning account id. Question ids are numbered **per org**, so
-    /// two accounts routinely share the same id; this map collapses on collision
-    /// (last-published account wins). Disambiguation for the *selected* question
-    /// therefore goes through `selectedQuestionAccountID`, set by the combined list.
-    private(set) var questionAccountID: [Int: UUID] = [:]
+    /// pad id -> owning account ids. Pad slugs are only unique per server, so two
+    /// custom CoderPad servers can issue the same slug; every owner is kept so a
+    /// bare-slug lookup can tell "unknown" and "ambiguous" apart instead of
+    /// silently routing to whichever account published last (#1215).
+    /// Disambiguation for the *selected* pad goes through
+    /// `selectedPadAccountID`, set by the combined list (#758).
+    private(set) var padOwners: [String: Set<UUID>] = [:]
+    /// question id -> owning account ids. Question ids are numbered **per org**,
+    /// so two accounts routinely share the same id; see `padOwners` for why every
+    /// owner is kept (#1219). Disambiguation for the *selected* question goes
+    /// through `selectedQuestionAccountID`, set by the combined list.
+    private(set) var questionOwners: [Int: Set<UUID>] = [:]
 
     /// The account of the currently-selected merged question. Set by the combined
     /// questions list as its selection changes (it knows each row's source
@@ -59,24 +60,41 @@ final class MergedRouting {
     /// Replace the pad routing map with the accounts that own the currently merged
     /// pads. Replacing (rather than merging) keeps the map from growing without
     /// bound as lists refresh, and drops entries for pads that no longer appear.
-    func setPadRoutes(_ routes: [String: UUID]) {
-        padAccountID = routes
+    func setPadRoutes(_ routes: [String: Set<UUID>]) {
+        padOwners = routes
     }
 
-    func setQuestionRoutes(_ routes: [Int: UUID]) {
-        questionAccountID = routes
+    func setQuestionRoutes(_ routes: [Int: Set<UUID>]) {
+        questionOwners = routes
+    }
+
+    /// The single account id owning the pad with `id`, or nil when the slug is
+    /// unknown **or shared by several merged accounts** — an ambiguous bare id
+    /// must not route to an arbitrary owner (#1215).
+    func uniqueAccountID(forPadID id: String) -> UUID? {
+        guard let owners = padOwners[id], owners.count == 1 else { return nil }
+
+        return owners.first
+    }
+
+    /// The question counterpart to ``uniqueAccountID(forPadID:)`` (#1219).
+    func uniqueAccountID(forQuestionID id: Int) -> UUID? {
+        guard let owners = questionOwners[id], owners.count == 1 else { return nil }
+
+        return owners.first
     }
 
     /// The account that owns the pad with `id`, resolved against the live account
-    /// list so a removed account never routes anywhere.
+    /// list so a removed account never routes anywhere. Nil when the slug is
+    /// shared by several merged accounts (#1215).
     func account(forPadID id: String) -> Account? {
-        guard let accountID = padAccountID[id] else { return nil }
+        guard let accountID = uniqueAccountID(forPadID: id) else { return nil }
 
         return AccountsStore.shared.accounts.first { $0.id == accountID }
     }
 
     func account(forQuestionID id: Int) -> Account? {
-        guard let accountID = questionAccountID[id] else { return nil }
+        guard let accountID = uniqueAccountID(forQuestionID: id) else { return nil }
 
         return AccountsStore.shared.accounts.first { $0.id == accountID }
     }

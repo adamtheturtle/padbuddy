@@ -243,13 +243,17 @@ extension MergedQuestionsView {
         if request.startCreating, !isReadOnly {
             creatingForAccount = newQuestionDefaultAccount
         }
-        if let id = request.selectQuestionID,
-           let scopedRow = scoped.first(where: { $0.item.id == id }) {
-            // Best-effort: per-org question ids collide across accounts, so a bare
-            // id request (queued by single-account entry points) selects the first
-            // matching row. Account-carrying requests use `pendingMergedFavoriteQuestion`.
-            selectedRowIDs = [scopedRow.id]
-            pendingScrollToRowID = scopedRow.id
+        if let id = request.selectQuestionID {
+            // Per-org question ids collide across accounts, so a bare id request
+            // (queued by single-account entry points) is honored only when exactly
+            // one merged account holds it — selecting whichever account loads
+            // first could silently open another org's question (#1233).
+            // Account-carrying requests use `pendingMergedFavoriteQuestion`.
+            let matches = scoped.filter { $0.item.id == id }
+            if matches.count == 1, let scopedRow = matches.first {
+                selectedRowIDs = [scopedRow.id]
+                pendingScrollToRowID = scopedRow.id
+            }
         }
     }
 
@@ -317,6 +321,8 @@ extension MergedQuestionsView {
         // children below can hold one without crossing isolation to build it.
         let targets = mergeable.map { (id: $0.id, client: $0.makeClient()) }
         let clientsByID = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, $0.client) })
+        var fetchedByAccount: [UUID: [Question]] = [:]
+        var fetchedErrors: [UUID: String] = [:]
         await withTaskGroup(of: (UUID, [Question]?, String?).self) { group in
             for target in targets {
                 group.addTask {
@@ -329,31 +335,38 @@ extension MergedQuestionsView {
                 }
             }
             for await (id, questions, errorText) in group {
-                guard generation == reloadGeneration, !Task.isCancelled else { break }
-                // An account removed or re-keyed while its fetch ran must not
-                // resurface in rows or errors (#1225); the cache setter separately
-                // validates the fetching client's credentials.
-                guard accounts.mergeableAccounts.contains(where: { $0.id == id }) else { continue }
-
                 if let questions {
-                    questionsByAccount[id] = questions
-                    accountErrors[id] = nil
-                    if let client = clientsByID[id] {
-                        cache.set(id, questions: questions, via: client)
-                    }
+                    fetchedByAccount[id] = questions
                 } else {
-                    accountErrors[id] = errorText
+                    fetchedErrors[id] = errorText
                 }
-                publishRoutes()
             }
         }
         guard generation == reloadGeneration, !Task.isCancelled else { return }
 
+        // Apply every account's result together, mirroring MergedPadsView: applying
+        // (and publishing routes) per-result inside the stream rendered whichever
+        // accounts answered first, fluctuating filters/counts and letting a saved
+        // selection resolve before its intended account arrived (#1228). Only
+        // accounts still configured apply: one removed or re-keyed while its fetch
+        // ran must not resurface in rows or errors (#1225); the cache setter
+        // separately validates the fetching client's credentials.
+        let mergeableIDs = Set(accounts.mergeableAccounts.map(\.id))
+        for (id, questions) in fetchedByAccount where mergeableIDs.contains(id) {
+            questionsByAccount[id] = questions
+            accountErrors[id] = nil
+            if let client = clientsByID[id] {
+                cache.set(id, questions: questions, via: client)
+            }
+        }
+        for (id, errorText) in fetchedErrors where mergeableIDs.contains(id) {
+            accountErrors[id] = errorText
+        }
         // Prune rows and errors left by accounts that are gone, so a reintroduced
         // UUID can't inherit an old failure or stale list (#1230).
-        let mergeableIDs = Set(accounts.mergeableAccounts.map(\.id))
         questionsByAccount = questionsByAccount.filter { mergeableIDs.contains($0.key) }
         accountErrors = accountErrors.filter { mergeableIDs.contains($0.key) }
+        publishRoutes()
         // The defer above clears isLoading once EVERY account has answered; clearing
         // it per-result made the first fast account end the loading state while
         // slower accounts were still fetching (#728), unlike MergedPadsView.
@@ -365,17 +378,7 @@ extension MergedQuestionsView {
         restoreSelectedRowIfNeeded()
     }
 
-    func publishRoutes() {
-        var routes: [Int: UUID] = [:]
-        for account in accounts.mergeableAccounts {
-            for question in questionsByAccount[account.id] ?? [] {
-                routes[question.id] = account.id
-            }
-        }
-        router.setQuestionRoutes(routes)
-    }
-
-    // The row mutations (edit/delete/create) live in
+    // The row mutations (edit/delete/create) and `publishRoutes` live in
     // MergedQuestionsView+Mutations.swift to keep this file under the length lint.
 
     // MARK: - Actions

@@ -12,9 +12,11 @@ import SwiftUI
 extension MergedPadsView {
     /// Apply an edited pad to its account's list. `account` is the owning account
     /// from the broadcast; it disambiguates a slug collision across custom servers
-    /// (#761). When absent, fall back to the (collision-prone) routing map.
+    /// (#761). When absent, fall back to the routing map — which resolves only an
+    /// unambiguous slug, so a collision can't apply the edit to the wrong
+    /// account's row (#1215).
     func applyUpdated(_ pad: Pad, account: UUID? = nil) {
-        guard let accountID = account ?? router.padAccountID[pad.id],
+        guard let accountID = account ?? router.uniqueAccountID(forPadID: pad.id),
               var pads = padsByAccount[accountID],
               let index = pads.firstIndex(where: { $0.id == pad.id }) else { return }
 
@@ -31,19 +33,17 @@ extension MergedPadsView {
 
     /// Remove a deleted pad. With a known `account`, only that account's copy is
     /// dropped, so a colliding slug on another custom server is left intact
-    /// (#761); without it, the route map resolves the owner as before.
+    /// (#761). A bare-slug event resolves against the loaded rows and is honored
+    /// only when exactly one account holds the slug: an ambiguous legacy event is
+    /// dropped rather than removing every colliding row (#1215, like #1220).
     func removePad(id: String, account: UUID? = nil) {
-        if let account {
-            padsByAccount[account] = padsByAccount[account]?.filter { $0.id != id }
-        } else if let accountID = router.padAccountID[id],
-                  padsByAccount[accountID]?.contains(where: { $0.id == id }) == true {
-            padsByAccount[accountID] = padsByAccount[accountID]?.filter { $0.id != id }
-        } else {
-            // Fallback when the route map doesn't have the pad yet.
-            for (accountID, pads) in padsByAccount where pads.contains(where: { $0.id == id }) {
-                padsByAccount[accountID] = pads.filter { $0.id != id }
-            }
-        }
+        let owner = account ?? {
+            let holders = padsByAccount.filter { $0.value.contains { $0.id == id } }.map(\.key)
+            return holders.count == 1 ? holders.first : nil
+        }()
+        guard let owner else { return }
+
+        padsByAccount[owner] = padsByAccount[owner]?.filter { $0.id != id }
         publishRoutes()
     }
 

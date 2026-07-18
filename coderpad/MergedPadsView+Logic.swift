@@ -375,13 +375,15 @@ extension MergedPadsView {
         resolvePendingSlugSelection()
     }
 
-    /// Publish the pad -> account map so the detail pane and row actions can route
-    /// to the right client.
+    /// Publish the pad -> owning-accounts map so the detail pane and row actions
+    /// can route to the right client. Every owner is kept per slug so bare-id
+    /// lookups can refuse an ambiguous cross-server collision instead of routing
+    /// to whichever account happened to publish last (#1215).
     func publishRoutes() {
-        var routes: [String: UUID] = [:]
+        var routes: [String: Set<UUID>] = [:]
         for account in accounts.mergeableAccounts {
             for pad in padsByAccount[account.id] ?? [] {
-                routes[pad.id] = account.id
+                routes[pad.id, default: []].insert(account.id)
             }
         }
         router.setPadRoutes(routes)

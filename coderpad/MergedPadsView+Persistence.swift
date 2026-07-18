@@ -193,15 +193,26 @@ extension MergedPadsView {
     /// still be empty right after a cache seed.
     func restoreSelectedPadIfNeeded() {
         var availableRowIDs: Set<String> = []
-        // The first row id per slug, for normalizing a value saved by a build
-        // before #758 (a bare slug, no account prefix).
+        // The row id per slug for normalizing a value saved by a build before
+        // #758 (a bare slug, no account prefix) — kept only for slugs owned by
+        // exactly one account. Account ordering can change across launches, so
+        // first-match normalization could reopen a colliding slug from a
+        // different server; ambiguous legacy slugs are dropped instead (#1231).
         var rowIDBySlug: [String: String] = [:]
+        var collidingSlugs: Set<String> = []
         for account in accounts.mergeableAccounts {
             for pad in padsByAccount[account.id] ?? [] {
                 let rowID = Self.rowID(account: account.id, pad: pad.id)
                 availableRowIDs.insert(rowID)
-                if rowIDBySlug[pad.id] == nil { rowIDBySlug[pad.id] = rowID }
+                if rowIDBySlug[pad.id] == nil {
+                    rowIDBySlug[pad.id] = rowID
+                } else {
+                    collidingSlugs.insert(pad.id)
+                }
             }
+        }
+        for slug in collidingSlugs {
+            rowIDBySlug[slug] = nil
         }
         guard !didRestoreSelection, !availableRowIDs.isEmpty else { return }
 
@@ -235,8 +246,9 @@ extension MergedPadsView {
     /// Normalizes a persisted selection/top-row value onto today's account-
     /// namespaced row ids (#758). A current value ("<account uuid>:<slug>") passes
     /// through untouched; a legacy value from a build before #758 - a bare slug -
-    /// maps to the first loaded row holding that slug, so the saved place survives
-    /// the format change instead of being silently dropped.
+    /// maps to the loaded row holding that slug when exactly one account does, so
+    /// the saved place survives the format change without ever reopening a
+    /// colliding slug from a different server (#1231).
     static func normalizedSavedRowID(_ saved: String?, rowIDBySlug: [String: String]) -> String? {
         guard let saved else { return nil }
         if let separator = saved.firstIndex(of: ":"),
@@ -250,18 +262,24 @@ extension MergedPadsView {
     /// merged list keys selection by account-namespaced row id (#758), so a bare
     /// slug from a process-wide request (`PadsRequest.selectPadID`) can only be
     /// honored after its row exists. Called from the same lifecycle points as
-    /// `restoreSelectedPadIfNeeded()`; first matching account wins (a genuine
-    /// cross-server collision can't be told apart by slug alone).
+    /// `restoreSelectedPadIfNeeded()`. Honored only when exactly one merged
+    /// account holds the slug: opening an arbitrary account's same-slug pad could
+    /// silently show the wrong server's pad, so an ambiguous request is dropped
+    /// instead (#1232) — account-carrying requests route via
+    /// `pendingMergedFavoritePad` / `PadsRequest.selectPadAccountID`.
     func resolvePendingSlugSelection() {
         guard let slug = pendingSelectPadSlug else { return }
 
-        for account in accounts.mergeableAccounts
-            where padsByAccount[account.id]?.contains(where: { $0.id == slug }) == true {
-            pendingSelectPadSlug = nil
-            let rowID = Self.rowID(account: account.id, pad: slug)
-            selectedIDs = [rowID]
-            pendingScrollToID = rowID
-            return
+        let owners = accounts.mergeableAccounts.filter {
+            padsByAccount[$0.id]?.contains(where: { $0.id == slug }) == true
         }
+        guard !owners.isEmpty else { return }
+
+        pendingSelectPadSlug = nil
+        guard owners.count == 1, let owner = owners.first else { return }
+
+        let rowID = Self.rowID(account: owner.id, pad: slug)
+        selectedIDs = [rowID]
+        pendingScrollToID = rowID
     }
 }
