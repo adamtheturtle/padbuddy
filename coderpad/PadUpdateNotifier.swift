@@ -87,14 +87,20 @@ final class PadUpdateNotifier: NSObject {
         return settings.authorizationStatus != .denied
     }
 
-    /// Ask the system for permission to put a count on the app icon. Since macOS
-    /// Monterey, `NSDockTile.badgeLabel` only renders for an app granted the `.badge`
-    /// capability; iOS app-icon badges use the same authorization option (#317/#679).
-    /// Requesting it is idempotent: the system prompts at most once and otherwise just
-    /// returns the standing decision, so it's safe to call on every launch and whenever
-    /// the badge scope is switched on.
-    func requestBadgeAuthorization() {
-        Task { _ = await badgeAuthorizationIsAvailable() }
+    /// Re-asserts badge permission at launch without ever presenting a first-time
+    /// prompt. Since macOS Monterey, `NSDockTile.badgeLabel` only renders for an app
+    /// granted the `.badge` capability; iOS app-icon badges use the same authorization
+    /// option (#317/#679). A persisted badge scope is not a fresh user action, so an
+    /// undetermined status waits for the user to touch the badge setting (which
+    /// requests via `badgeAuthorizationIsAvailable()`) rather than prompting out of
+    /// context at launch (#1961); an already-determined status just returns the
+    /// standing decision with no UI.
+    func refreshBadgeAuthorizationIfDetermined() {
+        Task {
+            let settings = await center.notificationSettings()
+            guard settings.authorizationStatus != .notDetermined else { return }
+            _ = await badgeAuthorizationIsAvailable()
+        }
     }
 
     /// Returns whether the app can currently render an icon badge after requesting

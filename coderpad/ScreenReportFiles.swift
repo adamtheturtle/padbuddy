@@ -120,7 +120,16 @@ nonisolated enum ScreenReportFiles {
     /// so a late sweep can't race a concurrently opened report (#1947).
     static func cleanUpLeftovers() {
         let manager = FileManager.default
-        guard let entries = try? manager.contentsOfDirectory(at: root, includingPropertiesForKeys: nil) else {
+        let entries: [URL]
+        do {
+            entries = try manager.contentsOfDirectory(at: root, includingPropertiesForKeys: nil)
+        } catch CocoaError.fileReadNoSuchFile {
+            // Nothing was ever staged (or a prior sweep finished the job).
+            return
+        } catch {
+            // Reports hold candidate data: a sweep that can't even list the
+            // staging root must not pass silently as if it cleaned up (#1959).
+            logger.error("Couldn't sweep leftover Screen reports: \(error.localizedDescription)")
             return
         }
 

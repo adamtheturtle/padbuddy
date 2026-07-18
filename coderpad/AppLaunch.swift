@@ -18,6 +18,13 @@ enum AppLaunch {
     /// Held for the app's lifetime: the sync bootstrap re-runs on every iCloud
     /// identity change until quit (#765).
     private static var identityObserver: (any NSObjectProtocol)?
+    /// The pending identity-change sync bootstrap: bursts of identity
+    /// notifications coalesce onto one restart instead of racing several (#1958).
+    private static var cloudSyncRestartTask: Task<Void, Never>?
+    /// Guards the launch seeding against re-entrance: a second `run()` (a future
+    /// caller or lifecycle change) must not stack duplicate observers, monitors,
+    /// and refreshers on top of the live ones (#1957).
+    private static var hasRun = false
 
     /// Runs the launch seeding exactly once. `CoderpadApp.init()` runs before the
     /// delegate's `applicationDidFinishLaunching(_:)`, so any preference migrations
@@ -27,7 +34,8 @@ enum AppLaunch {
         // cloud sync, and monitors race test execution against live account and
         // cache loading (a use-after-free there crashed the host mid-suite, #978),
         // and they pollute the persisted state tests run against.
-        guard !coderpadIsHostingUnitTests else { return }
+        guard !coderpadIsHostingUnitTests, !hasRun else { return }
+        hasRun = true
 
         // Carry an existing "Hide Dock icon" choice into the new presence preference.
         // The delegate applies the resulting visibility once the app has launched.
@@ -37,9 +45,12 @@ enum AppLaunch {
         // as each account's list loads.
         DockBadgeController.migrateScopeIfNeeded()
         // The Dock badge only renders for an app granted the `.badge` capability
-        // (macOS Monterey+, #317), so ask for it when the badge is in use. Idempotent,
-        // so re-requesting every launch is harmless.
-        if DockBadgeController.scope != .off { PadUpdateNotifier.shared.requestBadgeAuthorization() }
+        // (macOS Monterey+, #317), so re-assert it when the badge is in use. Only
+        // an already-answered request is refreshed: a persisted scope must not
+        // trigger a first-time permission prompt at launch (#1961).
+        if DockBadgeController.scope != .off {
+            PadUpdateNotifier.shared.refreshBadgeAuthorizationIfDetermined()
+        }
         DockBadgeController.refresh()
         // Mirror every account's favourite questions into the App Group up front so the
         // Recent Pads widget's "New Pad question" picker is populated even before any
@@ -55,7 +66,7 @@ enum AppLaunch {
         identityObserver = NotificationCenter.default.addObserver(
             forName: .NSUbiquityIdentityDidChange, object: nil, queue: .main
         ) { _ in
-            Task { @MainActor in startCloudSync() }
+            Task { @MainActor in scheduleCloudSyncRestart() }
         }
         // Keep the current account's pads fresh on a timer even when no window is open
         // and the menu is never clicked — the one state where nothing else fetches.
@@ -80,6 +91,23 @@ enum AppLaunch {
         #if !APP_STORE && canImport(BuddySparkleUpdater)
             SoftwareUpdater.shared.start()
         #endif
+    }
+
+    /// Coalesces bursts of `.NSUbiquityIdentityDidChange` notifications onto one
+    /// sync bootstrap: signing in and out quickly (or a flurry from the daemon)
+    /// must not stack several favorite/order reconciliations racing each other
+    /// (#1958). Everything `startCloudSync()` runs is idempotent, so running the
+    /// latest scheduled restart alone is always enough.
+    private static func scheduleCloudSyncRestart() {
+        cloudSyncRestartTask?.cancel()
+        cloudSyncRestartTask = Task {
+            do {
+                try await Task.sleep(for: .milliseconds(500))
+            } catch {
+                return
+            }
+            startCloudSync()
+        }
     }
 
     /// Start mirroring favourites through iCloud's key-value store and pull any
