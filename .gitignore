@@ -4,6 +4,8 @@ xcuserdata/
 DerivedData/
 DerivedData_localrel/
 DerivedData_ipadbuild/
+DerivedData_agenttests/
+default.profraw
 build/
 build_release/
 
