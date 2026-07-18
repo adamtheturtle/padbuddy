@@ -34,6 +34,12 @@ struct HighlightedCode: View, Equatable {
     /// playback follows the line being edited (#983). Nil (every other call site)
     /// never scrolls programmatically.
     var focusLine: Int?
+    /// A name tag floated at `focusLine`, naming whose cursor the playback is
+    /// following - like the web playback's participant cursor label (#985). Nil
+    /// (every non-playback call site) draws nothing.
+    var cursorLabel: String?
+    /// The tag's background, matching the participant's timeline color (#985).
+    var cursorColor: Color = .accentColor
 
     /// The highlighted result, filled in by an off-main pass; plain `contents`
     /// renders until it lands so the main thread isn't blocked tokenizing (#372).
@@ -70,6 +76,7 @@ struct HighlightedCode: View, Equatable {
         lhs.contents == rhs.contents && lhs.language == rhs.language
             && lhs.dark == rhs.dark && lhs.fillsHeight == rhs.fillsHeight
             && lhs.focusLine == rhs.focusLine
+            && lhs.cursorLabel == rhs.cursorLabel && lhs.cursorColor == rhs.cursorColor
     }
 
     var body: some View {
@@ -79,6 +86,9 @@ struct HighlightedCode: View, Equatable {
                 .textSelection(.enabled)
                 .padding(.horizontal, 10)
                 .padding(.vertical, 8)
+                // Inside the scroll content (not the viewport), so the tag stays
+                // glued to its line as the code scrolls (#985).
+                .overlay(alignment: .topLeading) { cursorTag }
         }
         .defaultScrollAnchor(.topLeading)
         .scrollPosition($scrollPosition)
@@ -138,6 +148,29 @@ struct HighlightedCode: View, Equatable {
     private var displayText: AttributedString {
         if let highlighted, highlightedContents == contents { return highlighted }
         return AttributedString(contents)
+    }
+
+    /// The floating participant name tag at the edited line - the playback
+    /// counterpart of the web player's cursor label (#985). Decorative (the
+    /// header and lanes already name the author accessibly), so it's hidden from
+    /// VoiceOver and never intercepts clicks meant for the code.
+    @ViewBuilder
+    private var cursorTag: some View {
+        if let cursorLabel, let focusLine {
+            Text(cursorLabel)
+                .font(.caption2.weight(.semibold))
+                .lineLimit(1)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(cursorColor.opacity(0.92), in: Capsule())
+                // Sit just above the edited line (clamped so line 0 stays visible),
+                // sliding with the same feel as the follow-scroll.
+                .offset(x: 12, y: max(0, 8 + CGFloat(focusLine) * Self.lineHeight - 17))
+                .animation(reduceMotion ? nil : .snappy(duration: 0.2), value: focusLine)
+                .allowsHitTesting(false)
+                .accessibilityHidden(true)
+        }
     }
 
     /// Scrolls so `line` sits about a third of the way down the viewport - in view

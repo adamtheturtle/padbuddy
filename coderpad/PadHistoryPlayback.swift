@@ -290,7 +290,12 @@ extension HistoryPlaybackView {
                     contents: displayedSnapshot.contents,
                     language: displayedFile.language,
                     dark: dark,
-                    focusLine: displayedSnapshot.changeLine
+                    focusLine: displayedSnapshot.changeLine,
+                    // Float the editing participant's name at the cursor, like the
+                    // web playback's cursor label (#985). Template/upload seeds
+                    // aren't participants, so they get no tag.
+                    cursorLabel: cursorLabel(for: displayedSnapshot),
+                    cursorColor: color(forAuthor: displayedSnapshot.entry.author)
                 )
                 .equatable()
                 // The same backing the code card gives its code pane, so replayed
@@ -303,6 +308,16 @@ extension HistoryPlaybackView {
                     .foregroundStyle(.secondary)
             }
         }
+    }
+
+    /// The name to float at the playhead's cursor: the participant who authored
+    /// the shown snapshot, with the same "Participant N" fallback as their lane.
+    /// Nil for template/upload seeds, which aren't anyone's cursor.
+    private func cursorLabel(for snapshot: PadHistorySnapshot) -> String? {
+        let author = snapshot.entry.author
+        guard timeline.participantAuthors.contains(author) else { return nil }
+
+        return laneName(for: author)
     }
 
     // MARK: Playback engine
