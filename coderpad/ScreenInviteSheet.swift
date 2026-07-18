@@ -26,6 +26,10 @@ struct ScreenInviteSheet: View {
     @State private var isSending = false
     @State private var errorText: String?
     @State private var result: ScreenInvitationResult?
+    /// The in-flight send, cancelled if the sheet is torn down programmatically so
+    /// a late response can't mutate freed sheet state or fire `onSent` into a
+    /// parent that already moved on (#1843, #1844).
+    @State private var sendTask: Task<Void, Never>?
 
     var body: some View {
         sheetBody
@@ -33,6 +37,7 @@ struct ScreenInviteSheet: View {
             // after the sheet (its only success UI and refresh path) is gone, inviting
             // a duplicate send (#865).
             .interactiveDismissDisabled(isSending)
+            .onDisappear { sendTask?.cancel() }
     }
 
     @ViewBuilder
@@ -88,8 +93,8 @@ struct ScreenInviteSheet: View {
                 Label(errorText, systemImage: "xmark.octagon.fill")
                     .font(.callout)
                     .foregroundStyle(.red)
-            } else if sendEmail, !candidateEmail.isEmpty, sendDisabled {
-                Label("Enter a valid candidate email address.", systemImage: "exclamationmark.triangle")
+            } else if let validationHint {
+                Label(validationHint, systemImage: "exclamationmark.triangle")
                     .font(.callout)
                     .foregroundStyle(.orange)
             }
@@ -124,11 +129,16 @@ struct ScreenInviteSheet: View {
                             Label("Copy Link", systemImage: "doc.on.doc")
                         }
                         // An explicit openURL Button, not a bare Link: external Link
-                        // controls can silently no-op on iPad (#552, #730).
-                        Button {
-                            openURL(url)
-                        } label: {
-                            Label("Open Link", systemImage: "arrow.up.right.square")
+                        // controls can silently no-op on iPad (#552, #730). Offered
+                        // only for https - the URL is server-provided data, and a
+                        // compromised or spoofed response must not be able to launch
+                        // arbitrary scheme handlers from a single click (#1839).
+                        if url.scheme?.lowercased() == "https" {
+                            Button {
+                                openURL(url)
+                            } label: {
+                                Label("Open Link", systemImage: "arrow.up.right.square")
+                            }
                         }
                     }
                 }
@@ -166,7 +176,7 @@ struct ScreenInviteSheet: View {
 
     private var sendButton: some View {
         Button {
-            Task { await send() }
+            sendTask = Task { await send() }
         } label: {
             if isSending {
                 ProgressView().controlSize(.small)
@@ -192,14 +202,28 @@ struct ScreenInviteSheet: View {
     }
 
     /// When emailing the candidate, a plausible address is required; without the email
-    /// toggle the API can create a manual (recruiter-shared) test, so it stays optional.
-    /// Trims newlines too, so a pasted line break can't enable Send while the request
-    /// normalizes the same value away (#874), and rejects clearly malformed addresses
-    /// instead of turning them into failed API requests (#920).
+    /// toggle the API can create a manual (recruiter-shared) test, so the candidate
+    /// address stays optional - but any address actually entered must be plausible,
+    /// whichever mode is active, and that includes the recruiter notification address
+    /// (#1840, #1841). Trims newlines too, so a pasted line break can't enable Send
+    /// while the request normalizes the same value away (#874), and rejects clearly
+    /// malformed addresses instead of turning them into failed API requests (#920).
     private var sendDisabled: Bool {
-        guard sendEmail else { return false }
+        validationHint != nil || (sendEmail && trimmed(candidateEmail).isEmpty)
+    }
 
-        return !Self.isPlausibleEmail(candidateEmail.trimmingCharacters(in: .whitespacesAndNewlines))
+    /// The first field-level problem to surface under the form, nil when the form is
+    /// sendable (or still empty).
+    private var validationHint: String? {
+        let candidate = trimmed(candidateEmail)
+        if !candidate.isEmpty, !Self.isPlausibleEmail(candidate) {
+            return String(localized: "Enter a valid candidate email address.")
+        }
+        let recruiter = trimmed(recruiterEmail)
+        if !recruiter.isEmpty, !Self.isPlausibleEmail(recruiter) {
+            return String(localized: "Enter a valid recruiter email address.")
+        }
+        return nil
     }
 
     /// A light plausibility check, not full RFC validation: one @, a non-empty local
@@ -215,23 +239,36 @@ struct ScreenInviteSheet: View {
             candidateEmail: trimmedOrNil(candidateEmail),
             candidateName: trimmedOrNil(candidateName),
             recruiterEmail: trimmedOrNil(recruiterEmail),
-            tags: trimmedOrNil(tags),
+            tags: trimmedOrNil(tags, limit: 500),
             sendInvitationEmail: sendEmail
         )
         do {
-            result = try await client.sendInvitation(campaignID: campaign.id, invitation)
+            let sent = try await client.sendInvitation(campaignID: campaign.id, invitation)
+            guard !Task.isCancelled else { return }
+
+            result = sent
             errorText = nil
             // Reconcile the parent list the moment the server mutation succeeds, not
             // from the Done button - the sheet may never reach it (#865).
             onSent()
         } catch {
-            errorText = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
+            guard !Task.isCancelled else { return }
+
+            errorText = String(((error as? CoderPadError)?.errorDescription
+                    ?? error.localizedDescription).prefix(300))
         }
     }
 
-    private func trimmedOrNil(_ value: String) -> String? {
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
+    private func trimmed(_ value: String) -> String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// Trimmed, nil when empty, and length-capped: the fields are free text, and an
+    /// accidental mega-paste shouldn't become an oversized API payload (#1842). 254
+    /// is the RFC address ceiling; tags get more room.
+    private func trimmedOrNil(_ value: String, limit: Int = 254) -> String? {
+        let trimmed = trimmed(value)
+        return trimmed.isEmpty ? nil : String(trimmed.prefix(limit))
     }
 }
 

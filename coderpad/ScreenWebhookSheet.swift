@@ -20,6 +20,9 @@ struct ScreenWebhookSheet: View {
     @State private var isSaving = false
     @State private var error: String?
     @State private var confirmRemove = false
+    /// The in-flight save/remove, cancelled if the sheet is torn down
+    /// programmatically so the mutation can't finish invisibly (#1850).
+    @State private var mutationTask: Task<Void, Never>?
 
     var body: some View {
         sheetContent
@@ -27,11 +30,17 @@ struct ScreenWebhookSheet: View {
             // complete invisibly and invite a conflicting retry (#899).
             .interactiveDismissDisabled(isSaving)
             .task { await load() }
+            .onDisappear { mutationTask?.cancel() }
             .alert("Remove the webhook?", isPresented: $confirmRemove) {
                 Button("Cancel", role: .cancel) {}
-                Button("Remove Webhook", role: .destructive) { Task { await remove() } }
+                Button("Remove Webhook", role: .destructive) { mutationTask = Task { await remove() } }
             } message: {
-                Text("Screen will stop sending event callbacks until a new webhook is set.")
+                // Name the endpoint being removed, so the confirmation is about a
+                // URL the user actually reviewed (#1851).
+                Text("""
+                "\(existingURL ?? "")" will be removed. Screen will stop sending event \
+                callbacks until a new webhook is set.
+                """)
             }
     }
 
@@ -84,7 +93,7 @@ struct ScreenWebhookSheet: View {
                 // Return in the field commits the webhook, like the Save button (#469).
                 // A focused TextField swallows Return, so the default-action shortcut on
                 // Save alone doesn't fire while the field has focus.
-                .onSubmit { if isValidHTTPS, !isSaving { Task { await save() } } }
+                .onSubmit { if isValidHTTPS, !isSaving { mutationTask = Task { await save() } } }
 
             if let error {
                 Label(error, systemImage: "xmark.octagon.fill")
@@ -124,7 +133,7 @@ struct ScreenWebhookSheet: View {
 
     private var saveButton: some View {
         Button {
-            Task { await save() }
+            mutationTask = Task { await save() }
         } label: {
             if isSaving {
                 ProgressView().controlSize(.small)
@@ -139,14 +148,26 @@ struct ScreenWebhookSheet: View {
         .disabled(isSaving || !isValidHTTPS)
     }
 
-    /// Whether the trimmed URL is a syntactically valid https URL with a host.
+    /// Whether the trimmed URL is a plausible webhook destination: https with a
+    /// public hostname, no embedded credentials (#1846), no fragment (#1847), and
+    /// a bounded overall length. Loopback, mDNS-local, and IP-literal hosts are
+    /// refused - a webhook saved against internal infrastructure would turn the
+    /// remote Screen service into an SSRF client against it (#1848). A query is
+    /// allowed (real webhook endpoints carry auth tokens there) but counts
+    /// against the length bound.
     private var isValidHTTPS: Bool {
         let trimmed = url.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let parsed = URL(string: trimmed),
+        guard trimmed.count <= 2_048,
+              let parsed = URL(string: trimmed),
               parsed.scheme?.lowercased() == "https",
-              let host = parsed.host, !host.isEmpty else { return false }
+              parsed.user == nil, parsed.password == nil, parsed.fragment == nil,
+              let host = parsed.host?.lowercased(), !host.isEmpty,
+              host != "localhost", !host.hasSuffix(".localhost"), !host.hasSuffix(".local")
+        else { return false }
 
-        return true
+        let isIPv4Literal = host.contains(".") && host.allSatisfy { $0.isNumber || $0 == "." }
+        let isIPv6Literal = host.contains(":")
+        return !isIPv4Literal && !isIPv6Literal
     }
 
     private func load() async {
@@ -155,10 +176,19 @@ struct ScreenWebhookSheet: View {
         do {
             let current = try await client.webhookURL()
             existingURL = current
-            url = current ?? ""
+            // Never clobber a draft typed while the request was in flight (#1845).
+            if url.isEmpty {
+                url = current ?? ""
+            }
         } catch {
-            self.error = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
+            self.error = Self.presentableError(error)
         }
+    }
+
+    /// Bounded so long or sensitive server diagnostics can't flood the sheet (#1849).
+    private static func presentableError(_ error: any Error) -> String {
+        let text = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
+        return String(text.prefix(300))
     }
 
     private func save() async {
@@ -166,9 +196,13 @@ struct ScreenWebhookSheet: View {
         defer { isSaving = false }
         do {
             try await client.setWebhookURL(url.trimmingCharacters(in: .whitespacesAndNewlines))
+            guard !Task.isCancelled else { return }
+
             dismiss()
         } catch {
-            self.error = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
+            guard !Task.isCancelled else { return }
+
+            self.error = Self.presentableError(error)
         }
     }
 
@@ -177,9 +211,13 @@ struct ScreenWebhookSheet: View {
         defer { isSaving = false }
         do {
             try await client.deleteWebhook()
+            guard !Task.isCancelled else { return }
+
             dismiss()
         } catch {
-            self.error = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
+            guard !Task.isCancelled else { return }
+
+            self.error = Self.presentableError(error)
         }
     }
 }
