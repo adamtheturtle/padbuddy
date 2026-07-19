@@ -139,7 +139,8 @@ extension MergedQuestionsView {
             .task {
                 for await deletion in AppRouter.questionDeletions {
                     let id = deletion.id
-                    let account = deletion.account
+                    guard let account = deletion.account else { continue }
+
                     // Drop every selected row matching the deleted question (matched by
                     // account too, since per-org ids collide). If the primary was among
                     // them, move to a neighbor — computed while `sorted` still holds the
@@ -147,7 +148,7 @@ extension MergedQuestionsView {
                     let removed = selectedRowIDs.filter { rowID in
                         guard let row = row(forRowID: rowID) else { return false }
 
-                        return row.item.id == id && (account == nil || row.account.id == account)
+                        return row.item.id == id && row.account.id == account
                     }
                     let primaryDeleted = selectedRowID.map { removed.contains($0) } ?? false
                     let neighbor = primaryDeleted

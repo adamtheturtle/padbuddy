@@ -269,7 +269,9 @@ struct QuestionsView: View {
                     questionsRevision += 1
                     // Keep the disk cache and Spotlight index in step; otherwise the
                     // deleted question lingers there until a full reload.
-                    cache.removeQuestion(id: id, account: accounts.currentAccountID)
+                    if let accountID = accounts.currentAccountID {
+                        cache.removeQuestion(id: id, account: accountID)
+                    }
                     if wasPrimary, selectedQuestionIDs.isEmpty {
                         selectedQuestionIDs = neighbor.map { [$0.id] } ?? []
                     }

@@ -329,44 +329,29 @@ final class QuestionsCacheStore {
     /// Drop a single deleted question from the cache so it stops appearing in
     /// Spotlight — re-indexing only adds/updates, so the deleted row needs an
     /// explicit removal. Per-org ids aren't unique across accounts, so when the
-    /// owning `account` is known only that account is touched; otherwise every
-    /// account holding the id is updated (the prior, id-only behavior).
+    /// owning account is required because numeric ids collide across organizations;
+    /// an unresolved deletion is rejected by the type system rather than sweeping
+    /// every account that happens to contain the same id (#1447).
     ///
     /// Warms each target account from disk via `get` rather than gating on the
     /// in-memory list: deletion cleanup exists precisely for the cold-cache case
     /// (#721), and skipping cold accounts left Spotlight and the disk cache stale
     /// (#1032). Spotlight persists independently of the list cache, so when the
-    /// owning account is known its index entry is cleared unconditionally; the
-    /// id-only sweep keeps the containment gate because per-org ids collide
-    /// across accounts.
-    func removeQuestion(id questionID: Int, account: UUID? = nil) {
-        let targets = account.map { [$0] }
-            ?? Array(Set(AccountsStore.shared.accounts.map(\.id)).union(questionsByAccount.keys))
-        for accountID in targets {
-            // `cached` for the id-only sweep: `get` falls back to a synchronous
-            // whole-file read and decode per account on the main actor, and an account
-            // whose list isn't in memory can't be displaying this question anywhere
-            // that needs correcting (#2448). An explicitly-targeted account still gets
-            // the full read, since the caller knows which list it means.
-            let questions = account == nil ? cached(accountID) : get(accountID)
-            let holdsQuestion = questions.contains { $0.id == questionID }
-            // Spotlight identifiers are namespaced per account (#378), so remove
-            // from the index inside the loop — once per account that holds the id.
-            if account != nil || holdsQuestion {
-                SpotlightIndexer.removeQuestion(id: questionID, account: accountID)
-            }
-            guard holdsQuestion else { continue }
+    /// owning account is known its index entry is cleared unconditionally.
+    func removeQuestion(id questionID: Int, account accountID: UUID) {
+        let questions = get(accountID)
+        SpotlightIndexer.removeQuestion(id: questionID, account: accountID)
+        guard questions.contains(where: { $0.id == questionID }) else { return }
 
-            let reduced = questions.filter { $0.id != questionID }
-            questionsByAccount[accountID] = reduced
-            writeGeneration[accountID, default: 0] += 1
-            let persistenceEpoch = persistenceEpochs.advance(for: accountID)
-            let epochStore = persistenceEpochs
-            writeQueue.enqueue(coalescingKey: "questions.\(accountID.uuidString)") {
-                guard epochStore.isCurrent(persistenceEpoch, for: accountID) else { return }
+        let reduced = questions.filter { $0.id != questionID }
+        questionsByAccount[accountID] = reduced
+        writeGeneration[accountID, default: 0] += 1
+        let persistenceEpoch = persistenceEpochs.advance(for: accountID)
+        let epochStore = persistenceEpochs
+        writeQueue.enqueue(coalescingKey: "questions.\(accountID.uuidString)") {
+            guard epochStore.isCurrent(persistenceEpoch, for: accountID) else { return }
 
-                CacheDisk.save(reduced, kind: "questions", account: accountID)
-            }
+            CacheDisk.save(reduced, kind: "questions", account: accountID)
         }
     }
 }
