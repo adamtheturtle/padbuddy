@@ -36,13 +36,42 @@ struct SearchableFilterChip: View {
         return String(localized: "No \(title.lowercased()) filter. Activate to choose one.")
     }
 
+    /// One option prepared for searching: the value to return alongside the
+    /// lowercased forms the query is matched against.
+    private struct SearchIndexEntry {
+        let value: String
+        let loweredValue: String
+        let loweredLabel: String
+
+        func matches(_ query: String) -> Bool {
+            loweredLabel.contains(query) || loweredValue.contains(query)
+        }
+    }
+
+    /// The prepared options `filtered` searches. Built when the popover opens and
+    /// rebuilt if the option list changes while it is open, so a keystroke scans
+    /// ready-made strings instead of formatting and lowercasing every option again:
+    /// an owner chip backed by a large org directory allocated two strings per
+    /// member per keystroke (#2102). Dropped on close so an idle chip doesn't
+    /// retain a copy of the whole directory.
+    @State private var searchIndex: [SearchIndexEntry] = []
+
+    private func indexEntry(for option: String) -> SearchIndexEntry {
+        SearchIndexEntry(
+            value: option,
+            loweredValue: option.lowercased(),
+            loweredLabel: formatter(option).lowercased()
+        )
+    }
+
     private var filtered: [String] {
         let query = search.lowercased()
         guard !query.isEmpty else { return options }
 
-        return options.filter {
-            formatter($0).lowercased().contains(query) || $0.lowercased().contains(query)
-        }
+        // A render can beat the rebuild (or land while the chip is closed); index
+        // on the fly then rather than filtering against a stale list.
+        let entries = searchIndex.count == options.count ? searchIndex : options.map(indexEntry(for:))
+        return entries.filter { $0.matches(query) }.map(\.value)
     }
 
     /// Explicitly-typed style helpers keep the `body` type-checker from
@@ -87,7 +116,17 @@ struct SearchableFilterChip: View {
         // A stale query from the previous popover session would filter the next
         // open down to "No matches" out of nowhere (#1648).
         .onChange(of: presented) { _, isPresented in
-            if !isPresented { search = "" }
+            if isPresented {
+                searchIndex = options.map(indexEntry(for:))
+            } else {
+                search = ""
+                searchIndex = []
+            }
+        }
+        // Options can load in (or a directory can resolve display names) after the
+        // popover is already open; keep the prepared strings in step with them.
+        .onChange(of: options) { _, newOptions in
+            if presented { searchIndex = newOptions.map(indexEntry(for:)) }
         }
         .popover(isPresented: $presented, arrowEdge: .top) {
             SearchableFilterPopover(
