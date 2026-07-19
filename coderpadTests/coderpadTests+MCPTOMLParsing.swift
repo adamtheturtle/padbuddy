@@ -165,3 +165,46 @@ struct CodexDeclarationScanTests {
         #expect(MCPClientInstall.codexPadbuddyDeclaration(in: config) == .notDeclared)
     }
 }
+
+@Suite("Codex table rewrite (#2536, #2543)")
+struct CodexTableRewriteTests {
+    @Test
+    func `custom settings in the padbuddy table survive an update`() {
+        // Updating the app path used to discard the whole table body and write back
+        // only command and args, silently deleting anything else the user had put
+        // there (#2536).
+        let body = [
+            "[mcp_servers.padbuddy]",
+            "command = \"/old/PadBuddy\"",
+            "args = [\"--mcp\"]",
+            "startup_timeout_ms = 20000",
+            "enabled = true"
+        ]
+        let replacement = MCPClientInstall.codexTableReplacement(body: body, executablePath: "/new/PadBuddy")
+
+        #expect(replacement.contains("command = \"/new/PadBuddy\""))
+        #expect(replacement.contains("args = [\"--mcp\"]"))
+        #expect(replacement.contains("startup_timeout_ms = 20000"))
+        #expect(replacement.contains("enabled = true"))
+        // The keys PadBuddy owns appear exactly once, not duplicated alongside the old.
+        #expect(replacement.count(where: { $0.hasPrefix("command =") }) == 1)
+        #expect(replacement.count(where: { $0.hasPrefix("args =") }) == 1)
+        #expect(!replacement.contains { $0.contains("/old/PadBuddy") })
+    }
+
+    @Test
+    func `a table with nothing but our keys is rewritten to just them`() {
+        let body = ["[mcp_servers.padbuddy]", "command = \"/old\"", "args = [\"--mcp\"]"]
+        let replacement = MCPClientInstall.codexTableReplacement(body: body, executablePath: "/new")
+        #expect(replacement == ["[mcp_servers.padbuddy]", "command = \"/new\"", "args = [\"--mcp\"]"])
+    }
+
+    @Test
+    func `the file's line-ending convention is detected`() {
+        // A CRLF config rewritten with bare LF produces an unrelated whole-file diff
+        // and breaks tooling that expects one convention (#2543).
+        #expect(MCPClientInstall.dominantLineEnding(of: "a = 1\r\nb = 2\r\n") == "\r\n")
+        #expect(MCPClientInstall.dominantLineEnding(of: "a = 1\nb = 2\n") == "\n")
+        #expect(MCPClientInstall.dominantLineEnding(of: "") == "\n")
+    }
+}
