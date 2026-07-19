@@ -58,7 +58,11 @@ struct DetailChipBar<Item: DetailChipItem>: View {
                 Text(item.label)
                     .lineLimit(1)
             } icon: {
+                // Decorative: the Label's own text names the chip, and the button
+                // carries an explicit accessibilityLabel below, so announcing the
+                // symbol as well would just repeat it.
                 Image(systemName: item.systemImage)
+                    .accessibilityHidden(true)
             }
             .font(.callout.weight(isSelected ? .semibold : .medium))
             .foregroundStyle(isSelected ? Color.primary : Color.secondary)

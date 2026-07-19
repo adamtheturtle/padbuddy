@@ -8730,6 +8730,68 @@
           }
         }
       }
+    },
+    "%@ isn't a member of this organization, so creating the pad may fail." : {
+      "comment" : "Warning when the chosen New Pad owner is not in the loaded organization member list",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%@ no es miembro de esta organización, por lo que la creación del pad puede fallar."
+          }
+        }
+      }
+    },
+    "Create the pad." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Crear el pad."
+          }
+        }
+      }
+    },
+    "The current %@ selection couldn't be verified and may fail." : {
+      "comment" : "Warning naming the New Pad selections a failed load left unverified",
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "La selección actual de %@ no se pudo verificar y puede fallar."
+          }
+        }
+      }
+    },
+    "The question you picked is no longer in this account's question bank, so it has been cleared." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "La pregunta que elegiste ya no está en el banco de preguntas de esta cuenta, así que se ha borrado."
+          }
+        }
+      }
+    },
+    "The team you picked is no longer in this organization, so the pad will use the default team." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "El equipo que elegiste ya no está en esta organización, así que el pad usará el equipo predeterminado."
+          }
+        }
+      }
+    },
+    "Waiting for the question and organization details to finish loading." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Esperando a que terminen de cargarse la pregunta y los detalles de la organización."
+          }
+        }
+      }
     }
   },
   "version" : "1.3"

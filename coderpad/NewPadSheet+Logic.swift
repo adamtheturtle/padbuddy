@@ -13,7 +13,7 @@ import SwiftUI
 
 extension NewPadSheet {
     var loadFailureMessage: String {
-        switch (questionsLoadFailed, organizationLoadFailed) {
+        let incomplete = switch (questionsLoadFailed, organizationLoadFailed) {
         case (true, true):
             String(localized: """
             Questions and organization details couldn't be loaded, so the Question, Owner, and Team \
@@ -28,6 +28,39 @@ extension NewPadSheet {
             Organization details couldn't be loaded, so the Owner and Team choices may be incomplete.
             """)
         }
+        guard let unverified = unverifiedSelectionsMessage else { return incomplete }
+
+        return "\(incomplete) \(unverified)"
+    }
+
+    /// Names the choices that the failed loads left unverified, or `nil` when
+    /// nothing is currently selected that a load would have validated.
+    ///
+    /// Saying only that the *choices* may be incomplete was ambiguous: creation
+    /// stays enabled, so the user couldn't tell whether the value already in each
+    /// picker was known good or a cached leftover that the API will reject
+    /// (#2637). Listing them makes the risk of pressing Create concrete.
+    private var unverifiedSelectionsMessage: String? {
+        var fields: [String] = []
+        if questionsLoadFailed, selectedQuestionID != nil {
+            fields.append(String(localized: "Question",
+                                 comment: "New Pad field name in an unverified-selection warning"))
+        }
+        if organizationLoadFailed {
+            if !ownerEmail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                fields.append(String(localized: "Owner",
+                                     comment: "New Pad field name in an unverified-selection warning"))
+            }
+            if selectedTeamID != nil {
+                fields.append(String(localized: "Team",
+                                     comment: "New Pad field name in an unverified-selection warning"))
+            }
+        }
+        guard !fields.isEmpty else { return nil }
+
+        let list = ListFormatter.localizedString(byJoining: fields)
+        return String(localized: "The current \(list) selection couldn't be verified and may fail.",
+                      comment: "Warning naming the New Pad selections a failed load left unverified")
     }
 
     func loadQuestions() async {
