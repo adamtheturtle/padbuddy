@@ -9,6 +9,20 @@ import Testing
 
 @Suite("Pad cache mutations")
 struct PadCacheMutationTests {
+    @Test func `only the newest cache persistence epoch remains current`() {
+        let epochs = CachePersistenceEpochs()
+        let account = UUID()
+        let otherAccount = UUID()
+        let stale = epochs.advance(for: account)
+        let current = epochs.advance(for: account)
+        let other = epochs.advance(for: otherAccount)
+
+        #expect(!epochs.isCurrent(stale, for: account))
+        #expect(epochs.isCurrent(current, for: account))
+        #expect(epochs.isCurrent(other, for: otherAccount))
+        #expect(!epochs.isCurrent(current, for: otherAccount))
+    }
+
     @Test func `question disk hydration publishes each identity once`() async throws {
         let question = try await CoderPadClient.mock(key: "cache-normalization-\(UUID().uuidString)")
             .getQuestion(id: 102)

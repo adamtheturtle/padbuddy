@@ -54,6 +54,7 @@ final class PadsCacheStore {
     /// cache isn't re-read from disk on every `get`.
     private var diskConsulted: Set<UUID> = []
     private let writeQueue = SerialWriteQueue()
+    private let persistenceEpochs = CachePersistenceEpochs()
     private init() {}
 
     func cached(_ accountID: UUID) -> [Pad] {
@@ -131,7 +132,11 @@ final class PadsCacheStore {
         // titles) are in hand — tracks renames and names a pad favourited while
         // still untitled, so the sidebar shows a current title (#654).
         FavoritePadsStore.shared.refreshTitles(from: pads, account: accountID)
+        let persistenceEpoch = persistenceEpochs.advance(for: accountID)
+        let epochStore = persistenceEpochs
         writeQueue.enqueue(coalescingKey: "pads.\(accountID.uuidString)") {
+            guard epochStore.isCurrent(persistenceEpoch, for: accountID) else { return }
+
             CacheDisk.save(pads, kind: "pads", account: accountID)
         }
     }
@@ -160,7 +165,11 @@ final class PadsCacheStore {
         // snapshot from disk back into memory (#755). The file is gone afterwards,
         // so a re-added account with the same id starts empty either way.
         diskConsulted.insert(accountID)
+        let persistenceEpoch = persistenceEpochs.advance(for: accountID)
+        let epochStore = persistenceEpochs
         writeQueue.enqueue(coalescingKey: "pads.\(accountID.uuidString)") {
+            guard epochStore.isCurrent(persistenceEpoch, for: accountID) else { return }
+
             CacheDisk.delete(kind: "pads", account: accountID)
         }
         // Drop the account's mirrored widget snapshot and refresh the picker index.
@@ -207,7 +216,11 @@ final class PadsCacheStore {
             writeGeneration[accountID, default: 0] += 1
             WidgetSync.refresh(pads: reduced, account: accountID,
                                isCurrent: accountID == AccountsStore.shared.currentAccount?.id)
+            let persistenceEpoch = persistenceEpochs.advance(for: accountID)
+            let epochStore = persistenceEpochs
             writeQueue.enqueue(coalescingKey: "pads.\(accountID.uuidString)") {
+                guard epochStore.isCurrent(persistenceEpoch, for: accountID) else { return }
+
                 CacheDisk.save(reduced, kind: "pads", account: accountID)
             }
         }
