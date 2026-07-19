@@ -79,6 +79,25 @@ struct ScreenDemoDataTests {
     }
 
     @Test
+    func `concurrent Screen requests share one decoder safely (#2115)`() async {
+        // ScreenClient holds a single JSONDecoder/JSONEncoder rather than allocating a
+        // pair per call, so overlapping off-main decodes must still each get their own
+        // correct result. Under the TSan plan this also guards the sharing itself.
+        let details = await withTaskGroup(of: ScreenTestSession?.self) { group in
+            for _ in 0 ..< 20 {
+                group.addTask {
+                    try? await ScreenClient.mock(key: "demo-concurrent").getTest(id: 5001)
+                }
+            }
+            return await group.reduce(into: [ScreenTestSession]()) { found, detail in
+                if let detail { found.append(detail) }
+            }
+        }
+        #expect(details.count == 20)
+        #expect(details.allSatisfy { $0.report?.score == 88 })
+    }
+
+    @Test
     func `the bad-key demo's Screen requests fail unauthorized`() async throws {
         await #expect(throws: CoderPadError.self) {
             _ = try await ScreenClient.mock(unauthorized: true).listCampaigns()

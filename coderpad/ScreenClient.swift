@@ -278,18 +278,26 @@ struct ScreenClient {
         return (data, http)
     }
 
+    /// One coder each for every Screen call, rather than one per request/response.
+    ///
+    /// Screen carries no ISO-8601 dates (timestamps are epoch-millisecond ints), so the
+    /// default configuration suffices and nothing here mutates their options — which is
+    /// what made the per-call allocation pure waste on every request, including each
+    /// page of `listAllTests` (#2115). Both types are safe to use concurrently as long
+    /// as they are only read, so `nonisolated(unsafe)` covers the off-main decodes,
+    /// matching `WidgetPadSnapshot`'s shared pair.
+    private nonisolated(unsafe) static let decoder = JSONDecoder()
+    private nonisolated(unsafe) static let encoder = JSONEncoder()
+
     private nonisolated func decode<T: Decodable>(_ type: T.Type, from data: Data) throws -> T {
-        // Screen carries no ISO-8601 dates (timestamps are epoch-millisecond ints),
-        // so a default decoder suffices; build one per call since JSONDecoder isn't
-        // safe to share across the off-main decodes.
         do {
-            return try JSONDecoder().decode(type, from: data)
+            return try Self.decoder.decode(type, from: data)
         } catch {
             throw CoderPadError.decode(String(describing: error))
         }
     }
 
     private nonisolated func encode(_ body: some Encodable) throws -> Data {
-        try JSONEncoder().encode(body)
+        try Self.encoder.encode(body)
     }
 }
