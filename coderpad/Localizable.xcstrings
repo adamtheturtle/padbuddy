@@ -8892,6 +8892,16 @@
           }
         }
       }
+    },
+    "PadBuddy couldn't find its own program file, so it can't tell %@ where to find it. Move PadBuddy to your Applications folder and try again." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "PadBuddy no pudo encontrar su propio archivo de programa, así que no puede indicarle a %@ dónde encontrarlo. Mueve PadBuddy a la carpeta Aplicaciones y vuelve a intentarlo."
+          }
+        }
+      }
     }
   },
   "version" : "1.3"

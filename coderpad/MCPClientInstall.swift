@@ -167,6 +167,15 @@ enum MCPClientInstall {
         @MainActor
         static func install(_ client: Client, executablePath: String) async {
             let spec = spec(for: client)
+            // A command the client can't run is worse than no entry: it replaces a
+            // working one and fails silently at the client's next launch (#2531).
+            guard isRunnableExecutable(executablePath) else {
+                showAlert(.warning, "Couldn't update \(client.displayName)", String(localized: """
+                PadBuddy couldn't find its own program file, so it can't tell \(client.displayName) \
+                where to find it. Move PadBuddy to your Applications folder and try again.
+                """))
+                return
+            }
             guard let folder = grantFolderAccess(
                 preferred: spec.preferred,
                 fallback: spec.fallback,
@@ -209,7 +218,7 @@ enum MCPClientInstall {
             if alreadyPresent, !confirmUpdate(client) { return }
 
             try await Task.detached(priority: .userInitiated) {
-                try data.write(to: url, options: .atomic)
+                try writeConfig(data, to: url)
             }.value
 
             let title = alreadyPresent ? "Updated \(client.displayName)" : "Added to \(client.displayName)"
@@ -244,7 +253,12 @@ enum MCPClientInstall {
             guard FileManager.default.fileExists(atPath: url.path) else { return [:] }
 
             let data = try Data(contentsOf: url)
-            guard !data.isEmpty else { return [:] }
+            // Whitespace-only counts as blank. A file holding just a newline is empty
+            // to the person who made it, and rejecting it as corrupt meant the
+            // installer refused to write a config it could perfectly well create
+            // (#2532).
+            let text = String(bytes: data, encoding: .utf8) ?? ""
+            guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return [:] }
             guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
                 throw CocoaError(.propertyListReadCorrupt)
             }
@@ -276,7 +290,7 @@ enum MCPClientInstall {
             case .notDeclared:
                 let merged = text.isEmpty ? block : text + "\n" + block
                 try await Task.detached(priority: .userInitiated) {
-                    try merged.write(to: url, atomically: true, encoding: .utf8)
+                    try writeConfig(Data(merged.utf8), to: url)
                 }.value
                 showAlert(.informational, "Added to \(client.displayName)", client.restartHint)
 
@@ -287,7 +301,7 @@ enum MCPClientInstall {
                 lines.replaceSubrange(range, with: block.components(separatedBy: "\n"))
                 let updated = lines.joined(separator: "\n")
                 try await Task.detached(priority: .userInitiated) {
-                    try updated.write(to: url, atomically: true, encoding: .utf8)
+                    try writeConfig(Data(updated.utf8), to: url)
                 }.value
                 showAlert(.informational, "Updated \(client.displayName)", client.restartHint)
 

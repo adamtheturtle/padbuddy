@@ -267,3 +267,64 @@ import Testing
     }
 
 #endif
+
+@Suite("MCP config write safety (#2531, #2533, #2534, #2535)")
+struct MCPConfigWriteSafetyTests {
+    private func makeTemporaryDirectory() throws -> URL {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("mcp-write-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        return url
+    }
+
+    @Test
+    func `rewriting a config preserves its permissions and leaves a backup`() throws {
+        let directory = try makeTemporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let config = directory.appendingPathComponent("config.toml")
+        try Data("original = true\n".utf8).write(to: config)
+        // A deliberately restricted config must not come back world-readable.
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: config.path)
+
+        try MCPClientInstall.writeConfig(Data("updated = true\n".utf8), to: config)
+
+        let attributes = try FileManager.default.attributesOfItem(atPath: config.path)
+        let mode = try #require(attributes[.posixPermissions] as? Int)
+        #expect(mode == 0o600)
+        #expect(try String(contentsOf: config, encoding: .utf8) == "updated = true\n")
+
+        // The previous contents stay recoverable beside the file (#2535).
+        let backup = directory.appendingPathComponent("config.toml" + MCPClientInstall.backupSuffix)
+        #expect(try String(contentsOf: backup, encoding: .utf8) == "original = true\n")
+    }
+
+    @Test
+    func `writing a new config needs no backup`() throws {
+        let directory = try makeTemporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let config = directory.appendingPathComponent("mcp.json")
+
+        try MCPClientInstall.writeConfig(Data("{}".utf8), to: config)
+
+        #expect(try String(contentsOf: config, encoding: .utf8) == "{}")
+        let backup = directory.appendingPathComponent("mcp.json" + MCPClientInstall.backupSuffix)
+        #expect(!FileManager.default.fileExists(atPath: backup.path))
+    }
+
+    @Test
+    func `only a runnable file counts as an executable`() throws {
+        let directory = try makeTemporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        #expect(!MCPClientInstall.isRunnableExecutable(""))
+        #expect(!MCPClientInstall.isRunnableExecutable(directory.appendingPathComponent("gone").path))
+        // A directory is not a command, even though it exists and is "executable".
+        #expect(!MCPClientInstall.isRunnableExecutable(directory.path))
+
+        let script = directory.appendingPathComponent("padbuddy")
+        try Data("#!/bin/sh\n".utf8).write(to: script)
+        #expect(!MCPClientInstall.isRunnableExecutable(script.path))
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: script.path)
+        #expect(MCPClientInstall.isRunnableExecutable(script.path))
+    }
+}
