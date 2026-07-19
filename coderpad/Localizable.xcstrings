@@ -8842,6 +8842,56 @@
           }
         }
       }
+    },
+    "Clear Pad View History" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Borrar el historial de pads vistos"
+          }
+        }
+      }
+    },
+    "Clear pad view history?" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "¿Borrar el historial de pads vistos?"
+          }
+        }
+      }
+    },
+    "Clear History" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Borrar el historial"
+          }
+        }
+      }
+    },
+    "Every started pad will show as changed until you open it again. This clears the history on all your devices." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Todos los pads iniciados se mostrarán como modificados hasta que vuelvas a abrirlos. Esto borra el historial en todos tus dispositivos."
+          }
+        }
+      }
+    },
+    "PadBuddy remembers when you last opened each pad so it can flag ones that changed since. Records are kept for 90 days." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "PadBuddy recuerda cuándo abriste cada pad por última vez para poder señalar los que han cambiado desde entonces. Los registros se conservan 90 días."
+          }
+        }
+      }
     }
   },
   "version" : "1.3"

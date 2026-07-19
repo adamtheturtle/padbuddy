@@ -49,6 +49,8 @@ struct SettingsView: View {
     /// The account the sidebar minus button is about to remove; non-nil presents the
     /// delete confirmation (#772), mirroring the editor's own delete button.
     @State var accountPendingRemoval: UUID?
+    /// Gates the destructive confirmation for clearing pad view history (#2629).
+    @State var showClearPadHistoryConfirmation = false
 
     // Browser and menu-bar preferences live in UserDefaults under the keys defined
     // in `BrowserSettings.Key`; `@AppStorage` reads/writes those same keys so the

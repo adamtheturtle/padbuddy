@@ -121,6 +121,45 @@ final class PadOpenedStore {
     /// list shows at once, so the dot is never wrong for a visible pad.
     static let maxEntriesPerAccount = 500
 
+    /// How long a pad-open record is kept.
+    ///
+    /// Each record is a pad identifier plus the time you looked at it, held in
+    /// UserDefaults and mirrored to iCloud. Only records for *deleted* pads were
+    /// ever removed, so an identifier for every pad you ever opened persisted
+    /// indefinitely (#2629). The activity dot is about recent change, so a record
+    /// this old no longer informs anything.
+    static let retention: TimeInterval = 90 * 24 * 60 * 60
+
+    /// Drops every account's records for pads not opened within `retention`.
+    /// Returns whether anything was removed.
+    @discardableResult
+    private func expireOldRecords(now: Date = Date()) -> Bool {
+        let cutoff = now.addingTimeInterval(-Self.retention)
+        var changed = false
+        for (account, entries) in byAccount {
+            let kept = entries.filter { $0.value >= cutoff }
+            guard kept.count != entries.count else { continue }
+
+            byAccount[account] = kept.isEmpty ? nil : kept
+            changed = true
+        }
+        return changed
+    }
+
+    /// Forgets every pad-open record on this device and in the iCloud mirror.
+    ///
+    /// The activity dots reset — every started pad reads as changed until you open
+    /// it again — which is the honest consequence of clearing the record of what
+    /// you had looked at. Exposed so the history is not something a user can only
+    /// wait out (#2629).
+    func clearAllHistory() {
+        guard !byAccount.isEmpty || !removedAt.isEmpty else { return }
+
+        byAccount = [:]
+        removedAt = [:]
+        save()
+    }
+
     /// Drops an account's open-history, called when the account is removed or
     /// re-keyed so its pad-open timestamps don't linger in UserDefaults (#379).
     func remove(account: UUID, syncID: String? = nil) {
@@ -172,6 +211,9 @@ final class PadOpenedStore {
     }
 
     private func save() {
+        // Records past the retention window go first, so neither the local blob nor
+        // the mirror keeps identifiers for pads you looked at long ago (#2629).
+        expireOldRecords()
         // A present pad retires its tombstone (opened again after a deletion), and
         // old tombstones age out so the map stays bounded.
         for (account, entries) in byAccount {
@@ -182,11 +224,16 @@ final class PadOpenedStore {
             }
             removedAt[account] = CloudTombstones.pruned(tombstones)
         }
+        // Encode both blobs before writing either, and write the tombstones first.
+        // Writing them one at a time could leave a record without its tombstone if
+        // the second encode threw, and a record without its tombstone is exactly how
+        // a deleted pad's activity state comes back (#2625). Tombstones-without-
+        // records is the harmless direction: the deletion is still honoured.
         do {
-            let data = try JSONEncoder().encode(byAccount)
-            UserDefaults.standard.set(data, forKey: Self.key)
+            let history = try JSONEncoder().encode(byAccount)
             let tombstones = try JSONEncoder().encode(removedAt)
             UserDefaults.standard.set(tombstones, forKey: Self.tombstonesKey)
+            UserDefaults.standard.set(history, forKey: Self.key)
         } catch {
             let reason = error.localizedDescription
             persistenceLogger.error("Failed to encode pad open times: \(reason, privacy: .public)")
@@ -203,12 +250,32 @@ final class PadOpenedStore {
         let syncID: (UUID) -> String? = { uuid in
             AccountsStore.shared.accounts.first { $0.id == uuid }?.syncID
         }
-        if let data = try? JSONEncoder().encode(CloudSyncMerge.toCloud(byAccount, syncID: syncID)) {
-            CloudSyncStore.shared.mirror(data, forKey: Self.cloudKey)
+        // Tombstones first, for the same reason as the local write above.
+        mirror(CloudSyncMerge.toCloud(removedAt, syncID: syncID), forKey: Self.cloudTombstonesKey)
+        mirror(CloudSyncMerge.toCloud(byAccount, syncID: syncID), forKey: Self.cloudKey)
+    }
+
+    /// Writes this device's contribution to a mirrored blob without disturbing the
+    /// rest of it.
+    ///
+    /// The mirror is shared by every device, keyed by account sync id. Replacing it
+    /// wholesale published only the accounts *this* device has configured — and
+    /// `syncFromCloud` deliberately ignores identities it can't map — so a device
+    /// that was missing an account, or had merely not finished loading its
+    /// credentials, erased that account's history for every other device (#2628).
+    /// Entries under identities this device doesn't know are carried through
+    /// untouched.
+    private func mirror(_ mine: [String: [String: Date]], forKey key: String) {
+        var blob = mine
+        if let data = CloudSyncStore.shared.data(forKey: key),
+           let existing = try? JSONDecoder().decode([String: [String: Date]].self, from: data) {
+            for (identity, entries) in existing where mine[identity] == nil {
+                blob[identity] = entries
+            }
         }
-        if let data = try? JSONEncoder().encode(CloudSyncMerge.toCloud(removedAt, syncID: syncID)) {
-            CloudSyncStore.shared.mirror(data, forKey: Self.cloudTombstonesKey)
-        }
+        guard let data = try? JSONEncoder().encode(blob) else { return }
+
+        CloudSyncStore.shared.mirror(data, forKey: key)
     }
 
     /// Pulls the iCloud open-history and merges it into the local set, keeping the most
