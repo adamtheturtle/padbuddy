@@ -114,7 +114,12 @@ enum PadListLogic {
     /// refresh effort is biased toward when started pads are actually present.
     static func refreshInterval(base: Duration, padCount: Int, hasStartedPads: Bool) -> Duration {
         var interval: Duration = switch padCount {
-        case ..<500: base
+        // A negative count is not a real list size, so it can't be trusted to mean
+        // "small list". Falling through to the base cadence would hand the fastest
+        // poll to the most obviously broken input, so treat it as unknown and use
+        // the most conservative back-off instead (#2009).
+        case ..<0: base * 4
+        case 0 ..< 500: base
         case 500 ..< 2000: base * 2
         default: base * 4
         }

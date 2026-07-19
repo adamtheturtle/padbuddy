@@ -157,6 +157,17 @@ struct PadRefreshIntervalTests {
     func `medium list with started pads scales by size only`() {
         #expect(PadListLogic.refreshInterval(base: base, padCount: 1000, hasStartedPads: true) == base * 2)
     }
+
+    @Test
+    func `a negative count backs off instead of polling fastest`() {
+        #expect(PadListLogic.refreshInterval(base: base, padCount: -1, hasStartedPads: true) == base * 4)
+        #expect(PadListLogic.refreshInterval(base: base, padCount: -1, hasStartedPads: false) == base * 8)
+    }
+
+    @Test
+    func `an empty list still uses the base cadence`() {
+        #expect(PadListLogic.refreshInterval(base: base, padCount: 0, hasStartedPads: true) == base)
+    }
 }
 
 @Suite("Spotlight item identifiers")
