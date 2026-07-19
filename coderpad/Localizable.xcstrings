@@ -9037,6 +9037,26 @@
           }
         }
       }
+    },
+    "Dates use your current time zone (%@)." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Las fechas usan tu zona horaria actual (%@)."
+          }
+        }
+      }
+    },
+    "Updating members" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Actualizando los miembros"
+          }
+        }
+      }
     }
   },
   "version" : "1.3"

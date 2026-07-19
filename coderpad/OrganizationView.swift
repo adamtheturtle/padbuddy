@@ -185,7 +185,17 @@ struct OrganizationView: View {
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, Spacing.paneH)
-            .padding(.vertical, 12)
+            .padding(.top, 12)
+            // The pickers choose calendar days in the device's zone, which is not
+            // necessarily how the server buckets a stat — so a report run while
+            // travelling, or across a DST change, can look off by a day unless the
+            // basis is stated (#2388).
+            Text("Dates use your current time zone (\(TimeZone.current.identifier)).")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, Spacing.paneH)
+                .padding(.bottom, 12)
             Divider()
         }
     }
@@ -251,6 +261,14 @@ struct OrganizationView: View {
                 HStack {
                     SectionHeader(title: "Users", systemImage: "person.3")
                     Spacer()
+                    // While a refresh is in flight the count describes the members
+                    // loaded so far, which can be a cached or partial set — showing
+                    // it bare read as an authoritative total (#2387).
+                    if isLoading {
+                        ProgressView()
+                            .controlSize(.mini)
+                            .accessibilityLabel("Updating members")
+                    }
                     Text("\(users.count)")
                         .font(.caption.monospaced()).foregroundStyle(.secondary)
                 }
