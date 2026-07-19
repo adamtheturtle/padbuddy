@@ -16,6 +16,12 @@ import SwiftUI
 /// in scoring keep that order.
 @MainActor
 enum CommandPaletteBuilder {
+    struct PadPaletteText {
+        let title: String
+        let subtitle: String?
+        let searchText: String
+    }
+
     static func build() -> [PaletteResult] {
         let dynamic = dynamicResults()
         var results: [PaletteResult] = []
@@ -47,14 +53,14 @@ enum CommandPaletteBuilder {
             let accountID = account.id, canCreate = creatableIDs.contains(account.id)
             let favoriteIDs = canCreate ? Set(FavoriteQuestionsStore.shared.favorites(account: account.id)) : []
             for pad in uniquePads(PadsCacheStore.shared.get(account.id)) {
-                let title = padTitle(title: pad.title, id: pad.id)
+                let text = padPaletteText(pad, account: showContentAccount ? account.name : nil)
                 content.append(PaletteResult(
                     id: "pad.\(account.id.uuidString).\(pad.id)",
                     kind: .pad,
-                    title: title,
-                    subtitle: subtitle(account: showContentAccount ? account.name : nil, detail: pad.ownerEmail),
+                    title: text.title,
+                    subtitle: text.subtitle,
                     systemImage: "doc.text",
-                    searchText: sanitizedRemoteText("\(title) \(sanitizedRemoteText(pad.ownerEmail))", limit: 320)
+                    searchText: text.searchText
                 ) { jump(toPad: pad.id, in: account.id) })
             }
 
@@ -182,6 +188,13 @@ enum CommandPaletteBuilder {
 
     static func padTitle(title: String, id: String) -> String {
         sanitizedRemoteText(title, fallback: sanitizedRemoteText(id, fallback: "Pad"))
+    }
+
+    static func padPaletteText(_ pad: Pad, account: String?) -> PadPaletteText {
+        let title = padTitle(title: pad.title, id: pad.id)
+        return PadPaletteText(title: title,
+                              subtitle: subtitle(account: account, detail: nil),
+                              searchText: sanitizedRemoteText(title, limit: 320))
     }
 
     private static func questionPaletteText(_ question: Question) -> (title: String, language: String) {

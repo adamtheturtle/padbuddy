@@ -50,6 +50,23 @@ struct CommandPaletteBuilderTests {
     }
 
     @Test
+    func `pad palette metadata contains no owner email`() throws {
+        let sensitive = "candidate-owner-sensitive@example.com"
+        let data = try JSONSerialization.data(withJSONObject: [
+            "id": "pad-1", "title": "Backend interview", "owner_email": sensitive
+        ])
+        let pad = try CoderPadClient.decoder.decode(Pad.self, from: data)
+        let text = CommandPaletteBuilder.padPaletteText(
+            pad, account: "Production"
+        )
+
+        #expect(text.title == "Backend interview")
+        #expect(text.subtitle == "Production")
+        #expect(text.searchText == "Backend interview")
+        #expect(!"\(text.title) \(text.subtitle ?? "") \(text.searchText)".contains(sensitive))
+    }
+
+    @Test
     func `pad candidates keep the first record for each id`() throws {
         func pad(id: String, title: String) throws -> Pad {
             let data = try JSONSerialization.data(withJSONObject: ["id": id, "title": title])
