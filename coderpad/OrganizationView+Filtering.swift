@@ -114,12 +114,16 @@ extension OrganizationView {
     func reload() async {
         guard !client.apiKey.isEmpty else { return }
 
+        reloadGeneration &+= 1
+        let generation = reloadGeneration
+        let requestedOwner = statsOwner
         isLoading = true
         error = nil
-        defer { isLoading = false }
+        defer {
+            if matchesReload(generation, owner: requestedOwner) { isLoading = false }
+        }
         let window = window
         let requested = statsWindowToken
-        let requestedOwner = statsOwner
         async let orgFetch = client.organization()
         async let statsFetch = client.organizationStats(start: window.start, end: window.end)
         async let quotaFetch = client.quota()
@@ -132,8 +136,10 @@ extension OrganizationView {
             fetchedOrg = try await orgFetch
         } catch {
             fetchedOrg = nil
-            self.error = error
+            if matchesReload(generation, owner: requestedOwner) { self.error = error }
         }
+        guard !Task.isCancelled, matchesReload(generation, owner: requestedOwner) else { return }
+
         if let fetchedOrg {
             organization = fetchedOrg
         }
@@ -143,19 +149,15 @@ extension OrganizationView {
         // keeps the previous stats, marked stale, instead of silently
         // clearing them to a placeholder (#799).
         let fetchedStats = try? await statsFetch
-        if requested == statsWindowToken, requestedOwner == statsOwner, !Task.isCancelled {
-            if let fetchedStats {
-                stats = fetchedStats
-                statsError = nil
-            } else {
-                statsError = String(localized: "The pad stats request failed.")
-            }
-        }
+        applyStats(fetchedStats, requested: requested, generation: generation, owner: requestedOwner)
         // A transient quota failure keeps whatever quota is already on screen,
         // rather than blanking a usable card — the same treatment stats already
         // get above (#799, #2381). The card that remains was fetched for this
         // same account, so it is stale rather than wrong.
-        if let fetchedQuota = try? await quotaFetch {
+        let fetchedQuota = try? await quotaFetch
+        guard !Task.isCancelled, matchesReload(generation, owner: requestedOwner) else { return }
+
+        if let fetchedQuota {
             quota = fetchedQuota
         }
         // Warm the shared caches so re-entering Organization — or visiting
@@ -163,10 +165,40 @@ extension OrganizationView {
         // Strictly under the captured owning account, not the live current
         // one: an in-flight reload finishing after an account switch must not
         // write this account's data into the new account's cache (#991).
-        if let id = accountID {
-            if let fetchedOrg { orgCache.set(id, organization: fetchedOrg, via: client) }
-            if let quota { quotaCache.set(id, quota: quota, via: client) }
+        warmCaches(organization: fetchedOrg, quota: quota)
+    }
+
+    private func matchesReload(_ generation: Int, owner: OrganizationStatsOwner) -> Bool {
+        OrganizationReloadIdentity.isCurrent(
+            generation,
+            currentGeneration: reloadGeneration,
+            requestedOwner: owner,
+            currentOwner: statsOwner
+        )
+    }
+
+    private func applyStats(
+        _ fetched: OrganizationStats?,
+        requested: StatsWindowToken,
+        generation: Int,
+        owner: OrganizationStatsOwner
+    ) {
+        guard requested == statsWindowToken, !Task.isCancelled,
+              matchesReload(generation, owner: owner) else { return }
+
+        if let fetched {
+            stats = fetched
+            statsError = nil
+        } else {
+            statsError = String(localized: "The pad stats request failed.")
         }
+    }
+
+    private func warmCaches(organization: Organization?, quota: Quota?) {
+        guard let accountID else { return }
+
+        if let organization { orgCache.set(accountID, organization: organization, via: client) }
+        if let quota { quotaCache.set(accountID, quota: quota, via: client) }
     }
 
     /// Cancels any in-flight stats fetch before starting a new one, so rapid period
