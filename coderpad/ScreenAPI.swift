@@ -310,11 +310,11 @@ nonisolated struct ScreenReport: Decodable, Hashable {
         duration = try? container.decodeIfPresent(Int.self, forKey: .duration)
         warnings = (try? container.decodeIfPresent([String].self, forKey: .warnings)) ?? []
         points = try? container.decodeIfPresent(Int.self, forKey: .points)
-        score = try? container.decodeIfPresent(Double.self, forKey: .score)
+        score = try ScreenReportMetric.percentage(from: container, forKey: .score)
         technologies = container.decodeLenientScreenDictionary(of: ScreenTechnologyResult.self, forKey: .technologies)
         totalDuration = try? container.decodeIfPresent(Int.self, forKey: .totalDuration)
         totalPoints = try? container.decodeIfPresent(Int.self, forKey: .totalPoints)
-        comparativeScore = try? container.decodeIfPresent(Double.self, forKey: .comparativeScore)
+        comparativeScore = try ScreenReportMetric.percentage(from: container, forKey: .comparativeScore)
         communityStats = try? container.decodeIfPresent([Int].self, forKey: .communityStats)
     }
 
@@ -339,10 +339,10 @@ nonisolated struct ScreenTechnologyResult: Decodable, Hashable {
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         points = try? container.decodeIfPresent(Int.self, forKey: .points)
-        score = try? container.decodeIfPresent(Double.self, forKey: .score)
+        score = try ScreenReportMetric.percentage(from: container, forKey: .score)
         skills = container.decodeLenientScreenDictionary(of: ScreenSkillResult.self, forKey: .skills)
         totalPoints = try? container.decodeIfPresent(Int.self, forKey: .totalPoints)
-        comparativeScore = try? container.decodeIfPresent(Double.self, forKey: .comparativeScore)
+        comparativeScore = try ScreenReportMetric.percentage(from: container, forKey: .comparativeScore)
     }
 
     enum CodingKeys: String, CodingKey {
@@ -361,7 +361,7 @@ nonisolated struct ScreenSkillResult: Decodable, Hashable {
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         points = try? container.decodeIfPresent(Int.self, forKey: .points)
-        score = try? container.decodeIfPresent(Double.self, forKey: .score)
+        score = try ScreenReportMetric.percentage(from: container, forKey: .score)
         totalPoints = try? container.decodeIfPresent(Int.self, forKey: .totalPoints)
     }
 
