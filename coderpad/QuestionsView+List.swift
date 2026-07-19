@@ -239,11 +239,15 @@ extension QuestionsView {
         #endif
     }
 
+    /// Read on every body pass, so it stays an Int-and-uuid interpolation: sorting the
+    /// favorite ids and joining them into a string cost a sort plus N allocations per
+    /// render just to derive this key (#2083). The store's revision moves on every
+    /// favourites change, and the account is folded in because a swap changes which
+    /// favourites apply without touching the revision.
     private var questionListReloadID: String {
-        let favoriteSignature = favoriteIDSet.sorted().map(String.init).joined(separator: ",")
         // Fold the content revision in so an in-place edit (rename, language, type)
         // redraws the visible row: the id list alone can't see it (#1003).
-        return "\(favoriteSignature)#\(questionsRevision)"
+        "\(favorites.revision)#\(questionsRevision)#\(owningAccountID?.uuidString ?? "")"
     }
 
     /// Opens a question in its own window (double-click / Return), the first click
