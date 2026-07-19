@@ -19,6 +19,7 @@ import SwiftUI
 /// and `StructuredText` honors the ambient SwiftUI `.font`/`.foregroundStyle`,
 /// so we lean on the defaults rather than carrying a hand-rolled theme.
 public struct MarkdownText: View {
+    public static let plainTextFallbackLimit = 20000
     let raw: String
 
     public init(_ raw: String) {
@@ -46,10 +47,35 @@ public struct MarkdownText: View {
                 .textSelection(.enabled)
                 .frame(maxWidth: .infinity, alignment: .leading)
         } else {
-            Text(raw)
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .leading, spacing: 8) {
+                Label("Formatting unavailable — showing plain text", systemImage: "text.badge.xmark")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text(Self.plainTextFallback(raw))
+                    .textSelection(.enabled)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    public static func plainTextFallback(_ raw: String) -> String {
+        let safe = raw.map { character -> Character in
+            let categories = character.unicodeScalars.map(\.properties.generalCategory)
+            let containsForbidden = categories.contains {
+                switch $0 {
+                case .control, .privateUse, .surrogate, .unassigned: true
+                default: false
+                }
+            }
+            let isOnlyFormatting = categories.allSatisfy { $0 == .format }
+            return containsForbidden || isOnlyFormatting ? " " : character
+        }
+        let normalized = String(safe)
+            .split(whereSeparator: \Character.isWhitespace)
+            .joined(separator: " ")
+        guard !normalized.isEmpty else { return "(empty)" }
+
+        return String(normalized.prefix(Self.plainTextFallbackLimit))
     }
 }
 
