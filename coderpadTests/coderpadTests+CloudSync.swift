@@ -369,4 +369,29 @@ struct PadOpenedStoreHardeningTests {
     func `the retention cap keeps the most recent opens`() {
         #expect(PadOpenedStore.maxEntriesPerAccount > 0)
     }
+
+    @Test
+    func `tombstones prune even when an account has no live history`() {
+        let account = UUID()
+        let now = Date(timeIntervalSince1970: 10_000_000)
+        let fresh = now.addingTimeInterval(-60)
+        let stale = now.addingTimeInterval(-CloudTombstones.retention - 1)
+
+        let result = PadOpenedStore.prunedTombstones(
+            [account: ["fresh": fresh, "stale": stale]], liveRecords: [:], now: now
+        )
+        #expect(result[account] == ["fresh": fresh])
+    }
+
+    @Test
+    func `live records retire tombstones and empty account maps`() {
+        let account = UUID()
+        let now = Date(timeIntervalSince1970: 10_000_000)
+        let result = PadOpenedStore.prunedTombstones(
+            [account: ["reopened": now]], liveRecords: [account: ["reopened": now]], now: now
+        )
+
+        #expect(result[account] == nil)
+        #expect(result.isEmpty)
+    }
 }

@@ -214,16 +214,7 @@ final class PadOpenedStore {
         // Records past the retention window go first, so neither the local blob nor
         // the mirror keeps identifiers for pads you looked at long ago (#2629).
         expireOldRecords()
-        // A present pad retires its tombstone (opened again after a deletion), and
-        // old tombstones age out so the map stays bounded.
-        for (account, entries) in byAccount {
-            guard var tombstones = removedAt[account] else { continue }
-
-            for padID in entries.keys {
-                tombstones[padID] = nil
-            }
-            removedAt[account] = CloudTombstones.pruned(tombstones)
-        }
+        removedAt = Self.prunedTombstones(removedAt, liveRecords: byAccount)
         // Encode both blobs before writing either, and write the tombstones first.
         // Writing them one at a time could leave a record without its tombstone if
         // the second encode threw, and a record without its tombstone is exactly how
@@ -239,6 +230,24 @@ final class PadOpenedStore {
             persistenceLogger.error("Failed to encode pad open times: \(reason, privacy: .public)")
         }
         mirrorToCloud()
+    }
+
+    /// Ages every account's tombstones independently of whether it still has live
+    /// history, then retires tombstones for pads that were opened again (#1085).
+    static func prunedTombstones(
+        _ tombstones: [UUID: [String: Date]],
+        liveRecords: [UUID: [String: Date]],
+        now: Date = Date()
+    ) -> [UUID: [String: Date]] {
+        var result: [UUID: [String: Date]] = [:]
+        for (account, entries) in tombstones {
+            var kept = CloudTombstones.pruned(entries, now: now)
+            for padID in liveRecords[account, default: [:]].keys {
+                kept[padID] = nil
+            }
+            if !kept.isEmpty { result[account] = kept }
+        }
+        return result
     }
 
     /// Pushes the current open-history (and its deletion tombstones, #723) up to
