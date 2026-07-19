@@ -205,22 +205,36 @@ enum WidgetSharedStore {
 
     /// `account`'s mirrored favourite questions, for the New Pad button picker.
     static func loadFavorites(account: String) -> [WidgetQuestion] {
-        guard let data = loadData(
-            fileName: favoritesFileName(account: account),
-            purpose: "widget favorite questions"
-        ) else {
-            return []
-        }
+        loadFavorites(accounts: [account])[account] ?? []
+    }
 
-        do {
-            return try JSONDecoder().decode([WidgetQuestion].self, from: data)
-        } catch {
-            logger.error("""
-            Widget shared store decode failed for favorite questions: \
-            \(error.localizedDescription, privacy: .public)
-            """)
-            return []
+    /// Mirrored favourite questions for several accounts, decoded with one decoder so
+    /// widget configuration queries don't allocate a new decoder per account (#2292).
+    static func loadFavorites(accounts: [String]) -> [String: [WidgetQuestion]] {
+        guard !accounts.isEmpty else { return [:] }
+
+        let decoder = JSONDecoder()
+        var favorites: [String: [WidgetQuestion]] = [:]
+        for account in accounts {
+            guard let data = loadData(
+                fileName: favoritesFileName(account: account),
+                purpose: "widget favorite questions"
+            ) else {
+                favorites[account] = []
+                continue
+            }
+
+            do {
+                favorites[account] = try decoder.decode([WidgetQuestion].self, from: data)
+            } catch {
+                logger.error("""
+                Widget shared store decode failed for favorite questions: \
+                \(error.localizedDescription, privacy: .public)
+                """)
+                favorites[account] = []
+            }
         }
+        return favorites
     }
 
     /// Records a New Pad request for the app to pick up on its next activation. Written

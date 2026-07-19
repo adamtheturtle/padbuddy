@@ -235,10 +235,19 @@ struct WidgetQuestionQuery: EntityQuery {
     /// distinguishable in the picker.
     private func all() -> [WidgetQuestionEntity] {
         let accounts = WidgetSharedStore.loadAccounts()
-        let qualify = accounts.count > 1
+        guard !accounts.isEmpty else { return [] }
+
+        if accounts.count == 1, let account = accounts.first {
+            return WidgetSharedStore.loadFavorites(account: account.id).map { question in
+                WidgetQuestionEntity(id: "\(account.id):\(question.id)",
+                                     accountID: account.id, questionID: question.id, title: question.title)
+            }
+        }
+
+        let favorites = WidgetSharedStore.loadFavorites(accounts: accounts.map(\.id))
         return accounts.flatMap { account in
-            WidgetSharedStore.loadFavorites(account: account.id).map { question in
-                let label = qualify ? "\(question.title) · \(account.name)" : question.title
+            (favorites[account.id] ?? []).map { question in
+                let label = "\(question.title) · \(account.name)"
                 return WidgetQuestionEntity(id: "\(account.id):\(question.id)",
                                             accountID: account.id, questionID: question.id, title: label)
             }
