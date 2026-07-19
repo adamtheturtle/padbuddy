@@ -76,6 +76,24 @@ extension AccountEditor {
             && userEmails.contains { validatedOwnerEmail($0) != nil }
     }
 
+    static func emailBelongsToValidatedOrganization(_ email: String, users: [OrganizationUser]) -> Bool {
+        let normalized = EmailValidation.normalized(email)
+        guard EmailValidation.isPlausibleAddress(normalized) else { return false }
+
+        return users.contains {
+            EmailValidation.normalized($0.email).caseInsensitiveCompare(normalized) == .orderedSame
+        }
+    }
+
+    func emailIdentityChanged() {
+        if validatedOrgName != nil {
+            validation = Self.emailBelongsToValidatedOrganization(draft.userEmail, users: orgUsers)
+                ? .valid
+                : .invalid(String(localized: "Choose an email from the validated organization."))
+        }
+        commitLiveEdit()
+    }
+
     func applyValidatedOrganization(
         _ org: Organization,
         client: CoderPadClient,

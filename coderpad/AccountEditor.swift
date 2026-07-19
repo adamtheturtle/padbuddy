@@ -268,7 +268,7 @@ struct AccountEditor: View {
             .onChange(of: scenePhase) { _, phase in
                 if phase != .active { concealSecrets() }
             }
-            .onChange(of: draft.userEmail) { _, _ in commitLiveEdit() }
+            .onChange(of: draft.userEmail) { _, _ in emailIdentityChanged() }
             .onChange(of: validation) { _, _ in commitLiveEdit() }
             // Icon and tint are cosmetic, so persist them the moment they change rather
             // than waiting for Save (which gates on validation/email for the credentials).
