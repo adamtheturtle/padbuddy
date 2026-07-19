@@ -438,11 +438,17 @@ struct RecentPadsWidgetEntryView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 
-    /// Row counts to try, largest first: the configured maximum for the family down
-    /// to one. `ViewThatFits` renders the first that fits, or the last (one row) if
-    /// none do.
+    /// Row counts to try, largest first: the configured maximum for the family — or
+    /// the number of pads there are, whichever is smaller — down to one.
+    /// `ViewThatFits` renders the first that fits, or the last (one row) if none do.
+    ///
+    /// Capping at the pad count is what keeps the measuring cheap. A candidate asking
+    /// for more rows than there are pads builds exactly the same subtree as one asking
+    /// for all of them, so with two pads in a large widget `ViewThatFits` used to
+    /// construct and measure six identical layouts before reaching one that could
+    /// differ (#2137). The chosen layout is unchanged.
     private var rowCountCandidates: [Int] {
-        let maximum = entry.rowCount.maxRows(for: family)
+        let maximum = min(entry.rowCount.maxRows(for: family), max(entry.pads.count, 1))
         return Array(stride(from: maximum, through: 1, by: -1))
     }
 
