@@ -108,12 +108,12 @@
                 .disabled(pad == nil)
 
                 Button("Copy as Markdown") {
-                    guard let pad else { return }
+                    guard let pad, let browserURL else { return }
 
                     let title = pad.title.isEmpty ? pad.id : pad.title
-                    Clipboard.copy("[\(title)](\(pad.url))")
+                    Clipboard.copy(markdownLink(title: title, url: browserURL))
                 }
-                .disabled(pad == nil)
+                .disabled(pad == nil || browserURL == nil)
 
                 if let url = browserURL {
                     ShareLink("Share Pad…", item: url)

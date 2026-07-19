@@ -200,6 +200,12 @@ func markdownInlineEscaped(_ text: String) -> String {
     return result
 }
 
+/// A safe inline Markdown link for clipboard/menu actions. Angle-bracketed link
+/// destinations keep URL punctuation from terminating the destination early.
+func markdownLink(title: String, url: URL) -> String {
+    "[\(markdownInlineEscaped(title))](<\(url.absoluteString)>)"
+}
+
 /// The opening/closing fence for a code block: at least three backticks, and always
 /// longer than the longest run of backticks inside the code so the block can't be
 /// closed early by the content (a CommonMark requirement).

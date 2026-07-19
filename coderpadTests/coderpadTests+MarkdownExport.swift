@@ -61,6 +61,13 @@ struct PadMarkdownExportTests {
     }
 
     @Test
+    func `clipboard links escape remote titles and delimit the validated URL`() throws {
+        let url = try #require(URL(string: "https://example.com/pads/ABC123?next=(one)"))
+        #expect(markdownLink(title: "[Ada]\nInterview", url: url)
+            == "[\\[Ada\\] Interview](<https://example.com/pads/ABC123?next=(one)>)")
+    }
+
+    @Test
     func `line breaks in inline metadata cannot create Markdown blocks`() {
         let markdown = padMarkdownDocument(
             title: "Title\n# Injected heading",
