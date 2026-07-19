@@ -44,6 +44,22 @@ nonisolated struct MCPActivityEntry: Codable, Identifiable, Hashable {
     /// Never tool arguments or result payloads; nil on success, for launches, and
     /// for entries written before the field existed.
     var failureReason: String?
+
+    /// The entry with its free-text fields re-bounded.
+    ///
+    /// Writes are already sanitized (#1758), but the log is a plain file in a
+    /// shared container: anything that corrupts or edits it out of band can put
+    /// arbitrarily long tool or account strings in front of the renderer, which
+    /// then expands the layout and re-does the work on every three-second poll
+    /// (#2553). Applying the same caps on read means the view can only ever be
+    /// handed values it can display.
+    var bounded: Self {
+        Self(id: id, time: time, kind: kind,
+             tool: MCPActivityLog.sanitizedField(tool, cap: 64),
+             account: MCPActivityLog.sanitizedField(account, cap: 100),
+             succeeded: succeeded,
+             failureReason: failureReason.flatMap(MCPActivityLog.sanitizedReason))
+    }
 }
 
 /// Reads and writes the MCP activity log. All members are `nonisolated` so the headless
@@ -75,11 +91,9 @@ nonisolated enum MCPActivityLog {
     static func recordLaunch(account: String?) {
         guard UserDefaults.standard.bool(forKey: MCPServer.enabledDefaultsKey) else { return }
 
-        withLockedStore { store in
-            store.append(MCPActivityEntry(id: UUID(), time: Date(), kind: .launch, tool: nil,
-                                          account: sanitizedField(account, cap: 100),
-                                          succeeded: nil, failureReason: nil))
-        }
+        appendLocked(MCPActivityEntry(id: UUID(), time: Date(), kind: .launch, tool: nil,
+                                      account: sanitizedField(account, cap: 100),
+                                      succeeded: nil, failureReason: nil))
     }
 
     /// Record one tool call: its name, the account served, whether it succeeded,
@@ -88,12 +102,26 @@ nonisolated enum MCPActivityLog {
     static func recordCall(tool: String, account: String?, succeeded: Bool, failureReason: String? = nil) {
         guard UserDefaults.standard.bool(forKey: MCPServer.enabledDefaultsKey) else { return }
 
+        appendLocked(MCPActivityEntry(id: UUID(), time: Date(), kind: .call,
+                                      tool: sanitizedField(tool, cap: 64),
+                                      account: sanitizedField(account, cap: 100),
+                                      succeeded: succeeded,
+                                      failureReason: failureReason.flatMap(sanitizedReason)))
+    }
+
+    /// Appends an entry and enforces the cap and retention window in the same
+    /// locked section.
+    ///
+    /// Trimming used to happen only from the GUI's poll, so an install that never
+    /// opened the MCP settings pane — the normal case for someone who wired up a
+    /// client once and left it running — grew the file without bound and kept
+    /// account display names far past the retention window (#2549). Doing it here
+    /// costs a few reads of a file that is at most `maxEntries` lines in its steady
+    /// state, and needs no extra lock: the append already holds the exclusive one.
+    private static func appendLocked(_ entry: MCPActivityEntry) {
         withLockedStore { store in
-            store.append(MCPActivityEntry(id: UUID(), time: Date(), kind: .call,
-                                          tool: sanitizedField(tool, cap: 64),
-                                          account: sanitizedField(account, cap: 100),
-                                          succeeded: succeeded,
-                                          failureReason: failureReason.flatMap(sanitizedReason)))
+            store.append(entry)
+            performTrim(store)
         }
     }
 
@@ -144,7 +172,7 @@ nonisolated enum MCPActivityLog {
         guard let store else { return [] }
 
         return withActivityLogLock(in: store.directory, exclusive: false) {
-            store.load()
+            store.load().map(\.bounded)
         } ?? []
     }
 
@@ -154,7 +182,19 @@ nonisolated enum MCPActivityLog {
     /// is exact whenever the file is within its cap (its steady state after
     /// trims); between trims it can undercount. Read under a shared lock (#1755).
     static func loadWithDiagnostics() -> (entries: [MCPActivityEntry], unreadableLines: Int) {
-        guard let store else { return ([], 0) }
+        loadWithDiagnosticsIfReadable() ?? ([], 0)
+    }
+
+    /// As `loadWithDiagnostics`, but `nil` when the log could not be read at all —
+    /// no shared container, or the advisory lock wasn't obtained within its bounded
+    /// wait — as opposed to being read and found empty.
+    ///
+    /// The polling UI needs the difference: treating an unreadable log as empty, or
+    /// silently keeping the previous entries, both present stale activity as current
+    /// (#2554). Note that a *missing file* still reads as an empty log, which is
+    /// correct: that is what "no MCP use yet" looks like.
+    static func loadWithDiagnosticsIfReadable() -> (entries: [MCPActivityEntry], unreadableLines: Int)? {
+        guard let store else { return nil }
 
         return withActivityLogLock(in: store.directory, exclusive: false) {
             let url = store.directory.appending(path: "mcp-activity.jsonl")
@@ -173,9 +213,9 @@ nonisolated enum MCPActivityLog {
                     decoded.append(entry)
                 }
             }
-            let entries = Array(decoded.suffix(maxEntries))
+            let entries = decoded.suffix(maxEntries).map(\.bounded)
             return (entries, max(0, min(lineCount, maxEntries) - entries.count))
-        } ?? ([], 0)
+        }
     }
 
     /// Rewrite the file to only the last `maxEntries` lines and drop entries past
@@ -185,34 +225,37 @@ nonisolated enum MCPActivityLog {
     /// settings poll forever (#1759). The same lock as append/clear keeps the
     /// rewrite from dropping a concurrent headless tool-call record.
     static func trimIfNeeded() {
-        withLockedStore { store in
-            store.trim()
-            let entries = store.load()
-            let cutoff = Date().addingTimeInterval(-retention)
-            let retained = entries.filter { $0.time >= cutoff }
-            let url = store.directory.appending(path: "mcp-activity.jsonl")
-            let rawLines = (try? String(contentsOf: url, encoding: .utf8))?
-                .split(separator: "\n", omittingEmptySubsequences: true).count ?? entries.count
-            guard retained.count != entries.count || rawLines != entries.count else { return }
+        withLockedStore(performTrim)
+    }
 
-            if retained.isEmpty {
-                store.clear()
-                return
-            }
+    /// The cap + retention rewrite. The caller must already hold the exclusive lock.
+    private static func performTrim(_ store: JSONLLog<MCPActivityEntry>) {
+        store.trim()
+        let entries = store.load()
+        let cutoff = Date().addingTimeInterval(-retention)
+        let retained = entries.filter { $0.time >= cutoff }
+        let url = store.directory.appending(path: "mcp-activity.jsonl")
+        let rawLines = (try? String(contentsOf: url, encoding: .utf8))?
+            .split(separator: "\n", omittingEmptySubsequences: true).count ?? entries.count
+        guard retained.count != entries.count || rawLines != entries.count else { return }
 
-            // Rewrite the retained entries in one atomic write: clear() plus a
-            // per-entry append() rewrote/touched the file once per retained line (#2248).
-            // Same encoder as the store's appends, so the file reads back unchanged.
-            let encoder = JSONLLog<MCPActivityEntry>.iso8601Encoder
-            var payload = Data()
-            for entry in retained {
-                guard let data = try? encoder.encode(entry) else { continue }
-
-                payload.append(data)
-                payload.append(0x0A) // "\n"
-            }
-            try? payload.write(to: url, options: .atomic)
+        if retained.isEmpty {
+            store.clear()
+            return
         }
+
+        // Rewrite the retained entries in one atomic write: clear() plus a
+        // per-entry append() rewrote/touched the file once per retained line (#2248).
+        // Same encoder as the store's appends, so the file reads back unchanged.
+        let encoder = JSONLLog<MCPActivityEntry>.iso8601Encoder
+        var payload = Data()
+        for entry in retained {
+            guard let data = try? encoder.encode(entry) else { continue }
+
+            payload.append(data)
+            payload.append(0x0A) // "\n"
+        }
+        try? payload.write(to: url, options: .atomic)
     }
 
     /// Delete the log, e.g. so it doesn't outlive the data it describes.

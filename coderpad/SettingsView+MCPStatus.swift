@@ -20,6 +20,15 @@ final class MCPActivityStore {
     /// Stored lines that failed to decode on the last load, so the pane can flag
     /// a damaged log instead of it silently reading as no MCP use (#1146).
     private(set) var unreadableLines = 0
+    /// When the log was last read successfully, and whether the most recent attempt
+    /// failed.
+    ///
+    /// The poll swallowed every failure and kept rendering the last good `entries`
+    /// forever, so a shared container that became unreachable left the pane showing
+    /// old activity as if it were current, with nothing to indicate otherwise
+    /// (#2554). The view uses these to say the list is stale.
+    private(set) var lastLoaded: Date?
+    private(set) var isStale = false
 
     /// The most recent `launch` entry, surfaced as the "last ran" line.
     var lastLaunch: MCPActivityEntry? {
@@ -37,9 +46,18 @@ final class MCPActivityStore {
     @ObservationIgnored private var announcedLatestID: UUID?
 
     func refresh() {
-        let diagnostics = MCPActivityLog.loadWithDiagnostics()
+        guard let diagnostics = MCPActivityLog.loadWithDiagnosticsIfReadable() else {
+            // The log couldn't be read at all — no shared container, or the lock
+            // couldn't be taken within its bounded wait. Keep showing what we have,
+            // but stop presenting it as current.
+            isStale = true
+            return
+        }
+
         entries = diagnostics.entries
         unreadableLines = diagnostics.unreadableLines
+        lastLoaded = Date()
+        isStale = false
         MCPActivityLog.trimIfNeeded()
 
         // Screen-reader users can't see the "last ran"/call times tick over as
@@ -75,7 +93,8 @@ extension SettingsView {
     /// it doesn't add noise before the user has wired up a client.
     @ViewBuilder
     var mcpActivitySection: some View {
-        if mcpActivity.lastLaunch != nil || !mcpActivity.recentCalls.isEmpty || mcpActivity.unreadableLines > 0 {
+        if mcpActivity.lastLaunch != nil || !mcpActivity.recentCalls.isEmpty
+            || mcpActivity.unreadableLines > 0 || mcpActivity.isStale {
             Section {
                 if let launch = mcpActivity.lastLaunch {
                     LabeledContent {
@@ -84,6 +103,23 @@ extension SettingsView {
                     } label: {
                         Label(launchLabel(launch), systemImage: "bolt.horizontal.circle")
                     }
+                }
+
+                if mcpActivity.isStale {
+                    // The log stopped being readable, so what's listed below is a
+                    // snapshot, not live activity. Say so rather than letting old
+                    // entries keep reading as current (#2554).
+                    Label {
+                        if let lastLoaded = mcpActivity.lastLoaded {
+                            let age = Text(lastLoaded, format: .relative(presentation: .named))
+                            Text("Activity couldn't be refreshed. Showing what was read \(age).")
+                        } else {
+                            Text("Activity couldn't be read.")
+                        }
+                    } icon: {
+                        Image(systemName: "clock.badge.exclamationmark")
+                    }
+                    .foregroundStyle(.orange)
                 }
 
                 if mcpActivity.unreadableLines > 0 {

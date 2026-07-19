@@ -8822,6 +8822,26 @@
           }
         }
       }
+    },
+    "Activity couldn't be refreshed. Showing what was read %@." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudo actualizar la actividad. Se muestra lo que se leyó %@."
+          }
+        }
+      }
+    },
+    "Activity couldn't be read." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudo leer la actividad."
+          }
+        }
+      }
     }
   },
   "version" : "1.3"
