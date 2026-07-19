@@ -9,6 +9,12 @@
 import BuddyDesignSystem
 import SwiftUI
 
+nonisolated enum SearchableFilterMatching {
+    static func contains(_ candidate: String, query: String, locale: Locale = .current) -> Bool {
+        candidate.range(of: query, options: [.caseInsensitive], locale: locale) != nil
+    }
+}
+
 // MARK: - Searchable filter chip
 
 struct SearchableFilterChip: View {
@@ -37,14 +43,14 @@ struct SearchableFilterChip: View {
     }
 
     /// One option prepared for searching: the value to return alongside the
-    /// lowercased forms the query is matched against.
+    /// formatted forms the query is matched against.
     private struct SearchIndexEntry {
         let value: String
-        let loweredValue: String
-        let loweredLabel: String
+        let label: String
 
         func matches(_ query: String) -> Bool {
-            loweredLabel.contains(query) || loweredValue.contains(query)
+            SearchableFilterMatching.contains(label, query: query)
+                || SearchableFilterMatching.contains(value, query: query)
         }
     }
 
@@ -59,13 +65,12 @@ struct SearchableFilterChip: View {
     private func indexEntry(for option: String) -> SearchIndexEntry {
         SearchIndexEntry(
             value: option,
-            loweredValue: option.lowercased(),
-            loweredLabel: formatter(option).lowercased()
+            label: formatter(option)
         )
     }
 
     private var filtered: [String] {
-        let query = search.lowercased()
+        let query = search
         guard !query.isEmpty else { return options }
 
         // A render can beat the rebuild (or land while the chip is closed); index
