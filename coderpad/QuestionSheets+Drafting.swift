@@ -87,7 +87,12 @@ extension NewQuestionSheet {
     /// Pre-select the organization's default language, unless one has already been
     /// chosen deliberately. Driven by `OrgDirectory`, which is loaded app-wide.
     func applyOrgDefaultLanguage() {
-        guard !languageEdited, let def = directory.defaultLanguage, !def.isEmpty else { return }
+        // Only a language CoderPad actually offers. The directory value was applied
+        // whatever it said and then added to the picker as its own option, so an
+        // unrecognized code went through to question creation unchanged (#2334).
+        guard !languageEdited,
+              let def = directory.defaultLanguage,
+              CoderPadLanguages.pickerOptions.contains(def) else { return }
 
         language = def
     }
@@ -114,8 +119,13 @@ extension NewQuestionSheet {
         let requestSection = selectedSection
 
         error = nil; isDrafting = true
-        Task {
+        draftTask?.cancel()
+        draftTask = Task {
             let draft = await QuestionDrafter.draft(prompt: requestPrompt, language: requestLanguage)
+            // Cancellation means the sheet went away, or a newer draft superseded this
+            // one; either way nothing here should touch the sheet's state (#2332).
+            guard !Task.isCancelled else { return }
+
             isDrafting = false
             guard draftPrompt == requestPrompt, language == requestLanguage else { return }
             guard let draft else { error = "Draft failed. Try a more specific prompt, or draft again."; return }

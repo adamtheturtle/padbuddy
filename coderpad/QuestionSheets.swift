@@ -32,12 +32,20 @@ struct NewQuestionSheet: View {
     @State var error: String?
     @State var draftPrompt = ""
     @State var isDrafting = false
+    /// Held so dismissing the sheet cancels the model work. It used to be an untracked
+    /// Task that kept generating after the sheet was gone, then wrote into state
+    /// nobody was showing (#2332).
+    @State var draftTask: Task<Void, Never>?
 
     var body: some View {
         sheetContent
             .interactiveDismissDisabled(isSubmitting)
             .task { applyOrgDefaultLanguage() }
             .onChange(of: directory.defaultLanguage) { _, _ in applyOrgDefaultLanguage() }
+            .onDisappear {
+                draftTask?.cancel()
+                draftTask = nil
+            }
     }
 
     @ViewBuilder
