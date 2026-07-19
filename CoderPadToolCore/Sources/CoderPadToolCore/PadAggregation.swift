@@ -53,17 +53,51 @@ public func canonicalPadState(_ raw: String) -> String {
 /// state comparison folds API synonyms first, so `state:"active"` matches pads the
 /// API reports as "started".
 public func padMatches(_ pad: [String: Any], owner: String?, state: String?, language: String?) -> Bool {
-    func equals(_ field: String, _ wanted: String?, normalize: (String) -> String = { $0.lowercased() }) -> Bool {
-        let cleaned = wanted?.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let cleaned, !cleaned.isEmpty else { return true }
+    PadMatcher(owner: owner, state: state, language: language).matches(pad)
+}
 
-        return (pad[field] as? String)
-            .map { normalize($0.trimmingCharacters(in: .whitespacesAndNewlines)) } == normalize(cleaned)
+/// A pad filter with its criteria already normalized.
+///
+/// The filter values are constant for a whole list, but `padMatches` normalized them
+/// again for every pad it was called on — trimming and lowercasing (and, for state,
+/// folding synonyms) once per pad per field. Building the matcher once and reusing it
+/// does that work a fixed three times instead of three times per pad (#2453).
+public struct PadMatcher: Sendable {
+    private let owner: String?
+    private let state: String?
+    private let language: String?
+
+    public init(owner: String?, state: String?, language: String?) {
+        // Every stored value is already in the form `matches` compares against, so the
+        // per-pad side only has to normalize the pad's own field.
+        self.owner = Self.prepared(owner)?.lowercased()
+        self.state = Self.prepared(state).map(canonicalPadState)
+        self.language = Self.prepared(language)?.lowercased()
     }
 
-    return equals("owner_email", owner)
-        && equals("state", state, normalize: canonicalPadState)
-        && equals("language", language)
+    /// The trimmed filter value, or nil when it is absent or blank (which matches all).
+    private static func prepared(_ wanted: String?) -> String? {
+        let cleaned = wanted?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return (cleaned?.isEmpty ?? true) ? nil : cleaned
+    }
+
+    public func matches(_ pad: [String: Any]) -> Bool {
+        equals(pad, "owner_email", owner) { $0.lowercased() }
+            && equals(pad, "state", state, normalize: canonicalPadState)
+            && equals(pad, "language", language) { $0.lowercased() }
+    }
+
+    private func equals(
+        _ pad: [String: Any],
+        _ field: String,
+        _ wanted: String?,
+        normalize: (String) -> String
+    ) -> Bool {
+        guard let wanted else { return true }
+
+        return (pad[field] as? String)
+            .map { normalize($0.trimmingCharacters(in: .whitespacesAndNewlines)) } == wanted
+    }
 }
 
 /// The error message for a 2xx list response whose JSON object lacks the expected records

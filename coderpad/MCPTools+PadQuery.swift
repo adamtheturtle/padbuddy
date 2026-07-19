@@ -111,8 +111,11 @@ nonisolated extension MCPTools {
         let scan = await fetchAllPads(accountID: credentials.id, key: credentials.apiKey, base: credentials.baseURL)
         if let error = scan.error { return error }
 
+        // Built once for the whole list rather than re-normalizing the filter
+        // values for every row (#2452, #2453).
+        let matcher = PadMatcher(owner: owner, state: state, language: language)
         let matched = scan.pads.filter {
-            padMatches($0, owner: owner, state: state, language: language)
+            matcher.matches($0)
                 && withinDateRange($0, after: after, before: before)
         }
         var result: [String: Any] = [
@@ -156,8 +159,11 @@ nonisolated extension MCPTools {
         let scan = await fetchAllPads(accountID: credentials.id, key: credentials.apiKey, base: credentials.baseURL)
         if let error = scan.error { return error }
 
+        // Built once for the whole list rather than re-normalizing the filter
+        // values for every row (#2452, #2453).
+        let matcher = PadMatcher(owner: owner, state: state, language: language)
         let matched = scan.pads.filter {
-            padMatches($0, owner: owner, state: state, language: language)
+            matcher.matches($0)
                 && withinDateRange($0, after: after, before: before)
         }
         let counts = aggregateCounts(pads: matched, field: field)

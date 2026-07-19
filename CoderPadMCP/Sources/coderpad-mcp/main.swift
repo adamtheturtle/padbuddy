@@ -629,8 +629,11 @@ private func countPads(arguments: [String: Value]?, account: MCPAccount) async -
     if let error = scan.error { return toolResult(error) }
     if let message = scan.invalidShape { return errorResult(message) }
 
+    // Built once for the whole list rather than re-normalizing the filter
+    // values for every row (#2453).
+    let matcher = PadMatcher(owner: owner, state: state, language: language)
     let matched = scan.pads.filter {
-        padMatches($0, owner: owner, state: state, language: language)
+        matcher.matches($0)
             && withinDateRange($0, after: after, before: before)
     }
     var result: [String: Any] = [
@@ -672,8 +675,11 @@ private func aggregatePadsTool(groupBy: String, arguments: [String: Value]?, acc
     if let error = scan.error { return toolResult(error) }
     if let message = scan.invalidShape { return errorResult(message) }
 
+    // Built once for the whole list rather than re-normalizing the filter
+    // values for every row (#2453).
+    let matcher = PadMatcher(owner: owner, state: state, language: language)
     let matched = scan.pads.filter {
-        padMatches($0, owner: owner, state: state, language: language)
+        matcher.matches($0)
             && withinDateRange($0, after: after, before: before)
     }
     let counts = aggregateCounts(pads: matched, field: field)
@@ -786,8 +792,11 @@ private func countQuestions(arguments: [String: Value]?, account: MCPAccount) as
     if let error = scan.error { return toolResult(error) }
     if let message = scan.invalidShape { return errorResult(message) }
 
+    // Built once for the whole list rather than re-normalizing the filter
+    // values for every row (#2452).
+    let matcher = QuestionMatcher(owner: owner, author: author, language: language, type: type)
     let matched = scan.questions.filter {
-        questionMatches($0, owner: owner, author: author, language: language, type: type)
+        matcher.matches($0)
             && withinDateRange($0, after: after, before: before)
     }
     var result: [String: Any] = [
@@ -830,8 +839,11 @@ private func aggregateQuestionsTool(groupBy: String, arguments: [String: Value]?
     if let error = scan.error { return toolResult(error) }
     if let message = scan.invalidShape { return errorResult(message) }
 
+    // Built once for the whole list rather than re-normalizing the filter
+    // values for every row (#2452).
+    let matcher = QuestionMatcher(owner: owner, author: author, language: language, type: type)
     let matched = scan.questions.filter {
-        questionMatches($0, owner: owner, author: author, language: language, type: type)
+        matcher.matches($0)
             && withinDateRange($0, after: after, before: before)
     }
     let counts = aggregateCounts(pads: matched, field: field)

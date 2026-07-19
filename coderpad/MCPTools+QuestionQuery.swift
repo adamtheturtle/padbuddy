@@ -130,8 +130,11 @@ nonisolated extension MCPTools {
         )
         if let error = scan.error { return error }
 
+        // Built once for the whole list rather than re-normalizing the filter
+        // values for every row (#2452, #2453).
+        let matcher = QuestionMatcher(owner: owner, author: author, language: language, type: type)
         let matched = scan.questions.filter {
-            questionMatches($0, owner: owner, author: author, language: language, type: type)
+            matcher.matches($0)
                 && withinDateRange($0, after: after, before: before)
         }
         var result: [String: Any] = [
@@ -178,8 +181,11 @@ nonisolated extension MCPTools {
         )
         if let error = scan.error { return error }
 
+        // Built once for the whole list rather than re-normalizing the filter
+        // values for every row (#2452, #2453).
+        let matcher = QuestionMatcher(owner: owner, author: author, language: language, type: type)
         let matched = scan.questions.filter {
-            questionMatches($0, owner: owner, author: author, language: language, type: type)
+            matcher.matches($0)
                 && withinDateRange($0, after: after, before: before)
         }
         let counts = aggregateCounts(pads: matched, field: field)

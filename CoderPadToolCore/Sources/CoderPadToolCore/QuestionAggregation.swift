@@ -21,17 +21,48 @@ import Foundation
 public func questionMatches(
     _ question: [String: Any], owner: String?, author: String?, language: String?, type: String?
 ) -> Bool {
-    func equals(_ field: String, _ wanted: String?, normalize: (String) -> String = { $0.lowercased() }) -> Bool {
-        let cleaned = wanted?.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let cleaned, !cleaned.isEmpty else { return true }
+    QuestionMatcher(owner: owner, author: author, language: language, type: type).matches(question)
+}
 
-        return (question[field] as? String)
-            .map { normalize($0.trimmingCharacters(in: .whitespacesAndNewlines)) } == normalize(cleaned)
+/// A question filter with its criteria already normalized — the question counterpart
+/// to `PadMatcher`, for the same reason: the filter values are constant across the
+/// whole list but were re-normalized for every question and every field (#2452).
+public struct QuestionMatcher: Sendable {
+    private let owner: String?
+    private let author: String?
+    private let language: String?
+    private let type: String?
+
+    public init(owner: String?, author: String?, language: String?, type: String?) {
+        self.owner = Self.prepared(owner)?.lowercased()
+        self.author = Self.prepared(author)?.lowercased()
+        self.language = Self.prepared(language)?.lowercased()
+        self.type = Self.prepared(type).map(canonicalInterviewType)
     }
 
-    return equals("owner_email", owner) && equals("author_name", author)
-        && equals("language", language)
-        && equals("pad_type", type, normalize: canonicalInterviewType)
+    private static func prepared(_ wanted: String?) -> String? {
+        let cleaned = wanted?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return (cleaned?.isEmpty ?? true) ? nil : cleaned
+    }
+
+    public func matches(_ question: [String: Any]) -> Bool {
+        equals(question, "owner_email", owner) { $0.lowercased() }
+            && equals(question, "author_name", author) { $0.lowercased() }
+            && equals(question, "language", language) { $0.lowercased() }
+            && equals(question, "pad_type", type, normalize: canonicalInterviewType)
+    }
+
+    private func equals(
+        _ question: [String: Any],
+        _ field: String,
+        _ wanted: String?,
+        normalize: (String) -> String
+    ) -> Bool {
+        guard let wanted else { return true }
+
+        return (question[field] as? String)
+            .map { normalize($0.trimmingCharacters(in: .whitespacesAndNewlines)) } == wanted
+    }
 }
 
 /// Folds the interview-type spellings the API and docs have used (`take-home`,
