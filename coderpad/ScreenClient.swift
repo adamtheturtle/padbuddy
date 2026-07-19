@@ -37,40 +37,8 @@ struct ScreenClient {
     nonisolated static let maximumProductFilterLength = 64
     nonisolated static let maximumEmailFilterLength = 320
     nonisolated static let maximumErrorBodyBytes = 16 * 1024
-
-    private nonisolated static func requirePositiveID(_ id: Int, kind: String) throws {
-        guard id > 0 else { throw CoderPadError.decode("Screen \(kind) ID must be positive.") }
-    }
-
-    private nonisolated static func normalizedFilter(_ raw: String?, name: String, maximumLength: Int) throws
-        -> String? {
-        guard let raw else { return nil }
-
-        let value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !value.isEmpty, value.count <= maximumLength,
-              !value.unicodeScalars.contains(where: { scalar in
-                  let category = scalar.properties.generalCategory
-                  return category == .control || category == .format
-              }) else {
-            throw CoderPadError.decode("Screen \(name) filter is invalid or too long.")
-        }
-
-        return value
-    }
-
-    private nonisolated static func normalizedListFilters(product: String?, candidateEmail: String?) throws
-        -> (product: String?, candidateEmail: String?) {
-        let product = try normalizedFilter(
-            product, name: "product", maximumLength: maximumProductFilterLength
-        )
-        let candidateEmail = try normalizedFilter(
-            candidateEmail, name: "candidate email", maximumLength: maximumEmailFilterLength
-        ).map(EmailValidation.normalized)
-        if let candidateEmail, !EmailValidation.isPlausibleAddress(candidateEmail) {
-            throw CoderPadError.decode("Screen candidate email filter is invalid or too long.")
-        }
-        return (product, candidateEmail)
-    }
+    nonisolated static let maximumFullListPages = 100
+    nonisolated static let maximumFullListItems = 10000
 
     init(apiKey: String,
          baseURL: URL = Self.defaultBaseURL,
@@ -165,14 +133,25 @@ struct ScreenClient {
         // than one page (A -> B -> A) would otherwise loop forever (#857).
         var seenStarts: Set<Int> = []
         var start: Int?
+        var pageCount = 0
         while true {
+            guard pageCount < Self.maximumFullListPages else {
+                throw CoderPadError.decode("Screen pagination exceeded the maximum page count.")
+            }
+
+            pageCount += 1
             let page = try await listTests(campaignID: campaignID,
                                            product: product,
                                            candidateEmail: candidateEmail,
                                            from: from,
                                            until: until,
                                            start: start)
-            all.append(contentsOf: page.tests.filter { seenIDs.insert($0.id).inserted })
+            let additions = page.tests.filter { seenIDs.insert($0.id).inserted }
+            guard additions.count <= Self.maximumFullListItems - all.count else {
+                throw CoderPadError.decode("Screen pagination exceeded the maximum item count.")
+            }
+
+            all.append(contentsOf: additions)
             guard let pagination = page.pagination, pagination.hasMoreItems else { break }
 
             // The API says more items exist but gave no usable way to fetch them:
@@ -363,5 +342,38 @@ struct ScreenClient {
 
     private nonisolated func encode(_ body: some Encodable) throws -> Data {
         try Self.encoder.encode(body)
+    }
+}
+
+private extension ScreenClient {
+    nonisolated static func requirePositiveID(_ id: Int, kind: String) throws {
+        guard id > 0 else { throw CoderPadError.decode("Screen \(kind) ID must be positive.") }
+    }
+
+    nonisolated static func normalizedFilter(_ raw: String?, name: String, maximumLength: Int) throws -> String? {
+        guard let raw else { return nil }
+
+        let value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty, value.count <= maximumLength,
+              !value.unicodeScalars.contains(where: { scalar in
+                  let category = scalar.properties.generalCategory
+                  return category == .control || category == .format
+              }) else {
+            throw CoderPadError.decode("Screen \(name) filter is invalid or too long.")
+        }
+
+        return value
+    }
+
+    nonisolated static func normalizedListFilters(product: String?, candidateEmail: String?) throws
+        -> (product: String?, candidateEmail: String?) {
+        let product = try normalizedFilter(product, name: "product", maximumLength: maximumProductFilterLength)
+        let candidateEmail = try normalizedFilter(
+            candidateEmail, name: "candidate email", maximumLength: maximumEmailFilterLength
+        ).map(EmailValidation.normalized)
+        if let candidateEmail, !EmailValidation.isPlausibleAddress(candidateEmail) {
+            throw CoderPadError.decode("Screen candidate email filter is invalid or too long.")
+        }
+        return (product, candidateEmail)
     }
 }

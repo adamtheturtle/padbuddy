@@ -39,6 +39,18 @@ struct ScreenCancellationTests {
             _ = try await screenClient().testReport(id: 424_243)
         }
     }
+
+    @Test
+    func `full pagination stops ever-new offsets at its page cap`() async {
+        do {
+            _ = try await screenClient().listAllTests(campaignID: 888)
+            Issue.record("Expected the Screen page cap to throw")
+        } catch let error as CoderPadError {
+            #expect(error.description.contains("maximum page count"))
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
+    }
 }
 
 final nonisolated class CancelledScreenURLProtocol: URLProtocol {

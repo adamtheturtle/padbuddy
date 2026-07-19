@@ -105,10 +105,22 @@ final nonisolated class ScreenAPIMockURLProtocol: URLProtocol {
             dupPage2JSON
         case (_, "777", _):
             dupPage1JSON
+        case (_, "888", _):
+            unboundedPageJSON(start: query["start"])
         default:
             // Paginate by `start`: page 1 has two of three tests, page 2 the last.
             query["start"] == "2" ? testsPage2JSON : testsPage1JSON
         }
+    }
+
+    private static func unboundedPageJSON(start rawStart: String?) -> String {
+        let start = Int(rawStart ?? "0") ?? 0
+        return """
+        {
+          "tests": [{"status":"waiting","id":\(start + 1000),"campaign_id":888,"tags":[],"questions":[]}],
+          "pagination": {"start":\(start),"limit":1,"total":999999,"has_more_items":true,"next_start":\(start + 1)}
+        }
+        """
     }
 
     private static let campaignsJSON = #"""
