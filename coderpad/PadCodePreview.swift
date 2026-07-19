@@ -209,12 +209,10 @@ struct EnvironmentCodeCard: View {
         return words.prefix(1).uppercased() + words.dropFirst()
     }
 
-    /// A cheap stand-in for "which files are these", so the selection reset below can
-    /// be observed without allocating a fresh id array on every body pass (#2463). Ids
-    /// are path-based, so joining them detects an add, a removal, or a rename; an
-    /// in-place contents update leaves it unchanged, which is what keeps the selection.
-    private var fileIdentitySignature: String {
-        files.lazy.map(\.id).joined(separator: "\u{1}")
+    /// A cheap, order-independent stand-in for "which files are these". Reordering
+    /// the same response must preserve the reader's selected file (#1885).
+    private var fileIdentitySignature: Set<String> {
+        CodeFileIdentity.signature(files)
     }
 
     @State var selectedFileID: String?
