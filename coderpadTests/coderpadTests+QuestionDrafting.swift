@@ -149,3 +149,39 @@ struct FavoriteDropIdentityTests {
             != Sidebar.identity(of: .question(account: account, id: 42, title: "Q")))
     }
 }
+
+@Suite("Account footer display names (#2233)")
+struct AccountFooterDisplayNameTests {
+    @MainActor
+    private func account(name: String, email: String) -> Account {
+        Account(name: name, apiKey: "k", userEmail: email)
+    }
+
+    @MainActor
+    @Test
+    func `a real name is used as-is`() {
+        #expect(AccountFooter.displayName(for: account(name: "Fawlty Towers", email: "b@ft.co.uk"))
+            == "Fawlty Towers")
+    }
+
+    @MainActor
+    @Test
+    func `a blank or whitespace-only name falls back to the address`() {
+        // A whitespace-only name left the trigger and its menu row unidentifiable.
+        #expect(AccountFooter.displayName(for: account(name: "", email: "b@ft.co.uk")) == "b@ft.co.uk")
+        #expect(AccountFooter.displayName(for: account(name: "   ", email: "b@ft.co.uk")) == "b@ft.co.uk")
+        #expect(AccountFooter.displayName(for: account(name: "\n\t", email: "b@ft.co.uk")) == "b@ft.co.uk")
+    }
+
+    @MainActor
+    @Test
+    func `a name is trimmed`() {
+        #expect(AccountFooter.displayName(for: account(name: "  Fawlty  ", email: "b@ft.co.uk")) == "Fawlty")
+    }
+
+    @MainActor
+    @Test
+    func `with neither a name nor an address there is still a label`() {
+        #expect(!AccountFooter.displayName(for: account(name: " ", email: " ")).isEmpty)
+    }
+}

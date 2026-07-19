@@ -88,7 +88,10 @@ struct AccountFooter: View {
                     }
                     Divider()
                 }
-                ForEach(store.accounts) { account in
+                // De-duplicated by id: `ForEach` requires unique ids, and a duplicated
+                // persisted record produced two rows for one account with an ambiguous
+                // selection between them (#2228).
+                ForEach(uniqueAccounts) { account in
                     Button {
                         store.showAllAccounts = false
                         store.currentAccountID = account.id
@@ -121,6 +124,25 @@ struct AccountFooter: View {
         }
     }
 
+    /// The accounts to list, one row per id. Duplicate persisted records would
+    /// otherwise give `ForEach` repeated ids, which it does not support (#2228).
+    private var uniqueAccounts: [Account] {
+        var seen = Set<UUID>()
+        return store.accounts.filter { seen.insert($0.id).inserted }
+    }
+
+    /// An account's label, never blank. `name` is user-entered and can be empty or
+    /// whitespace-only, which left the trigger and its menu row unidentifiable — so
+    /// fall back to the address, then to a generic name (#2233). Mirrors the compact
+    /// shell's `accountDisplayName(for:)`.
+    static func displayName(for account: Account) -> String {
+        let name = account.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !name.isEmpty { return name }
+
+        let email = account.userEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        return email.isEmpty ? String(localized: "Unnamed Account") : email
+    }
+
     /// A single account's menu row. An account the health monitor has flagged as
     /// unauthorized gets a warning triangle and a "(bad key)" suffix; otherwise the
     /// checkmark (when active) or the account's own icon takes the symbol slot.
@@ -128,7 +150,8 @@ struct AccountFooter: View {
     private func accountMenuLabel(for account: Account, selectedAccountID: UUID) -> some View {
         let isSelected = !store.isMergedView && account.id == selectedAccountID
         let isUnauthorized = monitor.isUnauthorized(account.id)
-        let title = isUnauthorized ? String(localized: "\(account.name) (bad key)") : account.name
+        let name = Self.displayName(for: account)
+        let title = isUnauthorized ? String(localized: "\(name) (bad key)") : name
         if isSelected {
             Label(title, systemImage: "checkmark")
         } else if isUnauthorized {
@@ -144,7 +167,7 @@ struct AccountFooter: View {
     /// the combined view is on.
     private func triggerLabel(currentAccount: Account) -> some View {
         let isMerged = store.isMergedView
-        let title = isMerged ? String(localized: "All Accounts") : currentAccount.name
+        let title = isMerged ? String(localized: "All Accounts") : Self.displayName(for: currentAccount)
         let subtitle = isMerged
             ? String(localized: "\(store.mergeableAccounts.count) accounts combined")
             : (store.accounts.count > 1
@@ -190,5 +213,11 @@ struct AccountFooter: View {
         // single, meaningful element instead of stepping through decorative glyphs.
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(accessibilityLabel)
+        // The composed label names the invalid key, but not what to do about it. The
+        // state is actionable — the menu is where the account is fixed — so say so
+        // rather than leaving VoiceOver users with a bare error phrase (#2237).
+        .accessibilityHint(unauthorized
+            ? String(localized: "Opens the account switcher, where you can manage this account's API key.")
+            : String(localized: "Opens the account switcher."))
     }
 }

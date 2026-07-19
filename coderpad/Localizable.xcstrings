@@ -9147,6 +9147,26 @@
           }
         }
       }
+    },
+    "Opens the account switcher, where you can manage this account's API key." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abre el selector de cuentas, donde puedes gestionar la clave de API de esta cuenta."
+          }
+        }
+      }
+    },
+    "Opens the account switcher." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Abre el selector de cuentas."
+          }
+        }
+      }
     }
   },
   "version" : "1.3"
