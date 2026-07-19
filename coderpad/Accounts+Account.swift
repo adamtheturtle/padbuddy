@@ -189,9 +189,18 @@ struct Account: Identifiable, Codable, Hashable {
     /// HTTP(S) URL. Such an account must never fall back to the hosted endpoint:
     /// a request there would send a self-hosted or regional API key to the wrong
     /// host (#849). Only a genuinely blank field selects the hosted default.
-    var hasMalformedBaseURLOverride: Bool {
+    nonisolated var hasMalformedBaseURLOverride: Bool {
         let trimmed = baseURL?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return !trimmed.isEmpty && baseURLOverride == nil
+    }
+
+    /// Synced credentials may replace a working local snapshot only when they can
+    /// actually construct the same supported clients. Legacy blank owner email is
+    /// intentionally allowed; the editor repairs it on the next validation (#2852).
+    nonisolated var isUsableSyncedCredential: Bool {
+        if isMock { return true }
+        return !apiKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !hasMalformedBaseURLOverride
     }
 
     /// The server URL to talk to: the account's override when set and parseable,

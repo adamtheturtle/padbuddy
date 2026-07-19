@@ -51,3 +51,35 @@ struct KeychainReconciliationOrderingTests {
                                            localRevision: 11, cloudRevision: 10))
     }
 }
+
+@Suite("Synced account validation")
+@MainActor
+struct SyncedAccountValidationTests {
+    @Test
+    func `valid and genuinely empty account lists are usable`() throws {
+        let valid = Account(name: "Acme", apiKey: "key", userEmail: "")
+
+        #expect(try Keychain.decodesToUsableAccounts(Keychain.accountEncoder.encode([valid])))
+        #expect(Keychain.decodesToUsableAccounts(Data("[]".utf8)))
+    }
+
+    @Test
+    func `empty keys and malformed endpoints are rejected`() throws {
+        let emptyKey = Account(name: "Acme", apiKey: "   ")
+        let badEndpoint = Account(name: "Acme", apiKey: "key", baseURL: "not a URL")
+
+        #expect(try !Keychain.decodesToUsableAccounts(Keychain.accountEncoder.encode([emptyKey])))
+        #expect(try !Keychain.decodesToUsableAccounts(Keychain.accountEncoder.encode([badEndpoint])))
+    }
+
+    @Test
+    func `duplicate IDs and partially malformed lists are rejected`() throws {
+        let id = UUID()
+        let duplicates = [Account(name: "A", apiKey: "a", id: id), Account(name: "B", apiKey: "b", id: id)]
+        #expect(try !Keychain.decodesToUsableAccounts(Keychain.accountEncoder.encode(duplicates)))
+
+        let validJSON = try #require(String(data: Keychain.accountEncoder.encode([duplicates[0]]), encoding: .utf8))
+        let partial = "[\(validJSON.dropFirst().dropLast()),{\"name\":\"missing required fields\"}]"
+        #expect(!Keychain.decodesToUsableAccounts(Data(partial.utf8)))
+    }
+}

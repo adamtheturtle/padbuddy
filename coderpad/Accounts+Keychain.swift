@@ -149,12 +149,16 @@ nonisolated enum Keychain {
     /// list. Malformed JSON, or a future schema whose every element fails the lenient
     /// per-element decode, is not usable (#769).
     @MainActor
-    private static func decodesToUsableAccounts(_ data: Data) -> Bool {
+    static func decodesToUsableAccounts(_ data: Data) -> Bool {
         guard let elements = try? JSONDecoder().decode([LenientElement<Account>].self, from: data) else {
             return false
         }
 
-        return elements.isEmpty || elements.contains { $0.value != nil }
+        let accounts = elements.compactMap(\.value)
+        guard accounts.count == elements.count,
+              accounts.allSatisfy(\.isUsableSyncedCredential) else { return false }
+
+        return Set(accounts.map(\.id)).count == accounts.count
     }
 
     private static func revisionData(_ date: Date) -> Data {
