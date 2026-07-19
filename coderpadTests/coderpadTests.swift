@@ -252,6 +252,18 @@ struct CodeFileTests {
     }
 
     @Test
+    func `maps common project-file languages`() {
+        #expect(CodeFile.language(forPath: "package.json", fallback: nil) == "json")
+        #expect(CodeFile.language(forPath: "compose.yaml", fallback: nil) == "yaml")
+        #expect(CodeFile.language(forPath: "config.yml", fallback: nil) == "yaml")
+        #expect(CodeFile.language(forPath: "pyproject.toml", fallback: nil) == "toml")
+        #expect(CodeFile.language(forPath: "App.vue", fallback: nil) == "xml")
+        #expect(CodeFile.language(forPath: "App.svelte", fallback: nil) == "xml")
+        #expect(CodeFile.language(forPath: "build.gradle", fallback: nil) == "groovy")
+        #expect(CodeFile.language(forPath: "deploy/DOCKERFILE", fallback: nil) == "dockerfile")
+    }
+
+    @Test
     func `falls back to the environment language, stripping the multifile prefix`() {
         // No usable extension → use the fallback, with `multifile_` stripped.
         #expect(CodeFile.language(forPath: "Makefile", fallback: "multifile_python") == "python")

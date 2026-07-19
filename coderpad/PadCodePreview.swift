@@ -80,11 +80,21 @@ nonisolated struct CodeFile: Identifiable, Hashable {
         "clj": "clojure", "cljs": "clojure", "cljc": "clojure",
         "ml": "ocaml", "mli": "ocaml", "fs": "fsharp", "fsx": "fsharp",
         "html": "html", "htm": "html", "css": "css",
+        "json": "json", "yaml": "yaml", "yml": "yaml", "toml": "toml",
+        "vue": "xml", "svelte": "xml", "gradle": "groovy",
         "txt": "plaintext", "md": "plaintext", "markdown": "plaintext"
     ]
 
     static func language(forPath path: String?, fallback: String?) -> String? {
-        guard let path, let dot = path.lastIndex(of: "."), dot < path.index(before: path.endIndex) else {
+        guard let path else { return baseLanguage(fallback) }
+
+        // Dockerfiles conventionally have no extension. Match the final path
+        // component so nested and case-varied project files highlight correctly.
+        if path.split(separator: "/").last?.lowercased() == "dockerfile" {
+            return "dockerfile"
+        }
+
+        guard let dot = path.lastIndex(of: "."), dot < path.index(before: path.endIndex) else {
             return baseLanguage(fallback)
         }
 
