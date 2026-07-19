@@ -16,10 +16,15 @@ extension SettingsView {
             // are macOS-only; on iPad external links always go to the system default.
             #if os(macOS)
                 Section {
+                    // Read from state rather than scanned here: `installedBrowsers()`
+                    // builds a `Bundle` for every candidate app — reading each one's
+                    // Info.plist from disk — plus a `FileManager.displayName` call, and
+                    // in the body that whole synchronous scan re-ran on every
+                    // re-evaluation of the tab (#2447).
                     Picker("Default browser", selection: $defaultBrowserBundleID) {
-                        Text("Use system default (\(BrowserSettings.systemDefaultBrowserName()))")
+                        Text("Use system default (\(systemDefaultBrowserName))")
                             .tag(String?.none)
-                        ForEach(BrowserSettings.installedBrowsers()) { browser in
+                        ForEach(installedBrowsers) { browser in
                             Text(browser.name).tag(Optional(browser.bundleID))
                         }
                     }
@@ -35,12 +40,15 @@ extension SettingsView {
         .formStyle(.grouped)
         #if os(macOS)
             .onAppear {
+                // One scan per appearance, reused by the picker above.
+                installedBrowsers = BrowserSettings.installedBrowsers()
+                systemDefaultBrowserName = BrowserSettings.systemDefaultBrowserName()
                 // A browser uninstalled since it was picked leaves a dangling bundle
                 // id; Settings must show the choice actually in effect rather than
                 // an unavailable browser while every link silently opens elsewhere
                 // (#1617). The open path also clears it lazily (#1140).
                 if let id = defaultBrowserBundleID,
-                   !BrowserSettings.installedBrowsers().contains(where: { $0.bundleID == id }) {
+                   !installedBrowsers.contains(where: { $0.bundleID == id }) {
                     defaultBrowserBundleID = nil
                 }
             }
