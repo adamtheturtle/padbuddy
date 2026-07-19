@@ -105,6 +105,11 @@ extension CoderPadError: @retroactive LocalizedError {
             String(localized: "The request timed out. Check your connection and try again.")
         case .cannotConnectToHost, .cannotFindHost, .dnsLookupFailed:
             String(localized: "Couldn't reach CoderPad. Check your connection and try again.")
+        case .secureConnectionFailed, .serverCertificateHasBadDate,
+             .serverCertificateUntrusted, .serverCertificateHasUnknownRoot,
+             .serverCertificateNotYetValid, .clientCertificateRejected,
+             .clientCertificateRequired, .appTransportSecurityRequiresSecureConnection:
+            String(localized: "Couldn't establish a secure connection. Check the server address and certificate.")
         default:
             String(localized: "A network error occurred. Check your connection and try again.")
         }

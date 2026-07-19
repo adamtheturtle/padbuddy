@@ -73,4 +73,17 @@ struct CoderPadErrorMessageTests {
         #expect(fallback.contains("network error"))
         #expect(!fallback.contains("Error Domain"))
     }
+
+    @Test(arguments: [
+        URLError.Code.secureConnectionFailed,
+        .serverCertificateUntrusted,
+        .serverCertificateHasBadDate,
+        .appTransportSecurityRequiresSecureConnection
+    ])
+    func `transport security failures identify the certificate boundary`(code: URLError.Code) {
+        let message = CoderPadError.network(URLError(code)).errorDescription ?? ""
+        #expect(message.contains("secure connection"))
+        #expect(message.contains("certificate"))
+        #expect(!message.contains("try again"))
+    }
 }
