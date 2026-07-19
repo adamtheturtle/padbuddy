@@ -187,9 +187,9 @@ nonisolated extension WidgetSharedStore {
             guard let data = loadData(url: candidate.url, purpose: newPadPurpose) else { continue }
 
             let named: String? = if candidate.isNewPad {
-                (try? JSONDecoder().decode(WidgetNewPadRequest.self, from: data))?.account
+                (try? decoder.decode(WidgetNewPadRequest.self, from: data))?.account
             } else {
-                (try? JSONDecoder().decode(WidgetOpenPadRequest.self, from: data))?.account
+                (try? decoder.decode(WidgetOpenPadRequest.self, from: data))?.account
             }
             guard named == owner else { continue }
 

@@ -58,6 +58,16 @@ nonisolated enum WidgetSharedStore {
     static let favoritesFilePrefix = "widget-favorites-"
     static let logger = Logger(subsystem: "com.coderpad.app", category: "widget-shared-store")
 
+    /// One coder each for the whole store, rather than one per read or write.
+    /// `loadSnapshot` runs on every timeline refresh and the configuration queries
+    /// read the account index and favourites per query, so a fresh coder was being
+    /// allocated and thrown away on each of them (#2135). Both types are stateless
+    /// once configured — nothing here mutates their options — so one shared instance
+    /// behaves identically. `nonisolated(unsafe)` because these are read from
+    /// whichever thread the widget or the app's write queue happens to be on.
+    nonisolated(unsafe) static let encoder = JSONEncoder()
+    nonisolated(unsafe) static let decoder = JSONDecoder()
+
     /// Darwin notification posted when a New Pad request is recorded, so a running app
     /// drains it immediately — even while it's already frontmost, where a widget/control
     /// tap triggers no activation and so `applicationDidBecomeActive` never fires (#485).
@@ -176,7 +186,7 @@ nonisolated enum WidgetSharedStore {
         guard let url = fileURL(fileName, purpose: purpose) else { return false }
 
         do {
-            let data = try JSONEncoder().encode(value)
+            let data = try encoder.encode(value)
             try data.write(to: url, options: writeOptions)
             return true
         } catch EncodingError.invalidValue(_, _) {
@@ -294,7 +304,7 @@ nonisolated enum WidgetSharedStore {
         }
 
         do {
-            let request = try JSONDecoder().decode(type, from: data)
+            let request = try decoder.decode(type, from: data)
             try? FileManager.default.removeItem(at: claimedURL)
             return request
         } catch {

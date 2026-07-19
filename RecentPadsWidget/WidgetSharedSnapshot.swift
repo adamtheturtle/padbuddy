@@ -89,6 +89,16 @@ enum WidgetSharedStore {
     private static let requestFileExtension = ".json"
     private static let logger = Logger(subsystem: "com.coderpad.app", category: "widget-shared-store")
 
+    /// One coder each for the whole store, rather than one per read or write.
+    /// `loadSnapshot` runs on every timeline refresh and the configuration queries
+    /// read the account index and favourites per query, so a fresh coder was being
+    /// allocated and thrown away on each of them (#2135). Both types are stateless
+    /// once configured — nothing here mutates their options — so one shared instance
+    /// behaves identically. `nonisolated(unsafe)` because these are read from
+    /// whichever thread the widget or the app's write queue happens to be on.
+    private nonisolated(unsafe) static let encoder = JSONEncoder()
+    private nonisolated(unsafe) static let decoder = JSONDecoder()
+
     /// Darwin notification posted when a New Pad request is recorded, so a running app
     /// drains it immediately — even while it's already frontmost, where a widget/control
     /// tap triggers no activation and so `applicationDidBecomeActive` never fires (#485).
@@ -234,7 +244,7 @@ enum WidgetSharedStore {
         guard let url = fileURL(fileName, purpose: purpose) else { return false }
 
         do {
-            let data = try JSONEncoder().encode(value)
+            let data = try encoder.encode(value)
             try data.write(to: url, options: writeOptions)
             return true
         } catch EncodingError.invalidValue(_, _) {
@@ -262,7 +272,7 @@ enum WidgetSharedStore {
         }
 
         do {
-            let pads = try JSONDecoder().decode([WidgetPadSnapshot].self, from: data)
+            let pads = try decoder.decode([WidgetPadSnapshot].self, from: data)
             return WidgetPadSnapshotLoad(pads: pads)
         } catch {
             logger.error("""
@@ -278,7 +288,7 @@ enum WidgetSharedStore {
         guard let data = loadData(fileName: accountsFile, purpose: "widget account index") else { return [] }
 
         do {
-            return try JSONDecoder().decode([WidgetAccount].self, from: data)
+            return try decoder.decode([WidgetAccount].self, from: data)
         } catch {
             logger.error("""
             Widget shared store decode failed for account index: \
@@ -293,12 +303,11 @@ enum WidgetSharedStore {
         loadFavorites(accounts: [account])[account] ?? []
     }
 
-    /// Mirrored favourite questions for several accounts, decoded with one decoder so
-    /// widget configuration queries don't allocate a new decoder per account (#2292).
+    /// Mirrored favourite questions for several accounts, decoded with the shared
+    /// decoder so widget configuration queries don't allocate one per account (#2292).
     static func loadFavorites(accounts: [String]) -> [String: [WidgetQuestion]] {
         guard !accounts.isEmpty else { return [:] }
 
-        let decoder = JSONDecoder()
         var favorites: [String: [WidgetQuestion]] = [:]
         for account in accounts {
             guard let data = loadData(
