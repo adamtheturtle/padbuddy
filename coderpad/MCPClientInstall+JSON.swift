@@ -56,7 +56,18 @@ import Foundation
                 servers = [:]
             }
 
-            let alreadyPresent = servers["padbuddy"] != nil
+            let alreadyPresent: Bool
+            if let existing = servers["padbuddy"] {
+                guard let server = existing as? [String: Any], server["command"] is String,
+                      server["args"] == nil || server["args"] is [String]
+                else {
+                    throw JSONConfigError.incompatiblePadBuddyServer
+                }
+
+                alreadyPresent = true
+            } else {
+                alreadyPresent = false
+            }
             servers["padbuddy"] = ["command": executablePath, "args": ["--mcp"]]
             root["mcpServers"] = servers
             return (root, alreadyPresent)

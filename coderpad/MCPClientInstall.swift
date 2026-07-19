@@ -27,11 +27,15 @@ enum MCPClientInstall {
     /// within the file- and type-body-length limits.
     enum JSONConfigError: LocalizedError {
         case incompatibleMCPServers
+        case incompatiblePadBuddyServer
 
         var errorDescription: String? {
             switch self {
             case .incompatibleMCPServers:
                 "The existing mcpServers value is not a JSON object. PadBuddy left the config unchanged."
+            case .incompatiblePadBuddyServer:
+                "The existing mcpServers.padbuddy value is not a compatible command object. "
+                    + "PadBuddy left the config unchanged."
             }
         }
     }
