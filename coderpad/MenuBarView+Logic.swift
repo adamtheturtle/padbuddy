@@ -5,6 +5,7 @@
 //
 
     import AppKit
+    import CryptoKit
     import SwiftUI
 
     extension MenuBarView {
@@ -13,8 +14,11 @@
         }
 
         static func createPadKey(_ body: PadCreate, account: Account) -> String {
-            let seed = body.questionID.map { "question:\($0)" } ?? "blank"
-            return "\(account.id.uuidString):\(seed)"
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .sortedKeys
+            let encoded = (try? encoder.encode(body)) ?? Data()
+            let digest = SHA256.hash(data: encoded).map { String(format: "%02x", $0) }.joined()
+            return "\(account.id.uuidString):\(digest)"
         }
 
         /// Sort cached pads/questions into `listCache`. Mirrors the list views' memo

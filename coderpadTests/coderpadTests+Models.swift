@@ -116,14 +116,19 @@ struct AppCreationAvailabilityTests {
             #expect(!MenuBarView.canCreatePad(account: live, isOffline: true))
         }
 
-        @Test func `create action keys are scoped by account and question seed`() {
+        @Test func `create action keys are scoped by account and complete request content`() {
             let accountID = UUID()
             let account = Account(name: "Live", apiKey: "key", id: accountID)
+            let otherAccount = Account(name: "Other", apiKey: "key")
+            let first = PadCreate(title: "First", questionID: 42)
+            let edited = PadCreate(title: "Edited", questionID: 42)
+            let firstKey = MenuBarView.createPadKey(first, account: account)
+            let repeatedKey = MenuBarView.createPadKey(first, account: account)
 
-            #expect(MenuBarView.createPadKey(PadCreate(), account: account)
-                == "\(accountID.uuidString):blank")
-            #expect(MenuBarView.createPadKey(PadCreate(questionID: 42), account: account)
-                == "\(accountID.uuidString):question:42")
+            #expect(firstKey == repeatedKey)
+            #expect(firstKey != MenuBarView.createPadKey(edited, account: account))
+            #expect(firstKey
+                != MenuBarView.createPadKey(first, account: otherAccount))
         }
     }
 #endif
