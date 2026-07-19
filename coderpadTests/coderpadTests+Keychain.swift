@@ -99,6 +99,15 @@ struct KeychainReconciliationOrderingTests {
             #expect(Keychain.normalizedRevisionData(invalid) == nil)
         }
     }
+
+    @Test
+    func `logical revision advances beyond every observed replica`() {
+        let next = Keychain.nextRevisionData([
+            Data("12".utf8), Data("100.5".utf8), Data("bad".utf8), nil
+        ])
+        #expect(next == Data("101.5".utf8))
+        #expect(Keychain.nextRevisionData([]) == Data("1.0".utf8))
+    }
 }
 
 @Suite("Synced account validation")

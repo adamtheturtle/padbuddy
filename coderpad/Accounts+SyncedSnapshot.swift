@@ -30,7 +30,7 @@ extension Keychain {
             .flatMap(decodeSyncedAccountsSnapshot)
         let legacy = readSynchronizableData(account: accountsAccount).map { accounts in
             let revision = normalizedRevisionData(readSynchronizableData(account: accountsRevisionAccount))
-                ?? revisionData(Date())
+                ?? nextRevisionData([])
             return SyncedAccountsSnapshot(accounts: accounts, revision: revision)
         }
 

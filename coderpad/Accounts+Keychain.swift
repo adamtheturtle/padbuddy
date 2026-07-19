@@ -146,7 +146,13 @@ nonisolated enum Keychain {
         // Stamp the snapshot's revision locally FIRST: if the iCloud writes below then
         // fail or lag, the local revision is newer than the stale cloud one and wins
         // the next launch's reconciliation (#768).
-        let revision = normalizedRevisionData(suppliedRevision) ?? revisionData(Date())
+        let atomicRevision = readSynchronizableData(account: syncedAccountsSnapshotAccount)
+            .flatMap(decodeSyncedAccountsSnapshot)?.revision
+        let revision = normalizedRevisionData(suppliedRevision) ?? nextRevisionData([
+            readData(account: accountsRevisionAccount),
+            atomicRevision,
+            readSynchronizableData(account: accountsRevisionAccount)
+        ])
         write(revision, account: accountsRevisionAccount)
         if let snapshot = encodeSyncedAccountsSnapshot(accounts: data, revision: revision) {
             // This versioned item is authoritative for new app versions: payload and
@@ -175,8 +181,12 @@ nonisolated enum Keychain {
         return Set(accounts.map(\.id)).count == accounts.count
     }
 
-    static func revisionData(_ date: Date) -> Data {
-        Data(String(date.timeIntervalSince1970).utf8)
+    /// Advances a Lamport-style revision beyond every replica observed for this write.
+    /// Existing timestamp revisions are ordinary numeric baselines, so upgrading never
+    /// makes a new logical stamp look older than a previously shipped wall-clock stamp.
+    static func nextRevisionData(_ candidates: [Data?]) -> Data {
+        let next = candidates.map { revision(from: $0) }.max().map { $0 + 1 } ?? 1
+        return Data(String(next).utf8)
     }
 
     /// Parses a revision stamp, treating a missing or unreadable one as 0 (older than
