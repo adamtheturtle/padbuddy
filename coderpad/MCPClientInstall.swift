@@ -190,7 +190,15 @@ enum MCPClientInstall {
             ) else { return }
 
             let accessing = folder.startAccessingSecurityScopedResource()
-            defer { if accessing { folder.stopAccessingSecurityScopedResource() } }
+            guard accessing else {
+                showAlert(.warning, "Couldn't update \(client.displayName)", String(localized: """
+                macOS did not grant PadBuddy access to that folder. Choose the client's configuration \
+                folder again and allow access when prompted.
+                """))
+                return
+            }
+
+            defer { folder.stopAccessingSecurityScopedResource() }
 
             // The panel accepts any directory, and the installer then appends the
             // client's filename to it — so picking the wrong folder created or
