@@ -37,14 +37,17 @@ extension AccountEditor {
                 return true
             }
         }
-        async let padsOK = authorized { try await Self.requireFirstPage(client.listPadsIncrementally()) }
-        async let questionsOK = authorized { try await Self.requireFirstPage(client.listQuestionsIncrementally()) }
-        async let quotaOK = authorized { _ = try await client.quota() }
+        // Probe sequentially: validation is already complete and these optional
+        // capability checks must not burst three requests at a newly added,
+        // self-hosted, or rate-limited server (#1400).
+        let padsOK = await authorized { try await Self.requireFirstPage(client.listPadsIncrementally()) }
+        let questionsOK = await authorized { try await Self.requireFirstPage(client.listQuestionsIncrementally()) }
+        let quotaOK = await authorized { _ = try await client.quota() }
 
         var missing: [String] = []
-        if await padsOK == false { missing.append(String(localized: "Pads")) }
-        if await questionsOK == false { missing.append(String(localized: "Questions")) }
-        if await quotaOK == false { missing.append(String(localized: "Quota")) }
+        if !padsOK { missing.append(String(localized: "Pads")) }
+        if !questionsOK { missing.append(String(localized: "Questions")) }
+        if !quotaOK { missing.append(String(localized: "Quota")) }
         guard !missing.isEmpty else { return nil }
 
         // Every probe refused. A key scoped away from all three reads is
