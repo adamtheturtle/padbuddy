@@ -491,11 +491,31 @@ private func padCodeJSON(id: String, maxFileChars: Int?, account: MCPAccount) as
         throw MCPError.internalError("Could not parse the pad response as JSON.")
     }
 
+    // Fetched concurrently: a pad with several environments used to pay one full
+    // round-trip after another, so latency added up linearly on the hot path behind
+    // get_pad_code and the pad-code resource (#2260). Results are collected by index
+    // and then read back in order, so the output — and which ids are reported as
+    // failed — is identical to the sequential version.
+    let ids = environmentIDs(in: pad)
+    // The response bodies cross the task boundary, not the parsed objects:
+    // `[String: Any]` is not Sendable, so parsing happens on the collecting side.
+    var bodies: [Int: String] = [:]
+    await withTaskGroup(of: (offset: Int, body: String?).self) { group in
+        for (offset, environmentID) in ids.enumerated() {
+            group.addTask {
+                let response = await apiGet("/api/pad_environments/\(environmentID)", account: account)
+                return (offset, response.ok ? response.body : nil)
+            }
+        }
+        for await result in group {
+            bodies[result.offset] = result.body
+        }
+    }
+
     var environments: [PadCodeEnvironment] = []
     var failedEnvironmentIDs: [Int] = []
-    for environmentID in environmentIDs(in: pad) {
-        let environmentResponse = await apiGet("/api/pad_environments/\(environmentID)", account: account)
-        guard environmentResponse.ok, let object = jsonObject(environmentResponse.body) else {
+    for (offset, environmentID) in ids.enumerated() {
+        guard let body = bodies[offset], let object = jsonObject(body) else {
             failedEnvironmentIDs.append(environmentID)
             continue
         }

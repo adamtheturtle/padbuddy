@@ -114,12 +114,15 @@ nonisolated extension MCPTools {
         // Built once for the whole list rather than re-normalizing the filter
         // values for every row (#2452, #2453).
         let matcher = PadMatcher(owner: owner, state: state, language: language)
-        let matched = scan.pads.filter {
+        // Counted, not collected: only the count is ever read, and materializing the
+        // whole matched array meant allocating a second copy of every matching record
+        // on a large org just to measure it (#2243).
+        let matched = scan.pads.count {
             matcher.matches($0)
                 && withinDateRange($0, after: after, before: before)
         }
         var result: [String: Any] = [
-            "matched": matched.count,
+            "matched": matched,
             "scanned": scan.pads.count,
             "pages_fetched": scan.pagesFetched,
             "truncated": scan.truncated,

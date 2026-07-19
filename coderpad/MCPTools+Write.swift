@@ -157,6 +157,10 @@ nonisolated extension MCPTools {
     /// Encodes `body` and performs an authenticated write request, returning the API's JSON
     /// verbatim on success (or `successText` when the endpoint replies with only a status,
     /// as the PUT update endpoints do), and the HTTP status / failure reason on error.
+    /// One encoder for every write request, rather than a fresh one per call (#2244).
+    /// Default strategies, so a shared instance encodes identically.
+    private static let writeEncoder = JSONEncoder()
+
     private static func send(
         _ method: String,
         _ path: String,
@@ -167,7 +171,7 @@ nonisolated extension MCPTools {
     ) async -> Outcome {
         let data: Data
         do {
-            data = try JSONEncoder().encode(body)
+            data = try Self.writeEncoder.encode(body)
         } catch {
             return Outcome(text: "Could not encode the request: \(error.localizedDescription)", isError: true)
         }
