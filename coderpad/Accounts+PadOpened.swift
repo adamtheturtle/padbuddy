@@ -210,6 +210,30 @@ final class PadOpenedStore {
         save()
     }
 
+    /// Reconciles one account after a complete authoritative list fetch. Records
+    /// absent from that list represent pads removed outside this app; tombstoning
+    /// them prevents a cloud mirror from restoring stale last-opened state (#1070).
+    func reconcile(account: UUID, presentPadIDs: Set<String>, now: Date = Date()) {
+        guard let entries = byAccount[account] else { return }
+
+        let reconciled = Self.reconciledOpenRecords(entries, presentPadIDs: presentPadIDs)
+        guard !reconciled.removedIDs.isEmpty else { return }
+
+        byAccount[account] = reconciled.kept.isEmpty ? nil : reconciled.kept
+        for padID in reconciled.removedIDs {
+            removedAt[account, default: [:]][padID] = now
+        }
+        save()
+    }
+
+    static func reconciledOpenRecords(
+        _ entries: [String: Date],
+        presentPadIDs: Set<String>
+    ) -> (kept: [String: Date], removedIDs: Set<String>) {
+        let removedIDs = Set(entries.keys).subtracting(presentPadIDs)
+        return (entries.filter { presentPadIDs.contains($0.key) }, removedIDs)
+    }
+
     private func save() {
         // Records past the retention window go first, so neither the local blob nor
         // the mirror keeps identifiers for pads you looked at long ago (#2629).

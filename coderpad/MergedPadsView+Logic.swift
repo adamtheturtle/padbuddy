@@ -352,7 +352,7 @@ extension MergedPadsView {
             accountErrors[id] = nil
             NavigationPrefetchHealth.clear(account: id, kind: .pads)
             if let client = clientsByID[id] {
-                cache.set(id, pads: pads, via: client)
+                persistFetchedPads(pads, account: id, client: client)
             }
         }
         for (id, errorText) in fetchedErrors where mergeableIDs.contains(id) {
@@ -372,6 +372,12 @@ extension MergedPadsView {
         // Same timing for a favourite tapped before the list loaded: its slug can
         // only resolve to a namespaced row id once the row exists (#758).
         resolvePendingSlugSelection(loadComplete: true)
+    }
+
+    private func persistFetchedPads(_ pads: [Pad], account: UUID, client: CoderPadClient) {
+        guard accounts.isCurrentClient(client, for: account) else { return }
+        cache.set(account, pads: pads, via: client)
+        PadOpenedStore.shared.reconcile(account: account, presentPadIDs: Set(pads.map(\.id)))
     }
 
     /// Publish the pad -> owning-accounts map so the detail pane and row actions

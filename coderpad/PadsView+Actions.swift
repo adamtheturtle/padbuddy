@@ -280,8 +280,9 @@ extension PadsView {
         } ?? []
         PadUpdateNotifier.shared.notify(changes: myChanges, account: owner)
         previousActivity = Self.activitySnapshot(of: fetched)
-        if let id = account {
+        if let id = account, accounts.isCurrentClient(client, for: id) {
             cache.set(id, pads: fetched, via: client)
+            PadOpenedStore.shared.reconcile(account: id, presentPadIDs: Set(fetched.map(\.id)))
         }
         hasLoadedOnce = true
         // Cold start with an empty cache: the list first appears here, so this is the
