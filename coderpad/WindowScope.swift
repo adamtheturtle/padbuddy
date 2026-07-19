@@ -53,7 +53,12 @@ private struct WindowScopeRoot: ViewModifier {
     @State private var scope = WindowScope()
 
     func body(content: Content) -> some View {
-        content.environment(\.windowScope, scope)
+        content
+            .environment(\.windowScope, scope)
+            // Every scene root passes through here, which makes it the one place that
+            // knows the app has something on screen — the signal App Intents wait on
+            // instead of a fixed warm-up sleep (#2356).
+            .onAppear { AppReadiness.markReady() }
     }
 }
 

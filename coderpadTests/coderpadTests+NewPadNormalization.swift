@@ -220,3 +220,29 @@ struct WidgetHandoffValidationTests {
         #expect(WidgetSharedStore.validatedAccount("../../etc/passwd") == nil)
     }
 }
+
+@Suite("Search Pads intent query bounds (#2354)")
+struct SearchPadsQueryTests {
+    /// Mirrors the normalization `SearchPadsIntent.perform()` applies before the query
+    /// becomes durable navigation state.
+    private func normalized(_ query: String) -> String {
+        String(query.trimmingCharacters(in: .whitespacesAndNewlines)
+            .prefix(SearchPadsIntent.maxQueryLength))
+    }
+
+    @Test
+    func `a whitespace-only query becomes an empty search`() {
+        #expect(normalized("   \n\t ").isEmpty)
+    }
+
+    @Test
+    func `surrounding whitespace is trimmed`() {
+        #expect(normalized("  swift  ") == "swift")
+    }
+
+    @Test
+    func `an oversized query is truncated`() {
+        let long = String(repeating: "a", count: SearchPadsIntent.maxQueryLength * 3)
+        #expect(normalized(long).count == SearchPadsIntent.maxQueryLength)
+    }
+}

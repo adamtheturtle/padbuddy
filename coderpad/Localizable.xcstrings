@@ -9067,6 +9067,36 @@
           }
         }
       }
+    },
+    "Which account the pad belongs to. Optional." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A qué cuenta pertenece el pad. Opcional."
+          }
+        }
+      }
+    },
+    "That account is no longer set up in PadBuddy." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esa cuenta ya no está configurada en PadBuddy."
+          }
+        }
+      }
+    },
+    "Add a CoderPad account with an API key in PadBuddy first." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Primero añade una cuenta de CoderPad con una clave de API en PadBuddy."
+          }
+        }
+      }
     }
   },
   "version" : "1.3"

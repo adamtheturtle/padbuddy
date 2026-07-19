@@ -81,6 +81,14 @@ struct OpenPadByIDIntent: AppIntent {
     @Parameter(title: "Pad ID", description: "The 8-character pad identifier.")
     var padID: String
 
+    /// Optional: which account the id belongs to. Pad ids are only unique within an
+    /// organization, so on a multi-account setup — especially with custom servers,
+    /// where the same slug can genuinely exist twice — a bare id let whichever account
+    /// happened to be current claim the pad (#2353). Left unset it keeps the previous
+    /// behaviour and resolves globally, which is what a single-account user wants.
+    @Parameter(title: "Account", description: "Which account the pad belongs to. Optional.")
+    var account: AccountFocusEntity?
+
     func perform() async throws -> some IntentResult {
         // Reject anything that isn't a plain pad identifier instead of letting it
         // rewrite the opened URL's path, query, or fragment (#778).
@@ -88,13 +96,30 @@ struct OpenPadByIDIntent: AppIntent {
             throw $padID.needsValueError("Enter the pad's identifier - letters and numbers only.")
         }
 
-        // Mirror the other intents: warm up briefly on cold launch, then route through
-        // durable AppNavigation state (consumed on appear) so the request isn't lost if
-        // it fires before any view is listening. The sleep throws when Shortcuts/Siri
-        // cancels the intent; propagating that exits before routing (#844).
-        try await Task.sleep(for: .milliseconds(300))
+        // A named account has to still exist: routing under one that has been removed
+        // would silently fall back to the global resolution the parameter exists to
+        // avoid.
+        let owner: UUID? = if let account {
+            try await MainActor.run {
+                guard let uuid = UUID(uuidString: account.id),
+                      AccountsStore.shared.accounts.contains(where: { $0.id == uuid }) else {
+                    throw $account.needsValueError("That account is no longer set up in PadBuddy.")
+                }
+
+                return uuid
+            }
+        } else {
+            nil
+        }
+
+        // Mirror the other intents: wait for a scene to be on screen, then route
+        // through durable AppNavigation state (consumed on appear) so the request isn't
+        // lost if it fires before any view is listening. The wait throws when
+        // Shortcuts/Siri cancels the intent; propagating that exits before routing
+        // (#844).
+        try await AppReadiness.waitUntilReady()
         await MainActor.run {
-            AppNavigation.shared.openPad(id: id)
+            AppNavigation.shared.openPad(id: id, account: owner)
         }
         return .result()
     }
@@ -110,10 +135,19 @@ struct SearchPadsIntent: AppIntent {
     @Parameter(title: "Query", description: "Text to search pad titles, owners, and participants for.")
     var query: String
 
+    /// The longest query worth routing. Pad titles, owners, and participants are all
+    /// short; anything beyond this can only fail to match, and the search text is
+    /// durable navigation state that persists in the list until the user clears it,
+    /// so an accidental paste of a whole document used to stick (#2354).
+    static let maxQueryLength = 200
+
     func perform() async throws -> some IntentResult {
-        // Cancellation during the warm-up throws and exits before routing (#844).
-        try await Task.sleep(for: .milliseconds(300))
-        let searchText = query
+        // Normalized before it becomes durable state, not after: a whitespace-only
+        // query is an empty search, not a search for spaces (#2354).
+        let searchText = String(query.trimmingCharacters(in: .whitespacesAndNewlines)
+            .prefix(Self.maxQueryLength))
+        // Cancellation during the wait throws and exits before routing (#844).
+        try await AppReadiness.waitUntilReady()
         await MainActor.run {
             AppNavigation.shared.showPads(PadsRequest(search: searchText))
         }
@@ -129,12 +163,28 @@ struct NewPadIntent: AppIntent {
     static let openAppWhenRun: Bool = true
 
     func perform() async throws -> some IntentResult {
-        // Cancellation during the warm-up throws and exits before routing (#844).
-        try await Task.sleep(for: .milliseconds(400))
-        await MainActor.run {
+        // Cancellation during the wait throws and exits before routing (#844).
+        try await AppReadiness.waitUntilReady()
+        // A create sheet with no credentialled account behind it cannot submit, and
+        // presenting one told the user nothing about why — the shortcut appeared to
+        // work and then dead-ended (#2355). Say so as an intent error instead, which
+        // Shortcuts surfaces properly and which a shortcut can branch on.
+        try await MainActor.run {
+            guard AccountsStore.shared.accounts.contains(where: { $0.isMock || !$0.apiKey.isEmpty })
+            else { throw IntentAccountError.noUsableAccount }
+
             AppNavigation.shared.showPads(PadsRequest(startCreating: true))
         }
         return .result()
+    }
+}
+
+/// Why an intent that needs an account to act on couldn't run.
+enum IntentAccountError: LocalizedError {
+    case noUsableAccount
+
+    var errorDescription: String? {
+        String(localized: "Add a CoderPad account with an API key in PadBuddy first.")
     }
 }
 
@@ -149,8 +199,8 @@ struct NewPadFromFavoriteQuestionIntent: AppIntent {
     var question: FavoriteQuestionEntity
 
     func perform() async throws -> some IntentResult {
-        // Cancellation during the warm-up throws and exits before routing (#844).
-        try await Task.sleep(for: .milliseconds(400))
+        // Cancellation during the wait throws and exits before routing (#844).
+        try await AppReadiness.waitUntilReady()
         let accountID = question.accountID
         let questionID = question.questionID
         await MainActor.run {
@@ -168,8 +218,8 @@ struct OpenPadsIntent: AppIntent {
     static let openAppWhenRun: Bool = true
 
     func perform() async throws -> some IntentResult {
-        // Cancellation during the warm-up throws and exits before routing (#844).
-        try await Task.sleep(for: .milliseconds(200))
+        // Cancellation during the wait throws and exits before routing (#844).
+        try await AppReadiness.waitUntilReady()
         await MainActor.run {
             AppNavigation.shared.show(.pads)
         }
@@ -185,8 +235,8 @@ struct OpenRecentPadsIntent: AppIntent {
     static let openAppWhenRun: Bool = true
 
     func perform() async throws -> some IntentResult {
-        // Cancellation during the warm-up throws and exits before routing (#844).
-        try await Task.sleep(for: .milliseconds(200))
+        // Cancellation during the wait throws and exits before routing (#844).
+        try await AppReadiness.waitUntilReady()
         await MainActor.run {
             // The user's chosen sort is left alone. Writing `updatedDesc` here changed
             // it in every window and account, permanently, as a side effect of running
@@ -210,8 +260,8 @@ struct OpenActivePadsIntent: AppIntent {
     static let openAppWhenRun: Bool = true
 
     func perform() async throws -> some IntentResult {
-        // Cancellation during the warm-up throws and exits before routing (#844).
-        try await Task.sleep(for: .milliseconds(200))
+        // Cancellation during the wait throws and exits before routing (#844).
+        try await AppReadiness.waitUntilReady()
         await MainActor.run {
             if AccountsStore.shared.isMergedView {
                 // Through the root reset, so a search, owner, or Mine filter left on
