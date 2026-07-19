@@ -46,7 +46,7 @@ struct MergedOrganizationView: View {
     /// Resolved (start, end) window for the active period, falling back to the
     /// custom pickers when no preset range applies.
     private var window: (start: Date, end: Date) {
-        period.range() ?? (customStart, customEnd)
+        period.range() ?? StatsPeriod.boundedCustomRange(start: customStart, end: customEnd)
     }
 
     /// Identity of the stats window a request was made for, mirroring

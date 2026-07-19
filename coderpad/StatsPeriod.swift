@@ -12,6 +12,7 @@ import Foundation
 /// Selectable window for the organization pad-usage stats. `nil` dates mean the
 /// API's own default (last 7 days); the presets compute an explicit range.
 enum StatsPeriod: String, CaseIterable, Identifiable {
+    static let maximumCustomMonths = 12
     case days7 = "Last 7 days"
     case days30 = "Last 30 days"
     case days90 = "Last 90 days"
@@ -52,6 +53,20 @@ enum StatsPeriod: String, CaseIterable, Identifiable {
 
         let anchor = calendar.date(byAdding: .day, value: -(days - 1), to: now) ?? now
         return (calendar.startOfDay(for: anchor), now)
+    }
+
+    /// Sanitizes user-selected analytics dates before they reach the API. Future,
+    /// inverted, and multi-year windows otherwise produce expensive or misleading
+    /// requests (#1519).
+    static func boundedCustomRange(
+        start: Date,
+        end: Date,
+        now: Date = Date(),
+        calendar: Calendar = .current
+    ) -> (start: Date, end: Date) {
+        let boundedEnd = min(end, now)
+        let earliest = calendar.date(byAdding: .month, value: -maximumCustomMonths, to: boundedEnd) ?? boundedEnd
+        return (min(max(start, earliest), boundedEnd), boundedEnd)
     }
 }
 

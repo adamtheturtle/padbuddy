@@ -39,6 +39,16 @@ struct OrganizationView: View {
     @State var customStart = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
     @State var customEnd = Date()
 
+    init(client: CoderPadClient) {
+        self.client = client
+        let accountID = AccountsStore.shared.currentAccountID
+        self.accountID = accountID
+        _statsOwner = State(initialValue: OrganizationStatsOwner(accountID: accountID,
+                                                                 clientIdentity: client.taskIdentity))
+        _organization = State(initialValue: accountID.flatMap { OrganizationCacheStore.shared.get($0) })
+        _quota = State(initialValue: accountID.flatMap { QuotaCacheStore.shared.get($0) })
+    }
+
     var body: some View {
         content
             .task(id: client.taskIdentity) {
@@ -199,20 +209,6 @@ struct OrganizationView: View {
         }
     }
 
-    private var statTiles: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 12) {
-                StatTile(title: "Teams", value: organization.map { "\($0.teams.count)" } ?? "…",
-                         systemImage: "rectangle.stack.person.crop", tint: .indigo)
-                StatTile(title: "Pads", value: stats.map { "\($0.padsCreated)" } ?? "…",
-                         systemImage: "doc.text.fill", tint: .teal)
-            }
-            if let statsError {
-                StaleRefreshBanner(message: statsError) { scheduleStatsReload() }
-            }
-        }
-    }
-
     /// The sign-in portal URL, or nil when the response's value isn't an https web
     /// address this app should hand to the system browser (#2378).
     static func portalURL(_ raw: String) -> URL? {
@@ -328,6 +324,6 @@ extension OrganizationView {
     /// Resolved (start, end) window for the active period, falling back to the
     /// custom pickers when no preset range applies.
     var window: (start: Date, end: Date) {
-        period.range() ?? (customStart, customEnd)
+        period.range() ?? StatsPeriod.boundedCustomRange(start: customStart, end: customEnd)
     }
 }

@@ -14,14 +14,18 @@ nonisolated struct OrganizationStatsOwner: Equatable {
 }
 
 extension OrganizationView {
-    init(client: CoderPadClient) {
-        self.client = client
-        let accountID = AccountsStore.shared.currentAccountID
-        self.accountID = accountID
-        _statsOwner = State(initialValue: OrganizationStatsOwner(accountID: accountID,
-                                                                 clientIdentity: client.taskIdentity))
-        _organization = State(initialValue: accountID.flatMap { OrganizationCacheStore.shared.get($0) })
-        _quota = State(initialValue: accountID.flatMap { QuotaCacheStore.shared.get($0) })
+    var statTiles: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 12) {
+                StatTile(title: "Teams", value: organization.map { "\($0.teams.count)" } ?? "…",
+                         systemImage: "rectangle.stack.person.crop", tint: .indigo)
+                StatTile(title: "Pads", value: stats.map { "\($0.padsCreated)" } ?? "…",
+                         systemImage: "doc.text.fill", tint: .teal)
+            }
+            if let statsError {
+                StaleRefreshBanner(message: statsError) { scheduleStatsReload() }
+            }
+        }
     }
 
     /// The organization's members, de-duplicated and sorted once — held in state and
