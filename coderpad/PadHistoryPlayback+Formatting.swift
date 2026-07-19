@@ -11,6 +11,20 @@ import Foundation
 import SwiftUI
 
 extension HistoryPlaybackView {
+    /// A compact stand-in for "are these the same histories".
+    ///
+    /// Keying the rebuild on `histories` itself made SwiftUI Equatable-compare the
+    /// array on every body pass — and each element carries a snapshot per revision,
+    /// each holding the full accumulated code at that point, so a long session meant
+    /// walking megabytes of text just to notice a refresh (#2462). Each file's id,
+    /// snapshot count, and last entry id together change whenever a refresh brings
+    /// anything new, without touching the contents.
+    var historiesSignature: String {
+        histories.lazy
+            .map { "\($0.id):\($0.snapshots.count):\($0.snapshots.last?.entry.id ?? "")" }
+            .joined(separator: "\u{1}")
+    }
+
     /// The two scrubber styles, built once. `timeText` runs twice per render — the
     /// elapsed and total labels — inside a scrubber that re-renders on every timeline
     /// tick and every drag frame, so constructing the style per call put formatter

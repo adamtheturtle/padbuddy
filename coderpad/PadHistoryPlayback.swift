@@ -83,7 +83,7 @@ struct HistoryPlaybackView: View {
             codeBody
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .onChange(of: histories) {
+        .onChange(of: historiesSignature) {
             // The rebuild itself stops any running replay first (#1167, #1868).
             rebuildTimeline()
         }
