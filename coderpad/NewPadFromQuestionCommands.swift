@@ -27,11 +27,20 @@ enum NewPadFromQuestionRunner {
 
         let client = account.makeClient()
         let accountID = account.id
-        let body = PadCreate.fromQuestion(question)
         Task { @MainActor in
             defer { inFlight.remove(key) }
             do {
-                let pad = try await client.createPad(body)
+                // Menu/palette rows come from the local cache. Re-fetch immediately
+                // before the write so edits, deletion, and revoked visibility cannot
+                // create from an obsolete snapshot (#2043).
+                let fetched = try await client.getQuestion(id: question.id)
+                guard let fresh = NewPadFromQuestionValidation.accept(requestedID: question.id,
+                                                                      fetched: fetched) else {
+                    throw CoderPadError.decode("The selected question is no longer available.")
+                }
+
+                QuestionsCacheStore.shared.updateQuestion(fresh, account: accountID, via: client)
+                let pad = try await client.createPad(.fromQuestion(fresh))
                 // Publish the created pad to the shared cache (Spotlight, widget,
                 // Dock badge) and to every mounted list, so it doesn't stay
                 // invisible in-app until the next full reload (#1251).
@@ -67,6 +76,12 @@ enum NewPadFromQuestionRunner {
                                                  createError: message)
             }
         }
+    }
+}
+
+enum NewPadFromQuestionValidation {
+    static func accept(requestedID: Int, fetched: Question) -> Question? {
+        fetched.id == requestedID ? fetched : nil
     }
 }
 
