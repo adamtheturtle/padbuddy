@@ -172,6 +172,10 @@ struct MergedQuestionRow: Identifiable, Hashable {
 /// tagged-array build and the option Sets no longer rerun on every render (#366).
 final class ScopedQuestionsCache {
     var rows: [MergedQuestionRow] = []
+    /// `rows` indexed by namespaced row id, built in the same pass. Selection
+    /// changes and bulk deletes resolve ids to rows constantly, and the linear
+    /// scan they used made the delete path O(selected x rows) (#2086).
+    var rowsByID: [String: MergedQuestionRow] = [:]
     var availableLanguages: [String] = []
     var availableOwners: [String] = []
     /// The hash of the inputs the cached values were built from; `nil` until the

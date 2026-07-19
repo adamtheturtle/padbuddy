@@ -40,6 +40,8 @@ extension MergedQuestionsView {
             }
         }
         scopedCache.rows = sort.sorted(rows, question: { $0.item }, tieBreaker: \.id)
+        // Index by row id in the same pass so `row(forRowID:)` is O(1) (#2086).
+        scopedCache.rowsByID = Dictionary(rows.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         // Rebuild the chip-option lists in the same pass, sharing the input signature.
         scopedCache.availableLanguages = Array(Set(rows.compactMap { $0.item.language?.lowercased() })
             .filter { !$0.isEmpty }).sorted()
@@ -146,9 +148,10 @@ extension MergedQuestionsView {
     }
 
     /// The scoped row for a namespaced row id, used to resolve the List selection
-    /// back to a specific account's question (not just the first id match).
+    /// back to a specific account's question (not just the first id match). Indexed
+    /// with `scoped`, so selection and deletion no longer rescan every row (#2086).
     func row(forRowID rowID: String) -> MergedQuestionRow? {
-        scoped.first { $0.id == rowID }
+        scopedCache.rowsByID[rowID]
     }
 
     /// The row to select after the row with `rowID` is deleted: the next visible
