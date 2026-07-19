@@ -69,7 +69,7 @@ nonisolated struct CodeFile: Identifiable, Hashable {
         "swift": "swift", "go": "go", "rs": "rust", "java": "java",
         "kt": "kotlin", "kts": "kotlin",
         "scala": "scala", "sc": "scala", "rb": "ruby",
-        "c": "c", "h": "c",
+        "c": "c",
         "cpp": "cpp", "cc": "cpp", "cxx": "cpp", "hpp": "cpp", "hh": "cpp",
         "cs": "csharp", "mm": "objective-c",
         "php": "php", "r": "r", "sql": "sql",
@@ -104,6 +104,11 @@ nonisolated struct CodeFile: Identifiable, Hashable {
         // available disambiguator for a standalone source file (#1908).
         if ext == "m" {
             return base?.lowercased() == "matlab" ? "matlab" : "objective-c"
+        }
+        // C and C++ conventionally share `.h`; preserve the environment's C++
+        // context instead of forcing every header through the C grammar (#1909).
+        if ext == "h" {
+            return base?.lowercased() == "cpp" ? "cpp" : "c"
         }
         return languageByExtension[ext] ?? base
     }
