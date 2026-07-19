@@ -31,7 +31,8 @@ enum CacheDisk {
         cache.save(value, kind: kind, account: account)
     }
 
-    nonisolated static func delete(kind: String, account: UUID) {
+    @discardableResult
+    nonisolated static func delete(kind: String, account: UUID) -> Bool {
         cache.delete(kind: kind, account: account)
     }
 

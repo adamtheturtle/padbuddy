@@ -85,4 +85,16 @@ struct DiskCacheTests {
             return
         }
     }
+
+    @Test
+    func `deletion reports success and remains idempotent`() {
+        let directoryName = "com.buddyappkit.tests.DiskCache-\(UUID().uuidString)"
+        let account = UUID()
+        let cache = DiskCache(directoryName: directoryName, logger: Logger(subsystem: "tests", category: "cache"))
+        cache.save(["value"], kind: "pads", account: account)
+
+        #expect(cache.delete(kind: "pads", account: account))
+        #expect(cache.delete(kind: "pads", account: account))
+        #expect(!cache.delete(kind: "../invalid", account: account))
+    }
 }

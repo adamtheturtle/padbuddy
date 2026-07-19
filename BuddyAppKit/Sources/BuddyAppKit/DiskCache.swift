@@ -117,10 +117,22 @@ public nonisolated struct DiskCache: Sendable {
         }
     }
 
-    public func delete(kind: String, account: UUID) {
-        guard let url = url(kind: kind, account: account) else { return }
+    /// Removes a snapshot. Missing files are an idempotent success; validation or
+    /// filesystem failures are reported to both the caller and the cache log.
+    @discardableResult
+    public func delete(kind: String, account: UUID) -> Bool {
+        guard let url = url(kind: kind, account: account) else { return false }
 
-        try? FileManager.default.removeItem(at: url)
+        do {
+            try FileManager.default.removeItem(at: url)
+            return true
+        } catch CocoaError.fileNoSuchFile {
+            return true
+        } catch {
+            let reason = error.localizedDescription
+            logger.error("Failed to delete \(kind, privacy: .public) cache: \(reason, privacy: .public)")
+            return false
+        }
     }
 
     /// When the snapshot for `kind`+`account` was last written, or nil if there's no file.
