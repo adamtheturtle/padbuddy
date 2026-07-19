@@ -108,3 +108,72 @@ struct PreferenceRevisionTests {
         #expect(PreferenceCloudSync.revision("not a number") == 0)
     }
 }
+
+@Suite("Title adoption and survivor de-duplication (#2145, #2146, #2147)")
+struct TitleAdoptionAndDedupeTests {
+    private struct Favorite: Equatable {
+        let id: Int
+        var title: String
+        let addedAt: Date?
+    }
+
+    private func adopt(local: [Favorite], cloud: [Favorite]) -> [Favorite] {
+        let account = UUID()
+        return FavoriteTitleSync.adoptCloudTitles(
+            merged: [account: local],
+            cloud: ["identity": cloud],
+            uuidForSyncID: { _ in account },
+            id: { AnyHashable($0.id) },
+            title: \.title
+        )[account] ?? []
+    }
+
+    @Test
+    func `a duplicate cloud id resolves the same way regardless of order`() {
+        // Order used to decide the winner, so two devices reading one blob could
+        // adopt different titles (#2145).
+        let short = Favorite(id: 1, title: "Two", addedAt: nil)
+        let long = Favorite(id: 1, title: "Two Sum", addedAt: nil)
+        let local = [Favorite(id: 1, title: "old", addedAt: nil)]
+        #expect(adopt(local: local, cloud: [short, long]).first?.title == "Two Sum")
+        #expect(adopt(local: local, cloud: [long, short]).first?.title == "Two Sum")
+    }
+
+    @Test
+    func `an empty duplicate never wins`() {
+        let blank = Favorite(id: 1, title: "   ", addedAt: nil)
+        let real = Favorite(id: 1, title: "Two Sum", addedAt: nil)
+        #expect(adopt(local: [Favorite(id: 1, title: "old", addedAt: nil)],
+                      cloud: [blank, real]).first?.title == "Two Sum")
+    }
+
+    @Test
+    func `a title differing only in case or whitespace is not adopted`() {
+        // Adopting it wrote a value the other device mirrored back, churning on every
+        // sync (#2146).
+        let local = [Favorite(id: 1, title: "Two Sum", addedAt: nil)]
+        #expect(adopt(local: local, cloud: [Favorite(id: 1, title: "  Two Sum  ", addedAt: nil)])
+            .first?.title == "Two Sum")
+        #expect(adopt(local: local, cloud: [Favorite(id: 1, title: "TWO SUM", addedAt: nil)])
+            .first?.title == "Two Sum")
+    }
+
+    @Test
+    func `a genuinely different title is still adopted`() {
+        let local = [Favorite(id: 1, title: "Old name", addedAt: nil)]
+        #expect(adopt(local: local, cloud: [Favorite(id: 1, title: "New name", addedAt: nil)])
+            .first?.title == "New name")
+    }
+
+    @Test
+    func `surviving items are de-duplicated by id`() {
+        // The merge feeding this is an additive union, so the same favourite can
+        // arrive from two devices and both copies stayed visible (#2147).
+        let items = [Favorite(id: 1, title: "a", addedAt: nil),
+                     Favorite(id: 1, title: "b", addedAt: nil),
+                     Favorite(id: 2, title: "c", addedAt: nil)]
+        let resolved = CloudTombstones.resolve(items: items, tombstones: [:],
+                                               id: { String($0.id) }, addedAt: \.addedAt)
+        #expect(resolved.items.map(\.id) == [1, 2])
+    }
+}

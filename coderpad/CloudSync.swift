@@ -98,12 +98,36 @@ nonisolated enum FavoriteTitleSync {
         for (identity, cloudList) in cloud {
             guard let uuid = uuidForSyncID(identity), var list = result[uuid] else { continue }
 
-            let cloudTitles = Dictionary(cloudList.map { (id($0), $0[keyPath: title]) },
-                                         uniquingKeysWith: { first, _ in first })
+            // Duplicate cloud rows for one id are collapsed to the longest usable
+            // title rather than whichever happened to come first in the array, so two
+            // devices reading the same blob adopt the same title instead of
+            // disagreeing on incidental order (#2145). Length is the tie-break because
+            // a truncated or placeholder title is the usual cause of a duplicate;
+            // equal-length titles fall back to sort order, which is still stable.
+            let cloudTitles = Dictionary(
+                cloudList.map { (id($0), $0[keyPath: title]) },
+                uniquingKeysWith: { first, second in
+                    let left = first.trimmingCharacters(in: .whitespacesAndNewlines)
+                    let right = second.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if left.isEmpty { return second }
+                    if right.isEmpty { return first }
+                    if left.count != right.count { return left.count > right.count ? first : second }
+
+                    return left <= right ? first : second
+                }
+            )
             var changed = false
             for index in list.indices {
-                guard let cloudTitle = cloudTitles[id(list[index])],
-                      !cloudTitle.isEmpty, cloudTitle != list[index][keyPath: title] else { continue }
+                guard let cloudTitle = cloudTitles[id(list[index])] else { continue }
+
+                let incoming = cloudTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+                let existing = list[index][keyPath: title].trimmingCharacters(in: .whitespacesAndNewlines)
+                // Compared trimmed and case-insensitively: a title differing only in
+                // whitespace or casing is the same title, and adopting it wrote a new
+                // value that the other device then mirrored back, churning on every
+                // sync (#2146).
+                guard !incoming.isEmpty,
+                      incoming.compare(existing, options: [.caseInsensitive]) != .orderedSame else { continue }
 
                 list[index][keyPath: title] = cloudTitle
                 changed = true
@@ -142,7 +166,12 @@ nonisolated enum CloudTombstones {
         addedAt: (Element) -> Date?
     ) -> (items: [Element], tombstones: [String: Date]) {
         var liveTombstones = tombstones
+        // Survivors are de-duplicated by id as well as filtered: the merge that feeds
+        // this is an additive union, so the same favourite can arrive from two devices
+        // and both copies stayed visible and re-propagated (#2147).
+        var seenIDs = Set<String>()
         let kept = items.filter { item in
+            guard seenIDs.insert(id(item)).inserted else { return false }
             guard let removedAt = tombstones[id(item)] else { return true }
 
             // `>=`, not `>`: a re-add recorded in the same instant as the removal is a
