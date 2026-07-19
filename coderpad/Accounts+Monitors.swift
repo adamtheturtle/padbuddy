@@ -133,6 +133,18 @@ final class AccountHealthMonitor {
 /// stay current without any window on screen.
 @MainActor
 final class PadsBackgroundRefresher {
+    nonisolated struct FetchJob {
+        let accountID: UUID
+        let apiKey: String
+        let baseURL: URL
+    }
+
+    nonisolated struct FetchResult {
+        let accountID: UUID
+        let clientIdentity: ClientTaskIdentity
+        let pads: [Pad]
+    }
+
     struct AccountActivityState {
         let clientIdentity: ClientTaskIdentity
         let snapshot: [String: PadActivitySnapshot]
@@ -148,6 +160,7 @@ final class PadsBackgroundRefresher {
     /// does (#735). An account's first sweep only seeds its snapshot, so a cold
     /// start never alerts about every existing pad.
     private var previousActivity: [UUID: AccountActivityState] = [:]
+    static let maximumConcurrentFetches = 3
     private init() {}
 
     /// Refetches the current account's pads on a fixed interval (default 5 min).
@@ -180,7 +193,6 @@ final class PadsBackgroundRefresher {
     /// all-accounts badge scope counts every account's cache and a widget can pin any
     /// account, so the sweep isn't limited to the current account - which is even
     /// absent in All Accounts mode, where the old current-only refresh did nothing.
-    /// Sequential on purpose: one list fetch at a time keeps the background load low.
     func refreshAllAccounts() async {
         guard !refreshInFlight else { return }
 
@@ -197,24 +209,49 @@ final class PadsBackgroundRefresher {
         // per-account calls cancelled each other, which forced a merged,
         // unattributed alert), so each organization's activity is named and
         // stands on its own.
-        for account in AccountsStore.shared.accounts {
-            // Skip mock/demo accounts (their data is static, so a refresh would only
-            // churn the widget timeline) and any account without a key to fetch with.
-            guard !account.isMock, !account.apiKey.isEmpty else { continue }
+        let jobs = AccountsStore.shared.accounts.compactMap { account -> FetchJob? in
+            guard !account.isMock else { return nil }
 
-            let client = account.makeClient()
-            guard let fetched = try? await client.listPads(sort: "updated_at,desc") else { continue }
+            let apiKey = account.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !apiKey.isEmpty else { return nil }
 
-            // The account can be removed or re-keyed while its fetch was in
-            // flight; `set` would reject the stale result, but the change diff
-            // and notification must not fire either (#1779).
-            guard AccountsStore.shared.isCurrentClient(client, for: account.id) else { continue }
-
-            let changes = ownedChanges(account: account, client: client, fetched: fetched)
-            // `set` cascades to the widget snapshot and the active-pads Dock badge.
-            PadsCacheStore.shared.set(account.id, pads: fetched, via: client)
-            PadUpdateNotifier.shared.notify(changes: changes, account: account)
+            return FetchJob(accountID: account.id, apiKey: apiKey, baseURL: account.resolvedBaseURL)
         }
+
+        await withTaskGroup(of: FetchResult?.self) { group in
+            var pending = jobs.makeIterator()
+            for _ in 0 ..< min(Self.maximumConcurrentFetches, jobs.count) {
+                if let job = pending.next() { Self.addFetch(job, to: &group) }
+            }
+
+            while let result = await group.next() {
+                if let result { apply(result) }
+                if let job = pending.next() { Self.addFetch(job, to: &group) }
+            }
+        }
+    }
+
+    private nonisolated static func addFetch(
+        _ job: FetchJob,
+        to group: inout TaskGroup<FetchResult?>
+    ) {
+        group.addTask {
+            let client = CoderPadClient.live(apiKey: job.apiKey, baseURL: job.baseURL)
+            guard let pads = try? await client.listPads(sort: "updated_at,desc") else { return nil }
+
+            return FetchResult(accountID: job.accountID, clientIdentity: client.taskIdentity, pads: pads)
+        }
+    }
+
+    private func apply(_ result: FetchResult) {
+        guard let account = AccountsStore.shared.accounts.first(where: { $0.id == result.accountID }) else { return }
+
+        let client = account.makeClient()
+        guard client.taskIdentity == result.clientIdentity else { return }
+
+        let changes = ownedChanges(account: account, client: client, fetched: result.pads)
+        PadsCacheStore.shared.set(account.id, pads: result.pads, via: client)
+        PadUpdateNotifier.shared.notify(changes: changes, account: account)
     }
 
     /// The background-detected activity for one account, feeding the opt-in pad-update
