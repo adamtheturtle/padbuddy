@@ -170,23 +170,17 @@ struct MergedOrganizationView: View {
 
     // MARK: - Aggregate
 
-    private var loadedOrgs: [Organization] {
-        accounts.mergeableAccounts.compactMap { orgByAccount[$0.id] }
-    }
-
-    private var totalUsers: Int {
-        loadedOrgs.reduce(0) { $0 + ($1.userCount ?? $1.users.count) }
-    }
-
-    private var totalTeams: Int {
-        loadedOrgs.reduce(0) { $0 + $1.teams.count }
-    }
-
     private var totalPads: Int {
         accounts.mergeableAccounts.compactMap { statsByAccount[$0.id]?.padsCreated }.reduce(0, +)
     }
 
     private var aggregateTiles: some View {
+        // Build the merged organization slice once per body evaluation; the three
+        // aggregate readers previously rebuilt it independently (#2128).
+        let loadedOrgs = accounts.mergeableAccounts.compactMap { orgByAccount[$0.id] }
+        let totalUsers = loadedOrgs.reduce(0) { $0 + ($1.userCount ?? $1.users.count) }
+        let totalTeams = loadedOrgs.reduce(0) { $0 + $1.teams.count }
+
         LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 12)], alignment: .leading, spacing: 12) {
             AggregateStatTile(title: "Organizations", value: "\(loadedOrgs.count)",
                               systemImage: "building.2.fill", tint: .purple)
