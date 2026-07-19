@@ -12,6 +12,17 @@ import UniformTypeIdentifiers
 
 @Suite("Focused actions")
 struct FocusedActionsTests {
+    @Test
+    func `screen invite action identity includes account and campaign payload`() {
+        let firstAccount = UUID()
+        let secondAccount = UUID()
+        let baseline = ScreenInviteAction(id: 7, accountID: firstAccount, contentFingerprint: 10) {}
+
+        #expect(baseline == ScreenInviteAction(id: 7, accountID: firstAccount, contentFingerprint: 10) {})
+        #expect(baseline != ScreenInviteAction(id: 7, accountID: secondAccount, contentFingerprint: 10) {})
+        #expect(baseline != ScreenInviteAction(id: 7, accountID: firstAccount, contentFingerprint: 11) {})
+    }
+
     #if os(macOS)
         @Test
         func `copy-link provider publishes URL and text representations`() throws {

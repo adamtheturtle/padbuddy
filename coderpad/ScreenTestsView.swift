@@ -122,9 +122,11 @@ struct ScreenTestsView: View {
             .onChange(of: countSubtitle, initial: true) { _, new in publishCountSubtitle(new) }
             // Deselecting the campaign tears this view down; reset the published candidate count.
             .onDisappear { publishCountSubtitle("") }
-            .focusedSceneValue(\.focusedScreenInviteAction, ScreenInviteAction(id: campaign.id) {
-                showInvite = true
-            })
+            .focusedSceneValue(\.focusedScreenInviteAction, ScreenInviteAction(id: campaign.id,
+                                                                               accountID: accountID,
+                                                                               contentFingerprint: campaign.hashValue) {
+                    showInvite = true
+                })
             .focusedSceneValue(\.focusedScreenTestAction, selectedTestAction)
         #if os(macOS)
             .onCopyCommand(perform: copyLinkCommand(hasSelection: !selectedIDs.isEmpty) {

@@ -96,10 +96,15 @@ struct ScreenTestAction: Equatable {
 
 struct ScreenInviteAction: Equatable {
     let id: Int
+    /// Account and campaign content are part of the captured invitation target.
+    /// Re-publish when either changes even if the server-local campaign id is reused.
+    var accountID: UUID?
+    var contentFingerprint: Int = 0
     let perform: () -> Void
 
     static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.id == rhs.id
+        lhs.id == rhs.id && lhs.accountID == rhs.accountID
+            && lhs.contentFingerprint == rhs.contentFingerprint
     }
 }
 
