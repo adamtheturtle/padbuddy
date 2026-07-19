@@ -22,7 +22,6 @@ struct AccountFocusEntity: AppEntity, Identifiable {
     /// The account's UUID, as a string (AppEntity ids are stable across launches).
     let id: String
     let displayName: String
-    let email: String
 
     static var typeDisplayRepresentation: TypeDisplayRepresentation {
         TypeDisplayRepresentation(name: "Account")
@@ -31,18 +30,20 @@ struct AccountFocusEntity: AppEntity, Identifiable {
     static let defaultQuery = AccountFocusEntityQuery()
 
     var displayRepresentation: DisplayRepresentation {
-        DisplayRepresentation(title: "\(displayName)", subtitle: "\(email)")
+        // Focus settings are system-visible and may appear on shared screenshots.
+        // The user-chosen account name identifies the scope without publishing the
+        // raw login email outside the app (#1987).
+        DisplayRepresentation(title: "\(displayName)")
     }
 
-    init(id: String, displayName: String, email: String) {
+    init(id: String, displayName: String) {
         self.id = id
         self.displayName = displayName
-        self.email = email
     }
 
     @MainActor
     init(account: Account) {
-        self.init(id: account.id.uuidString, displayName: account.name, email: account.userEmail)
+        self.init(id: account.id.uuidString, displayName: account.name)
     }
 }
 
