@@ -27,6 +27,9 @@ struct CommandEditableTitle: View {
     @State private var isSaving = false
     @State private var naturalWidth: CGFloat = 0
     @State private var availableWidth: CGFloat = 0
+    /// The in-flight commit, held so it can be cancelled when this editor goes
+    /// away — see the `onDisappear` in `body` (#2018).
+    @State private var saveTask: Task<Void, Never>?
     @FocusState private var fieldFocused: Bool
 
     private static let pencilReserve: CGFloat = 28
@@ -65,6 +68,13 @@ struct CommandEditableTitle: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .onChange(of: editRequest) { _, _ in beginEditing() }
         .onChange(of: title) { _, newTitle in sourceTitleChanged(to: newTitle) }
+        // Submit and focus loss start the save off-view, so navigating away left it
+        // running: the request could still land and rename a pad the detail view is
+        // no longer showing (#2018).
+        .onDisappear {
+            saveTask?.cancel()
+            saveTask = nil
+        }
     }
 
     private var plainTitle: some View {
@@ -115,9 +125,9 @@ struct CommandEditableTitle: View {
                     .disabled(isSaving)
                     .lineLimit(1)
                     .frame(maxWidth: fieldWidth, alignment: .leading)
-                    .onSubmit { Task { await commit() } }
+                    .onSubmit { startCommit() }
                     .onChange(of: fieldFocused) { _, focused in
-                        if !focused, isEditing { Task { await commit() } }
+                        if !focused, isEditing { startCommit() }
                     }
 
                 if isSaving {
@@ -134,7 +144,7 @@ struct CommandEditableTitle: View {
                     Button("Save Anyway") {
                         titleConflict = false
                         editingBaseTitle = title
-                        Task { await commit() }
+                        startCommit()
                     }
                 }
                 .font(.caption)
@@ -170,6 +180,11 @@ struct CommandEditableTitle: View {
         fieldFocused = true
     }
 
+    /// Runs a commit as the tracked save, so `onDisappear` can cancel it (#2018).
+    private func startCommit() {
+        saveTask = Task { await commit() }
+    }
+
     private func commit() async {
         guard isEditing, !isSaving else { return }
         guard !titleConflict else {
@@ -183,7 +198,13 @@ struct CommandEditableTitle: View {
 
         isSaving = true
         let saved = await onCommit(value)
+        // The spinner flag is cleared either way: it belongs to state SwiftUI reuses
+        // for whatever this position shows next.
         isSaving = false
+        // Cancelled by the view going away (#2018): this editor no longer belongs to
+        // the title that was being saved, so none of the transitions below apply.
+        guard !Task.isCancelled else { return }
+
         if saved {
             isEditing = false
             fieldFocused = false
