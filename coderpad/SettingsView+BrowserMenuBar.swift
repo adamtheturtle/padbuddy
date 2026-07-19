@@ -40,7 +40,11 @@ extension SettingsView {
         .formStyle(.grouped)
         #if os(macOS)
             .onAppear {
-                // One scan per appearance, reused by the picker above.
+                // One scan per appearance, reused by the picker above. The cached scan
+                // is dropped first so a browser installed or removed since the last
+                // visit shows up here (#2160); the open path then reuses this result
+                // instead of rescanning per link.
+                BrowserSettings.invalidateInstalledBrowsers()
                 installedBrowsers = BrowserSettings.installedBrowsers()
                 systemDefaultBrowserName = BrowserSettings.systemDefaultBrowserName()
                 // A browser uninstalled since it was picked leaves a dangling bundle

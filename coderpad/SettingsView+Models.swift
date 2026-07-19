@@ -34,6 +34,35 @@ enum BrowserSettings {
         UserDefaults.standard.string(forKey: Key.defaultBrowserBundleID)
     }
 
+    /// The stored choice, but only when it names an http(s)-capable app installed on
+    /// this Mac.
+    ///
+    /// The raw value was handed to `NSWorkspace` as-is, so a corrupt default — or one
+    /// synced from another Mac with different apps — could launch an unrelated
+    /// application for every link (#2157). An identifier that doesn't correspond to a
+    /// browser here falls through to the system default, which is also what the
+    /// uninstalled case already did (#1140).
+    @MainActor
+    static func validatedBrowserBundleID() -> String? {
+        #if os(macOS)
+            guard let bundleID = defaultBrowserBundleID else { return nil }
+            guard installedBrowsers().contains(where: { $0.bundleID == bundleID }) else {
+                persistenceLogger.notice(
+                    """
+                    Default browser \(bundleID, privacy: .public) is not an installed web browser; \
+                    reverting to the system default.
+                    """
+                )
+                UserDefaults.standard.removeObject(forKey: Key.defaultBrowserBundleID)
+                return nil
+            }
+
+            return bundleID
+        #else
+            return nil
+        #endif
+    }
+
     static var openInBackground: Bool {
         UserDefaults.standard.bool(forKey: Key.openInBackground)
     }
@@ -41,14 +70,32 @@ enum BrowserSettings {
     /// A representative URL used to discover http(s)-capable apps.
     private static let probeURL = URL.staticURL("https://app.coderpad.io")
 
+    /// Whether `url` is something this app should hand to a browser.
+    ///
+    /// The opener took whatever it was given, so a call site holding a `file:` or
+    /// custom-scheme URL would have it opened under the browser preference (#2158).
+    /// Every legitimate caller passes a web link; anything else is a bug, and refusing
+    /// it here keeps that bug from becoming a launched app.
+    static func isOpenableWebURL(_ url: URL) -> Bool {
+        guard let scheme = url.scheme?.lowercased(), scheme == "http" || scheme == "https",
+              let host = url.host(), !host.isEmpty else { return false }
+
+        return true
+    }
+
     /// Open a link in the user's chosen browser, honoring the background preference.
     @MainActor
     static func openExternally(_ url: URL) {
+        guard isOpenableWebURL(url) else {
+            persistenceLogger.error("Refused to open a non-web URL externally")
+            return
+        }
+
         #if os(macOS)
             let config = NSWorkspace.OpenConfiguration()
             config.activates = !openInBackground
             var chosenAppURL: URL?
-            if let bundleID = defaultBrowserBundleID {
+            if let bundleID = validatedBrowserBundleID() {
                 chosenAppURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID)
                 if chosenAppURL == nil {
                     // The chosen browser is gone (uninstalled/renamed): clear the
@@ -78,17 +125,36 @@ enum BrowserSettings {
         #endif
     }
 
+    /// Cached result of the LaunchServices scan.
+    ///
+    /// The scan asks LaunchServices for every app that can open a web URL and then
+    /// reads each bundle, which is slow enough to be felt — and it ran on every
+    /// evaluation of the settings picker, on the main thread (#2160). The installed
+    /// app set changes rarely, so the result is held until something invalidates it.
+    @MainActor private static var cachedInstalledBrowsers: [InstalledBrowser]?
+
+    /// Discards the cached scan, so a newly installed or removed browser is picked up.
+    @MainActor
+    static func invalidateInstalledBrowsers() {
+        cachedInstalledBrowsers = nil
+    }
+
     /// http(s)-capable apps installed on this Mac, de-duplicated and sorted by name.
+    @MainActor
     static func installedBrowsers() -> [InstalledBrowser] {
         #if os(macOS)
+            if let cachedInstalledBrowsers { return cachedInstalledBrowsers }
+
             let urls = NSWorkspace.shared.urlsForApplications(toOpen: probeURL)
             var seen = Set<String>()
-            return urls.compactMap { appURL -> InstalledBrowser? in
+            let browsers = urls.compactMap { appURL -> InstalledBrowser? in
                 guard let id = Bundle(url: appURL)?.bundleIdentifier, seen.insert(id).inserted else { return nil }
 
                 return InstalledBrowser(bundleID: id, name: displayName(for: appURL))
             }
             .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            cachedInstalledBrowsers = browsers
+            return browsers
         #else
             // iOS: apps can't enumerate other installed apps, and the system owns the
             // default-browser choice, so there's nothing to pick from here.
@@ -110,8 +176,13 @@ enum BrowserSettings {
 
     #if os(macOS)
         private static func displayName(for appURL: URL) -> String {
-            let raw = FileManager.default.displayName(atPath: appURL.path)
-                .replacingOccurrences(of: ".app", with: "")
+            // Only a trailing ".app" is removed, not every occurrence: an app whose
+            // name contains it (say "My.app Browser") had it cut from the middle
+            // (#2161). `displayName(atPath:)` may already hide the extension, so this
+            // is conditional rather than unconditional.
+            var name = FileManager.default.displayName(atPath: appURL.path)
+            if name.hasSuffix(".app") { name.removeLast(4) }
+            let raw = name
             // Local app metadata is still input (#1618): control characters or an
             // absurdly long name must not disrupt the picker's layout or its
             // accessibility labels.

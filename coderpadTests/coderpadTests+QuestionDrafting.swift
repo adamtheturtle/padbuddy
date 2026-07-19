@@ -361,3 +361,26 @@ struct OpenPadURLParsingTests {
         }
     }
 }
+
+@Suite("Browser opener URL gating (#2158)")
+struct BrowserOpenGatingTests {
+    @Test
+    func `web addresses are openable`() throws {
+        #expect(try BrowserSettings.isOpenableWebURL(#require(URL(string: "https://app.coderpad.io/abc"))))
+        #expect(try BrowserSettings.isOpenableWebURL(#require(URL(string: "http://pads.example.com:8080/abc"))))
+    }
+
+    @Test
+    func `non-web schemes are refused`() throws {
+        // A call site holding one of these would otherwise have it launched under the
+        // user's browser preference (#2158).
+        #expect(try !BrowserSettings.isOpenableWebURL(#require(URL(string: "file:///etc/passwd"))))
+        #expect(try !BrowserSettings.isOpenableWebURL(#require(URL(string: "coderpad://pad/abc"))))
+        #expect(try !BrowserSettings.isOpenableWebURL(#require(URL(string: "ftp://example.com/x"))))
+    }
+
+    @Test
+    func `a hostless address is refused`() throws {
+        #expect(try !BrowserSettings.isOpenableWebURL(#require(URL(string: "https:///path"))))
+    }
+}
