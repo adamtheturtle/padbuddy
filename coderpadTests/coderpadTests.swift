@@ -305,6 +305,21 @@ struct EnvironmentCodeCardSelectionTests {
     }
 }
 
+@Suite("Code card file tree")
+struct EnvironmentCodeCardFileTreeTests {
+    @Test
+    func `machine paths use deterministic lexical ordering`() {
+        let tree = EnvironmentCodeCard.makeFileTree(from: [
+            CodeFile(id: "lower-folder", path: "alpha/main.swift", contents: "", language: nil),
+            CodeFile(id: "upper-folder", path: "Beta/main.swift", contents: "", language: nil),
+            CodeFile(id: "lower-file", path: "alpha.swift", contents: "", language: nil),
+            CodeFile(id: "upper-file", path: "Beta.swift", contents: "", language: nil)
+        ])
+
+        #expect(tree.map(\.name) == ["Beta", "alpha", "Beta.swift", "alpha.swift"])
+    }
+}
+
 @Suite("Account validation messages")
 @MainActor
 struct AccountValidationMessageTests {

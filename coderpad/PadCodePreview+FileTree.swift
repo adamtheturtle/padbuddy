@@ -20,7 +20,7 @@ struct FileTreeNode: Identifiable {
 
 /// A small memo for built file trees, keyed by the file set's identity, so a
 /// parent body pass that re-inits the card (which happens per render) reuses
-/// the previous recursive grouping + localized sort instead of re-running it
+/// the previous recursive grouping + deterministic sort instead of re-running it
 /// for every card instance on the main actor (#1179).
 @MainActor
 enum FileTreeMemo {
@@ -96,12 +96,14 @@ extension EnvironmentCodeCard {
         }
 
         var nodes: [FileTreeNode] = []
-        for folder in folderOrder.sorted(by: { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }) {
+        // Paths are machine identifiers, not prose. Swift's locale-independent
+        // lexical order keeps the same source tree stable on every machine (#1911).
+        for folder in folderOrder.sorted() {
             let childPrefix = prefix.isEmpty ? folder : prefix + "/" + folder
             let children = makeNodes(entries: groups[folder] ?? [], prefix: childPrefix)
             nodes.append(FileTreeNode(id: "folder:" + childPrefix, name: folder, file: nil, children: children))
         }
-        for leaf in leaves.sorted(by: { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }) {
+        for leaf in leaves.sorted(by: { $0.name < $1.name }) {
             nodes.append(FileTreeNode(id: "file:\(leaf.file.id)", name: leaf.name, file: leaf.file, children: []))
         }
         return nodes
