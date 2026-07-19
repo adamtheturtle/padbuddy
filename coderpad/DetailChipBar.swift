@@ -36,7 +36,7 @@ struct DetailChipBar<Item: DetailChipItem>: View {
         // keep a fixed height however narrow the detail column gets.
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
-                ForEach(items) { item in
+                ForEach(uniqueItems) { item in
                     chip(for: item)
                 }
             }
@@ -46,6 +46,22 @@ struct DetailChipBar<Item: DetailChipItem>: View {
         .background(.bar)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(accessibilityLabel)
+    }
+
+    /// The chips to render, de-duplicated by `id`. `ForEach` keys these by
+    /// identity, so a caller that repeats a section or pane value handed SwiftUI
+    /// duplicate identities, which renders duplicate controls and makes selection
+    /// updates unstable (#2014). First occurrence wins so the caller's ordering
+    /// is preserved.
+    var uniqueItems: [Item] {
+        var seen = Set<Item.ID>()
+        var unique: [Item] = []
+        unique.reserveCapacity(items.count)
+        for item in items where seen.insert(item.id).inserted {
+            unique.append(item)
+        }
+
+        return unique
     }
 
     private func chip(for item: Item) -> some View {
