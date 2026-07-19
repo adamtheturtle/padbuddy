@@ -13,6 +13,12 @@ extension AccountEditor {
         case emptyResponse
     }
 
+    enum ScopeProbeResult: Equatable {
+        case authorized
+        case refused
+        case unknown
+    }
+
     /// After the key proves it can reach the org, probe the main read endpoints
     /// with one lightweight request each and report any that return a 403, so the
     /// user learns up front that, e.g., Questions will be empty rather than hitting
@@ -25,39 +31,49 @@ extension AccountEditor {
     """)
 
     func missingScopesWarning(client: CoderPadClient) async -> String? {
-        func authorized(_ probe: () async throws -> Void) async -> Bool {
-            do {
-                try await probe()
-                return true
-            } catch let error as CoderPadError where error.isUnauthorized {
-                return false
-            } catch is ScopeProbeError {
-                return false
-            } catch {
-                return true
-            }
-        }
         // Probe sequentially: validation is already complete and these optional
         // capability checks must not burst three requests at a newly added,
         // self-hosted, or rate-limited server (#1400).
-        let padsOK = await authorized { try await Self.requireFirstPage(client.listPadsIncrementally()) }
-        let questionsOK = await authorized { try await Self.requireFirstPage(client.listQuestionsIncrementally()) }
-        let quotaOK = await authorized { _ = try await client.quota() }
+        let pads = await Self.scopeProbeResult { try await Self.requireFirstPage(client.listPadsIncrementally()) }
+        let questions = await Self.scopeProbeResult {
+            try await Self.requireFirstPage(client.listQuestionsIncrementally())
+        }
+        let quota = await Self.scopeProbeResult { _ = try await client.quota() }
 
-        var missing: [String] = []
-        if !padsOK { missing.append(String(localized: "Pads")) }
-        if !questionsOK { missing.append(String(localized: "Questions")) }
-        if !quotaOK { missing.append(String(localized: "Quota")) }
-        guard !missing.isEmpty else { return nil }
+        let probes = [(String(localized: "Pads"), pads),
+                      (String(localized: "Questions"), questions),
+                      (String(localized: "Quota"), quota)]
+        let refused = probes.filter { $0.1 == .refused }.map(\.0)
+        let unknown = probes.filter { $0.1 == .unknown }.map(\.0)
+        guard !refused.isEmpty || !unknown.isEmpty else { return nil }
 
         // Every probe refused. A key scoped away from all three reads is
         // indistinguishable from one that is simply bad, and calling it "works, but
         // limited" presented a dead key as a successfully validated account with a few
         // empty sections (#2195). Say what the user can act on instead.
-        if missing.count == 3 { return Self.allScopesRefusedWarning }
+        if refused.count == 3 { return Self.allScopesRefusedWarning }
 
-        let list = missing.joined(separator: ", ")
-        return String(localized: "This key works, but isn't authorized for: \(list). Those sections may be empty.")
+        var warnings: [String] = []
+        if !refused.isEmpty {
+            let list = refused.joined(separator: ", ")
+            warnings.append(String(localized: "This key works, but isn't authorized for: \(list)."))
+        }
+        if !unknown.isEmpty {
+            let list = unknown.joined(separator: ", ")
+            warnings.append(String(localized: "Couldn't verify access to: \(list). Those sections may be unavailable."))
+        }
+        return warnings.joined(separator: " ")
+    }
+
+    static func scopeProbeResult(_ probe: () async throws -> Void) async -> ScopeProbeResult {
+        do {
+            try await probe()
+            return .authorized
+        } catch let error as CoderPadError where error.isUnauthorized {
+            return .refused
+        } catch {
+            return .unknown
+        }
     }
 
     /// One yielded page proves the endpoint actually completed a response. A stream
