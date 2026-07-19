@@ -46,7 +46,7 @@ struct ScreenCampaignsView: View {
                 ScreenCampaignRow(campaign: campaign)
                     .tag(campaign.id)
                     .contextMenu { campaignActions(campaign) }
-                    .draggable(campaign.name)
+                    .draggable(ScreenCampaignDragPayload(campaign: campaign))
             }
         }
         .overlay { statusOverlay }

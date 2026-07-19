@@ -45,4 +45,14 @@ struct ScreenCampaignFilteringTests {
         #expect(selected.map(\.id) == [2, 4, 1])
         #expect(withArchived.map(\.id) == [2, 3])
     }
+
+    @Test
+    func `campaign drag payload is structured sanitized and bounded`() {
+        let remote = "\u{0000}\u{200D}  " + String(repeating: "a", count: 250) + "\n"
+        let payload = ScreenCampaignDragPayload(campaign: ScreenCampaign(id: 42, name: remote))
+
+        #expect(payload.id == 42)
+        #expect(payload.name.count == ScreenCampaignDragPayload.maximumNameLength)
+        #expect(payload.name.allSatisfy { !$0.isNewline && !$0.isWhitespace })
+    }
 }
