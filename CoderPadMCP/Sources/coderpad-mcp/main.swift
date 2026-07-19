@@ -236,9 +236,13 @@ private func pagingQuery(_ arguments: [String: Value]?) -> [URLQueryItem] {
 // MARK: - Tools advertised here
 
 /// The tools to advertise, given the configured accounts' Screen / writes settings.
-private func advertisedTools() -> [Tool] {
-    availableTools(screenEnabled: accountSet.anyScreenEnabled, writesEnabled: accountSet.allowWrites)
-}
+///
+/// Both flags are fixed for the process lifetime, so the catalog is built once and reused
+/// rather than regenerating every descriptor on each `tools/list` request (#2122).
+private let advertisedTools: [Tool] = availableTools(
+    screenEnabled: accountSet.anyScreenEnabled,
+    writesEnabled: accountSet.allowWrites
+)
 
 // MARK: - Server
 
@@ -249,7 +253,7 @@ private func advertisedTools() -> [Tool] {
 /// behaviour lives here, identical to the in-app server's provider.
 struct CoderPadProvider: MCPToolProvider {
     func tools() async -> [Tool] {
-        advertisedTools()
+        advertisedTools
     }
 
     func callTool(_ name: String, arguments: [String: Value]?) async -> CallTool.Result {
