@@ -108,7 +108,9 @@ struct ScreenTestsView: View {
                         .padding(8)
                 }
             }
-            .task(id: campaign.id) { await load() }
+            .task(id: ScreenTestsLoadIdentity(clientIdentity: client.taskIdentity, campaignID: campaign.id)) {
+                await load()
+            }
             // The date range is a server-side filter, so changing it re-fetches (onChange,
             // not a second .task, so it doesn't double-fetch alongside the campaign task).
             .onChange(of: dateRange) { _, _ in
@@ -295,13 +297,19 @@ struct ScreenTestsView: View {
     func load() async {
         loadGeneration += 1
         let generation = loadGeneration
+        let requestedClientIdentity = client.taskIdentity
         isLoading = true
         do {
             let bounds = dateRange.bounds(relativeTo: dateRangeReference)
             let result = try await client.listAllTestsResult(
                 campaignID: campaign.id, from: bounds.from, until: bounds.until
             )
-            guard generation == loadGeneration else { return }
+            guard !Task.isCancelled,
+                  ScreenTestsLoadIdentity.isCurrent(
+                      generation, currentGeneration: loadGeneration,
+                      requestedClientIdentity: requestedClientIdentity,
+                      currentClientIdentity: client.taskIdentity
+                  ) else { return }
 
             let retained = ScreenTestRetention.newest(result.tests)
             tests = retained.sessions
@@ -311,11 +319,20 @@ struct ScreenTestsView: View {
         } catch is CancellationError {
             // View/account replacement is expected task lifecycle, not a stale-data error.
         } catch {
-            guard generation == loadGeneration else { return }
+            guard !Task.isCancelled,
+                  ScreenTestsLoadIdentity.isCurrent(
+                      generation, currentGeneration: loadGeneration,
+                      requestedClientIdentity: requestedClientIdentity,
+                      currentClientIdentity: client.taskIdentity
+                  ) else { return }
 
             loadError = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
         }
-        if generation == loadGeneration { isLoading = false }
+        if ScreenTestsLoadIdentity.isCurrent(
+            generation, currentGeneration: loadGeneration,
+            requestedClientIdentity: requestedClientIdentity,
+            currentClientIdentity: client.taskIdentity
+        ) { isLoading = false }
     }
 }
 
