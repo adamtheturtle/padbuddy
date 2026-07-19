@@ -43,6 +43,29 @@ struct FocusedActionsTests {
         #expect(baseline != ScreenInviteAction(id: 7, accountID: firstAccount, contentFingerprint: 11) {})
     }
 
+    @Test
+    func `screen test action identity includes its account`() {
+        let firstAccount = UUID()
+        let baseline = screenTestAction(accountID: firstAccount)
+
+        #expect(baseline == screenTestAction(accountID: firstAccount))
+        #expect(baseline != screenTestAction(accountID: UUID()))
+    }
+
+    private func screenTestAction(accountID: UUID?) -> ScreenTestAction {
+        ScreenTestAction(
+            id: 9,
+            accountID: accountID,
+            status: "waiting",
+            contentFingerprint: 1,
+            copySummary: {},
+            openWindow: {},
+            resend: {},
+            cancel: {},
+            delete: {}
+        )
+    }
+
     #if os(macOS)
         @Test
         func `copy-link provider publishes URL and text representations`() throws {

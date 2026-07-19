@@ -74,6 +74,9 @@ struct ScreenCampaignAction: Equatable {
 
 struct ScreenTestAction: Equatable {
     let id: Int
+    /// Screen test IDs are organization-local, so the owning account is part of
+    /// command identity and prevents cross-account closure retention (#2731).
+    let accountID: UUID?
     let status: String
     /// A hash of the content the closures captured, so a refreshed record with
     /// the same id/status re-publishes instead of keeping commands bound to the
@@ -90,7 +93,8 @@ struct ScreenTestAction: Equatable {
     }
 
     static func == (lhs: Self, rhs: Self) -> Bool {
-        lhs.id == rhs.id && lhs.status == rhs.status && lhs.contentFingerprint == rhs.contentFingerprint
+        lhs.id == rhs.id && lhs.accountID == rhs.accountID && lhs.status == rhs.status
+            && lhs.contentFingerprint == rhs.contentFingerprint
     }
 }
 
