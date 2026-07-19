@@ -141,7 +141,7 @@ enum CommandPaletteBuilder {
         var results: [PaletteResult] = []
         for account in accounts {
             for pad in PadsCacheStore.shared.get(account.id) {
-                let title = pad.title.isEmpty ? pad.id : pad.title
+                let title = padTitle(title: pad.title, id: pad.id)
                 results.append(PaletteResult(
                     id: "pad.\(account.id.uuidString).\(pad.id)",
                     kind: .pad,
@@ -163,6 +163,11 @@ enum CommandPaletteBuilder {
             }
         }
         return results
+    }
+
+    static func padTitle(title: String, id: String) -> String {
+        let normalized = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        return normalized.isEmpty ? id : normalized
     }
 
     /// Switches to `account` (only if it isn't already current - per-org question ids
