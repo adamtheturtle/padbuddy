@@ -60,7 +60,9 @@ extension QuestionsCacheStore {
             // deep link reached it directly. Add it rather than dropping the edit and
             // leaving every cache-backed surface stale until a full reload (#2618).
             questions.append(question)
-            set(account, questions: questions, via: client ?? stored.makeClient())
+            guard let client = provenanceClient(client, stored: stored) else { return }
+
+            set(account, questions: questions, via: client)
             return
         }
         guard matches.contains(where: { questions[$0] != question }) else { return }
@@ -68,7 +70,23 @@ extension QuestionsCacheStore {
         for index in matches {
             questions[index] = question
         }
-        set(account, questions: questions, via: client ?? stored.makeClient())
+        guard let client = provenanceClient(client, stored: stored) else { return }
+
+        set(account, questions: questions, via: client)
+    }
+
+    /// The client a cache write is credential-checked against in `set`.
+    ///
+    /// A caller that supplies the client its response came from gets a real check: a
+    /// re-key while the request was in flight makes it differ from the account's
+    /// current client and the write is refused (#754, #2623). A caller with no client —
+    /// one applying a router broadcast, which carries the account but not the
+    /// credentials it was fetched with — has no provenance to check, so the account's
+    /// own client stands in and the guard passes. Those writes are still scoped by
+    /// account id; they simply cannot detect an in-flight re-key. Prefer passing the
+    /// client wherever it is known.
+    private func provenanceClient(_ client: CoderPadClient?, stored: Account) -> CoderPadClient? {
+        client ?? stored.makeClient()
     }
 
     /// Inserts a newly created question at the head of the account's cached list
@@ -84,6 +102,8 @@ extension QuestionsCacheStore {
         var questions = get(account)
         questions.removeAll { $0.id == question.id }
         questions.insert(question, at: 0)
-        set(account, questions: questions, via: client ?? stored.makeClient())
+        guard let client = provenanceClient(client, stored: stored) else { return }
+
+        set(account, questions: questions, via: client)
     }
 }

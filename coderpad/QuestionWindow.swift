@@ -140,7 +140,12 @@ struct QuestionWindow: View {
         guard let value, let account else { return }
 
         do {
-            let question = try await account.makeClient().getQuestion(id: value.id)
+            // The client is held rather than made inline, so the cache write below can
+            // be checked against the credentials this response actually came from: a
+            // re-key while the request was in flight must not land a pre-rekey response
+            // in the new account's cache (#2623).
+            let client = account.makeClient()
+            let question = try await client.getQuestion(id: value.id)
             fetched = question
             fetchedFor = value
             loadFailed = false
@@ -149,7 +154,7 @@ struct QuestionWindow: View {
             // Warm the cache with the freshest copy even when no list is mounted to
             // receive the broadcast (a lone standalone window), so cache-backed
             // surfaces don't keep the stale row (#1005). No-op when unchanged.
-            QuestionsCacheStore.shared.updateQuestion(question, account: account.id)
+            QuestionsCacheStore.shared.updateQuestion(question, account: account.id, via: client)
         } catch is CancellationError {
             return
         } catch {
