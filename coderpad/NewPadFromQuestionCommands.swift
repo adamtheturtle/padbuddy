@@ -120,14 +120,35 @@ struct NewPadFromQuestionCommands: Commands {
     /// Every source account's cached questions, favourites (across all accounts)
     /// first - the same ordering the menu-bar extra's `questionsForMenu()` uses.
     private func orderedRows() -> [Row] {
-        let rows = sourceAccounts.flatMap { account in
-            questionsCache.cached(account.id).map { Row(question: $0, account: account) }
+        // Each account's favourites are read once into a set, rather than per row:
+        // `favorites(account:)` builds a fresh array every call, so the old two-pass
+        // filter did 2N array allocations and 2N linear scans per menu render (#2232).
+        let favoritesByAccount = Dictionary(uniqueKeysWithValues: sourceAccounts.map { account in
+            (account.id, Set(FavoriteQuestionsStore.shared.favorites(account: account.id)))
+        })
+        // Partitioned in one pass into favourites-first order, instead of filtering the
+        // whole list twice and concatenating the results (#2231).
+        var favorites: [Row] = []
+        var others: [Row] = []
+        for account in sourceAccounts {
+            let accountFavorites = favoritesByAccount[account.id] ?? []
+            for question in questionsCache.cached(account.id) {
+                let row = Row(question: question, account: account)
+                if accountFavorites.contains(question.id) {
+                    favorites.append(row)
+                } else {
+                    others.append(row)
+                }
+            }
+            // Favourites lead the list, so once there are `limit` of them nothing
+            // further can reach the menu and the rest of the scan is wasted.
+            if favorites.count >= limit { break }
         }
-        return rows.filter(isFavorite) + rows.filter { !isFavorite($0) }
+        return favorites + others
     }
 
     private func isFavorite(_ row: Row) -> Bool {
-        FavoriteQuestionsStore.shared.favorites(account: row.account.id).contains(row.question.id)
+        FavoriteQuestionsStore.shared.isFavorite(row.question.id, account: row.account.id)
     }
 
     /// The row title, naming the owning account in merged mode so same-named

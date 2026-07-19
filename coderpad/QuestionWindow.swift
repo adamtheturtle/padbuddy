@@ -48,10 +48,19 @@ struct QuestionWindow: View {
     }
 
     /// The question from the warm cache, if the owning account has it loaded.
-    private var cachedQuestion: Question? {
-        guard let value, let account else { return nil }
+    ///
+    /// Resolved when the window's value, account, or cache changes rather than in
+    /// `body`: this scans the account's whole cached question list, and `body` reads it
+    /// on every render for as long as `fetched` is nil (#2234, #2235).
+    @State private var cachedQuestion: Question?
 
-        return cache.cached(account.id).first { $0.id == value.id }
+    private func resolveCachedQuestion() {
+        guard let value, let account else {
+            cachedQuestion = nil
+            return
+        }
+
+        cachedQuestion = cache.cached(account.id).first { $0.id == value.id }
     }
 
     var body: some View {
@@ -92,7 +101,16 @@ struct QuestionWindow: View {
                 ProgressView().controlSize(.large)
             }
         }
-        .task(id: value) { await load() }
+        .task(id: value) {
+            resolveCachedQuestion()
+            await load()
+        }
+        // The cache is warmed in the background, so the seed has to be re-resolved
+        // when it lands — and when the owning account changes underneath the window.
+        .onChange(of: account.map { cache.writeGeneration[$0.id] ?? 0 }) { _, _ in
+            resolveCachedQuestion()
+        }
+        .onChange(of: account?.id) { _, _ in resolveCachedQuestion() }
         .onReloadRequest { await refresh() }
     }
 
