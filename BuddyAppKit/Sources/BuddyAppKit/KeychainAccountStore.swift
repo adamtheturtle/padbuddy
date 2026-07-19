@@ -136,11 +136,11 @@ public final class KeychainAccountStore<Account: StorableAccount> {
     public init(config: Config) {
         self.config = config
         if config.isTestingMode {
-            accounts = config.seedForTesting()
+            accounts = Self.deduplicated(config.seedForTesting())
             currentAccountID = accounts.first?.accountID
             return
         }
-        let loaded = Self.loadAccounts(config: config) ?? []
+        let loaded = Self.deduplicated(Self.loadAccounts(config: config) ?? [])
         accounts = loaded
         if let stored = UserDefaults.standard.string(forKey: config.currentIDDefaultsKey),
            let uuid = UUID(uuidString: stored),
@@ -150,9 +150,12 @@ public final class KeychainAccountStore<Account: StorableAccount> {
             currentAccountID = loaded.first?.accountID
         }
 
-        if loaded.isEmpty, let migrated = config.migrateIfEmpty(), !migrated.isEmpty {
-            accounts = migrated
-            currentAccountID = migrated.first?.accountID
+        if loaded.isEmpty {
+            let migrated = Self.deduplicated(config.migrateIfEmpty() ?? [])
+            if !migrated.isEmpty {
+                accounts = migrated
+                currentAccountID = migrated.first?.accountID
+            }
         }
         showAllAccounts = UserDefaults.standard.bool(forKey: config.showAllAccountsDefaultsKey)
     }
@@ -190,6 +193,11 @@ public final class KeychainAccountStore<Account: StorableAccount> {
         guard let data = config.keychain.readData(account: config.accountsKey) else { return nil }
 
         return config.decode(data)
+    }
+
+    private static func deduplicated(_ accounts: [Account]) -> [Account] {
+        var seen = Set<UUID>()
+        return accounts.filter { seen.insert($0.accountID).inserted }
     }
 
     private func persistAccounts() {

@@ -60,6 +60,19 @@ struct KeychainAccountStoreTests {
     }
 
     @Test
+    func `initialization keeps the first account for each ID`() {
+        let repeatedID = UUID()
+        let first = MockAccount(accountID: repeatedID, key: "first")
+        let duplicate = MockAccount(accountID: repeatedID, key: "duplicate")
+        let distinct = MockAccount(accountID: UUID(), key: "distinct")
+
+        let store = makeStore(seed: [first, duplicate, distinct])
+
+        #expect(store.accounts == [first, distinct])
+        #expect(store.currentAccount == first)
+    }
+
+    @Test
     func `add appends and selects when nothing is current`() {
         let store = makeStore(seed: [])
         #expect(store.currentAccountID == nil)
