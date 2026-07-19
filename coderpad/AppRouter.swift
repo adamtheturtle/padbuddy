@@ -4,6 +4,7 @@
 //
 
 import Foundation
+import os
 import SwiftUI
 
 /// A pad mutation broadcast: the updated pad and the account that owns it. Pad
@@ -157,6 +158,9 @@ enum AppRouter {
     /// Carries a `NotificationCenter` observer token across the `@Sendable`
     /// termination boundary. The token is opaque here — it is only ever passed back to
     /// `removeObserver` on the main actor — so the unchecked conformance is safe.
+    /// Diagnostics for broadcasts that never reach a consumer.
+    private nonisolated static let routerLogger = Logger(subsystem: "com.coderpad.app", category: "app-router")
+
     private final class ObserverToken: @unchecked Sendable {
         let value: any NSObjectProtocol
 
@@ -180,7 +184,21 @@ enum AppRouter {
             // that first suspension was dropped — exactly the window a view hits when
             // it mounts and immediately triggers a mutation (#2682).
             let token = ObserverToken(center.addObserver(forName: name, object: nil, queue: nil) { note in
-                if let value = transform(note) { continuation.yield(value) }
+                guard let value = transform(note) else {
+                    // A post whose payload isn't the shape this stream expects is a
+                    // producer bug: the consumer simply never updates, which shows up
+                    // as unexplained stale UI with nothing to trace it to (#2705).
+                    let payload = String(describing: type(of: note.object))
+                    routerLogger.error(
+                        """
+                        Discarded a malformed \(name.rawValue, privacy: .public) broadcast; \
+                        payload was \(payload, privacy: .public)
+                        """
+                    )
+                    return
+                }
+
+                continuation.yield(value)
             })
             // `onTermination` is `@Sendable` and runs off the main actor, so the
             // removal hops back; the token only ever crosses the boundary as an opaque
