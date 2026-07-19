@@ -13,8 +13,10 @@ import SwiftUI
 extension MergedQuestionsView {
     // MARK: - Filter persistence
 
-    /// The single key for the merged list's live filters. Not per-account — the
-    /// merged list spans every account — unlike `QuestionsView`'s per-account key.
+    /// The shared, cloud-synced last-used filter. Not per-account — the merged
+    /// list spans every account — unlike `QuestionsView`'s per-account key. Each
+    /// window keeps its own live filter in scene storage (`persistedLiveFilter`);
+    /// this is what a window with none yet is seeded from.
     static var liveFilterKey: String {
         "questions.merged.liveFilter"
     }
@@ -71,6 +73,9 @@ extension MergedQuestionsView {
                                             favoritesOnly: favoritesOnly)
         do {
             let data = try JSONEncoder().encode(snapshot)
+            // This window's own copy, and the shared seed for the next new window
+            // (which is also what PreferenceCloudSync carries between devices).
+            persistedLiveFilter = data.base64EncodedString()
             UserDefaults.standard.set(data, forKey: Self.liveFilterKey)
         } catch {
             // Log rather than silently dropping the write, so a persistent encode
@@ -88,7 +93,11 @@ extension MergedQuestionsView {
         guard !didRestoreFilters else { return }
 
         didRestoreFilters = true
-        guard let data = UserDefaults.standard.data(forKey: Self.liveFilterKey) else { return }
+        // This window's own filter first; a window that has never had one falls
+        // back to the shared last-used snapshot so it opens on a familiar view.
+        let data = Data(base64Encoded: persistedLiveFilter)
+            ?? UserDefaults.standard.data(forKey: Self.liveFilterKey)
+        guard let data else { return }
 
         if let snapshot = try? JSONDecoder().decode(MergedFilterSnapshot.self, from: data) {
             apply(snapshot.search)
@@ -111,20 +120,13 @@ extension MergedQuestionsView {
             // A corrupted or schema-incompatible payload would fail again on every
             // launch while leaving stale defaults in place; remove it so the next
             // filter change persists a fresh, decodable snapshot (#1237).
+            persistedLiveFilter = ""
             UserDefaults.standard.removeObject(forKey: Self.liveFilterKey)
             persistenceLogger.error("Discarded an undecodable merged question filter snapshot")
         }
     }
 
     // MARK: - Selection persistence
-
-    /// The single key for the merged list's open question, stored as the account-
-    /// namespaced row id (`rowID(account:question:)`). Per-org question ids collide
-    /// across accounts, so the bare id couldn't say which account's question to
-    /// reopen — the persisted value must carry its account.
-    static var selectedRowKey: String {
-        "questions.merged.selectedRow"
-    }
 
     /// Persist the namespaced row id of the question shown in the detail pane so the
     /// merged list reopens to it next launch. Skipped until the restore has run so
@@ -133,14 +135,12 @@ extension MergedQuestionsView {
     func persistSelectedRow() {
         guard didRestoreSelection else { return }
 
-        if let selectedRowID {
-            UserDefaults.standard.set(selectedRowID, forKey: Self.selectedRowKey)
-        } else {
-            UserDefaults.standard.removeObject(forKey: Self.selectedRowKey)
-        }
-        // Stamp the owning account's endpoint so a restore can reject the row when
-        // the account was re-pointed at a different server (#1236).
-        MergedRowPersistence.stampEndpoint(forRowID: selectedRowID, key: Self.selectedRowKey)
+        // The row id carries its account: per-org question ids collide across
+        // accounts, so the bare id couldn't say which account's question to reopen.
+        // The endpoint stamp lets a restore reject the row when the account was
+        // re-pointed at a different server (#1236).
+        persistedSelectedRow = selectedRowID ?? ""
+        persistedSelectedRowEndpoint = MergedRowPersistence.endpoint(forRowID: selectedRowID)
     }
 
     /// The saved row to reselect on launch: the stored namespaced row id, but only
@@ -159,24 +159,15 @@ extension MergedQuestionsView {
         return savedRowID
     }
 
-    /// The single key for the merged list's free-scroll position (top visible row),
-    /// stored as the namespaced row id for the same reason as `selectedRowKey`.
-    static var topRowKey: String {
-        "questions.merged.topRow"
-    }
-
     /// Persist the namespaced id of the row at the top of the viewport so an
     /// *unselected* merged list reopens scrolled to roughly where it was left (#273).
     /// Guarded by the selection restore so the empty startup state can't clobber it.
     func persistTopRow(_ rowID: String?) {
         guard didRestoreSelection else { return }
 
-        if let rowID {
-            UserDefaults.standard.set(rowID, forKey: Self.topRowKey)
-        } else {
-            UserDefaults.standard.removeObject(forKey: Self.topRowKey)
-        }
-        MergedRowPersistence.stampEndpoint(forRowID: rowID, key: Self.topRowKey)
+        // Namespaced and stamped for the same reasons as the selection above.
+        persistedTopRow = rowID ?? ""
+        persistedTopRowEndpoint = MergedRowPersistence.endpoint(forRowID: rowID)
     }
 
     func scheduleTopRowPersistence(_ rowID: String?) {
@@ -201,7 +192,8 @@ extension MergedQuestionsView {
 
         didRestoreSelection = true
         if let rowID = Self.rowToRestore(
-            savedRowID: MergedRowPersistence.validatedSavedRowID(forKey: Self.selectedRowKey),
+            savedRowID: MergedRowPersistence.validatedRowID(persistedSelectedRow,
+                                                            endpoint: persistedSelectedRowEndpoint),
             hasSelection: selection != nil,
             hasPendingNavigation: nav.pendingMergedFavoriteQuestion != nil,
             availableRowIDs: availableRowIDs
@@ -210,7 +202,8 @@ extension MergedQuestionsView {
             // Bring the restored row into view; the List won't scroll to it on its own.
             pendingScrollToRowID = rowID
         } else if selection == nil, nav.pendingMergedFavoriteQuestion == nil,
-                  let topID = MergedRowPersistence.validatedSavedRowID(forKey: Self.topRowKey),
+                  let topID = MergedRowPersistence.validatedRowID(persistedTopRow,
+                                                                  endpoint: persistedTopRowEndpoint),
                   availableRowIDs.contains(topID) {
             // Nothing to reselect — return the unselected list to where it was scrolled
             // last session (#273), without selecting anything.

@@ -59,6 +59,22 @@ struct MergedQuestionsView: View {
     /// The List's selection. A set so several rows can be selected to copy their
     /// links at once; `selectedRowID`/`selection` track the primary within it.
     @State var selectedRowIDs: Set<String> = []
+    // Per-window persisted view state. These were single global `UserDefaults`
+    // keys, so two windows on All Accounts fought over one slot: selecting a
+    // question, scrolling, or changing filters in one window changed what the
+    // other reopened to (#2559, #2561, #2563). `@SceneStorage` is the system's
+    // per-scene store, so each window keeps and restores its own — and SwiftUI
+    // discards a closed window's entry rather than leaving keys behind.
+    /// This window's open question, as an account-namespaced row id, with the
+    /// endpoint stamp that lets a restore reject it if the account was re-pointed.
+    @SceneStorage("questions.merged.selectedRow") var persistedSelectedRow = ""
+    @SceneStorage("questions.merged.selectedRow.endpoint") var persistedSelectedRowEndpoint = ""
+    /// This window's free-scroll position (top visible row), stamped like the above.
+    @SceneStorage("questions.merged.topRow") var persistedTopRow = ""
+    @SceneStorage("questions.merged.topRow.endpoint") var persistedTopRowEndpoint = ""
+    /// This window's live filters, as an encoded `MergedFilterSnapshot`. A window
+    /// that has none yet is seeded from the shared, cloud-synced last-used filter.
+    @SceneStorage("questions.merged.liveFilter") var persistedLiveFilter = ""
     /// Whether the saved selection has been restored this session. Gates persistence
     /// so the empty startup state never clobbers the stored row id, and keeps the
     /// restore to once, mirroring `QuestionsView`.

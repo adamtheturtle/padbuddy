@@ -18,31 +18,28 @@ import SwiftUI
 /// endpoint; a restore drops the value when the endpoint no longer matches.
 @MainActor
 enum MergedRowPersistence {
-    static func endpointKey(_ key: String) -> String {
-        "\(key).endpoint"
-    }
-
-    /// Stamp (or clear) the endpoint of the account owning `rowID` alongside the
-    /// row id persisted under `key`.
-    static func stampEndpoint(forRowID rowID: String?, key: String) {
+    /// The endpoint stamp to store alongside `rowID`, or `""` when there is
+    /// nothing to stamp (no row, or an account that no longer resolves).
+    ///
+    /// Callers hold this in scene storage next to the row id itself rather than
+    /// in a sibling `UserDefaults` key, so the pair is restored to the window it
+    /// belongs to (#2560-#2563).
+    static func endpoint(forRowID rowID: String?) -> String {
         guard let rowID, let uuid = accountUUID(fromRowID: rowID),
-              let account = AccountsStore.shared.accounts.first(where: { $0.id == uuid }) else {
-            UserDefaults.standard.removeObject(forKey: endpointKey(key))
-            return
-        }
+              let account = AccountsStore.shared.accounts.first(where: { $0.id == uuid })
+        else { return "" }
 
-        UserDefaults.standard.set(account.resolvedBaseURL.absoluteString, forKey: endpointKey(key))
+        return account.resolvedBaseURL.absoluteString
     }
 
-    /// The saved row id under `key`, dropped when its account now points at a
-    /// different endpoint than when it was saved. A value without an endpoint
-    /// stamp (legacy, or a bare pre-#758 slug) passes through untouched.
-    static func validatedSavedRowID(forKey key: String) -> String? {
-        guard let saved = UserDefaults.standard.string(forKey: key) else { return nil }
-        guard let uuid = accountUUID(fromRowID: saved),
-              let stored = UserDefaults.standard.string(forKey: endpointKey(key)) else { return saved }
+    /// `saved` unless its account now points at a different endpoint than when it
+    /// was stamped. A value with no stamp (legacy, or a bare pre-#758 slug) passes
+    /// through untouched.
+    static func validatedRowID(_ saved: String, endpoint stamped: String) -> String? {
+        guard !saved.isEmpty else { return nil }
+        guard let uuid = accountUUID(fromRowID: saved), !stamped.isEmpty else { return saved }
         guard let account = AccountsStore.shared.accounts.first(where: { $0.id == uuid }),
-              account.resolvedBaseURL.absoluteString == stored else { return nil }
+              account.resolvedBaseURL.absoluteString == stamped else { return nil }
 
         return saved
     }
@@ -93,8 +90,10 @@ final class TopRowPersistenceDebouncer {
 extension MergedPadsView {
     // MARK: - Filter persistence
 
-    /// The single key for the merged list's live filters. Not per-account — the
-    /// merged list spans every account — unlike `PadsView`'s per-account key.
+    /// The shared, cloud-synced last-used filter. Not per-account — the merged
+    /// list spans every account — unlike `PadsView`'s per-account key. Each window
+    /// keeps its own live filter in scene storage (`persistedLiveFilter`); this is
+    /// what a window with none yet is seeded from, and what syncs across devices.
     static var liveFilterKey: String {
         "pads.merged.liveFilter"
     }
@@ -154,6 +153,9 @@ extension MergedPadsView {
                                             mineOnly: mineOnly)
         do {
             let data = try JSONEncoder().encode(snapshot)
+            // This window's own copy, and the shared seed for the next new window
+            // (which is also what PreferenceCloudSync carries between devices).
+            persistedLiveFilter = data.base64EncodedString()
             UserDefaults.standard.set(data, forKey: Self.liveFilterKey)
         } catch {
             // Log rather than silently dropping the write, so a persistent encode
@@ -171,7 +173,11 @@ extension MergedPadsView {
         guard !didRestoreFilters else { return }
 
         didRestoreFilters = true
-        guard let data = UserDefaults.standard.data(forKey: Self.liveFilterKey) else { return }
+        // This window's own filter first; a window that has never had one falls
+        // back to the shared last-used snapshot so it opens on a familiar view.
+        let data = Data(base64Encoded: persistedLiveFilter)
+            ?? UserDefaults.standard.data(forKey: Self.liveFilterKey)
+        guard let data else { return }
 
         if let snapshot = try? JSONDecoder().decode(MergedFilterSnapshot.self, from: data) {
             apply(snapshot.search)
@@ -192,21 +198,13 @@ extension MergedPadsView {
             // A corrupted or schema-incompatible payload would fail again on every
             // launch while leaving stale defaults in place; remove it so the next
             // filter change persists a fresh, decodable snapshot (#1237).
+            persistedLiveFilter = ""
             UserDefaults.standard.removeObject(forKey: Self.liveFilterKey)
             persistenceLogger.error("Discarded an undecodable merged pad filter snapshot")
         }
     }
 
     // MARK: - Selection persistence
-
-    /// The single key for the merged list's open pad, stored as the account-
-    /// namespaced row id (`rowID(account:pad:)`). Pad slugs are only unique per
-    /// server, so two custom CoderPad servers can issue the same slug and the bare
-    /// slug couldn't say which account's pad to reopen - the persisted value must
-    /// carry its account (#758), just like merged questions.
-    static var selectedPadKey: String {
-        "pads.merged.selectedPad"
-    }
 
     /// Persist the namespaced row id of the pad shown in the detail pane so the
     /// merged list reopens to it next launch. Skipped until the restore has run so
@@ -215,20 +213,12 @@ extension MergedPadsView {
     func persistSelectedPad() {
         guard didRestoreSelection else { return }
 
-        if let selectedID {
-            UserDefaults.standard.set(selectedID, forKey: Self.selectedPadKey)
-        } else {
-            UserDefaults.standard.removeObject(forKey: Self.selectedPadKey)
-        }
-        // Stamp the owning account's endpoint so a restore can reject the row when
-        // the account was re-pointed at a different server (#1236).
-        MergedRowPersistence.stampEndpoint(forRowID: selectedID, key: Self.selectedPadKey)
-    }
-
-    /// The single key for the merged list's free-scroll position (top visible row),
-    /// stored as the namespaced row id for the same reason as `selectedPadKey` (#758).
-    static var topRowKey: String {
-        "pads.merged.topRow"
+        // The row id carries its account (#758): pad slugs are only unique per
+        // server, so two custom CoderPad servers can issue the same slug and the
+        // bare slug couldn't say which account's pad to reopen. The endpoint stamp
+        // lets a restore reject the row when the account was re-pointed (#1236).
+        persistedSelectedPad = selectedID ?? ""
+        persistedSelectedPadEndpoint = MergedRowPersistence.endpoint(forRowID: selectedID)
     }
 
     /// Persist the namespaced id of the row at the top of the viewport so an
@@ -237,12 +227,9 @@ extension MergedPadsView {
     func persistTopRow(_ id: String?) {
         guard didRestoreSelection else { return }
 
-        if let id {
-            UserDefaults.standard.set(id, forKey: Self.topRowKey)
-        } else {
-            UserDefaults.standard.removeObject(forKey: Self.topRowKey)
-        }
-        MergedRowPersistence.stampEndpoint(forRowID: id, key: Self.topRowKey)
+        // Namespaced and stamped for the same reasons as the selection above.
+        persistedTopRow = id ?? ""
+        persistedTopRowEndpoint = MergedRowPersistence.endpoint(forRowID: id)
     }
 
     func scheduleTopRowPersistence(_ id: String?) {
@@ -286,7 +273,8 @@ extension MergedPadsView {
         let hasPendingOpen = nav.pendingMergedFavoritePad != nil || pendingSelectPadSlug != nil
         if let id = PadsView.padToRestore(
             savedID: Self.normalizedSavedRowID(
-                MergedRowPersistence.validatedSavedRowID(forKey: Self.selectedPadKey),
+                MergedRowPersistence.validatedRowID(persistedSelectedPad,
+                                                    endpoint: persistedSelectedPadEndpoint),
                 rowIDBySlug: rowIDBySlug
             ),
             hasSelection: selection != nil,
@@ -301,7 +289,8 @@ extension MergedPadsView {
             pendingScrollToID = id
         } else if selection == nil, !hasPendingOpen,
                   let topID = Self.normalizedSavedRowID(
-                      MergedRowPersistence.validatedSavedRowID(forKey: Self.topRowKey),
+                      MergedRowPersistence.validatedRowID(persistedTopRow,
+                                                          endpoint: persistedTopRowEndpoint),
                       rowIDBySlug: rowIDBySlug
                   ),
                   availableRowIDs.contains(topID) {

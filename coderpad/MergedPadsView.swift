@@ -69,6 +69,24 @@ struct MergedPadsView: View {
     /// several rows can be selected for a bulk action (Copy links, Delete);
     /// `selectedID`/`selection` track the primary within it.
     @State var selectedIDs: Set<String> = []
+    // Per-window persisted view state.
+    //
+    // These were single global `UserDefaults` keys, so two windows on All Accounts
+    // fought over one slot: selecting a pad, scrolling, or changing filters in one
+    // window changed what the other reopened to (#2558, #2560, #2562). `@SceneStorage`
+    // is the system's per-scene store, so each window keeps and restores its own —
+    // and SwiftUI discards a closed window's entry rather than leaving keys behind.
+    /// This window's open pad, as an account-namespaced row id, with the endpoint
+    /// stamp that lets a restore reject it if the account was re-pointed (#1236).
+    @SceneStorage("pads.merged.selectedPad") var persistedSelectedPad = ""
+    @SceneStorage("pads.merged.selectedPad.endpoint") var persistedSelectedPadEndpoint = ""
+    /// This window's free-scroll position (top visible row), stamped like the above.
+    @SceneStorage("pads.merged.topRow") var persistedTopRow = ""
+    @SceneStorage("pads.merged.topRow.endpoint") var persistedTopRowEndpoint = ""
+    /// This window's live filters, as an encoded `MergedFilterSnapshot`. A window
+    /// that has none yet is seeded from the shared, cloud-synced last-used filter,
+    /// so opening a new window still lands on the view you were last using.
+    @SceneStorage("pads.merged.liveFilter") var persistedLiveFilter = ""
     /// Whether the saved selection has been restored this session. Gates persistence
     /// so the empty startup state never clobbers the stored id, and keeps the restore
     /// to once, mirroring `PadsView`.
