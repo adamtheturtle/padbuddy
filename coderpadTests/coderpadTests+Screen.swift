@@ -219,6 +219,7 @@ struct ScreenClientTests {
         #expect(problemSolving.totalPoints == 100)
         #expect(report.technologies["Malformed technology"] == nil)
         #expect(java.skills["Malformed skill"] == nil)
+        #expect(report.omittedBreakdownEntries == 2)
     }
 
     @Test

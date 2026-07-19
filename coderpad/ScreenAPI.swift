@@ -247,18 +247,23 @@ private nonisolated struct DynamicScreenCodingKey: CodingKey {
 
 private nonisolated struct LenientScreenDictionary<Value: Decodable>: Decodable {
     let values: [String: Value]
+    let discardedCount: Int
 
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: DynamicScreenCodingKey.self)
         var decodedValues: [String: Value] = [:]
+        var discardedCount = 0
 
         for key in container.allKeys {
             if let value = try? container.decode(Value.self, forKey: key) {
                 decodedValues[key.stringValue] = value
+            } else {
+                discardedCount += 1
             }
         }
 
         values = decodedValues
+        self.discardedCount = discardedCount
     }
 }
 
@@ -266,8 +271,11 @@ private extension KeyedDecodingContainer {
     nonisolated func decodeLenientScreenDictionary<Value: Decodable>(
         of _: Value.Type,
         forKey key: Key
-    ) -> [String: Value] {
-        (try? decodeIfPresent(LenientScreenDictionary<Value>.self, forKey: key))?.values ?? [:]
+    ) -> (values: [String: Value], discardedCount: Int) {
+        guard contains(key) else { return ([:], 0) }
+        guard let decoded = try? decode(LenientScreenDictionary<Value>.self, forKey: key) else { return ([:], 1) }
+
+        return (decoded.values, decoded.discardedCount)
     }
 }
 
@@ -282,6 +290,7 @@ nonisolated struct ScreenReport: Decodable, Hashable {
     let score: Double?
     /// Per-technology breakdown, keyed by technology name (e.g. "Java").
     let technologies: [String: ScreenTechnologyResult]
+    let omittedBreakdownEntries: Int
     let totalDuration: Int?
     let totalPoints: Int?
     let comparativeScore: Double?
@@ -293,12 +302,14 @@ nonisolated struct ScreenReport: Decodable, Hashable {
     init(score: Double? = nil, points: Int? = nil, duration: Int? = nil,
          warnings: [String] = [], technologies: [String: ScreenTechnologyResult] = [:],
          totalDuration: Int? = nil, totalPoints: Int? = nil,
-         comparativeScore: Double? = nil, communityStats: [Int]? = nil) {
+         comparativeScore: Double? = nil, communityStats: [Int]? = nil,
+         omittedBreakdownEntries: Int = 0) {
         self.duration = duration
         self.warnings = warnings
         self.points = points
         self.score = score
         self.technologies = technologies
+        self.omittedBreakdownEntries = omittedBreakdownEntries
         self.totalDuration = totalDuration
         self.totalPoints = totalPoints
         self.comparativeScore = comparativeScore
@@ -311,7 +322,12 @@ nonisolated struct ScreenReport: Decodable, Hashable {
         warnings = (try? container.decodeIfPresent([String].self, forKey: .warnings)) ?? []
         points = try ScreenReportMetric.nonnegativeInteger(from: container, forKey: .points)
         score = try ScreenReportMetric.percentage(from: container, forKey: .score)
-        technologies = container.decodeLenientScreenDictionary(of: ScreenTechnologyResult.self, forKey: .technologies)
+        let decodedTechnologies = container.decodeLenientScreenDictionary(
+            of: ScreenTechnologyResult.self, forKey: .technologies
+        )
+        technologies = decodedTechnologies.values
+        omittedBreakdownEntries = decodedTechnologies.discardedCount
+            + technologies.values.reduce(0) { $0 + $1.omittedSkillCount }
         totalDuration = try ScreenReportMetric.nonnegativeInteger(from: container, forKey: .totalDuration)
         totalPoints = try ScreenReportMetric.nonnegativeInteger(from: container, forKey: .totalPoints)
         comparativeScore = try ScreenReportMetric.percentage(from: container, forKey: .comparativeScore)
@@ -333,6 +349,7 @@ nonisolated struct ScreenTechnologyResult: Decodable, Hashable {
     let score: Double?
     /// Per-skill breakdown, keyed by skill name (e.g. "Problem solving").
     let skills: [String: ScreenSkillResult]
+    let omittedSkillCount: Int
     let totalPoints: Int?
     let comparativeScore: Double?
 
@@ -340,7 +357,9 @@ nonisolated struct ScreenTechnologyResult: Decodable, Hashable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         points = try ScreenReportMetric.nonnegativeInteger(from: container, forKey: .points)
         score = try ScreenReportMetric.percentage(from: container, forKey: .score)
-        skills = container.decodeLenientScreenDictionary(of: ScreenSkillResult.self, forKey: .skills)
+        let decodedSkills = container.decodeLenientScreenDictionary(of: ScreenSkillResult.self, forKey: .skills)
+        skills = decodedSkills.values
+        omittedSkillCount = decodedSkills.discardedCount
         totalPoints = try ScreenReportMetric.nonnegativeInteger(from: container, forKey: .totalPoints)
         comparativeScore = try ScreenReportMetric.percentage(from: container, forKey: .comparativeScore)
     }

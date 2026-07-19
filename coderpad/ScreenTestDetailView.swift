@@ -169,6 +169,14 @@ struct ScreenTestDetailView: View {
                 if !report.warnings.isEmpty {
                     warnings(report.warnings)
                 }
+                if report.omittedBreakdownEntries > 0 {
+                    Label(
+                        "Some technology or skill results could not be displayed.",
+                        systemImage: "exclamationmark.triangle.fill"
+                    )
+                    .font(.callout)
+                    .foregroundStyle(.orange)
+                }
                 if !report.technologies.isEmpty {
                     technologyBreakdown(report.technologies)
                 }
