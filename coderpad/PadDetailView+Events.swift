@@ -132,16 +132,16 @@ extension PadDetailView {
     private func eventTimestamp(for group: PadEventGroup) -> some View {
         if let first = group.representative.createdAt {
             if group.count > 1, let last = group.lastEvent.createdAt {
-                let firstText = first.formatted(date: .long, time: .shortened)
+                let firstText = first.formatted(SharedDateStyles.longDateAndTime)
                 // Grouping requires same actor and kind, not same day, so a run can
                 // cross midnight; omitting the end date then would misread e.g. a
                 // 24-hour span as five minutes (#1041).
                 let sameDay = Calendar.current.isDate(first, inSameDayAs: last)
-                let lastText = last.formatted(date: sameDay ? .omitted : .long, time: .shortened)
+                let lastText = last.formatted(sameDay ? SharedDateStyles.timeOnly : SharedDateStyles.longDateAndTime)
                 Text("\(firstText) - \(lastText)")
                     .font(.caption).foregroundStyle(.tertiary)
             } else {
-                Text(first.formatted(date: .long, time: .shortened))
+                Text(first.formatted(SharedDateStyles.longDateAndTime))
                     .font(.caption).foregroundStyle(.tertiary)
             }
         }
@@ -224,7 +224,7 @@ extension PadDetailView {
         if group.count > 1 { parts.append("\(group.count) times") }
         if let user = eventActor(group.representative) { parts.append("by \(user)") }
         if let when = group.representative.createdAt {
-            parts.append("at \(when.formatted(date: .long, time: .shortened))")
+            parts.append("at \(when.formatted(SharedDateStyles.longDateAndTime))")
         }
         return parts.joined(separator: " ")
     }

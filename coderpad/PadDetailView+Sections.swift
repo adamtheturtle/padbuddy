@@ -260,13 +260,13 @@ extension PadDetailView {
     private var activityRows: some View {
         VStack(alignment: .leading, spacing: 6) {
             if let createdAt = pad.createdAt {
-                LabeledRow(label: "Created", value: createdAt.formatted(date: .long, time: .shortened))
+                LabeledRow(label: "Created", value: createdAt.formatted(SharedDateStyles.longDateAndTime))
             }
             if let updatedAt = pad.updatedAt {
-                LabeledRow(label: "Updated", value: updatedAt.formatted(date: .long, time: .shortened))
+                LabeledRow(label: "Updated", value: updatedAt.formatted(SharedDateStyles.longDateAndTime))
             }
             if let endedAt = pad.endedAt {
-                LabeledRow(label: "Ended", value: endedAt.formatted(date: .long, time: .shortened))
+                LabeledRow(label: "Ended", value: endedAt.formatted(SharedDateStyles.longDateAndTime))
             }
         }
     }

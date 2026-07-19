@@ -15,10 +15,18 @@ extension InterviewType {
     /// Human-facing label for filter menus and badges. Localized at the source so
     /// every `Text(type.label)` / `MetaLabel(text:)` site renders in the user's
     /// language even though those views take a plain `String` (#111).
+    /// The catalog lookups happen once per process rather than per access: this is
+    /// read from row badges and metadata on every body pass, so a `String(localized:)`
+    /// inside meant a String Catalog lookup for every rendered row (#2441).
+    private enum Labels {
+        static let live = String(localized: "Live")
+        static let takeHome = String(localized: "Take-home")
+    }
+
     var label: String {
         switch self {
-        case .live: String(localized: "Live")
-        case .takeHome: String(localized: "Take-home")
+        case .live: Labels.live
+        case .takeHome: Labels.takeHome
         }
     }
 }
@@ -38,12 +46,20 @@ extension PadState {
     /// `StateBadge` / `MetaLabel` (which take a plain `String`) still render in the
     /// user's language (#111). `.other` carries an unrecognized API value, so it's
     /// surfaced verbatim rather than translated.
+    /// Resolved once, for the same reason as `InterviewType.Labels` (#2441).
+    private enum Labels {
+        static let active = String(localized: "Active")
+        static let ended = String(localized: "Ended")
+        static let pending = String(localized: "Pending")
+        static let deleted = String(localized: "Deleted")
+    }
+
     var label: String {
         switch self {
-        case .active: String(localized: "Active")
-        case .ended: String(localized: "Ended")
-        case .pending: String(localized: "Pending")
-        case .deleted: String(localized: "Deleted")
+        case .active: Labels.active
+        case .ended: Labels.ended
+        case .pending: Labels.pending
+        case .deleted: Labels.deleted
         case let .other(raw): raw.replacingOccurrences(of: "_", with: " ").capitalized
         }
     }

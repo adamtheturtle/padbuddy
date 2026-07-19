@@ -87,13 +87,13 @@ struct ScreenTestRow: View {
     /// misrepresents what happened (#1012).
     private var dateText: String? {
         if let end = test.endDate {
-            let day = end.formatted(date: .abbreviated, time: .omitted)
+            let day = end.formatted(SharedDateStyles.day)
             return test.status == "completed"
                 ? String(localized: "Completed \(day)")
                 : String(localized: "Ended \(day)")
         }
         if let sent = test.sendDate {
-            return String(localized: "Sent \(sent.formatted(date: .abbreviated, time: .omitted))")
+            return String(localized: "Sent \(sent.formatted(SharedDateStyles.day))")
         }
         return nil
     }

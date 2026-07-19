@@ -124,20 +124,20 @@ struct ScreenTestDetailView: View {
         DetailSection(title: "Details", systemImage: "info.circle") {
             VStack(alignment: .leading, spacing: 8) {
                 if let date = session.sendDate {
-                    LabeledRow(label: "Invited", value: date.formatted(date: .long, time: .shortened))
+                    LabeledRow(label: "Invited", value: date.formatted(SharedDateStyles.longDateAndTime))
                 }
                 if let date = session.startDate {
-                    LabeledRow(label: "Started", value: date.formatted(date: .long, time: .shortened))
+                    LabeledRow(label: "Started", value: date.formatted(SharedDateStyles.longDateAndTime))
                 }
                 if let date = session.endDate {
                     // "Completed" only when the session actually completed; an aborted or
                     // cancelled session also carries an end_time, so label those ends
                     // neutrally rather than contradicting the status badge (#1012).
                     LabeledRow(label: session.status == "completed" ? "Completed" : "Ended",
-                               value: date.formatted(date: .long, time: .shortened))
+                               value: date.formatted(SharedDateStyles.longDateAndTime))
                 }
                 if let date = session.lastActivityDate {
-                    LabeledRow(label: "Last activity", value: date.formatted(date: .long, time: .shortened))
+                    LabeledRow(label: "Last activity", value: date.formatted(SharedDateStyles.longDateAndTime))
                 }
                 if !session.tags.isEmpty {
                     LabeledRow(label: "Tags", value: session.tags.joined(separator: ", "))

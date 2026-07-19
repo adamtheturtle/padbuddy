@@ -57,7 +57,7 @@ struct DateRangeFilterChip: View {
 
     /// No dashes in user-facing copy (house style): join the two dates with "to".
     private var customRangeLabel: String {
-        let style = Date.FormatStyle.dateTime.month(.wide).day()
+        let style = SharedDateStyles.monthAndDay
         let start = window.customStart.map { $0.formatted(style) } ?? "…"
         let end = window.customEnd.map { $0.formatted(style) } ?? "…"
         return String(localized: "\(start) to \(end)", comment: "A custom date range, e.g. \"March 1 to March 8\"")

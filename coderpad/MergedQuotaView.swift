@@ -201,7 +201,7 @@ struct QuotaDetail: View {
                      systemImage: "arrow.up.right.circle",
                      tint: quota.overagesEnabled == true ? .green : .orange)
             if let reset = quota.quotaReset {
-                StatTile(title: "Resets", value: reset.formatted(date: .long, time: .omitted),
+                StatTile(title: "Resets", value: reset.formatted(SharedDateStyles.longDate),
                          systemImage: "arrow.counterclockwise", tint: .teal)
             }
         }
@@ -262,7 +262,7 @@ struct QuotaDetail: View {
         Card {
             VStack(alignment: .leading, spacing: 8) {
                 SectionHeader(title: "Trial", systemImage: "clock.badge.checkmark")
-                Text("Your trial expires \(expiresAt.formatted(date: .long, time: .shortened)).")
+                Text("Your trial expires \(expiresAt.formatted(SharedDateStyles.longDateAndTime)).")
                     .font(.callout)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
