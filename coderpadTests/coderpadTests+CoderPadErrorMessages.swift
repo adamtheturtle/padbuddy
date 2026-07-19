@@ -45,6 +45,21 @@ struct CoderPadErrorMessageTests {
         #expect(!message.contains("\u{001B}"))
     }
 
+    @Test(arguments: [
+        #"{"error":{"message":"Nested explanation"}}"#,
+        #"{"errors":[{"detail":"Array explanation"}]}"#
+    ])
+    func `documented nested API envelopes surface a safe explanation`(body: String) {
+        let message = CoderPadError.http(422, body).errorDescription
+        #expect(message?.contains("explanation") == true)
+    }
+
+    @Test
+    func `arbitrary deeply nested JSON falls back safely`() {
+        let body = #"{"payload":{"nested":{"message":"Do not crawl me"}}}"#
+        #expect(CoderPadError.http(422, body).errorDescription == "The request failed (HTTP 422).")
+    }
+
     @Test
     func `transport failures map to plain-language, actionable messages`() {
         #expect(CoderPadError.network(URLError(.notConnectedToInternet)).errorDescription?.contains("offline") == true)

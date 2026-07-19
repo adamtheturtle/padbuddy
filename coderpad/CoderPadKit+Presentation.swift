@@ -141,9 +141,27 @@ extension CoderPadError: @retroactive LocalizedError {
             return nil
         }
 
-        for key in ["message", "error_description", "error"] {
-            if let value = object[key] as? String,
-               let message = sanitizedAPIMessage(value),
+        var candidates = [object["message"], object["error_description"]]
+        if let error = object["error"] as? [String: Any] {
+            candidates += [error["message"], error["detail"], error["description"]]
+        } else {
+            candidates.append(object["error"])
+        }
+        // Some endpoints return `errors: [{message: ...}]`. Inspect only a small
+        // prefix and known fields rather than recursively walking server-controlled
+        // JSON with unbounded depth or breadth (#1541).
+        if let errors = object["errors"] as? [Any] {
+            for error in errors.prefix(10) {
+                if let envelope = error as? [String: Any] {
+                    candidates += [envelope["message"], envelope["detail"], envelope["description"]]
+                } else {
+                    candidates.append(error)
+                }
+            }
+        }
+
+        for case let value as String in candidates {
+            if let message = sanitizedAPIMessage(value),
                message.caseInsensitiveCompare("Not Found") != .orderedSame {
                 return message
             }
