@@ -70,10 +70,24 @@
       }
     },
     "New Pad" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Nuevo pad"
+          }
+        }
+      }
     },
     "New Question" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Nueva pregunta"
+          }
+        }
+      }
     },
     "NSCalendarsFullAccessUsageDescription" : {
       "comment" : "Privacy - Calendars Full Access Usage Description",
@@ -125,10 +139,24 @@
       "shouldTranslate" : false
     },
     "Show Pads" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mostrar pads"
+          }
+        }
+      }
     },
     "Show Questions" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mostrar preguntas"
+          }
+        }
+      }
     }
   },
   "version" : "1.3"

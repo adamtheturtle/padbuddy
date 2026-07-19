@@ -102,7 +102,14 @@
       }
     },
     "Create one." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Crea uno."
+          }
+        }
+      }
     },
     "Creates a blank pad in PadBuddy." : {
       "localizations" : {
@@ -155,7 +162,14 @@
       }
     },
     "No pads" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No hay pads"
+          }
+        }
+      }
     },
     "No recent pads" : {
       "localizations" : {

@@ -45,7 +45,14 @@
       }
     },
     "“%@” isn't a valid email address." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "“%@” no es una dirección de correo válida."
+          }
+        }
+      }
     },
     "“%@” will be permanently deleted. This can't be undone." : {
       "localizations" : {
@@ -58,7 +65,14 @@
       }
     },
     "\"%@\" will be removed. Screen will stop sending event callbacks until a new webhook is set." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Se eliminará «%@». Screen dejará de enviar devoluciones de llamada de eventos hasta que se configure un nuevo webhook."
+          }
+        }
+      }
     },
     "(no email)" : {
       "localizations" : {
@@ -150,11 +164,24 @@
             "state" : "new",
             "value" : "%1$@ / %2$@"
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%1$@ / %2$@"
+          }
         }
       }
     },
     "%@ activity" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Actividad de %@"
+          }
+        }
+      }
     },
     "%@ and %lld more" : {
       "localizations" : {
@@ -162,6 +189,12 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ and %2$lld more"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%1$@ y %2$lld más"
           }
         }
       }
@@ -177,7 +210,14 @@
       }
     },
     "%@ has no edits yet at this point in the session." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%@ aún no tiene ediciones en este punto de la sesión."
+          }
+        }
+      }
     },
     "%@ of %@ pads used" : {
       "localizations" : {
@@ -229,6 +269,12 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ Undo available for the next %2$lld seconds."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%1$@ Puedes deshacer durante los próximos %2$lld segundos."
           }
         }
       }
@@ -820,7 +866,14 @@
       }
     },
     "%lld×" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "%lld×"
+          }
+        }
+      }
     },
     "%lldm" : {
       "extractionState" : "stale",
@@ -883,7 +936,14 @@
       }
     },
     "^[%lld file environment](inflect: true) couldn't be loaded, so the code shown here may be incomplete." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudieron cargar %lld entornos de archivos, por lo que el código mostrado aquí puede estar incompleto."
+          }
+        }
+      }
     },
     "^[%lld Interviewer](inflect: true)" : {
       "extractionState" : "stale",
@@ -897,7 +957,14 @@
       }
     },
     "^[%lld recorded entries](inflect: true) couldn't be read and were skipped." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudieron leer %lld entradas registradas y se omitieron."
+          }
+        }
+      }
     },
     "⌘⇧N New Question, ⌘⌥C Copy Pad URL, ⌘↩ Open Pad in Browser." : {
       "localizations" : {
@@ -970,10 +1037,24 @@
       }
     },
     "Account changes couldn't be saved" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudieron guardar los cambios de la cuenta"
+          }
+        }
+      }
     },
     "Account Unavailable" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Cuenta no disponible"
+          }
+        }
+      }
     },
     "Accounts" : {
       "localizations" : {
@@ -1094,7 +1175,14 @@
       }
     },
     "Add a CoderPad account to load this section." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Añade una cuenta de CoderPad para cargar esta sección."
+          }
+        }
+      }
     },
     "Add account" : {
       "localizations" : {
@@ -1303,10 +1391,24 @@
       }
     },
     "and %lld more participants" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "y %lld participantes más"
+          }
+        }
+      }
     },
     "Animated: open full size to play" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Animado: ábrelo a tamaño completo para reproducirlo"
+          }
+        }
+      }
     },
     "Anonymized" : {
       "localizations" : {
@@ -1429,7 +1531,14 @@
       }
     },
     "Author" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Autor"
+          }
+        }
+      }
     },
     "Auto-filled from your organization" : {
       "localizations" : {
@@ -1498,7 +1607,14 @@
       }
     },
     "Campaign" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Campaña"
+          }
+        }
+      }
     },
     "Campaigns" : {
       "localizations" : {
@@ -1591,7 +1707,14 @@
       }
     },
     "Candidate instructions changed elsewhere. Review the latest parts, then save again." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Las instrucciones para el candidato cambiaron en otro lugar. Revisa las partes más recientes y vuelve a guardar."
+          }
+        }
+      }
     },
     "Candidate link" : {
       "localizations" : {
@@ -1645,7 +1768,14 @@
       }
     },
     "Changed elsewhere" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Modificado en otro lugar"
+          }
+        }
+      }
     },
     "Choose one of your saved accounts in Settings." : {
       "localizations" : {
@@ -1967,7 +2097,14 @@
       }
     },
     "Configured" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Configurado"
+          }
+        }
+      }
     },
     "Connect an assistant to the server and its tool calls show up here." : {
       "localizations" : {
@@ -2195,7 +2332,14 @@
       }
     },
     "Couldn’t create pad. %@" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudo crear el pad. %@"
+          }
+        }
+      }
     },
     "Couldn't delete %lld of ^[%lld pads](inflect: true): %@. %@" : {
       "localizations" : {
@@ -2203,6 +2347,12 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Couldn't delete %1$lld of ^[%2$lld pads](inflect: true): %3$@. %4$@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudieron eliminar %1$lld de %2$lld pads: %3$@. %4$@"
           }
         }
       }
@@ -2213,6 +2363,12 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Couldn't delete %1$lld of ^[%2$lld questions](inflect: true): %3$@. %4$@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudieron eliminar %1$lld de %2$lld preguntas: %3$@. %4$@"
           }
         }
       }
@@ -2298,7 +2454,14 @@
       }
     },
     "Couldn't prepare the code archive to save." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudo preparar el archivo de código para guardarlo."
+          }
+        }
+      }
     },
     "Couldn't reach CoderPad. Check your connection and try again." : {
       "localizations" : {
@@ -2331,7 +2494,14 @@
       }
     },
     "Couldn't refresh - showing the last loaded data." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudo actualizar: se muestran los últimos datos cargados."
+          }
+        }
+      }
     },
     "Couldn’t save question" : {
       "localizations" : {
@@ -2344,7 +2514,14 @@
       }
     },
     "Couldn't save the code" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudo guardar el código"
+          }
+        }
+      }
     },
     "Couldn't validate this key. Try again." : {
       "localizations" : {
@@ -2467,7 +2644,14 @@
       }
     },
     "Custom files" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Archivos personalizados"
+          }
+        }
+      }
     },
     "Custom…" : {
       "localizations" : {
@@ -2860,6 +3044,12 @@
             "state" : "new",
             "value" : "Deleting ^[%1$lld pads](inflect: true): %2$@"
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Eliminando %1$lld pads: %2$@"
+          }
         }
       }
     },
@@ -2869,6 +3059,12 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "Deleting ^[%1$lld questions](inflect: true): %2$@"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Eliminando %1$lld preguntas: %2$@"
           }
         }
       }
@@ -2936,7 +3132,14 @@
       }
     },
     "Dismiss" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Descartar"
+          }
+        }
+      }
     },
     "Dock and menu bar" : {
       "localizations" : {
@@ -3108,6 +3311,12 @@
             "state" : "new",
             "value" : "Edit %1$lld of %2$lld"
           }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Edición %1$lld de %2$lld"
+          }
         }
       }
     },
@@ -3122,7 +3331,14 @@
       }
     },
     "Edit Question…" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Editar pregunta…"
+          }
+        }
+      }
     },
     "Edit title" : {
       "localizations" : {
@@ -3235,7 +3451,14 @@
       }
     },
     "Ended %@" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Finalizó %@"
+          }
+        }
+      }
     },
     "Ending the interview stops the live session for all participants." : {
       "localizations" : {
@@ -3248,7 +3471,14 @@
       }
     },
     "Enter a valid candidate email address." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Introduce una dirección de correo válida para el candidato."
+          }
+        }
+      }
     },
     "Enter a valid https:// URL." : {
       "localizations" : {
@@ -3261,10 +3491,24 @@
       }
     },
     "Enter a valid recruiter email address." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Introduce una dirección de correo válida para el reclutador."
+          }
+        }
+      }
     },
     "Enter the pad's identifier - letters and numbers only." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Introduce el identificador del pad: solo letras y números."
+          }
+        }
+      }
     },
     "Europe" : {
       "localizations" : {
@@ -3403,7 +3647,14 @@
       }
     },
     "Favorite Questions" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Preguntas favoritas"
+          }
+        }
+      }
     },
     "Favorited" : {
       "localizations" : {
@@ -3448,16 +3699,44 @@
       }
     },
     "Fetching members…" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Obteniendo miembros…"
+          }
+        }
+      }
     },
     "Fetching recent pads…" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Obteniendo pads recientes…"
+          }
+        }
+      }
     },
     "File" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Archivo"
+          }
+        }
+      }
     },
     "File %lld" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Archivo %lld"
+          }
+        }
+      }
     },
     "Files" : {
       "localizations" : {
@@ -3690,13 +3969,34 @@
       }
     },
     "History" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Historial"
+          }
+        }
+      }
     },
     "History file" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Archivo de historial"
+          }
+        }
+      }
     },
     "History for ^[%lld files](inflect: true) couldn't be loaded. Refresh to retry." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudo cargar el historial de %lld archivos. Actualiza para reintentar."
+          }
+        }
+      }
     },
     "https://app.coderpad.io/…" : {
       "localizations" : {
@@ -3732,7 +4032,14 @@
       }
     },
     "In %@…" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "En %@…"
+          }
+        }
+      }
     },
     "In Progress" : {
       "localizations" : {
@@ -4014,7 +4321,14 @@
       }
     },
     "Latest version" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Última versión"
+          }
+        }
+      }
     },
     "Launch at login" : {
       "localizations" : {
@@ -4121,7 +4435,14 @@
       }
     },
     "Loading whiteboard" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Cargando la pizarra"
+          }
+        }
+      }
     },
     "Loading…" : {
       "extractionState" : "stale",
@@ -4345,7 +4666,14 @@
       }
     },
     "New MCP server activity" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Nueva actividad del servidor MCP"
+          }
+        }
+      }
     },
     "New pad" : {
       "localizations" : {
@@ -4438,7 +4766,14 @@
       }
     },
     "No" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No"
+          }
+        }
+      }
     },
     "No %@ filter. Activate to choose one." : {
       "localizations" : {
@@ -4491,7 +4826,14 @@
       }
     },
     "No accounts configured" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No hay cuentas configuradas"
+          }
+        }
+      }
     },
     "No API key" : {
       "localizations" : {
@@ -4554,7 +4896,14 @@
       }
     },
     "No CoderPad pad link or id was found in the selection." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se encontró ningún enlace o identificador de pad de CoderPad en la selección."
+          }
+        }
+      }
     },
     "No events yet." : {
       "localizations" : {
@@ -4717,10 +5066,24 @@
       }
     },
     "Not configured" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Sin configurar"
+          }
+        }
+      }
     },
     "Notes" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Notas"
+          }
+        }
+      }
     },
     "Nothing selected" : {
       "localizations" : {
@@ -4813,7 +5176,14 @@
       }
     },
     "Only one edit" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Solo una edición"
+          }
+        }
+      }
     },
     "Open" : {
       "localizations" : {
@@ -5212,7 +5582,14 @@
       }
     },
     "Organization details couldn't be loaded, so the Owner and Team choices may be incomplete." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudieron cargar los detalles de la organización, por lo que las opciones de Propietario y Equipo pueden estar incompletas."
+          }
+        }
+      }
     },
     "Organizations" : {
       "localizations" : {
@@ -5321,7 +5698,14 @@
       }
     },
     "Pad detail sections" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Secciones de detalle del pad"
+          }
+        }
+      }
     },
     "Pad ID" : {
       "localizations" : {
@@ -5417,7 +5801,14 @@
       }
     },
     "Participant %lld" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Participante %lld"
+          }
+        }
+      }
     },
     "Participants" : {
       "localizations" : {
@@ -5470,7 +5861,14 @@
       }
     },
     "Pause playback" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pausar la reproducción"
+          }
+        }
+      }
     },
     "Pending" : {
       "localizations" : {
@@ -5523,13 +5921,34 @@
       }
     },
     "Play the session" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Reproducir la sesión"
+          }
+        }
+      }
     },
     "Playback speed" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Velocidad de reproducción"
+          }
+        }
+      }
     },
     "Playback timeline" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Línea de tiempo de reproducción"
+          }
+        }
+      }
     },
     "Points" : {
       "localizations" : {
@@ -5712,7 +6131,14 @@
       }
     },
     "Question #%lld (unavailable)" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Pregunta n.º %lld (no disponible)"
+          }
+        }
+      }
     },
     "Question detail section" : {
       "localizations" : {
@@ -5765,10 +6191,24 @@
       }
     },
     "Questions and organization details couldn't be loaded, so the Question, Owner, and Team choices may be incomplete." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudieron cargar las preguntas ni los detalles de la organización, por lo que las opciones de Pregunta, Propietario y Equipo pueden estar incompletas."
+          }
+        }
+      }
     },
     "Questions couldn't be loaded, so the Question choices may be incomplete." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudieron cargar las preguntas, por lo que las opciones de Pregunta pueden estar incompletas."
+          }
+        }
+      }
     },
     "Questions from your accounts' banks will appear here." : {
       "localizations" : {
@@ -5851,10 +6291,24 @@
       }
     },
     "Recorded on this device. Tool names and times only, never pad or candidate content." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Se registra en este dispositivo. Solo nombres de herramientas y horas, nunca contenido de pads ni de candidatos."
+          }
+        }
+      }
     },
     "Recorded on this Mac. Tool names and times only, never pad or candidate content." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Se registra en este Mac. Solo nombres de herramientas y horas, nunca contenido de pads ni de candidatos."
+          }
+        }
+      }
     },
     "Recruiter email" : {
       "localizations" : {
@@ -6140,7 +6594,14 @@
       }
     },
     "Save Anyway" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Guardar de todos modos"
+          }
+        }
+      }
     },
     "Save Code" : {
       "extractionState" : "stale",
@@ -6598,10 +7059,24 @@
       }
     },
     "Show first edit" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mostrar la primera edición"
+          }
+        }
+      }
     },
     "Show latest edit" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mostrar la última edición"
+          }
+        }
+      }
     },
     "Show my active pads on the app icon" : {
       "localizations" : {
@@ -6624,7 +7099,14 @@
       }
     },
     "Show next edit" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mostrar la edición siguiente"
+          }
+        }
+      }
     },
     "Show Only %@" : {
       "localizations" : {
@@ -6699,7 +7181,14 @@
       }
     },
     "Show previous edit" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mostrar la edición anterior"
+          }
+        }
+      }
     },
     "Show Questions from %@" : {
       "localizations" : {
@@ -6712,7 +7201,14 @@
       }
     },
     "Show recent activity" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Mostrar la actividad reciente"
+          }
+        }
+      }
     },
     "Show Screen API key" : {
       "localizations" : {
@@ -6886,7 +7382,14 @@
       }
     },
     "Speed" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Velocidad"
+          }
+        }
+      }
     },
     "Started" : {
       "localizations" : {
@@ -6999,7 +7502,14 @@
       }
     },
     "Summary" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Resumen"
+          }
+        }
+      }
     },
     "Switch account" : {
       "localizations" : {
@@ -7163,7 +7673,14 @@
       }
     },
     "The account this item belongs to couldn't be determined. Select it in the list again." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudo determinar a qué cuenta pertenece este elemento. Vuelve a seleccionarlo en la lista."
+          }
+        }
+      }
     },
     "The Add Account flow auto-fills the name from your org and uses the +/− button set." : {
       "localizations" : {
@@ -7216,13 +7733,34 @@
       }
     },
     "The on-device model couldn't generate an explanation for this file." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "El modelo en el dispositivo no pudo generar una explicación para este archivo."
+          }
+        }
+      }
     },
     "The pad stats request failed." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Falló la solicitud de estadísticas del pad."
+          }
+        }
+      }
     },
     "The report is too large to open." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "El informe es demasiado grande para abrirlo."
+          }
+        }
+      }
     },
     "The request failed (HTTP %lld)." : {
       "localizations" : {
@@ -7255,7 +7793,14 @@
       }
     },
     "The selected pad link couldn't be converted to an app link." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "El enlace de pad seleccionado no se pudo convertir en un enlace de la app."
+          }
+        }
+      }
     },
     "The server couldn't find that. It may have already been deleted." : {
       "localizations" : {
@@ -7268,7 +7813,14 @@
       }
     },
     "The server did not return a PDF report." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "El servidor no devolvió un informe PDF."
+          }
+        }
+      }
     },
     "The server is read-only by default. When on, the assistant can also create and edit pads and questions (never delete them). Changes take effect after you restart the assistant. Only turn this on if you trust the assistant with your live interview content." : {
       "localizations" : {
@@ -7281,7 +7833,14 @@
       }
     },
     "The Server URL isn't a valid web address. Enter a full URL starting with https://, or leave the field blank to use the standard CoderPad server." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "La URL del servidor no es una dirección web válida. Introduce una URL completa que empiece por https:// o deja el campo vacío para usar el servidor estándar de CoderPad."
+          }
+        }
+      }
     },
     "The test session was created." : {
       "localizations" : {
@@ -7390,7 +7949,14 @@
       }
     },
     "This question has no description, candidate instructions, starter code, or solution to print." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Esta pregunta no tiene descripción, instrucciones para el candidato, código inicial ni solución que imprimir."
+          }
+        }
+      }
     },
     "This section shows everything in the list." : {
       "localizations" : {
@@ -7473,7 +8039,14 @@
       }
     },
     "Title changed elsewhere." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "El título cambió en otro lugar."
+          }
+        }
+      }
     },
     "To" : {
       "localizations" : {
@@ -7612,7 +8185,14 @@
       }
     },
     "Unnamed app" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "App sin nombre"
+          }
+        }
+      }
     },
     "Unset" : {
       "localizations" : {
@@ -7625,7 +8205,14 @@
       }
     },
     "Untitled" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Sin título"
+          }
+        }
+      }
     },
     "Untitled account" : {
       "localizations" : {
@@ -7688,7 +8275,14 @@
       }
     },
     "Updated just now" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Actualizado ahora mismo"
+          }
+        }
+      }
     },
     "Updated since last refresh" : {
       "localizations" : {
@@ -7711,7 +8305,14 @@
       }
     },
     "Use Latest" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Usar la última"
+          }
+        }
+      }
     },
     "Use system default (%@)" : {
       "localizations" : {
@@ -7955,7 +8556,14 @@
       }
     },
     "When off, the server refuses to run, so assistants you've already added lose access the next time they start." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Cuando está desactivado, el servidor se niega a ejecutarse, por lo que los asistentes que ya hayas añadido pierden el acceso la próxima vez que se inicien."
+          }
+        }
+      }
     },
     "Which CoderPad Screen region your key belongs to." : {
       "localizations" : {
@@ -7988,10 +8596,24 @@
       }
     },
     "Writing to the Keychain failed, so recent account changes will be lost when the app quits." : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No se pudo escribir en el llavero, por lo que los cambios recientes de la cuenta se perderán al salir de la app."
+          }
+        }
+      }
     },
     "Yes" : {
-
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Sí"
+          }
+        }
+      }
     },
     "You appear to be offline. Check your internet connection and try again." : {
       "localizations" : {
