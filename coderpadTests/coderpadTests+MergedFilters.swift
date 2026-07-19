@@ -46,6 +46,26 @@ struct MergedFilterSnapshotTests {
     }
 
     @Test
+    func `the shared coder persists filters in the format a fresh one wrote (#2104)`() throws {
+        // The single-account list now saves and restores its live filters through
+        // `SharedCoders` instead of allocating a coder per filter change, so a
+        // snapshot written by an older build must still restore — and one written
+        // now must stay readable by a plain decoder.
+        let search = NamedSearch(name: "", search: "graphs", languageFilter: "python3",
+                                 ownerFilter: nil, typeFilter: nil, draftFilter: nil)
+
+        let shared = try SharedCoders.encoder.encode(search)
+        let plainlyRestored = try JSONDecoder().decode(NamedSearch.self, from: shared)
+        #expect(plainlyRestored.search == "graphs")
+        #expect(plainlyRestored.languageFilter == "python3")
+
+        let legacy = try JSONEncoder().encode(search)
+        let sharedRestored = try SharedCoders.decoder.decode(NamedSearch.self, from: legacy)
+        #expect(sharedRestored.search == "graphs")
+        #expect(sharedRestored.languageFilter == "python3")
+    }
+
+    @Test
     func `a snapshot decoded with both presets set keeps only favorites`() throws {
         let search = NamedSearch(name: "", search: "s", languageFilter: nil,
                                  ownerFilter: nil, typeFilter: nil, draftFilter: nil)

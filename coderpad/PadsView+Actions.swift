@@ -159,7 +159,10 @@ extension PadsView {
     func persistFilters() {
         guard didRestoreFilters, let account = owningAccountID else { return }
 
-        if let data = try? JSONEncoder().encode(captureCurrentSearch(named: "")) {
+        // The shared coder, not a fresh one: this fires on every filter change,
+        // including each keystroke in the search field (#2104). Matches
+        // `MergedPadsView.persistFilters`.
+        if let data = try? SharedCoders.encoder.encode(captureCurrentSearch(named: "")) {
             UserDefaults.standard.set(data, forKey: Self.liveFilterKey(account))
         }
     }
@@ -174,7 +177,7 @@ extension PadsView {
 
         didRestoreFilters = true
         guard let data = UserDefaults.standard.data(forKey: Self.liveFilterKey(account)),
-              let snapshot = try? JSONDecoder().decode(NamedSearch.self, from: data) else { return }
+              let snapshot = try? SharedCoders.decoder.decode(NamedSearch.self, from: data) else { return }
 
         apply(snapshot)
     }
