@@ -246,3 +246,82 @@ struct SearchPadsQueryTests {
         #expect(normalized(long).count == SearchPadsIntent.maxQueryLength)
     }
 }
+
+@Suite("Bulk delete batch outcome (#2342, #2346)")
+struct BulkDeleteRunnerTests {
+    @MainActor
+    @Test
+    func `every item is attempted and reported`() async {
+        var seen: [Int] = []
+        let outcome = await BulkDeleteRunner.run(
+            Array(1 ... 10),
+            title: { "item \($0)" },
+            onProgress: { _ in },
+            delete: { item in
+                seen.append(item)
+                return nil
+            }
+        )
+        #expect(seen.sorted() == Array(1 ... 10))
+        #expect(outcome.deleted == 10)
+        #expect(outcome.failedTitles.isEmpty)
+        #expect(!outcome.aborted)
+    }
+
+    @MainActor
+    @Test
+    func `progress reaches the total`() async {
+        var last: BulkDeleteProgress?
+        _ = await BulkDeleteRunner.run(
+            Array(1 ... 7),
+            title: { "\($0)" },
+            onProgress: { last = $0 },
+            delete: { _ in nil }
+        )
+        #expect(last == BulkDeleteProgress(completed: 7, total: 7))
+    }
+
+    @MainActor
+    @Test
+    func `an ordinary failure does not stop the rest`() async {
+        var attempted = 0
+        let outcome = await BulkDeleteRunner.run(
+            Array(1 ... 8),
+            title: { "\($0)" },
+            onProgress: { _ in },
+            delete: { item in
+                attempted += 1
+                return item == 1 ? URLError(.badServerResponse) : nil
+            }
+        )
+        #expect(attempted == 8)
+        #expect(outcome.failedTitles == ["1"])
+        #expect(!outcome.aborted)
+    }
+
+    @MainActor
+    @Test
+    func `a systemic failure stops the batch early`() async {
+        // Being offline means every remaining delete would fail the same way, so the
+        // queue is abandoned rather than issuing dozens of doomed requests (#2346).
+        var attempted = 0
+        let outcome = await BulkDeleteRunner.run(
+            Array(1 ... 40),
+            title: { "\($0)" },
+            onProgress: { _ in },
+            delete: { _ in
+                attempted += 1
+                return URLError(.notConnectedToInternet)
+            }
+        )
+        #expect(outcome.aborted)
+        #expect(attempted <= BulkDeleteUndo.concurrency)
+        #expect(BulkDeleteUndo.report(outcome, total: 40, kind: .pads) != nil)
+    }
+
+    @Test
+    func `only failures that would repeat count as systemic`() {
+        #expect(BulkDeleteUndo.isSystemic(URLError(.notConnectedToInternet)))
+        #expect(!BulkDeleteUndo.isSystemic(URLError(.badServerResponse)))
+    }
+}

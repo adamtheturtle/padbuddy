@@ -340,33 +340,30 @@ extension MergedQuestionsView {
     /// aggregated into one report naming the questions that remain, rather than each
     /// failure overwriting the previous one (#1208).
     func bulkDelete(_ rows: [MergedQuestionRow]) async {
-        var failedTitles: [String] = []
-        var lastError: String?
-        for row in rows {
-            // Navigating away cancels the batch task via `onDisappear`; stop the
-            // remaining destructive requests instead of firing them unobserved (#1257).
-            guard !Task.isCancelled else { return }
+        let live = accounts
+        let outcome = await BulkDeleteRunner.run(
+            rows,
+            title: \.item.displayTitle,
+            onProgress: { bulkDeleteProgress = $0 },
+            delete: { row in
+                // The undo grace period can outlive an account change: a row whose
+                // account was removed or re-keyed meanwhile must not fire a
+                // destructive delete through credentials the user just revoked or
+                // replaced (#1259).
+                guard let current = live.accounts.first(where: { $0.id == row.account.id }),
+                      !current.pointsAtDifferentBackend(than: row.account) else { return nil }
 
-            // The undo grace period can outlive an account change: a row whose
-            // account was removed or re-keyed meanwhile must not fire a
-            // destructive delete through credentials the user just revoked or
-            // replaced (#1259).
-            guard let current = accounts.accounts.first(where: { $0.id == row.account.id }),
-                  !current.pointsAtDifferentBackend(than: row.account) else { continue }
-
-            do {
-                try await row.account.makeClient().deleteQuestion(id: row.item.id)
-                AppRouter.questionDeleted(id: row.item.id, account: row.account.id)
-            } catch {
-                failedTitles.append(row.item.displayTitle)
-                lastError = error.localizedDescription
+                do {
+                    try await row.account.makeClient().deleteQuestion(id: row.item.id)
+                    AppRouter.questionDeleted(id: row.item.id, account: row.account.id)
+                    return nil
+                } catch {
+                    return error
+                }
             }
-        }
-        if let lastError {
-            bulkDeleteError = BulkDeleteUndo.questionFailureReport(
-                failedTitles: failedTitles, total: rows.count, lastError: lastError
-            )
-        }
+        )
+        bulkDeleteProgress = nil
+        bulkDeleteError = BulkDeleteUndo.report(outcome, total: rows.count, kind: .questions)
     }
 
     @ViewBuilder

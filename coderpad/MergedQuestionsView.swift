@@ -96,6 +96,10 @@ struct MergedQuestionsView: View {
     @State var rowsPendingBulkDelete: [MergedQuestionRow]?
     @State var pendingBulkDeleteUndo: PendingBulkDelete<MergedQuestionRow>?
     @State var bulkDeleteUndoTask: Task<Void, Never>?
+    /// Progress through a committed batch, shown in place of the undo banner once the
+    /// grace period is over. Before this a long batch looked like nothing was
+    /// happening and could not be stopped partway (#2347).
+    @State var bulkDeleteProgress: BulkDeleteProgress?
     @State var bulkDeleteError: String?
     @Binding var search: String
 

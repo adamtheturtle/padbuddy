@@ -75,34 +75,30 @@ extension QuestionsView {
     /// questions that remain, rather than each failure overwriting the previous
     /// one (#1208).
     func bulkDelete(_ questions: [Question], account: Account?) async {
-        var failedTitles: [String] = []
-        var lastError: String?
-        for question in questions {
-            // Navigating away cancels the batch task via `onDisappear`; stop the
-            // remaining destructive requests instead of firing them unobserved (#1257).
-            guard !Task.isCancelled else { return }
-
-            // Stop if the owning account was removed or re-keyed mid-batch: its
-            // captured client would fire destructive deletes through credentials
-            // the user just revoked or replaced (#1209).
-            if let account {
-                guard let current = accounts.accounts.first(where: { $0.id == account.id }),
-                      !current.pointsAtDifferentBackend(than: account) else { return }
-            }
-
-            do {
-                try await client.deleteQuestion(id: question.id)
-                AppRouter.questionDeleted(id: question.id, account: account?.id)
-            } catch {
-                failedTitles.append(question.displayTitle)
-                lastError = error.localizedDescription
-            }
+        // Stop before issuing anything if the owning account was removed or re-keyed
+        // during the undo window: its captured client would fire destructive deletes
+        // through credentials the user just revoked or replaced (#1209, #2344).
+        guard BulkDeleteUndo.accountStillUsable(account, in: accounts) else {
+            bulkDeleteError = BulkDeleteUndo.credentialsChangedReport
+            return
         }
-        if let lastError {
-            bulkDeleteError = BulkDeleteUndo.questionFailureReport(
-                failedTitles: failedTitles, total: questions.count, lastError: lastError
-            )
-        }
+
+        let outcome = await BulkDeleteRunner.run(
+            questions,
+            title: \.displayTitle,
+            onProgress: { bulkDeleteProgress = $0 },
+            delete: { question in
+                do {
+                    try await client.deleteQuestion(id: question.id)
+                    AppRouter.questionDeleted(id: question.id, account: account?.id)
+                    return nil
+                } catch {
+                    return error
+                }
+            }
+        )
+        bulkDeleteProgress = nil
+        bulkDeleteError = BulkDeleteUndo.report(outcome, total: questions.count, kind: .questions)
     }
 
     func toggleFavorite(_ question: Question) {

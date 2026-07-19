@@ -50,6 +50,10 @@ struct QuestionsView: View {
     @State var questionsPendingBulkDelete: [Question]?
     @State var pendingBulkDeleteUndo: PendingBulkDelete<Question>?
     @State var bulkDeleteUndoTask: Task<Void, Never>?
+    /// Progress through a committed batch, shown in place of the undo banner once the
+    /// grace period is over. Before this a long batch looked like nothing was
+    /// happening and could not be stopped partway (#2347).
+    @State var bulkDeleteProgress: BulkDeleteProgress?
     @State var bulkDeleteError: String?
     /// Owned by `MainSplit` so the `.searchable` field can live on the split view
     /// (trailing window toolbar) rather than this content column. All the filter,
