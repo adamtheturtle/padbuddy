@@ -68,6 +68,7 @@ struct ScreenCancellationTests {
         "http://screen.example.com",
         "file:///tmp/screen",
         "https://user:password@screen.example.com",
+        "https://screen.example.com/tenant",
         "https://screen.example.com?key=value",
         "https://screen.example.com/#fragment"
     ])

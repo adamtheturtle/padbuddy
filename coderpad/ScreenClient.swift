@@ -252,7 +252,8 @@ struct ScreenClient {
         guard !apiKey.isEmpty else { throw CoderPadError.missingAPIKey }
         guard baseURL.scheme?.lowercased() == "https", baseURL.host?.isEmpty == false,
               baseURL.user == nil, baseURL.password == nil,
-              baseURL.query == nil, baseURL.fragment == nil else {
+              baseURL.query == nil, baseURL.fragment == nil,
+              baseURL.path.isEmpty || baseURL.path == "/" else {
             throw CoderPadError.decode("Screen base URL must be a credential-free HTTPS origin.")
         }
 
