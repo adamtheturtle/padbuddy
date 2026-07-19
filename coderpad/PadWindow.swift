@@ -171,7 +171,8 @@ struct PadWindow: View {
         loadGeneration += 1
         let generation = loadGeneration
         do {
-            let pad = try await account.makeClient().getPad(id: value.id)
+            let client = account.makeClient()
+            let pad = try await client.getPad(id: value.id)
             guard generation == loadGeneration else { return }
 
             fetched = pad
@@ -179,6 +180,7 @@ struct PadWindow: View {
             loadFailed = false
             refreshError = nil
             AppRouter.padUpdated(pad, account: account.id)
+            PadsCacheStore.shared.updatePad(pad, account: account.id, via: client)
         } catch is CancellationError {
             return
         } catch {
