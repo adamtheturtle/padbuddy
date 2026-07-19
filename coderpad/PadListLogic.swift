@@ -245,10 +245,15 @@ enum PadEventGrouping {
     /// and user changes all start a fresh group.
     static func group(_ events: [PadEvent]) -> [PadEventGroup] {
         var groups: [PadEventGroup] = []
+        // The current group's kind, already lowercased. Each event used to lowercase
+        // its own kind twice and the representative's once more, so a long timeline
+        // walked three strings per event to answer one question (#2454).
+        var lastKind: String?
         for event in events {
+            let kind = event.kind.lowercased()
             if let last = groups.last,
-               collapsibleKinds.contains(event.kind.lowercased()),
-               last.representative.kind.lowercased() == event.kind.lowercased(),
+               collapsibleKinds.contains(kind),
+               lastKind == kind,
                let lastActor = actorKey(for: last.representative),
                lastActor == actorKey(for: event) {
                 groups[groups.count - 1] = PadEventGroup(
@@ -265,6 +270,7 @@ enum PadEventGrouping {
                                             representative: event,
                                             count: 1,
                                             lastEvent: event))
+                lastKind = kind
             }
         }
         return groups

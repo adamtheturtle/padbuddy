@@ -187,12 +187,17 @@
             return bounds.contains(point)
         }
 
+        /// Resolved once rather than per cell: `metadataText` runs on every AppKit cell
+        /// configuration, so a `String(localized:)` inside it meant a string-catalog
+        /// lookup for every row that scrolled past (#2451).
+        private static let draftLabel = String(localized: "Draft")
+
         private func metadataText(presentation: QuestionRowPresentation, account: RowAccount?) -> String {
             var parts: [String] = []
             if let account { parts.append(account.name) }
             if let language = presentation.languageDisplayName { parts.append(language) }
             if presentation.interviewType == .takeHome { parts.append(InterviewType.takeHome.label) }
-            if presentation.isDraft { parts.append(String(localized: "Draft")) }
+            if presentation.isDraft { parts.append(Self.draftLabel) }
             return parts.joined(separator: " · ")
         }
 

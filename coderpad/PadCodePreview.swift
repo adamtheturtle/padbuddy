@@ -24,7 +24,13 @@ nonisolated struct CodeFile: Identifiable, Hashable {
     var name: String {
         guard let path, !path.isEmpty else { return "untitled" }
 
-        return path.split(separator: "/").last.map(String.init) ?? path
+        // Slice from the last separator rather than splitting: the full split
+        // allocated an array of every path segment to keep one of them, on a property
+        // read while rendering the file tabs (#2455).
+        guard let slash = path.lastIndex(of: "/") else { return path }
+
+        let component = path[path.index(after: slash)...]
+        return component.isEmpty ? path : String(component)
     }
 
     /// Strips CoderPad's `multifile_` prefix so the environment language can
@@ -153,8 +159,9 @@ struct EnvironmentCodeCard: View {
            slug[slug.startIndex ..< dash].allSatisfy(\.isNumber), slug.startIndex != dash {
             slug = String(slug[slug.index(after: dash)...])
         }
-        let words = slug.replacingOccurrences(of: "-", with: " ")
-            .replacingOccurrences(of: "_", with: " ")
+        // One pass rather than two `replacingOccurrences` walks plus a trim, each of
+        // which rebuilt the whole string on a property read during render (#2456).
+        let words = String(slug.map { $0 == "-" || $0 == "_" ? " " : $0 })
             .trimmingCharacters(in: .whitespaces)
         guard !words.isEmpty else { return nil }
 
