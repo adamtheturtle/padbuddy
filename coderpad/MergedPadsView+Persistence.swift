@@ -11,46 +11,6 @@
 import os
 import SwiftUI
 
-/// Endpoint stamping for persisted merged row ids (#1236): a saved value is an
-/// account-namespaced row id, but an account re-pointed at a different server
-/// keeps its UUID, so the id alone could reopen an unrelated same-slug resource
-/// on the new server. Each persisted row id is stamped with its account's
-/// endpoint; a restore drops the value when the endpoint no longer matches.
-@MainActor
-enum MergedRowPersistence {
-    /// The endpoint stamp to store alongside `rowID`, or `""` when there is
-    /// nothing to stamp (no row, or an account that no longer resolves).
-    ///
-    /// Callers hold this in scene storage next to the row id itself rather than
-    /// in a sibling `UserDefaults` key, so the pair is restored to the window it
-    /// belongs to (#2560-#2563).
-    static func endpoint(forRowID rowID: String?) -> String {
-        guard let rowID, let uuid = accountUUID(fromRowID: rowID),
-              let account = AccountsStore.shared.accounts.first(where: { $0.id == uuid })
-        else { return "" }
-
-        return account.resolvedBaseURL.absoluteString
-    }
-
-    /// `saved` unless its account now points at a different endpoint than when it
-    /// was stamped. A value with no stamp (legacy, or a bare pre-#758 slug) passes
-    /// through untouched.
-    static func validatedRowID(_ saved: String, endpoint stamped: String) -> String? {
-        guard !saved.isEmpty else { return nil }
-        guard let uuid = accountUUID(fromRowID: saved), !stamped.isEmpty else { return saved }
-        guard let account = AccountsStore.shared.accounts.first(where: { $0.id == uuid }),
-              account.resolvedBaseURL.absoluteString == stamped else { return nil }
-
-        return saved
-    }
-
-    private static func accountUUID(fromRowID id: String) -> UUID? {
-        guard let separator = id.firstIndex(of: ":") else { return nil }
-
-        return UUID(uuidString: String(id[..<separator]))
-    }
-}
-
 @MainActor
 final class TopRowPersistenceDebouncer {
     private var task: Task<Void, Never>?
@@ -303,6 +263,13 @@ extension MergedPadsView {
            [savedSelection, savedTop].contains(where: { $0.map { !availableRowIDs.contains($0) } ?? false }) {
             return
         }
+        // A legacy bare slug is resolved by looking for the single account that
+        // holds it. On a partial list a slug two servers both issue looks unique,
+        // so it would resolve to whichever account loaded first and reopen the
+        // wrong server's pad. Only decide once every account has reported (#2568).
+        if !loadComplete, Self.isLegacyBareSlug(persistedSelectedPad) || Self.isLegacyBareSlug(persistedTopRow) {
+            return
+        }
 
         didRestoreSelection = true
         // The load has finished and these rows aren't in it, so they're gone. Drop
@@ -343,6 +310,15 @@ extension MergedPadsView {
     /// maps to the loaded row holding that slug when exactly one account does, so
     /// the saved place survives the format change without ever reopening a
     /// colliding slug from a different server (#1231).
+    /// Whether a persisted value is in the pre-#758 format: a bare pad slug with
+    /// no account prefix, which can only be resolved by searching the loaded rows.
+    static func isLegacyBareSlug(_ saved: String) -> Bool {
+        guard !saved.isEmpty else { return false }
+        guard let separator = saved.firstIndex(of: ":") else { return true }
+
+        return UUID(uuidString: String(saved[..<separator])) == nil
+    }
+
     static func normalizedSavedRowID(_ saved: String?, rowIDBySlug: [String: String]) -> String? {
         guard let saved else { return nil }
 
@@ -362,13 +338,20 @@ extension MergedPadsView {
     /// silently show the wrong server's pad, so an ambiguous request is dropped
     /// instead (#1232) — account-carrying requests route via
     /// `pendingMergedFavoritePad` / `PadsRequest.selectPadAccountID`.
-    func resolvePendingSlugSelection() {
+    func resolvePendingSlugSelection(loadComplete: Bool = false) {
         guard let slug = pendingSelectPadSlug else { return }
 
         let owners = accounts.mergeableAccounts.filter {
             padsByAccount[$0.id]?.contains(where: { $0.id == slug }) == true
         }
         guard !owners.isEmpty else { return }
+
+        // One owner on a partial list proves nothing: another account that also
+        // holds the slug may not have loaded, and acting now would open the first
+        // one to arrive rather than refusing the ambiguity (#2569). Wait for the
+        // fan-out before deciding — but honour an unambiguous hit right away once
+        // it has, so the common single-owner case still resolves promptly.
+        guard loadComplete || owners.count > 1 else { return }
 
         pendingSelectPadSlug = nil
         guard owners.count == 1, let owner = owners.first else { return }

@@ -377,7 +377,7 @@ extension MergedPadsView {
         restoreSelectedPadIfNeeded(loadComplete: true)
         // Same timing for a favourite tapped before the list loaded: its slug can
         // only resolve to a namespaced row id once the row exists (#758).
-        resolvePendingSlugSelection()
+        resolvePendingSlugSelection(loadComplete: true)
     }
 
     /// Publish the pad -> owning-accounts map so the detail pane and row actions
