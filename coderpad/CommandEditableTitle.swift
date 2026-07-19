@@ -195,10 +195,6 @@ struct CommandEditableTitle: View {
 
     /// Runs a commit as the tracked save, so `onDisappear` can cancel it (#2018).
     private func startCommit() {
-        saveTask = Task { await commit() }
-    }
-
-    private func commit() async {
         guard isEditing, !isSaving else { return }
         guard !titleConflict else {
             fieldFocused = true
@@ -209,7 +205,14 @@ struct CommandEditableTitle: View {
             return
         }
 
+        // Claim the commit synchronously before spawning. Focus loss can fire in
+        // the same event turn as Save Anyway; setting this inside the Task left a
+        // window where both paths launched a PUT (#1433).
         isSaving = true
+        saveTask = Task { await commit(value) }
+    }
+
+    private func commit(_ value: String) async {
         let saved = await onCommit(value)
         // The spinner flag is cleared either way: it belongs to state SwiftUI reuses
         // for whatever this position shows next.
