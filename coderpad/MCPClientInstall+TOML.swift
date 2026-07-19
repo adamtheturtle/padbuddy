@@ -227,39 +227,6 @@ import Foundation
             return headerIndex ..< index
         }
 
-        /// The key path inside a `[table]` or `[[array-of-tables]]` header line, with quotes
-        /// stripped from each component, or nil when the line isn't a well-formed header.
-        private static func tomlHeaderKeyPath(_ line: String) -> [String]? {
-            var inner = line
-            while inner.hasPrefix("[") {
-                inner.removeFirst()
-            }
-            guard let closing = inner.firstIndex(of: "]") else { return nil }
-
-            inner = String(inner[..<closing])
-            return inner.components(separatedBy: ".").map(normalizedTOMLKey)
-        }
-
-        /// The (possibly dotted) key path on the left of a `key = value` line, with quotes
-        /// stripped, or nil for lines that aren't assignments.
-        private static func tomlKeyValueKeyPath(_ line: String) -> [String]? {
-            guard let equals = line.firstIndex(of: "=") else { return nil }
-
-            let key = String(line[..<equals])
-            guard !key.isEmpty else { return nil }
-
-            return key.components(separatedBy: ".").map(normalizedTOMLKey)
-        }
-
-        /// A single TOML key component with surrounding whitespace and basic/literal quotes removed.
-        private static func normalizedTOMLKey(_ component: String) -> String {
-            var key = component.trimmingCharacters(in: .whitespaces)
-            for quote in ["\"", "'"] where key.hasPrefix(quote) && key.hasSuffix(quote) && key.count >= 2 {
-                key = String(key.dropFirst().dropLast())
-            }
-            return key
-        }
-
         /// The `[mcp_servers.padbuddy]` TOML table, with a trailing blank line so it stays separated
         /// from anything that follows. Internal for tests.
         static func codexServerBlock(executablePath: String) -> String {
