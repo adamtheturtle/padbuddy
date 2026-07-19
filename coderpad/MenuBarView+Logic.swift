@@ -197,7 +197,12 @@
             defer { creatingPadKeys.remove(createKey) }
 
             do {
-                try await performCreate(body, account: account)
+                let context = MenuBarCreateContext(account: account)
+                guard let current = context.resolve(in: store.accounts) else {
+                    throw MenuBarCreateError.accountChanged
+                }
+
+                try await performCreate(body, account: current, context: context)
             } catch {
                 errorMessage = error.localizedDescription
             }
@@ -212,25 +217,37 @@
 
             creatingPadKeys.insert(createKey)
             defer { creatingPadKeys.remove(createKey) }
-            let client = row.account.makeClient()
             do {
+                let context = MenuBarCreateContext(account: row.account)
+                guard let current = context.resolve(in: store.accounts) else {
+                    throw MenuBarCreateError.accountChanged
+                }
+
+                let client = current.makeClient()
                 let fetched = try await client.getQuestion(id: row.question.id)
+                guard context.resolve(in: store.accounts) != nil else {
+                    throw MenuBarCreateError.accountChanged
+                }
                 guard let fresh = NewPadFromQuestionValidation.accept(requestedID: row.question.id,
                                                                       fetched: fetched) else {
                     throw CoderPadError.decode("The selected question is no longer available.")
                 }
 
-                QuestionsCacheStore.shared.updateQuestion(fresh, account: row.account.id, via: client)
-                try await performCreate(.fromQuestion(fresh), account: row.account, client: client)
+                QuestionsCacheStore.shared.updateQuestion(fresh, account: current.id, via: client)
+                try await performCreate(.fromQuestion(fresh), account: current, context: context, client: client)
             } catch {
                 errorMessage = error.localizedDescription
             }
         }
 
-        private func performCreate(_ body: PadCreate, account: Account,
+        private func performCreate(_ body: PadCreate, account: Account, context: MenuBarCreateContext,
                                    client: CoderPadClient? = nil) async throws {
             let client = client ?? account.makeClient()
+            guard context.resolve(in: store.accounts) != nil else { throw MenuBarCreateError.accountChanged }
+
             let pad = try await client.createPad(body)
+            guard context.resolve(in: store.accounts) != nil else { throw MenuBarCreateError.accountChanged }
+
             // Publish the created pad to the shared cache (Spotlight, widget,
             // Dock badge) and to every mounted list (#1251).
             PadsCacheStore.shared.insertPad(pad, account: account.id, via: client)
