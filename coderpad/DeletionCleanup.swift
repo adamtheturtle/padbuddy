@@ -105,17 +105,33 @@ enum DeletionCleanup {
 
     /// The one account whose cached pads contain `id`, or nil when none or
     /// several do (an ambiguous cross-server collision must not be swept).
+    ///
+    /// Reads only the resident lists. `get` falls back to a synchronous whole-file
+    /// read and decode for every account not yet consulted — on the main actor, for
+    /// each account-less deletion broadcast (#2078). That is the same reason the
+    /// id-only cache sweeps stopped warming from disk (#2448), and launch prewarms
+    /// every account's snapshot anyway (#1769), so ownership still resolves on a
+    /// cold app. The scan stops at the second holder rather than filtering the whole
+    /// account list, since two holders already mean the deletion is dropped.
     private static func soleCachedHolder(ofPad id: String) -> UUID? {
-        let holders = AccountsStore.shared.accounts.filter { account in
-            PadsCacheStore.shared.get(account.id).contains { $0.id == id }
+        var holder: UUID?
+        for account in AccountsStore.shared.accounts
+            where PadsCacheStore.shared.cached(account.id).contains(where: { $0.id == id }) {
+            guard holder == nil else { return nil }
+
+            holder = account.id
         }
-        return holders.count == 1 ? holders.first?.id : nil
+        return holder
     }
 
     private static func soleCachedHolder(ofQuestion id: Int) -> UUID? {
-        let holders = AccountsStore.shared.accounts.filter { account in
-            QuestionsCacheStore.shared.get(account.id).contains { $0.id == id }
+        var holder: UUID?
+        for account in AccountsStore.shared.accounts
+            where QuestionsCacheStore.shared.cached(account.id).contains(where: { $0.id == id }) {
+            guard holder == nil else { return nil }
+
+            holder = account.id
         }
-        return holders.count == 1 ? holders.first?.id : nil
+        return holder
     }
 }
