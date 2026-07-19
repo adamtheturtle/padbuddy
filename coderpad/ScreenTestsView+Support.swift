@@ -14,7 +14,8 @@ import SwiftUI
 /// type-check budget (#443). `onDelete` carries the row action back to the view.
 struct ScreenTestActionAlerts: ViewModifier {
     @Binding var testPendingDelete: ScreenTestSession?
-    @Binding var actionError: String?
+    @Binding var actionErrors: [ScreenActionFailure]
+    @Binding var actionErrorPresented: Bool
     @Binding var showResentConfirmation: Bool
     let onDelete: (ScreenTestSession) -> Void
 
@@ -32,16 +33,44 @@ struct ScreenTestActionAlerts: ViewModifier {
                 Text("This permanently removes the candidate's test session. This can't be undone.")
             }
             .alert("Couldn't complete that action",
-                   isPresented: .init(get: { actionError != nil }, set: { if !$0 { actionError = nil } })) {
+                   isPresented: .init(get: { actionErrorPresented && !actionErrors.isEmpty },
+                                      set: { if !$0 { dismissFirstError() } })) {
                 Button("OK", role: .cancel) {}
             } message: {
-                Text(actionError ?? "")
+                Text(actionErrors.first?.detail ?? "")
             }
             .alert("Invitation resent", isPresented: $showResentConfirmation) {
                 Button("OK", role: .cancel) {}
             } message: {
                 Text("The candidate was emailed their invitation again.")
             }
+    }
+
+    private func dismissFirstError() {
+        actionErrorPresented = false
+        guard !actionErrors.isEmpty else { return }
+
+        actionErrors.removeFirst()
+        guard !actionErrors.isEmpty else { return }
+
+        Task { @MainActor in
+            await Task.yield()
+            actionErrorPresented = true
+        }
+    }
+}
+
+struct ScreenActionFailure: Equatable {
+    let operation: String
+    let testID: Int
+    let candidate: String
+    let accountName: String?
+    let reason: String
+
+    var detail: String {
+        let target = String(localized: "\(candidate) (session #\(testID))")
+        let scope = accountName.map { String(localized: " in account “\($0)”") } ?? ""
+        return String(localized: "\(operation) failed for \(target)\(scope).\n\n\(reason)")
     }
 }
 

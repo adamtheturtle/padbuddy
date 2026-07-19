@@ -56,7 +56,8 @@ struct ScreenTestsView: View {
     /// cancel can't run concurrently against the same invitation (#1854).
     @State var mutatingIDs: Set<Int> = []
     @State var testPendingDelete: ScreenTestSession?
-    @State var actionError: String?
+    @State var actionErrors: [ScreenActionFailure] = []
+    @State var actionErrorPresented = false
     @State var showResentConfirmation = false
     /// Identifies this view instance as the subtitle's publisher, so a disappearing
     /// instance can only clear a subtitle it still owns (#805).
@@ -71,7 +72,8 @@ struct ScreenTestsView: View {
             }
             .modifier(ScreenTestActionAlerts(
                 testPendingDelete: $testPendingDelete,
-                actionError: $actionError,
+                actionErrors: $actionErrors,
+                actionErrorPresented: $actionErrorPresented,
                 showResentConfirmation: $showResentConfirmation,
                 onDelete: { test in Task { await delete(test) } }
             ))

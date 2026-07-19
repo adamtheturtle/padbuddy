@@ -84,7 +84,7 @@ extension ScreenTestsView {
             try await client.resendTest(id: test.id)
             showResentConfirmation = true
         } catch {
-            actionError = message(for: error)
+            recordFailure(operation: String(localized: "Resend invitation"), test: test, error: error)
         }
     }
 
@@ -110,7 +110,7 @@ extension ScreenTestsView {
             refreshDerived()
             await load()
         } catch {
-            actionError = message(for: error)
+            recordFailure(operation: String(localized: "Cancel invitation"), test: test, error: error)
         }
     }
 
@@ -131,11 +131,22 @@ extension ScreenTestsView {
             refreshDerived()
             await load()
         } catch {
-            actionError = message(for: error)
+            recordFailure(operation: String(localized: "Delete test session"), test: test, error: error)
         }
     }
 
-    func message(for error: any Error) -> String {
-        (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
+    func recordFailure(operation: String, test: ScreenTestSession, error: any Error) {
+        let shouldPresent = actionErrors.isEmpty
+        let accountName = accountID.map { id in
+            AccountsStore.shared.accounts.first(where: { $0.id == id })?.name ?? id.uuidString
+        } ?? client.baseURL.host()
+        actionErrors.append(ScreenActionFailure(
+            operation: operation,
+            testID: test.id,
+            candidate: test.screenCandidateDisplay,
+            accountName: accountName,
+            reason: (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
+        ))
+        if shouldPresent { actionErrorPresented = true }
     }
 }
