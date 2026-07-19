@@ -376,6 +376,7 @@ extension MergedPadsView {
 
     private func persistFetchedPads(_ pads: [Pad], account: UUID, client: CoderPadClient) {
         guard accounts.isCurrentClient(client, for: account) else { return }
+
         cache.set(account, pads: pads, via: client)
         PadOpenedStore.shared.reconcile(account: account, presentPadIDs: Set(pads.map(\.id)))
     }
@@ -394,7 +395,6 @@ extension MergedPadsView {
         router.setPadRoutes(routes)
     }
 
-    // The row mutations (edit/delete/create) live in MergedPadsView+Mutations.swift
-    // and the open/delete row actions in MergedPadsView+Dialogs.swift (next to
-    // the confirmations that trigger them) to keep this file under the length lint.
+    // Row mutations live in MergedPadsView+Mutations.swift; open/delete actions live in
+    // MergedPadsView+Dialogs.swift beside their confirmations, keeping this file within lint limits.
 }
