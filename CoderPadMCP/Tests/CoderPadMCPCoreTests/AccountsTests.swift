@@ -87,12 +87,22 @@ struct AccountsTests {
     }
 
     @Test
-    func `config base URL accepts HTTP URLs with hosts`() throws {
+    func `config base URL rejects plaintext HTTP even with a host`() throws {
         let config: [String: Any] = ["accounts": [
             ["name": "Acme", "api_key": "a", "base_url": "http://coderpad.acme.internal"]
         ]]
-        let set = try makeAccountSet(config: config, environment: [:])
-        #expect(try #require(set.defaultAccount).baseURL.absoluteString == "http://coderpad.acme.internal")
+        #expect(throws: MCPConfigError.invalidBaseURL(
+            account: "Acme", baseURL: "http://coderpad.acme.internal"
+        )) {
+            try makeAccountSet(config: config, environment: [:])
+        }
+        #expect(throws: MCPConfigError.invalidBaseURL(
+            account: "default", baseURL: "http://localhost:3000"
+        )) {
+            try makeAccountSet(config: nil, environment: [
+                "CODERPAD_API_KEY": "a", "CODERPAD_BASE_URL": "http://localhost:3000"
+            ])
+        }
     }
 
     @Test

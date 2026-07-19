@@ -186,7 +186,7 @@ private func parseBaseURL(_ raw: String?, account: String) throws -> URL {
     guard
         let url = URL(string: value),
         let scheme = url.scheme?.lowercased(),
-        ["http", "https"].contains(scheme),
+        scheme == "https",
         let host = url.host(),
         !host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
         // A base URL is an origin plus optional path prefix - never a query,
