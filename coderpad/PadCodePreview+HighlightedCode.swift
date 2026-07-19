@@ -130,6 +130,17 @@ struct HighlightedCode: View, Equatable {
             copyResetTask?.cancel()
             didCopy = false
         }
+        .onDisappear {
+            // Invalidate the generation as well as cancelling: actor work may
+            // finish after cancellation, and must not publish rich clipboard data
+            // or feedback for a code view that no longer exists (#1914).
+            copyGeneration += 1
+            copyTask?.cancel()
+            copyTask = nil
+            copyResetTask?.cancel()
+            copyResetTask = nil
+            didCopy = false
+        }
         // Re-run only when the inputs change; a same-id task isn't restarted, so
         // an unrelated re-render won't re-highlight.
         .task(id: HighlightInput(contents: contents, language: language, dark: dark)) {
