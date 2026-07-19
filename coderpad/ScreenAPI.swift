@@ -184,10 +184,10 @@ nonisolated struct ScreenTestSession: Decodable, Identifiable, Hashable {
         candidateName = try? container.decodeIfPresent(String.self, forKey: .candidateName)
         candidateEmail = try? container.decodeIfPresent(String.self, forKey: .candidateEmail)
         tags = (try? container.decodeIfPresent([String].self, forKey: .tags)) ?? []
-        sendTime = try? container.decodeIfPresent(Int.self, forKey: .sendTime)
-        startTime = try? container.decodeIfPresent(Int.self, forKey: .startTime)
-        endTime = try? container.decodeIfPresent(Int.self, forKey: .endTime)
-        lastActivityTime = try? container.decodeIfPresent(Int.self, forKey: .lastActivityTime)
+        sendTime = try ScreenEpochMilliseconds.decode(from: container, forKey: .sendTime)
+        startTime = try ScreenEpochMilliseconds.decode(from: container, forKey: .startTime)
+        endTime = try ScreenEpochMilliseconds.decode(from: container, forKey: .endTime)
+        lastActivityTime = try ScreenEpochMilliseconds.decode(from: container, forKey: .lastActivityTime)
         testURL = try? container.decodeIfPresent(String.self, forKey: .testURL)
         candidateLanguage = try? container.decodeIfPresent(String.self, forKey: .candidateLanguage)
         questions = (try? container.decodeIfPresent([ScreenTestQuestion].self, forKey: .questions)) ?? []
@@ -211,34 +211,6 @@ nonisolated struct ScreenTestSession: Decodable, Identifiable, Hashable {
     }
 }
 
-extension ScreenTestSession {
-    /// When the invitation was sent.
-    var sendDate: Date? {
-        Self.date(fromMilliseconds: sendTime)
-    }
-
-    /// When the candidate started the test.
-    var startDate: Date? {
-        Self.date(fromMilliseconds: startTime)
-    }
-
-    /// When the candidate finished (or the test was aborted).
-    var endDate: Date? {
-        Self.date(fromMilliseconds: endTime)
-    }
-
-    /// The candidate's most recent activity.
-    var lastActivityDate: Date? {
-        Self.date(fromMilliseconds: lastActivityTime)
-    }
-
-    private static func date(fromMilliseconds millis: Int?) -> Date? {
-        guard let millis else { return nil }
-
-        return Date(timeIntervalSince1970: Double(millis) / 1000)
-    }
-}
-
 /// A question within a test session and when the candidate last touched it.
 nonisolated struct ScreenTestQuestion: Decodable, Identifiable, Hashable {
     let id: Int
@@ -247,7 +219,7 @@ nonisolated struct ScreenTestQuestion: Decodable, Identifiable, Hashable {
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(Int.self, forKey: .id)
-        lastActivityTime = try? container.decodeIfPresent(Int.self, forKey: .lastActivityTime)
+        lastActivityTime = try ScreenEpochMilliseconds.decode(from: container, forKey: .lastActivityTime)
     }
 
     enum CodingKeys: String, CodingKey {
