@@ -182,14 +182,17 @@ enum CommandPaletteBuilder {
     /// pad slugs are only unique per server, so two custom servers can share one and
     /// the bare slug could select the wrong account's row (#758).
     private static func jump(toPad id: String, in account: UUID) {
-        if AccountsStore.shared.isMergedView,
-           AccountsStore.shared.accounts.contains(where: { $0.id == account }) {
+        // Palette actions capture cached results. The account can be removed before
+        // the user invokes one, and a bare pad slug must never fall through into the
+        // remaining current account in that case (#1981).
+        guard AccountsStore.shared.accounts.contains(where: { $0.id == account }) else { return }
+
+        if AccountsStore.shared.isMergedView {
             AppNavigation.shared.sectionRequest = .pads
             AppNavigation.shared.selectMergedFavoritePad(account: account, id: id)
             return
         }
-        if AccountsStore.shared.currentAccountID != account,
-           AccountsStore.shared.accounts.contains(where: { $0.id == account }) {
+        if AccountsStore.shared.currentAccountID != account {
             AccountsStore.shared.currentAccountID = account
         }
         AppNavigation.shared.showFavoritePad(id: id)
