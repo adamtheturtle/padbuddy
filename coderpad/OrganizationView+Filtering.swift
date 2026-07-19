@@ -99,7 +99,19 @@ extension OrganizationView {
     /// one and show stats for the wrong window.
     func scheduleStatsReload() {
         statsTask?.cancel()
-        statsTask = Task { await reloadStats() }
+        statsTask = Task {
+            // Settle first. Cancelling the previous task doesn't recall a request
+            // that already left, so dragging a custom date picker — which emits a
+            // value per step — fired one stats request per intermediate date (#2384).
+            // A cancelled sleep returns before any request is made.
+            do {
+                try await Task.sleep(for: .milliseconds(350))
+            } catch {
+                return
+            }
+
+            await reloadStats()
+        }
     }
 
     /// Refetches just the stats when the period changes, leaving the rest of the

@@ -354,7 +354,19 @@ private extension MergedOrganizationView {
 
     func scheduleStatsReload() {
         statsTask?.cancel()
-        statsTask = Task { await reloadStats() }
+        statsTask = Task {
+            // Settle first, like the single-account view: cancelling doesn't recall a
+            // request already in flight, and here each one fans out across every
+            // account — so a dragged date picker multiplied by the account count
+            // (#2384). A cancelled sleep returns before any request is made.
+            do {
+                try await Task.sleep(for: .milliseconds(350))
+            } catch {
+                return
+            }
+
+            await reloadStats()
+        }
     }
 
     /// Refetch just the stats for the new window across every account, leaving the
