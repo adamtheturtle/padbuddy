@@ -20,6 +20,7 @@ struct ScreenWebhookSheet: View {
     @State private var isSaving = false
     @State private var error: String?
     @State private var confirmRemove = false
+    @State private var isValidHTTPS = false
     /// The in-flight save/remove, cancelled if the sheet is torn down
     /// programmatically so the mutation can't finish invisibly (#1850).
     @State private var mutationTask: Task<Void, Never>?
@@ -90,6 +91,9 @@ struct ScreenWebhookSheet: View {
                 .textFieldStyle(.roundedBorder)
                 .autocorrectionDisabled()
                 .accessibilityLabel("Webhook URL")
+                .onChange(of: url, initial: true) { _, newValue in
+                    isValidHTTPS = Self.validateHTTPSURL(newValue)
+                }
                 // Return in the field commits the webhook, like the Save button (#469).
                 // A focused TextField swallows Return, so the default-action shortcut on
                 // Save alone doesn't fire while the field has focus.
@@ -155,7 +159,7 @@ struct ScreenWebhookSheet: View {
     /// remote Screen service into an SSRF client against it (#1848). A query is
     /// allowed (real webhook endpoints carry auth tokens there) but counts
     /// against the length bound.
-    private var isValidHTTPS: Bool {
+    private static func validateHTTPSURL(_ url: String) -> Bool {
         let trimmed = url.trimmingCharacters(in: .whitespacesAndNewlines)
         guard trimmed.count <= 2_048,
               let parsed = URL(string: trimmed),
