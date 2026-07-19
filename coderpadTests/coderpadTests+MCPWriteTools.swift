@@ -177,14 +177,14 @@ struct MCPWriteToolsTests {
     }
 
     @Test
-    func `successful writes invalidate the selected account cache`() {
+    func `successful writes invalidate the selected account cache`() async {
         let account = UUID()
-        let kind = "mcp-write-test-\(UUID().uuidString)"
+        let kind = "pads"
         CacheDisk.save(["stale"], kind: kind, account: account)
         #expect(CacheDisk.load([String].self, kind: kind, account: account) == ["stale"])
 
-        let success = MCPTools.invalidateCache(
-            kind: kind,
+        let success = await MCPTools.invalidateCache(
+            kind: .pads,
             accountID: account.uuidString,
             after: MCPTools.Outcome(text: "OK", isError: false)
         )
@@ -193,19 +193,43 @@ struct MCPWriteToolsTests {
     }
 
     @Test
-    func `failed writes keep the selected account cache`() {
+    func `failed writes keep the selected account cache`() async {
         let account = UUID()
-        let kind = "mcp-write-test-\(UUID().uuidString)"
+        let kind = "pads"
         CacheDisk.save(["stale"], kind: kind, account: account)
         #expect(CacheDisk.load([String].self, kind: kind, account: account) == ["stale"])
 
-        let failure = MCPTools.invalidateCache(
-            kind: kind,
+        let failure = await MCPTools.invalidateCache(
+            kind: .pads,
             accountID: account.uuidString,
             after: MCPTools.Outcome(text: "HTTP 500", isError: true)
         )
         #expect(failure.isError)
         #expect(CacheDisk.load([String].self, kind: kind, account: account) == ["stale"])
         CacheDisk.delete(kind: kind, account: account)
+    }
+
+    @Test @MainActor
+    func `successful write clears only its in-memory list kind`() async throws {
+        let account = Account(name: "MCP cache test", apiKey: "key-\(UUID().uuidString)")
+        AccountsStore.shared.add(account)
+        defer { AccountsStore.shared.remove(id: account.id) }
+        let client = account.makeClient()
+        let pad = Pad(id: "pad-\(UUID().uuidString)", title: "Stale")
+        let questionData = try JSONSerialization.data(withJSONObject: ["id": 91827, "title": "Stale"])
+        let question = try CoderPadClient.decoder.decode(Question.self, from: questionData)
+        PadsCacheStore.shared.set(account.id, pads: [pad], via: client)
+        QuestionsCacheStore.shared.set(account.id, questions: [question], via: client)
+        let padGeneration = PadsCacheStore.shared.writeGeneration[account.id] ?? 0
+
+        _ = await MCPTools.invalidateCache(
+            kind: .pads,
+            accountID: account.id.uuidString,
+            after: MCPTools.Outcome(text: "OK", isError: false)
+        )
+
+        #expect(PadsCacheStore.shared.cached(account.id).isEmpty)
+        #expect(QuestionsCacheStore.shared.cached(account.id) == [question])
+        #expect(PadsCacheStore.shared.writeGeneration[account.id] == padGeneration + 1)
     }
 }

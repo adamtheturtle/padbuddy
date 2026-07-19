@@ -17,6 +17,11 @@
 import Foundation
 
 nonisolated extension MCPTools {
+    enum WriteCacheKind: String {
+        case pads
+        case questions
+    }
+
     /// Routes a write tool to its CoderPad endpoint. Reached only after `run` has confirmed
     /// the opt-in and resolved the account, so the gating lives in one place.
     static func dispatchWrite(
@@ -29,29 +34,40 @@ nonisolated extension MCPTools {
         switch name {
         case "create_pad":
             let outcome = await createPad(arguments: arguments, key: key, base: base)
-            return invalidateCache(kind: "pads", accountID: accountID, after: outcome)
+            return await invalidateCache(kind: .pads, accountID: accountID, after: outcome)
 
         case "update_pad":
             let outcome = await updatePad(arguments: arguments, key: key, base: base)
-            return invalidateCache(kind: "pads", accountID: accountID, after: outcome)
+            return await invalidateCache(kind: .pads, accountID: accountID, after: outcome)
 
         case "create_question":
             let outcome = await createQuestion(arguments: arguments, key: key, base: base)
-            return invalidateCache(kind: "questions", accountID: accountID, after: outcome)
+            return await invalidateCache(kind: .questions, accountID: accountID, after: outcome)
 
         case "update_question":
             let outcome = await updateQuestion(arguments: arguments, key: key, base: base)
-            return invalidateCache(kind: "questions", accountID: accountID, after: outcome)
+            return await invalidateCache(kind: .questions, accountID: accountID, after: outcome)
 
         default:
             return Outcome(text: "Unknown tool: \(name)", isError: true)
         }
     }
 
-    static func invalidateCache(kind: String, accountID: String, after outcome: Outcome) -> Outcome {
+    static func invalidateCache(
+        kind: WriteCacheKind, accountID: String, after outcome: Outcome
+    ) async -> Outcome {
         guard !outcome.isError, let account = UUID(uuidString: accountID) else { return outcome }
 
-        CacheDisk.delete(kind: kind, account: account)
+        await MainActor.run {
+            switch kind {
+            case .pads: PadsCacheStore.shared.invalidateSnapshot(account)
+            case .questions: QuestionsCacheStore.shared.invalidateSnapshot(account)
+            }
+        }
+        // The stores serialize their own deletion against prior writes; this immediate
+        // delete also guarantees the successful MCP reply cannot be followed by a
+        // synchronous disk fallback to the pre-write snapshot.
+        CacheDisk.delete(kind: kind.rawValue, account: account)
         return outcome
     }
 

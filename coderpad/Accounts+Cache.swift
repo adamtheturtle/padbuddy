@@ -153,6 +153,27 @@ final class PadsCacheStore {
         set(accountID, pads: [pad] + pads, via: client)
     }
 
+    /// Drops a list snapshot after a successful out-of-band mutation (the MCP
+    /// server), forcing the next reader to obtain authoritative server state.
+    func invalidateSnapshot(_ accountID: UUID) {
+        let stale = padsByAccount.removeValue(forKey: accountID) ?? []
+        writeGeneration[accountID, default: 0] += 1
+        diskConsulted.insert(accountID)
+        let persistenceEpoch = persistenceEpochs.advance(for: accountID)
+        let epochStore = persistenceEpochs
+        writeQueue.enqueue(coalescingKey: "pads.\(accountID.uuidString)") {
+            guard epochStore.isCurrent(persistenceEpoch, for: accountID) else { return }
+
+            CacheDisk.delete(kind: "pads", account: accountID)
+        }
+        for pad in stale {
+            SpotlightIndexer.removePad(id: pad.id, account: accountID)
+        }
+        WidgetSync.refresh(pads: [], account: accountID,
+                           isCurrent: accountID == AccountsStore.shared.currentAccount?.id)
+        DockBadgeController.refresh()
+    }
+
     /// `isRekey: true` drops the widget snapshot without tombstoning the account:
     /// a re-keyed account persists, so the removal tombstone (never cleared for a
     /// still-present account) would silently block every future widget refresh and
@@ -323,6 +344,23 @@ final class QuestionsCacheStore {
             guard epochStore.isCurrent(persistenceEpoch, for: accountID) else { return }
 
             CacheDisk.delete(kind: "questions", account: accountID)
+        }
+    }
+
+    /// Question counterpart to ``PadsCacheStore/invalidateSnapshot(_:)``.
+    func invalidateSnapshot(_ accountID: UUID) {
+        let stale = questionsByAccount.removeValue(forKey: accountID) ?? []
+        writeGeneration[accountID, default: 0] += 1
+        diskConsulted.insert(accountID)
+        let persistenceEpoch = persistenceEpochs.advance(for: accountID)
+        let epochStore = persistenceEpochs
+        writeQueue.enqueue(coalescingKey: "questions.\(accountID.uuidString)") {
+            guard epochStore.isCurrent(persistenceEpoch, for: accountID) else { return }
+
+            CacheDisk.delete(kind: "questions", account: accountID)
+        }
+        for question in stale {
+            SpotlightIndexer.removeQuestion(id: question.id, account: accountID)
         }
     }
 
