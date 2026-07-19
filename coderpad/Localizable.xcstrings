@@ -1093,6 +1093,9 @@
         }
       }
     },
+    "Add a CoderPad account to load this section." : {
+
+    },
     "Add account" : {
       "localizations" : {
         "es" : {
@@ -4483,6 +4486,9 @@
           }
         }
       }
+    },
+    "No accounts configured" : {
+
     },
     "No API key" : {
       "localizations" : {
