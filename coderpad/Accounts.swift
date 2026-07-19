@@ -124,10 +124,12 @@ extension Account: StorableAccount {
         accountsKey: Keychain.accountsAccount,
         currentIDDefaultsKey: "currentAccountID",
         showAllAccountsDefaultsKey: "showAllAccounts",
-        encode: { try? JSONEncoder().encode($0) },
+        encode: { try? Keychain.accountEncoder.encode($0) },
         // Decode element-by-element so a single corrupt account is dropped rather
         // than failing the whole store.
-        decode: { (try? JSONDecoder().decode([LenientElement<Account>].self, from: $0))?.compactMap(\.value) ?? [] },
+        decode: {
+            (try? Keychain.accountDecoder.decode([LenientElement<Account>].self, from: $0))?.compactMap(\.value) ?? []
+        },
         isTestingMode: coderpadIsUITesting,
         seedForTesting: { [.demo()] },
         migrateIfEmpty: {
@@ -141,7 +143,7 @@ extension Account: StorableAccount {
         },
         onAccountsChanged: { accounts in
             if !coderpadIsUITesting {
-                Keychain.mirrorAccountsToiCloudKeychain(try? JSONEncoder().encode(accounts))
+                Keychain.mirrorAccountsToiCloudKeychain(try? Keychain.accountEncoder.encode(accounts))
             }
             // Keep the widget's configuration picker in step with adds, removes, and
             // renames. Takes the array directly — the Observation macro fires this during

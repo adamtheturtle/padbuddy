@@ -17,6 +17,16 @@ import Security
 /// store still writes this local item for the #451/#460 Developer ID constraints; this
 /// facade mirrors the same account snapshot through iCloud Keychain (#678).
 nonisolated enum Keychain {
+    /// Shared coders for the accounts snapshot.
+    ///
+    /// The store's config closures allocated a fresh `JSONEncoder`/`JSONDecoder` on
+    /// every save and load, and the iCloud mirror allocated another — all of which run
+    /// again on each add, remove, rename, and current-account switch (#2446).
+    /// `JSONEncoder`/`JSONDecoder` are value-semantic and stateless once configured,
+    /// so one of each is safe to share.
+    static let accountEncoder = JSONEncoder()
+    static let accountDecoder = JSONDecoder()
+
     static let service = "com.coderpad.app"
     static let accountsAccount = "accounts"
     /// A wall-clock revision stamp written alongside each accounts snapshot (locally

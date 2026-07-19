@@ -267,17 +267,40 @@ private enum DirectoryCache {
     private nonisolated struct Snapshot: Codable {
         let names: [String: String]
         let savedAt: Date
+
+        init(names: [String: String], savedAt: Date) {
+            self.names = names
+            self.savedAt = savedAt
+        }
+
+        /// Accepts the current envelope *or* the legacy bare `[String: String]` map.
+        ///
+        /// `load` used to decode the envelope, and on failure read and decode the very
+        /// same file a second time as the legacy shape — two synchronous disk reads per
+        /// mergeable account during cold-launch seeding, on the main actor (#2449).
+        /// Handling both here means one read either way. A legacy snapshot carries no
+        /// timestamp, so it is treated as fresh, exactly as the separate legacy path
+        /// did by skipping the age check.
+        init(from decoder: any Decoder) throws {
+            if let container = try? decoder.container(keyedBy: CodingKeys.self),
+               let names = try? container.decode([String: String].self, forKey: .names) {
+                self.names = names
+                savedAt = try container.decodeIfPresent(Date.self, forKey: .savedAt) ?? Date()
+                return
+            }
+
+            names = try decoder.singleValueContainer().decode([String: String].self)
+            savedAt = Date()
+        }
     }
 
     private nonisolated static let maxAge: TimeInterval = 30 * 24 * 60 * 60
 
     nonisolated static func load(account: UUID) -> [String: String] {
-        if let snapshot = CacheDisk.load(Snapshot.self, kind: "directory", account: account) {
-            guard Date().timeIntervalSince(snapshot.savedAt) <= maxAge else { return [:] }
+        guard let snapshot = CacheDisk.load(Snapshot.self, kind: "directory", account: account) else { return [:] }
+        guard Date().timeIntervalSince(snapshot.savedAt) <= maxAge else { return [:] }
 
-            return snapshot.names
-        }
-        return CacheDisk.load([String: String].self, kind: "directory", account: account) ?? [:]
+        return snapshot.names
     }
 
     nonisolated static func save(_ map: [String: String], account: UUID) {
