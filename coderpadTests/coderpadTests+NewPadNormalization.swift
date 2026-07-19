@@ -162,3 +162,35 @@ struct OrganizationPortalURLTests {
         #expect(OrganizationView.portalURL("not a url") == nil)
     }
 }
+
+@Suite("Favorite question shortcut identity (#2359)")
+struct FavoriteQuestionEntityIDTests {
+    @Test
+    func `the key fingerprint is dropped from a sync identifier`() {
+        // syncID is endpoint|email|fingerprint, so the entity id is
+        // sync|endpoint|email|fingerprint|question. Rotating the key changes only
+        // the fingerprint, and configured Shortcuts must survive that (#2359).
+        let before = "sync|https://app.coderpad.io|me@example.com|abc123|42"
+        let after = "sync|https://app.coderpad.io|me@example.com|def456|42"
+        #expect(FavoriteQuestionQuery.keyIndependentID(before)
+            == FavoriteQuestionQuery.keyIndependentID(after))
+    }
+
+    @Test
+    func `a different question or account still differs`() {
+        let base = "sync|https://app.coderpad.io|me@example.com|abc123|42"
+        let otherQuestion = "sync|https://app.coderpad.io|me@example.com|abc123|43"
+        let otherAccount = "sync|https://app.coderpad.io|other@example.com|abc123|42"
+        #expect(FavoriteQuestionQuery.keyIndependentID(base)
+            != FavoriteQuestionQuery.keyIndependentID(otherQuestion))
+        #expect(FavoriteQuestionQuery.keyIndependentID(base)
+            != FavoriteQuestionQuery.keyIndependentID(otherAccount))
+    }
+
+    @Test
+    func `a legacy or unrecognized identifier passes through unchanged`() {
+        let legacy = "\(UUID().uuidString):42"
+        #expect(FavoriteQuestionQuery.keyIndependentID(legacy) == legacy)
+        #expect(FavoriteQuestionQuery.keyIndependentID("").isEmpty)
+    }
+}
