@@ -249,6 +249,8 @@ struct EnvironmentCodeCard: View {
     @State var explanationFailed = false
     @State var isExplaining = false
     @State var showExplanation = false
+    /// Retained so leaving/replacing this card cancels model work (#1900).
+    @State var explanationTask: Task<Void, Never>?
     /// A failed code download/export to report (#791); non-nil presents an alert.
     @State var exportError: String?
     /// Presents the code in a large, full-screen viewer so the source can be read
@@ -313,6 +315,7 @@ struct EnvironmentCodeCard: View {
             // externally edited persisted state for every later card (#1888).
             storedWidth = sidebarWidth
         }
+        .onDisappear(perform: cancelExplanation)
         // When the environment's files change (added/removed/renamed — ids are
         // path-based), clear the retained selection so `selected` falls back to the
         // first file rather than pointing at a stale or wrong file. An in-place
@@ -349,6 +352,7 @@ struct EnvironmentCodeCard: View {
     }
 
     private func clearExplanation() {
+        cancelExplanation()
         showExplanation = false
         explanation = nil
         explanationKey = nil

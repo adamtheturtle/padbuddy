@@ -243,7 +243,7 @@ extension EnvironmentCodeCard {
     /// user taps. Disabled while a generation is in flight.
     private var explainButton: some View {
         Button {
-            Task { await explainSelected() }
+            startExplanation()
         } label: {
             if isExplaining {
                 ProgressView()
@@ -289,7 +289,7 @@ extension EnvironmentCodeCard {
                             .font(.callout)
                             .foregroundStyle(.secondary)
                         Button("Try Again") {
-                            Task { await explainSelected() }
+                            startExplanation()
                         }
                         .disabled(isExplaining)
                     }
@@ -299,6 +299,19 @@ extension EnvironmentCodeCard {
         }
         .padding(14)
         .frame(width: 320, height: 300)
+    }
+
+    /// Starts one owned generation task. Retaining it lets the card cancel model
+    /// work when it disappears or its file revision is replaced (#1900).
+    private func startExplanation() {
+        explanationTask?.cancel()
+        explanationTask = Task { await explainSelected() }
+    }
+
+    func cancelExplanation() {
+        explanationTask?.cancel()
+        explanationTask = nil
+        isExplaining = false
     }
 
     /// One titled paragraph of the explanation popover. Hidden when empty so a
@@ -341,6 +354,7 @@ extension EnvironmentCodeCard {
         // Only present/cache for the exact file revision still on screen. If the
         // user moved away, or a refresh changed the same path's contents/language,
         // the result belongs to stale input (#749, #937).
+        guard !Task.isCancelled else { return }
         guard selected.explanationKey == key else { return }
 
         if let result {
