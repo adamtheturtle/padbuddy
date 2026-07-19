@@ -103,7 +103,7 @@ private func apiGet(_ path: String, account: MCPAccount, query: [URLQueryItem] =
     do {
         let (data, response) = try await URLSession.shared.data(for: request)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
-        return APIResponse(status: status, body: String(decoding: data, as: UTF8.self))
+        return APIResponse(status: status, data: data)
     } catch {
         return APIResponse(status: 0, body: "Request to \(path) failed: \(error.localizedDescription)")
     }
@@ -138,7 +138,7 @@ private func apiSend(_ method: String, _ path: String, account: MCPAccount, body
     do {
         let (data, response) = try await URLSession.shared.data(for: request)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
-        return APIResponse(status: status, body: String(decoding: data, as: UTF8.self))
+        return APIResponse(status: status, data: data)
     } catch {
         return APIResponse(status: 0, body: "Request to \(path) failed: \(error.localizedDescription)")
     }
@@ -171,7 +171,7 @@ private func screenGet(_ path: String, account: MCPAccount, query: [URLQueryItem
     do {
         let (data, response) = try await URLSession.shared.data(for: request)
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
-        return APIResponse(status: status, body: String(decoding: data, as: UTF8.self))
+        return APIResponse(status: status, data: data)
     } catch {
         return APIResponse(status: 0, body: "Request to \(path) failed: \(error.localizedDescription)")
     }
@@ -468,7 +468,7 @@ private func whoami(account: MCPAccount) async -> CallTool.Result {
     ]
 
     let org = await apiGet("/api/organization", account: account)
-    if org.ok, let object = jsonObject(org.body), let name = object["organization_name"] as? String {
+    if org.ok, let object = jsonObject(org.data), let name = object["organization_name"] as? String {
         info["organization_name"] = name
     } else {
         info["organization_note"] = "Could not fetch the organization name from the API."
@@ -491,7 +491,7 @@ private func padCodeJSON(id: String, maxFileChars: Int?, account: MCPAccount) as
     guard padResponse.ok else {
         throw MCPError.internalError("HTTP \(padResponse.status)\n\(padResponse.body)")
     }
-    guard let pad = jsonObject(padResponse.body) else {
+    guard let pad = jsonObject(padResponse.data) else {
         throw MCPError.internalError("Could not parse the pad response as JSON.")
     }
 
@@ -503,12 +503,12 @@ private func padCodeJSON(id: String, maxFileChars: Int?, account: MCPAccount) as
     let ids = environmentIDs(in: pad)
     // The response bodies cross the task boundary, not the parsed objects:
     // `[String: Any]` is not Sendable, so parsing happens on the collecting side.
-    var bodies: [Int: String] = [:]
-    await withTaskGroup(of: (offset: Int, body: String?).self) { group in
+    var bodies: [Int: Data] = [:]
+    await withTaskGroup(of: (offset: Int, body: Data?).self) { group in
         for (offset, environmentID) in ids.enumerated() {
             group.addTask {
                 let response = await apiGet("/api/pad_environments/\(environmentID)", account: account)
-                return (offset, response.ok ? response.body : nil)
+                return (offset, response.ok ? response.data : nil)
             }
         }
         for await result in group {
@@ -623,7 +623,7 @@ private func fetchAllPads(account: MCPAccount, consume: ([[String: Any]]) -> Voi
         var query: [URLQueryItem] = []
         if let page { query.append(URLQueryItem(name: "page", value: page)) }
         let response = await apiGet("/api/pads/", account: account, query: query)
-        guard response.ok, let object = jsonObject(response.body) else {
+        guard response.ok, let object = jsonObject(response.data) else {
             scan.error = response
             return scan
         }
@@ -752,7 +752,7 @@ private func listPadsCompact(arguments: [String: Value]?, account: MCPAccount) a
     if let error = pageValidationError(intArgument(arguments, "page")) { return errorResult(error) }
 
     let response = await apiGet("/api/pads/", account: account, query: pagingQuery(arguments))
-    guard response.ok, let object = jsonObject(response.body) else { return toolResult(response) }
+    guard response.ok, let object = jsonObject(response.data) else { return toolResult(response) }
     guard let pads = object["pads"] as? [[String: Any]] else {
         return errorResult(invalidListResponseMessage("/api/pads/", expecting: "pads", body: response.body))
     }
@@ -791,7 +791,7 @@ private func fetchAllQuestions(account: MCPAccount, consume: ([[String: Any]]) -
         var query: [URLQueryItem] = []
         if let page { query.append(URLQueryItem(name: "page", value: page)) }
         let response = await apiGet("/api/questions/", account: account, query: query)
-        guard response.ok, let object = jsonObject(response.body) else {
+        guard response.ok, let object = jsonObject(response.data) else {
             scan.error = response
             return scan
         }
@@ -925,7 +925,7 @@ private func listQuestionsCompact(arguments: [String: Value]?, account: MCPAccou
     if let error = pageValidationError(intArgument(arguments, "page")) { return errorResult(error) }
 
     let response = await apiGet("/api/questions/", account: account, query: pagingQuery(arguments))
-    guard response.ok, let object = jsonObject(response.body) else { return toolResult(response) }
+    guard response.ok, let object = jsonObject(response.data) else { return toolResult(response) }
     guard let questions = object["questions"] as? [[String: Any]] else {
         return errorResult(invalidListResponseMessage("/api/questions/", expecting: "questions", body: response.body))
     }

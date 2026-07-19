@@ -17,11 +17,26 @@ import Foundation
 /// server resilient to schema additions.
 public struct APIResponse: Sendable {
     public let status: Int
-    public let body: String
 
-    public init(status: Int, body: String) {
+    /// The raw response bytes. Kept rather than eagerly stringified so JSON callers can
+    /// parse them directly instead of paying a Data -> String -> Data round-trip on every
+    /// parsed call — which the count/aggregate tools make once per page (#2120).
+    public let data: Data
+
+    public init(status: Int, data: Data) {
         self.status = status
-        self.body = body
+        self.data = data
+    }
+
+    /// Locally synthesized failures (an unbuildable URL, a transport error) carry a
+    /// message rather than a payload; it is stored as bytes so callers see one shape.
+    public init(status: Int, body: String) {
+        self.init(status: status, data: Data(body.utf8))
+    }
+
+    /// The body as text, decoded on demand for the paths that hand it to the model.
+    public var body: String {
+        String(decoding: data, as: UTF8.self)
     }
 
     public var ok: Bool {

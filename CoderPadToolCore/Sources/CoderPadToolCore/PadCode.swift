@@ -13,9 +13,15 @@ import Foundation
 /// the code tools pull fields out of the verbatim API JSON without binding to a rigid
 /// Codable schema (keeping them resilient to API additions).
 public func jsonObject(_ body: String) -> [String: Any]? {
-    guard let data = body.data(using: .utf8),
-          let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
-    else { return nil }
+    jsonObject(Data(body.utf8))
+}
+
+/// The raw-bytes form: callers holding an HTTP response body parse it directly rather
+/// than stringifying it only for this function to encode it back to `Data` (#2120).
+public func jsonObject(_ data: Data) -> [String: Any]? {
+    guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+        return nil
+    }
 
     return object
 }

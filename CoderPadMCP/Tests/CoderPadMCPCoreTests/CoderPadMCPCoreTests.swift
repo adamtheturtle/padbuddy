@@ -550,4 +550,15 @@ struct PadCodeTests {
         #expect(jsonObject("[1,2,3]") == nil)
         #expect(jsonObject("not json") == nil)
     }
+
+    @Test
+    func `an APIResponse exposes the same body whether built from bytes or text (#2120)`() {
+        let fromBytes = APIResponse(status: 200, data: Data(#"{"a":1}"#.utf8))
+        #expect(fromBytes.body == #"{"a":1}"#)
+        #expect(jsonObject(fromBytes.data)?["a"] as? Int == 1)
+
+        let fromText = APIResponse(status: 0, body: "Request failed")
+        #expect(fromText.body == "Request failed")
+        #expect(jsonObject(fromText.data) == nil)
+    }
 }
