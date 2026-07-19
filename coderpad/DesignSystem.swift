@@ -43,19 +43,19 @@ extension Spacing {
 }
 
 extension AppSection {
-    var label: LocalizedStringKey {
+    var label: String {
         switch self {
-        case .pads: "Pads"
-        case .questions: "Questions"
-        case .organization: "Organization"
-        case .quota: "Quota"
-        case .screen: "Screen"
+        case .pads: String(localized: "Pads")
+        case .questions: String(localized: "Questions")
+        case .organization: String(localized: "Organization")
+        case .quota: String(localized: "Quota")
+        case .screen: String(localized: "Screen")
         }
     }
 
-    var shortLabel: LocalizedStringKey {
+    var shortLabel: String {
         switch self {
-        case .organization: "Org"
+        case .organization: String(localized: "Org")
         default: label
         }
     }

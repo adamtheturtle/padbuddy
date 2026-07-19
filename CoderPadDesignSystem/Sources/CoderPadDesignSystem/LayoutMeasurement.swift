@@ -46,9 +46,15 @@ public extension View {
 /// rather than relying on a hand-tuned constant that breaks when labels or the
 /// row font change. Reduces to the widest reporter.
 public struct SidebarRowWidthKey: PreferenceKey {
+    public static let maximumValue: CGFloat = 230
+    public static let maximumLabelLength = 80
     public static let defaultValue: CGFloat = 0
     public static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = max(value, nextValue())
+        value = min(maximumValue, max(value, nextValue()))
+    }
+
+    public static func boundedLabel(_ label: String) -> String {
+        String(label.prefix(maximumLabelLength))
     }
 }
 
@@ -57,9 +63,9 @@ public extension View {
     /// `SidebarRowWidthKey`. Measures a hidden, `fixedSize` copy of the text so the
     /// reported width is the *untruncated* width even though the visible row is
     /// line-limited — attach to each row and the key's `max` yields the widest.
-    func measuresSidebarRowWidth(_ label: LocalizedStringKey) -> some View {
+    func measuresSidebarRowWidth(_ label: String) -> some View {
         background(
-            Text(label)
+            Text(SidebarRowWidthKey.boundedLabel(label))
                 .font(.body)
                 .fixedSize()
                 .hidden()
