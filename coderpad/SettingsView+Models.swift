@@ -94,6 +94,7 @@ enum BrowserSettings {
         #if os(macOS)
             let config = NSWorkspace.OpenConfiguration()
             config.activates = !openInBackground
+            let requestedBundleID = defaultBrowserBundleID
             var chosenAppURL: URL?
             if let bundleID = validatedBrowserBundleID() {
                 chosenAppURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID)
@@ -111,6 +112,16 @@ enum BrowserSettings {
                     )
                 }
             }
+            if usesUnexpectedBrowserFallback(requestedBundleID: requestedBundleID,
+                                             chosenAppURL: chosenAppURL) {
+                let alert = NSAlert()
+                alert.alertStyle = .warning
+                alert.messageText = String(localized: "Your chosen browser isn’t available")
+                alert.informativeText = String(localized: "This link will open in your system default browser instead.")
+                alert.addButton(withTitle: String(localized: "Continue"))
+                alert.addButton(withTitle: String(localized: "Cancel"))
+                guard alert.runModal() == .alertFirstButtonReturn else { return }
+            }
             let appURL = chosenAppURL ?? NSWorkspace.shared.urlForApplication(toOpen: probeURL)
             if let appURL {
                 NSWorkspace.shared.open([url], withApplicationAt: appURL, configuration: config)
@@ -123,6 +134,10 @@ enum BrowserSettings {
             // macOS-only affordances and don't apply here.
             UIApplication.shared.open(url)
         #endif
+    }
+
+    static func usesUnexpectedBrowserFallback(requestedBundleID: String?, chosenAppURL: URL?) -> Bool {
+        requestedBundleID != nil && chosenAppURL == nil
     }
 
     /// Cached result of the LaunchServices scan.

@@ -385,4 +385,16 @@ struct BrowserOpenGatingTests {
     func `a hostless address is refused`() throws {
         #expect(try !BrowserSettings.isOpenableWebURL(#require(URL(string: "https:///path"))))
     }
+
+    @Test
+    func `a missing selected browser requires an explicit fallback warning`() throws {
+        let installed = try #require(URL(string: "file:///Applications/Browser.app"))
+        #expect(BrowserSettings.usesUnexpectedBrowserFallback(
+            requestedBundleID: "com.example.browser", chosenAppURL: nil
+        ))
+        #expect(!BrowserSettings.usesUnexpectedBrowserFallback(
+            requestedBundleID: "com.example.browser", chosenAppURL: installed
+        ))
+        #expect(!BrowserSettings.usesUnexpectedBrowserFallback(requestedBundleID: nil, chosenAppURL: nil))
+    }
 }
