@@ -231,12 +231,13 @@ struct ResourcesTests {
     }
 
     @Test
-    func `parseResourceURI decodes percent-encoded ids`() {
-        #expect(parseResourceURI("coderpad://pad/a%20b") == .pad("a b"))
+    func `parseResourceURI accepts canonical pad ids`() {
+        #expect(parseResourceURI("coderpad://pad/abc-123_X") == .pad("abc-123_X"))
         #expect(
-            parseResourceURI("coderpad://account/Acme%20EU/pad/a%20b")
-                == .accountPad(account: "Acme EU", id: "a b")
+            parseResourceURI("coderpad://account/Acme%20EU/pad/a%62c")
+                == .accountPad(account: "Acme EU", id: "abc")
         )
+        #expect(parseResourceURI("coderpad://pad/\(String(repeating: "a", count: 64))") != nil)
     }
 
     @Test
@@ -245,7 +246,15 @@ struct ResourcesTests {
         #expect(parseResourceURI("coderpad://account/Team%20A%2FB/quota") == .accountQuota("Team A/B"))
         // A value whose single decode yields a %-sequence must not be decoded again.
         #expect(parseResourceURI("coderpad://account/50%2520off/quota") == .accountQuota("50%20off"))
-        #expect(parseResourceURI("coderpad://pad/a%2520b") == .pad("a%20b"))
+        #expect(parseResourceURI("coderpad://pad/a%2520b") == nil)
+    }
+
+    @Test
+    func `parseResourceURI rejects noncanonical pad ids`() {
+        for id in ["a%20b", "a%3Fb", "a%23b", "a.b", "%C3%A9", String(repeating: "a", count: 65)] {
+            #expect(parseResourceURI("coderpad://pad/\(id)") == nil)
+            #expect(parseResourceURI("coderpad://account/Acme/pad/\(id)") == nil)
+        }
     }
 
     @Test
