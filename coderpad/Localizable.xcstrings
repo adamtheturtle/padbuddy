@@ -1590,6 +1590,9 @@
         }
       }
     },
+    "Candidate instructions changed elsewhere. Review the latest parts, then save again." : {
+
+    },
     "Candidate link" : {
       "localizations" : {
         "es" : {
@@ -5707,6 +5710,9 @@
           }
         }
       }
+    },
+    "Question #%lld (unavailable)" : {
+
     },
     "Question detail section" : {
       "localizations" : {

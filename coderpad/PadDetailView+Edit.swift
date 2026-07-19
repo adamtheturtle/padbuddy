@@ -31,16 +31,28 @@ private enum PadInlineCommitQueue {
     /// completed tasks and their captured views aren't retained for the life of
     /// the process (#1182).
     static func enqueue(account: UUID?,
+                        client: CoderPadClient,
                         padID: String,
                         field: PadInlineCommitField,
                         operation: @escaping @MainActor () async -> Void) {
         let key = "\(account?.uuidString ?? "current"):\(padID):\(field.rawValue)"
+        // Bind the queued work to the credentials it was created under: a save
+        // queued behind an in-flight one can start after its account is removed
+        // or re-keyed, and firing it then would PUT through retired credentials
+        // and publish the result into stale state (#2651). Mock/test clients
+        // match no stored account (nil) and stay allowed while that holds.
+        let enqueuedIdentity = AccountsStore.shared.account(matching: client)?.id
+        let guarded: @MainActor () async -> Void = {
+            guard AccountsStore.shared.account(matching: client)?.id == enqueuedIdentity else { return }
+
+            await operation()
+        }
         guard running[key] == nil else {
-            pending[key] = operation
+            pending[key] = guarded
             return
         }
 
-        run(key: key, operation: operation)
+        run(key: key, operation: guarded)
     }
 
     private static func run(key: String, operation: @escaping @MainActor () async -> Void) {
@@ -159,7 +171,8 @@ extension PadDetailView {
         Binding(get: { draftLanguage },
                 set: { newValue in
                     draftLanguage = newValue
-                    PadInlineCommitQueue.enqueue(account: owningAccountID, padID: pad.id, field: .language) {
+                    PadInlineCommitQueue.enqueue(account: owningAccountID, client: client,
+                                                 padID: pad.id, field: .language) {
                         await commitLanguage(newValue)
                     }
                 })
@@ -169,7 +182,8 @@ extension PadDetailView {
         Binding(get: { draftOwner },
                 set: { newValue in
                     draftOwner = newValue
-                    PadInlineCommitQueue.enqueue(account: owningAccountID, padID: pad.id, field: .owner) {
+                    PadInlineCommitQueue.enqueue(account: owningAccountID, client: client,
+                                                 padID: pad.id, field: .owner) {
                         await commitOwner(newValue)
                     }
                 })
@@ -179,7 +193,8 @@ extension PadDetailView {
         Binding(get: { draftIsPrivate },
                 set: { newValue in
                     draftIsPrivate = newValue
-                    PadInlineCommitQueue.enqueue(account: owningAccountID, padID: pad.id, field: .privacy) {
+                    PadInlineCommitQueue.enqueue(account: owningAccountID, client: client,
+                                                 padID: pad.id, field: .privacy) {
                         await commitPrivate(newValue)
                     }
                 })
@@ -189,7 +204,8 @@ extension PadDetailView {
         Binding(get: { draftExecution },
                 set: { newValue in
                     draftExecution = newValue
-                    PadInlineCommitQueue.enqueue(account: owningAccountID, padID: pad.id, field: .execution) {
+                    PadInlineCommitQueue.enqueue(account: owningAccountID, client: client,
+                                                 padID: pad.id, field: .execution) {
                         await commitExecution(newValue)
                     }
                 })

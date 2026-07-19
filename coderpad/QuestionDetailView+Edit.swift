@@ -11,72 +11,6 @@
 
 import SwiftUI
 
-private enum QuestionInlineCommitField: String {
-    case language
-    case type
-}
-
-@MainActor
-private enum QuestionInlineCommitQueue {
-    private static var running: [String: Task<Void, Never>] = [:]
-    private static var pending: [String: @MainActor () async -> Void] = [:]
-
-    /// Serializes saves per account + question + field. The key carries the owning
-    /// account: per-org question ids collide across accounts, so a process-global
-    /// numeric key made unrelated accounts' saves wait on each other and retained
-    /// the other window's state (#1183). While a save is in flight only the newest
-    /// queued value is kept, so rapid Picker churn sends at most one trailing PUT
-    /// with the final choice instead of replaying every intermediate value (#1185).
-    /// Entries are removed as their work drains, so completed tasks and their
-    /// captured views aren't retained for the life of the process (#1184).
-    static func enqueue(account: UUID?,
-                        questionID: Int,
-                        field: QuestionInlineCommitField,
-                        operation: @escaping @MainActor () async -> Void) {
-        let key = "\(account?.uuidString ?? "current"):\(questionID):\(field.rawValue)"
-        guard running[key] == nil else {
-            pending[key] = operation
-            return
-        }
-
-        run(key: key, operation: operation)
-    }
-
-    private static func run(key: String, operation: @escaping @MainActor () async -> Void) {
-        running[key] = Task { @MainActor in
-            await operation()
-            running[key] = nil
-            if let next = pending.removeValue(forKey: key) {
-                run(key: key, operation: next)
-            }
-        }
-    }
-}
-
-/// Serializes whole-array candidate-instruction saves per account + question:
-/// each save resends the entire instruction list, so two concurrent part edits
-/// would each PUT an array holding the other part's old text and the later one
-/// would win (#1188). Chaining them (and building each payload from the latest
-/// published question inside the chained block) makes the second save see the
-/// first one's result. Entries are removed when a chain drains.
-@MainActor
-private enum QuestionInstructionSaveChain {
-    private static var tails: [String: Task<Void, Never>] = [:]
-
-    static func run(key: String, operation: @escaping @MainActor () async -> Bool) async -> Bool {
-        let previous = tails[key]
-        let task = Task { @MainActor () -> Bool in
-            await previous?.value
-            return await operation()
-        }
-        let tail = Task { @MainActor in _ = await task.value }
-        tails[key] = tail
-        let result = await task.value
-        if tails[key] == tail { tails[key] = nil }
-        return result
-    }
-}
-
 extension QuestionDetailView {
     /// The editable metadata, presented as labeled rows of inline controls. Title is
     /// edited in the header; language and type live here.
@@ -217,7 +151,8 @@ extension QuestionDetailView {
         Binding(get: { draftLanguage },
                 set: { newValue in
                     draftLanguage = newValue
-                    QuestionInlineCommitQueue.enqueue(account: accountID, questionID: question.id,
+                    QuestionInlineCommitQueue.enqueue(account: accountID, client: client,
+                                                      questionID: question.id,
                                                       field: .language) {
                         await commitLanguage(newValue)
                     }
@@ -228,7 +163,8 @@ extension QuestionDetailView {
         Binding(get: { draftPadType },
                 set: { newValue in
                     draftPadType = newValue
-                    QuestionInlineCommitQueue.enqueue(account: accountID, questionID: question.id,
+                    QuestionInlineCommitQueue.enqueue(account: accountID, client: client,
+                                                      questionID: question.id,
                                                       field: .type) {
                         await commitType(newValue)
                     }
@@ -326,30 +262,57 @@ extension QuestionDetailView {
     /// that had none. Saves are serialized per question and each payload is built
     /// from the latest published question inside the serialized block, so parallel
     /// edits to two parts can't overwrite each other's text (#1188).
-    func commitInstruction(at index: Int, text: String) async -> Bool {
-        await QuestionInstructionSaveChain.run(
+    func commitInstruction(at index: Int, original: String, text: String) async -> Bool {
+        // Same credential binding as the metadata queue: an instruction save
+        // chained behind an in-flight one can start after the account is
+        // removed or re-keyed and must not fire through retired credentials (#2652).
+        let enqueuedIdentity = AccountsStore.shared.account(matching: client)?.id
+        return await QuestionInstructionSaveChain.run(
             key: "\(accountID?.uuidString ?? "current"):\(question.id)"
         ) {
-            await performCommitInstruction(at: index, text: text)
+            guard AccountsStore.shared.account(matching: client)?.id == enqueuedIdentity else { return false }
+
+            return await performCommitInstruction(at: index, original: original, text: text)
         }
     }
 
-    private func performCommitInstruction(at index: Int, text: String) async -> Bool {
+    /// Resolves the edited part by its mount-time text as well as its captured
+    /// index: another update can remove or reorder parts while an editor is open,
+    /// and blindly appending the stale part at the end duplicated it instead of
+    /// surfacing the conflict (#2648). Appending remains the deliberate path for
+    /// adding a part to a question that had none.
+    private func performCommitInstruction(at index: Int, original: String, text: String) async -> Bool {
         var payloads = (latestQuestion ?? question).candidateInstructions.map {
             CandidateInstructionPayload(instructions: $0.instructions, defaultVisible: $0.defaultVisible)
         }
-        if payloads.indices.contains(index) {
+        if payloads.indices.contains(index), payloads[index].instructions == original {
             guard payloads[index].instructions != text else { return true }
 
             payloads[index].instructions = text
-        } else {
+        } else if let moved = uniqueIndex(of: original, in: payloads) {
+            guard payloads[moved].instructions != text else { return true }
+
+            payloads[moved].instructions = text
+        } else if index >= payloads.count, original.isEmpty {
             guard !text.isEmpty else { return true }
 
             payloads.append(CandidateInstructionPayload(instructions: text, defaultVisible: true))
+        } else {
+            editError = String(
+                localized: "Candidate instructions changed elsewhere. Review the latest parts, then save again."
+            )
+            return false
         }
         return await saveContent(QuestionUpdate(id: question.id, candidateInstructions: payloads)) {
             optimisticQuestion(candidateInstructions: payloads)
         }
+    }
+
+    /// The single part whose text matches the edited part's mount-time text, or
+    /// nil when the part vanished or the match is ambiguous.
+    private func uniqueIndex(of original: String, in payloads: [CandidateInstructionPayload]) -> Int? {
+        let matches = payloads.indices.filter { payloads[$0].instructions == original }
+        return matches.count == 1 ? matches.first : nil
     }
 
     /// The question with the immediately-committed metadata drafts (language, type)
