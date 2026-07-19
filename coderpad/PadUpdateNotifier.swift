@@ -16,6 +16,7 @@
 #else
     import UIKit
 #endif
+import os
 import UserNotifications
 
 /// A single pad's change since the last sweep, classified into the most
@@ -60,6 +61,9 @@ final class PadUpdateNotifier: NSObject {
     /// The stable identifier prefix; the owning account's id is appended so each
     /// organization coalesces onto its own alert (#1144).
     private static let notificationID = "coderpad.padUpdates"
+
+    /// Diagnostics for notifications that fail to schedule.
+    private static let notificationLogger = Logger(subsystem: "com.coderpad.app", category: "pad-notifications")
 
     override private init() {
         super.init()
@@ -153,7 +157,12 @@ final class PadUpdateNotifier: NSObject {
         // Re-check activity after every await too: the app can come to the front
         // while settings are being read, and an alert (let alone a permission
         // prompt) must not fire for a foregrounded refresh (#1143).
-        guard isCurrent(identifier: identifier, generation: generation), !appIsActive else { return }
+        // The preference is re-checked after the await, not only before: reading
+        // settings suspends, and a banner must not appear for a toggle the user turned
+        // off while it was in flight (#2175).
+        guard isCurrent(identifier: identifier, generation: generation),
+              GeneralSettings.notifyOnPadUpdates,
+              !appIsActive else { return }
 
         switch settings.authorizationStatus {
         case .notDetermined, .denied:
@@ -167,6 +176,7 @@ final class PadUpdateNotifier: NSObject {
 
         let content = UNMutableNotificationContent()
         content.sound = .default
+        let hideTitles = GeneralSettings.hidePadTitlesInNotifications
         // Name the organization so a multi-account user can tell whose pads have
         // activity (#1144); single-account setups skip the redundant subtitle.
         if let accountName, !accountName.isEmpty, AccountsStore.shared.accounts.count > 1 {
@@ -174,26 +184,45 @@ final class PadUpdateNotifier: NSObject {
         }
         if changes.count == 1, let change = changes.first {
             // Lead with the pad's own name so the alert names what changed, and
-            // put the kind of activity in the body.
-            content.title = change.pad.title.isEmpty ? "Untitled pad" : change.pad.title
+            // put the kind of activity in the body. With titles hidden, the alert
+            // still says something happened and where to look, but names nothing
+            // that could identify a candidate on a lock screen (#2178).
+            if hideTitles {
+                content.title = String(localized: "Pad updated")
+            } else {
+                content.title = change.pad.title.isEmpty ? "Untitled pad" : change.pad.title
+            }
             content.body = change.kind.detail
             // Deep-link straight to the one pad that changed.
             content.userInfo = ["url": "coderpad://pad/\(change.pad.id)"]
         } else {
             content.title = "Pads updated"
-            content.body = Self.summary(of: changes)
+            content.body = hideTitles
+                ? String(localized: "^[\(changes.count) pads](inflect: true) have new activity.")
+                : Self.summary(of: changes)
             // No single pad to single out, so just bring the Pads list forward.
             content.userInfo = ["url": "coderpad://pads"]
         }
 
-        guard isCurrent(identifier: identifier, generation: generation), !appIsActive else { return }
+        guard isCurrent(identifier: identifier, generation: generation),
+              GeneralSettings.notifyOnPadUpdates,
+              !appIsActive else { return }
 
         let request = UNNotificationRequest(
             identifier: identifier,
             content: content,
             trigger: nil
         )
-        try? await center.add(request)
+        do {
+            try await center.add(request)
+        } catch {
+            // Silently swallowing this left an opted-in feature quietly not working
+            // with nothing to diagnose it from (#2177). The pad titles stay out of the
+            // log; only the failure reason is recorded.
+            Self.notificationLogger.error("""
+            Failed to schedule a pad update notification: \(error.localizedDescription, privacy: .private)
+            """)
+        }
     }
 
     private func isCurrent(identifier: String, generation: Int) -> Bool {

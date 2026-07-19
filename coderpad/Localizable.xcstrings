@@ -9177,6 +9177,46 @@
           }
         }
       }
+    },
+    "Pad updated" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pad actualizado"
+          }
+        }
+      }
+    },
+    "Hide pad titles in alerts" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ocultar títulos de pads en las alertas"
+          }
+        }
+      }
+    },
+    "Alerts when pads gain activity while PadBuddy is in the background. Pad titles can include candidate names, and alerts appear on the lock screen." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Avisos cuando los pads reciben actividad mientras PadBuddy está en segundo plano. Los títulos de los pads pueden incluir nombres de candidatos, y las alertas aparecen en la pantalla bloqueada."
+          }
+        }
+      }
+    },
+    "^[%lld pads](inflect: true) have new activity." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "^[%lld pads](inflect: true) tienen actividad nueva."
+          }
+        }
+      }
     }
   },
   "version" : "1.3"

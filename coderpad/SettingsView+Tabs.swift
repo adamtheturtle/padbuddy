@@ -87,8 +87,14 @@ extension SettingsView {
                             }
                         }
                     }
+                if notifyOnPadUpdates {
+                    Toggle("Hide pad titles in alerts", isOn: $hidePadTitlesInNotifications)
+                }
             } footer: {
-                Text("Alerts when pads gain activity while PadBuddy is in the background.")
+                Text(notifyOnPadUpdates
+                    ? "Alerts when pads gain activity while PadBuddy is in the background. "
+                    + "Pad titles can include candidate names, and alerts appear on the lock screen."
+                    : "Alerts when pads gain activity while PadBuddy is in the background.")
                     .foregroundStyle(.secondary)
             }
         }

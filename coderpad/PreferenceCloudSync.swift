@@ -41,6 +41,7 @@ final class PreferenceCloudSync {
             "general.dockBadgeScope",
             "general.spotlightIndexing",
             "general.notifyOnPadUpdates",
+            "general.hidePadTitlesInNotifications",
             "browser.defaultBrowserBundleID"
         ]
         #if os(macOS)

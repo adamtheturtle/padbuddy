@@ -208,6 +208,7 @@ enum GeneralSettings {
         static let hideDockIcon = "general.hideDockIcon"
         static let spotlightIndexing = "general.spotlightIndexing"
         static let notifyOnPadUpdates = "general.notifyOnPadUpdates"
+        static let hidePadTitlesInNotifications = "general.hidePadTitlesInNotifications"
     }
 
     /// Whether to post a Notification Center alert when pads gain new activity in the
@@ -215,6 +216,16 @@ enum GeneralSettings {
     /// notification permission. See `PadUpdateNotifier`.
     static var notifyOnPadUpdates: Bool {
         UserDefaults.standard.bool(forKey: Key.notifyOnPadUpdates)
+    }
+
+    /// Whether to keep pad titles out of notification alerts.
+    ///
+    /// A pad title routinely carries a candidate's name, and an alert shows it on the
+    /// lock screen and in Notification Center, where it is visible to anyone near the
+    /// machine and to screen sharing (#2178). Off by default so the alert stays useful
+    /// for the common case; on, alerts say only that activity happened.
+    static var hidePadTitlesInNotifications: Bool {
+        UserDefaults.standard.bool(forKey: Key.hidePadTitlesInNotifications)
     }
 
     /// Whether pads and questions are mirrored into the on-device Spotlight index so
