@@ -287,9 +287,8 @@ final class PadOpenedStore {
         guard let data = CloudSyncStore.shared.data(forKey: Self.cloudKey),
               let cloud = try? SharedCoders.decoder.decode([String: [String: Date]].self, from: data) else { return }
 
-        let uuidForSyncID: (String) -> UUID? = { identity in
-            AccountsStore.shared.accounts.first { $0.syncID == identity }?.id
-        }
+        let accountIDs = AccountsStore.shared.syncIdentityIndex.accountIDsBySyncID
+        let uuidForSyncID: (String) -> UUID? = { accountIDs[$0] }
         var merged = CloudSyncMerge.mergeTimestamps(cloud: cloud, into: byAccount,
                                                     uuidForSyncID: uuidForSyncID)
         var tombstones = removedAt

@@ -23,11 +23,33 @@ extension AccountsStore {
     /// with no key or owner yet) are omitted, so a lookup still yields nil for them.
     @MainActor
     var syncIDsByAccountID: [UUID: String] {
-        var index: [UUID: String] = [:]
-        for account in accounts where !account.syncID.isEmpty {
-            index[account.id] = account.syncID
+        syncIdentityIndex.syncIDsByAccountID
+    }
+
+    @MainActor
+    var syncIdentityIndex: AccountSyncIdentityIndex {
+        AccountSyncIdentityIndex(accounts: accounts)
+    }
+}
+
+struct AccountSyncIdentityIndex {
+    let syncIDsByAccountID: [UUID: String]
+    let accountIDsBySyncID: [String: UUID]
+
+    init(accounts: [Account]) {
+        var forward: [UUID: String] = [:]
+        var reverse: [String: UUID] = [:]
+        for account in accounts {
+            let identity = account.syncID
+            guard !identity.isEmpty else { continue }
+
+            forward[account.id] = identity
+            // Account order is stable and user-visible. If malformed/duplicate setup
+            // produces the same identity twice, resolve consistently to the first.
+            if reverse[identity] == nil { reverse[identity] = account.id }
         }
-        return index
+        syncIDsByAccountID = forward
+        accountIDsBySyncID = reverse
     }
 }
 

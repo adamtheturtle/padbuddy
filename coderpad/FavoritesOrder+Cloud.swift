@@ -86,9 +86,8 @@ extension FavoritesOrderStore {
         guard let data = CloudSyncStore.shared.data(forKey: Self.cloudKey),
               let cloud = try? SharedCoders.decoder.decode([String: [FavoriteRef]].self, from: data) else { return }
 
-        let uuidForSyncID: (String) -> UUID? = { identity in
-            AccountsStore.shared.accounts.first { $0.syncID == identity }?.id
-        }
+        let accountIDs = AccountsStore.shared.syncIdentityIndex.accountIDsBySyncID
+        let uuidForSyncID: (String) -> UUID? = { accountIDs[$0] }
         var cloudStamps: [UUID: Date] = [:]
         if let data = CloudSyncStore.shared.data(forKey: Self.cloudStampsKey),
            let decoded = try? SharedCoders.decoder.decode([String: Date].self, from: data) {

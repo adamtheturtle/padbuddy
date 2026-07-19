@@ -353,9 +353,8 @@ final class FavoriteQuestionsStore {
         // The mirror is cross-device input: clamp it like the local blob (#1788).
         let cloud = decoded.mapValues(Self.sanitized)
 
-        let uuidForSyncID: (String) -> UUID? = { identity in
-            AccountsStore.shared.accounts.first { $0.syncID == identity }?.id
-        }
+        let accountIDs = AccountsStore.shared.syncIdentityIndex.accountIDsBySyncID
+        let uuidForSyncID: (String) -> UUID? = { accountIDs[$0] }
         var merged = CloudSyncMerge.mergeArrays(cloud: cloud, into: byAccount,
                                                 uuidForSyncID: uuidForSyncID) { $0.id }
         // The union keeps the local element for ids on both sides, so also adopt

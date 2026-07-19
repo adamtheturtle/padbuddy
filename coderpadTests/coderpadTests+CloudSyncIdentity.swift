@@ -99,3 +99,23 @@ struct WidgetAccountIdentityTests {
         #expect(account.legacyID == nil)
     }
 }
+
+@Suite("Cloud sync identity index")
+struct AccountSyncIdentityIndexTests {
+    @Test func `builds forward and reverse indexes and omits incomplete accounts`() {
+        let complete = Account(name: "Complete", apiKey: "key", userEmail: "me@example.com")
+        let incomplete = Account(name: "Draft", apiKey: "key", userEmail: "")
+        let index = AccountSyncIdentityIndex(accounts: [complete, incomplete])
+        #expect(index.syncIDsByAccountID == [complete.id: complete.syncID])
+        #expect(index.accountIDsBySyncID == [complete.syncID: complete.id])
+    }
+
+    @Test func `duplicate identities resolve deterministically to the first account`() {
+        let first = Account(name: "First", apiKey: "one", userEmail: "same@example.com")
+        let second = Account(name: "Second", apiKey: "two", userEmail: "same@example.com")
+        let index = AccountSyncIdentityIndex(accounts: [first, second])
+        #expect(first.syncID == second.syncID)
+        #expect(index.accountIDsBySyncID[first.syncID] == first.id)
+        #expect(index.syncIDsByAccountID[second.id] == second.syncID)
+    }
+}
