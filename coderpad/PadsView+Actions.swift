@@ -271,7 +271,7 @@ extension PadsView {
         // Cold start with an empty cache: the list first appears here, so this is the
         // earliest point the saved selection can be resolved. Idempotent (guarded by
         // `didRestoreSelection`), so the per-refresh calls after this are no-ops.
-        restoreSelectedPadIfNeeded()
+        restoreSelectedPadIfNeeded(loadComplete: true)
         // A sidebar favorite picked before the list loaded takes priority over the
         // restored selection, so resolve it last.
         resolvePendingPadSelection()
