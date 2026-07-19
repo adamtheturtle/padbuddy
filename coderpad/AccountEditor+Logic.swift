@@ -350,12 +350,6 @@ extension AccountEditor {
             """))
             return
         }
-        // Reject a key that's already saved before hitting the network, so the user
-        // gets immediate feedback rather than adding a duplicate organization.
-        if let message = duplicateAccountMessage() {
-            validation = .invalid(message)
-            return
-        }
         let fingerprint = currentValidationFingerprint
         let validatedNameGeneration = nameEditGeneration
         validation = .validating
@@ -363,6 +357,15 @@ extension AccountEditor {
         do {
             let client = CoderPadClient(apiKey: fingerprint.apiKey, baseURL: fingerprint.baseURL)
             let org = try await client.organization()
+            guard validationStillMatches(fingerprint) else { return }
+
+            // Reveal local duplicate state only after the server has authenticated
+            // these credentials. Invalid or arbitrary keys must not act as a probe of
+            // which account configuration is stored on this device.
+            if let message = duplicateAccountMessage() {
+                validation = .invalid(message)
+                return
+            }
             guard await applyValidatedOrganization(
                 org,
                 client: client,
