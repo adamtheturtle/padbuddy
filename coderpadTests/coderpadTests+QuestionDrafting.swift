@@ -121,3 +121,31 @@ struct OrganizationMemberPreparationTests {
         #expect(names == sorted)
     }
 }
+
+@Suite("Favorite drop de-duplication (#2275)")
+struct FavoriteDropIdentityTests {
+    @Test
+    func `the same item from two drags has one identity`() {
+        // The title is deliberately excluded: the same favourite dragged from two
+        // lists can carry two spellings of its name, and both are the same item.
+        let account = UUID()
+        #expect(Sidebar.identity(of: .pad(account: account, id: "abc123", title: "One"))
+            == Sidebar.identity(of: .pad(account: account, id: "abc123", title: "Another")))
+    }
+
+    @Test
+    func `a different account or item has a different identity`() {
+        let account = UUID()
+        let other = UUID()
+        let base = Sidebar.identity(of: .pad(account: account, id: "abc123", title: "One"))
+        #expect(base != Sidebar.identity(of: .pad(account: other, id: "abc123", title: "One")))
+        #expect(base != Sidebar.identity(of: .pad(account: account, id: "def456", title: "One")))
+    }
+
+    @Test
+    func `a pad and a question with matching ids differ`() {
+        let account = UUID()
+        #expect(Sidebar.identity(of: .pad(account: account, id: "42", title: "P"))
+            != Sidebar.identity(of: .question(account: account, id: 42, title: "Q")))
+    }
+}

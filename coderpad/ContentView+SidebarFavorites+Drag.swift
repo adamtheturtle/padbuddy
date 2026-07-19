@@ -33,16 +33,35 @@ extension Sidebar {
         guard !favoriteProviders.isEmpty else { return }
 
         Task { @MainActor in
+            // Decoded one at a time, in provider order, so a multi-item drop applies in
+            // the order it was dragged rather than in whatever order the loads happen
+            // to finish.
             var drops: [FavoriteDrop] = []
+            // A drag can present the same item through more than one provider, and each
+            // duplicate would otherwise schedule its own favourite/order write and its
+            // own undo entry — so one ⌘Z would undo only part of a single drop (#2275).
+            // Keyed by account and ref, ignoring the title: the same favourite dragged
+            // from two lists can carry two spellings of its name.
+            var seen = Set<MergedFavoriteRef>()
             for provider in favoriteProviders {
-                if let drop = await Self.decodeFavoriteDrop(provider),
-                   let validated = validatedFavoriteDrop(drop) {
-                    drops.append(validated)
-                }
+                guard let drop = await Self.decodeFavoriteDrop(provider),
+                      let validated = validatedFavoriteDrop(drop),
+                      seen.insert(Self.identity(of: validated)).inserted else { continue }
+
+                drops.append(validated)
             }
             guard !drops.isEmpty else { return }
 
             perform(drops)
+        }
+    }
+
+    /// A drop's identity for de-duplication: which account, and which item — never the
+    /// title, which can differ between two drags of the same favourite.
+    nonisolated static func identity(of drop: FavoriteDrop) -> MergedFavoriteRef {
+        switch drop {
+        case let .pad(account, id, _): MergedFavoriteRef(account: account, ref: .pad(id))
+        case let .question(account, id, _): MergedFavoriteRef(account: account, ref: .question(id))
         }
     }
 
