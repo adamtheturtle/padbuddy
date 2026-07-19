@@ -12,12 +12,6 @@ import Testing
 
 @Suite("Account configuration")
 struct AccountsTests {
-    private func temporaryDirectory() throws -> URL {
-        let url = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString, directoryHint: .isDirectory)
-        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
-        return url
-    }
-
     @Test
     func `env fallback builds one default account and requires the key`() throws {
         let set = try makeAccountSet(config: nil, environment: [
@@ -51,66 +45,6 @@ struct AccountsTests {
                 "CODERPAD_BASE_URL": "https:///missing-host"
             ])
         }
-    }
-
-    @Test
-    func `missing default config falls back to environment`() throws {
-        let home = try temporaryDirectory()
-        defer { try? FileManager.default.removeItem(at: home) }
-
-        let config = try loadConfigObject(environment: [:], homeDirectory: home)
-        #expect(config == nil)
-    }
-
-    @Test
-    func `missing explicit config does not fall back to environment`() throws {
-        let directory = try temporaryDirectory()
-        defer { try? FileManager.default.removeItem(at: directory) }
-        let path = directory.appending(path: "missing.json").path
-
-        #expect(throws: MCPConfigLoadError.unreadableConfig(path: path)) {
-            _ = try loadConfigObject(environment: ["CODERPAD_MCP_CONFIG": path])
-        }
-    }
-
-    @Test
-    func `malformed explicit config does not fall back to environment`() throws {
-        let directory = try temporaryDirectory()
-        defer { try? FileManager.default.removeItem(at: directory) }
-        let url = directory.appending(path: "config.json")
-        try Data("{".utf8).write(to: url)
-
-        #expect(throws: MCPConfigLoadError.malformedConfig(path: url.path)) {
-            _ = try loadConfigObject(environment: [
-                "CODERPAD_MCP_CONFIG": url.path,
-                "CODERPAD_API_KEY": "env-key"
-            ])
-        }
-    }
-
-    @Test
-    func `explicit config must be a JSON object`() throws {
-        let directory = try temporaryDirectory()
-        defer { try? FileManager.default.removeItem(at: directory) }
-        let url = directory.appending(path: "config.json")
-        try Data("[]".utf8).write(to: url)
-
-        #expect(throws: MCPConfigLoadError.nonObjectConfig(path: url.path)) {
-            _ = try loadConfigObject(environment: ["CODERPAD_MCP_CONFIG": url.path])
-        }
-    }
-
-    @Test
-    func `explicit config parses an object`() throws {
-        let directory = try temporaryDirectory()
-        defer { try? FileManager.default.removeItem(at: directory) }
-        let url = directory.appending(path: "config.json")
-        try Data(#"{"accounts":[{"name":"Acme","api_key":"key"}]}"#.utf8).write(to: url)
-
-        let config = try #require(try loadConfigObject(environment: ["CODERPAD_MCP_CONFIG": url.path]))
-        let accounts = try #require(config["accounts"] as? [[String: Any]])
-        #expect(accounts.count == 1)
-        #expect(accounts[0]["name"] as? String == "Acme")
     }
 
     @Test

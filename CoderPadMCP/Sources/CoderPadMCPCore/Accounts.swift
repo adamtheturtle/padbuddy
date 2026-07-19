@@ -125,13 +125,22 @@ public enum MCPConfigError: Error, Equatable {
 
 /// Why the standalone JSON config file could not be loaded.
 public enum MCPConfigLoadError: Error, Equatable, LocalizedError {
-    case unreadableConfig(path: String)
+    case missingConfig(path: String)
+    case permissionDenied(path: String)
+    case notRegularFile(path: String)
+    case readFailed(path: String)
     case malformedConfig(path: String)
     case nonObjectConfig(path: String)
 
     public var errorDescription: String? {
         switch self {
-        case let .unreadableConfig(path):
+        case let .missingConfig(path):
+            "Config file does not exist at \(path)."
+        case let .permissionDenied(path):
+            "Permission was denied while reading config file at \(path)."
+        case let .notRegularFile(path):
+            "Config path at \(path) is not a regular file."
+        case let .readFailed(path):
             "Could not read config file at \(path)."
         case let .malformedConfig(path):
             "Config file at \(path) is not valid JSON."
@@ -209,6 +218,12 @@ private func truthy(_ raw: String?) -> Bool {
     ["1", "true", "yes", "on"].contains(raw?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())
 }
 
+private func expandedConfigURL(_ path: String, homeDirectory: URL) -> URL {
+    if path == "~" { return homeDirectory }
+    if path.hasPrefix("~/") { return homeDirectory.appending(path: String(path.dropFirst(2))) }
+    return URL(fileURLWithPath: path)
+}
+
 /// Reads the standalone server's JSON config file, if one is present. Missing default
 /// config falls back to env credentials; explicit config paths fail fast on any load
 /// or parse problem so the server never silently switches accounts.
@@ -219,22 +234,24 @@ public func loadConfigObject(
 ) throws -> [String: Any]? {
     let explicitPath = trimmedNonEmpty(environment["CODERPAD_MCP_CONFIG"])
     let url: URL = if let explicitPath {
-        URL(fileURLWithPath: (explicitPath as NSString).expandingTildeInPath)
+        expandedConfigURL(explicitPath, homeDirectory: homeDirectory)
     } else {
         homeDirectory.appending(path: ".config/coderpad-mcp/config.json")
     }
 
     let path = url.path
-    guard fileManager.fileExists(atPath: path) else {
-        if explicitPath != nil { throw MCPConfigLoadError.unreadableConfig(path: path) }
+    var isDirectory: ObjCBool = false
+    guard fileManager.fileExists(atPath: path, isDirectory: &isDirectory) else {
+        if explicitPath != nil { throw MCPConfigLoadError.missingConfig(path: path) }
         return nil
     }
+    guard !isDirectory.boolValue else { throw MCPConfigLoadError.notRegularFile(path: path) }
 
     let data: Data
     do {
         data = try Data(contentsOf: url)
     } catch {
-        throw MCPConfigLoadError.unreadableConfig(path: path)
+        throw classifiedConfigReadError(path: path, error: error)
     }
 
     let object: Any
@@ -251,6 +268,18 @@ public func loadConfigObject(
     return config
 }
 
+func classifiedConfigReadError(path: String, error: any Error) -> MCPConfigLoadError {
+    let cocoa = error as? CocoaError
+    switch cocoa?.code {
+    case .fileReadNoSuchFile:
+        return .missingConfig(path: path)
+    case .fileReadNoPermission:
+        return .permissionDenied(path: path)
+    default:
+        return .readFailed(path: path)
+    }
+}
+
 /// Builds the account set from a parsed JSON config object, falling back to the legacy
 /// single-account environment variables when no config (or an empty one) is given.
 ///
@@ -265,16 +294,7 @@ public func loadConfigObject(
 /// `allow_writes` is OR'd with the env flag, so either can enable writes.
 public func makeAccountSet(config: [String: Any]?, environment: [String: String]) throws -> MCPAccountSet {
     let envWrites = truthy(environment["CODERPAD_MCP_ALLOW_WRITES"])
-    let configWrites: Bool
-    if let rawAllowWrites = config?["allow_writes"] {
-        guard let allowWrites = rawAllowWrites as? Bool else {
-            throw MCPConfigError.invalidAllowWrites
-        }
-
-        configWrites = allowWrites
-    } else {
-        configWrites = false
-    }
+    let configWrites = try configuredAllowWrites(config)
 
     if let config, let rawAccounts = config["accounts"] as? [[String: Any]], !rawAccounts.isEmpty {
         var accounts: [MCPAccount] = []
@@ -333,4 +353,11 @@ public func makeAccountSet(config: [String: Any]?, environment: [String: String]
         )
     )
     return MCPAccountSet(accounts: [account], defaultName: account.name, allowWrites: envWrites)
+}
+
+private func configuredAllowWrites(_ config: [String: Any]?) throws -> Bool {
+    guard let raw = config?["allow_writes"] else { return false }
+    guard let value = raw as? Bool else { throw MCPConfigError.invalidAllowWrites }
+
+    return value
 }
