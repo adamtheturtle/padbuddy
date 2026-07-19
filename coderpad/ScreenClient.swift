@@ -234,8 +234,9 @@ struct ScreenClient {
         // A 2xx that isn't actually a PDF (an HTML error page, an empty body) must
         // not be opened or saved as a candidate report (#859).
         let contentType = response.value(forHTTPHeaderField: "Content-Type") ?? ""
-        guard contentType.localizedCaseInsensitiveContains("pdf")
-            || data.starts(with: Array("%PDF".utf8)) else {
+        let mediaType = contentType.split(separator: ";", maxSplits: 1).first?
+            .trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard mediaType == "application/pdf", data.starts(with: Array("%PDF-".utf8)) else {
             throw CoderPadError.decode("The report response was not a PDF.")
         }
 

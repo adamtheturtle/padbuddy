@@ -32,6 +32,13 @@ struct ScreenCancellationTests {
             Issue.record("Unexpected error: \(error)")
         }
     }
+
+    @Test
+    func `a loose PDF-like media type is rejected`() async {
+        await #expect(throws: CoderPadError.self) {
+            _ = try await screenClient().testReport(id: 424_243)
+        }
+    }
 }
 
 final nonisolated class CancelledScreenURLProtocol: URLProtocol {

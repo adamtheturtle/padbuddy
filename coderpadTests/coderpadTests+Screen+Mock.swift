@@ -32,7 +32,13 @@ final nonisolated class ScreenAPIMockURLProtocol: URLProtocol {
         let path = components.path.replacingOccurrences(of: "/assessment/api/v1.1", with: "")
         let query = (components.queryItems ?? []).reduce(into: [String: String]()) { $0[$1.name] = $1.value }
         let (status, body) = Self.respond(method: method, path: path, query: query)
-        let contentType = body.hasPrefix("%PDF") ? "application/pdf" : "application/json"
+        let contentType = if path == "/tests/424243/report" {
+            "application/notpdf"
+        } else if body.hasPrefix("%PDF") {
+            "application/pdf; charset=binary"
+        } else {
+            "application/json"
+        }
         guard let response = HTTPURLResponse(url: url, statusCode: status, httpVersion: "HTTP/1.1",
                                              headerFields: ["Content-Type": contentType]) else {
             client?.urlProtocol(self, didFailWithError: URLError(.badServerResponse))
@@ -69,6 +75,8 @@ final nonisolated class ScreenAPIMockURLProtocol: URLProtocol {
             (200, "%PDF-1.4 mock report bytes")
         case ("GET", "/tests/424242/report"):
             (200, #"{"code": "SomethingElse", "message": "an HTML-ish body, not a PDF"}"#)
+        case ("GET", "/tests/424243/report"):
+            (200, "%PDF-1.4 bytes under a deceptive media type")
         case ("GET", "/webhook"):
             (200, #"{"url": "https://example.com/hook"}"#)
         case ("POST", "/webhook"), ("DELETE", "/webhook"):
