@@ -254,9 +254,6 @@ private extension MergedOrganizationView {
         accounts.mergeableAccounts.map(MergedAccountToken.init(account:))
     }
 
-    /// Drops in-memory entries for removed accounts and accounts whose key was
-    /// cleared. Keeping dictionaries keyed by a vanished UUID retained stale org
-    /// state and could expose it if that local identifier was later reused (#1530).
     func clearKeylessEntries() {
         let eligibleIDs = Set(accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }.map(\.id))
         orgByAccount = Self.retainingEntries(orgByAccount, for: eligibleIDs)
@@ -272,8 +269,6 @@ private extension MergedOrganizationView {
         }
     }
 
-    /// Fan out a fresh org/stats/quota fetch across every account concurrently,
-    /// applying each account's result as it lands and isolating its failure.
     func reload() async {
         reloadGeneration &+= 1
         let generation = reloadGeneration
@@ -293,24 +288,28 @@ private extension MergedOrganizationView {
         let targets = mergeable.map { (id: $0.id, client: $0.makeClient()) }
         let clientsByID = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, $0.client) })
         await withTaskGroup(of: MergedOrganizationReloadResult.self) { group in
-            for target in targets {
-                group.addTask {
-                    do {
-                        async let orgFetch = target.client.organization()
-                        async let statsFetch = target.client.organizationStats(start: requestedWindow.start,
-                                                                               end: requestedWindow.end)
-                        async let quotaFetch = target.client.quota()
-                        let org = try await orgFetch
-                        return await MergedOrganizationReloadResult(
-                            id: target.id, org: org, stats: try? statsFetch, quota: try? quotaFetch, errorText: nil
-                        )
-                    } catch {
-                        return MergedOrganizationReloadResult(
-                            id: target.id, org: nil, stats: nil, quota: nil,
-                            errorText: error.localizedDescription
-                        )
-                    }
+            var iterator = targets.makeIterator()
+            func fetch(_ target: (id: UUID, client: CoderPadClient)) async -> MergedOrganizationReloadResult {
+                let org: Organization?
+                let errorText: String?
+                do {
+                    org = try await target.client.organization()
+                    errorText = nil
+                } catch {
+                    org = nil
+                    errorText = error.localizedDescription
                 }
+                let stats = try? await target.client.organizationStats(
+                    start: requestedWindow.start,
+                    end: requestedWindow.end
+                )
+                let quota = try? await target.client.quota()
+                return MergedOrganizationReloadResult(
+                    id: target.id, org: org, stats: stats, quota: quota, errorText: errorText
+                )
+            }
+            for _ in 0 ..< min(4, targets.count) {
+                if let target = iterator.next() { group.addTask { await fetch(target) } }
             }
             for await result in group {
                 guard !Task.isCancelled,
@@ -320,6 +319,7 @@ private extension MergedOrganizationView {
                 }
 
                 applyReloadResult(result, requestedToken: requestedToken, client: clientsByID[result.id])
+                if let target = iterator.next() { group.addTask { await fetch(target) } }
             }
         }
     }
@@ -351,10 +351,6 @@ private extension MergedOrganizationView {
         statsByAccount = [:]
         statsFailures = []
         statsTask = Task {
-            // Settle first, like the single-account view: cancelling doesn't recall a
-            // request already in flight, and here each one fans out across every
-            // account — so a dragged date picker multiplied by the account count
-            // (#2384). A cancelled sleep returns before any request is made.
             do {
                 try await Task.sleep(for: .milliseconds(350))
             } catch {
@@ -365,8 +361,6 @@ private extension MergedOrganizationView {
         }
     }
 
-    /// Refetch just the stats for the new window across every account, leaving the
-    /// loaded orgs and quotas in place.
     func reloadStats() async {
         let mergeable = accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }
         guard !mergeable.isEmpty else { return }
@@ -380,12 +374,19 @@ private extension MergedOrganizationView {
             of: (UUID, OrganizationStats?).self,
             returning: [(UUID, OrganizationStats?)].self
         ) { group in
-            for target in targets {
-                group.addTask {
-                    await (target.id, try? target.client.organizationStats(start: window.start, end: window.end))
-                }
+            var iterator = targets.makeIterator()
+            func fetch(_ target: (id: UUID, client: CoderPadClient)) async -> (UUID, OrganizationStats?) {
+                await (target.id, try? target.client.organizationStats(start: window.start, end: window.end))
             }
-            return await group.reduce(into: []) { $0.append($1) }
+            for _ in 0 ..< min(4, targets.count) {
+                if let target = iterator.next() { group.addTask { await fetch(target) } }
+            }
+            var collected: [(UUID, OrganizationStats?)] = []
+            for await result in group {
+                collected.append(result)
+                if let target = iterator.next() { group.addTask { await fetch(target) } }
+            }
+            return collected
         }
         guard !Task.isCancelled, requestedToken == statsWindowToken else { return }
 
