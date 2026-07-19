@@ -37,4 +37,25 @@ struct ScreenReportMetricTests {
         #expect(report.technologies["Valid"]?.score == 50)
         #expect(report.technologies["Invalid"] == nil)
     }
+
+    @Test(arguments: [
+        #"{"duration":-1}"#,
+        #"{"points":-1}"#,
+        #"{"total_duration":-1}"#,
+        #"{"total_points":-1}"#
+    ])
+    func `report rejects negative count and duration metrics`(json: String) {
+        #expect(throws: DecodingError.self) {
+            try JSONDecoder().decode(ScreenReport.self, from: Data(json.utf8))
+        }
+    }
+
+    @Test
+    func `negative nested points drop only their malformed entries`() throws {
+        let json = #"{"technologies":{"Valid":{"points":0},"Invalid":{"total_points":-1}}}"#
+        let report = try JSONDecoder().decode(ScreenReport.self, from: Data(json.utf8))
+
+        #expect(report.technologies["Valid"]?.points == 0)
+        #expect(report.technologies["Invalid"] == nil)
+    }
 }

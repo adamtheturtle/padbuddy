@@ -307,13 +307,13 @@ nonisolated struct ScreenReport: Decodable, Hashable {
 
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        duration = try? container.decodeIfPresent(Int.self, forKey: .duration)
+        duration = try ScreenReportMetric.nonnegativeInteger(from: container, forKey: .duration)
         warnings = (try? container.decodeIfPresent([String].self, forKey: .warnings)) ?? []
-        points = try? container.decodeIfPresent(Int.self, forKey: .points)
+        points = try ScreenReportMetric.nonnegativeInteger(from: container, forKey: .points)
         score = try ScreenReportMetric.percentage(from: container, forKey: .score)
         technologies = container.decodeLenientScreenDictionary(of: ScreenTechnologyResult.self, forKey: .technologies)
-        totalDuration = try? container.decodeIfPresent(Int.self, forKey: .totalDuration)
-        totalPoints = try? container.decodeIfPresent(Int.self, forKey: .totalPoints)
+        totalDuration = try ScreenReportMetric.nonnegativeInteger(from: container, forKey: .totalDuration)
+        totalPoints = try ScreenReportMetric.nonnegativeInteger(from: container, forKey: .totalPoints)
         comparativeScore = try ScreenReportMetric.percentage(from: container, forKey: .comparativeScore)
         communityStats = try? container.decodeIfPresent([Int].self, forKey: .communityStats)
     }
@@ -338,10 +338,10 @@ nonisolated struct ScreenTechnologyResult: Decodable, Hashable {
 
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        points = try? container.decodeIfPresent(Int.self, forKey: .points)
+        points = try ScreenReportMetric.nonnegativeInteger(from: container, forKey: .points)
         score = try ScreenReportMetric.percentage(from: container, forKey: .score)
         skills = container.decodeLenientScreenDictionary(of: ScreenSkillResult.self, forKey: .skills)
-        totalPoints = try? container.decodeIfPresent(Int.self, forKey: .totalPoints)
+        totalPoints = try ScreenReportMetric.nonnegativeInteger(from: container, forKey: .totalPoints)
         comparativeScore = try ScreenReportMetric.percentage(from: container, forKey: .comparativeScore)
     }
 
@@ -360,9 +360,9 @@ nonisolated struct ScreenSkillResult: Decodable, Hashable {
 
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        points = try? container.decodeIfPresent(Int.self, forKey: .points)
+        points = try ScreenReportMetric.nonnegativeInteger(from: container, forKey: .points)
         score = try ScreenReportMetric.percentage(from: container, forKey: .score)
-        totalPoints = try? container.decodeIfPresent(Int.self, forKey: .totalPoints)
+        totalPoints = try ScreenReportMetric.nonnegativeInteger(from: container, forKey: .totalPoints)
     }
 
     enum CodingKeys: String, CodingKey {
