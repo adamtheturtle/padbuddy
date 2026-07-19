@@ -9,6 +9,10 @@
 import SwiftUI
 
 extension AccountEditor {
+    enum ScopeProbeError: Error {
+        case emptyResponse
+    }
+
     /// After the key proves it can reach the org, probe the main read endpoints
     /// with one lightweight request each and report any that return a 403, so the
     /// user learns up front that, e.g., Questions will be empty rather than hitting
@@ -27,18 +31,14 @@ extension AccountEditor {
                 return true
             } catch let error as CoderPadError where error.isUnauthorized {
                 return false
+            } catch is ScopeProbeError {
+                return false
             } catch {
                 return true
             }
         }
-        /// One page proves read access without pulling the whole list.
-        func firstPage(_ stream: AsyncThrowingStream<[some Any], any Error>) async throws {
-            for try await _ in stream {
-                return
-            }
-        }
-        async let padsOK = authorized { try await firstPage(client.listPadsIncrementally()) }
-        async let questionsOK = authorized { try await firstPage(client.listQuestionsIncrementally()) }
+        async let padsOK = authorized { try await Self.requireFirstPage(client.listPadsIncrementally()) }
+        async let questionsOK = authorized { try await Self.requireFirstPage(client.listQuestionsIncrementally()) }
         async let quotaOK = authorized { _ = try await client.quota() }
 
         var missing: [String] = []
@@ -55,6 +55,15 @@ extension AccountEditor {
 
         let list = missing.joined(separator: ", ")
         return String(localized: "This key works, but isn't authorized for: \(list). Those sections may be empty.")
+    }
+
+    /// One yielded page proves the endpoint actually completed a response. A stream
+    /// that ends before yielding cannot be treated as evidence of authorization.
+    static func requireFirstPage<Element>(_ stream: AsyncThrowingStream<[Element], any Error>) async throws {
+        for try await _ in stream {
+            return
+        }
+        throw ScopeProbeError.emptyResponse
     }
 
     /// Derives the signed-in user's email from their own pads. `/api/pads/` is scoped
