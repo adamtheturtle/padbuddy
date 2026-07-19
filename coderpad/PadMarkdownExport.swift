@@ -141,7 +141,7 @@ private func appendTestCases(_ testCases: [QuestionTestCase], to lines: inout [S
         let input = testCase.arguments?.joined(separator: ", ") ?? "None"
         let expected = testCase.returnValue ?? "None"
         let visibility = testCase.visible == false ? "Hidden" : "Visible"
-        lines.append("| \(markdownInlineEscaped(input)) | \(markdownInlineEscaped(expected)) | \(visibility) |")
+        lines.append("| \(markdownTableCell(input)) | \(markdownTableCell(expected)) | \(visibility) |")
     }
     lines.append("")
 }
@@ -185,6 +185,29 @@ private func finalizedMarkdown(_ lines: [String]) -> String {
 /// for every summary label and value, every title, every test-case cell, and every
 /// file name in a document, and rebuilt this identical set each time (#2217).
 private let markdownInlineSpecials: Set<Character> = ["\\", "`", "*", "_", "[", "]", "<", ">", "|"]
+
+/// A bounded, single-line table value. Remote test data can be arbitrarily large;
+/// keeping the first 1,000 graphemes makes the export useful without allowing one
+/// argument or expected value to dominate memory and layout (#1547).
+func markdownTableCell(_ text: String) -> String {
+    let maximumCharacters = 1000
+    let prefix = text.prefix(maximumCharacters)
+    let wasTruncated = prefix.endIndex != text.endIndex
+    var normalized = ""
+    normalized.reserveCapacity(min(prefix.utf8.count, maximumCharacters))
+    var previousWasWhitespace = false
+    for character in prefix {
+        if character.isWhitespace {
+            if !previousWasWhitespace { normalized.append(" ") }
+            previousWasWhitespace = true
+        } else {
+            normalized.append(character)
+            previousWasWhitespace = false
+        }
+    }
+    if wasTruncated { normalized.append("…") }
+    return markdownInlineEscaped(normalized)
+}
 
 func markdownInlineEscaped(_ text: String) -> String {
     // One pass. This used to walk the string for `reserveCapacity`, then three more

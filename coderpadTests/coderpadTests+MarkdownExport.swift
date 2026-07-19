@@ -84,6 +84,15 @@ struct PadMarkdownExportTests {
     }
 
     @Test
+    func `test-case table cells collapse whitespace and bound remote values`() {
+        #expect(markdownTableCell("one\n\t two   three") == "one two three")
+
+        let oversized = String(repeating: "x", count: 1500)
+        let bounded = markdownTableCell(oversized)
+        #expect(bounded == String(repeating: "x", count: 1000) + "…")
+    }
+
+    @Test
     func `code containing a triple-backtick run gets a longer fence`() {
         let code = "let s = \"\"\"\n```\n\"\"\""
         let markdown = padMarkdownDocument(
