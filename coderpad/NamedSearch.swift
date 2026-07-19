@@ -96,15 +96,37 @@ struct NamedSearch: Identifiable, Codable, Hashable {
     /// never drift. Fields a given list doesn't use stay nil on both sides, so the
     /// full-field comparison is correct for both pads and questions.
     func hasSameFilters(as other: Self) -> Bool {
-        search == other.search &&
+        Self.equivalent(search, other.search, trimmingWhitespace: true) &&
             stateFilter == other.stateFilter &&
-            languageFilter == other.languageFilter &&
-            ownerFilter == other.ownerFilter &&
-            teamFilter == other.teamFilter &&
+            Self.equivalent(languageFilter, other.languageFilter, trimmingWhitespace: true) &&
+            Self.equivalent(ownerFilter, other.ownerFilter) &&
+            Self.equivalent(teamFilter, other.teamFilter) &&
             typeFilter == other.typeFilter &&
             updatedWindow == other.updatedWindow &&
             createdWindow == other.createdWindow &&
             draftFilter == other.draftFilter
+    }
+
+    private static func equivalent(
+        _ lhs: String,
+        _ rhs: String,
+        trimmingWhitespace: Bool = false
+    ) -> Bool {
+        let left = trimmingWhitespace ? lhs.trimmingCharacters(in: .whitespacesAndNewlines) : lhs
+        let right = trimmingWhitespace ? rhs.trimmingCharacters(in: .whitespacesAndNewlines) : rhs
+        return left.localizedCaseInsensitiveCompare(right) == .orderedSame
+    }
+
+    private static func equivalent(
+        _ lhs: String?,
+        _ rhs: String?,
+        trimmingWhitespace: Bool = false
+    ) -> Bool {
+        switch (lhs, rhs) {
+        case let (left?, right?): equivalent(left, right, trimmingWhitespace: trimmingWhitespace)
+        case (nil, nil): true
+        default: false
+        }
     }
 }
 
