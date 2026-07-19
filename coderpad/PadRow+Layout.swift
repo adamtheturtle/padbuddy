@@ -106,9 +106,12 @@ extension View {
             contentShape(Rectangle())
                 .selectionDisabled()
                 .focusEffectDisabled()
-                .simultaneousGesture(TapGesture().onEnded {
+                // A regular tap gesture yields to embedded buttons/accessories.
+                // The previous simultaneous gesture selected and navigated the row
+                // in addition to performing the control's own action (#2747).
+                .onTapGesture {
                     selection.wrappedValue = [id]
-                })
+                }
         #else
             self
         #endif
