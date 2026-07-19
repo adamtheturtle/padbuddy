@@ -71,6 +71,11 @@ extension AccountEditor {
             && currentName.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
+    static func hasUsableOrganizationIdentity(name: String, userEmails: [String]) -> Bool {
+        !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && userEmails.contains { validatedOwnerEmail($0) != nil }
+    }
+
     func applyValidatedOrganization(
         _ org: Organization,
         client: CoderPadClient,
@@ -78,6 +83,13 @@ extension AccountEditor {
         nameGeneration: Int
     ) async -> Bool {
         guard validationStillMatches(fingerprint) else { return false }
+        guard Self.hasUsableOrganizationIdentity(
+            name: org.organizationName,
+            userEmails: org.users.map(\.email)
+        ) else {
+            validation = .invalid(String(localized: "The organization response is missing its name or members."))
+            return false
+        }
 
         orgUsers = org.users
         if Self.shouldAutofillValidatedName(
