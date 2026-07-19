@@ -112,6 +112,8 @@ struct MergedQuestionsView: View {
     /// Per-render memo for the combined cross-account rows (`scoped`), refreshed
     /// once at the top of `body` so its many readers (filter pass, chip options,
     /// counts, empty-state checks) share a single build, matching `MergedPadsView`.
+    /// Per-render memo for the filter bar's account-derived options (#2467, #2468).
+    @State var accountOptionsCache = MergedAccountOptionsCache()
     @State var scopedCache = ScopedQuestionsCache()
     /// Per-render memo for the filtered + sorted rows (`sorted`), so the list,
     /// overlay, and count bar share one filter+sort pass instead of redoing it on
@@ -134,6 +136,7 @@ struct MergedQuestionsView: View {
     var body: some View {
         // Recompute the combined rows and the filtered+sorted rows once per render;
         // every read below hits the memos.
+        accountOptionsCache.refresh(accounts.accounts, mergeable: accounts.mergeableAccounts)
         refreshScoped()
         refreshSorted()
         return decorated

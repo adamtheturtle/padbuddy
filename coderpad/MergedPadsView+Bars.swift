@@ -8,12 +8,11 @@
 import SwiftUI
 
 extension MergedPadsView {
-    /// A name lookup for the Account chip's formatter that builds a `[UUID: String]`
-    /// index once and captures it, so resolving each option is O(1) rather than a
-    /// linear scan of `accounts` per option (#368).
+    /// A name lookup for the Account chip's formatter, resolving each option in O(1)
+    /// rather than scanning `accounts` per option (#368). The index itself is memoized
+    /// across renders — see `MergedAccountOptionsCache` (#2467, #2468).
     func accountNameFormatter() -> (UUID) -> String {
-        let names = Dictionary(accounts.accounts.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
-        return { names[$0] ?? "Account" }
+        accountOptionsCache.formatter()
     }
 
     var filterBar: some View {
@@ -21,7 +20,7 @@ extension MergedPadsView {
             FilterChipMenu(
                 title: String(localized: "Account"), icon: "person.crop.circle",
                 selected: $accountFilter,
-                options: accounts.mergeableAccounts.map(\.id),
+                options: accountOptionsCache.ids,
                 formatter: accountNameFormatter()
             )
             .measuresFilterBarWidth()
@@ -96,12 +95,31 @@ extension MergedPadsView {
     /// API key reads differently from a transient network blip (red key glyph plus a
     /// jump to the account editor, vs. an orange "couldn't refresh"), so the two aren't
     /// confused (#622).
+    /// The accounts whose last load failed, split by whether the failure was a
+    /// rejected key or a transient network problem — the two read very differently in
+    /// the bar. Empty when nothing failed, which is the usual answer.
+    private func partitionedFailures() -> (auth: [Account], network: [Account]) {
+        guard !accountErrors.isEmpty else { return ([], []) }
+
+        var auth: [Account] = []
+        var network: [Account] = []
+        for account in accounts.mergeableAccounts where accountErrors[account.id] != nil {
+            if healthMonitor.isUnauthorized(account.id) {
+                auth.append(account)
+            } else {
+                network.append(account)
+            }
+        }
+        return (auth, network)
+    }
+
     @ViewBuilder
     var errorBar: some View {
-        let failed = accounts.mergeableAccounts.filter { accountErrors[$0.id] != nil }
-        let authFailed = failed.filter { healthMonitor.isUnauthorized($0.id) }
-        let networkFailed = failed.filter { !healthMonitor.isUnauthorized($0.id) }
-        if !failed.isEmpty {
+        // The common case is no errors at all, and this runs on every render — so
+        // check the (usually empty) error map before touching the account list, and
+        // split the failures in one pass rather than three filters over it (#2469).
+        let (authFailed, networkFailed) = partitionedFailures()
+        if !authFailed.isEmpty || !networkFailed.isEmpty {
             VStack(alignment: .leading, spacing: 4) {
                 if !authFailed.isEmpty {
                     HStack(spacing: 6) {

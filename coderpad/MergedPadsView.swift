@@ -166,6 +166,8 @@ struct MergedPadsView: View {
     @State var filteredCache = FilteredScopedPadsCache()
     /// Per-render memo for the sorted cross-account rows (`scoped`), refreshed
     /// once at the top of `body` so its many readers share a single sort.
+    /// Per-render memo for the filter bar's account-derived options (#2467, #2468).
+    @State var accountOptionsCache = MergedAccountOptionsCache()
     @State var scopedCache = ScopedPadsCache()
 
     init(selection: Binding<Pad?>, search: Binding<String>) {
@@ -184,6 +186,7 @@ struct MergedPadsView: View {
     var body: some View {
         // Recompute the sorted rows and the filtered rows once per render; every
         // read below (filter pass, chip options, counts) hits the memos.
+        accountOptionsCache.refresh(accounts.accounts, mergeable: accounts.mergeableAccounts)
         refreshScoped()
         refreshFiltered()
         return decorated
