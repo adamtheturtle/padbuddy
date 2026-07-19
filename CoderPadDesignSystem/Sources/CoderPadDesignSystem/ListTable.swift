@@ -186,8 +186,7 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
         scroll.drawsBackground = false
         // Report the top visible row when a user scroll settles, so the caller can
         // persist/restore the free-scroll position (#273). didEndLiveScroll fires once
-        // per gesture — far cheaper than streaming every bounds change. The selector
-        // observer auto-unregisters when the coordinator deallocates (macOS 10.11+).
+        // per gesture — far cheaper than streaming every bounds change.
         NotificationCenter.default.addObserver(
             context.coordinator,
             selector: #selector(Coordinator.liveScrollEnded),
@@ -195,6 +194,15 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
             object: scroll
         )
         return scroll
+    }
+
+    public static func dismantleNSView(_ nsView: NSScrollView, coordinator: Coordinator) {
+        NotificationCenter.default.removeObserver(
+            coordinator,
+            name: NSScrollView.didEndLiveScrollNotification,
+            object: nsView
+        )
+        coordinator.tableView = nil
     }
 
     public func updateNSView(_: NSScrollView, context: Context) {
