@@ -129,3 +129,43 @@ struct OnDeviceModelParsingTests {
         #expect(fields["state"] == "open")
     }
 }
+
+@Suite("Model field bounds and normalization (#2425, #2427)")
+struct ModelKeyedFieldBoundsTests {
+    @Test
+    func `a nonbreaking space normalizes like a plain one`() {
+        // "date range" written with U+00A0 used to produce a different key from the
+        // plain-space spelling, so downstream matching missed it (#2427).
+        let plain = OnDeviceModelParsing.keyedFields("date range: last week")
+        let nonbreaking = OnDeviceModelParsing.keyedFields("date\u{00A0}range: last week")
+        #expect(plain == nonbreaking)
+        #expect(plain["daterange"] == "last week")
+        // Hyphens and underscores already folded; confirm they still agree.
+        #expect(OnDeviceModelParsing.keyedFields("date_range: last week") == plain)
+        #expect(OnDeviceModelParsing.keyedFields("date-range: last week") == plain)
+    }
+
+    @Test
+    func `an over-long key or value is dropped`() {
+        let longKey = String(repeating: "k", count: OnDeviceModelParsing.maxKeyLength + 1)
+        #expect(OnDeviceModelParsing.keyedFields("\(longKey): value").isEmpty)
+
+        let longValue = String(repeating: "v", count: OnDeviceModelParsing.maxValueLength + 1)
+        #expect(OnDeviceModelParsing.keyedFields("key: \(longValue)").isEmpty)
+    }
+
+    @Test
+    func `the field count is capped`() {
+        let reply = (1 ... (OnDeviceModelParsing.maxFieldCount + 20))
+            .map { "key\($0): value\($0)" }
+            .joined(separator: "\n")
+        #expect(OnDeviceModelParsing.keyedFields(reply).count == OnDeviceModelParsing.maxFieldCount)
+    }
+
+    @Test
+    func `a well-formed reply is unaffected by the caps`() {
+        let fields = OnDeviceModelParsing.keyedFields("owner: a@x.com\nlanguage: python3")
+        #expect(fields["owner"] == "a@x.com")
+        #expect(fields["language"] == "python3")
+    }
+}

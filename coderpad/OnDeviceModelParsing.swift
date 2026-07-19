@@ -85,28 +85,45 @@ enum OnDeviceModelParsing {
     /// values is dropped entirely rather than trusting whichever occurrence came last
     /// (#1715); repeating the same value is harmless and kept. Suits the flat filter
     /// replies where each field is a single line.
+    /// Caps on what a reply may contribute.
+    ///
+    /// The model's output is untrusted text: a malformed or looping reply could
+    /// otherwise fill an unbounded dictionary with unbounded strings and pass it
+    /// downstream as filter data (#2425). These are far above any real label or
+    /// value the prompts ask for, so a well-formed reply never meets them.
+    static let maxFieldCount = 64
+    static let maxKeyLength = 64
+    static let maxValueLength = 2048
+
     static func keyedFields(_ reply: String) -> [String: String] {
         var result: [String: String] = [:]
         var conflicted = Set<String>()
         for rawLine in reply.split(whereSeparator: \.isNewline) {
+            // Stop once enough fields have been collected; a reply with more than
+            // this isn't the shape the prompt asked for.
+            guard result.count < maxFieldCount else { break }
+
             let line = String(rawLine)
             guard let colon = line.firstIndex(of: ":") else { continue }
 
-            // Normalize in one pass: lowercasing and dropping spaces/hyphens/underscores
-            // via chained replacingOccurrences rescans and reallocates the key four
-            // times per line (#2269).
+            // Normalize in one pass: lowercasing and dropping separators via chained
+            // replacingOccurrences rescans and reallocates the key four times per
+            // line (#2269). `isWhitespace` rather than a literal " ", so a label
+            // written with a nonbreaking or other Unicode space normalizes to the
+            // same key as its plain-space twin (#2427).
             let rawKey = line[..<colon].trimmingCharacters(in: .whitespacesAndNewlines)
             var key = ""
             key.reserveCapacity(rawKey.count)
-            for character in rawKey where character != " " && character != "-" && character != "_" {
+            for character in rawKey where !character.isWhitespace && character != "-" && character != "_" {
                 key.append(contentsOf: character.lowercased())
             }
-            guard !key.isEmpty else { continue }
+            guard !key.isEmpty, key.count <= maxKeyLength else { continue }
 
             var value = String(line[line.index(after: colon)...]).trimmingCharacters(in: .whitespacesAndNewlines)
             value = value.trimmingCharacters(in: CharacterSet(charactersIn: "\"'"))
             let lowered = value.lowercased()
-            guard !value.isEmpty, !["nil", "none", "n/a", "null", "-"].contains(lowered) else { continue }
+            guard !value.isEmpty, value.count <= maxValueLength,
+                  !["nil", "none", "n/a", "null", "-"].contains(lowered) else { continue }
 
             if let existing = result[key], existing != value {
                 conflicted.insert(key)
