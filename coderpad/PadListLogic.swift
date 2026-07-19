@@ -259,6 +259,15 @@ nonisolated struct PadFileHistory: Identifiable, Hashable {
         snapshots = built
     }
 
+    /// Replays remote history away from the caller's actor. Building snapshots can
+    /// apply thousands of edits and repeatedly scan their UTF-8/UTF-16 contents;
+    /// detail views call this after an async fetch while isolated to the UI actor.
+    static func replaying(id: String, title: String, language: String?, history: PadHistory) async -> Self {
+        await Task.detached(priority: .utility) {
+            Self(id: id, title: title, language: language, history: history)
+        }.value
+    }
+
     var latestEntry: PadHistoryEntry? {
         history.entries.last
     }

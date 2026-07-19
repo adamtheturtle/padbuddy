@@ -272,12 +272,13 @@ extension PadDetailView {
                 let history = try await PadHistoryFetcher.fetch(request.url, accountBaseURL: client.baseURL)
                 guard !history.isEmpty else { return (nil, false) }
 
-                return (PadFileHistory(
+                let replayed = await PadFileHistory.replaying(
                     id: request.url,
                     title: request.title,
                     language: request.language,
                     history: history
-                ), false)
+                )
+                return (replayed, false)
             } catch {
                 return (nil, true)
             }
