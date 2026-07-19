@@ -35,6 +35,10 @@ struct ScreenClient {
     private nonisolated static let apiPrefix = "/assessment/api/v1.1"
     nonisolated static let maximumPageSize = 500
 
+    private nonisolated static func requirePositiveID(_ id: Int, kind: String) throws {
+        guard id > 0 else { throw CoderPadError.decode("Screen \(kind) ID must be positive.") }
+    }
+
     init(apiKey: String,
          baseURL: URL = Self.defaultBaseURL,
          session: URLSession = Self.liveSession) {
@@ -71,6 +75,7 @@ struct ScreenClient {
     /// `POST /campaigns/:id/actions/send`.
     nonisolated func sendInvitation(campaignID: Int,
                                     _ invitation: ScreenInvitation) async throws -> ScreenInvitationResult {
+        try Self.requirePositiveID(campaignID, kind: "campaign")
         try await send(ScreenInvitationResult.self,
                        method: "POST",
                        path: "/campaigns/\(campaignID)/actions/send",
@@ -89,6 +94,7 @@ struct ScreenClient {
                                until: Int? = nil,
                                start: Int? = nil,
                                limit: Int? = nil) async throws -> ScreenTestsPage {
+        if let campaignID { try Self.requirePositiveID(campaignID, kind: "campaign") }
         if let start, start < 0 {
             throw CoderPadError.decode("Screen pagination start must not be negative.")
         }
@@ -147,22 +153,26 @@ struct ScreenClient {
     /// A single test session's status and (once finished) report. `GET /tests/:id`.
     /// `withCommunityStats` adds the report's community score distribution.
     nonisolated func getTest(id: Int, withCommunityStats: Bool = false) async throws -> ScreenTestSession {
+        try Self.requirePositiveID(id, kind: "test")
         let query = withCommunityStats ? [URLQueryItem(name: "withCommunityStats", value: "true")] : []
         return try await get(ScreenTestSession.self, path: "/tests/\(id)", query: query)
     }
 
     /// Cancels a not-yet-started test invitation. `POST /tests/:id/actions/cancel`.
     nonisolated func cancelTest(id: Int) async throws {
+        try Self.requirePositiveID(id, kind: "test")
         try await sendNoContent(method: "POST", path: "/tests/\(id)/actions/cancel")
     }
 
     /// Resends the invitation email for a test. `POST /tests/:id/actions/resend`.
     nonisolated func resendTest(id: Int) async throws {
+        try Self.requirePositiveID(id, kind: "test")
         try await sendNoContent(method: "POST", path: "/tests/\(id)/actions/resend")
     }
 
     /// Deletes a test session. `DELETE /tests/:id`.
     nonisolated func deleteTest(id: Int) async throws {
+        try Self.requirePositiveID(id, kind: "test")
         try await sendNoContent(method: "DELETE", path: "/tests/\(id)")
     }
 
@@ -174,6 +184,7 @@ struct ScreenClient {
                                 anonymous: Bool? = nil,
                                 includeRank: Bool? = nil,
                                 includeComparativeScore: Bool? = nil) async throws -> Data {
+        try Self.requirePositiveID(id, kind: "test")
         var query: [URLQueryItem] = []
         if let reportType { query.append(URLQueryItem(name: "report_type", value: reportType)) }
         if let anonymous { query.append(URLQueryItem(name: "anonymous", value: String(anonymous))) }

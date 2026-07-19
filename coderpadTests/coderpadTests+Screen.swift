@@ -51,6 +51,32 @@ struct ScreenClientTests {
         #expect(result.testURL == "https://screen-ide.coderpad.io/?id=999abc")
     }
 
+    @Test(arguments: [0, -1, Int.min])
+    func `campaign endpoint rejects nonpositive IDs before transport`(id: Int) async {
+        let client = ScreenClient(apiKey: "key", session: URLSession(configuration: .ephemeral))
+        do {
+            _ = try await client.sendInvitation(campaignID: id, ScreenInvitation(candidateEmail: "a@example.com"))
+            Issue.record("Expected an invalid campaign ID to throw")
+        } catch let error as CoderPadError {
+            #expect(error.description.contains("campaign ID must be positive"))
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
+    }
+
+    @Test(arguments: [0, -1, Int.min])
+    func `endpoints reject nonpositive IDs before transport`(id: Int) async {
+        let client = ScreenClient(apiKey: "key", session: URLSession(configuration: .ephemeral))
+        do {
+            _ = try await client.getTest(id: id)
+            Issue.record("Expected an invalid test ID to throw")
+        } catch let error as CoderPadError {
+            #expect(error.description.contains("test ID must be positive"))
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
+    }
+
     @Test
     func `sendInvitation accepts a successful response without an id`() async throws {
         let result = try await screenClient().sendInvitation(
