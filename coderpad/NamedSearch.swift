@@ -124,13 +124,25 @@ enum SavedSearchKind: String, Codable, Hashable {
 struct MergedFilterSnapshot: Codable {
     var search: NamedSearch
     var accountFilter: UUID?
+    /// The account filter's cross-device identity (`Account.syncID`), stored
+    /// alongside the local `UUID`.
+    ///
+    /// `accountFilter` is a per-device random id, so a snapshot that reaches
+    /// another Mac through preference sync — or survives a reinstall — names an
+    /// account that no longer exists there. The filter was then dropped and the
+    /// list silently widened to every account, which reads as the filter having
+    /// stopped working (#2557). The sync id lines up across devices, so a restore
+    /// can fall back to it. Optional: snapshots written before this existed, and
+    /// draft accounts with no resolvable sync id, carry nil.
+    var accountFilterSyncID: String?
     var mineOnly: Bool
     var favoritesOnly: Bool
 
-    init(search: NamedSearch, accountFilter: UUID? = nil,
+    init(search: NamedSearch, accountFilter: UUID? = nil, accountFilterSyncID: String? = nil,
          mineOnly: Bool = false, favoritesOnly: Bool = false) {
         self.search = search
         self.accountFilter = accountFilter
+        self.accountFilterSyncID = accountFilterSyncID
         (self.mineOnly, self.favoritesOnly) = Self.exclusivePresets(mineOnly: mineOnly,
                                                                     favoritesOnly: favoritesOnly)
     }
@@ -140,6 +152,7 @@ struct MergedFilterSnapshot: Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         search = try container.decode(NamedSearch.self, forKey: .search)
         accountFilter = try container.decodeIfPresent(UUID.self, forKey: .accountFilter)
+        accountFilterSyncID = try container.decodeIfPresent(String.self, forKey: .accountFilterSyncID)
         (mineOnly, favoritesOnly) = try Self.exclusivePresets(
             mineOnly: container.decodeIfPresent(Bool.self, forKey: .mineOnly) ?? false,
             favoritesOnly: container.decodeIfPresent(Bool.self, forKey: .favoritesOnly) ?? false

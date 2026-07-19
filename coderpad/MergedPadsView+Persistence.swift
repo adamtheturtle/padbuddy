@@ -118,6 +118,7 @@ extension MergedPadsView {
 
         let snapshot = MergedFilterSnapshot(search: captureCurrentSearch(),
                                             accountFilter: accountFilter,
+                                            accountFilterSyncID: MergedAccountFilter.syncID(for: accountFilter),
                                             mineOnly: mineOnly)
         do {
             let data = try JSONEncoder().encode(snapshot)
@@ -149,16 +150,11 @@ extension MergedPadsView {
 
         if let snapshot = try? JSONDecoder().decode(MergedFilterSnapshot.self, from: data) {
             apply(snapshot.search)
-            // Reset before conditionally re-applying: a saved filter whose account
-            // was removed must restore as unfiltered rather than leaving any prior
-            // in-memory value applied (#1656). Only an account that still resolves
-            // to a mergeable one re-applies; a removed account's filter would show
-            // an empty list.
-            accountFilter = nil
-            if let id = snapshot.accountFilter,
-               accounts.mergeableAccounts.contains(where: { $0.id == id }) {
-                accountFilter = id
-            }
+            // An unconditional assignment: a saved filter whose account was removed
+            // must restore as unfiltered rather than leaving any prior in-memory
+            // value applied (#1656). The resolver matches by local id, then by
+            // cross-device sync id, and only accepts a still-mergeable account.
+            accountFilter = MergedAccountFilter.resolve(snapshot)
             mineOnly = snapshot.mineOnly
         } else if let legacy = try? JSONDecoder().decode(NamedSearch.self, from: data) {
             apply(legacy)

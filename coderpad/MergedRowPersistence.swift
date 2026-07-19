@@ -48,3 +48,43 @@ enum MergedRowPersistence {
         return UUID(uuidString: String(id[..<separator]))
     }
 }
+
+/// Resolves the merged lists' cross-account filter across devices.
+///
+/// The filter is held in memory as the account's local `UUID`, which is random
+/// per device. Persisting only that meant a snapshot arriving on another Mac
+/// through preference sync — or surviving a reinstall — named an account that
+/// does not exist there, so the filter was dropped and the list silently widened
+/// to every account (#2557). Pairing it with `Account.syncID`, which is derived
+/// from the endpoint, owner email, and key fingerprint and so matches across
+/// devices, lets the restore recover the intended account.
+@MainActor
+enum MergedAccountFilter {
+    /// The cross-device identity of the filtered account, or nil when nothing is
+    /// filtered or the account has no resolvable sync id (a draft with no key yet).
+    static func syncID(for accountFilter: UUID?) -> String? {
+        guard let accountFilter,
+              let account = AccountsStore.shared.accounts.first(where: { $0.id == accountFilter })
+        else { return nil }
+
+        let syncID = account.syncID
+        return syncID.isEmpty ? nil : syncID
+    }
+
+    /// The local account id a restored snapshot's filter refers to, or nil to
+    /// restore unfiltered.
+    ///
+    /// The local id is tried first — on the device that wrote the snapshot it is
+    /// exact and cheapest — then the sync id. Only an account that is still
+    /// mergeable qualifies: a removed account's filter would show an empty list,
+    /// so restoring unfiltered is the better failure (#1656).
+    static func resolve(_ snapshot: MergedFilterSnapshot) -> UUID? {
+        let mergeable = AccountsStore.shared.mergeableAccounts
+        if let id = snapshot.accountFilter, mergeable.contains(where: { $0.id == id }) {
+            return id
+        }
+        guard let syncID = snapshot.accountFilterSyncID, !syncID.isEmpty else { return nil }
+
+        return mergeable.first { $0.syncID == syncID }?.id
+    }
+}
