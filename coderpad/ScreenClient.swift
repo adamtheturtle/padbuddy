@@ -26,9 +26,9 @@ struct ScreenClient {
     nonisolated let session: URLSession
 
     /// The US server. EU customers override with `euBaseURL`.
-    static let defaultBaseURL = URL.staticURL("https://www.codingame.com")
+    nonisolated static let defaultBaseURL = URL.staticURL("https://www.codingame.com")
     /// The EU server, for organizations hosted in the EU region.
-    static let euBaseURL = URL.staticURL("https://www.codingame.eu")
+    nonisolated static let euBaseURL = URL.staticURL("https://www.codingame.eu")
 
     /// All endpoints live under this versioned prefix. The version is bumped only
     /// for breaking changes (added response fields are non-breaking — see `ScreenAPI`).
@@ -250,10 +250,7 @@ struct ScreenClient {
                                                query: [URLQueryItem] = [],
                                                accept: String = "application/json") throws -> URLRequest {
         guard !apiKey.isEmpty else { throw CoderPadError.missingAPIKey }
-        guard baseURL.scheme?.lowercased() == "https", baseURL.host?.isEmpty == false,
-              baseURL.user == nil, baseURL.password == nil,
-              baseURL.query == nil, baseURL.fragment == nil,
-              baseURL.path.isEmpty || baseURL.path == "/" else {
+        guard Self.isAllowedBaseURL(baseURL) else {
             throw CoderPadError.decode("Screen base URL must be a credential-free HTTPS origin.")
         }
 

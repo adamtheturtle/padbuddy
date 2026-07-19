@@ -66,6 +66,7 @@ struct ScreenCancellationTests {
 
     @Test(arguments: [
         "http://screen.example.com",
+        "https://screen.example.com",
         "file:///tmp/screen",
         "https://user:password@screen.example.com",
         "https://screen.example.com/tenant",
@@ -84,6 +85,13 @@ struct ScreenCancellationTests {
         } catch {
             Issue.record("Unexpected error: \(error)")
         }
+    }
+
+    @Test
+    func `only the configured Screen regional origins are accepted`() throws {
+        #expect(ScreenClient.isAllowedBaseURL(ScreenClient.defaultBaseURL))
+        #expect(ScreenClient.isAllowedBaseURL(ScreenClient.euBaseURL))
+        #expect(try !ScreenClient.isAllowedBaseURL(#require(URL(string: "https://www.codingame.com:8443"))))
     }
 }
 
