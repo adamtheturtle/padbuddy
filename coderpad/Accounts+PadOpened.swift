@@ -46,7 +46,12 @@ final class PadOpenedStore {
         // Re-pull and merge whenever iCloud reports an external change to our mirror.
         cloudObserverTask = Task { @MainActor in
             for await note in NotificationCenter.default.notifications(named: CloudSyncStore.didChangeExternally) {
-                guard note.userInfo?["key"] as? String == Self.cloudKey else { continue }
+                // The tombstone blob changes independently of the history blob — a
+                // pad deleted on another Mac writes only the former. Watching just the
+                // history key meant that deletion was never reconciled here and the
+                // deleted pad's activity state came back (#2605).
+                let key = note.userInfo?["key"] as? String
+                guard key == Self.cloudKey || key == Self.cloudTombstonesKey else { continue }
 
                 Self.shared.syncFromCloud()
             }
@@ -63,18 +68,88 @@ final class PadOpenedStore {
     /// Records that the pad was just opened, clearing its activity dot until it
     /// next changes. `now` is injectable for tests.
     func markOpened(_ padID: String, account: UUID, now: Date = Date()) {
-        byAccount[account, default: [:]][padID] = now
+        // An empty or whitespace-only id can never match a pad, so it would only
+        // ever be dead weight in the persisted and mirrored blob (#2608).
+        let id = padID.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !id.isEmpty else { return }
+
+        // A detail view or navigation callback can land after its account has been
+        // removed. Recording then recreates history for an account no UI can show
+        // or clear, which teardown has already finished purging (#2607).
+        guard AccountsStore.shared.accounts.contains(where: { $0.id == account }) else { return }
+
+        byAccount[account, default: [:]][id] = now
+        prune(account: account)
         save()
     }
 
+    /// Pulls timestamps from a badly-set clock back to now.
+    ///
+    /// The merge keeps the greatest last-opened value per pad, so one device whose
+    /// clock is set years ahead wins every subsequent open on every other device.
+    /// The affected pads then look permanently already-read — their activity dot
+    /// never returns — until real time catches up (#2610). A small tolerance
+    /// absorbs ordinary clock skew between machines; beyond it, the value is not a
+    /// time anyone actually opened a pad, so it is treated as now.
+    static func clampingFutureDates(_ entries: [String: Date], now: Date = Date()) -> [String: Date] {
+        let ceiling = now.addingTimeInterval(futureClockTolerance)
+        guard entries.contains(where: { $0.value > ceiling }) else { return entries }
+
+        return entries.mapValues { min($0, now) }
+    }
+
+    /// How far ahead of this device a timestamp may be before it is treated as a
+    /// misconfigured clock rather than skew.
+    static let futureClockTolerance: TimeInterval = 5 * 60
+
+    /// Bounds one account's history to the most recently opened `maxEntriesPerAccount`.
+    ///
+    /// Nothing capped this: every pad ever opened stayed in UserDefaults and in the
+    /// iCloud mirror forever, so in a busy organization the blob grew without limit
+    /// (#2606). The activity dot only means anything for pads recent enough to still
+    /// be in a list, so the oldest entries are the ones worth losing.
+    private func prune(account: UUID) {
+        guard let entries = byAccount[account], entries.count > Self.maxEntriesPerAccount else { return }
+
+        let keep = entries
+            .sorted { $0.value > $1.value }
+            .prefix(Self.maxEntriesPerAccount)
+        byAccount[account] = Dictionary(uniqueKeysWithValues: keep.map { ($0.key, $0.value) })
+    }
+
+    /// How many pad-open records are kept per account. Comfortably more than any
+    /// list shows at once, so the dot is never wrong for a visible pad.
+    static let maxEntriesPerAccount = 500
+
     /// Drops an account's open-history, called when the account is removed or
     /// re-keyed so its pad-open timestamps don't linger in UserDefaults (#379).
-    func remove(account: UUID) {
+    func remove(account: UUID, syncID: String? = nil) {
+        // Local removal alone left this account's records in the iCloud mirror, so
+        // re-adding an account with the same stable sync identity merged its old
+        // last-opened history straight back (#2611). Clearing the cloud side too
+        // makes the removal mean what it says.
+        if let syncID { removeFromCloud(syncID: syncID) }
         guard byAccount[account] != nil || removedAt[account] != nil else { return }
 
         byAccount[account] = nil
         removedAt[account] = nil
         save()
+    }
+
+    /// Deletes a removed account's entries from both mirrored cloud blobs, mirroring
+    /// `FavoritesOrderStore.removeFromCloud` (#1150).
+    private func removeFromCloud(syncID: String) {
+        guard CloudSyncStore.shared.isAvailable else { return }
+
+        for key in [Self.cloudKey, Self.cloudTombstonesKey] {
+            guard let data = CloudSyncStore.shared.data(forKey: key),
+                  var cloud = try? JSONDecoder().decode([String: [String: Date]].self, from: data),
+                  cloud.removeValue(forKey: syncID) != nil,
+                  let updated = try? JSONEncoder().encode(cloud)
+            else { continue }
+
+            CloudSyncStore.shared.mirror(updated, forKey: key)
+        }
     }
 
     /// Drops one pad's open timestamp under `account`, called by the central
@@ -83,7 +158,13 @@ final class PadOpenedStore {
     /// tombstone so the removal also propagates through the most-recent-wins
     /// cloud merge instead of another Mac restoring it.
     func removePad(_ padID: String, account: UUID) {
-        guard byAccount[account]?[padID] != nil else { return }
+        // Tombstone unconditionally. Returning early when this device had no local
+        // timestamp meant a pad whose open record lived only on another Mac — not
+        // yet synced here — was deleted without any tombstone, so that record later
+        // merged back in and resurrected the deleted pad's activity state (#2609).
+        let hadRecord = byAccount[account]?[padID] != nil
+        let alreadyTombstoned = removedAt[account]?[padID] != nil
+        guard hadRecord || !alreadyTombstoned else { return }
 
         byAccount[account]?[padID] = nil
         removedAt[account, default: [:]][padID] = Date()
@@ -153,8 +234,8 @@ final class PadOpenedStore {
         for (account, entries) in merged {
             let resolved = CloudTombstones.resolveTimestamps(entries: entries,
                                                              tombstones: tombstones[account] ?? [:])
-            merged[account] = resolved.entries
-            tombstones[account] = resolved.tombstones
+            merged[account] = Self.clampingFutureDates(resolved.entries)
+            tombstones[account] = Self.clampingFutureDates(resolved.tombstones)
         }
         guard merged != byAccount || tombstones != removedAt else { return }
 

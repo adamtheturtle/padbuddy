@@ -208,7 +208,7 @@ extension Account: StorableAccount {
     FavoritePadsStore.shared.remove(account: id)
     FavoriteQuestionsStore.shared.remove(account: id)
     FavoritesOrderStore.shared.remove(account: id, syncID: syncID)
-    PadOpenedStore.shared.remove(account: id)
+    PadOpenedStore.shared.remove(account: id, syncID: syncID)
     AccountScopedDefaults.purge(account: id)
     InlineEditDrafts.shared.removeAll(account: id)
 }

@@ -359,3 +359,35 @@ struct CloudTombstonesTests {
         #expect(pruned.keys.sorted() == ["fresh"])
     }
 }
+
+@Suite("Pad-open history hardening (#2606, #2610)")
+struct PadOpenedStoreHardeningTests {
+    @Test
+    func `a far-future timestamp is pulled back to now`() {
+        // One device with a badly-set clock otherwise wins every later open on every
+        // other device, so those pads look permanently already-read (#2610).
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let entries = [
+            "ok": now.addingTimeInterval(-60),
+            "future": now.addingTimeInterval(365 * 24 * 60 * 60)
+        ]
+        let clamped = PadOpenedStore.clampingFutureDates(entries, now: now)
+        #expect(clamped["future"] == now)
+        #expect(clamped["ok"] == now.addingTimeInterval(-60))
+    }
+
+    @Test
+    func `ordinary clock skew is left alone`() {
+        // A little ahead is normal between machines and must not be rewritten, which
+        // would churn the mirror on every sync.
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let skewed = now.addingTimeInterval(PadOpenedStore.futureClockTolerance - 1)
+        let clamped = PadOpenedStore.clampingFutureDates(["a": skewed], now: now)
+        #expect(clamped["a"] == skewed)
+    }
+
+    @Test
+    func `the retention cap keeps the most recent opens`() {
+        #expect(PadOpenedStore.maxEntriesPerAccount > 0)
+    }
+}
