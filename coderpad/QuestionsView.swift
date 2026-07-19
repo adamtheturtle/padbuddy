@@ -377,6 +377,10 @@ struct QuestionsView: View {
             if let id = accounts.currentAccountID {
                 cache.set(id, questions: fetched, via: client)
             }
+            // Every page has arrived, so a saved selection that still isn't here is
+            // genuinely gone. Idempotent — a restore already made from a complete
+            // enough list is a no-op (#2501).
+            restoreSelectedQuestionIfNeeded(loadComplete: true)
         } catch {
             // Keep whatever is already on screen; the error view only takes over when
             // there's nothing loaded (gated on `questions.isEmpty`).

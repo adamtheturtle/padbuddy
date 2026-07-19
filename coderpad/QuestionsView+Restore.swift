@@ -47,9 +47,14 @@ extension QuestionsView {
     func scheduleTopRowPersistence(_ id: Int?) {
         // Capture the owning account now: the write is debounced, and a fast account
         // switch would otherwise save this account's top row under the next
-        // account's key (#757).
+        // account's key (#757). The list epoch is captured for the same reason within
+        // one account: a reload replaces the rows, and a callback queued against the
+        // old ones must not overwrite a scroll position taken since (#2503).
         let account = accounts.currentAccountID
+        let epoch = questionsRevision
         topRowPersistence.schedule {
+            guard epoch == questionsRevision else { return }
+
             persistTopRow(id, account: account)
         }
     }
@@ -73,25 +78,41 @@ extension QuestionsView {
     /// complete as soon as questions exist (so later changes persist), then reselects
     /// via `questionToRestore` — which yields to a pending favorite or queued request
     /// so an explicit navigation always wins.
-    func restoreSelectedQuestionIfNeeded() {
+    /// `loadComplete` is true only once the incremental load has finished. Until then
+    /// a saved id that isn't in the list yet may simply be on a page still arriving, so
+    /// the one-shot restore waits rather than being spent on a partial list (#2501).
+    func restoreSelectedQuestionIfNeeded(loadComplete: Bool = false) {
         guard !didRestoreSelection, !questions.isEmpty else { return }
-
-        didRestoreSelection = true
         guard let account = accounts.currentAccountID else { return }
 
+        let availableIDs = Set(questions.map(\.id))
         let stored = UserDefaults.standard.object(forKey: Self.selectedQuestionKey(account)) as? Int
+        let storedTop = UserDefaults.standard.object(forKey: Self.topRowKey(account)) as? Int
+        if !loadComplete,
+           [stored, storedTop].contains(where: { $0.map { !availableIDs.contains($0) } ?? false }) {
+            return
+        }
+
+        didRestoreSelection = true
+        // The load has finished and these ids aren't in it, so the questions are gone.
+        // Clear them rather than rechecking the same dead ids on every launch (#2502).
+        if let stored, !availableIDs.contains(stored) {
+            UserDefaults.standard.removeObject(forKey: Self.selectedQuestionKey(account))
+        }
+        if let storedTop, !availableIDs.contains(storedTop) {
+            UserDefaults.standard.removeObject(forKey: Self.topRowKey(account))
+        }
         if let id = Self.questionToRestore(
             savedID: stored,
             hasSelection: selection != nil,
             hasPendingNavigation: pendingSelectQuestionID != nil || nav.questionsRequest != nil,
-            availableIDs: Set(questions.map(\.id))
+            availableIDs: availableIDs
         ) {
             selectedQuestionIDs = [id]
             // Bring the restored row into view; the List won't scroll to it on its own.
             pendingScrollToID = id
         } else if selection == nil, pendingSelectQuestionID == nil, nav.questionsRequest == nil,
-                  let topID = UserDefaults.standard.object(forKey: Self.topRowKey(account)) as? Int,
-                  questions.contains(where: { $0.id == topID }) {
+                  let topID = storedTop, availableIDs.contains(topID) {
             // Nothing to reselect — return the unselected list to where it was scrolled
             // last session (#273), without selecting anything.
             pendingScrollToID = topID
