@@ -259,9 +259,25 @@ struct InlineEditableText: View {
     }
 
     private func commit() async {
+        // Which field this save belongs to. SwiftUI reuses a view's `@State` when
+        // it rebinds the same view position to different content, so by the time
+        // the request returns this editor may be showing another part, another
+        // question, or nothing at all (#2653).
+        let committedKey = stashKey
         saving = true
         let saved = await onSave(draft)
+        // The spinner flag is cleared either way: it belongs to the reused state,
+        // and leaving it set would strand the next field's editor mid-save.
         saving = false
+        guard !Task.isCancelled, stashKey == committedKey else {
+            // This editor has moved on, so none of the edit-state transitions
+            // below apply to what it now shows. The save did land for the field
+            // it was started on, though, so that field's stash must still go or
+            // returning to it reopens stale editing over saved text (#1193).
+            if saved { InlineEditDrafts.shared.clear(for: committedKey) }
+            return
+        }
+
         // On failure the detail view surfaces the error in its alert; keep the
         // editor open so the unsaved text isn't lost.
         if saved {
