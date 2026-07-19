@@ -58,6 +58,53 @@ struct DiskCacheTests {
         )
         #expect(directoryMode & 0o777 == 0o700)
         #expect(fileMode & 0o777 == 0o600)
+
+        let object = try #require(JSONSerialization.jsonObject(with: Data(contentsOf: file)) as? [String: Any])
+        #expect(object["schemaVersion"] as? Int == 1)
+        #expect(object["payload"] as? [String] == ["secret"])
+    }
+
+    @Test
+    func `legacy snapshots are loaded and migrated to the current envelope`() throws {
+        let directoryName = "com.buddyappkit.tests.DiskCache-\(UUID().uuidString)"
+        let account = UUID()
+        let cache = DiskCache(directoryName: directoryName, logger: Logger(subsystem: "tests", category: "cache"))
+        let base = try #require(FileManager.default.urls(
+            for: .applicationSupportDirectory, in: .userDomainMask
+        ).first)
+        let directory = base.appending(path: directoryName, directoryHint: .isDirectory)
+        let file = directory.appending(path: "pads-\(account.uuidString).json")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try JSONEncoder().encode(["legacy"]).write(to: file)
+
+        #expect(cache.load([String].self, kind: "pads", account: account) == ["legacy"])
+
+        let object = try #require(JSONSerialization.jsonObject(with: Data(contentsOf: file)) as? [String: Any])
+        #expect(object["schemaVersion"] as? Int == 1)
+        #expect(object["payload"] as? [String] == ["legacy"])
+    }
+
+    @Test
+    func `unknown schema versions are reported and removed`() throws {
+        let directoryName = "com.buddyappkit.tests.DiskCache-\(UUID().uuidString)"
+        let account = UUID()
+        let cache = DiskCache(directoryName: directoryName, logger: Logger(subsystem: "tests", category: "cache"))
+        let base = try #require(FileManager.default.urls(
+            for: .applicationSupportDirectory, in: .userDomainMask
+        ).first)
+        let directory = base.appending(path: directoryName, directoryHint: .isDirectory)
+        let file = directory.appending(path: "pads-\(account.uuidString).json")
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try Data(#"{"schemaVersion":2,"payload":["future"]}"#.utf8).write(to: file)
+
+        guard case .corrupt = cache.loadResult([String].self, kind: "pads", account: account) else {
+            Issue.record("Expected an unsupported schema to be recoverable corruption")
+            return
+        }
+
+        #expect(!FileManager.default.fileExists(atPath: file.path))
     }
 
     @Test

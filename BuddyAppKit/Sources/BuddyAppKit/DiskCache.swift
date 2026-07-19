@@ -20,6 +20,17 @@ public nonisolated enum DiskCacheLoadResult<Value> {
 }
 
 public nonisolated struct DiskCache: Sendable {
+    private static let schemaVersion = 1
+
+    private struct Envelope<Value: Codable>: Codable {
+        let schemaVersion: Int
+        let payload: Value
+    }
+
+    private struct VersionProbe: Decodable {
+        let schemaVersion: Int
+    }
+
     /// The Application-Support-relative directory snapshots live under (e.g.
     /// "com.example.app/DataCache"). Injected so each app keeps its own location.
     public let directoryName: String
@@ -77,13 +88,13 @@ public nonisolated struct DiskCache: Sendable {
         }
     }
 
-    public func load<T: Decodable>(_: T.Type, kind: String, account: UUID) -> T? {
+    public func load<T: Codable>(_: T.Type, kind: String, account: UUID) -> T? {
         guard case let .value(value) = loadResult(T.self, kind: kind, account: account) else { return nil }
 
         return value
     }
 
-    public func loadResult<T: Decodable>(_: T.Type, kind: String, account: UUID) -> DiskCacheLoadResult<T> {
+    public func loadResult<T: Codable>(_: T.Type, kind: String, account: UUID) -> DiskCacheLoadResult<T> {
         let url: URL
         do {
             url = try resolvedURL(kind: kind, account: account)
@@ -103,7 +114,23 @@ public nonisolated struct DiskCache: Sendable {
         }
 
         do {
-            return try .value(JSONDecoder().decode(T.self, from: data))
+            let decoder = JSONDecoder()
+            if let version = try? decoder.decode(VersionProbe.self, from: data).schemaVersion {
+                guard version == Self.schemaVersion else {
+                    logger.error("Discarding unsupported version \(version) of \(kind, privacy: .public) cache")
+                    try? FileManager.default.removeItem(at: url)
+                    return .corrupt
+                }
+
+                let envelope = try decoder.decode(Envelope<T>.self, from: data)
+                return .value(envelope.payload)
+            }
+
+            // Version 0 snapshots stored the payload directly. Accept them once,
+            // then atomically rewrite them in the current envelope format.
+            let value = try decoder.decode(T.self, from: data)
+            save(value, kind: kind, account: account)
+            return .value(value)
         } catch {
             let reason = error.localizedDescription
             logger.error("Failed to decode \(kind, privacy: .public) cache: \(reason, privacy: .public)")
@@ -115,13 +142,14 @@ public nonisolated struct DiskCache: Sendable {
         }
     }
 
-    public func save(_ value: some Encodable, kind: String, account: UUID) {
+    public func save(_ value: some Codable, kind: String, account: UUID) {
         var wroteFile = false
         var targetURL: URL?
         do {
             let url = try resolvedURL(kind: kind, account: account)
             targetURL = url
-            let data = try JSONEncoder().encode(value)
+            let envelope = Envelope(schemaVersion: Self.schemaVersion, payload: value)
+            let data = try JSONEncoder().encode(envelope)
             try data.write(to: url, options: .atomic)
             wroteFile = true
             try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)

@@ -23,11 +23,11 @@ enum CacheDisk {
         logger: Logger(subsystem: "com.coderpad.app", category: "cache")
     )
 
-    nonisolated static func load<T: Decodable>(_ type: T.Type, kind: String, account: UUID) -> T? {
+    nonisolated static func load<T: Codable>(_ type: T.Type, kind: String, account: UUID) -> T? {
         cache.load(type, kind: kind, account: account)
     }
 
-    nonisolated static func save(_ value: some Encodable, kind: String, account: UUID) {
+    nonisolated static func save(_ value: some Codable, kind: String, account: UUID) {
         cache.save(value, kind: kind, account: account)
     }
 
