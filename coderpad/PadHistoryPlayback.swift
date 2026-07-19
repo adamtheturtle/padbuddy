@@ -380,21 +380,4 @@ extension HistoryPlaybackView {
     }
 
     // MARK: Formatting
-
-    private func timeText(_ seconds: Double) -> String {
-        let pattern: Duration.TimeFormatStyle.Pattern =
-            timeline.durationSeconds >= 3600 ? .hourMinuteSecond : .minuteSecond
-        return Duration.seconds(seconds).formatted(.time(pattern: pattern))
-    }
-
-    /// One shared style instance rather than a fresh one per body pass (#1884).
-    private static let historyDateStyle = Date.FormatStyle(date: .long, time: .shortened)
-
-    private func historyDate(_ milliseconds: Int64) -> String {
-        Date(timeIntervalSince1970: TimeInterval(milliseconds) / 1000)
-            .formatted(Self.historyDateStyle)
-    }
 }
-
-// The #Preview lives in PadHistoryPlayback+Preview.swift to keep this file
-// under the length lint.
