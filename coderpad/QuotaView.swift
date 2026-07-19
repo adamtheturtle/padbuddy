@@ -222,8 +222,15 @@ nonisolated struct QuotaPace {
         fractionUsed = Double(used) / Double(limit)
         // Divide by elapsed time to project the full cycle; guard against the
         // very start of the cycle where a tiny denominator blows up.
+        //
+        // No arbitrary ceiling. Clamping to 9,999 understated any organization whose
+        // plan is larger than that — and because `status` compares the projection
+        // against the limit, a plan of 20,000 heading for 30,000 read back as
+        // "on track to stay within your limit" (#2391). The 0.02 floor above already
+        // bounds the projection at 50x what has actually been used, so a tiny
+        // denominator can't produce a runaway figure.
         let projected = fractionElapsed > 0.02 ? Double(used) / fractionElapsed : Double(used)
-        projectedUsage = min(9999, max(used, Int(projected.rounded())))
+        projectedUsage = max(used, Int(projected.rounded()))
     }
 
     var headline: String {

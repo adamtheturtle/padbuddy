@@ -14,6 +14,8 @@
 		663806CC2FF679B1004A9FCE /* PrintableView in Frameworks */ = {isa = PBXBuildFile; productRef = 663806CB2FF679B1004A9FCE /* PrintableView */; };
 		663806CE2FF67B47004A9FCE /* PrintableView in Frameworks */ = {isa = PBXBuildFile; productRef = 663806CD2FF67B47004A9FCE /* PrintableView */; };
 		6638FF682FF64481004A9FCE /* MCPKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6638FF672FF64481004A9FCE /* MCPKit */; };
+		66A5E7F13000000000000003 /* SafeURLKit in Frameworks */ = {isa = PBXBuildFile; productRef = 66A5E7F13000000000000002 /* SafeURLKit */; };
+		66A5E7F13000000000000005 /* SafeURLKit in Frameworks */ = {isa = PBXBuildFile; productRef = 66A5E7F13000000000000004 /* SafeURLKit */; };
 		6676A3412FEF13620023907A /* CoderPadKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6676A3402FEF13620023907A /* CoderPadKit */; };
 		6676A3432FEF13620023907A /* CoderPadKitMock in Frameworks */ = {isa = PBXBuildFile; productRef = 6676A3422FEF13620023907A /* CoderPadKitMock */; };
 		6676A3A22FEF95500023907A /* CoderPadKit in Frameworks */ = {isa = PBXBuildFile; productRef = 6676A3A12FEF95500023907A /* CoderPadKit */; };
@@ -171,6 +173,7 @@
 				6676A3412FEF13620023907A /* CoderPadKit in Frameworks */,
 				663804472FF64ACC004A9FCE /* MacPullToRefresh in Frameworks */,
 				663806CC2FF679B1004A9FCE /* PrintableView in Frameworks */,
+				66A5E7F13000000000000003 /* SafeURLKit in Frameworks */,
 				66C6A3472FEA890100731E7E /* BuddyAppKit in Frameworks */,
 				668CA7E82FEC782F00420E24 /* CommandPaletteKit in Frameworks */,
 				66C6A3392FEA84E300731E7E /* BuddyDesignSystem in Frameworks */,
@@ -221,6 +224,7 @@
 				6693DA532FE9D021005CA3CE /* CoderPadToolCore in Frameworks */,
 				66C6A33F2FEA883500731E7E /* BuddyAppKit in Frameworks */,
 				663806CE2FF67B47004A9FCE /* PrintableView in Frameworks */,
+				66A5E7F13000000000000005 /* SafeURLKit in Frameworks */,
 				66AE7B552FFFF798003A66B1 /* MacPullToRefresh in Frameworks */,
 				6676A3A42FEF95500023907A /* CoderPadKitMock in Frameworks */,
 				66C6A33D2FEA883500731E7E /* MCP in Frameworks */,
@@ -304,6 +308,7 @@
 				663804462FF64ACC004A9FCE /* MacPullToRefresh */,
 				6638044C2FF6559C004A9FCE /* AsyncAlgorithms */,
 				663806CB2FF679B1004A9FCE /* PrintableView */,
+				66A5E7F13000000000000002 /* SafeURLKit */,
 			);
 			productName = coderpad;
 			productReference = 66C8C50B2FA73AB0009B720C /* PadBuddy.app */;
@@ -410,6 +415,7 @@
 				6638044E2FF655B0004A9FCE /* AsyncAlgorithms */,
 				663806CD2FF67B47004A9FCE /* PrintableView */,
 				66AE7B542FFFF798003A66B1 /* MacPullToRefresh */,
+				66A5E7F13000000000000004 /* SafeURLKit */,
 			);
 			productName = coderpad;
 			productReference = 66F5440C2FE5EECD000214AA /* PadBuddy.app */;
@@ -466,6 +472,7 @@
 				663804452FF64ACC004A9FCE /* XCRemoteSwiftPackageReference "MacPullToRefresh" */,
 				6638044B2FF6559C004A9FCE /* XCRemoteSwiftPackageReference "swift-async-algorithms" */,
 				663806CA2FF679B1004A9FCE /* XCRemoteSwiftPackageReference "PrintableView" */,
+				66A5E7F13000000000000001 /* XCRemoteSwiftPackageReference "SafeURLKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 66C8C50C2FA73AB0009B720C /* Products */;
@@ -1371,6 +1378,14 @@
 				minimumVersion = 0.1.0;
 			};
 		};
+		66A5E7F13000000000000001 /* XCRemoteSwiftPackageReference "SafeURLKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/adamtheturtle/SafeURLKit.git";
+			requirement = {
+				kind = exactVersion;
+				version = 0.1.1;
+			};
+		};
 		6676A33F2FEF13620023907A /* XCRemoteSwiftPackageReference "CoderPadKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/adamtheturtle/CoderPadKit.git";
@@ -1470,6 +1485,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 663806CA2FF679B1004A9FCE /* XCRemoteSwiftPackageReference "PrintableView" */;
 			productName = PrintableView;
+		};
+		66A5E7F13000000000000002 /* SafeURLKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 66A5E7F13000000000000001 /* XCRemoteSwiftPackageReference "SafeURLKit" */;
+			productName = SafeURLKit;
+		};
+		66A5E7F13000000000000004 /* SafeURLKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 66A5E7F13000000000000001 /* XCRemoteSwiftPackageReference "SafeURLKit" */;
+			productName = SafeURLKit;
 		};
 		663806CD2FF67B47004A9FCE /* PrintableView */ = {
 			isa = XCSwiftPackageProductDependency;

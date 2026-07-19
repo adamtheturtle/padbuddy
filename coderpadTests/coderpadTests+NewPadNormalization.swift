@@ -100,3 +100,39 @@ struct NewPadRequestNormalizationTests {
         #expect(language("  Python3 ") == "python3")
     }
 }
+
+@Suite("Quota pace projection (#2391)")
+struct QuotaPaceProjectionTests {
+    private func quota(used: Int, limit: Int) throws -> Quota {
+        // Reset one day from "now"; the cycle start is a month before that, so the
+        // fraction elapsed is close to 1 and the projection stays near `used`.
+        let reset = Date().addingTimeInterval(24 * 60 * 60)
+        let iso = ISO8601DateFormatter().string(from: reset)
+        let data = try JSONSerialization.data(withJSONObject: [
+            "pads_used": used, "billing_cycle_pad_limit": limit, "quota_reset_at": iso
+        ])
+        return try CoderPadClient.decoder.decode(Quota.self, from: data)
+    }
+
+    @Test
+    func `a large plan's projection is not clamped below its limit`() throws {
+        // The old 9,999 ceiling made a 20,000-pad plan heading well past its limit
+        // compare as under it, so the card said "on track" (#2391).
+        let pace = try #require(QuotaPace(quota: quota(used: 25000, limit: 20000), now: Date()))
+        #expect(pace.projectedUsage >= 25000)
+        #expect(pace.status == .over)
+    }
+
+    @Test
+    func `a projection never falls below what has already been used`() throws {
+        let pace = try #require(QuotaPace(quota: quota(used: 12000, limit: 50000), now: Date()))
+        #expect(pace.projectedUsage >= 12000)
+    }
+
+    @Test
+    func `an unlimited or limitless plan has no pace`() throws {
+        let unlimited = try JSONSerialization.data(withJSONObject: ["unlimited": true])
+        let decoded = try CoderPadClient.decoder.decode(Quota.self, from: unlimited)
+        #expect(QuotaPace(quota: decoded, now: Date()) == nil)
+    }
+}
