@@ -97,12 +97,17 @@ private func appendMarkdownSection(title: String, text: String?, to lines: inout
 }
 
 private func appendCodeSection(title: String, code: String, language: String?, to lines: inout [String]) {
-    let fence = codeFence(for: code)
     lines.append("## \(markdownInlineEscaped(title))")
     lines.append("")
-    lines.append(fence + codeFenceLanguage(language))
-    lines.append(code)
-    lines.append(fence)
+    if let fence = codeFence(for: code) {
+        lines.append(fence + codeFenceLanguage(language))
+        lines.append(code)
+        lines.append(fence)
+    } else {
+        // Both legal fence delimiters have pathological runs. An indented block is
+        // equally valid Markdown and has fixed overhead per line (#1545).
+        lines += code.components(separatedBy: "\n").map { "    \($0)" }
+    }
     lines.append("")
 }
 
@@ -206,21 +211,37 @@ func markdownLink(title: String, url: URL) -> String {
     "[\(markdownInlineEscaped(title))](<\(url.absoluteString)>)"
 }
 
-/// The opening/closing fence for a code block: at least three backticks, and always
-/// longer than the longest run of backticks inside the code so the block can't be
-/// closed early by the content (a CommonMark requirement).
-private func codeFence(for code: String) -> String {
+/// A bounded CommonMark fence. Backticks remain the normal output; tildes avoid a
+/// large backtick fence. If both need more than 64 characters the caller uses an
+/// indented block, preventing remote code from driving an unbounded allocation.
+private func codeFence(for code: String) -> String? {
+    let maximumFenceLength = 64
+    let backticks = longestRun(of: Character("`"), in: code, cappedAt: maximumFenceLength)
+    let tildes = longestRun(of: Character("~"), in: code, cappedAt: maximumFenceLength)
+    let backtickLength = max(3, backticks + 1)
+    let tildeLength = max(3, tildes + 1)
+
+    if backtickLength <= tildeLength, backtickLength <= maximumFenceLength {
+        return String(repeating: "`", count: backtickLength)
+    }
+    if tildeLength <= maximumFenceLength {
+        return String(repeating: "~", count: tildeLength)
+    }
+    return nil
+}
+
+private func longestRun(of delimiter: Character, in code: String, cappedAt cap: Int) -> Int {
     var longest = 0
     var current = 0
     for character in code {
-        if character == "`" {
-            current += 1
+        if character == delimiter {
+            current = min(cap, current + 1)
             longest = max(longest, current)
         } else {
             current = 0
         }
     }
-    return String(repeating: "`", count: max(3, longest + 1))
+    return longest
 }
 
 /// The fence info string for a language, normalized to a lowercase token (dropping the

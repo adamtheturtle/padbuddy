@@ -96,6 +96,29 @@ struct PadMarkdownExportTests {
     }
 
     @Test
+    func `a pathological backtick run uses a short tilde fence`() {
+        let code = String(repeating: "`", count: 10000)
+        let markdown = padMarkdownDocument(
+            title: "T", summary: [],
+            files: [PadPrintFile(id: "1", title: "f.txt", code: code)]
+        )
+
+        #expect(markdown.contains("~~~\n\(code)\n~~~"))
+    }
+
+    @Test
+    func `pathological runs of both delimiters use an indented block`() {
+        let backticks = String(repeating: "`", count: 100)
+        let tildes = String(repeating: "~", count: 100)
+        let markdown = padMarkdownDocument(
+            title: "T", summary: [],
+            files: [PadPrintFile(id: "1", title: "f.txt", code: "\(backticks)\n\(tildes)")]
+        )
+
+        #expect(markdown.contains("    \(backticks)\n    \(tildes)"))
+    }
+
+    @Test
     func `language is normalized: multifile_ prefix dropped, nil yields a bare fence`() {
         let multifile = padMarkdownDocument(
             title: "T", summary: [],
