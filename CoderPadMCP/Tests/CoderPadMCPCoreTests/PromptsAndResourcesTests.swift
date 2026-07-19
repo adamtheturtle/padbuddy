@@ -250,6 +250,16 @@ struct ResourcesTests {
     }
 
     @Test
+    func `question resource ids must be positive integers`() {
+        for id in ["0", "-1", "-999"] {
+            #expect(parseResourceURI("coderpad://question/\(id)") == nil)
+            #expect(parseResourceURI("coderpad://account/Acme/question/\(id)") == nil)
+        }
+        #expect(parseResourceURI("coderpad://question/1") == .question(1))
+        #expect(parseResourceURI("coderpad://question/\(Int.max)") == .question(Int.max))
+    }
+
+    @Test
     func `resource account resolution requires account in multi-account configs`() throws {
         let set = try accountSet()
         #expect(resolveResourceAccount(.pad("abc123"), accountSet: set) == .requiresAccount)

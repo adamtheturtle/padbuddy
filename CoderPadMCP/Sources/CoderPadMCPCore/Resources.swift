@@ -230,7 +230,7 @@ private func parsePadResource(_ tail: [String]) -> ResourceRequest? {
 }
 
 private func parseQuestionResource(_ tail: [String]) -> ResourceRequest? {
-    guard tail.count == 1, let id = Int(tail[0]) else { return nil }
+    guard tail.count == 1, let id = Int(tail[0]), id > 0 else { return nil }
 
     return .question(id)
 }
@@ -247,7 +247,7 @@ private func parseAccountPadResource(account: String, tail: [String]) -> Resourc
 }
 
 private func parseAccountQuestionResource(account: String, tail: [String]) -> ResourceRequest? {
-    guard tail.count == 1, let id = Int(tail[0]) else { return nil }
+    guard tail.count == 1, let id = Int(tail[0]), id > 0 else { return nil }
 
     return .accountQuestion(account: account, id: id)
 }
