@@ -29,7 +29,15 @@ public nonisolated struct DiskCache: Sendable {
                                                   in: .userDomainMask).first else { return nil }
 
         let dir = base.appending(path: directoryName, directoryHint: .isDirectory)
-        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        do {
+            try FileManager.default.createDirectory(
+                at: dir, withIntermediateDirectories: true,
+                attributes: [.posixPermissions: 0o700]
+            )
+            try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: dir.path)
+        } catch {
+            return nil
+        }
         return dir.appending(path: "\(kind)-\(account.uuidString).json")
     }
 
@@ -61,10 +69,16 @@ public nonisolated struct DiskCache: Sendable {
     public func save(_ value: some Encodable, kind: String, account: UUID) {
         guard let url = url(kind: kind, account: account) else { return }
 
+        var wroteFile = false
         do {
             let data = try JSONEncoder().encode(value)
             try data.write(to: url, options: .atomic)
+            wroteFile = true
+            try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
         } catch {
+            // Never retain a newly written snapshot if its restrictive attributes
+            // could not be applied.
+            if wroteFile { try? FileManager.default.removeItem(at: url) }
             let reason = error.localizedDescription
             logger.error("Failed to write \(kind, privacy: .public) cache: \(reason, privacy: .public)")
         }
