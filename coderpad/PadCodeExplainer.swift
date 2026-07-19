@@ -172,19 +172,34 @@ enum PadCodeExplainer {
             _ reply: String,
             sourceWasTruncated: Bool = false
         ) -> CodeExplanation? {
+            let labels = ["SUMMARY", "READABILITY", "OPTIMALITY"]
+            let headers = reply.split(whereSeparator: \.isNewline).compactMap { rawLine -> String? in
+                let line = rawLine.trimmingCharacters(in: .whitespaces)
+                return labels.first { line.range(
+                    of: $0 + ":",
+                    options: [.anchored, .caseInsensitive]
+                ) != nil }
+            }
+            // This feature promises a complete three-part assessment. Reject a
+            // partial, reordered, or self-correcting reply rather than displaying
+            // whichever fragments the generic tolerant parser can salvage (#1907).
+            guard headers == labels else { return nil }
+
             let sections = OnDeviceModelParsing.labeledSections(
-                reply, labels: ["SUMMARY", "READABILITY", "OPTIMALITY"]
+                reply, labels: labels
             )
             let summary = sections["SUMMARY"] ?? ""
-            guard !summary.isEmpty else { return nil }
+            let readability = sections["READABILITY"] ?? ""
+            let optimality = sections["OPTIMALITY"] ?? ""
+            guard !summary.isEmpty, !readability.isEmpty, !optimality.isEmpty else { return nil }
 
             func capped(_ section: String) -> String {
                 String(section.prefix(maxSectionCharacters))
             }
             return CodeExplanation(
                 summary: capped(summary),
-                readability: capped(sections["READABILITY"] ?? ""),
-                optimality: capped(sections["OPTIMALITY"] ?? ""),
+                readability: capped(readability),
+                optimality: capped(optimality),
                 sourceWasTruncated: sourceWasTruncated
             )
         }
