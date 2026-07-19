@@ -192,19 +192,29 @@ final class PreferenceCloudSync {
     /// fresh-Mac case). Two devices can stamp the exact same timestamp; equal
     /// revisions with differing values break the tie deterministically by value, so
     /// every device converges on the same side instead of whichever notification
-    /// arrived last winning per-device (#1147). A missing cloud value never clears a
-    /// local one (deletions don't propagate, matching the collection stores).
+    /// arrived last winning per-device (#1147). A missing value accompanied by a
+    /// positive revision is a deletion tombstone; bare absence still means never
+    /// written and cannot erase a local preference (#2793).
     /// Writing the value re-posts `didChangeNotification`, but the resulting push is
     /// a no-op because the two sides now match - this is what makes the sync
     /// converge instead of looping.
     private func pull(key: String) {
-        guard let cloud = CloudSyncStore.shared.object(forKey: key) else { return }
-
         let local = UserDefaults.standard.object(forKey: key)
-        guard !Self.plistValuesEqual(local, cloud) else { return }
-
+        let cloud = CloudSyncStore.shared.object(forKey: key)
         let cloudRevision = Self.revision(CloudSyncStore.shared.object(forKey: Self.cloudRevisionKey(key)))
         let localRevision = UserDefaults.standard.double(forKey: Self.localRevisionKey(key))
+
+        guard let cloud else {
+            guard Self.deletionWins(cloudRevision: cloudRevision,
+                                    localRevision: localRevision,
+                                    localExists: local != nil) else { return }
+
+            UserDefaults.standard.removeObject(forKey: key)
+            UserDefaults.standard.set(cloudRevision, forKey: Self.localRevisionKey(key))
+            if local != nil { applySideEffects(forPulledKey: key) }
+            return
+        }
+        guard !Self.plistValuesEqual(local, cloud) else { return }
         guard cloudRevision > localRevision
             || (cloudRevision == localRevision && Self.tieBreakFavorsCloud(local: local, cloud: cloud))
         else { return }
@@ -351,26 +361,6 @@ final class PreferenceCloudSync {
         // search results; completed pad/question fetches already update Spotlight from
         // their persisted cache writes (#2800). Local, explicit opt-in still seeds the
         // currently visible caches immediately from Settings.
-    }
-
-    /// The KVS key carrying `key`'s revision stamp. Internal for tests.
-    static func cloudRevisionKey(_ key: String) -> String {
-        "revision.\(key)"
-    }
-
-    static func preferenceKey(forCloudChangeKey changedKey: String) -> String? {
-        if syncedKeys.contains(changedKey) { return changedKey }
-        let prefix = "revision."
-        guard changedKey.hasPrefix(prefix) else { return nil }
-
-        let key = String(changedKey.dropFirst(prefix.count))
-        return syncedKeys.contains(key) ? key : nil
-    }
-
-    /// The device-local UserDefaults key remembering the revision of the last write
-    /// (local edit or adopted pull) for `key`. Deliberately NOT in `syncedKeys`.
-    static func localRevisionKey(_ key: String) -> String {
-        "cloud.revision.\(key)"
     }
 
     /// Whether two plist-type preference values are equal, treating two absent values as

@@ -23,4 +23,13 @@ struct PreferenceCloudLogicalRevisionTests {
         #expect(PreferenceCloudSync.preferenceKey(forCloudChangeKey: "revision.unknown") == nil)
         #expect(PreferenceCloudSync.preferenceKey(forCloudChangeKey: "unknown") == nil)
     }
+
+    @Test
+    func `only a current deletion tombstone removes local state`() {
+        #expect(PreferenceCloudSync.deletionWins(cloudRevision: 11, localRevision: 10, localExists: true))
+        #expect(PreferenceCloudSync.deletionWins(cloudRevision: 10, localRevision: 10, localExists: true))
+        #expect(!PreferenceCloudSync.deletionWins(cloudRevision: 9, localRevision: 10, localExists: true))
+        #expect(!PreferenceCloudSync.deletionWins(cloudRevision: 0, localRevision: 0, localExists: true))
+        #expect(!PreferenceCloudSync.deletionWins(cloudRevision: 10, localRevision: 10, localExists: false))
+    }
 }
