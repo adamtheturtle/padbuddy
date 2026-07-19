@@ -55,7 +55,7 @@ struct SettingsView: View {
         /// The browser list and system-default name, scanned once per appearance
         /// rather than rebuilt inside the picker's body (#2447).
         @State var installedBrowsers: [InstalledBrowser] = []
-        @State var systemDefaultBrowserName = ""
+        @State var systemDefaultBrowserName: String?
     #endif
 
     // Browser and menu-bar preferences live in UserDefaults under the keys defined

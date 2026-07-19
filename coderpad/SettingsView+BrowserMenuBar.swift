@@ -22,8 +22,13 @@ extension SettingsView {
                     // in the body that whole synchronous scan re-ran on every
                     // re-evaluation of the tab (#2447).
                     Picker("Default browser", selection: $defaultBrowserBundleID) {
-                        Text("Use system default (\(systemDefaultBrowserName))")
-                            .tag(String?.none)
+                        if let systemDefaultBrowserName {
+                            Text("Use system default (\(systemDefaultBrowserName))")
+                                .tag(String?.none)
+                        } else {
+                            Text("Use system default")
+                                .tag(String?.none)
+                        }
                         ForEach(installedBrowsers) { browser in
                             Text(browser.name).tag(Optional(browser.bundleID))
                         }

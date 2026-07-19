@@ -163,9 +163,9 @@ enum BrowserSettings {
     }
 
     /// The name of the system's current default browser, e.g. "Safari".
-    static func systemDefaultBrowserName() -> String {
+    static func systemDefaultBrowserName() -> String? {
         #if os(macOS)
-            guard let appURL = NSWorkspace.shared.urlForApplication(toOpen: probeURL) else { return "Safari" }
+            guard let appURL = NSWorkspace.shared.urlForApplication(toOpen: probeURL) else { return nil }
 
             return displayName(for: appURL)
         #else
