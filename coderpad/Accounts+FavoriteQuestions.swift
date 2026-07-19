@@ -269,28 +269,20 @@ final class FavoriteQuestionsStore {
     /// Called when an account's questions cache is refreshed; a no-op when nothing
     /// actually changed, so it doesn't churn the store on every load.
     func refreshTitles(from questions: [Question], account: UUID) {
-        guard var entries = byAccount[account], !entries.isEmpty else { return }
+        guard let entries = byAccount[account], !entries.isEmpty else { return }
 
         let titles = Dictionary(
             questions.map { ($0.id, $0.displayTitle) },
             uniquingKeysWith: { first, _ in first }
         )
-        var changed = false
-        for index in entries.indices {
-            // A cleared title propagates. Blank titles used to be skipped so a
-            // usable stored label wasn't replaced by a blank row (#1787), but the
-            // sidebar now treats a blank stored title as absent and falls back to the
-            // live cache title and then "Question #id" (#1680, #1681) — so the row
-            // stays readable either way, and keeping the old text meant showing a name
-            // the server no longer has (#2524).
-            guard let title = titles[entries[index].id], title != entries[index].title else { continue }
+        let result = FavoriteQuestionRefresh.reconcile(entries, authoritativeTitles: titles)
+        guard result.entries != entries else { return }
 
-            entries[index].title = title
-            changed = true
+        for id in result.removedIDs {
+            recordRemoval(of: id, account: account)
+            FavoritesOrderStore.shared.forget(FavoriteRef.question(id), account: account)
         }
-        guard changed else { return }
-
-        byAccount[account] = entries
+        byAccount[account] = result.entries
         save()
         WidgetSync.syncFavorites(account: account)
     }
