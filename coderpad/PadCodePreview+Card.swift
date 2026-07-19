@@ -270,7 +270,7 @@ extension EnvironmentCodeCard {
                 .font(.headline)
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
-                    if let explanation {
+                    if let explanation = explanations[selected.explanationKey] {
                         if explanation.sourceWasTruncated {
                             Label(
                                 "This explanation covers only the beginning of the file.",
@@ -301,22 +301,6 @@ extension EnvironmentCodeCard {
         .frame(width: 320, height: 300)
     }
 
-    /// Starts one owned generation task. Retaining it lets the card cancel model
-    /// work when it disappears or its file revision is replaced (#1900).
-    private func startExplanation() {
-        explanationTask?.cancel()
-        let generation = UUID()
-        explanationGeneration = generation
-        explanationTask = Task { await explainSelected(generation: generation) }
-    }
-
-    func cancelExplanation() {
-        explanationTask?.cancel()
-        explanationTask = nil
-        explanationGeneration = UUID()
-        isExplaining = false
-    }
-
     /// One titled paragraph of the explanation popover. Hidden when empty so a
     /// section the model left blank doesn't show a bare heading.
     @ViewBuilder
@@ -333,42 +317,6 @@ extension EnvironmentCodeCard {
                     .environment(\.isRasterizedForPrint, true)
             }
         }
-    }
-
-    /// Generates (or reuses) an on-device explanation of the visible file, then
-    /// shows it in the popover. Reuses an explanation already generated for the
-    /// same file revision (id, contents, and language, #789/#937) so reopening
-    /// the popover is instant without re-running the model, but a refresh that
-    /// rewrites the file at the same path regenerates.
-    func explainSelected(generation: UUID) async {
-        // Snapshot the file the model actually sees: the sidebar stays enabled
-        // while generating, so `selected` can move to another file mid-flight and
-        // the result must stay tied to this one (#749).
-        let file = selected
-        let key = file.explanationKey
-        if explanationKey == key, explanation != nil {
-            showExplanation = true
-            return
-        }
-        isExplaining = true
-        explanationFailed = false
-        defer {
-            if explanationGeneration == generation { isExplaining = false }
-        }
-        let result = await PadCodeExplainer.explain(file: file)
-        // Only present/cache for the exact file revision still on screen. If the
-        // user moved away, or a refresh changed the same path's contents/language,
-        // the result belongs to stale input (#749, #937).
-        guard !Task.isCancelled else { return }
-        guard explanationGeneration == generation else { return }
-        guard selected.explanationKey == key else { return }
-
-        if let result {
-            explanation = result
-            explanationKey = key
-        }
-        explanationFailed = result == nil
-        showExplanation = true
     }
 
     var accessibilityLabel: String {

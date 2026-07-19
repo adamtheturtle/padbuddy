@@ -242,8 +242,8 @@ struct EnvironmentCodeCard: View {
     /// the file revision it was generated for - id, contents, and language - so a
     /// refresh that rewrites the code at the same path regenerates instead of
     /// reusing stale analysis (#789, #937).
-    @State var explanation: CodeExplanation?
-    @State var explanationKey: CodeFileExplanationKey?
+    @State var explanations: [CodeFileExplanationKey: CodeExplanation] = [:]
+    @State var explanationLRU: [CodeFileExplanationKey] = []
     /// True when the last explanation attempt produced nothing, so the popover can
     /// say so and offer a retry instead of the button looking inert (#790).
     @State var explanationFailed = false
@@ -355,9 +355,8 @@ struct EnvironmentCodeCard: View {
     private func clearExplanation() {
         cancelExplanation()
         showExplanation = false
-        explanation = nil
-        explanationKey = nil
         explanationFailed = false
+        pruneExplanations()
     }
 
     /// Single-file environments render a lone highlighted scroll. Multi-file
