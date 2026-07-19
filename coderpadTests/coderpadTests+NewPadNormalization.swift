@@ -188,6 +188,16 @@ struct FavoriteQuestionEntityIDTests {
     }
 
     @Test
+    func `an identifier with extra delimiters gets no alias`() {
+        // A `syncID` is endpoint|email|fingerprint, so a well-formed entity id has
+        // exactly five components. An endpoint containing a `|` produces more, and
+        // dropping the second-to-last component would then strip part of the endpoint
+        // and alias two different accounts onto one identifier (#2699).
+        let odd = "sync|https://weird|host.example|me@example.com|abc123|42"
+        #expect(FavoriteQuestionQuery.keyIndependentID(odd) == odd)
+    }
+
+    @Test
     func `a legacy or unrecognized identifier passes through unchanged`() {
         let legacy = "\(UUID().uuidString):42"
         #expect(FavoriteQuestionQuery.keyIndependentID(legacy) == legacy)
