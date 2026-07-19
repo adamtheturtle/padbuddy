@@ -28,7 +28,7 @@ struct MCPInstallTabs: View {
             .foregroundStyle(.secondary)
 
         Button {
-            MCPClientInstall.install(client, executablePath: executablePath)
+            Task { await MCPClientInstall.install(client, executablePath: executablePath) }
         } label: {
             Label("Add to \(client.displayName)", systemImage: "wand.and.stars")
         }

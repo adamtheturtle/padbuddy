@@ -112,7 +112,7 @@ enum MCPClientInstall {
         /// iOS: no desktop MCP client to install into, and no open-panel/sandbox-grant
         /// flow, so this is a no-op that keeps the call site (`MCPInstallTabs`) compiling.
         @MainActor
-        static func install(_: Client, executablePath _: String) {}
+        static func install(_: Client, executablePath _: String) async {}
     #endif
 
     #if os(macOS)
@@ -162,9 +162,10 @@ enum MCPClientInstall {
         }
 
         /// Adds (or updates) the PadBuddy entry in `client`'s config, preserving anything else
-        /// there, then reports the outcome with an alert.
+        /// there, then reports the outcome with an alert. The config file reads and writes run
+        /// off the main actor so the UI never blocks on disk (#2270).
         @MainActor
-        static func install(_ client: Client, executablePath: String) {
+        static func install(_ client: Client, executablePath: String) async {
             let spec = spec(for: client)
             guard let folder = grantFolderAccess(
                 preferred: spec.preferred,
@@ -178,9 +179,9 @@ enum MCPClientInstall {
             let url = folder.appendingPathComponent(spec.fileName)
             do {
                 if spec.isTOML {
-                    try upsertCodexServer(into: url, client: client, executablePath: executablePath)
+                    try await upsertCodexServer(into: url, client: client, executablePath: executablePath)
                 } else {
-                    try mergeJSONServer(into: url, client: client, executablePath: executablePath)
+                    try await mergeJSONServer(into: url, client: client, executablePath: executablePath)
                 }
             } catch {
                 showAlert(.warning, "Couldn't update \(client.displayName)", error.localizedDescription)
@@ -192,23 +193,30 @@ enum MCPClientInstall {
         /// Adds the PadBuddy entry to `client`'s `mcpServers`, or - when one is already there -
         /// rewrites it (after the user confirms) so its command points at this copy of PadBuddy,
         /// preserving anything else in the file. Reports the outcome itself; does nothing and shows
-        /// no alert if the user cancels the update.
+        /// no alert if the user cancels the update. The read/merge/serialize and the write both
+        /// happen off the main actor; only the dialogs run on it (#2270).
         @MainActor
-        private static func mergeJSONServer(into url: URL, client: Client, executablePath: String) throws {
-            var root = try existingJSON(at: url)
-            let merged = try jsonConfigByAddingServer(to: root, executablePath: executablePath)
-            root = merged.root
-            let alreadyPresent = merged.alreadyPresent
+        private static func mergeJSONServer(into url: URL, client: Client, executablePath: String) async throws {
+            let (data, alreadyPresent) = try await Task.detached(priority: .userInitiated) {
+                let root = try existingJSON(at: url)
+                let merged = try jsonConfigByAddingServer(to: root, executablePath: executablePath)
+                let data = try JSONSerialization.data(
+                    withJSONObject: merged.root,
+                    options: [.prettyPrinted, .sortedKeys]
+                )
+                return (data, merged.alreadyPresent)
+            }.value
             if alreadyPresent, !confirmUpdate(client) { return }
 
-            let data = try JSONSerialization.data(withJSONObject: root, options: [.prettyPrinted, .sortedKeys])
-            try data.write(to: url, options: .atomic)
+            try await Task.detached(priority: .userInitiated) {
+                try data.write(to: url, options: .atomic)
+            }.value
 
             let title = alreadyPresent ? "Updated \(client.displayName)" : "Added to \(client.displayName)"
             showAlert(.informational, title, client.restartHint)
         }
 
-        static func jsonConfigByAddingServer(
+        nonisolated static func jsonConfigByAddingServer(
             to root: [String: Any],
             executablePath: String
         ) throws -> (root: [String: Any], alreadyPresent: Bool) {
@@ -232,7 +240,7 @@ enum MCPClientInstall {
 
         /// Reads and parses the existing JSON config, returning an empty object when the file is
         /// absent or empty. A malformed file throws so we don't silently clobber it.
-        private static func existingJSON(at url: URL) throws -> [String: Any] {
+        nonisolated private static func existingJSON(at url: URL) throws -> [String: Any] {
             guard FileManager.default.fileExists(atPath: url.path) else { return [:] }
 
             let data = try Data(contentsOf: url)
@@ -251,26 +259,36 @@ enum MCPClientInstall {
         /// itself; does nothing and shows no alert if the user cancels the update.
         ///
         /// Read failures throw (only a genuinely absent file counts as empty) so an unreadable
-        /// config is never silently replaced, matching the JSON path's behaviour.
+        /// config is never silently replaced, matching the JSON path's behaviour. The file is
+        /// read, scanned once (detect + replaceable range in the same pass, #2264), and written
+        /// off the main actor; only the dialogs run on it (#2270).
         @MainActor
-        private static func upsertCodexServer(into url: URL, client: Client, executablePath: String) throws {
-            var text = ""
-            if FileManager.default.fileExists(atPath: url.path) {
-                text = try String(contentsOf: url, encoding: .utf8)
-            }
-
+        private static func upsertCodexServer(into url: URL, client: Client, executablePath: String) async throws {
             let block = codexServerBlock(executablePath: executablePath)
-            switch codexPadbuddyDeclaration(in: text) {
+            let (text, scan) = try await Task.detached(priority: .userInitiated) {
+                var text = ""
+                if FileManager.default.fileExists(atPath: url.path) {
+                    text = try String(contentsOf: url, encoding: .utf8)
+                }
+                return (text, scanCodexConfig(text))
+            }.value
+            switch scan.declaration {
             case .notDeclared:
                 let merged = text.isEmpty ? block : text + "\n" + block
-                try merged.write(to: url, atomically: true, encoding: .utf8)
+                try await Task.detached(priority: .userInitiated) {
+                    try merged.write(to: url, atomically: true, encoding: .utf8)
+                }.value
                 showAlert(.informational, "Added to \(client.displayName)", client.restartHint)
 
             case .table:
-                guard confirmUpdate(client) else { return }
+                guard confirmUpdate(client), let range = scan.tableLineRange else { return }
 
-                let updated = replacingCodexServer(in: text, with: block)
-                try updated.write(to: url, atomically: true, encoding: .utf8)
+                var lines = scan.lines
+                lines.replaceSubrange(range, with: block.components(separatedBy: "\n"))
+                let updated = lines.joined(separator: "\n")
+                try await Task.detached(priority: .userInitiated) {
+                    try updated.write(to: url, atomically: true, encoding: .utf8)
+                }.value
                 showAlert(.informational, "Updated \(client.displayName)", client.restartHint)
 
             case .other:

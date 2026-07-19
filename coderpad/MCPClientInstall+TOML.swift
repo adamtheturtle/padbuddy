@@ -16,8 +16,9 @@ import Foundation
     /// Tracks whether successive physical lines sit inside a multi-line TOML construct —
     /// a `"""`/`'''` string or an array value whose brackets haven't closed yet — so the
     /// line-based detector and rewriter never mistake a continuation line that happens to
-    /// start with `[` for a table header (#1037). Internal for tests.
-    struct TOMLLineState {
+    /// start with `[` for a table header (#1037). Internal for tests; nonisolated so the
+    /// installer can scan configs off the main actor (#2270).
+    nonisolated struct TOMLLineState {
         private enum StringState { case notInString, multilineBasic, multilineLiteral }
         private var stringState = StringState.notInString
         private var bracketDepth = 0
@@ -25,16 +26,16 @@ import Foundation
         /// Whether the next physical line begins inside a multi-line construct.
         var isInsideMultilineConstruct: Bool { stringState != .notInString || bracketDepth > 0 }
 
-        /// Consumes one physical line, updating the string/bracket state. Table headers
+        /// Consumes one physical line, updating the string/bracket state. Walks the line's own
+        /// indices so no per-line character array is materialized (#2261). Table headers
         /// self-balance their brackets, so only an unfinished array value leaves depth > 0.
         mutating func consume(_ line: String) {
-            let characters = Array(line)
-            var index = 0
-            while index < characters.count {
-                let next: Int? = switch stringState {
-                case .multilineBasic: consumeInMultilineBasic(characters, at: index)
-                case .multilineLiteral: consumeInMultilineLiteral(characters, at: index)
-                case .notInString: consumeOutsideString(characters, at: index)
+            var index = line.startIndex
+            while index < line.endIndex {
+                let next: String.Index? = switch stringState {
+                case .multilineBasic: consumeInMultilineBasic(line, at: index)
+                case .multilineLiteral: consumeInMultilineLiteral(line, at: index)
+                case .notInString: consumeOutsideString(line, at: index)
                 }
                 guard let next else { return } // comment ran to the end of the line
 
@@ -42,70 +43,71 @@ import Foundation
             }
         }
 
-        private mutating func consumeInMultilineBasic(_ characters: [Character], at index: Int) -> Int? {
-            if characters[index] == "\\" { return index + 2 }
-            if matches(characters, at: index, "\"\"\"") {
-                stringState = .notInString
-                return index + 3
+        private mutating func consumeInMultilineBasic(_ line: String, at index: String.Index) -> String.Index? {
+            if line[index] == "\\" {
+                return line.index(index, offsetBy: 2, limitedBy: line.endIndex) ?? line.endIndex
             }
-            return index + 1
+            if line[index...].hasPrefix("\"\"\"") {
+                stringState = .notInString
+                return line.index(index, offsetBy: 3)
+            }
+            return line.index(after: index)
         }
 
-        private mutating func consumeInMultilineLiteral(_ characters: [Character], at index: Int) -> Int? {
-            if matches(characters, at: index, "'''") {
+        private mutating func consumeInMultilineLiteral(_ line: String, at index: String.Index) -> String.Index? {
+            if line[index...].hasPrefix("'''") {
                 stringState = .notInString
-                return index + 3
+                return line.index(index, offsetBy: 3)
             }
-            return index + 1
+            return line.index(after: index)
         }
 
-        private mutating func consumeOutsideString(_ characters: [Character], at index: Int) -> Int? {
-            switch characters[index] {
+        private mutating func consumeOutsideString(_ line: String, at index: String.Index) -> String.Index? {
+            switch line[index] {
             case "#": return nil // comment runs to the end of the line
-            case "\"" where matches(characters, at: index, "\"\"\""):
+            case "\"" where line[index...].hasPrefix("\"\"\""):
                 stringState = .multilineBasic
-                return index + 3
-            case "'" where matches(characters, at: index, "'''"):
+                return line.index(index, offsetBy: 3)
+            case "'" where line[index...].hasPrefix("'''"):
                 stringState = .multilineLiteral
-                return index + 3
-            case "\"": return indexAfterBasicString(characters, from: index + 1)
-            case "'": return indexAfterLiteralString(characters, from: index + 1)
-            case "[": bracketDepth += 1; return index + 1
-            case "]": bracketDepth = max(0, bracketDepth - 1); return index + 1
-            default: return index + 1
+                return line.index(index, offsetBy: 3)
+            case "\"": return indexAfterBasicString(line, from: line.index(after: index))
+            case "'": return indexAfterLiteralString(line, from: line.index(after: index))
+            case "[": bracketDepth += 1; return line.index(after: index)
+            case "]": bracketDepth = max(0, bracketDepth - 1); return line.index(after: index)
+            default: return line.index(after: index)
             }
-        }
-
-        private func matches(_ characters: [Character], at index: Int, _ token: String) -> Bool {
-            let tokenCharacters = Array(token)
-            guard index + tokenCharacters.count <= characters.count else { return false }
-
-            return Array(characters[index ..< index + tokenCharacters.count]) == tokenCharacters
         }
 
         /// The index just past a single-line basic string opened before `from`, honoring
         /// backslash escapes; an unterminated string (invalid TOML) runs to the line's end.
-        private func indexAfterBasicString(_ characters: [Character], from: Int) -> Int {
+        private func indexAfterBasicString(_ line: String, from: String.Index) -> String.Index {
             var index = from
-            while index < characters.count {
-                if characters[index] == "\\" { index += 2; continue }
-                if characters[index] == "\"" { return index + 1 }
-                index += 1
+            while index < line.endIndex {
+                if line[index] == "\\" {
+                    index = line.index(index, offsetBy: 2, limitedBy: line.endIndex) ?? line.endIndex
+                    continue
+                }
+                if line[index] == "\"" { return line.index(after: index) }
+
+                index = line.index(after: index)
             }
             return index
         }
 
-        private func indexAfterLiteralString(_ characters: [Character], from: Int) -> Int {
+        private func indexAfterLiteralString(_ line: String, from: String.Index) -> String.Index {
             var index = from
-            while index < characters.count {
-                if characters[index] == "'" { return index + 1 }
-                index += 1
+            while index < line.endIndex {
+                if line[index] == "'" { return line.index(after: index) }
+
+                index = line.index(after: index)
             }
             return index
         }
     }
 
-    extension MCPClientInstall {
+    // Nonisolated: pure text processing, run off the main actor by the installer (#2270).
+    nonisolated extension MCPClientInstall {
         /// Thrown when the existing config declares `mcp_servers.padbuddy` in a form the
         /// line-based rewriter can't safely replace (dotted key, inline table, array of tables).
         struct CodexConfigError: LocalizedError {
@@ -123,17 +125,39 @@ import Foundation
             case other
         }
 
+        /// One shared walk over a Codex config: the declaration verdict plus, for the plain
+        /// table form, the line range the rewriter should replace. Letting the installer scan
+        /// once instead of running separate detect and rewrite passes (#2264).
+        struct CodexConfigScan {
+            let declaration: CodexDeclaration
+            /// The config split into physical lines, shared with the caller so it isn't split again.
+            let lines: [String]
+            /// For `.table`: the header line through the line before the next table header
+            /// (or the end of file) — the whole replaceable table.
+            let tableLineRange: Range<Int>?
+        }
+
         /// Scans TOML text for any declaration that resolves to the `mcp_servers.padbuddy` key
         /// path: table headers (with optional whitespace or quoted keys), top-level dotted keys,
         /// and keys inside a `[mcp_servers]` table. Lines inside a multi-line array or string
         /// are continuations of a value, never declarations (#1037). Internal for tests.
         static func codexPadbuddyDeclaration(in text: String) -> CodexDeclaration {
+            scanCodexConfig(text).declaration
+        }
+
+        /// The single detect pass behind `codexPadbuddyDeclaration` and the installer's rewrite,
+        /// so the file is split and state-walked exactly once per install (#2264).
+        static func scanCodexConfig(_ text: String) -> CodexConfigScan {
+            let lines = text.components(separatedBy: "\n")
             var currentTable: [String] = []
             var found = CodexDeclaration.notDeclared
             var state = TOMLLineState()
-            for rawLine in text.components(separatedBy: "\n") {
+            var index = 0
+            while index < lines.count {
+                let rawLine = lines[index]
                 let wasContinuation = state.isInsideMultilineConstruct
                 state.consume(rawLine)
+                defer { index += 1 }
                 if wasContinuation { continue }
 
                 let line = rawLine.trimmingCharacters(in: .whitespaces)
@@ -147,7 +171,15 @@ import Foundation
                     if path == ["mcp_servers", "padbuddy"] {
                         // An array of tables ([[...]]) is a different shape; rewriting one
                         // header of it would corrupt the array, so it isn't safely replaceable.
-                        return isArrayOfTables ? .other : .table
+                        if isArrayOfTables {
+                            return CodexConfigScan(declaration: .other, lines: lines, tableLineRange: nil)
+                        }
+
+                        return CodexConfigScan(
+                            declaration: .table,
+                            lines: lines,
+                            tableLineRange: tableBody(startingAt: index, in: lines, state: &state)
+                        )
                     }
                     if path.count > 2, Array(path.prefix(2)) == ["mcp_servers", "padbuddy"] {
                         // A subtable like [mcp_servers.padbuddy.env] implicitly declares the
@@ -164,7 +196,25 @@ import Foundation
                     found = .other
                 }
             }
-            return found
+            return CodexConfigScan(declaration: found, lines: lines, tableLineRange: nil)
+        }
+
+        /// The line range of the table whose header sits at `headerIndex`: the header through
+        /// the line before the next table header (multi-line aware), or the end of file.
+        private static func tableBody(
+            startingAt headerIndex: Int,
+            in lines: [String],
+            state: inout TOMLLineState
+        ) -> Range<Int> {
+            var index = headerIndex + 1
+            while index < lines.count {
+                if !state.isInsideMultilineConstruct,
+                   lines[index].trimmingCharacters(in: .whitespaces).hasPrefix("[") { break }
+
+                state.consume(lines[index])
+                index += 1
+            }
+            return headerIndex ..< index
         }
 
         /// The key path inside a `[table]` or `[[array-of-tables]]` header line, with quotes
@@ -211,55 +261,64 @@ import Foundation
 
         /// Encodes `value` as a TOML basic string: quotes, backslashes, and control characters
         /// are escaped so any legal filesystem path round-trips as a single string value.
+        /// Unescaped runs are appended as whole slices rather than scalar by scalar (#2272).
         /// Internal for tests.
         static func tomlBasicString(_ value: String) -> String {
+            let scalars = value.unicodeScalars
             var escaped = ""
-            for scalar in value.unicodeScalars {
-                switch scalar {
-                case "\\": escaped += "\\\\"
-                case "\"": escaped += "\\\""
-                case "\u{08}": escaped += "\\b"
-                case "\t": escaped += "\\t"
-                case "\n": escaped += "\\n"
-                case "\u{0C}": escaped += "\\f"
-                case "\r": escaped += "\\r"
+            escaped.reserveCapacity(value.utf8.count + 2)
+            escaped.append("\"")
+            var runStart = scalars.startIndex
+            var index = scalars.startIndex
+            while index < scalars.endIndex {
+                let scalar = scalars[index]
+                let replacement: String? = switch scalar {
+                case "\\": "\\\\"
+                case "\"": "\\\""
+                case "\u{08}": "\\b"
+                case "\t": "\\t"
+                case "\n": "\\n"
+                case "\u{0C}": "\\f"
+                case "\r": "\\r"
                 default:
-                    if scalar.value < 0x20 || scalar.value == 0x7F {
-                        escaped += String(format: "\\u%04X", scalar.value)
-                    } else {
-                        escaped.unicodeScalars.append(scalar)
-                    }
+                    scalar.value < 0x20 || scalar.value == 0x7F
+                        ? String(format: "\\u%04X", scalar.value)
+                        : nil
                 }
+                let next = scalars.index(after: index)
+                if let replacement {
+                    escaped.unicodeScalars.append(contentsOf: scalars[runStart ..< index])
+                    escaped += replacement
+                    runStart = next
+                }
+                index = next
             }
-            return "\"\(escaped)\""
+            escaped.unicodeScalars.append(contentsOf: scalars[runStart...])
+            escaped.append("\"")
+            return escaped
         }
 
         /// Replaces the existing `[mcp_servers.padbuddy]` table (its header through the line before
         /// the next table header, or the end of file) with `block`, leaving every other table
         /// untouched. The next-header search is multi-line aware: a `[` that merely continues a
         /// multi-line array or string is part of the table body, not a new table (#1037).
-        /// Internal for tests.
+        /// Each line is trimmed once, not once per check (#2265). Internal for tests.
         static func replacingCodexServer(in text: String, with block: String) -> String {
             let lines = text.components(separatedBy: "\n")
+            let blockLines = block.components(separatedBy: "\n")
             var result: [String] = []
+            result.reserveCapacity(lines.count + blockLines.count)
             var state = TOMLLineState()
             var index = 0
             while index < lines.count {
                 let wasContinuation = state.isInsideMultilineConstruct
+                let trimmed = lines[index].trimmingCharacters(in: .whitespaces)
                 if !wasContinuation,
-                   tomlHeaderKeyPath(lines[index].trimmingCharacters(in: .whitespaces))
-                   == ["mcp_servers", "padbuddy"],
-                   !lines[index].trimmingCharacters(in: .whitespaces).hasPrefix("[[") {
-                    result.append(contentsOf: block.components(separatedBy: "\n"))
+                   !trimmed.hasPrefix("[["),
+                   tomlHeaderKeyPath(trimmed) == ["mcp_servers", "padbuddy"] {
+                    result.append(contentsOf: blockLines)
                     state.consume(lines[index])
-                    index += 1
-                    while index < lines.count {
-                        if !state.isInsideMultilineConstruct,
-                           lines[index].trimmingCharacters(in: .whitespaces).hasPrefix("[") { break }
-
-                        state.consume(lines[index])
-                        index += 1
-                    }
+                    index = tableBody(startingAt: index, in: lines, state: &state).upperBound
                 } else {
                     state.consume(lines[index])
                     result.append(lines[index])
