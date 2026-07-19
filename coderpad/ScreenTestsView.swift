@@ -36,6 +36,7 @@ struct ScreenTestsView: View {
     @Environment(\.isReadOnly) var isReadOnly
     @Environment(\.openWindow) var openWindow
     @State var tests: [ScreenTestSession] = []
+    @State private var omittedTestCount = 0
     @State private var isLoading = false
     @State private var loadError: String?
     @State private var statusFilter: String?
@@ -254,9 +255,12 @@ struct ScreenTestsView: View {
         guard !tests.isEmpty else { return "" }
 
         let count = filtered.count
-        return count == 1
+        let visible = count == 1
             ? String(localized: "\(count) candidate")
             : String(localized: "\(count) candidates")
+        guard omittedTestCount > 0 else { return visible }
+
+        return String(localized: "\(visible) · newest \(tests.count) of \(tests.count + omittedTestCount) loaded")
     }
 
     /// The selected rows, in list order.
@@ -299,7 +303,9 @@ struct ScreenTestsView: View {
             )
             guard generation == loadGeneration else { return }
 
-            tests = result.tests
+            let retained = ScreenTestRetention.newest(result.tests)
+            tests = retained.sessions
+            omittedTestCount = retained.omitted
             loadError = result.diagnostic
             refreshDerived()
         } catch is CancellationError {
