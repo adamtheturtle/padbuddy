@@ -336,12 +336,16 @@ private func dispatch(name: String, arguments: [String: Value]?, account: MCPAcc
         return await listPads(arguments: arguments, account: account)
 
     case "get_pad":
-        guard let pad = stringArgument(arguments, "pad"), !pad.isEmpty else { return missingArgument("pad") }
+        guard let pad = validatedPadID(stringArgument(arguments, "pad")) else {
+            return errorResult("pad must be a positive id or a non-empty slug.")
+        }
 
         return await toolResult(apiGet("/api/pads/\(pad)", account: account))
 
     case "get_pad_code":
-        guard let pad = stringArgument(arguments, "pad"), !pad.isEmpty else { return missingArgument("pad") }
+        guard let pad = validatedPadID(stringArgument(arguments, "pad")) else {
+            return errorResult("pad must be a positive id or a non-empty slug.")
+        }
 
         return await getPadCode(id: pad, maxFileChars: intArgument(arguments, "max_file_chars"), account: account)
 
@@ -362,7 +366,9 @@ private func dispatch(name: String, arguments: [String: Value]?, account: MCPAcc
         return await listQuestions(arguments: arguments, account: account)
 
     case "get_question":
-        guard let question = intArgument(arguments, "question") else { return missingArgument("question (integer)") }
+        guard let question = positiveID(intArgument(arguments, "question")) else {
+            return errorResult("question must be a positive integer.")
+        }
 
         return await toolResult(apiGet("/api/questions/\(question)", account: account))
 
@@ -410,7 +416,9 @@ private func dispatchScreenOrWrite(
         return await toolResult(screenGet("/tests", account: account, query: screenTestQuery(arguments)))
 
     case "screen_get_test":
-        guard let test = intArgument(arguments, "test") else { return missingArgument("test (integer)") }
+        guard let test = positiveID(intArgument(arguments, "test")) else {
+            return errorResult("test must be a positive integer.")
+        }
 
         return await toolResult(screenGet("/tests/\(test)", account: account))
 
@@ -418,7 +426,9 @@ private func dispatchScreenOrWrite(
         return await createPad(arguments: arguments, account: account)
 
     case "update_pad":
-        guard let pad = stringArgument(arguments, "pad"), !pad.isEmpty else { return missingArgument("pad") }
+        guard let pad = validatedPadID(stringArgument(arguments, "pad")) else {
+            return errorResult("pad must be a positive id or a non-empty slug.")
+        }
 
         return await updatePad(id: pad, arguments: arguments, account: account)
 
@@ -428,7 +438,9 @@ private func dispatchScreenOrWrite(
         return await createQuestion(title: title, arguments: arguments, account: account)
 
     case "update_question":
-        guard let question = intArgument(arguments, "question") else { return missingArgument("question (integer)") }
+        guard let question = positiveID(intArgument(arguments, "question")) else {
+            return errorResult("question must be a positive integer.")
+        }
 
         return await updateQuestion(id: question, arguments: arguments, account: account)
 

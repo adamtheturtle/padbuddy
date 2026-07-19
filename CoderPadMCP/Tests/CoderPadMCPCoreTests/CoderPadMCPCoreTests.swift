@@ -58,6 +58,19 @@ struct ArgumentTests {
         #expect(screenPaginationValidationError(start: -1, limit: nil)?.contains("start") == true)
         #expect(screenPaginationValidationError(start: nil, limit: 0)?.contains("limit") == true)
     }
+
+    @Test
+    func `server object identifiers reject non-positive numeric values`() {
+        #expect(positiveID(nil) == nil)
+        #expect(positiveID(0) == nil)
+        #expect(positiveID(-1) == nil)
+        #expect(positiveID(1) == 1)
+        #expect(validatedPadID(nil) == nil)
+        #expect(validatedPadID("0") == nil)
+        #expect(validatedPadID("-8") == nil)
+        #expect(validatedPadID(" \n ") == nil)
+        #expect(validatedPadID(" pad-slug \n") == "pad-slug")
+    }
 }
 
 // MARK: - Tool catalog
@@ -124,6 +137,10 @@ struct ToolCatalogTests {
         #expect(try property("page", of: "list_questions")["minimum"] as? Int == 1)
         #expect(try property("start", of: "screen_list_tests")["minimum"] as? Int == 0)
         #expect(try property("limit", of: "screen_list_tests")["minimum"] as? Int == 1)
+        #expect(try property("question", of: "get_question")["minimum"] as? Int == 1)
+        #expect(try property("test", of: "screen_get_test")["minimum"] as? Int == 1)
+        #expect(try property("question", of: "update_question")["minimum"] as? Int == 1)
+        #expect(try property("question_id", of: "create_pad")["minimum"] as? Int == 1)
     }
 
     @Test

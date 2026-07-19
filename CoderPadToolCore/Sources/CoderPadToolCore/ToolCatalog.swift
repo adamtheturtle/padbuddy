@@ -172,7 +172,7 @@ public nonisolated(unsafe) let coderPadReadToolDescriptors: [[String: Any]] =
         mcpToolDescriptor(
             "get_question",
             "Get a single question by its numeric id.",
-            properties: withAccount(["question": mcpIntSchema("The question's numeric id.")]),
+            properties: withAccount(["question": mcpIntSchema("The question's numeric id.", minimum: 1)]),
             required: ["question"]
         ),
         mcpToolDescriptor(
@@ -232,7 +232,7 @@ public nonisolated(unsafe) let coderPadScreenToolDescriptors: [[String: Any]] =
         mcpToolDescriptor(
             "screen_get_test",
             "Get a single Screen test session by its numeric id, including its report.",
-            properties: withAccount(["test": mcpIntSchema("The session's numeric id.")]),
+            properties: withAccount(["test": mcpIntSchema("The session's numeric id.", minimum: 1)]),
             required: ["test"]
         )
     ]
@@ -249,7 +249,8 @@ public nonisolated(unsafe) let coderPadWriteToolDescriptors: [[String: Any]] =
                 "title": mcpStringSchema("Optional pad title."),
                 "language": mcpStringSchema("Optional language, e.g. \"python3\"."),
                 "question_id": mcpIntSchema(
-                    "Optional question id to seed the pad from. Mutually exclusive with contents."
+                    "Optional question id to seed the pad from. Mutually exclusive with contents.",
+                    minimum: 1
                 ),
                 "contents": mcpStringSchema("Optional starting code. Mutually exclusive with question_id."),
                 "owner_email": mcpStringSchema("Optional owner email; defaults to the account's user."),
@@ -291,7 +292,7 @@ public nonisolated(unsafe) let coderPadWriteToolDescriptors: [[String: Any]] =
             "Edit an existing question's title, language, description, solution, or starter code. Cannot "
                 + "delete the question.",
             properties: withAccount([
-                "question": mcpIntSchema("The question's numeric id."),
+                "question": mcpIntSchema("The question's numeric id.", minimum: 1),
                 "title": mcpStringSchema("New title."),
                 "language": mcpStringSchema("New language, e.g. \"python3\"."),
                 "description": mcpStringSchema("New Markdown prompt."),
