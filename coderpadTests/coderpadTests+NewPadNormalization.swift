@@ -135,6 +135,11 @@ struct QuotaPaceProjectionTests {
         let decoded = try CoderPadClient.decoder.decode(Quota.self, from: unlimited)
         #expect(QuotaPace(quota: decoded, now: Date()) == nil)
     }
+
+    @Test
+    func `negative remote usage has no pace`() {
+        #expect(QuotaPace(quota: quota(used: -1, limit: 500), now: Date()) == nil)
+    }
 }
 
 @Suite("Organization SSO portal URL (#2378)")

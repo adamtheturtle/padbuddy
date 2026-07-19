@@ -217,7 +217,7 @@ nonisolated struct QuotaPace {
 
     init?(quota: Quota, now: Date) {
         guard quota.unlimited != true,
-              let used = quota.padsUsed,
+              let used = quota.padsUsed, used >= 0,
               let limit = quota.billingCyclePadLimit, limit > 0,
               let reset = quota.quotaReset else { return nil }
 
