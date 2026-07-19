@@ -118,9 +118,14 @@ extension AccountEditor {
     }
 
     var screenValidateButton: some View {
-        Button("Validate Screen Key") { Task { await validateScreen() } }
+        Button("Validate Screen Key") { startScreenValidation() }
             .buttonStyle(.glass)
             .disabled(screenValidateDisabled)
+    }
+
+    func startScreenValidation() {
+        screenValidationTask?.cancel()
+        screenValidationTask = Task { await validateScreen() }
     }
 
     var screenValidationBanner: some View {
@@ -141,11 +146,11 @@ extension AccountEditor {
         do {
             let client = ScreenClient.live(apiKey: key, baseURL: region.baseURL)
             _ = try await client.listCampaigns()
-            guard screenCredentialsStillMatch(key: key, region: region) else { return }
+            guard !Task.isCancelled, screenCredentialsStillMatch(key: key, region: region) else { return }
 
             screenValidation = .valid
         } catch {
-            guard screenCredentialsStillMatch(key: key, region: region) else { return }
+            guard !Task.isCancelled, screenCredentialsStillMatch(key: key, region: region) else { return }
 
             screenValidation = .invalid(friendlyValidationMessage(for: error))
         }

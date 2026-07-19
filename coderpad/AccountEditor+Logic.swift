@@ -130,6 +130,20 @@ extension AccountEditor {
         resetValidationThrottle()
     }
 
+    func prepareForDeletion() {
+        isDeleting = true
+        nameEditGeneration &+= 1
+        liveCommitTask?.cancel()
+        liveCommitTask = nil
+        validationTask?.cancel()
+        validationTask = nil
+        validationThrottle.task?.cancel()
+        validationThrottle = ValidationThrottle()
+        screenValidationTask?.cancel()
+        screenValidationTask = nil
+        concealSecrets()
+    }
+
     @ViewBuilder
     var validateButton: some View {
         // When Save is available it owns the default action (Return); otherwise Validate
@@ -254,11 +268,11 @@ extension AccountEditor {
         let client = CoderPadClient(apiKey: fingerprint.apiKey, baseURL: fingerprint.baseURL)
         do {
             let org = try await client.organization()
-            guard validationStillMatches(fingerprint) else { return }
+            guard !Task.isCancelled, validationStillMatches(fingerprint) else { return }
 
             orgUsers = org.users
         } catch {
-            guard validationStillMatches(fingerprint) else { return }
+            guard !Task.isCancelled, validationStillMatches(fingerprint) else { return }
 
             memberLoadError = String(localized: "Couldn’t load organization members. Reopen to try again.")
         }
@@ -315,7 +329,7 @@ extension AccountEditor {
         do {
             let client = CoderPadClient(apiKey: fingerprint.apiKey, baseURL: fingerprint.baseURL)
             let org = try await client.organization()
-            guard validationStillMatches(fingerprint) else { return }
+            guard !Task.isCancelled, validationStillMatches(fingerprint) else { return }
 
             // Reveal local duplicate state only after the server has authenticated
             // these credentials. Invalid or arbitrary keys must not act as a probe of
@@ -333,7 +347,7 @@ extension AccountEditor {
 
             resetValidationThrottle()
         } catch {
-            guard validationStillMatches(fingerprint) else { return }
+            guard !Task.isCancelled, validationStillMatches(fingerprint) else { return }
 
             validation = .invalid(friendlyValidationMessage(for: error))
             beginValidationCooldown()

@@ -50,9 +50,11 @@ struct AccountEditor: View {
     /// a pile of in-flight probes against credentials the user had already replaced
     /// (#2194). Cancelling the task cancels them: `async let` children inherit it.
     @State var validationTask: Task<Void, Never>?
+    @State var screenValidationTask: Task<Void, Never>?
     @State var validationThrottle = ValidationThrottle()
     @State var nameEditGeneration = 0
     @State var showDeleteConfirmation = false
+    @State var isDeleting = false
     /// Reveals the API key as plain text on explicit request. The field is a
     /// `SecureField` by default so macOS offers password AutoFill suggestions;
     /// revealing it via a toggle (rather than on focus) keeps that intact.
@@ -245,11 +247,16 @@ struct AccountEditor: View {
             // A changed Screen key or region invalidates any prior Screen validation result.
             // Screen credentials don't gate `canSave`, so saved accounts autosave them too.
             .onChange(of: draft.screenApiKey) { _, _ in
+                screenValidationTask?.cancel()
                 revealScreenKey = false
                 screenValidation = .idle
                 commitLiveEdit()
             }
-            .onChange(of: draft.screenRegion) { _, _ in screenValidation = .idle; commitLiveEdit() }
+            .onChange(of: draft.screenRegion) { _, _ in
+                screenValidationTask?.cancel()
+                screenValidation = .idle
+                commitLiveEdit()
+            }
             // Saved-account autosave: persist Description / Your Email edits after typing
             // settles, and persist a re-validated key or server URL when validation flips
             // to `.valid` (which re-enables `canSave`). A no-op for the modal Add sheet.
@@ -270,15 +277,12 @@ struct AccountEditor: View {
             .onDisappear {
                 concealSecrets()
                 liveCommitTask?.cancel()
-                persistLiveEditIfPossible()
+                if !isDeleting { persistLiveEditIfPossible() }
             }
             .alert("Delete this account?", isPresented: $showDeleteConfirmation) {
                 Button("Cancel", role: .cancel) {}
                 Button("Delete Account", role: .destructive) {
-                    // Stop any debounced autosave before removing the account, so it
-                    // cannot re-create it a moment later (#2191).
-                    liveCommitTask?.cancel()
-                    liveCommitTask = nil
+                    prepareForDeletion()
                     onDelete?()
                 }
             } message: {
