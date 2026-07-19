@@ -176,14 +176,15 @@ final class PadOpenedStore {
     }
 
     /// Deletes a removed account's entries from both mirrored cloud blobs, mirroring
-    /// `FavoritesOrderStore.removeFromCloud` (#1150).
+    /// `FavoritesOrderStore.removeFromCloud` (#1150). Legacy, fingerprint-bearing
+    /// identities for the same account go too (#2141).
     private func removeFromCloud(syncID: String) {
         guard CloudSyncStore.shared.isAvailable else { return }
 
         for key in [Self.cloudKey, Self.cloudTombstonesKey] {
             guard let data = CloudSyncStore.shared.data(forKey: key),
                   var cloud = try? SharedCoders.decoder.decode([String: [String: Date]].self, from: data),
-                  cloud.removeValue(forKey: syncID) != nil,
+                  CloudSyncIdentity.removeIdentities(matching: syncID, from: &cloud),
                   let updated = try? SharedCoders.encoder.encode(cloud)
             else { continue }
 
@@ -287,8 +288,10 @@ final class PadOpenedStore {
         guard let data = CloudSyncStore.shared.data(forKey: Self.cloudKey),
               let cloud = try? SharedCoders.decoder.decode([String: [String: Date]].self, from: data) else { return }
 
+        // Legacy, fingerprint-bearing identities resolve too, so open-history mirrored
+        // before an API-key rotation is adopted rather than orphaned (#2141).
         let uuidForSyncID: (String) -> UUID? = { identity in
-            AccountsStore.shared.accounts.first { $0.syncID == identity }?.id
+            AccountsStore.shared.accounts.firstMatchingSyncID(identity)?.id
         }
         var merged = CloudSyncMerge.mergeTimestamps(cloud: cloud, into: byAccount,
                                                     uuidForSyncID: uuidForSyncID)

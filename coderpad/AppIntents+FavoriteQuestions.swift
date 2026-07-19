@@ -42,11 +42,13 @@ struct FavoriteQuestionQuery: EntityQuery {
             for entity in all(matching: wanted) {
                 byIdentifier[entity.id] = entity
                 byIdentifier[entity.legacyID] = entity
-                // A re-key changes `syncID` — it folds in the API-key fingerprint —
-                // which would otherwise orphan every Shortcut configured before the
-                // rotation even though the account and question are unchanged. The
+                // A re-key used to change `syncID`, which folded in the API-key
+                // fingerprint, orphaning every Shortcut configured before the
+                // rotation even though the account and question were unchanged. The
                 // key-independent form is accepted as an alias so those keep
-                // resolving (#2359).
+                // resolving (#2359) — the ids issued now are already in that form
+                // (#2141), but Shortcuts still holds the fingerprint-bearing ones it
+                // was configured with, and they must go on resolving.
                 byIdentifier[Self.keyIndependentID(entity.id)] = entity
             }
             var seen = Set<String>()
@@ -62,10 +64,12 @@ struct FavoriteQuestionQuery: EntityQuery {
 
     /// A `sync|<endpoint>|<email>|<fingerprint>|<question>` id with the key
     /// fingerprint dropped, so the same account and question match across a key
-    /// rotation. Anything not in that exact shape is returned unchanged.
+    /// rotation. Anything not in that exact shape is returned unchanged — including
+    /// an id issued since #2141, whose `syncID` no longer carries a fingerprint and
+    /// which is therefore already in this form.
     ///
-    /// The component count is checked rather than assumed. `syncID` is
-    /// `endpoint|email|fingerprint`, so a well-formed entity id has exactly five
+    /// The component count is checked rather than assumed. A legacy `syncID` was
+    /// `endpoint|email|fingerprint`, so such an entity id has exactly five
     /// components — but an endpoint containing a `|` would produce more, and blindly
     /// dropping the second-to-last one would then strip part of the endpoint and
     /// alias two genuinely different accounts onto one identifier (#2699). Such an id
@@ -112,9 +116,9 @@ struct FavoriteQuestionQuery: EntityQuery {
     /// answering to one of those identifiers.
     @MainActor
     private func all(matching wanted: Set<String>? = nil) -> [FavoriteQuestionEntity] {
-        // De-duplicated by sync identity: two records for the same endpoint, owner,
-        // and key are the same account, and they produced entities sharing one id
-        // (#2360). Accounts with no resolvable sync id keep their own local entry.
+        // De-duplicated by sync identity: two records for the same endpoint and owner
+        // are the same account, and they produced entities sharing one id (#2360).
+        // Accounts with no resolvable sync id keep their own local entry.
         var seenIdentities = Set<String>()
         let accounts = AccountsStore.shared.accounts.filter {
             $0.syncID.isEmpty || seenIdentities.insert($0.syncID).inserted

@@ -10,7 +10,6 @@
 //
 
 import BuddyAppKit
-import CryptoKit
 import Foundation
 
 // MARK: - Stable cross-device identity
@@ -35,10 +34,21 @@ extension AccountsStore {
 extension Account {
     /// A stable identity that is identical across a user's devices, for keying
     /// iCloud-synced data (#536). The local ``id`` is a per-device random `UUID`, so
-    /// it can't line up between Macs; the normalized endpoint, owner email, and API-key
-    /// fingerprint do. Case-folded so trivial email differences don't fork the key.
-    /// Empty for an in-progress draft with no owner email or key yet, which the sync
-    /// layer skips.
+    /// it can't line up between Macs; the normalized endpoint and owner email do.
+    /// Case-folded so trivial email differences don't fork the key. Empty for an
+    /// in-progress draft with no owner email or key yet, which the sync layer skips.
+    ///
+    /// The API key is deliberately *not* part of the identity. It used to contribute
+    /// a fingerprint, which made every key rotation mint a brand-new identity and
+    /// strand the account's favourites, open-history and preferences under the old
+    /// one — data the user never asked to lose, from an action the app itself
+    /// encourages (#2141). The endpoint and owner already name the account; a
+    /// re-keyed account is the same account. Blobs written under the old
+    /// fingerprint-bearing ids are still adopted, see ``CloudSyncIdentity``.
+    ///
+    /// A key is still required before an identity exists: an account with no usable
+    /// credential is a draft, and mirroring it would publish a key space no device
+    /// can read back.
     var syncID: String {
         let email = userEmail.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !email.isEmpty else { return "" }
@@ -46,7 +56,13 @@ extension Account {
         let key = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !key.isEmpty else { return "" }
 
-        return "\(syncEndpointID)|\(email)|\(Self.apiKeyFingerprint(key))"
+        return "\(syncEndpointID)|\(email)"
+    }
+
+    /// Whether `identity` — a sync id read out of an iCloud blob — names this
+    /// account, in either its current or its pre-#2141 fingerprint-bearing form.
+    func matchesSyncID(_ identity: String) -> Bool {
+        CloudSyncIdentity.matches(identity, current: syncID)
     }
 
     private var syncEndpointID: String {
@@ -76,12 +92,63 @@ extension Account {
 
         return "/\(segments.joined(separator: "/"))"
     }
+}
 
-    private static func apiKeyFingerprint(_ key: String) -> String {
-        SHA256.hash(data: Data(key.utf8))
-            .prefix(12)
-            .map { String(format: "%02x", $0) }
-            .joined()
+// MARK: - Legacy identity adoption (#2141)
+
+/// Matching for sync ids already written to iCloud under the pre-#2141 scheme.
+///
+/// That scheme appended a truncated SHA-256 of the API key to
+/// `<endpoint>|<email>`, so a rotation left every favourite, open-history entry and
+/// preference keyed under an identity nothing would ever ask for again. Dropping the
+/// fingerprint fixes new writes; those older blobs still have to be adopted, or the
+/// fix would itself orphan the data it exists to protect.
+nonisolated enum CloudSyncIdentity {
+    /// The hex length of the old fingerprint component: the first 12 bytes of the
+    /// digest, two characters each.
+    static let fingerprintLength = 24
+
+    /// Whether a stored `identity` refers to the account whose current sync id is
+    /// `current`: the same id, or that id plus one trailing API-key fingerprint.
+    ///
+    /// Tested as a prefix rather than by splitting on `|` and counting components:
+    /// an endpoint path or an owner email may itself contain a pipe, which makes a
+    /// component count meaningless, while the prefix stays exact either way. The
+    /// trailing component must also *look* like a fingerprint — fixed-length hex —
+    /// so an unrelated identity that merely starts with this one can't be adopted.
+    static func matches(_ identity: String, current: String) -> Bool {
+        guard !current.isEmpty, !identity.isEmpty else { return false }
+        guard identity != current else { return true }
+        guard identity.hasPrefix("\(current)|") else { return false }
+
+        let suffix = identity.dropFirst(current.count + 1)
+        return suffix.count == fingerprintLength && suffix.allSatisfy(\.isHexDigit)
+    }
+
+    /// Drops every key of a mirrored `blob` that names the account whose current sync
+    /// id is `syncID`, reporting whether anything was removed. Used by the removed-
+    /// account cleanups, which must clear the legacy keys too or a re-added account
+    /// would inherit the state its removal was meant to discard (#2141).
+    static func removeIdentities(matching syncID: String, from blob: inout [String: some Codable]) -> Bool {
+        let doomed = blob.keys.filter { matches($0, current: syncID) }
+        for key in doomed {
+            blob[key] = nil
+        }
+        return !doomed.isEmpty
+    }
+}
+
+extension Collection<Account> {
+    /// The account an iCloud blob keyed by `identity` belongs to, or nil when no
+    /// configured account claims it.
+    ///
+    /// An exact match always wins over a legacy one, so an account whose current id
+    /// is stored can never be beaten by another account's stale, fingerprint-bearing
+    /// id (#2141).
+    func firstMatchingSyncID(_ identity: String) -> Element? {
+        guard !identity.isEmpty else { return nil }
+
+        return first { $0.syncID == identity } ?? first { $0.matchesSyncID(identity) }
     }
 }
 

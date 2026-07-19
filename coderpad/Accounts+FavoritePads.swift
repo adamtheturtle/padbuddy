@@ -345,8 +345,10 @@ final class FavoritePadsStore {
         // The mirror is cross-device input: clamp it like the local blob (#1788).
         let cloud = decoded.mapValues(Self.sanitized)
 
+        // Legacy, fingerprint-bearing identities resolve too, so favourites mirrored
+        // before an API-key rotation are adopted rather than orphaned (#2141).
         let uuidForSyncID: (String) -> UUID? = { identity in
-            AccountsStore.shared.accounts.first { $0.syncID == identity }?.id
+            AccountsStore.shared.accounts.firstMatchingSyncID(identity)?.id
         }
         var merged = CloudSyncMerge.mergeArrays(cloud: cloud, into: byAccount,
                                                 uuidForSyncID: uuidForSyncID) { $0.id }

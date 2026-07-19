@@ -167,9 +167,9 @@ struct OrganizationPortalURLTests {
 struct FavoriteQuestionEntityIDTests {
     @Test
     func `the key fingerprint is dropped from a sync identifier`() {
-        // syncID is endpoint|email|fingerprint, so the entity id is
-        // sync|endpoint|email|fingerprint|question. Rotating the key changes only
-        // the fingerprint, and configured Shortcuts must survive that (#2359).
+        // A pre-#2141 syncID was endpoint|email|fingerprint, so the entity id was
+        // sync|endpoint|email|fingerprint|question. Rotating the key changed only
+        // the fingerprint, and Shortcuts configured then must survive that (#2359).
         let before = "sync|https://app.coderpad.io|me@example.com|abc123|42"
         let after = "sync|https://app.coderpad.io|me@example.com|def456|42"
         #expect(FavoriteQuestionQuery.keyIndependentID(before)
@@ -189,12 +189,24 @@ struct FavoriteQuestionEntityIDTests {
 
     @Test
     func `an identifier with extra delimiters gets no alias`() {
-        // A `syncID` is endpoint|email|fingerprint, so a well-formed entity id has
-        // exactly five components. An endpoint containing a `|` produces more, and
+        // A pre-#2141 `syncID` was endpoint|email|fingerprint, so such an entity id
+        // has exactly five components. An endpoint containing a `|` produces more, and
         // dropping the second-to-last component would then strip part of the endpoint
         // and alias two different accounts onto one identifier (#2699).
         let odd = "sync|https://weird|host.example|me@example.com|abc123|42"
         #expect(FavoriteQuestionQuery.keyIndependentID(odd) == odd)
+    }
+
+    @Test
+    func `an id issued since the fingerprint was dropped resolves a stored legacy one`() {
+        // Entity ids are now sync|endpoint|email|question: the identity no longer
+        // carries a key fingerprint (#2141). Shortcuts configured before that still
+        // hold the five-component form, which must fold onto the id issued today.
+        let stored = "sync|https://app.coderpad.io|me@example.com|abc123|42"
+        let current = "sync|https://app.coderpad.io|me@example.com|42"
+        #expect(FavoriteQuestionQuery.keyIndependentID(stored) == current)
+        #expect(FavoriteQuestionQuery.keyIndependentID(current) == current)
+        #expect(FavoriteQuestionQuery.wantedIdentifiers(for: [stored]).contains(current))
     }
 
     @Test

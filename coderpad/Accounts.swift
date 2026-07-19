@@ -165,10 +165,11 @@ extension Account: StorableAccount {
         },
         // Re-key shares the removal teardown but must not tombstone the widget
         // snapshot: the account persists, so the tombstone would block every
-        // future widget refresh (#1022). The hooks hand over the full removed /
-        // previous account (buddy-kit 0.15.0); teardown is keyed by its id, plus
-        // its stable sync identity so the cloud-mirrored favorite order can be
-        // deleted too (#1150).
+        // future widget refresh (#1022). It also stops short of the personal data,
+        // which a rotation no longer invalidates (#2141). The hooks hand over the
+        // full removed / previous account (buddy-kit 0.15.0); teardown is keyed by
+        // its id, plus its stable sync identity so the cloud-mirrored favorite
+        // order can be deleted too (#1150).
         onRemoved: { tearDownAccountData($0.id, syncID: $0.syncID, isRekey: false) },
         onRekeyed: { tearDownAccountData($0.id, syncID: $0.syncID, isRekey: true) },
         logger: persistenceLogger
@@ -193,10 +194,19 @@ extension Account: StorableAccount {
 }
 
 /// Drops everything keyed by a removed or re-keyed account: the network caches, the
-/// Spotlight index, the cached unauthorized verdict, and the personal data (favorites,
-/// pad-open history) — so a removed key leaves nothing behind
-/// and a re-keyed account (possibly a different org) can't re-attach stale per-org data
-/// (a leftover favorite id could even reattach to an unrelated question). #379
+/// Spotlight index, the cached unauthorized verdict, and — for a real removal — the
+/// personal data (favorites, pad-open history), so a removed key leaves nothing
+/// behind (#379).
+///
+/// A re-key stops at the server-derived caches. It used to clear the personal data
+/// too, on the theory that the new key might belong to another org (#379). That was
+/// tenable only while a rotation also minted a new sync identity, leaving the old
+/// data behind in iCloud; now that the identity survives a rotation (#2141) the
+/// clear is no longer local — the very next mirror publishes the emptied blob and
+/// the user's favorites, order and history vanish on every other Mac as well. An
+/// account keeps its favourites across a key rotation, which is what the user
+/// expects from re-entering a credential for the same server and owner; a key that
+/// genuinely points somewhere else belongs to a separate account.
 ///
 /// The caches keyed by client identity rather than account id are purged separately by
 /// ``ClientCacheTeardown``, which recovers the removed account's old credentials.
@@ -207,6 +217,8 @@ extension Account: StorableAccount {
     QuotaCacheStore.shared.remove(id)
     SpotlightIndexer.removeAccount(id)
     AccountHealthMonitor.shared.clearUnauthorized(id)
+    guard !isRekey else { return }
+
     FavoritePadsStore.shared.remove(account: id)
     FavoriteQuestionsStore.shared.remove(account: id)
     FavoritesOrderStore.shared.remove(account: id, syncID: syncID)

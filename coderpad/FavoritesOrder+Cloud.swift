@@ -18,18 +18,23 @@ extension FavoritesOrderStore {
     }
 
     /// Deletes a removed account's entries from the mirrored cloud blobs (#1150).
+    ///
+    /// Every identity the account answers to is dropped, not just its current one:
+    /// a blob written before #2141 is keyed by a fingerprint-bearing id, and leaving
+    /// it behind would let the removed account's order come back the moment the same
+    /// account was re-added.
     func removeFromCloud(syncID: String) {
         guard CloudSyncStore.shared.isAvailable else { return }
 
         if let data = CloudSyncStore.shared.data(forKey: Self.cloudKey),
            var cloud = try? SharedCoders.decoder.decode([String: [FavoriteRef]].self, from: data),
-           cloud.removeValue(forKey: syncID) != nil,
+           CloudSyncIdentity.removeIdentities(matching: syncID, from: &cloud),
            let updated = try? SharedCoders.encoder.encode(cloud) {
             CloudSyncStore.shared.mirror(updated, forKey: Self.cloudKey)
         }
         if let data = CloudSyncStore.shared.data(forKey: Self.cloudStampsKey),
            var stamps = try? SharedCoders.decoder.decode([String: Date].self, from: data),
-           stamps.removeValue(forKey: syncID) != nil,
+           CloudSyncIdentity.removeIdentities(matching: syncID, from: &stamps),
            let updated = try? SharedCoders.encoder.encode(stamps) {
             CloudSyncStore.shared.mirror(updated, forKey: Self.cloudStampsKey)
         }
@@ -86,23 +91,39 @@ extension FavoritesOrderStore {
         guard let data = CloudSyncStore.shared.data(forKey: Self.cloudKey),
               let cloud = try? SharedCoders.decoder.decode([String: [FavoriteRef]].self, from: data) else { return }
 
+        // Legacy, fingerprint-bearing identities resolve too, so an order mirrored
+        // before an API-key rotation is adopted rather than orphaned (#2141).
         let uuidForSyncID: (String) -> UUID? = { identity in
-            AccountsStore.shared.accounts.first { $0.syncID == identity }?.id
+            AccountsStore.shared.accounts.firstMatchingSyncID(identity)?.id
         }
         var cloudStamps: [UUID: Date] = [:]
+        // Which identity's list may replace an account's order. One account can now
+        // be named by two keys of the blob — its current id and a legacy one — and
+        // letting both take a turn made the surviving order depend on dictionary
+        // iteration order (#2141). The newest stamp wins, ties broken by identity so
+        // every device picks the same one.
+        var authoritative: [UUID: String] = [:]
         if let data = CloudSyncStore.shared.data(forKey: Self.cloudStampsKey),
            let decoded = try? SharedCoders.decoder.decode([String: Date].self, from: data) {
             for (identity, stamp) in decoded {
                 guard let uuid = uuidForSyncID(identity) else { continue }
+                guard let held = cloudStamps[uuid] else {
+                    cloudStamps[uuid] = stamp
+                    authoritative[uuid] = identity
+                    continue
+                }
+                guard stamp > held || (stamp == held && identity < (authoritative[uuid] ?? identity)) else { continue }
 
                 cloudStamps[uuid] = stamp
+                authoritative[uuid] = identity
             }
         }
         var merged = CloudSyncMerge.mergeArrays(cloud: cloud, into: byAccount,
                                                 uuidForSyncID: uuidForSyncID)
         var stamps = orderChangedAt
         for (identity, rawCloudList) in cloud {
-            guard let uuid = uuidForSyncID(identity), let cloudStamp = cloudStamps[uuid] else { continue }
+            guard let uuid = uuidForSyncID(identity), let cloudStamp = cloudStamps[uuid],
+                  authoritative[uuid] == identity else { continue }
 
             let cloudList = Array(rawCloudList.prefix(Self.maxOrderEntriesPerAccount))
             let localStamp = orderChangedAt[uuid] ?? .distantPast

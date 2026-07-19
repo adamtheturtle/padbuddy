@@ -56,8 +56,8 @@ enum MergedRowPersistence {
 /// through preference sync — or surviving a reinstall — named an account that
 /// does not exist there, so the filter was dropped and the list silently widened
 /// to every account (#2557). Pairing it with `Account.syncID`, which is derived
-/// from the endpoint, owner email, and key fingerprint and so matches across
-/// devices, lets the restore recover the intended account.
+/// from the endpoint and owner email and so matches across devices, lets the
+/// restore recover the intended account.
 @MainActor
 enum MergedAccountFilter {
     /// The cross-device identity of the filtered account, or nil when nothing is
@@ -85,6 +85,8 @@ enum MergedAccountFilter {
         }
         guard let syncID = snapshot.accountFilterSyncID, !syncID.isEmpty else { return nil }
 
-        return mergeable.first { $0.syncID == syncID }?.id
+        // A snapshot written before #2141 carries a fingerprint-bearing sync id, and
+        // matching it exactly would drop the filter after any key rotation.
+        return mergeable.firstMatchingSyncID(syncID)?.id
     }
 }
