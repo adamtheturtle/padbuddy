@@ -78,6 +78,16 @@ struct PadEventGroupingTests {
     }
 
     @Test
+    func `the same display name collapses the run regardless of case`() {
+        let groups = PadEventGrouping.group([
+            event("typed", user: "Alice", at: 1),
+            event("typed", user: "alice", at: 2)
+        ])
+        #expect(groups.count == 1)
+        #expect(groups[0].count == 2)
+    }
+
+    @Test
     func `a different kind breaks the run even when both kinds are collapsible`() {
         let groups = PadEventGrouping.group([
             event("typed", user: "Alex", at: 1),

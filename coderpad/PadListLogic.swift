@@ -365,6 +365,10 @@ enum PadEventGrouping {
             .prefix(maxIdentitySuffixLength))
     }
 
+    /// A stable key for "who did this", used only to decide whether two events came
+    /// from the same person. Both branches are case-folded: the name branch used to
+    /// keep its case, so `Alice` and `alice` read as two people and their runs never
+    /// merged even though they are one display identity (#2002).
     private static func actorKey(for event: PadEvent) -> String? {
         if let email = event.userEmail?.trimmingCharacters(in: .whitespacesAndNewlines),
            !email.isEmpty {
@@ -373,7 +377,7 @@ enum PadEventGrouping {
 
         if let name = event.userName?.trimmingCharacters(in: .whitespacesAndNewlines),
            !name.isEmpty {
-            return "name:\(name)"
+            return "name:\(name.lowercased())"
         }
 
         return nil
