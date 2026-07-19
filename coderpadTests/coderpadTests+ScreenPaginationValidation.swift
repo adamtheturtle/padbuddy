@@ -59,4 +59,23 @@ struct ScreenPaginationValidationTests {
             try JSONDecoder().decode(ScreenTestsPage.self, from: Data(json.utf8))
         }
     }
+
+    @Test(arguments: [
+        #"{}"#,
+        #"{"tests":null}"#,
+        #"{"tests":{}}"#,
+        #"{"tests":"not an array"}"#
+    ])
+    func `tests is a required array`(json: String) {
+        #expect(throws: DecodingError.self) {
+            try JSONDecoder().decode(ScreenTestsPage.self, from: Data(json.utf8))
+        }
+    }
+
+    @Test
+    func `an explicitly empty tests array remains a valid page`() throws {
+        let page = try JSONDecoder().decode(ScreenTestsPage.self, from: Data(#"{"tests":[]}"#.utf8))
+        #expect(page.tests.isEmpty)
+        #expect(page.discardedTestCount == 0)
+    }
 }

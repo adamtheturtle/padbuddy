@@ -21,7 +21,7 @@ nonisolated struct ScreenTestsPage: Decodable, Hashable {
 
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        let decoded = Self.decodeTests(from: container)
+        let decoded = try Self.decodeTests(from: container)
         tests = decoded.tests
         discardedTestCount = decoded.discardedCount
         pagination = try container.decodeIfPresent(ScreenPagination.self, forKey: .pagination)
@@ -32,8 +32,8 @@ nonisolated struct ScreenTestsPage: Decodable, Hashable {
     }
 
     private static func decodeTests(from container: KeyedDecodingContainer<CodingKeys>)
-        -> (tests: [ScreenTestSession], discardedCount: Int) {
-        guard var testsContainer = try? container.nestedUnkeyedContainer(forKey: .tests) else { return ([], 0) }
+        throws -> (tests: [ScreenTestSession], discardedCount: Int) {
+        var testsContainer = try container.nestedUnkeyedContainer(forKey: .tests)
 
         var decoded: [ScreenTestSession] = []
         var discardedCount = 0
