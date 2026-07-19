@@ -269,7 +269,7 @@ private extension MergedOrganizationView {
     /// wrong-org directory painting as current (#993/#1033).
     var accountKey: [FilterSignature] {
         accounts.mergeableAccounts.map {
-            FilterSignature.make([
+            FilterSignature.makeExact([
                 $0.id.uuidString,
                 $0.apiKey.trimmingCharacters(in: .whitespacesAndNewlines),
                 $0.resolvedBaseURL.absoluteString

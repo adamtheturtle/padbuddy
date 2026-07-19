@@ -101,12 +101,11 @@ extension PadsView {
     /// as active. This is the inverse of `apply` — every field it sets is compared
     /// here — which keeps the highlight honest the instant any filter is changed.
     func isActiveSearch(_ saved: NamedSearch) -> Bool {
-        search == saved.search &&
+        FilterSignature.make([search, languageFilter, ownerFilter, teamFilter, typeFilter])
+            == FilterSignature.make([
+                saved.search, saved.languageFilter, saved.ownerFilter, saved.teamFilter, saved.typeFilter
+            ]) &&
             stateFilter == saved.stateFilter &&
-            languageFilter == saved.languageFilter &&
-            ownerFilter == saved.ownerFilter &&
-            teamFilter == saved.teamFilter &&
-            typeFilter == saved.typeFilter &&
             updatedWindow == (saved.updatedWindow ?? DateWindow()) &&
             createdWindow == (saved.createdWindow ?? DateWindow())
     }

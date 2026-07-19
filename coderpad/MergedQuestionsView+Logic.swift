@@ -276,7 +276,7 @@ extension MergedQuestionsView {
 
     var accountKey: [FilterSignature] {
         accounts.mergeableAccounts.map {
-            FilterSignature.make([
+            FilterSignature.makeExact([
                 $0.id.uuidString,
                 $0.apiKey.trimmingCharacters(in: .whitespacesAndNewlines),
                 $0.resolvedBaseURL.absoluteString

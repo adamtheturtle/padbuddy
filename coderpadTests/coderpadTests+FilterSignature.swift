@@ -20,4 +20,15 @@ struct FilterSignatureTests {
     func `literal nil sentinel text does not collide with nil`() {
         #expect(FilterSignature.make(["·"]) != FilterSignature.make([nil]))
     }
+
+    @Test
+    func `filter text ignores surrounding whitespace and case`() {
+        #expect(FilterSignature.make(["  Alice ", "PYTHON"])
+            == FilterSignature.make(["alice", "python"]))
+    }
+
+    @Test
+    func `exact identity preserves case and whitespace`() {
+        #expect(FilterSignature.makeExact([" Key "]) != FilterSignature.makeExact(["key"]))
+    }
 }

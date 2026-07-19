@@ -80,9 +80,11 @@ extension QuestionsView {
     }
 
     func isActiveSearch(_ saved: NamedSearch) -> Bool {
-        !favoritesOnly && search == saved.search && languageFilter == saved.languageFilter
-            && ownerFilter == saved.ownerFilter && typeFilter == saved.typeFilter
-            && draftFilter == saved.draftFilter
+        !favoritesOnly
+            && FilterSignature.make([search, languageFilter, ownerFilter, typeFilter, draftFilter])
+            == FilterSignature.make([
+                saved.search, saved.languageFilter, saved.ownerFilter, saved.typeFilter, saved.draftFilter
+            ])
     }
 
     func captureCurrentSearch(named name: String) -> NamedSearch {

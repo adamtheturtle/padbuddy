@@ -5,13 +5,22 @@
 //  Collision-free change tokens for live filter tuples.
 //
 
+import Foundation
+
 struct FilterSignature: Hashable {
-    /// Strings are copy-on-write values, so retaining the fields avoids copying long
-    /// search text into a newly encoded token on every render while exact array
+    /// Strings are copy-on-write values, so retaining canonical fields avoids copying
+    /// long search text into a newly encoded token on every render while exact array
     /// equality remains collision-free.
     private let fields: [String?]
 
     static func make(_ fields: [String?]) -> Self {
+        Self(fields: fields.map {
+            $0?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        })
+    }
+
+    /// Exact identity for credentials and URLs, where case changes are meaningful.
+    static func makeExact(_ fields: [String?]) -> Self {
         Self(fields: fields)
     }
 }
