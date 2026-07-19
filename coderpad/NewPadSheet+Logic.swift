@@ -228,7 +228,16 @@ extension NewPadSheet {
             teamID: selectedTeamID
         ))
         do {
-            let pad = try await client.createPad(body)
+            let context = NewPadAccountContext(client: client, targetAccountID: targetAccountID)
+            guard let account = context.resolve(in: AccountsStore.shared.accounts) else {
+                throw NewPadAccountError.accountChanged
+            }
+
+            let pad = try await account.makeClient().createPad(body)
+            guard context.resolve(in: AccountsStore.shared.accounts) != nil else {
+                throw NewPadAccountError.accountChanged
+            }
+
             onCreated(pad)
         } catch {
             self.error = error.localizedDescription
