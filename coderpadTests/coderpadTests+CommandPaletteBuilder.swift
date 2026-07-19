@@ -30,6 +30,25 @@ struct CommandPaletteBuilderTests {
     }
 
     @Test
+    func `pad candidates keep the first record for each id`() throws {
+        func pad(id: String, title: String) throws -> Pad {
+            let data = try JSONSerialization.data(withJSONObject: ["id": id, "title": title])
+            return try CoderPadClient.decoder.decode(Pad.self, from: data)
+        }
+
+        let pads = try [
+            pad(id: "pad-1", title: "First"),
+            pad(id: "pad-1", title: "Duplicate"),
+            pad(id: "pad-2", title: "Second")
+        ]
+
+        let unique = CommandPaletteBuilder.uniquePads(pads)
+
+        #expect(unique.map(\.id) == ["pad-1", "pad-2"])
+        #expect(unique.map(\.title) == ["First", "Second"])
+    }
+
+    @Test
     func `new-pad candidates keep the first question for each id`() throws {
         func question(id: Int, title: String) throws -> Question {
             let data = try JSONSerialization.data(withJSONObject: ["id": id, "title": title])

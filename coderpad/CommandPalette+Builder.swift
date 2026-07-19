@@ -45,7 +45,7 @@ enum CommandPaletteBuilder {
         for account in accounts {
             let canCreate = creatableIDs.contains(account.id)
             let favoriteIDs = canCreate ? Set(FavoriteQuestionsStore.shared.favorites(account: account.id)) : []
-            for pad in PadsCacheStore.shared.get(account.id) {
+            for pad in uniquePads(PadsCacheStore.shared.get(account.id)) {
                 let title = padTitle(title: pad.title, id: pad.id)
                 content.append(PaletteResult(
                     id: "pad.\(account.id.uuidString).\(pad.id)",
@@ -87,6 +87,11 @@ enum CommandPaletteBuilder {
     static func uniqueQuestions(_ questions: [Question]) -> [Question] {
         var seen = Set<Int>()
         return questions.filter { seen.insert($0.id).inserted }
+    }
+
+    static func uniquePads(_ pads: [Pad]) -> [Pad] {
+        var seen = Set<String>()
+        return pads.filter { seen.insert($0.id).inserted }
     }
 
     static func uniqueAccounts(_ accounts: [Account]) -> [Account] {
