@@ -23,6 +23,10 @@ struct OrgMemberPicker: View {
     @State private var isPresented = false
     @State private var query = ""
     @State private var memberOptions: [MemberOption] = []
+    /// Lowercased-email lookup rebuilt with `memberOptions`, so labeling the button
+    /// and the per-keystroke "is this an existing member" check are dictionary hits
+    /// instead of linear scans (#2277).
+    @State private var optionsByEmailKey: [String: MemberOption] = [:]
     @FocusState private var searchFocused: Bool
 
     private struct MemberOption: Identifiable {
@@ -51,11 +55,6 @@ struct OrgMemberPicker: View {
         selection.trimmingCharacters(in: .whitespaces)
     }
 
-    private var usersSignature: String {
-        users.map { "\($0.email)\u{1F}\($0.name ?? "")" }
-            .joined(separator: "\u{1E}")
-    }
-
     private static func makeMemberOptions(users: [OrganizationUser], selection: String) -> [MemberOption] {
         var seenEmails = Set<String>()
         var options: [MemberOption] = []
@@ -67,8 +66,12 @@ struct OrgMemberPicker: View {
             options.append(MemberOption(email: user.email, name: user.name))
         }
 
+        // A preserved selection only becomes a member-looking option when it is a
+        // plausible address; surfacing a malformed saved value as a legitimate row
+        // visually endorsed data that can't be saved (#2204). The button label
+        // still shows the raw selection either way.
         let trimmedSelection = selection.trimmingCharacters(in: .whitespaces)
-        if !trimmedSelection.isEmpty {
+        if !trimmedSelection.isEmpty, EmailValidation.isPlausibleAddress(trimmedSelection) {
             let key = trimmedSelection.lowercased()
             if seenEmails.insert(key).inserted {
                 options.append(MemberOption(email: trimmedSelection, name: nil))
@@ -81,7 +84,7 @@ struct OrgMemberPicker: View {
     }
 
     private var selectedOption: MemberOption? {
-        memberOptions.first { $0.email.caseInsensitiveCompare(trimmedSelection) == .orderedSame }
+        optionsByEmailKey[trimmedSelection.lowercased()]
     }
 
     private var selectedLabel: String {
@@ -102,18 +105,18 @@ struct OrgMemberPicker: View {
     private var customEmailCandidate: String? {
         let trimmedQuery = query.trimmingCharacters(in: .whitespacesAndNewlines)
         guard EmailValidation.isPlausibleAddress(trimmedQuery) else { return nil }
+        guard optionsByEmailKey[trimmedQuery.lowercased()] == nil else { return nil }
 
-        let isExistingMember = memberOptions.contains {
-            $0.email.caseInsensitiveCompare(trimmedQuery) == .orderedSame
-        }
-        guard !isExistingMember else { return nil }
-
-        return trimmedQuery
+        // Normalize the free-typed address (domain lowercased) so case variants of
+        // the same mailbox compare and store consistently downstream (#2210).
+        return EmailValidation.normalized(trimmedQuery)
     }
 
     var body: some View {
         Button {
-            refreshMemberOptions()
+            // Each opening starts unfiltered: keeping the previous search text made
+            // a reopened picker look mysteriously empty or incomplete (#2208).
+            query = ""
             isPresented = true
             onOpen?()
         } label: {
@@ -177,21 +180,24 @@ struct OrgMemberPicker: View {
                 .frame(height: 240)
             }
             .frame(width: 320)
-            .onAppear {
-                refreshMemberOptions()
-                searchFocused = true
-            }
+            .onAppear { searchFocused = true }
         }
+        // A single rebuild per real input change: the option list used to be
+        // re-deduped and re-sorted from two onAppears, the button tap, and three
+        // onChange handlers back-to-back on open (#2282). Comparing `users`
+        // directly (Equatable) also avoids materializing a joined signature
+        // string every render (#2274) and its unescaped-separator collisions (#2203).
         .onAppear { refreshMemberOptions() }
-        .onChange(of: usersSignature) { _, _ in refreshMemberOptions() }
+        .onChange(of: users) { _, _ in refreshMemberOptions() }
         .onChange(of: selection) { _, _ in refreshMemberOptions() }
-        .onChange(of: isLoading) { _, loading in
-            if !loading { refreshMemberOptions() }
-        }
     }
 
     private func refreshMemberOptions() {
         memberOptions = Self.makeMemberOptions(users: users, selection: selection)
+        optionsByEmailKey = Dictionary(
+            memberOptions.map { ($0.email.lowercased(), $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
     }
 
     @ViewBuilder

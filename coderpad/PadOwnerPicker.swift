@@ -53,8 +53,10 @@ struct SearchableOwnerPicker: View {
 
     /// The current account's email, when known — used to recognize an explicitly
     /// self-owned pad (e.g. when editing) and to label the "Me" row by name.
+    /// Trimmed before the empty check so a whitespace-only configured email does
+    /// not masquerade as a real identity (#2209).
     private var selfEmail: String? {
-        keyOwnerEmail?.nilIfEmpty
+        keyOwnerEmail?.trimmingCharacters(in: .whitespaces).nilIfEmpty
     }
 
     /// True when the picker already holds the current account's own email.
@@ -88,11 +90,28 @@ struct SearchableOwnerPicker: View {
         return displayName(forEmail: trimmedOwner) ?? trimmedOwner
     }
 
-    private var filteredUsers: [OrganizationUser] {
-        // Exclude self — it's offered as a pinned "Me" row at the top instead.
-        let members = users.filter {
-            $0.email.caseInsensitiveCompare(selfEmail ?? "") != .orderedSame
+    /// The selectable member rows: self excluded (it's the pinned "Me" row),
+    /// deduplicated by email so duplicate member records can't render duplicate
+    /// rows (#2206), and sorted by display label so the order is stable across
+    /// refreshes instead of following server order (#2207).
+    private var memberRows: [OrganizationUser] {
+        var seen = Set<String>()
+        var members: [OrganizationUser] = []
+        members.reserveCapacity(users.count)
+        for user in users {
+            guard user.email.caseInsensitiveCompare(selfEmail ?? "") != .orderedSame,
+                  seen.insert(user.email.lowercased()).inserted else { continue }
+
+            members.append(user)
         }
+        return members.sorted { lhs, rhs in
+            (lhs.name?.nilIfEmpty ?? lhs.email)
+                .localizedCaseInsensitiveCompare(rhs.name?.nilIfEmpty ?? rhs.email) == .orderedAscending
+        }
+    }
+
+    private var filteredUsers: [OrganizationUser] {
+        let members = memberRows
         let trimmed = query.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty else { return members }
 
@@ -103,13 +122,16 @@ struct SearchableOwnerPicker: View {
     }
 
     /// A typed address that isn't already an existing member — offered as a
-    /// "Use …" row so free-text assignment still works.
+    /// "Use …" row so free-text assignment still works. Requires a plausible
+    /// address, not just an at-sign, so "@" or control characters are never
+    /// offered as an owner (#2205), and is normalized (domain lowercased) so
+    /// case variants compare consistently downstream (#2210).
     private var customEmailCandidate: String? {
         let trimmed = query.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty, trimmed.contains("@") else { return nil }
+        guard EmailValidation.isPlausibleAddress(trimmed) else { return nil }
         guard !users.contains(where: { $0.email.caseInsensitiveCompare(trimmed) == .orderedSame }) else { return nil }
 
-        return trimmed
+        return EmailValidation.normalized(trimmed)
     }
 
     #if os(iOS)
@@ -158,6 +180,9 @@ struct SearchableOwnerPicker: View {
 
     private var button: some View {
         Button {
+            // Each opening starts unfiltered: keeping the previous search text made
+            // a reopened picker look mysteriously empty or incomplete (#2208).
+            query = ""
             isPresented = true
         } label: {
             HStack {
