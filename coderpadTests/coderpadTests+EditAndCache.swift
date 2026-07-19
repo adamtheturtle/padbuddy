@@ -209,6 +209,34 @@ struct EditAndCacheTests {
         ClientCacheTeardown.reconcile([])
         #expect(store.get(padID, client: account.makeClient()) == nil)
     }
+
+    @Test @MainActor
+    func `shared client identity retires only after its final account owner`() throws {
+        let shared = try ClientCacheTeardown.Identity(
+            baseURL: #require(URL(string: "https://shared.example.com")),
+            apiKey: "shared-key"
+        )
+        let replacement = ClientCacheTeardown.Identity(
+            baseURL: shared.baseURL,
+            apiKey: "replacement-key"
+        )
+        let firstID = UUID()
+        let secondID = UUID()
+        let previous = [firstID: shared, secondID: shared]
+
+        #expect(ClientCacheTeardown.identitiesToRetire(
+            previous: previous,
+            current: [secondID: shared]
+        ).isEmpty)
+        #expect(ClientCacheTeardown.identitiesToRetire(
+            previous: previous,
+            current: [firstID: replacement, secondID: shared]
+        ).isEmpty)
+        #expect(ClientCacheTeardown.identitiesToRetire(
+            previous: previous,
+            current: [firstID: replacement]
+        ) == [shared])
+    }
 }
 
 @Suite("Pad detail cache identity (#2616)")

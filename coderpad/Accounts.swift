@@ -234,7 +234,7 @@ extension Account: StorableAccount {
 /// the previous snapshot to recover the vanished credentials (#718, #883, #884, #719).
 @MainActor
 enum ClientCacheTeardown {
-    private struct Identity: Hashable {
+    struct Identity: Hashable {
         let baseURL: URL
         let apiKey: String
     }
@@ -249,7 +249,7 @@ enum ClientCacheTeardown {
         }
         // The first call (during the store's init) sees an empty snapshot, so a
         // fresh launch purges nothing.
-        for (id, previous) in lastKnown where current[id] != previous {
+        for previous in identitiesToRetire(previous: lastKnown, current: current) {
             OrganizationCacheStore.shared.remove(baseURL: previous.baseURL, apiKey: previous.apiKey)
             PadDetailCacheStore.shared.remove(baseURL: previous.baseURL, apiKey: previous.apiKey)
         }
@@ -259,6 +259,16 @@ enum ClientCacheTeardown {
             PadDetailCacheStore.shared.reinstate(baseURL: identity.baseURL, apiKey: identity.apiKey)
         }
         lastKnown = current
+    }
+
+    static func identitiesToRetire(
+        previous: [UUID: Identity],
+        current: [UUID: Identity]
+    ) -> Set<Identity> {
+        let live = Set(current.values)
+        return Set(previous.compactMap { id, identity in
+            current[id] != identity && !live.contains(identity) ? identity : nil
+        })
     }
 }
 
