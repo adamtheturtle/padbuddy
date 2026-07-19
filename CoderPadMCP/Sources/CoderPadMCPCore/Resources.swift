@@ -152,7 +152,11 @@ public enum ResourceRequest: Equatable {
 /// literals (`pad`, `question`, `account`, `quota`, `organization`, `code`) compare
 /// case-insensitively per URI convention (#1581); ids keep their exact case.
 public func parseResourceURI(_ uri: String) -> ResourceRequest? {
-    guard let components = URLComponents(string: uri),
+    // Reject oversized input before URLComponents or percent decoding can expand it.
+    // The longest supported route has five segments; 1 KiB per encoded segment is
+    // ample for account names while bounding allocations and downstream logs (#1577).
+    guard uri.utf8.count <= 5120,
+          let components = URLComponents(string: uri),
           components.scheme?.lowercased() == resourceScheme else {
         return nil
     }
@@ -165,6 +169,8 @@ public func parseResourceURI(_ uri: String) -> ResourceRequest? {
     var segments: [String] = []
     if let host = components.percentEncodedHost, !host.isEmpty { segments.append(host) }
     segments += components.percentEncodedPath.split(separator: "/").map(String.init)
+    guard segments.count <= 5, segments.allSatisfy({ $0.utf8.count <= 1024 }) else { return nil }
+
     let decoded = segments.map { $0.removingPercentEncoding ?? $0 }
 
     // Decoded segments are untrusted: dot navigation or a decoded separator must

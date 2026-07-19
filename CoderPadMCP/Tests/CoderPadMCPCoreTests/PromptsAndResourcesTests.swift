@@ -269,6 +269,18 @@ struct ResourcesTests {
     }
 
     @Test
+    func `parseResourceURI bounds encoded input before decoding`() {
+        let oversizedSegment = String(repeating: "%41", count: 342)
+        #expect(oversizedSegment.utf8.count == 1026)
+        #expect(parseResourceURI("coderpad://account/\(oversizedSegment)/quota") == nil)
+        #expect(parseResourceURI("coderpad://account/a/pad/id/code/extra") == nil)
+
+        let oversizedURI = "coderpad://account/" + String(repeating: "a", count: 5101) + "/quota"
+        #expect(oversizedURI.utf8.count > 5120)
+        #expect(parseResourceURI(oversizedURI) == nil)
+    }
+
+    @Test
     func `question resource ids must be positive integers`() {
         for id in ["0", "-1", "-999"] {
             #expect(parseResourceURI("coderpad://question/\(id)") == nil)
