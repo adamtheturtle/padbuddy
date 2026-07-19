@@ -28,6 +28,9 @@ struct ScreenCampaignsView: View {
     @State private var filtered: [ScreenCampaign] = []
     @State private var isLoading = false
     @State private var loadError: String?
+    /// Orders manual reloads and client changes so only the newest request for the
+    /// currently displayed Screen account may publish campaigns or errors (#1463).
+    @State private var loadGeneration = 0
     @State private var showArchived = false
     @State private var showWebhook = false
     /// The selected campaign's id. Selecting a campaign drives the detail column's
@@ -260,10 +263,24 @@ struct ScreenCampaignsView: View {
     }
 
     private func load() async {
+        loadGeneration &+= 1
+        let generation = loadGeneration
+        let requestedClientIdentity = client.taskIdentity
         isLoading = true
-        defer { isLoading = false }
+        defer {
+            if Self.isCurrentLoad(generation, currentGeneration: loadGeneration,
+                                  requestedClientIdentity: requestedClientIdentity,
+                                  currentClientIdentity: client.taskIdentity) {
+                isLoading = false
+            }
+        }
         do {
             let result = try await client.listCampaignsResult()
+            guard !Task.isCancelled,
+                  Self.isCurrentLoad(generation, currentGeneration: loadGeneration,
+                                     requestedClientIdentity: requestedClientIdentity,
+                                     currentClientIdentity: client.taskIdentity) else { return }
+
             campaigns = result.campaigns
             campaignSearchIndex = Self.makeCampaignSearchIndex(result.campaigns)
             loadError = result.diagnostic
@@ -279,6 +296,11 @@ struct ScreenCampaignsView: View {
         } catch is CancellationError {
             // Leaving or re-keying this Screen section cancels its load deliberately.
         } catch {
+            guard !Task.isCancelled,
+                  Self.isCurrentLoad(generation, currentGeneration: loadGeneration,
+                                     requestedClientIdentity: requestedClientIdentity,
+                                     currentClientIdentity: client.taskIdentity) else { return }
+
             loadError = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
         }
     }
