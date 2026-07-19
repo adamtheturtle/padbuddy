@@ -215,6 +215,11 @@ nonisolated enum Keychain {
     }
 
     private static func deleteSynchronizable(account: String) {
-        SecItemDelete(synchronizableQuery(account: account) as CFDictionary)
+        let status = SecItemDelete(synchronizableQuery(account: account) as CFDictionary)
+        guard status != errSecSuccess, status != errSecItemNotFound else { return }
+
+        persistenceLogger.error(
+            "iCloud Keychain SecItemDelete failed for account '\(account, privacy: .public)' (OSStatus \(status))"
+        )
     }
 }
