@@ -597,9 +597,10 @@ private let maxPadPagesToFetch = 500
 /// ones by count are returned and the result flags that it was truncated.
 private let maxAggregateGroups = 200
 
-/// The accumulated result of paging the whole pad list internally.
+/// The accumulated result of paging the whole pad list internally. Only the totals are
+/// kept: the pages themselves are handed to the caller's tally as they arrive (#2121).
 private struct PadPageScan {
-    var pads: [[String: Any]] = []
+    var scanned = 0
     var totalReported: Int?
     var pagesFetched = 0
     var truncated = false
@@ -610,10 +611,12 @@ private struct PadPageScan {
     var invalidShape: String?
 }
 
-/// Pages `/api/pads/` from the first page following `next_page`, accumulating every
-/// pad, so the count/aggregate tools can tally in-process and return a small answer
-/// instead of streaming thousands of records through the model.
-private func fetchAllPads(account: MCPAccount) async -> PadPageScan {
+/// Pages `/api/pads/` from the first page following `next_page`, handing each page to
+/// `consume`, so the count/aggregate tools can tally in-process and return a small answer
+/// instead of streaming thousands of records through the model. Pages are tallied and
+/// then dropped rather than retained, so a huge org does not sit in memory purely to be
+/// filtered once at the end (#2121).
+private func fetchAllPads(account: MCPAccount, consume: ([[String: Any]]) -> Void) async -> PadPageScan {
     var scan = PadPageScan()
     var page: String?
     while scan.pagesFetched < maxPadPagesToFetch {
@@ -630,7 +633,8 @@ private func fetchAllPads(account: MCPAccount) async -> PadPageScan {
         }
 
         if scan.totalReported == nil { scan.totalReported = object["total"] as? Int }
-        scan.pads.append(contentsOf: pads)
+        consume(pads)
+        scan.scanned += pads.count
         scan.pagesFetched += 1
         guard let next = nextPageToken(object["next_page"]) else { return scan }
 
@@ -649,20 +653,21 @@ private func countPads(arguments: [String: Value]?, account: MCPAccount) async -
     let before = stringArgument(arguments, "created_before")
     if let error = dateBoundValidationError(after: after, before: before) { return errorResult(error) }
 
-    let scan = await fetchAllPads(account: account)
-    if let error = scan.error { return toolResult(error) }
-    if let message = scan.invalidShape { return errorResult(message) }
-
     // Built once for the whole list rather than re-normalizing the filter
     // values for every row (#2453).
     let matcher = PadMatcher(owner: owner, state: state, language: language)
-    let matched = scan.pads.filter {
-        matcher.matches($0)
-            && withinDateRange($0, after: after, before: before)
+    var matched = 0
+    let scan = await fetchAllPads(account: account) { pads in
+        for pad in pads where matcher.matches(pad) && withinDateRange(pad, after: after, before: before) {
+            matched += 1
+        }
     }
+    if let error = scan.error { return toolResult(error) }
+    if let message = scan.invalidShape { return errorResult(message) }
+
     var result: [String: Any] = [
-        "matched": matched.count,
-        "scanned": scan.pads.count,
+        "matched": matched,
+        "scanned": scan.scanned,
         "pages_fetched": scan.pagesFetched,
         "truncated": scan.truncated
     ]
@@ -695,25 +700,29 @@ private func aggregatePadsTool(groupBy: String, arguments: [String: Value]?, acc
     let before = stringArgument(arguments, "created_before")
     if let error = dateBoundValidationError(after: after, before: before) { return errorResult(error) }
 
-    let scan = await fetchAllPads(account: account)
-    if let error = scan.error { return toolResult(error) }
-    if let message = scan.invalidShape { return errorResult(message) }
-
     // Built once for the whole list rather than re-normalizing the filter
     // values for every row (#2453).
     let matcher = PadMatcher(owner: owner, state: state, language: language)
-    let matched = scan.pads.filter {
-        matcher.matches($0)
-            && withinDateRange($0, after: after, before: before)
+    var matched = 0
+    var counts: [String: Int] = [:]
+    let scan = await fetchAllPads(account: account) { pads in
+        let page = pads.filter {
+            matcher.matches($0)
+                && withinDateRange($0, after: after, before: before)
+        }
+        matched += page.count
+        accumulateCounts(&counts, pads: page, field: field)
     }
-    let counts = aggregateCounts(pads: matched, field: field)
+    if let error = scan.error { return toolResult(error) }
+    if let message = scan.invalidShape { return errorResult(message) }
+
     let capped = topGroups(counts, limit: maxAggregateGroups)
     let groups: [[String: Any]] = capped.map { ["value": $0.value, "count": $0.count] }
 
     var result: [String: Any] = [
         "group_by": field,
-        "matched": matched.count,
-        "scanned": scan.pads.count,
+        "matched": matched,
+        "scanned": scan.scanned,
         "distinct_groups": counts.count,
         "groups": groups,
         "pages_fetched": scan.pagesFetched,
@@ -759,9 +768,10 @@ private func listPadsCompact(arguments: [String: Value]?, account: MCPAccount) a
 
 // MARK: - count_questions / aggregate_questions / list_questions_compact (#500)
 
-/// The accumulated result of paging the whole question bank internally.
+/// The accumulated result of paging the whole question bank internally. See
+/// `PadPageScan`: only the totals are kept (#2121).
 private struct QuestionPageScan {
-    var questions: [[String: Any]] = []
+    var scanned = 0
     var totalReported: Int?
     var pagesFetched = 0
     var truncated = false
@@ -770,10 +780,11 @@ private struct QuestionPageScan {
     var invalidShape: String?
 }
 
-/// Pages `/api/questions/` from the first page following `next_page`, accumulating every
-/// question, so the count/aggregate tools can tally in-process and return a small answer
-/// instead of streaming thousands of records through the model.
-private func fetchAllQuestions(account: MCPAccount) async -> QuestionPageScan {
+/// Pages `/api/questions/` from the first page following `next_page`, handing each page
+/// to `consume`, so the count/aggregate tools can tally in-process and return a small
+/// answer instead of streaming thousands of records through the model. Pages are tallied
+/// and then dropped rather than retained (#2121).
+private func fetchAllQuestions(account: MCPAccount, consume: ([[String: Any]]) -> Void) async -> QuestionPageScan {
     var scan = QuestionPageScan()
     var page: String?
     while scan.pagesFetched < maxPadPagesToFetch {
@@ -792,7 +803,8 @@ private func fetchAllQuestions(account: MCPAccount) async -> QuestionPageScan {
         }
 
         if scan.totalReported == nil { scan.totalReported = object["total"] as? Int }
-        scan.questions.append(contentsOf: questions)
+        consume(questions)
+        scan.scanned += questions.count
         scan.pagesFetched += 1
         guard let next = nextPageToken(object["next_page"]) else { return scan }
 
@@ -812,20 +824,22 @@ private func countQuestions(arguments: [String: Value]?, account: MCPAccount) as
     let before = stringArgument(arguments, "created_before")
     if let error = dateBoundValidationError(after: after, before: before) { return errorResult(error) }
 
-    let scan = await fetchAllQuestions(account: account)
-    if let error = scan.error { return toolResult(error) }
-    if let message = scan.invalidShape { return errorResult(message) }
-
     // Built once for the whole list rather than re-normalizing the filter
     // values for every row (#2452).
     let matcher = QuestionMatcher(owner: owner, author: author, language: language, type: type)
-    let matched = scan.questions.filter {
-        matcher.matches($0)
-            && withinDateRange($0, after: after, before: before)
+    var matched = 0
+    let scan = await fetchAllQuestions(account: account) { questions in
+        for question in questions
+            where matcher.matches(question) && withinDateRange(question, after: after, before: before) {
+            matched += 1
+        }
     }
+    if let error = scan.error { return toolResult(error) }
+    if let message = scan.invalidShape { return errorResult(message) }
+
     var result: [String: Any] = [
-        "matched": matched.count,
-        "scanned": scan.questions.count,
+        "matched": matched,
+        "scanned": scan.scanned,
         "pages_fetched": scan.pagesFetched,
         "truncated": scan.truncated
     ]
@@ -859,25 +873,29 @@ private func aggregateQuestionsTool(groupBy: String, arguments: [String: Value]?
     let before = stringArgument(arguments, "created_before")
     if let error = dateBoundValidationError(after: after, before: before) { return errorResult(error) }
 
-    let scan = await fetchAllQuestions(account: account)
-    if let error = scan.error { return toolResult(error) }
-    if let message = scan.invalidShape { return errorResult(message) }
-
     // Built once for the whole list rather than re-normalizing the filter
     // values for every row (#2452).
     let matcher = QuestionMatcher(owner: owner, author: author, language: language, type: type)
-    let matched = scan.questions.filter {
-        matcher.matches($0)
-            && withinDateRange($0, after: after, before: before)
+    var matched = 0
+    var counts: [String: Int] = [:]
+    let scan = await fetchAllQuestions(account: account) { questions in
+        let page = questions.filter {
+            matcher.matches($0)
+                && withinDateRange($0, after: after, before: before)
+        }
+        matched += page.count
+        accumulateCounts(&counts, pads: page, field: field)
     }
-    let counts = aggregateCounts(pads: matched, field: field)
+    if let error = scan.error { return toolResult(error) }
+    if let message = scan.invalidShape { return errorResult(message) }
+
     let capped = topGroups(counts, limit: maxAggregateGroups)
     let groups: [[String: Any]] = capped.map { ["value": $0.value, "count": $0.count] }
 
     var result: [String: Any] = [
         "group_by": field,
-        "matched": matched.count,
-        "scanned": scan.questions.count,
+        "matched": matched,
+        "scanned": scan.scanned,
         "distinct_groups": counts.count,
         "groups": groups,
         "pages_fetched": scan.pagesFetched,

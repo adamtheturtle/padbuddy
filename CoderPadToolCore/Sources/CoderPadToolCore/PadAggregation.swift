@@ -343,6 +343,15 @@ public let maxAggregateKeyLength = 128
 
 public func aggregateCounts(pads: [[String: Any]], field: String) -> [String: Int] {
     var counts: [String: Int] = [:]
+    accumulateCounts(&counts, pads: pads, field: field)
+    return counts
+}
+
+/// The page-at-a-time form of `aggregateCounts`: tallies `pads` into an existing map so
+/// a caller paging a whole org can keep only the running totals instead of retaining
+/// every record just to group it afterwards (#2121). The cardinality cap is applied to
+/// the running map, so the result matches tallying the same rows in one go.
+public func accumulateCounts(_ counts: inout [String: Int], pads: [[String: Any]], field: String) {
     for pad in pads {
         var key: String
         if field == "month" {
@@ -356,7 +365,6 @@ public func aggregateCounts(pads: [[String: Any]], field: String) -> [String: In
         if counts[key] == nil, counts.count >= maxAggregateGroups { key = "other" }
         counts[key, default: 0] += 1
     }
-    return counts
 }
 
 /// A single aggregation bucket: the group value and its count.

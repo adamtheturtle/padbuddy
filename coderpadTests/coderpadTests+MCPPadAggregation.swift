@@ -104,6 +104,15 @@ struct MCPPadAggregationTests {
     }
 
     @Test
+    func `accumulateCounts page by page matches tallying the whole list (#2121)`() {
+        var running: [String: Int] = [:]
+        for page in [Array(pads.prefix(2)), Array(pads.dropFirst(2))] {
+            accumulateCounts(&running, pads: page, field: "month")
+        }
+        #expect(running == aggregateCounts(pads: pads, field: "month"))
+    }
+
+    @Test
     func `topGroups sorts by count desc then key asc, and caps`() {
         let top = topGroups(["python": 5, "ruby": 5, "go": 3, "rust": 1], limit: 3)
         #expect(top == [
