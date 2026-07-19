@@ -22,6 +22,9 @@ struct ScreenCampaignsView: View {
     /// window's Screen section can't retarget or blank this one's (#887, #888).
     @Environment(WindowNavigation.self) private var windowNav
     @State private var campaigns: [ScreenCampaign] = []
+    /// Campaigns sorted once per server response with their folded search keys.
+    /// Filtering while the user types is then a single bounded scan (#1467).
+    @State private var campaignSearchIndex: [CampaignSearchEntry] = []
     @State private var filtered: [ScreenCampaign] = []
     @State private var isLoading = false
     @State private var loadError: String?
@@ -31,6 +34,11 @@ struct ScreenCampaignsView: View {
     /// test-sessions list (#448) — single-click selects and never swaps this list,
     /// consistent with how Pads/Questions select a row and populate the detail column.
     @State private var selectedCampaignID: Int?
+
+    struct CampaignSearchEntry {
+        let campaign: ScreenCampaign
+        let foldedName: String
+    }
 
     var body: some View {
         List(selection: $selectedCampaignID) {
@@ -176,19 +184,43 @@ struct ScreenCampaignsView: View {
         showArchived: Bool,
         hasSelection: Bool
     ) -> [ScreenCampaign] {
+        filteredCampaigns(
+            makeCampaignSearchIndex(campaigns),
+            search: search,
+            showArchived: showArchived,
+            hasSelection: hasSelection
+        )
+    }
+
+    static func makeCampaignSearchIndex(_ campaigns: [ScreenCampaign]) -> [CampaignSearchEntry] {
+        campaigns
+            .map { CampaignSearchEntry(campaign: $0, foldedName: $0.name.lowercased()) }
+            .sorted { lhs, rhs in
+                if lhs.campaign.pinned != rhs.campaign.pinned { return lhs.campaign.pinned }
+                return lhs.campaign.name.localizedStandardCompare(rhs.campaign.name) == .orderedAscending
+            }
+    }
+
+    static func filteredCampaigns(
+        _ index: [CampaignSearchEntry],
+        search: String,
+        showArchived: Bool,
+        hasSelection: Bool
+    ) -> [ScreenCampaign] {
         let trimmed = search.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let query = hasSelection ? "" : trimmed
-        return campaigns
-            .filter { (showArchived || !$0.archived) && (query.isEmpty || $0.name.lowercased().contains(query)) }
-            .sorted { lhs, rhs in
-                if lhs.pinned != rhs.pinned { return lhs.pinned }
-                return lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
-            }
+        return index.compactMap { entry in
+            let campaign = entry.campaign
+            guard showArchived || !campaign.archived,
+                  query.isEmpty || entry.foldedName.contains(query) else { return nil }
+
+            return campaign
+        }
     }
 
     private func refreshDerived() {
         filtered = Self.filteredCampaigns(
-            campaigns,
+            campaignSearchIndex,
             search: search,
             showArchived: showArchived,
             hasSelection: selectedCampaignID != nil
@@ -233,6 +265,7 @@ struct ScreenCampaignsView: View {
         do {
             let result = try await client.listCampaignsResult()
             campaigns = result.campaigns
+            campaignSearchIndex = Self.makeCampaignSearchIndex(result.campaigns)
             loadError = result.diagnostic
             // If the selected campaign vanished, clear the selection (and its detail).
             if let id = selectedCampaignID, !campaigns.contains(where: { $0.id == id }) {
