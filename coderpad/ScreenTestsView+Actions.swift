@@ -26,13 +26,19 @@ extension ScreenTestsView {
         ]
         if test.status == "waiting" {
             items.append(.button(title: String(localized: "Resend Invitation"),
-                                 isEnabled: !isReadOnly) { Task { await resend(test) } })
+                                 isEnabled: !isReadOnly && isActionContextCurrent) {
+                    Task { await resend(test) }
+                })
             items.append(.button(title: String(localized: "Cancel Invitation"),
-                                 isEnabled: !isReadOnly) { Task { await cancel(test) } })
+                                 isEnabled: !isReadOnly && isActionContextCurrent) {
+                    Task { await cancel(test) }
+                })
             items.append(.separator)
         }
         items.append(.button(title: String(localized: "Delete Test Session"),
-                             isEnabled: !isReadOnly, role: .destructive) {
+                             isEnabled: !isReadOnly && isActionContextCurrent, role: .destructive) {
+                guard isActionContextCurrent else { return }
+
                 testPendingDelete = test
             })
         return items
@@ -53,14 +59,17 @@ extension ScreenTestsView {
 
             openTestWindow(current)
         } resend: {
+            guard isActionContextCurrent else { return }
             guard let current = tests.first(where: { $0.id == selectedID }) else { return }
 
             Task { await resend(current) }
         } cancel: {
+            guard isActionContextCurrent else { return }
             guard let current = tests.first(where: { $0.id == selectedID }) else { return }
 
             Task { await cancel(current) }
         } delete: {
+            guard isActionContextCurrent else { return }
             guard let current = tests.first(where: { $0.id == selectedID }) else { return }
 
             testPendingDelete = current
@@ -89,14 +98,18 @@ extension ScreenTestsView {
         // mutation is in flight; each duplicate would email the candidate again
         // (#900), and a concurrent cancel could revoke the invitation being resent
         // (#1854). Offline, the write can only fail - don't start it (#1855).
-        guard test.status == "waiting", !isReadOnly,
+        guard isActionContextCurrent, test.status == "waiting", !isReadOnly,
               mutatingIDs.insert(test.id).inserted else { return }
 
         defer { mutatingIDs.remove(test.id) }
         do {
             try await client.resendTest(id: test.id)
+            guard isActionContextCurrent else { return }
+
             showResentConfirmation = true
         } catch {
+            guard isActionContextCurrent else { return }
+
             recordFailure(operation: String(localized: "Resend invitation"), test: test, error: error)
         }
     }
@@ -104,12 +117,14 @@ extension ScreenTestsView {
     func cancel(_ test: ScreenTestSession) async {
         // Same in-flight and read-only gate as resend: duplicate invocations raced
         // the row reload and sent concurrent cancellation requests (#1852, #1855).
-        guard test.status == "waiting", !isReadOnly,
+        guard isActionContextCurrent, test.status == "waiting", !isReadOnly,
               mutatingIDs.insert(test.id).inserted else { return }
 
         defer { mutatingIDs.remove(test.id) }
         do {
             try await client.cancelTest(id: test.id)
+            guard isActionContextCurrent else { return }
+
             // The server mutation succeeded: refresh this row before the full reload,
             // so a failed reconciliation can't leave it "waiting" with Cancel/Resend
             // still offered for an already-canceled invitation (#810). If even the
@@ -123,6 +138,8 @@ extension ScreenTestsView {
             refreshDerived()
             await load()
         } catch {
+            guard isActionContextCurrent else { return }
+
             recordFailure(operation: String(localized: "Cancel invitation"), test: test, error: error)
         }
     }
@@ -131,11 +148,14 @@ extension ScreenTestsView {
         // Duplicate destructive requests raced each other and reloaded the list
         // after another deletion already succeeded (#1853); offline the request can
         // only fail (#1855).
-        guard !isReadOnly, mutatingIDs.insert(test.id).inserted else { return }
+        guard isActionContextCurrent, !isReadOnly,
+              mutatingIDs.insert(test.id).inserted else { return }
 
         defer { mutatingIDs.remove(test.id) }
         do {
             try await client.deleteTest(id: test.id)
+            guard isActionContextCurrent else { return }
+
             // The server mutation succeeded: remove the row locally first, so a
             // failed reconciliation reload can't resurrect it (#810); the stale
             // banner reports the reload failure separately.
@@ -144,6 +164,8 @@ extension ScreenTestsView {
             refreshDerived()
             await load()
         } catch {
+            guard isActionContextCurrent else { return }
+
             recordFailure(operation: String(localized: "Delete test session"), test: test, error: error)
         }
     }

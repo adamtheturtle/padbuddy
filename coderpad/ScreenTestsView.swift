@@ -135,6 +135,8 @@ struct ScreenTestsView: View {
             .focusedSceneValue(\.focusedScreenInviteAction, ScreenInviteAction(id: campaign.id,
                                                                                accountID: accountID,
                                                                                contentFingerprint: campaign.hashValue) {
+                    guard isActionContextCurrent else { return }
+
                     showInvite = true
                 })
             .focusedSceneValue(\.focusedScreenTestAction, selectedTestAction)
@@ -174,7 +176,7 @@ struct ScreenTestsView: View {
                 Label("Invite Candidate", systemImage: "person.badge.plus")
             }
             .help("Invite a candidate to this campaign.")
-            .disabled(isReadOnly)
+            .disabled(isReadOnly || !isActionContextCurrent)
         }
         ToolbarItem(id: "status-filter", placement: .automatic) {
             Menu {
@@ -333,6 +335,25 @@ struct ScreenTestsView: View {
             requestedClientIdentity: requestedClientIdentity,
             currentClientIdentity: client.taskIdentity
         ) { isLoading = false }
+    }
+
+    var actionContext: ScreenTestsActionContext {
+        ScreenTestsActionContext(
+            clientIdentity: client.taskIdentity,
+            campaignID: campaign.id,
+            accountID: accountID
+        )
+    }
+
+    var isActionContextCurrent: Bool {
+        let currentClientIdentity = accountID
+            .flatMap { id in AccountsStore.shared.accounts.first(where: { $0.id == id }) }
+            .map { $0.makeScreenClient().taskIdentity } ?? client.taskIdentity
+        return actionContext.isCurrent(
+            clientIdentity: currentClientIdentity,
+            campaignID: windowNav.screenCampaign(for: accountID)?.id,
+            accountID: windowNav.screenCampaignAccountID
+        )
     }
 }
 
