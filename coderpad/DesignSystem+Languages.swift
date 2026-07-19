@@ -130,6 +130,12 @@ enum CoderPadLanguages {
         "plaintext"
     ]
 
+    private static let pickerOptionSet = Set(pickerOptions)
+
+    static func isPickerOption(_ language: String) -> Bool {
+        pickerOptionSet.contains(language)
+    }
+
     /// Returns whether `language` can be used with CoderPad's pad-creation API:
     /// only trimmed, picker-supported codes qualify. Project environments are
     /// displayed for existing pads/questions, but new ones must be created in the

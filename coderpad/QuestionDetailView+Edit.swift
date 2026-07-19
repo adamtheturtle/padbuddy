@@ -98,7 +98,7 @@ extension QuestionDetailView {
                     }
                     // Keep the question's current language selectable even when it
                     // isn't one of the common picker options.
-                    if !CoderPadLanguages.pickerOptions.contains(draftLanguage) {
+                    if !CoderPadLanguages.isPickerOption(draftLanguage) {
                         Text(draftLanguage.coderPadLanguageDisplayName).tag(draftLanguage)
                     }
                 }
@@ -111,7 +111,7 @@ extension QuestionDetailView {
                         Text($0.label).tag($0.rawValue)
                     }
                     if InterviewType(rawValue: draftPadType) == nil {
-                        Text(draftPadType.replacingOccurrences(of: "_", with: " ").capitalized)
+                        Text(draftPadTypeFallbackLabel)
                             .tag(draftPadType)
                     }
                 }
@@ -121,6 +121,10 @@ extension QuestionDetailView {
             readOnlyPropertyRows
         }
         .disabled(isReadOnly)
+    }
+
+    private var draftPadTypeFallbackLabel: String {
+        draftPadType.replacingOccurrences(of: "_", with: " ").capitalized
     }
 
     @ViewBuilder
