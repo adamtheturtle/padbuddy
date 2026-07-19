@@ -26,6 +26,9 @@ struct MergedQuotaView: View {
     /// quiet note in its own card without blanking the others.
     @State private var accountErrors: [UUID: String] = [:]
     @State private var isLoading = false
+    /// Claim ticket for the newest reload, so an older overlapping fan-out can't
+    /// publish over fresher quota or error state (#2393).
+    @State private var reloadGeneration = 0
 
     var body: some View {
         ScrollView {
@@ -102,17 +105,22 @@ struct MergedQuotaView: View {
         .joined(separator: ",")
     }
 
-    /// Drops the in-memory entries for accounts whose key was removed, so a card
-    /// cached before the removal can't outlive the "No API key" note (#1031).
-    private func clearKeylessEntries() {
-        for account in accounts.mergeableAccounts where account.apiKey.isEmpty {
-            quotaByAccount[account.id] = nil
-            accountErrors[account.id] = nil
-        }
+    /// Drops the in-memory entries for accounts that can no longer have a card:
+    /// those whose key was removed, so a card cached before the removal can't
+    /// outlive the "No API key" note (#1031), and those that are no longer
+    /// mergeable at all.
+    ///
+    /// Only the keyless case was handled, so an account *removed* from the store
+    /// left its quota and error behind — invisible, but able to reappear under a
+    /// reused id and outliving the account it described (#2396).
+    private func clearStaleEntries() {
+        let live = Set(accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }.map(\.id))
+        quotaByAccount = quotaByAccount.filter { live.contains($0.key) }
+        accountErrors = accountErrors.filter { live.contains($0.key) }
     }
 
     private func seedFromCache() {
-        clearKeylessEntries()
+        clearStaleEntries()
         for account in accounts.mergeableAccounts
             where quotaByAccount[account.id] == nil && !account.apiKey.isEmpty {
             quotaByAccount[account.id] = cache.get(account.id)
@@ -122,17 +130,34 @@ struct MergedQuotaView: View {
     /// Fan out a fresh quota fetch across every account concurrently, applying each
     /// result as it lands and recording one account's failure without disturbing
     /// the others.
+    /// How many accounts one reload fetches at a time, so a large account set
+    /// doesn't open one connection per account at once and delay the visible
+    /// cards behind the whole fan-out (#2394).
+    private static let reloadWidth = 4
+
     private func reload() async {
-        clearKeylessEntries()
-        let mergeable = accounts.mergeableAccounts.filter { !$0.apiKey.isEmpty }
+        clearStaleEntries()
+        // De-duplicated by id: a duplicated persisted account record used to trap
+        // the `uniqueKeysWithValues` map below (#2395).
+        var seen = Set<UUID>()
+        let mergeable = accounts.mergeableAccounts
+            .filter { !$0.apiKey.isEmpty && seen.insert($0.id).inserted }
         guard !mergeable.isEmpty else { return }
 
+        // Claim this reload. Pull-to-refresh, the toolbar button, and the task
+        // restart can all run at once, and an older response finishing last used to
+        // overwrite the newer quota and error state (#2393).
+        reloadGeneration &+= 1
+        let generation = reloadGeneration
         isLoading = true
-        defer { isLoading = false }
+        defer { if generation == reloadGeneration { isLoading = false } }
         let targets = mergeable.map { (id: $0.id, client: $0.makeClient()) }
-        let clientsByID = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, $0.client) })
+        let clientsByID = Dictionary(targets.map { ($0.id, $0.client) }, uniquingKeysWith: { first, _ in first })
         await withTaskGroup(of: (UUID, Quota?, String?).self) { group in
-            for target in targets {
+            var iterator = targets.makeIterator()
+            func addNext() {
+                guard let target = iterator.next() else { return }
+
                 group.addTask {
                     do {
                         let quota = try await target.client.quota()
@@ -142,7 +167,13 @@ struct MergedQuotaView: View {
                     }
                 }
             }
+            for _ in 0 ..< Self.reloadWidth {
+                addNext()
+            }
             for await (id, quota, errorText) in group {
+                addNext()
+                guard generation == reloadGeneration else { continue }
+
                 if let quota {
                     quotaByAccount[id] = quota
                     accountErrors[id] = nil
@@ -276,12 +307,27 @@ struct QuotaDetail: View {
 struct AccountSectionHeader: View {
     let account: Account
 
+    /// The name to show, falling back when there isn't a usable one.
+    ///
+    /// Rendering `account.name` directly left a whitespace-only description as an
+    /// unlabeled card, which makes cross-account usage impossible to attribute
+    /// (#2400). The owner email is the next most identifying thing the header
+    /// already has; only when neither exists does it say "Account".
+    private var displayName: String {
+        let name = account.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !name.isEmpty { return name }
+
+        let email = account.userEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        return email.isEmpty ? String(localized: "Account") : email
+    }
+
     var body: some View {
         HStack(spacing: 10) {
             AvatarCircle(account: account, diameter: 32)
             VStack(alignment: .leading, spacing: 1) {
-                Text(account.name).font(.headline)
-                if !account.userEmail.isEmpty {
+                Text(displayName).font(.headline)
+                if !account.userEmail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                   account.userEmail != displayName {
                     Text(account.userEmail).font(.caption).foregroundStyle(.secondary)
                 }
             }
