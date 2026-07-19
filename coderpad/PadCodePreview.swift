@@ -19,6 +19,20 @@ nonisolated struct CodeFile: Identifiable, Hashable {
     let path: String?
     let contents: String
     let language: String?
+    /// The contents hashed once, when the file is built. `explanationKey` is read
+    /// for every file inside the code card's `onChange`, which re-evaluates on each
+    /// body pass, so hashing there re-hashed every file in the environment whenever
+    /// the card changed state — selecting a file, opening the explanation popover,
+    /// or going full-screen (#2099).
+    let contentsHash: Int
+
+    init(id: String, path: String?, contents: String, language: String?) {
+        self.id = id
+        self.path = path
+        self.contents = contents
+        self.language = language
+        contentsHash = contents.hashValue
+    }
 
     /// The file's name without its directory, for compact tab labels.
     var name: String {
@@ -84,20 +98,16 @@ nonisolated struct CodeFile: Identifiable, Hashable {
     static let placeholder = Self(id: "", path: nil, contents: "", language: nil)
 
     var explanationKey: CodeFileExplanationKey {
-        CodeFileExplanationKey(id: id, contents: contents, language: language)
+        CodeFileExplanationKey(id: id, contentsHash: contentsHash, language: language)
     }
 }
 
 nonisolated struct CodeFileExplanationKey: Hashable {
     let id: String
+    /// Taken from ``CodeFile/contentsHash`` rather than hashed here, so building a
+    /// key never walks the file's contents (#2099).
     let contentsHash: Int
     let language: String?
-
-    init(id: String, contents: String, language: String?) {
-        self.id = id
-        contentsHash = contents.hashValue
-        self.language = language
-    }
 }
 
 /// A code card for one environment. Single-file environments render exactly as
