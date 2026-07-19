@@ -12,6 +12,7 @@ import SwiftUI
 typealias ValidationState = CredentialValidationState
 
 struct AccountEditor: View {
+    @Environment(\.scenePhase) var scenePhase
     @State var draft: Account
     @State var persistedDraft: Account
     let initialName: String
@@ -257,6 +258,9 @@ struct AccountEditor: View {
 
     private var editorContent: some View {
         editorWatchers
+            .onChange(of: scenePhase) { _, phase in
+                if phase != .active { concealSecrets() }
+            }
             .onChange(of: draft.userEmail) { _, _ in commitLiveEdit() }
             .onChange(of: validation) { _, _ in commitLiveEdit() }
             // Icon and tint are cosmetic, so persist them the moment they change rather
