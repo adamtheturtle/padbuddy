@@ -52,6 +52,26 @@ extension SpotlightIndexer {
     }
 
     /// Clears everything this app indexed — used when the user turns the feature off.
+    /// Seeds the index from every account's cached pads and questions, yielding
+    /// between accounts.
+    ///
+    /// Both opt-in paths — the Settings toggle and a pulled preference — used to run
+    /// this loop straight through on the main actor, so a large cache could stall
+    /// Settings or app launch while the index updates were scheduled (#2156). Yielding
+    /// lets the run loop breathe between accounts; the work itself still has to happen
+    /// on the main actor, since the caches live there.
+    static func seedFromCaches() {
+        Task { @MainActor in
+            for account in AccountsStore.shared.accounts {
+                guard !Task.isCancelled, GeneralSettings.spotlightIndexing else { return }
+
+                updatePads(PadsCacheStore.shared.get(account.id), account: account.id)
+                updateQuestions(QuestionsCacheStore.shared.get(account.id), account: account.id)
+                await Task.yield()
+            }
+        }
+    }
+
     static func clearAll() {
         // Stop any running enrichment before dropping the bookkeeping it relies on, so
         // turning indexing off takes effect immediately rather than after the current

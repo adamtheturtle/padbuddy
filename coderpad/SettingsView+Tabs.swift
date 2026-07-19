@@ -109,10 +109,7 @@ extension SettingsView {
             return
         }
 
-        for account in accountsStore.accounts {
-            SpotlightIndexer.updatePads(PadsCacheStore.shared.get(account.id), account: account.id)
-            SpotlightIndexer.updateQuestions(QuestionsCacheStore.shared.get(account.id), account: account.id)
-        }
+        SpotlightIndexer.seedFromCaches()
     }
 
     @ViewBuilder
