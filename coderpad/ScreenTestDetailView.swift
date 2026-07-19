@@ -67,7 +67,7 @@ struct ScreenTestDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            LazyVStack(alignment: .leading, spacing: 20) {
                 if let refreshError {
                     StaleRefreshBanner(message: refreshError) { Task { await refetch() } }
                 }
@@ -197,38 +197,6 @@ struct ScreenTestDetailView: View {
 
     nonisolated static func warningRows(_ warnings: [String]) -> [ScreenWarningRow] {
         warnings.enumerated().map { ScreenWarningRow(id: $0.offset, text: $0.element) }
-    }
-
-    private func technologyBreakdown(_ technologies: [String: ScreenTechnologyResult]) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("By technology")
-                .font(.callout.weight(.medium))
-            ForEach(technologies.sorted(by: { $0.key < $1.key }), id: \.key) { name, result in
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack {
-                        Text(name).font(.callout.weight(.medium))
-                        Spacer(minLength: 0)
-                        if let score = result.score {
-                            Text(scoreText(score))
-                                .font(.callout.monospacedDigit())
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    ForEach(result.skills.sorted(by: { $0.key < $1.key }), id: \.key) { skill, value in
-                        HStack {
-                            Text(skill).font(.caption).foregroundStyle(.secondary)
-                            Spacer(minLength: 0)
-                            if let score = value.score {
-                                Text(scoreText(score))
-                                    .font(.caption.monospacedDigit())
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        .padding(.leading, 12)
-                    }
-                }
-            }
-        }
     }
 
     private var reportPDFButton: some View {
