@@ -11,6 +11,7 @@ import SwiftUI
 
 struct ScreenWebhookSheet: View {
     let client: ScreenClient
+    let accountID: UUID
     @Environment(\.dismiss) private var dismiss
 
     @State private var url = ""
@@ -30,7 +31,7 @@ struct ScreenWebhookSheet: View {
             // A save/remove in flight must not be dismissible: the mutation would
             // complete invisibly and invite a conflicting retry (#899).
             .interactiveDismissDisabled(isSaving)
-            .task { await load() }
+            .task(id: context) { await load() }
             .onDisappear { mutationTask?.cancel() }
             .alert("Remove the webhook?", isPresented: $confirmRemove) {
                 Button("Cancel", role: .cancel) {}
@@ -156,12 +157,28 @@ struct ScreenWebhookSheet: View {
         ScreenClient.normalizedWebhookURL(url) != nil
     }
 
+    private var context: ScreenWebhookContext {
+        ScreenWebhookContext(accountID: accountID, clientIdentity: client.taskIdentity)
+    }
+
+    private var isCurrentContext: Bool {
+        guard let account = AccountsStore.shared.accounts.first(where: { $0.id == accountID }),
+              let current = account.makeScreenClient() else { return false }
+
+        return context.matches(accountID: account.id, clientIdentity: current.taskIdentity)
+    }
+
     private func load() async {
+        guard isCurrentContext else {
+            dismiss()
+            return
+        }
+
         isLoading = true
         defer { isLoading = false }
         do {
             let current = try await client.webhookURL()
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, isCurrentContext else { return }
 
             error = nil
             existingURL = current
@@ -170,6 +187,8 @@ struct ScreenWebhookSheet: View {
                 url = current ?? ""
             }
         } catch {
+            guard !Task.isCancelled, isCurrentContext else { return }
+
             self.error = Self.presentableError(error)
         }
     }
@@ -181,30 +200,40 @@ struct ScreenWebhookSheet: View {
     }
 
     private func save() async {
+        guard isCurrentContext else {
+            dismiss()
+            return
+        }
+
         isSaving = true
         defer { isSaving = false }
         do {
             try await client.setWebhookURL(url.trimmingCharacters(in: .whitespacesAndNewlines))
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, isCurrentContext else { return }
 
             dismiss()
         } catch {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, isCurrentContext else { return }
 
             self.error = Self.presentableError(error)
         }
     }
 
     private func remove() async {
+        guard isCurrentContext else {
+            dismiss()
+            return
+        }
+
         isSaving = true
         defer { isSaving = false }
         do {
             try await client.deleteWebhook()
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, isCurrentContext else { return }
 
             dismiss()
         } catch {
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled, isCurrentContext else { return }
 
             self.error = Self.presentableError(error)
         }
@@ -215,5 +244,5 @@ struct ScreenWebhookSheet: View {
     // Resolve the client in its own statement so the preview expression stays
     // under the 250ms type-check budget (warnings-as-errors makes it fatal).
     let client = ScreenClient.live(apiKey: "preview")
-    ScreenWebhookSheet(client: client)
+    ScreenWebhookSheet(client: client, accountID: UUID())
 }

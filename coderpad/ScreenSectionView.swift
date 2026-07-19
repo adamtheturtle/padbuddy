@@ -63,8 +63,7 @@ struct ScreenCampaignsView: View {
             }
         }
         // With no campaign selected, show the campaign count; once one is selected the
-        // detail column shows its test sessions, so surface that campaign's candidate
-        // count instead (published by the tests view via WindowNavigation) (#448/#475).
+        // Once selected, surface the detail's candidate count via WindowNavigation (#448/#475).
         .reportsSectionCount(selectedCampaignID == nil ? countSubtitle : windowNav.screenTestsSubtitle)
         .toolbar(id: "screen-campaigns") { campaignsToolbar }
         .focusedSceneValue(\.focusedScreenCampaignAction, selectedCampaignAction)
@@ -74,8 +73,10 @@ struct ScreenCampaignsView: View {
             })
         #endif
             .sheet(isPresented: $showWebhook) {
-                ScreenWebhookSheet(client: client)
+                ScreenWebhookSheet(client: client, accountID: accountID)
+                    .id(ScreenWebhookContext(accountID: accountID, clientIdentity: client.taskIdentity))
             }
+            .onChange(of: client.taskIdentity) { _, _ in showWebhook = false }
             .task(id: client.taskIdentity) { await load() }
             // Reload on ⌘R like the other lists (AppRouter.requestReload()).
             .onReloadRequest { await load() }
@@ -386,8 +387,7 @@ struct ScreenSectionPlaceholder: View {
 }
 
 #Preview("Campaign row") {
-    // Build the sample campaigns in their own statements to keep the List
-    // ViewBuilder expression under the 250ms type-check budget.
+    // Separate samples keep the List ViewBuilder under the type-check budget.
     let backend = ScreenCampaign(id: 1, name: "Backend Engineer", languages: ["python", "go"], pinned: true)
     let frontend = ScreenCampaign(id: 2, name: "Frontend Engineer", languages: ["javascript"], archived: true)
     let dataScience = ScreenCampaign(id: 3, name: "Data Science", languages: ["python", "sql"])
