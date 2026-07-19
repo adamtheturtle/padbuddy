@@ -234,9 +234,11 @@ extension PadsView {
         #endif
     }
 
-    private var padListReloadID: String {
-        let account = accounts.currentAccountID
-        return favoritePads.favorites(account: account).joined(separator: "\u{1F}")
+    /// Reloads the rows when the current account's favourites change. The store's
+    /// revision stands in for the joined favourite ids this used to rebuild on every
+    /// body pass, selection-only re-renders included (#2101).
+    private var padListReloadID: FavoritesReloadID {
+        FavoritesReloadID(account: accounts.currentAccountID, revision: favoritePads.revision)
     }
 
     /// The iPad drag payload for a pad row: the internal `FavoriteDrop` (so it can be

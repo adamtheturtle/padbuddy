@@ -388,11 +388,12 @@ extension MergedPadsView {
         #endif
     }
 
-    private var mergedPadListReloadID: String {
-        accounts.mergeableAccounts
-            .map { account in
-                "\(account.id.uuidString):\(favoritePads.favorites(account: account.id).joined(separator: ","))"
-            }
-            .joined(separator: "|")
+    /// Reloads the rows when any account's favourites change. The store's revision
+    /// stands in for the per-account joined favourite ids this used to build on
+    /// every body pass, selection-only re-renders included (#2101); a change to the
+    /// mergeable account set changes the rows' own ids, so the list reloads for that
+    /// without the ids being restated here.
+    private var mergedPadListReloadID: FavoritesReloadID {
+        FavoritesReloadID(account: nil, revision: favoritePads.revision)
     }
 }

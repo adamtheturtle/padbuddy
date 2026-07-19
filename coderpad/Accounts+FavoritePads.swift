@@ -22,6 +22,19 @@ struct FavoritePad: Codable, Hashable {
     var addedAt: Date?
 }
 
+/// A pad list's reload id: what the list's rows depend on beyond the pads
+/// themselves, namely which favourites are pinned. Carrying the store's
+/// revision keeps it O(1) to build, where joining every favourite id into a
+/// string allocated afresh on every body pass — selection-only re-renders
+/// included (#2101).
+struct FavoritesReloadID: Hashable {
+    /// The account whose favourites the list shows, or `nil` for a merged list
+    /// spanning every account (there, a change to the account set already
+    /// changes the rows' own ids, so the list reloads without help from here).
+    let account: UUID?
+    let revision: UInt64
+}
+
 /// Per-account favorite ("pinned") pads, identified by pad id. The pad counterpart
 /// to ``FavoriteQuestionsStore``: dragging a pad onto the sidebar pins it as a
 /// quick-access shortcut. Scoped per account — a pad id is a CoderPad slug, unique
@@ -47,6 +60,10 @@ final class FavoritePadsStore {
     /// Held so the external-change observation task isn't cancelled; the store is a
     /// singleton that lives for the whole process, so it's never explicitly stopped.
     private var cloudObserverTask: Task<Void, Never>?
+    /// Bumped whenever the stored favourites change, so a list can tell "did the
+    /// favourites change?" in O(1) (see ``FavoritesReloadID``) instead of joining
+    /// every favourite id into a fresh signature string on every body pass (#2101).
+    private(set) var revision: UInt64 = 0
 
     /// Sanity caps for the persisted and mirrored favorites (#1788): more entries
     /// than a sidebar could ever show, or titles far past any real pad name, mean
@@ -254,6 +271,9 @@ final class FavoritePadsStore {
     }
 
     private func save() {
+        // Every mutation lands here, so this is the one place the revision has to
+        // move for observers to see a favourites change (#2101).
+        revision &+= 1
         // A present id retires its tombstone (re-added locally, incl. via undo),
         // and old tombstones age out so the map stays bounded.
         for (account, entries) in byAccount {
