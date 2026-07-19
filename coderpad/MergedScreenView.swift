@@ -105,7 +105,7 @@ struct MergedScreenView: View {
 
     private func restoreSelectedCampaign() {
         let id: String? = if let account = routing.selectedScreenAccountID,
-                             let campaign = windowNav.screenCampaignSelection {
+                             let campaign = windowNav.screenCampaign(for: account) {
             "\(account.uuidString):\(campaign.id)"
         } else {
             nil
@@ -135,7 +135,10 @@ struct MergedScreenView: View {
         }
 
         DispatchQueue.main.async {
-            if windowNav.screenCampaignSelection != campaign { windowNav.screenCampaignSelection = campaign }
+            if windowNav.screenCampaignSelection != campaign
+                || windowNav.screenCampaignAccountID != accountID {
+                windowNav.publishScreenCampaign(campaign, accountID: accountID)
+            }
             if routing.selectedScreenAccountID != accountID { routing.selectedScreenAccountID = accountID }
         }
     }

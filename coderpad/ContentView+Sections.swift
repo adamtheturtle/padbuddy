@@ -41,7 +41,7 @@ struct SectionContent: View {
             // anyway; the campaigns list is the content column (#433).
             case .screen:
                 if let screen = account.makeScreenClient() {
-                    ScreenCampaignsView(client: screen, search: $screenSearch).id(account.id)
+                    ScreenCampaignsView(client: screen, accountID: account.id, search: $screenSearch).id(account.id)
                 } else {
                     ScreenSectionPlaceholder()
                 }
@@ -178,7 +178,8 @@ struct SectionDetail: View {
             // The selected campaign's test sessions fill the detail column (#448); a
             // session's report opens in its own window on double-click (#474). When no
             // campaign is selected, prompt to pick one.
-            if let campaign = windowNav.screenCampaignSelection, let screen = screenClient {
+            let campaignAccountID = store.isMergedView ? router.selectedScreenAccountID : store.currentAccountID
+            if let campaign = windowNav.screenCampaign(for: campaignAccountID), let screen = screenClient {
                 ScreenTestsView(client: screen, campaign: campaign, search: $screenSearch,
                                 accountID: store.isMergedView
                                     ? router.selectedScreenAccountID

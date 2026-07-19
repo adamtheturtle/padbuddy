@@ -161,7 +161,7 @@ extension MainSplit {
     /// routing and subtitle) belongs to the previous account's Screen client, so
     /// leaving it active shows another org's candidates in the detail column (#711).
     private func clearScreenSelection() {
-        windowNav.screenCampaignSelection = nil
+        windowNav.publishScreenCampaign(nil, accountID: nil)
         windowNav.screenTestsSubtitle = ""
         windowNav.screenTestsSubtitleOwner = nil
         mergedRouting.selectedScreenAccountID = nil

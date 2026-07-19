@@ -16,7 +16,7 @@
         @Environment(WindowNavigation.self) var windowNav
         /// The owner of the current merged selection, so a route identifies which
         /// account's pad/question/campaign it is (#2313, #2314, #2319).
-        @Environment(MergedRouting.self) private var mergedRouting
+        @Environment(MergedRouting.self) var mergedRouting
         @State private var network = NetworkMonitor.shared
         @Environment(\.openAppSettings) var openSettings
         let directory: OrgDirectory
@@ -124,7 +124,7 @@
                     // Screen reopened a stale campaign from the previous configuration
                     // (#1669).
                     screenPath = []
-                    windowNav.screenCampaignSelection = nil
+                    windowNav.publishScreenCampaign(nil, accountID: nil)
                     windowNav.screenTestsSubtitle = ""
                     windowNav.screenTestsSubtitleOwner = nil
                 }
@@ -258,18 +258,18 @@
             // the active tab: every tab stays constructed, and a background update
             // pushing this stack surprised users with an already-pushed detail on their
             // next visit (#1687). Activating the tab reconciles the path below.
-            .onChange(of: windowNav.screenCampaignSelection) { _, selection in
+            .onChange(of: windowNav.screenCampaignSelection) { _, _ in
                 guard windowNav.section == .screen else { return }
 
-                syncScreenPath(with: selection)
+                syncScreenPath(with: windowNav.screenCampaign(for: screenSelectionAccountID))
             }
             .onChange(of: windowNav.section) { _, section in
                 guard section == .screen else { return }
 
-                syncScreenPath(with: windowNav.screenCampaignSelection)
+                syncScreenPath(with: windowNav.screenCampaign(for: screenSelectionAccountID))
             }
             .onChange(of: screenPath) { _, path in
-                if path.isEmpty { windowNav.screenCampaignSelection = nil }
+                if path.isEmpty { windowNav.publishScreenCampaign(nil, accountID: nil) }
             }
         }
 
@@ -305,7 +305,9 @@
                     questionSelection: $questionSelection,
                     screenSearch: $screenSearch
                 )
-                .navigationTitle(windowNav.screenCampaignSelection?.name ?? String(localized: "Campaign"))
+                .navigationTitle(
+                    windowNav.screenCampaign(for: screenSelectionAccountID)?.name ?? String(localized: "Campaign")
+                )
                 .navigationBarTitleDisplayMode(.inline)
                 .phoneAccountToolbar(accountMenu)
             }

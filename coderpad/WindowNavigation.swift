@@ -46,6 +46,18 @@ final class WindowNavigation {
     /// columns; the campaigns list owns it and the detail column observes it. Per
     /// scene, so another window's selection can't retarget this window's detail (#888).
     var screenCampaignSelection: ScreenCampaign?
+    /// The account that owns ``screenCampaignSelection``. Screen campaign IDs are
+    /// only unique inside one organization, so restoration must validate both (#1464).
+    private(set) var screenCampaignAccountID: UUID?
+
+    func publishScreenCampaign(_ campaign: ScreenCampaign?, accountID: UUID?) {
+        screenCampaignSelection = campaign
+        screenCampaignAccountID = campaign == nil ? nil : accountID
+    }
+
+    func screenCampaign(for accountID: UUID?) -> ScreenCampaign? {
+        screenCampaignAccountID == accountID ? screenCampaignSelection : nil
+    }
 
     /// The selected campaign's candidate-count subtitle (e.g. "12 candidates"), published
     /// by the tests list (which lives in the detail column, #448). The campaigns column

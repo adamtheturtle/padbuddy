@@ -36,7 +36,7 @@
             padPath = []
             questionPath = []
             screenPath = []
-            windowNav.screenCampaignSelection = nil
+            windowNav.publishScreenCampaign(nil, accountID: nil)
             // The Screen detail's published subtitle/owner belong to the previous
             // account's drill-down; left behind, a later Screen detail inherited
             // another account's subtitle and routing (#1668).

@@ -16,6 +16,7 @@ import SwiftUI
 /// `WindowNavigation` so the detail column can show the campaign's test sessions (#434).
 struct ScreenCampaignsView: View {
     let client: ScreenClient
+    let accountID: UUID
     @Binding var search: String
     /// This window's published navigation state (injected by `ContentView`): the
     /// campaign selection and candidate-count subtitle are per window, so another
@@ -95,12 +96,16 @@ struct ScreenCampaignsView: View {
     }
 
     private func restoreSelectedCampaign() {
-        let id = windowNav.screenCampaignSelection?.id
+        if windowNav.screenCampaignSelection != nil, windowNav.screenCampaignAccountID != accountID {
+            selectedCampaignID = nil
+            windowNav.publishScreenCampaign(nil, accountID: nil)
+            return
+        }
+
+        let id = windowNav.screenCampaign(for: accountID)?.id
         guard selectedCampaignID != id else { return }
 
-        DispatchQueue.main.async {
-            if selectedCampaignID != id { selectedCampaignID = id }
-        }
+        selectedCampaignID = id
     }
 
     private func publishSelectedCampaign(_ id: Int?) {
@@ -111,12 +116,10 @@ struct ScreenCampaignsView: View {
         // column on re-entry (#997). `load()` re-publishes once rows exist.
         if id != nil, campaign == nil { return }
 
-        let windowNav = windowNav
-        guard windowNav.screenCampaignSelection != campaign else { return }
+        guard windowNav.screenCampaignSelection != campaign
+            || windowNav.screenCampaignAccountID != (campaign == nil ? nil : accountID) else { return }
 
-        DispatchQueue.main.async {
-            if windowNav.screenCampaignSelection != campaign { windowNav.screenCampaignSelection = campaign }
-        }
+        windowNav.publishScreenCampaign(campaign, accountID: accountID)
     }
 
     /// Right-click actions for a campaign row (#466). The Screen API exposes no
