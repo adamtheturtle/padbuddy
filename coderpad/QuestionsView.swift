@@ -121,7 +121,9 @@ struct QuestionsView: View {
             .onChange(of: filterSignature) { _, _ in
                 persistFilters()
             }
-            .onChange(of: cache.questionsByAccount) { _, _ in
+            // Keyed on this account's write generation rather than the cache
+            // dictionary, for the same reason as the pads list (#2460).
+            .onChange(of: cache.writeGeneration[accounts.currentAccountID ?? UUID()]) { _, _ in
                 guard questions.isEmpty, let id = accounts.currentAccountID else { return }
 
                 let warm = cache.cached(id)
@@ -133,7 +135,10 @@ struct QuestionsView: View {
             // A favorite tapped in the sidebar may arrive before the list has loaded;
             // resolve the deferred selection as soon as the questions land. The
             // last-open question is likewise restored once a list exists for it.
-            .onChange(of: questions) { _, _ in
+            // `questionsRevision` is bumped wherever `questions` is assigned, so it
+            // fires at the same moments — but as an Int compare rather than an O(n)
+            // Equatable diff of the whole array on every body pass (#2461).
+            .onChange(of: questionsRevision) { _, _ in
                 restoreSelectedQuestionIfNeeded()
                 resolvePendingSelection()
             }
@@ -387,10 +392,4 @@ struct QuestionsView: View {
             self.error = error
         }
     }
-}
-
-struct QuestionsTaskKey: Hashable {
-    let apiKey: String
-    let baseURL: URL?
-    let phase: ScenePhase
 }

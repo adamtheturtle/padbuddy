@@ -237,7 +237,11 @@ struct PadsView: View {
             // the process-wide request first used to consume it, so a filter or
             // favorite aimed at the focused window could apply elsewhere (#910).
             .consumesWindowRequest(nav.padsRequest) { applyPendingRequest() }
-            .onChange(of: cache.padsByAccount) { _, _ in
+            // Keyed on this account's write generation rather than the cache
+            // dictionary: SwiftUI Equatable-compares an `onChange` key on every body
+            // pass, and comparing `[UUID: [Pad]]` walks every pad of every account —
+            // for a handler that early-returns as soon as `pads` is populated (#2459).
+            .onChange(of: cache.writeGeneration[accounts.currentAccountID ?? UUID()]) { _, _ in
                 guard pads.isEmpty, let id = accounts.currentAccountID else { return }
 
                 let warm = cache.cached(id)

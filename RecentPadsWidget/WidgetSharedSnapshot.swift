@@ -411,7 +411,10 @@ extension String {
     /// Friendly casing for CoderPad language codes. Duplicated from the app's
     /// `DesignSystem` extension so the widget target stays dependency-free.
     var languageDisplayName: String {
-        switch lowercased() {
+        // Bound once: the default branch lowercased the same string a second time, so
+        // every unmatched code did the walk twice per widget entry render (#2457).
+        let lowered = lowercased()
+        switch lowered {
         case "python": return "Python"
         case "python2": return "Python 2"
         case "python3": return "Python 3"
@@ -449,7 +452,6 @@ extension String {
         case "f#", "fsharp": return "F#"
         case "plaintext", "plain-text", "plain_text": return "Plain text"
         default:
-            let lowered = lowercased()
             if lowered.hasPrefix("multifile_") {
                 let base = String(lowered.dropFirst("multifile_".count))
                 return base.isEmpty ? "Project" : base.languageDisplayName + " Project"

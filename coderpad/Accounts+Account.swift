@@ -124,12 +124,26 @@ struct Account: Identifiable, Codable, Hashable {
         "star.fill", "flag.fill", "hammer.fill", "globe.americas.fill"
     ]
 
+    /// Parsed tints, keyed by their hex string.
+    ///
+    /// `AvatarCircle(account:)` reads `avatarTint` directly inside view bodies, so the
+    /// hex parse re-ran on every render of every avatar (#2464). The parse is pure and
+    /// the palette is a small fixed set, so memoizing by hex costs a dictionary lookup
+    /// and bounds itself in practice. `Color?` is stored, so an unparseable hex is
+    /// remembered as unparseable rather than being re-attempted each time.
+    @MainActor private static var parsedTints: [String: Color?] = [:]
+
     /// The user-chosen avatar tint parsed from `tintHex`, or `nil` when unset or
     /// unparseable — leaving the default tint to apply.
+    @MainActor
     var tintColor: Color? {
-        guard let tintHex, let color = Color(hex: tintHex) else { return nil }
+        guard let tintHex else { return nil }
 
-        return color
+        if let cached = Self.parsedTints[tintHex] { return cached }
+
+        let parsed = Color(hex: tintHex)
+        Self.parsedTints[tintHex] = parsed
+        return parsed
     }
 
     /// The fallback tint when no custom color is chosen: purple for demo accounts,
@@ -140,6 +154,7 @@ struct Account: Identifiable, Codable, Hashable {
 
     /// The tint to draw this account's avatar with: the custom color when set,
     /// otherwise `defaultTint`.
+    @MainActor
     var avatarTint: Color {
         tintColor ?? defaultTint
     }

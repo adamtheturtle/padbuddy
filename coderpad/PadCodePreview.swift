@@ -168,6 +168,14 @@ struct EnvironmentCodeCard: View {
         return words.prefix(1).uppercased() + words.dropFirst()
     }
 
+    /// A cheap stand-in for "which files are these", so the selection reset below can
+    /// be observed without allocating a fresh id array on every body pass (#2463). Ids
+    /// are path-based, so joining them detects an add, a removal, or a rename; an
+    /// in-place contents update leaves it unchanged, which is what keeps the selection.
+    private var fileIdentitySignature: String {
+        files.lazy.map(\.id).joined(separator: "\u{1}")
+    }
+
     @State var selectedFileID: String?
     // SwiftUI @State read only via its $-projected binding.
     // periphery:ignore
@@ -259,7 +267,7 @@ struct EnvironmentCodeCard: View {
         // path-based), clear the retained selection so `selected` falls back to the
         // first file rather than pointing at a stale or wrong file. An in-place
         // contents update keeps the same ids, so the selection survives it.
-        .onChange(of: files.map(\.id)) { _, _ in
+        .onChange(of: fileIdentitySignature) { _, _ in
             selectedFileID = nil
             // Also drop any open code explanation: it was generated for a file id
             // that may no longer exist, and `selected` now falls back to the first

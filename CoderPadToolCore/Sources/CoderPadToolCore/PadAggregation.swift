@@ -119,7 +119,10 @@ private func sanitizedBodyPreview(_ body: String) -> String {
     text = text.replacingOccurrences(
         of: #"[A-Za-z0-9+/_=\-]{20,}"#, with: "[redacted]", options: .regularExpression
     )
-    guard text.count > 200 else { return text }
+    // `count` walks the whole string; an HTML error page can be megabytes, and only
+    // the first 201 characters decide whether to truncate (#2458).
+    let head = text.prefix(201)
+    guard head.count > 200 else { return text }
 
     return String(text.prefix(200)) + "…"
 }
