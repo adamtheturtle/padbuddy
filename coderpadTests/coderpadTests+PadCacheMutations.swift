@@ -4,10 +4,18 @@
 //
 
 @testable import CoderPad
+import Foundation
 import Testing
 
 @Suite("Pad cache mutations")
 struct PadCacheMutationTests {
+    @Test func `question disk hydration publishes each identity once`() async throws {
+        let question = try await CoderPadClient.mock(key: "cache-normalization-\(UUID().uuidString)")
+            .getQuestion(id: 102)
+
+        #expect(QuestionsCacheStore.normalizedDiskQuestions([question, question]) == [question])
+    }
+
     @Test func `disk hydration keeps the first row for each pad identity`() {
         let first = Pad(id: "pad", title: "First")
         let duplicate = Pad(id: "pad", title: "Duplicate")

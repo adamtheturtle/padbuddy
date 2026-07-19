@@ -235,8 +235,9 @@ final class QuestionsCacheStore {
         if !diskConsulted.contains(accountID) {
             diskConsulted.insert(accountID)
             if let disk = CacheDisk.load([Question].self, kind: "questions", account: accountID) {
-                questionsByAccount[accountID] = disk
-                return disk
+                let normalized = Self.normalizedDiskQuestions(disk)
+                questionsByAccount[accountID] = normalized
+                return normalized
             }
         }
         return []
@@ -254,8 +255,15 @@ final class QuestionsCacheStore {
             guard questionsByAccount[accountID] == nil, !diskConsulted.contains(accountID) else { return }
 
             diskConsulted.insert(accountID)
-            if let disk { questionsByAccount[accountID] = disk }
+            if let disk { questionsByAccount[accountID] = Self.normalizedDiskQuestions(disk) }
         }
+    }
+
+    /// Mirrors pad hydration: preserve the first stored row and ordering, but never
+    /// publish duplicate question identities into lists or mutation paths (#1439).
+    static func normalizedDiskQuestions(_ questions: [Question]) -> [Question] {
+        var seen: Set<Int> = []
+        return questions.filter { seen.insert($0.id).inserted }
     }
 
     /// `persist: false` updates only the in-memory snapshot, skipping disk, Spotlight,
