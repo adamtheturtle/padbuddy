@@ -446,11 +446,25 @@ extension WidgetPadSnapshot {
     var relativeUpdated: String? {
         guard let updatedAt else { return nil }
 
-        return updatedAt.formatted(.relative(presentation: .numeric, unitsStyle: .abbreviated))
+        return updatedAt.formatted(Self.relativeStyle)
     }
+
+    /// Built once rather than per access. The style is read for every visible pad, for
+    /// both its label and its VoiceOver description, and again for each row-count
+    /// candidate the layout measures, so constructing it each time added up across a
+    /// render (#2136).
+    private static let relativeStyle = Date.RelativeFormatStyle(presentation: .numeric,
+                                                                unitsStyle: .abbreviated)
 
     /// A single spoken label combining title, language, and last update for VoiceOver.
     var accessibilityDescription: String {
+        accessibilityDescription(relativeUpdated: relativeUpdated)
+    }
+
+    /// The spoken label with the relative date supplied by the caller, for a view that
+    /// has already formatted it for display and would otherwise format it again
+    /// (#2136).
+    func accessibilityDescription(relativeUpdated: String?) -> String {
         var parts = [title]
         if let languageLabel { parts.append(languageLabel) }
         if let relativeUpdated { parts.append("updated \(relativeUpdated)") }

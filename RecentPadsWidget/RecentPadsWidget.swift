@@ -539,6 +539,9 @@ private struct RecentPadRow: View {
     let pad: WidgetPadSnapshot
 
     var body: some View {
+        // Formatted once and used for both the label and the VoiceOver description
+        // (#2136).
+        let updated = pad.relativeUpdated
         HStack(alignment: .top, spacing: 8) {
             VStack(alignment: .leading, spacing: 1) {
                 Text(pad.title)
@@ -556,7 +559,7 @@ private struct RecentPadRow: View {
                 if let language = pad.languageLabel {
                     LanguageBadge(text: language, tint: languageTint(for: pad.language))
                 }
-                if let updated = pad.relativeUpdated {
+                if let updated {
                     Text(updated)
                         .font(.caption2)
                         .foregroundStyle(.secondary)
@@ -564,7 +567,7 @@ private struct RecentPadRow: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(pad.accessibilityDescription)
+        .accessibilityLabel(pad.accessibilityDescription(relativeUpdated: updated))
     }
 }
 
