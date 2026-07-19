@@ -294,10 +294,27 @@ enum PadEventGrouping {
     /// joined/left/started/ended are always shown individually.
     static let collapsibleKinds: Set<String> = ["typed", "edited", "ran", "executed"]
 
+    /// The longest idle gap two collapsible events may span and still read as one
+    /// run. Collapsing had no time threshold at all, so a `typed` event in the
+    /// morning and another in the afternoon merged into a single row and hours of
+    /// unrelated activity were summarized as one burst (#2003).
+    static let maxCollapseGap: TimeInterval = 5 * 60
+
+    /// Whether `event` is close enough in time to `previous` to continue its run.
+    /// Undated events carry no gap information, so they keep the pre-threshold
+    /// behavior and collapse; the magnitude of the gap is used so an out-of-order
+    /// log breaks the run rather than merging across a large backwards jump.
+    private static func continuesRun(_ event: PadEvent, after previous: PadEvent) -> Bool {
+        guard let previousDate = previous.createdAt, let date = event.createdAt else { return true }
+
+        return abs(date.timeIntervalSince(previousDate)) <= maxCollapseGap
+    }
+
     /// Collapse consecutive runs of a collapsible kind by the same user into one
     /// group each. Expects `events` in chronological (oldest-first) order so a run
     /// reads as an earliest-to-latest range. Non-collapsible kinds, kind changes,
-    /// and user changes all start a fresh group.
+    /// user changes, and idle gaps longer than `maxCollapseGap` all start a fresh
+    /// group.
     static func group(_ events: [PadEvent]) -> [PadEventGroup] {
         var groups: [PadEventGroup] = []
         // The current group's kind, already lowercased. Each event used to lowercase
@@ -309,6 +326,7 @@ enum PadEventGrouping {
             if let last = groups.last,
                collapsibleKinds.contains(kind),
                lastKind == kind,
+               continuesRun(event, after: last.lastEvent),
                let lastActor = actorKey(for: last.representative),
                lastActor == actorKey(for: event) {
                 groups[groups.count - 1] = PadEventGroup(

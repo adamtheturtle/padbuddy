@@ -110,6 +110,36 @@ struct PadEventGroupingTests {
     }
 
     @Test
+    func `a long idle gap breaks a collapsible run`() {
+        let gap = PadEventGrouping.maxCollapseGap
+        let groups = PadEventGrouping.group([
+            event("typed", user: "Alex", at: 0),
+            event("typed", user: "Alex", at: gap),
+            event("typed", user: "Alex", at: gap * 3)
+        ])
+
+        // The first two are within the gap; the third resumes hours later.
+        #expect(groups.map(\.count) == [2, 1])
+    }
+
+    @Test
+    func `undated events still collapse`() {
+        let undated = PadEvent(message: "m", kind: "typed", metadata: nil, userName: "Alex",
+                               userEmail: nil, createdAt: nil)
+        #expect(PadEventGrouping.group([undated, undated]).map(\.count) == [2])
+    }
+
+    @Test
+    func `a large backwards jump breaks the run`() {
+        let groups = PadEventGrouping.group([
+            event("typed", user: "Alex", at: 100_000),
+            event("typed", user: "Alex", at: 1)
+        ])
+
+        #expect(groups.count == 2)
+    }
+
+    @Test
     func `group identities stay bounded and free of control characters`() {
         let noisy = PadEvent(message: String(repeating: "x", count: 5000) + "\n\u{07}done",
                              kind: "joined", metadata: nil, userName: "Alex",
