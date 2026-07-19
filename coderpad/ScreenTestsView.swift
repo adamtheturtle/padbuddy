@@ -288,11 +288,11 @@ struct ScreenTestsView: View {
         isLoading = true
         do {
             let fromMs = dateRange.lowerBound.map { Int($0.timeIntervalSince1970 * 1000) }
-            let fetched = try await client.listAllTests(campaignID: campaign.id, from: fromMs)
+            let result = try await client.listAllTestsResult(campaignID: campaign.id, from: fromMs)
             guard generation == loadGeneration else { return }
 
-            tests = fetched
-            loadError = nil
+            tests = result.tests
+            loadError = result.diagnostic
             refreshDerived()
         } catch is CancellationError {
             // View/account replacement is expected task lifecycle, not a stale-data error.

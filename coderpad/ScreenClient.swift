@@ -128,7 +128,17 @@ struct ScreenClient {
                                   candidateEmail: String? = nil,
                                   from: Int? = nil,
                                   until: Int? = nil) async throws -> [ScreenTestSession] {
+        try await listAllTestsResult(campaignID: campaignID, product: product,
+                                     candidateEmail: candidateEmail, from: from, until: until).tests
+    }
+
+    nonisolated func listAllTestsResult(campaignID: Int? = nil,
+                                        product: String? = nil,
+                                        candidateEmail: String? = nil,
+                                        from: Int? = nil,
+                                        until: Int? = nil) async throws -> ScreenTestListResult {
         var all: [ScreenTestSession] = []
+        var discardedCount = 0
         // Offset pagination can shift while pages are fetched, re-serving a session
         // on a later page; keep the first copy of each id so callers never see
         // duplicates (#898). (A concurrent deletion can still skip a session - not
@@ -152,6 +162,7 @@ struct ScreenClient {
                                            until: until,
                                            start: start)
             let additions = page.tests.filter { seenIDs.insert($0.id).inserted }
+            discardedCount += page.discardedTestCount
             guard additions.count <= Self.maximumFullListItems - all.count else {
                 throw CoderPadError.decode("Screen pagination exceeded the maximum item count.")
             }
@@ -167,7 +178,7 @@ struct ScreenClient {
 
             start = next
         }
-        return all
+        return ScreenTestListResult(tests: all, discardedCount: discardedCount)
     }
 
     /// A single test session's status and (once finished) report. `GET /tests/:id`.
@@ -336,17 +347,6 @@ struct ScreenClient {
 
     private nonisolated func encode(_ body: some Encodable) throws -> Data {
         try Self.encoder.encode(body)
-    }
-}
-
-nonisolated struct ScreenCampaignListResult: Equatable {
-    let campaigns: [ScreenCampaign]
-    let discardedCount: Int
-
-    var diagnostic: String? {
-        guard discardedCount > 0 else { return nil }
-
-        return "Ignored \(discardedCount) malformed campaign \(discardedCount == 1 ? "record" : "records") from Screen."
     }
 }
 

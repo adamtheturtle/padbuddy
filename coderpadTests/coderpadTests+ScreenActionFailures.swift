@@ -58,3 +58,14 @@ struct ScreenCampaignDiagnosticTests {
         #expect(ScreenCampaignListResult(campaigns: [], discardedCount: 0).diagnostic == nil)
     }
 }
+
+@Suite("Screen session diagnostics")
+struct ScreenSessionDiagnosticTests {
+    @Test func `page counts discarded candidate sessions`() throws {
+        let data = Data(#"{"tests":[{"id":1,"status":"waiting"},{"status":"waiting"}],"pagination":null}"#.utf8)
+        let page = try JSONDecoder().decode(ScreenTestsPage.self, from: data)
+        #expect(page.tests.map(\.id) == [1])
+        #expect(page.discardedTestCount == 1)
+        #expect(ScreenTestListResult(tests: page.tests, discardedCount: 1).diagnostic != nil)
+    }
+}

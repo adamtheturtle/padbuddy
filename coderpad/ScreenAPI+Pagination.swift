@@ -16,11 +16,14 @@ import Foundation
 /// request's `start` while `hasMoreItems` is true.
 nonisolated struct ScreenTestsPage: Decodable, Hashable {
     let tests: [ScreenTestSession]
+    let discardedTestCount: Int
     let pagination: ScreenPagination?
 
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        tests = Self.decodeTests(from: container)
+        let decoded = Self.decodeTests(from: container)
+        tests = decoded.tests
+        discardedTestCount = decoded.discardedCount
         pagination = try container.decodeIfPresent(ScreenPagination.self, forKey: .pagination)
     }
 
@@ -28,18 +31,22 @@ nonisolated struct ScreenTestsPage: Decodable, Hashable {
         case tests, pagination
     }
 
-    private static func decodeTests(from container: KeyedDecodingContainer<CodingKeys>) -> [ScreenTestSession] {
-        guard var testsContainer = try? container.nestedUnkeyedContainer(forKey: .tests) else { return [] }
+    private static func decodeTests(from container: KeyedDecodingContainer<CodingKeys>)
+        -> (tests: [ScreenTestSession], discardedCount: Int) {
+        guard var testsContainer = try? container.nestedUnkeyedContainer(forKey: .tests) else { return ([], 0) }
 
         var decoded: [ScreenTestSession] = []
+        var discardedCount = 0
         while !testsContainer.isAtEnd {
             if let test = try? testsContainer.decode(ScreenTestSession.self) {
                 decoded.append(test)
             } else if (try? testsContainer.decode(DiscardedScreenValue.self)) == nil {
                 break
+            } else {
+                discardedCount += 1
             }
         }
-        return decoded
+        return (decoded, discardedCount)
     }
 }
 
@@ -65,6 +72,30 @@ nonisolated struct TolerantScreenList<Element: Decodable>: Decodable {
         }
         elements = decoded
         self.discardedCount = discardedCount
+    }
+}
+
+nonisolated struct ScreenCampaignListResult: Equatable {
+    let campaigns: [ScreenCampaign]
+    let discardedCount: Int
+
+    var diagnostic: String? {
+        guard discardedCount > 0 else { return nil }
+
+        let noun = discardedCount == 1 ? "record" : "records"
+        return "Ignored \(discardedCount) malformed campaign \(noun) from Screen."
+    }
+}
+
+nonisolated struct ScreenTestListResult: Equatable {
+    let tests: [ScreenTestSession]
+    let discardedCount: Int
+
+    var diagnostic: String? {
+        guard discardedCount > 0 else { return nil }
+
+        let noun = discardedCount == 1 ? "record" : "records"
+        return "Ignored \(discardedCount) malformed candidate session \(noun) from Screen."
     }
 }
 
