@@ -103,7 +103,7 @@ struct QuestionDetailView: View {
     /// remains available through the Question menu and as an opt-in customizable
     /// toolbar item.
     @ToolbarContentBuilder
-    private var detailToolbar: some CustomizableToolbarContent {
+    private func detailToolbar(questionURL: URL) -> some CustomizableToolbarContent {
         ToolbarSpacer(.fixed)
         ToolbarItem(id: "favorite", placement: detailToolbarLeadingPlacement) {
             Button { toggleFavorite() } label: {
@@ -131,7 +131,7 @@ struct QuestionDetailView: View {
             .accessibilityLabel("New Pad")
         }
         ToolbarItem(id: "share", placement: detailToolbarTrailingPlacement) {
-            ShareLink(item: question.webURL(baseURL: client.baseURL)) {
+            ShareLink(item: questionURL) {
                 Label("Share", systemImage: "square.and.arrow.up")
             }
             .help("Share a link to this question")
@@ -174,10 +174,17 @@ struct QuestionDetailView: View {
     // 250ms type-check budget (warnings-as-errors): the single full modifier chain
     // blew it on the iOS build once the draft/export modifiers landed.
     private var core: some View {
-        withNavigationConsumption(withCommandsAndAlerts(withBanners(detailScroll)))
+        let questionURL = question.webURL(baseURL: client.baseURL)
+        let questionFingerprint = question.hashValue
+        return withNavigationConsumption(
+            withCommandsAndAlerts(
+                withBanners(detailScroll, questionURL: questionURL, questionFingerprint: questionFingerprint),
+                questionURL: questionURL
+            )
+        )
     }
 
-    private func withBanners(_ content: some View) -> some View {
+    private func withBanners(_ content: some View, questionURL: URL, questionFingerprint: Int) -> some View {
         content
             .overlay(alignment: .bottom) { bottomBanners }
             .animation(reduceMotion ? nil : .spring(duration: 0.3), value: deletionTask == nil)
@@ -187,22 +194,22 @@ struct QuestionDetailView: View {
             .focusedSceneValue(\.focusedQuestionIsFavorite, isFavorite)
             // Publish the question's web URL so the Question menu's Share/Copy URL
             // commands act on the same link, built from this account's server URL.
-            .focusedSceneValue(\.focusedQuestionURL, question.webURL(baseURL: client.baseURL))
+            .focusedSceneValue(\.focusedQuestionURL, questionURL)
             // Publish a print rendering so File ▸ Print (⌘P) can produce a hard copy
             // or PDF of the prompt, instructions, and solution.
             .focusedSceneValue(\.printAction, PrintAction(id: "question-\(question.id)",
-                                                          contentFingerprint: question.hashValue) {
+                                                          contentFingerprint: questionFingerprint) {
                 printQuestionDocument()
             })
             .focusedSceneValue(\.exportMarkdownAction, PrintAction(id: "question-\(question.id)",
-                                                                   contentFingerprint: question.hashValue) {
+                                                                   contentFingerprint: questionFingerprint) {
                 exportMarkdown()
             })
     }
 
-    private func withCommandsAndAlerts(_ content: some View) -> some View {
+    private func withCommandsAndAlerts(_ content: some View, questionURL: URL) -> some View {
         content
-            .toolbar(id: "question-detail") { detailToolbar }
+            .toolbar(id: "question-detail") { detailToolbar(questionURL: questionURL) }
             .alert(
                 "Delete \(question.title.isEmpty ? "this question" : question.title)?",
                 isPresented: $showDeleteConfirm
