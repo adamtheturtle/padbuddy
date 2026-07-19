@@ -235,6 +235,11 @@ extension PadDetailView {
             return
         } catch {
             loadError = error
+            // Histories are dependent detail data. Without authoritative events,
+            // keep the previous history snapshot and avoid launching every remote
+            // history request for an already-failed refresh (#1334).
+            isLoading = false
+            return
         }
         isLoading = false
 
