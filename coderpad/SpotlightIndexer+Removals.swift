@@ -88,13 +88,32 @@ extension SpotlightIndexer {
     /// Both persist helpers must be called while holding `enrichmentLock`,
     /// alongside the in-memory mutation they mirror. The stateless
     /// encode/decode/load halves live in `SpotlightIndexer+Identifiers.swift`.
+    /// Encodes the identifier maps and writes them off the caller's thread.
+    ///
+    /// These are called with `enrichmentLock` held, and the maps can hold an
+    /// identifier per pad and per question across every account — so encoding *and*
+    /// the `UserDefaults` write happened under the lock, blocking enrichment,
+    /// removal, and any UI-triggered update behind a large serialization (#2418).
+    /// The encode still happens under the lock, because it reads the shared maps;
+    /// only the write is handed off.
     nonisolated static func persistPadIdentifiers() {
-        UserDefaults.standard.set(encodeIdentifierMap(indexedPadIdentifiersByAccount),
-                                  forKey: PersistenceKey.pads)
+        let encoded = encodeIdentifierMap(indexedPadIdentifiersByAccount)
+        persistenceQueue.async {
+            UserDefaults.standard.set(encoded, forKey: PersistenceKey.pads)
+        }
     }
 
     nonisolated static func persistQuestionIdentifiers() {
-        UserDefaults.standard.set(encodeIdentifierMap(indexedQuestionIdentifiersByAccount),
-                                  forKey: PersistenceKey.questions)
+        let encoded = encodeIdentifierMap(indexedQuestionIdentifiersByAccount)
+        persistenceQueue.async {
+            UserDefaults.standard.set(encoded, forKey: PersistenceKey.questions)
+        }
     }
+
+    /// Serial, so the two maps' writes stay ordered with respect to each other and
+    /// to their own later rewrites.
+    private nonisolated static let persistenceQueue = DispatchQueue(
+        label: "com.coderpad.spotlight-identifier-persistence",
+        qos: .utility
+    )
 }
