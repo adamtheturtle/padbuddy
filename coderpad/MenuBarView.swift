@@ -193,7 +193,7 @@
                     ForEach(questionsForMenu().prefix(topCount)) { row in
                         let body = PadCreate.fromQuestion(row.question)
                         Button {
-                            Task { await createPad(body, account: row.account) }
+                            Task { await createPad(from: row) }
                         } label: {
                             // Starred questions lead the list and carry the star so
                             // a frequently used question is the first one-click pad.

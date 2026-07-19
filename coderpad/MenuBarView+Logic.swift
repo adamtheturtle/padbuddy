@@ -186,20 +186,46 @@
             creatingPadKeys.insert(createKey)
             defer { creatingPadKeys.remove(createKey) }
 
-            let client = account.makeClient()
             do {
-                let pad = try await client.createPad(body)
-                // Publish the created pad to the shared cache (Spotlight, widget,
-                // Dock badge) and to every mounted list, so it doesn't stay
-                // invisible in-app until the next full reload (#1251).
-                PadsCacheStore.shared.insertPad(pad, account: account.id, via: client)
-                AppRouter.padCreated(pad, account: account.id)
-                // Fall back to the canonical {base}/{id} address when the response's
-                // url is absent/malformed, so the created pad is never lost (#781).
-                openPadURL(pad.webURL(fallbackBase: account.resolvedBaseURL))
+                try await performCreate(body, account: account)
             } catch {
                 errorMessage = error.localizedDescription
             }
+        }
+
+        /// Re-fetches a cache-backed question immediately before using it as a pad
+        /// seed, so menu-bar actions cannot create from a deleted or stale record.
+        func createPad(from row: MenuBarQuestionRow) async {
+            let staleBody = PadCreate.fromQuestion(row.question)
+            let createKey = Self.createPadKey(staleBody, account: row.account)
+            guard !creatingPadKeys.contains(createKey) else { return }
+
+            creatingPadKeys.insert(createKey)
+            defer { creatingPadKeys.remove(createKey) }
+            let client = row.account.makeClient()
+            do {
+                let fetched = try await client.getQuestion(id: row.question.id)
+                guard let fresh = NewPadFromQuestionValidation.accept(requestedID: row.question.id,
+                                                                      fetched: fetched) else {
+                    throw CoderPadError.decode("The selected question is no longer available.")
+                }
+
+                QuestionsCacheStore.shared.updateQuestion(fresh, account: row.account.id, via: client)
+                try await performCreate(.fromQuestion(fresh), account: row.account, client: client)
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+
+        private func performCreate(_ body: PadCreate, account: Account,
+                                   client: CoderPadClient? = nil) async throws {
+            let client = client ?? account.makeClient()
+            let pad = try await client.createPad(body)
+            // Publish the created pad to the shared cache (Spotlight, widget,
+            // Dock badge) and to every mounted list (#1251).
+            PadsCacheStore.shared.insertPad(pad, account: account.id, via: client)
+            AppRouter.padCreated(pad, account: account.id)
+            openPadURL(pad.webURL(fallbackBase: account.resolvedBaseURL))
         }
 
         /// Opens the Settings window directly, without also opening the main window — a
