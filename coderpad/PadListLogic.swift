@@ -281,7 +281,9 @@ nonisolated struct PadFileHistory: Identifiable, Hashable {
 
 nonisolated struct PadHistorySnapshot: Identifiable, Hashable {
     var id: String {
-        entry.id
+        // Services may repeat an entry id after a retry. The replay position is
+        // inherently unique within this history and keeps SwiftUI identity stable.
+        "\(index)-\(entry.id)"
     }
 
     let index: Int

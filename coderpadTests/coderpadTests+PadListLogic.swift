@@ -215,6 +215,19 @@ struct PadHistoryReplayTests {
     }
 
     @Test
+    func `repeated entry IDs still produce unique snapshot identities`() {
+        let history = PadHistory(entries: [
+            PadHistoryEntry(id: "retry", author: "Basil", operations: [.insert("a")], timestamp: 1),
+            PadHistoryEntry(id: "retry", author: "Basil", operations: [.retain(1), .insert("b")], timestamp: 2)
+        ])
+
+        let file = PadFileHistory(id: "history-url", title: "main.py", language: "python", history: history)
+
+        #expect(file.snapshots.map(\.id) == ["0-retry", "1-retry"])
+        #expect(Set(file.snapshots.map(\.id)).count == file.snapshots.count)
+    }
+
+    @Test
     func `snapshots record the line their edit lands on`() {
         let history = PadHistory(entries: [
             PadHistoryEntry(id: "a", author: "Basil", operations: [.insert("a\nb\nc")], timestamp: 1),
