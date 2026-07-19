@@ -16,6 +16,7 @@ public nonisolated enum DiskCacheLoadResult<Value> {
     case missing
     case value(Value)
     case corrupt
+    case unavailable
 }
 
 public nonisolated struct DiskCache: Sendable {
@@ -29,21 +30,21 @@ public nonisolated struct DiskCache: Sendable {
         self.logger = logger
     }
 
-    private func url(kind: String, account: UUID) -> URL? {
-        guard Self.isValidKind(kind), Self.isValidDirectoryName(directoryName) else { return nil }
+    private func resolvedURL(kind: String, account: UUID) throws -> URL {
+        guard Self.isValidKind(kind), Self.isValidDirectoryName(directoryName) else {
+            throw CocoaError(.fileWriteInvalidFileName)
+        }
         guard let base = FileManager.default.urls(for: .applicationSupportDirectory,
-                                                  in: .userDomainMask).first else { return nil }
+                                                  in: .userDomainMask).first else {
+            throw CocoaError(.fileNoSuchFile)
+        }
 
         let dir = base.appending(path: directoryName, directoryHint: .isDirectory)
-        do {
-            try FileManager.default.createDirectory(
-                at: dir, withIntermediateDirectories: true,
-                attributes: [.posixPermissions: 0o700]
-            )
-            try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: dir.path)
-        } catch {
-            return nil
-        }
+        try FileManager.default.createDirectory(
+            at: dir, withIntermediateDirectories: true,
+            attributes: [.posixPermissions: 0o700]
+        )
+        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: dir.path)
         return dir.appending(path: "\(kind)-\(account.uuidString).json")
     }
 
@@ -83,8 +84,23 @@ public nonisolated struct DiskCache: Sendable {
     }
 
     public func loadResult<T: Decodable>(_: T.Type, kind: String, account: UUID) -> DiskCacheLoadResult<T> {
-        guard let url = url(kind: kind, account: account),
-              let data = try? Data(contentsOf: url) else { return .missing }
+        let url: URL
+        do {
+            url = try resolvedURL(kind: kind, account: account)
+        } catch {
+            logUnavailable(operation: "resolve", kind: kind, error: error)
+            return .unavailable
+        }
+
+        let data: Data
+        do {
+            data = try Data(contentsOf: url)
+        } catch CocoaError.fileReadNoSuchFile {
+            return .missing
+        } catch {
+            logUnavailable(operation: "read", kind: kind, error: error)
+            return .unavailable
+        }
 
         do {
             return try .value(JSONDecoder().decode(T.self, from: data))
@@ -100,10 +116,11 @@ public nonisolated struct DiskCache: Sendable {
     }
 
     public func save(_ value: some Encodable, kind: String, account: UUID) {
-        guard let url = url(kind: kind, account: account) else { return }
-
         var wroteFile = false
+        var targetURL: URL?
         do {
+            let url = try resolvedURL(kind: kind, account: account)
+            targetURL = url
             let data = try JSONEncoder().encode(value)
             try data.write(to: url, options: .atomic)
             wroteFile = true
@@ -111,7 +128,7 @@ public nonisolated struct DiskCache: Sendable {
         } catch {
             // Never retain a newly written snapshot if its restrictive attributes
             // could not be applied.
-            if wroteFile { try? FileManager.default.removeItem(at: url) }
+            if wroteFile, let targetURL { try? FileManager.default.removeItem(at: targetURL) }
             let reason = error.localizedDescription
             logger.error("Failed to write \(kind, privacy: .public) cache: \(reason, privacy: .public)")
         }
@@ -121,9 +138,8 @@ public nonisolated struct DiskCache: Sendable {
     /// filesystem failures are reported to both the caller and the cache log.
     @discardableResult
     public func delete(kind: String, account: UUID) -> Bool {
-        guard let url = url(kind: kind, account: account) else { return false }
-
         do {
+            let url = try resolvedURL(kind: kind, account: account)
             try FileManager.default.removeItem(at: url)
             return true
         } catch CocoaError.fileNoSuchFile {
@@ -139,9 +155,16 @@ public nonisolated struct DiskCache: Sendable {
     /// Lets a reader (e.g. the headless MCP server, #520) judge freshness without loading
     /// and decoding the whole snapshot.
     public func modificationDate(kind: String, account: UUID) -> Date? {
-        guard let url = url(kind: kind, account: account),
+        guard let url = try? resolvedURL(kind: kind, account: account),
               let attributes = try? FileManager.default.attributesOfItem(atPath: url.path) else { return nil }
 
         return attributes[.modificationDate] as? Date
+    }
+
+    private func logUnavailable(operation: String, kind: String, error: any Error) {
+        let reason = error.localizedDescription
+        logger.error(
+            "Failed to \(operation, privacy: .public) \(kind, privacy: .public) cache: \(reason, privacy: .public)"
+        )
     }
 }

@@ -97,4 +97,21 @@ struct DiskCacheTests {
         #expect(cache.delete(kind: "pads", account: account))
         #expect(!cache.delete(kind: "../invalid", account: account))
     }
+
+    @Test
+    func `directory creation failure is not reported as a missing snapshot`() throws {
+        let directoryName = "com.buddyappkit.tests.DiskCache-\(UUID().uuidString)"
+        let base = try #require(FileManager.default.urls(
+            for: .applicationSupportDirectory, in: .userDomainMask
+        ).first)
+        let blockedDirectory = base.appending(path: directoryName)
+        try Data("blocking file".utf8).write(to: blockedDirectory)
+        defer { try? FileManager.default.removeItem(at: blockedDirectory) }
+        let cache = DiskCache(directoryName: directoryName, logger: Logger(subsystem: "tests", category: "cache"))
+
+        guard case .unavailable = cache.loadResult([String].self, kind: "pads", account: UUID()) else {
+            Issue.record("Expected directory failure to be unavailable, not missing")
+            return
+        }
+    }
 }
