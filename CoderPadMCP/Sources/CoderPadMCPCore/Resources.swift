@@ -98,7 +98,7 @@ public let accountResourceTemplates: [Resource.Template] = [
 ]
 
 public func resourceTemplates(for accountSet: MCPAccountSet) -> [Resource.Template] {
-    guard accountSet.accounts.count > 1 else { return resourceTemplates + accountResourceTemplates }
+    guard accountSet.accounts.count > 1 else { return resourceTemplates }
 
     return accountResourceTemplates
 }

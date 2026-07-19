@@ -166,6 +166,16 @@ struct ResourcesTests {
     }
 
     @Test
+    func `single-account catalog advertises only canonical unqualified templates`() throws {
+        let account = try #require(accountSet().accounts.first)
+        let single = MCPAccountSet(accounts: [account], defaultName: account.name, allowWrites: false)
+        let patterns = resourceTemplates(for: single).map(\.uriTemplate)
+
+        #expect(patterns == resourceTemplates.map(\.uriTemplate))
+        #expect(!patterns.contains { $0.contains("/{account}/") })
+    }
+
+    @Test
     func `multi-account templates require an account segment`() throws {
         let patterns = try resourceTemplates(for: accountSet()).map(\.uriTemplate)
         #expect(patterns.contains("coderpad://account/{account}/pad/{id}"))
