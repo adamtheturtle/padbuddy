@@ -324,8 +324,13 @@ enum GeneralSettings {
     /// Runs at launch before `applyDockVisibility`; no-ops once `presence` is set.
     static func migratePresenceIfNeeded() {
         let defaults = UserDefaults.standard
-        guard defaults.string(forKey: Key.presence) == nil,
-              defaults.object(forKey: Key.hideDockIcon) != nil else { return }
+        // A *present but unrecognized* presence value is not a migrated choice — it
+        // reads back as the `.dockAndMenuBar` default, so skipping migration on its
+        // account silently discarded a legacy "hide the Dock icon" preference (#2162).
+        // Only an already-valid value means there is nothing to migrate.
+        let stored = defaults.string(forKey: Key.presence)
+        let alreadyMigrated = stored.flatMap(AppPresence.init(rawValue:)) != nil
+        guard !alreadyMigrated, defaults.object(forKey: Key.hideDockIcon) != nil else { return }
 
         let presence: AppPresence = defaults.bool(forKey: Key.hideDockIcon) ? .menuBarOnly : .dockAndMenuBar
         defaults.set(presence.rawValue, forKey: Key.presence)

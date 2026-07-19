@@ -85,11 +85,14 @@ final class PreferenceCloudSync {
             pull(key: key)
         }
 
+        for key in Self.syncedKeys {
+            lastKnownValues[key] = UserDefaults.standard.object(forKey: key)
+        }
         defaultsObserver = NotificationCenter.default.addObserver(
             forName: UserDefaults.didChangeNotification, object: UserDefaults.standard, queue: .main
         ) { _ in
             // Delivered on the posting (main) thread for the standard defaults.
-            MainActor.assumeIsolated { Self.shared.scheduleMirror() }
+            MainActor.assumeIsolated { Self.shared.scheduleMirrorIfSyncedKeyChanged() }
         }
         cloudObserver = NotificationCenter.default.addObserver(
             forName: CloudSyncStore.didChangeExternally, object: nil, queue: .main
@@ -108,6 +111,31 @@ final class PreferenceCloudSync {
     /// several intermediate values; mirroring each one stamped-latest could
     /// overwrite another device's complete selection with a transient
     /// half-applied blob (#1148).
+    /// The last value seen for each synced key, so an unrelated defaults write can be
+    /// ruled out without a KVS round-trip.
+    ///
+    /// `UserDefaults.didChangeNotification` fires for *every* defaults write in the
+    /// process — window frames, scene storage, the lot — and each one used to schedule
+    /// a pass comparing every synced key against iCloud (#2154). Most of those passes
+    /// had nothing to do. Comparing against this snapshot first is a cheap local check
+    /// that skips them.
+    private var lastKnownValues: [String: Any] = [:]
+
+    /// Schedules a mirror pass only when a key we actually sync has changed.
+    private func scheduleMirrorIfSyncedKeyChanged() {
+        var changed = false
+        for key in Self.syncedKeys {
+            let current = UserDefaults.standard.object(forKey: key)
+            if !Self.plistValuesEqual(lastKnownValues[key], current) {
+                lastKnownValues[key] = current
+                changed = true
+            }
+        }
+        guard changed else { return }
+
+        scheduleMirror()
+    }
+
     private func scheduleMirror() {
         mirrorTask?.cancel()
         mirrorTask = Task { @MainActor in
