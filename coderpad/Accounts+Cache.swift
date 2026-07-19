@@ -237,6 +237,7 @@ final class QuestionsCacheStore {
     private(set) var writeGeneration: [UUID: Int] = [:]
     private var diskConsulted: Set<UUID> = []
     private let writeQueue = SerialWriteQueue()
+    private let persistenceEpochs = CachePersistenceEpochs()
     private init() {}
 
     func cached(_ accountID: UUID) -> [Question] {
@@ -301,7 +302,11 @@ final class QuestionsCacheStore {
         FavoriteQuestionsStore.shared.refreshTitles(from: questions, account: accountID)
         // Refresh the widget's favourite-question titles for this account too.
         WidgetSync.syncFavorites(account: accountID)
+        let persistenceEpoch = persistenceEpochs.advance(for: accountID)
+        let epochStore = persistenceEpochs
         writeQueue.enqueue(coalescingKey: "questions.\(accountID.uuidString)") {
+            guard epochStore.isCurrent(persistenceEpoch, for: accountID) else { return }
+
             CacheDisk.save(questions, kind: "questions", account: accountID)
         }
     }
@@ -312,7 +317,11 @@ final class QuestionsCacheStore {
         // could rehydrate the purged snapshot from disk before the queued file
         // deletion runs (#755).
         diskConsulted.insert(accountID)
+        let persistenceEpoch = persistenceEpochs.advance(for: accountID)
+        let epochStore = persistenceEpochs
         writeQueue.enqueue(coalescingKey: "questions.\(accountID.uuidString)") {
+            guard epochStore.isCurrent(persistenceEpoch, for: accountID) else { return }
+
             CacheDisk.delete(kind: "questions", account: accountID)
         }
     }
@@ -351,7 +360,11 @@ final class QuestionsCacheStore {
             let reduced = questions.filter { $0.id != questionID }
             questionsByAccount[accountID] = reduced
             writeGeneration[accountID, default: 0] += 1
+            let persistenceEpoch = persistenceEpochs.advance(for: accountID)
+            let epochStore = persistenceEpochs
             writeQueue.enqueue(coalescingKey: "questions.\(accountID.uuidString)") {
+                guard epochStore.isCurrent(persistenceEpoch, for: accountID) else { return }
+
                 CacheDisk.save(reduced, kind: "questions", account: accountID)
             }
         }
