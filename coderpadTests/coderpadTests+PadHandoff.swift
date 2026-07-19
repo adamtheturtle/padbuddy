@@ -50,6 +50,14 @@ struct PadHandoffTests {
 @Suite("Widget handoff request ordering (#2590, #2591)")
 struct WidgetHandoffOrderingTests {
     @Test
+    func `open-pad handoffs accept only URL-safe pad identifiers`() {
+        #expect(WidgetSharedStore.validatedHandoffPadID(" ABC-123_test ") == "ABC-123_test")
+        for malformed in ["", "pads/ABC", "ABC?next=1", "ABC#fragment", "ABC.123", String(repeating: "A", count: 65)] {
+            #expect(WidgetSharedStore.validatedHandoffPadID(malformed) == nil)
+        }
+    }
+
+    @Test
     func `the ordinal parses out of a request filename`() {
         let name = "pending-new-pad-000000001700000000123-\(UUID().uuidString).json"
         #expect(WidgetSharedStore.requestOrdinal(fileName: name) == 1_700_000_000_123)

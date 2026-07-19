@@ -27,7 +27,20 @@ nonisolated extension WidgetSharedStore {
     /// only be malformed configuration, and persisting it just fills the App Group with
     /// a request nothing can route (#2364).
     static var maxHandoffPadIDLength: Int {
-        128
+        64
+    }
+
+    /// Mirrors `PadIDValidation` without depending on app-target code unavailable
+    /// to the widget extension. Pad IDs cannot contain URL structure characters.
+    static func validatedHandoffPadID(_ id: String) -> String? {
+        let trimmed = id.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard (1 ... maxHandoffPadIDLength).contains(trimmed.count),
+              trimmed.allSatisfy({ character in
+                  character == "-" || character == "_"
+                      || (character.isASCII && (character.isLetter || character.isNumber))
+              }) else { return nil }
+
+        return trimmed
     }
 
     /// `.some(nil)` for a request that names no account (create in whichever is
@@ -83,9 +96,7 @@ nonisolated extension WidgetSharedStore {
         // An empty id can only produce a handoff the app cannot act on: it would be
         // drained, consumed, and silently do nothing, with no way for the user to
         // retry (#2594). Refuse it at the source instead.
-        let padID = id.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !padID.isEmpty, padID.count <= maxHandoffPadIDLength,
-              padID.unicodeScalars.allSatisfy({ !CharacterSet.controlCharacters.contains($0) }) else {
+        guard let padID = validatedHandoffPadID(id) else {
             logger.error("Refused an open pad handoff request with an empty or malformed pad id")
             return false
         }
