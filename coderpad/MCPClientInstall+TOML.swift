@@ -160,7 +160,14 @@ import Foundation
         static func scanCodexConfig(_ text: String) -> CodexConfigScan {
             let lines = text.components(separatedBy: "\n")
             var currentTable: [String] = []
-            var found = CodexDeclaration.notDeclared
+            // The scan runs to the end of the file rather than returning at the first
+            // plain `[mcp_servers.padbuddy]`. Stopping there classified a file as
+            // safely replaceable without ever looking at what came after, so a second
+            // padbuddy table (#2539) or a later dotted assignment (#2540) survived the
+            // rewrite and left Codex with a config it rejects — the very collision the
+            // whole scan exists to prevent (#2538).
+            var plainTableRanges: [Range<Int>] = []
+            var hasUnsafeDeclaration = false
             var state = TOMLLineState()
             var index = 0
             while index < lines.count {
@@ -174,27 +181,17 @@ import Foundation
                 if line.isEmpty || line.hasPrefix("#") { continue }
 
                 if line.hasPrefix("[") {
-                    let isArrayOfTables = line.hasPrefix("[[")
                     guard let path = tomlHeaderKeyPath(line) else { continue }
 
                     currentTable = path
-                    if path == ["mcp_servers", "padbuddy"] {
-                        // An array of tables ([[...]]) is a different shape; rewriting one
-                        // header of it would corrupt the array, so it isn't safely replaceable.
-                        if isArrayOfTables {
-                            return CodexConfigScan(declaration: .other, lines: lines, tableLineRange: nil)
-                        }
-
-                        return CodexConfigScan(
-                            declaration: .table,
-                            lines: lines,
-                            tableLineRange: tableBody(startingAt: index, in: lines, state: &state)
-                        )
-                    }
-                    if path.count > 2, Array(path.prefix(2)) == ["mcp_servers", "padbuddy"] {
-                        // A subtable like [mcp_servers.padbuddy.env] implicitly declares the
-                        // padbuddy table; replacing just it would leave the rest behind.
-                        found = .other
+                    var bodyState = state
+                    switch padbuddyHeaderKind(path, isArrayOfTables: line.hasPrefix("[[")) {
+                    case .plainTable:
+                        plainTableRanges.append(tableBody(startingAt: index, in: lines, state: &bodyState))
+                    case .unsafe:
+                        hasUnsafeDeclaration = true
+                    case .unrelated:
+                        break
                     }
                     continue
                 }
@@ -202,11 +199,61 @@ import Foundation
                 guard let keyPath = tomlKeyValueKeyPath(line) else { continue }
 
                 let fullPath = currentTable + keyPath
-                if fullPath.count >= 2, Array(fullPath.prefix(2)) == ["mcp_servers", "padbuddy"] {
-                    found = .other
+                if fullPath.count >= 2, Array(fullPath.prefix(2)) == ["mcp_servers", "padbuddy"],
+                   !isInsidePlainPadbuddyTable(currentTable) {
+                    hasUnsafeDeclaration = true
                 }
             }
-            return CodexConfigScan(declaration: found, lines: lines, tableLineRange: nil)
+            // Exactly one plain table and nothing else claiming the key is the only
+            // shape a surgical replacement is safe for. Two of them is already invalid
+            // TOML, and we must not present it as something we fixed.
+            return resolveScan(lines: lines,
+                               plainTableRanges: plainTableRanges,
+                               hasUnsafeDeclaration: hasUnsafeDeclaration)
+        }
+
+        /// Turns what the scan saw into a verdict.
+        ///
+        /// Exactly one plain table and nothing else claiming the key is the only shape a
+        /// surgical replacement is safe for. Two plain tables is already invalid TOML,
+        /// and rewriting one of them would leave the other behind while reporting
+        /// success — so it is refused rather than presented as something we fixed.
+        private static func resolveScan(lines: [String],
+                                        plainTableRanges: [Range<Int>],
+                                        hasUnsafeDeclaration: Bool) -> CodexConfigScan {
+            guard !hasUnsafeDeclaration, plainTableRanges.count == 1, let range = plainTableRanges.first else {
+                let declaration: CodexDeclaration =
+                    hasUnsafeDeclaration || !plainTableRanges.isEmpty ? .other : .notDeclared
+                return CodexConfigScan(declaration: declaration, lines: lines, tableLineRange: nil)
+            }
+
+            return CodexConfigScan(declaration: .table, lines: lines, tableLineRange: range)
+        }
+
+        /// How a table header relates to the PadBuddy declaration.
+        private enum PadbuddyHeaderKind {
+            /// `[mcp_servers.padbuddy]` — the one shape a surgical rewrite handles.
+            case plainTable
+            /// A shape that claims the key but can't be rewritten in place: an array of
+            /// tables (rewriting one header would corrupt the array), or a subtable like
+            /// `[mcp_servers.padbuddy.env]` that implicitly declares the parent, so
+            /// replacing just the parent would leave the rest behind.
+            case unsafe
+            case unrelated
+        }
+
+        private static func padbuddyHeaderKind(_ path: [String], isArrayOfTables: Bool) -> PadbuddyHeaderKind {
+            guard path.count >= 2, Array(path.prefix(2)) == ["mcp_servers", "padbuddy"] else { return .unrelated }
+            guard path.count == 2 else { return .unsafe }
+
+            return isArrayOfTables ? .unsafe : .plainTable
+        }
+
+        /// Whether assignments in `currentTable` belong to the plain padbuddy table
+        /// itself — its own `command`/`args` lines are the thing being replaced, not a
+        /// competing declaration.
+        private static func isInsidePlainPadbuddyTable(_ currentTable: [String]) -> Bool {
+            currentTable == ["mcp_servers", "padbuddy"]
         }
 
         /// The line range of the table whose header sits at `headerIndex`: the header through
