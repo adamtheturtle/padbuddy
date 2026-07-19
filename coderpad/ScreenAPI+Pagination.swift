@@ -41,7 +41,10 @@ nonisolated struct ScreenTestsPage: Decodable, Hashable {
             if let test = try? testsContainer.decode(ScreenTestSession.self) {
                 decoded.append(test)
             } else if (try? testsContainer.decode(DiscardedScreenValue.self)) == nil {
-                break
+                throw DecodingError.dataCorrupted(.init(
+                    codingPath: testsContainer.codingPath,
+                    debugDescription: "Screen tests contained an unreadable value."
+                ))
             } else {
                 discardedCount += 1
             }
@@ -65,7 +68,10 @@ nonisolated struct TolerantScreenList<Element: Decodable>: Decodable {
             if let element = try? container.decode(Element.self) {
                 decoded.append(element)
             } else if (try? container.decode(DiscardedScreenValue.self)) == nil {
-                break
+                throw DecodingError.dataCorrupted(.init(
+                    codingPath: container.codingPath,
+                    debugDescription: "Screen list contained an unreadable value."
+                ))
             } else {
                 discardedCount += 1
             }

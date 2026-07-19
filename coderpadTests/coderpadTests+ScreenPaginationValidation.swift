@@ -78,4 +78,13 @@ struct ScreenPaginationValidationTests {
         #expect(page.tests.isEmpty)
         #expect(page.discardedTestCount == 0)
     }
+
+    @Test
+    func `an unreadable tail cannot publish a valid page prefix`() {
+        let truncated = #"{"tests":[{"id":1,"status":"waiting"},{"id":] }"#
+
+        #expect(throws: DecodingError.self) {
+            try JSONDecoder().decode(ScreenTestsPage.self, from: Data(truncated.utf8))
+        }
+    }
 }
