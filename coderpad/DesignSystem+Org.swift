@@ -163,7 +163,9 @@ final class OrgDirectory {
             // Persist for the next cold launch. The fetch succeeded, so an empty
             // map is the organization's real state: writing it through is what
             // stops removed members reappearing from a stale snapshot (#1694).
-            DirectoryCache.save(map, account: account.id)
+            // Off the main actor: nothing on screen waits for the write, and this
+            // runs right after a fetch resolves (#2442).
+            persistDirectory(map, account: account.id)
         }
     }
 
@@ -229,8 +231,10 @@ final class OrgDirectory {
             // Persist each account's own map (not the union) so a later single-account
             // launch seeds from just that account. A fetched empty map is the org's
             // real state and overwrites the snapshot (#1694); only failed fetches
-            // (nil above) leave the previous snapshot alone.
-            DirectoryCache.save(map, account: account.id)
+            // (nil above) leave the previous snapshot alone. Written off the main
+            // actor — once per account, inside this loop, it was N synchronous file
+            // writes on the main actor (#2442).
+            persistDirectory(map, account: account.id)
         }
         nameByEmail = merged
         revision += 1
@@ -239,6 +243,18 @@ final class OrgDirectory {
         // new-item flows with the wrong org's language (#1693).
         defaultLanguage = nil
         loadedClientKey = nil
+    }
+
+    /// Writes one account's name map to disk without blocking the main actor.
+    ///
+    /// Only the *writes* move off. `cachedSeed()` stays synchronous on purpose: it
+    /// runs during `init` so the very first row render already has names, and
+    /// deferring it would show a screen of raw email addresses that flip to names a
+    /// moment later — see its own note.
+    private func persistDirectory(_ map: [String: String], account: UUID) {
+        Task.detached(priority: .utility) {
+            DirectoryCache.save(map, account: account)
+        }
     }
 
     func name(for email: String) -> String? {
