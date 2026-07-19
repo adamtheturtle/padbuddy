@@ -72,10 +72,16 @@ enum WidgetSync {
         // An account that exists (again) is no longer torn down; drop its tombstone
         // so its snapshots refresh normally after a remove-and-re-add.
         let present = Set(accounts.map(\.id))
-        writeQueue.async { removedAccounts.subtract(present) }
-        WidgetSharedStore.saveAccounts(accounts.map {
-            WidgetAccount(id: $0.id.uuidString, name: $0.name)
-        })
+        let index = accounts.map { WidgetAccount(id: $0.id.uuidString, name: $0.name) }
+        // On the same serial queue as the snapshot writes. Writing the index
+        // directly let it interleave with a removal or re-key, so the widget's
+        // configuration picker could momentarily list an account whose snapshot had
+        // already been deleted, or miss one whose snapshot had not been written yet
+        // (#2586).
+        writeQueue.async {
+            removedAccounts.subtract(present)
+            WidgetSharedStore.saveAccounts(index)
+        }
     }
 
     /// Mirrors an account's favourite questions (id + title) into the shared
@@ -88,11 +94,6 @@ enum WidgetSync {
     /// init.
     static func syncFavorites(account accountID: UUID) {
         let favorites = FavoriteQuestionsStore.shared.titledFavorites(account: accountID)
-        guard !favorites.isEmpty else {
-            WidgetSharedStore.saveFavorites([], account: accountID.uuidString)
-            return
-        }
-
         let cacheTitles = Dictionary(
             QuestionsCacheStore.shared.get(accountID).map { ($0.id, $0.displayTitle) },
             uniquingKeysWith: { first, _ in first }
@@ -101,7 +102,17 @@ enum WidgetSync {
             let title = cacheTitles[favorite.id] ?? (favorite.title.isEmpty ? "#\(favorite.id)" : favorite.title)
             return WidgetQuestion(id: favorite.id, title: title)
         }
-        WidgetSharedStore.saveFavorites(widgetFavorites, account: accountID.uuidString)
+        // Through the serial queue like the pad writes. Writing directly let two
+        // concurrent syncs land out of order — an older title snapshot overwriting a
+        // newer one, leaving the widget stale until the next mutation (#2602) — and
+        // let a favourites write race account teardown, so a removed account's
+        // favourites could reappear after their file had been deleted (#2585). The
+        // tombstone check is the same one the pad writes use.
+        writeQueue.async {
+            guard !removedAccounts.contains(accountID) else { return }
+
+            WidgetSharedStore.saveFavorites(widgetFavorites, account: accountID.uuidString)
+        }
     }
 
     /// Mirrors every account's favourite questions at once, so the widget's New Pad
@@ -114,15 +125,32 @@ enum WidgetSync {
         }
     }
 
-    /// Drops a removed account's per-account snapshot and reloads. The account index
-    /// is refreshed separately when the accounts list itself changes. Ordered through
-    /// the serial write queue AND tombstoned, so a refresh enqueued before the
-    /// removal (whose closure captured the account's pads) can't write the snapshot
-    /// back after teardown (#724).
-    static func removeAccount(_ accountID: UUID) {
+    /// Drops a removed account's widget presence entirely: its per-account snapshot
+    /// and favourites, its entry in the configuration index, and the default snapshot
+    /// if this account was the one supplying it.
+    ///
+    /// Ordered through the serial write queue AND tombstoned, so a refresh enqueued
+    /// before the removal (whose closure captured the account's pads) can't write the
+    /// snapshot back after teardown (#724).
+    ///
+    /// `remainingAccounts` is passed in rather than read from `AccountsStore.shared`,
+    /// matching `syncAccounts` — this runs from the store's own observers.
+    static func removeAccount(_ accountID: UUID, remainingAccounts: [Account], wasCurrent: Bool) {
+        let index = remainingAccounts.map { WidgetAccount(id: $0.id.uuidString, name: $0.name) }
         writeQueue.async {
             removedAccounts.insert(accountID)
             WidgetSharedStore.deletePads(account: accountID.uuidString)
+            // The index was left to whoever synced the accounts list next, so until
+            // that happened the widget's configuration picker still offered an
+            // account whose data had already been deleted (#2588). Rewrite it here,
+            // in the same ordered section as the deletion.
+            WidgetSharedStore.saveAccounts(index)
+            // An unconfigured widget reads the default snapshot. If this account was
+            // the one that filled it, its pads stayed on screen after the account was
+            // gone (#2587).
+            if wasCurrent {
+                WidgetSharedStore.save([])
+            }
             WidgetCenter.shared.reloadAllTimelines()
         }
     }

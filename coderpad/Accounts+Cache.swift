@@ -154,11 +154,15 @@ final class PadsCacheStore {
             CacheDisk.delete(kind: "pads", account: accountID)
         }
         // Drop the account's mirrored widget snapshot and refresh the picker index.
+        let wasCurrent = accountID == AccountsStore.shared.currentAccount?.id
         if isRekey {
-            WidgetSync.clearAccount(accountID,
-                                    isCurrent: accountID == AccountsStore.shared.currentAccount?.id)
+            WidgetSync.clearAccount(accountID, isCurrent: wasCurrent)
         } else {
-            WidgetSync.removeAccount(accountID)
+            WidgetSync.removeAccount(
+                accountID,
+                remainingAccounts: AccountsStore.shared.accounts.filter { $0.id != accountID },
+                wasCurrent: wasCurrent
+            )
         }
         // Removing an account drops its pads from the badge's all-accounts total.
         DockBadgeController.refresh()
