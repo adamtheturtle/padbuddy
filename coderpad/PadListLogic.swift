@@ -248,42 +248,19 @@ nonisolated struct PadFileHistory: Identifiable, Hashable {
         var built: [PadHistorySnapshot] = []
         var storedBytes = 0
         for (index, entry) in entries.dropFirst(overflow).enumerated() {
-            contents = entry.applying(to: contents)
+            let replay = Self.replay(entry, on: contents)
+            contents = replay.contents
             storedBytes += contents.utf8.count
             guard storedBytes <= Self.maxSnapshotBytes else { break }
 
             built.append(PadHistorySnapshot(index: index, entry: entry, contents: contents,
-                                            changeLine: Self.changeLine(of: entry, in: contents)))
+                                            changeLine: replay.changeLine))
         }
         snapshots = built
     }
 
     var latestEntry: PadHistoryEntry? {
         history.entries.last
-    }
-
-    /// The 0-based line an entry's edit lands on in the post-edit contents, so
-    /// playback can scroll the code to where the change is happening (#983).
-    /// The edit position is the entry's leading retain run (operations are an
-    /// OT sequence: retains position the cursor, then inserts/deletes act there),
-    /// counted in UTF-16 code units like the history itself.
-    private static func changeLine(of entry: PadHistoryEntry, in contents: String) -> Int {
-        var offset = 0
-        for operation in entry.operations {
-            guard case let .retain(count) = operation else { break }
-
-            let (sum, overflow) = offset.addingReportingOverflow(count)
-            if overflow {
-                offset = count >= 0 ? .max : .min
-            } else {
-                offset = sum
-            }
-        }
-        // History is remote input. Keep malformed negative, oversized, or
-        // overflowing retains inside the post-edit document before slicing it.
-        let clampedOffset = min(max(0, offset), contents.utf16.count)
-        let newline = "\n".utf16.first
-        return contents.utf16.prefix(clampedOffset).count(where: { $0 == newline })
     }
 }
 
