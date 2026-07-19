@@ -25,6 +25,13 @@ extension HistoryPlaybackView {
             .joined(separator: "\u{1}")
     }
 
+    /// The same trick for the events feed, which drives the cached run markers
+    /// (#2090): comparing `[PadEvent]` itself would walk every event's strings on
+    /// each body pass, and the feed only ever grows or is replaced wholesale.
+    var eventsSignature: String {
+        "\(events.count)\u{1}\(events.first?.id ?? "")\u{1}\(events.last?.id ?? "")"
+    }
+
     /// The two scrubber styles, built once. `timeText` runs twice per render — the
     /// elapsed and total labels — inside a scrubber that re-renders on every timeline
     /// tick and every drag frame, so constructing the style per call put formatter

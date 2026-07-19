@@ -50,6 +50,10 @@ struct HistoryPlaybackView: View {
     /// Identifies the current playback session, so a cancelled older task can't
     /// switch off a newer session's `isPlaying` indicator on its way out (#1168).
     @State var playbackGeneration = 0
+    /// The scrubber's code-run markers, held rather than derived in `body`: they
+    /// change only with the events or the timeline, while `body` re-runs on every
+    /// playback tick (#2090).
+    @State var runMarkers: [Double]
 
     init(histories: [PadFileHistory], events: [PadEvent], dark: Bool) {
         self.histories = histories
@@ -58,6 +62,7 @@ struct HistoryPlaybackView: View {
         let timeline = PadPlaybackTimeline(histories: histories)
         _timeline = State(initialValue: timeline)
         _position = State(initialValue: max(0, timeline.items.count - 1))
+        _runMarkers = State(initialValue: Self.runMarkers(events: events, timeline: timeline))
     }
 
     var body: some View {
@@ -86,6 +91,9 @@ struct HistoryPlaybackView: View {
         .onChange(of: historiesSignature) {
             // The rebuild itself stops any running replay first (#1167, #1868).
             rebuildTimeline()
+        }
+        .onChange(of: eventsSignature) {
+            runMarkers = Self.runMarkers(events: events, timeline: timeline)
         }
         .onChange(of: playbackSpeed) {
             // A sleeping play step keeps the delay it computed at the old
@@ -122,7 +130,12 @@ extension HistoryPlaybackView {
     /// moments a candidate executed their solution. Deduplicated per rendered
     /// half-pixel and bounded, so a pathological event feed can't stroke
     /// thousands of overlapping diamonds every frame (#1882).
-    private var runMarkers: [Double] {
+    ///
+    /// Computed on demand rather than in `body`: the result depends only on the
+    /// events and the timeline, but `position` changes on every play-loop tick,
+    /// so a computed property read from `body` rescanned the whole event feed
+    /// several times a second (#2090). Callers cache it in `runMarkers`.
+    nonisolated static func runMarkers(events: [PadEvent], timeline: PadPlaybackTimeline) -> [Double] {
         var seenBuckets = Set<Int>()
         var markers: [Double] = []
         for event in events {

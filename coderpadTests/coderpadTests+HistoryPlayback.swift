@@ -197,6 +197,50 @@ struct PadPlaybackTimelineTests {
     }
 }
 
+/// The scrubber's run markers, now computed once per events/timeline change
+/// rather than on every playback tick (#2090).
+struct PadPlaybackRunMarkerTests {
+    private let timeline = PadPlaybackTimeline(histories: [
+        makeFile("main", title: "main.py", entries: [
+            edit("a", by: "Basil", at: 1000), edit("b", by: "Basil", at: 5000)
+        ])
+    ])
+
+    private func event(_ kind: String, at milliseconds: Double?) -> PadEvent {
+        PadEvent(
+            message: "m",
+            kind: kind,
+            createdAt: milliseconds.map { Date(timeIntervalSince1970: $0 / 1000) }
+        )
+    }
+
+    @Test
+    func `only runs inside the timeline get a marker`() {
+        let markers = HistoryPlaybackView.runMarkers(
+            events: [
+                event("ran", at: 1000),
+                event("joined", at: 3000),
+                event("executed", at: 5000),
+                // Outside the session, undated, and past the sane date range.
+                event("ran", at: 9000),
+                event("ran", at: nil),
+                event("ran", at: -1_000_000_000_000_000)
+            ],
+            timeline: timeline
+        )
+        #expect(markers == [0, 1])
+    }
+
+    @Test
+    func `runs in the same rendered bucket are drawn once`() {
+        let markers = HistoryPlaybackView.runMarkers(
+            events: [event("ran", at: 3000), event("RAN", at: 3001)],
+            timeline: timeline
+        )
+        #expect(markers.count == 1)
+    }
+}
+
 struct PadPlaybackAuthorsTests {
     @Test
     func `numeric or letterless firebase ids are not display names`() {
