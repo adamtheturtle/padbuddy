@@ -25,4 +25,11 @@ struct ListTableTests {
 
         #expect(uniqueListItems(items) == [items[0], items[2]])
     }
+
+    @Test
+    func `stable IDs refresh visible content while structural changes reload`() {
+        #expect(listTableUpdateKind(oldIDs: [1, 2], newIDs: [1, 2], force: false) == .refreshVisibleRows)
+        #expect(listTableUpdateKind(oldIDs: [1, 2], newIDs: [2, 1], force: false) == .reload)
+        #expect(listTableUpdateKind(oldIDs: [1, 2], newIDs: [1, 2], force: true) == .reload)
+    }
 }

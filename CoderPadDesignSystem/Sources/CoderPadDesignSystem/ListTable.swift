@@ -207,16 +207,36 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
 
         func reloadIfNeeded(_ newItems: [Item], force: Bool) {
             let normalizedItems = uniqueListItems(newItems)
-            let changed = force || normalizedItems.map(\.id) != items.map(\.id)
+            let updateKind = listTableUpdateKind(
+                oldIDs: items.map(\.id),
+                newIDs: normalizedItems.map(\.id),
+                force: force
+            )
             items = normalizedItems
             indexByID = Dictionary(uniqueKeysWithValues: normalizedItems.enumerated().map { ($1.id, $0) })
             let normalizedSelection = availableListSelection(parent.selection, availableIDs: Set(indexByID.keys))
             if normalizedSelection != parent.selection { parent.selection = normalizedSelection }
-            guard changed else { return }
+            switch updateKind {
+            case .reload:
+                tableView?.reloadData()
+                // reloadData drops the selection; restore it from the binding.
+                applySelection(normalizedSelection)
 
-            tableView?.reloadData()
-            // reloadData drops the selection; restore it from the binding.
-            applySelection(normalizedSelection)
+            case .refreshVisibleRows:
+                refreshVisibleRows()
+            }
+        }
+
+        private func refreshVisibleRows() {
+            guard let tableView else { return }
+
+            let rows = tableView.rows(in: tableView.visibleRect)
+            guard rows.location != NSNotFound else { return }
+
+            for row in rows.location ..< NSMaxRange(rows) where items.indices.contains(row) {
+                let cell = tableView.view(atColumn: 0, row: row, makeIfNecessary: false) as? HostingCellView
+                cell?.host(parent.rowContent(items[row]))
+            }
         }
 
         func index(of id: Item.ID) -> Int? {

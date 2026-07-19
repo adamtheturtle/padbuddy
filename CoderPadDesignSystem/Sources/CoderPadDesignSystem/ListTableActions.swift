@@ -14,6 +14,15 @@ func uniqueListItems<Item: Identifiable>(_ items: [Item]) -> [Item] where Item.I
     return items.filter { seen.insert($0.id).inserted }
 }
 
+enum ListTableUpdateKind: Equatable {
+    case reload
+    case refreshVisibleRows
+}
+
+func listTableUpdateKind<ID: Equatable>(oldIDs: [ID], newIDs: [ID], force: Bool) -> ListTableUpdateKind {
+    force || oldIDs != newIDs ? .reload : .refreshVisibleRows
+}
+
 /// One entry in a row's right-click menu, built by the caller and rendered as an `NSMenuItem`.
 public enum RowMenuItem {
     case button(title: String, isDestructive: Bool = false, isEnabled: Bool = true, perform: () -> Void)
