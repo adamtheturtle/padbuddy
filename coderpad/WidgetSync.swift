@@ -119,8 +119,14 @@ enum WidgetSync {
     /// init.
     static func syncFavorites(account accountID: UUID) {
         let favorites = FavoriteQuestionsStore.shared.titledFavorites(account: accountID)
+        // `cached`, not `get`: this runs for every account at launch (see
+        // `syncAllFavorites`), and `get` falls back to a synchronous whole-file read
+        // and JSON decode on the main actor for any account not yet warmed (#2448).
+        // The cache is only consulted for a fresher title than the favourite already
+        // stores, so a cold account simply keeps the stored one until its questions
+        // load and the per-account sync runs again.
         let cacheTitles = Dictionary(
-            QuestionsCacheStore.shared.get(accountID).map { ($0.id, $0.displayTitle) },
+            QuestionsCacheStore.shared.cached(accountID).map { ($0.id, $0.displayTitle) },
             uniquingKeysWith: { first, _ in first }
         )
         let widgetFavorites = favorites.map { favorite in

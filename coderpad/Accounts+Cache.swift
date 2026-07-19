@@ -187,7 +187,9 @@ final class PadsCacheStore {
         let knownAccounts = account.map { [$0] }
             ?? Array(Set(AccountsStore.shared.accounts.map(\.id)).union(padsByAccount.keys))
         for accountID in knownAccounts {
-            let pads = get(accountID)
+            // `cached` for the id-only sweep, `get` when the caller named an account —
+            // see the matching note in `removeQuestion` (#2448).
+            let pads = account == nil ? cached(accountID) : get(accountID)
             guard pads.contains(where: { $0.id == padID }) else { continue }
 
             let reduced = pads.filter { $0.id != padID }
@@ -301,7 +303,12 @@ final class QuestionsCacheStore {
         let targets = account.map { [$0] }
             ?? Array(Set(AccountsStore.shared.accounts.map(\.id)).union(questionsByAccount.keys))
         for accountID in targets {
-            let questions = get(accountID)
+            // `cached` for the id-only sweep: `get` falls back to a synchronous
+            // whole-file read and decode per account on the main actor, and an account
+            // whose list isn't in memory can't be displaying this question anywhere
+            // that needs correcting (#2448). An explicitly-targeted account still gets
+            // the full read, since the caller knows which list it means.
+            let questions = account == nil ? cached(accountID) : get(accountID)
             let holdsQuestion = questions.contains { $0.id == questionID }
             // Spotlight identifiers are namespaced per account (#378), so remove
             // from the index inside the loop — once per account that holds the id.
