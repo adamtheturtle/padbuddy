@@ -13,4 +13,8 @@ nonisolated enum StandaloneWindowAccountResolution {
 
         return !accounts.contains { $0.id == target }
     }
+
+    static func accountDisappeared(previous: UUID?, current: UUID?) -> Bool {
+        previous != nil && current == nil
+    }
 }

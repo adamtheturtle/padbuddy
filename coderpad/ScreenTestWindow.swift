@@ -36,6 +36,7 @@ struct ScreenTestWindow: View {
     @State private var loadFailed = false
     @State private var refreshError: String?
     @State private var fallbackAccountID: UUID?
+    @State private var loadGeneration = 0
 
     /// The owning account: the one named in the value, or the current account captured
     /// when a legacy/restored value omits it. The fallback is intentionally sticky so
@@ -89,6 +90,17 @@ struct ScreenTestWindow: View {
             captureFallbackAccountIfNeeded()
             if fetched == nil { Task { await refresh() } }
         }
+        .onChange(of: account?.id) { previous, current in
+            guard StandaloneWindowAccountResolution.accountDisappeared(
+                previous: previous, current: current
+            ) else { return }
+
+            loadGeneration += 1
+            fetched = nil
+            fetchedFor = nil
+            refreshError = nil
+            loadFailed = true
+        }
         .onReloadRequest { await refresh() }
     }
 
@@ -114,14 +126,21 @@ struct ScreenTestWindow: View {
     private func refresh() async {
         guard let value, let client = account?.makeScreenClient() else { return }
 
+        loadGeneration += 1
+        let generation = loadGeneration
         do {
-            fetched = try await client.getTest(id: value.id)
+            let test = try await client.getTest(id: value.id)
+            guard generation == loadGeneration else { return }
+
+            fetched = test
             fetchedFor = value
             loadFailed = false
             refreshError = nil
         } catch is CancellationError {
             return
         } catch {
+            guard generation == loadGeneration else { return }
+
             if fetched == nil {
                 loadFailed = true
             } else {

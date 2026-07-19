@@ -124,7 +124,13 @@ struct QuestionWindow: View {
         .onChange(of: account.map { cache.writeGeneration[$0.id] ?? 0 }) { _, _ in
             resolveCachedQuestion()
         }
-        .onChange(of: account?.id) { _, _ in resolveCachedQuestion() }
+        .onChange(of: account?.id) { previous, current in
+            if StandaloneWindowAccountResolution.accountDisappeared(previous: previous, current: current) {
+                resetForMissingAccount()
+            } else {
+                resolveCachedQuestion()
+            }
+        }
         .onReloadRequest { await refresh() }
     }
 
@@ -148,6 +154,15 @@ struct QuestionWindow: View {
         guard value?.account == nil, fallbackAccountID == nil else { return }
 
         fallbackAccountID = accounts.currentAccountID
+    }
+
+    private func resetForMissingAccount() {
+        loadGeneration += 1
+        fetched = nil
+        fetchedFor = nil
+        cachedQuestion = nil
+        refreshError = nil
+        loadFailed = true
     }
 
     private func refresh() async {

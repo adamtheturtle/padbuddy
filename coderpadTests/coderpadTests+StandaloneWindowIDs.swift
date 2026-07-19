@@ -36,4 +36,11 @@ struct StandaloneWindowIDTests {
             nil, accounts: [present]
         ))
     }
+
+    @Test func `a loaded account transition to nil requires standalone state reset`() {
+        let id = UUID()
+        #expect(StandaloneWindowAccountResolution.accountDisappeared(previous: id, current: nil))
+        #expect(!StandaloneWindowAccountResolution.accountDisappeared(previous: nil, current: nil))
+        #expect(!StandaloneWindowAccountResolution.accountDisappeared(previous: id, current: UUID()))
+    }
 }
