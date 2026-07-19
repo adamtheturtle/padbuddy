@@ -32,4 +32,19 @@ struct BackgroundRefreshSnapshotTests {
             accountID: accountID, clientIdentity: secondClient, snapshot: second, states: &states
         )?["old"]?.participantCount == 1)
     }
+
+    @Test
+    func `refresh failure backoff grows and caps`() {
+        #expect(PadsBackgroundRefresher.retryDelay(for: 1) == 300)
+        #expect(PadsBackgroundRefresher.retryDelay(for: 3) == 1200)
+        #expect(PadsBackgroundRefresher.retryDelay(for: 20) == 3600)
+    }
+
+    @Test
+    func `refresh errors are categorized without retaining response details`() {
+        #expect(PadsBackgroundRefresher.failureKind(for: CoderPadError.http(401, "secret")) == .unauthorized)
+        #expect(PadsBackgroundRefresher.failureKind(for: CoderPadError.http(503, "secret")) == .server)
+        #expect(PadsBackgroundRefresher.failureKind(for: CoderPadError.decode("secret")) == .invalidResponse)
+        #expect(PadsBackgroundRefresher.failureKind(for: URLError(.notConnectedToInternet)) == .network)
+    }
 }

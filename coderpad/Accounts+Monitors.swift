@@ -145,6 +145,29 @@ final class PadsBackgroundRefresher {
         let pads: [Pad]
     }
 
+    nonisolated enum FailureKind: String {
+        case timeout
+        case unauthorized
+        case network
+        case server
+        case invalidResponse
+        case other
+    }
+
+    nonisolated enum FetchOutcome {
+        case success(FetchResult)
+        case failure(accountID: UUID, clientIdentity: ClientTaskIdentity, kind: FailureKind)
+        case cancelled
+    }
+
+    struct FailureState: Equatable {
+        let clientIdentity: ClientTaskIdentity
+        let kind: FailureKind
+        let consecutiveFailures: Int
+        let lastFailure: Date
+        let retryAfter: Date
+    }
+
     struct AccountActivityState {
         let clientIdentity: ClientTaskIdentity
         let snapshot: [String: PadActivitySnapshot]
@@ -160,6 +183,7 @@ final class PadsBackgroundRefresher {
     /// does (#735). An account's first sweep only seeds its snapshot, so a cold
     /// start never alerts about every existing pad.
     private var previousActivity: [UUID: AccountActivityState] = [:]
+    var failuresByAccount: [UUID: FailureState] = [:]
     static let maximumConcurrentFetches = 3
     static let perAccountTimeout: Duration = .seconds(45)
     private init() {}
@@ -204,29 +228,35 @@ final class PadsBackgroundRefresher {
         // process lifetime (#1778).
         let live = Set(AccountsStore.shared.accounts.map(\.id))
         previousActivity = previousActivity.filter { live.contains($0.key) }
+        failuresByAccount = failuresByAccount.filter { live.contains($0.key) }
 
         // One alert per account: the notifier coalesces onto per-account
         // identifiers (#1144, refining #1038 - the old single identifier meant
         // per-account calls cancelled each other, which forced a merged,
         // unattributed alert), so each organization's activity is named and
         // stands on its own.
+        let now = Date()
         let jobs = AccountsStore.shared.accounts.compactMap { account -> FetchJob? in
             guard !account.isMock else { return nil }
 
             let apiKey = account.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !apiKey.isEmpty else { return nil }
 
-            return FetchJob(accountID: account.id, apiKey: apiKey, baseURL: account.resolvedBaseURL)
+            let job = FetchJob(accountID: account.id, apiKey: apiKey, baseURL: account.resolvedBaseURL)
+            let identity = ClientTaskIdentity(apiKey: apiKey, baseURL: job.baseURL)
+            if let failure = failuresByAccount[account.id],
+               failure.clientIdentity == identity, failure.retryAfter > now { return nil }
+            return job
         }
 
-        await withTaskGroup(of: FetchResult?.self) { group in
+        await withTaskGroup(of: FetchOutcome.self) { group in
             var pending = jobs.makeIterator()
             for _ in 0 ..< min(Self.maximumConcurrentFetches, jobs.count) {
                 if let job = pending.next() { Self.addFetch(job, to: &group) }
             }
 
-            while let result = await group.next() {
-                if let result { apply(result) }
+            while let outcome = await group.next() {
+                apply(outcome)
                 if let job = pending.next() { Self.addFetch(job, to: &group) }
             }
         }
@@ -234,31 +264,62 @@ final class PadsBackgroundRefresher {
 
     private nonisolated static func addFetch(
         _ job: FetchJob,
-        to group: inout TaskGroup<FetchResult?>
+        to group: inout TaskGroup<FetchOutcome>
     ) {
         group.addTask {
             await fetch(job, timeout: perAccountTimeout)
         }
     }
 
-    private nonisolated static func fetch(_ job: FetchJob, timeout: Duration) async -> FetchResult? {
-        await withTaskGroup(of: FetchResult?.self) { group in
+    private nonisolated static func fetch(_ job: FetchJob, timeout: Duration) async -> FetchOutcome {
+        let identity = ClientTaskIdentity(apiKey: job.apiKey, baseURL: job.baseURL)
+        return await withTaskGroup(of: FetchOutcome.self) { group in
             group.addTask {
                 let client = CoderPadClient.live(apiKey: job.apiKey, baseURL: job.baseURL)
-                guard let pads = try? await client.listPads(sort: "updated_at,desc") else { return nil }
-
-                return FetchResult(accountID: job.accountID, clientIdentity: client.taskIdentity, pads: pads)
+                do {
+                    let pads = try await client.listPads(sort: "updated_at,desc")
+                    return .success(FetchResult(
+                        accountID: job.accountID, clientIdentity: identity, pads: pads
+                    ))
+                } catch is CancellationError {
+                    return .cancelled
+                } catch {
+                    return .failure(
+                        accountID: job.accountID,
+                        clientIdentity: identity,
+                        kind: failureKind(for: error)
+                    )
+                }
             }
             group.addTask {
-                try? await Task.sleep(for: timeout)
-                return nil
+                do {
+                    try await Task.sleep(for: timeout)
+                    return .failure(
+                        accountID: job.accountID,
+                        clientIdentity: identity,
+                        kind: .timeout
+                    )
+                } catch {
+                    return .cancelled
+                }
             }
 
             let first = await group.next()
             group.cancelAll()
-            guard let first else { return nil }
+            guard let first else { return .cancelled }
 
             return first
+        }
+    }
+
+    private func apply(_ outcome: FetchOutcome) {
+        switch outcome {
+        case let .success(result):
+            apply(result)
+        case let .failure(accountID, identity, kind):
+            recordFailure(accountID: accountID, clientIdentity: identity, kind: kind)
+        case .cancelled:
+            break
         }
     }
 
@@ -268,6 +329,7 @@ final class PadsBackgroundRefresher {
         let client = account.makeClient()
         guard client.taskIdentity == result.clientIdentity else { return }
 
+        failuresByAccount[account.id] = nil
         let changes = ownedChanges(account: account, client: client, fetched: result.pads)
         PadsCacheStore.shared.set(account.id, pads: result.pads, via: client)
         PadUpdateNotifier.shared.notify(changes: changes, account: account)
