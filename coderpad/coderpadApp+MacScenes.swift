@@ -23,6 +23,7 @@
             // `applicationShouldTerminateAfterLastWindowClosed` returns false.
             Window("PadBuddy", id: "main") {
                 ContentView()
+                    .windowScoped()
                     // Width floor is owned by `MainSplit`, derived from the live column
                     // minimums (and enforced via the sidebar's auto-collapse) rather
                     // than a hardcoded number here.
@@ -98,6 +99,7 @@
             // swiftformat:disable:next unusedArguments
             WindowGroup("Question", id: "question", for: QuestionWindowID.self) { $value in
                 QuestionWindow(value: value)
+                    .windowScoped()
                     .frame(minWidth: 600, minHeight: 560)
                     .preferredColorScheme(appearance.colorScheme)
             }
@@ -110,6 +112,7 @@
             // swiftformat:disable:next unusedArguments
             WindowGroup("Pad", id: "pad", for: PadWindowID.self) { $value in
                 PadWindow(value: value)
+                    .windowScoped()
                     .frame(minWidth: 600, minHeight: 560)
                     .preferredColorScheme(appearance.colorScheme)
             }
@@ -122,6 +125,7 @@
             // swiftformat:disable:next unusedArguments
             WindowGroup("Test Session", id: "screen-test", for: ScreenTestWindowID.self) { $value in
                 ScreenTestWindow(value: value)
+                    .windowScoped()
                     .frame(minWidth: 600, minHeight: 560)
                     .preferredColorScheme(appearance.colorScheme)
             }

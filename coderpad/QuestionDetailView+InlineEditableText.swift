@@ -82,6 +82,7 @@ struct InlineEditableText: View {
     var label: String
     /// Stable identity of this field across mounts (question/pad id + field), so an
     /// in-progress edit survives its pane being unmounted by a tab switch (#1020).
+    /// Qualified by the window before use — see `stashKey`.
     let draftKey: String
     /// Commits the edited text, returning `true` on success so the editor closes.
     let onSave: (String) async -> Bool
@@ -90,6 +91,9 @@ struct InlineEditableText: View {
     @Environment(\.isReadOnly) private var isReadOnly
     /// Drop the hover fade when Reduce Motion is on (#614).
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Which window this editor is in, so two windows editing the same field keep
+    /// separate drafts — see `stashKey`.
+    @Environment(\.windowScope) private var windowScope
     @State private var editing = false
     @State private var draft = ""
     @State private var baseText = ""
@@ -97,6 +101,18 @@ struct InlineEditableText: View {
     @State private var saving = false
     @State private var hovered = false
     @FocusState private var focused: Bool
+
+    /// The key this editor stashes under: the field's identity plus the window's.
+    ///
+    /// The stash holds one draft per key, so keying on the field alone meant two
+    /// windows open on the same pad or question shared a slot — whichever editor
+    /// unmounted last replaced the other window's unsaved text, and the other
+    /// window then resumed the wrong draft (#2645). Qualifying by window keeps
+    /// them apart while preserving what the stash is for: a tab switch happens
+    /// inside one window, so that window's own draft still comes back (#1020).
+    private var stashKey: String {
+        "\(draftKey)@\(windowScope.token)"
+    }
 
     var body: some View {
         Group {
@@ -111,7 +127,7 @@ struct InlineEditableText: View {
         // draft so coming back resumes the edit instead of losing it (#1020).
         .onDisappear {
             if editing, draft != text {
-                InlineEditDrafts.shared.stash(draft, for: draftKey)
+                InlineEditDrafts.shared.stash(draft, for: stashKey)
             }
         }
         .animation(reduceMotion ? nil : .easeInOut(duration: 0.12), value: hovered)
@@ -121,7 +137,7 @@ struct InlineEditableText: View {
     /// mid-edit. A stash matching the current source is dropped instead: the edit
     /// either got saved after the unmount or no longer changes anything.
     private func resumeStashedDraft() {
-        guard !isReadOnly, let stored = InlineEditDrafts.shared.take(for: draftKey),
+        guard !isReadOnly, let stored = InlineEditDrafts.shared.take(for: stashKey),
               stored != text else { return }
 
         draft = stored
@@ -236,7 +252,7 @@ struct InlineEditableText: View {
         // An explicit cancel abandons the edit everywhere: a stash left by an
         // earlier unmount (e.g. one skipped by the read-only resume guard) must
         // not reopen the abandoned edit on a later mount (#1806).
-        InlineEditDrafts.shared.clear(for: draftKey)
+        InlineEditDrafts.shared.clear(for: stashKey)
         editing = false
         focused = false
         sourceChanged = false
@@ -253,7 +269,7 @@ struct InlineEditableText: View {
             // `onDisappear` already stashed the draft; a save that then succeeds
             // must clear that stash, or returning later reopens stale editing
             // over the now-saved source (#1193).
-            InlineEditDrafts.shared.clear(for: draftKey)
+            InlineEditDrafts.shared.clear(for: stashKey)
             editing = false
             focused = false
             sourceChanged = false

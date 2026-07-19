@@ -23,6 +23,7 @@
         @SceneBuilder var iOSScenes: some Scene {
             WindowGroup {
                 ContentView()
+                    .windowScoped()
                     .modifier(ScreenshotTextSize(size: Self.screenshotTextSize))
                     .modifier(IPadWidgetIntentDrain())
                     .preferredColorScheme(appearance.colorScheme)
@@ -67,6 +68,7 @@
         private var questionScene: some Scene {
             WindowGroup("Question", id: "question", for: QuestionWindowID.self) { $value in
                 QuestionWindow(value: value)
+                    .windowScoped()
                     .preferredColorScheme(appearance.colorScheme)
             }
         }
@@ -74,6 +76,7 @@
         private var padScene: some Scene {
             WindowGroup("Pad", id: "pad", for: PadWindowID.self) { $value in
                 PadWindow(value: value)
+                    .windowScoped()
                     .preferredColorScheme(appearance.colorScheme)
             }
         }
@@ -81,6 +84,7 @@
         private var screenTestScene: some Scene {
             WindowGroup("Test Session", id: "screen-test", for: ScreenTestWindowID.self) { $value in
                 ScreenTestWindow(value: value)
+                    .windowScoped()
                     .preferredColorScheme(appearance.colorScheme)
             }
         }
