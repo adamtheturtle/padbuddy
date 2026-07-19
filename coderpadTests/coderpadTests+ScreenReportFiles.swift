@@ -64,4 +64,11 @@ struct ScreenReportFilesTests {
         #expect(throws: CocoaError.self) { try ScreenReportFiles.stage(pdf, testID: 0) }
         #expect(throws: CocoaError.self) { try ScreenReportFiles.stage(pdf, testID: -1) }
     }
+
+    @Test
+    func `report size limit includes its boundary and rejects larger counts`() {
+        #expect(ScreenReportFiles.isWithinSizeLimit(ScreenReportFiles.maxReportBytes))
+        #expect(!ScreenReportFiles.isWithinSizeLimit(ScreenReportFiles.maxReportBytes + 1))
+        #expect(!ScreenReportFiles.isWithinSizeLimit(-1))
+    }
 }

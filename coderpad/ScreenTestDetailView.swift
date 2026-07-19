@@ -317,7 +317,7 @@ private extension ScreenTestDetailView {
             // picked, so require an actual PDF of sane size: a malicious or broken
             // response must not exhaust memory or smuggle arbitrary content to a
             // viewer under a .pdf name (#1862).
-            guard data.count <= Self.maxReportBytes else {
+            guard ScreenReportFiles.isWithinSizeLimit(data.count) else {
                 reportError = String(localized: "The report is too large to open.")
                 return
             }
@@ -347,11 +347,6 @@ private extension ScreenTestDetailView {
         } catch {
             reportError = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
         }
-    }
-
-    /// A generous ceiling for a single candidate report (#1862).
-    static var maxReportBytes: Int {
-        50 * 1024 * 1024
     }
 
     /// Offers a save panel (sandbox-safe: the user grants write access to the chosen

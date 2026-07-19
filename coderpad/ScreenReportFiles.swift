@@ -27,6 +27,13 @@ nonisolated enum ScreenReportFiles {
 
     /// Every PDF starts with this marker (#1943).
     static let pdfMagic = Array("%PDF-".utf8)
+    /// Generous ceiling for one candidate report, enforced at the staging boundary
+    /// as well as before the open/save choice (#2720).
+    static let maxReportBytes = 50 * 1024 * 1024
+
+    static func isWithinSizeLimit(_ byteCount: Int) -> Bool {
+        byteCount >= 0 && byteCount <= maxReportBytes
+    }
 
     /// Whether the bytes plausibly are a PDF document.
     static func isLikelyPDF(_ data: Data) -> Bool {
@@ -46,6 +53,7 @@ nonisolated enum ScreenReportFiles {
     /// enclosing directory.
     static func stage(_ data: Data, testID: Int) throws -> URL {
         guard testID > 0 else { throw CocoaError(.fileWriteInvalidFileName) }
+        guard isWithinSizeLimit(data.count) else { throw CocoaError(.fileWriteOutOfSpace) }
 
         // Never put non-PDF bytes under a .pdf name for an external viewer, even if
         // a caller forgot its own validation (#1943).
