@@ -281,9 +281,11 @@ extension AccountEditor {
 
         isLoadingMembers = true
         defer { isLoadingMembers = false }
-        let client = CoderPadClient(apiKey: draft.apiKey.trimmingCharacters(in: .whitespacesAndNewlines),
-                                    baseURL: draft.resolvedBaseURL)
+        let fingerprint = currentValidationFingerprint
+        let client = CoderPadClient(apiKey: fingerprint.apiKey, baseURL: fingerprint.baseURL)
         if let org = try? await client.organization() {
+            guard validationStillMatches(fingerprint) else { return }
+
             orgUsers = org.users
         }
     }
