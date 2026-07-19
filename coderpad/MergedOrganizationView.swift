@@ -2,14 +2,6 @@
 //  MergedOrganizationView.swift
 //  coderpad
 //
-//  The combined "All Accounts" Organization section. Each account is a distinct
-//  org, so this presents an aggregate header and a compact per-account breakdown;
-//  the full searchable user grid stays in the single-account view.
-//  Fans out `organization()`, `organizationStats()`, and `quota()` across every
-//  account concurrently (mirroring `MergedPadsView`), seeding from the org/quota
-//  caches for an instant first paint. The stats window is shared across accounts
-//  and refetched on its own when the period changes.
-//
 
 import MacPullToRefresh
 import SwiftUI
@@ -21,19 +13,16 @@ struct MergedOrganizationView: View {
     @State private var quotaCache = QuotaCacheStore.shared
     @State private var orgByAccount: [UUID: Organization] = [:]
     @State private var statsByAccount: [UUID: OrganizationStats] = [:]
+    @State private var statsFailures: Set<UUID> = []
     @State private var accountErrors: [UUID: String] = [:]
     @State private var isLoading = false
     @State private var reloadGeneration = 0
     @AppStorage(StatsPeriod.storageKey) private var period: StatsPeriod = .days7
-    /// In-flight stats refetch, cancelled before a new one so a slower earlier
-    /// response can't land on top of a newer window (as in `OrganizationView`).
     @State private var statsTask: Task<Void, Never>?
     @State private var customStart = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
     @State private var customEnd = Date()
 
     init() {
-        // Keyless accounts are excluded so a cached org from before the key was
-        // removed can't seed a stale card over the "no API key" note (#1033).
         let cachedOrgs = AccountsStore.shared.mergeableAccounts.compactMap { account -> (UUID, Organization)? in
             guard !account.apiKey.isEmpty,
                   let organization = OrganizationCacheStore.shared.get(account.id) else { return nil }
@@ -43,16 +32,10 @@ struct MergedOrganizationView: View {
         _orgByAccount = State(initialValue: Dictionary(uniqueKeysWithValues: cachedOrgs))
     }
 
-    /// Resolved (start, end) window for the active period, falling back to the
-    /// custom pickers when no preset range applies.
     private var window: (start: Date, end: Date) {
         period.range() ?? StatsPeriod.boundedCustomRange(start: customStart, end: customEnd)
     }
 
-    /// Identity of the stats window a request was made for, mirroring
-    /// `OrganizationView.statsWindowToken`. The resolved `window` dates are
-    /// now-anchored and never compare equal across reads, so guarding on them
-    /// silently dropped every full reload's stats (#798).
     private var statsWindowToken: StatsWindowToken {
         StatsWindowToken(
             period: period,
@@ -187,7 +170,7 @@ struct MergedOrganizationView: View {
                               systemImage: "rectangle.stack.person.crop", tint: .indigo)
             // No timeframe in the title: the toolbar's period picker already states
             // the window these pad counts cover, so repeating it here is redundant.
-            AggregateStatTile(title: "Pads", value: "\(totalPads)",
+            AggregateStatTile(title: "Pads", value: statsFailures.isEmpty ? "\(totalPads)" : "—",
                               systemImage: "doc.text.fill", tint: .teal)
         }
     }
@@ -198,6 +181,9 @@ struct MergedOrganizationView: View {
         Card {
             VStack(alignment: .leading, spacing: 10) {
                 AccountSectionHeader(account: account)
+                if statsFailures.contains(account.id) {
+                    StaleRefreshBanner(message: "The pad stats request failed.") { scheduleStatsReload() }
+                }
                 // The keyless branch comes first so an org card left over from
                 // before the key was removed can never win over the "no API key"
                 // note (#1033).
@@ -348,12 +334,22 @@ private extension MergedOrganizationView {
             accountErrors[result.id] = errorText
         }
         // Stats are window-scoped; org and quota are not (#384/#798).
-        if let stats = result.stats, requestedToken == statsWindowToken { statsByAccount[result.id] = stats }
+        if requestedToken == statsWindowToken {
+            if let stats = result.stats {
+                statsByAccount[result.id] = stats
+                statsFailures.remove(result.id)
+            } else {
+                statsByAccount[result.id] = nil
+                statsFailures.insert(result.id)
+            }
+        }
         if let quota = result.quota, let client { quotaCache.set(result.id, quota: quota, via: client) }
     }
 
     func scheduleStatsReload() {
         statsTask?.cancel()
+        statsByAccount = [:]
+        statsFailures = []
         statsTask = Task {
             // Settle first, like the single-account view: cancelling doesn't recall a
             // request already in flight, and here each one fans out across every
@@ -378,17 +374,24 @@ private extension MergedOrganizationView {
         let window = window
         let requestedToken = statsWindowToken
         let targets = mergeable.map { (id: $0.id, client: $0.makeClient()) }
-        await withTaskGroup(of: (UUID, OrganizationStats?).self) { group in
+        statsByAccount = [:]
+        statsFailures = []
+        let results = await withTaskGroup(
+            of: (UUID, OrganizationStats?).self,
+            returning: [(UUID, OrganizationStats?)].self
+        ) { group in
             for target in targets {
                 group.addTask {
                     await (target.id, try? target.client.organizationStats(start: window.start, end: window.end))
                 }
             }
-            for await (id, stats) in group {
-                guard !Task.isCancelled, requestedToken == statsWindowToken else { return }
-
-                if let stats { statsByAccount[id] = stats }
-            }
+            return await group.reduce(into: []) { $0.append($1) }
         }
+        guard !Task.isCancelled, requestedToken == statsWindowToken else { return }
+
+        statsByAccount = Dictionary(uniqueKeysWithValues: results.compactMap { id, stats in
+            stats.map { (id, $0) }
+        })
+        statsFailures = Set(results.compactMap { id, stats in stats == nil ? id : nil })
     }
 }
