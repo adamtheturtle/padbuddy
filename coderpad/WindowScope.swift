@@ -58,7 +58,13 @@ private struct WindowScopeRoot: ViewModifier {
             // Every scene root passes through here, which makes it the one place that
             // knows the app has something on screen — the signal App Intents wait on
             // instead of a fixed warm-up sleep (#2356).
-            .onAppear { AppReadiness.markReady() }
+            .onAppear {
+                AppReadiness.markReady()
+                // Idempotent, and the one recurring call site that can rebuild a
+                // deletion listener whose stream ended (#2352) — `AppLaunch` only
+                // starts them once, at launch.
+                DeletionCleanup.start()
+            }
     }
 }
 

@@ -12,27 +12,42 @@
 //
 
 import Foundation
+import os
 
 @MainActor
 enum DeletionCleanup {
-    /// Held for the app's lifetime; the streams never finish, so the tasks are
-    /// never explicitly cancelled.
+    /// Held for the app's lifetime; the streams are not expected to finish, so the
+    /// tasks are never explicitly cancelled. The handles are cleared if a stream does
+    /// end, which is what lets `start()` rebuild the listener (#2352).
     private static var padTask: Task<Void, Never>?
     private static var questionTask: Task<Void, Never>?
+    private static let logger = Logger(subsystem: "com.coderpad.app", category: "deletion-cleanup")
 
-    /// Starts the process-wide listeners. Called once from `AppLaunch.run()`;
-    /// subsequent calls are no-ops.
+    /// Starts the process-wide listeners, and restarts either one that is no longer
+    /// running. `start()` used to be gated on `padTask == nil` alone, so if a stream
+    /// ever finished — leaving the task complete — nothing could recreate the missing
+    /// listener, and every later deletion silently skipped its persistent cleanup
+    /// (#2352). Calling this repeatedly is still safe: a live listener is left alone.
     static func start() {
-        guard padTask == nil else { return }
-
-        padTask = Task {
-            for await deletion in AppRouter.padDeletions {
-                cleanUpDeletedPad(deletion)
+        if padTask == nil {
+            padTask = Task {
+                for await deletion in AppRouter.padDeletions {
+                    cleanUpDeletedPad(deletion)
+                }
+                // Reaching here means the stream finished, which is not expected for a
+                // process-lifetime broadcast. Log it and drop the handle so the next
+                // `start()` can rebuild the listener.
+                logger.error("Pad deletion listener ended; cleanup is paused until it is restarted")
+                padTask = nil
             }
         }
-        questionTask = Task {
-            for await deletion in AppRouter.questionDeletions {
-                cleanUpDeletedQuestion(deletion)
+        if questionTask == nil {
+            questionTask = Task {
+                for await deletion in AppRouter.questionDeletions {
+                    cleanUpDeletedQuestion(deletion)
+                }
+                logger.error("Question deletion listener ended; cleanup is paused until it is restarted")
+                questionTask = nil
             }
         }
     }
@@ -49,16 +64,29 @@ enum DeletionCleanup {
     /// state for account A's same-slug delete (#1154). Ambiguous or unresolvable
     /// legacy events are dropped.
     static func cleanUpDeletedPad(_ deletion: PadDeletion) {
-        guard let owner = deletion.account ?? soleCachedHolder(ofPad: deletion.id) else { return }
+        guard let owner = deletion.account ?? soleCachedHolder(ofPad: deletion.id) else {
+            logger.info("Dropped an unresolvable pad deletion broadcast; no account owns it unambiguously")
+            return
+        }
 
         PadsCacheStore.shared.removePad(id: deletion.id, account: owner)
-        guard let account = AccountsStore.shared.accounts.first(where: { $0.id == owner }) else { return }
-
-        FavoritePadsStore.shared.remove(deletion.id, account: account.id)
-        PadOpenedStore.shared.removePad(deletion.id, account: account.id)
-        // The detail cache is keyed by pad + client credentials, so the owning
-        // account's client reaches its entry.
-        PadDetailCacheStore.shared.remove(deletion.id, client: account.makeClient())
+        // Keyed by the owning account id, so these run whether or not the account is
+        // still configured. They used to sit behind the account lookup below, and an
+        // account removed before its deletion broadcast arrived kept its pinned and
+        // recently-opened entries for a pad that no longer exists (#2349).
+        FavoritePadsStore.shared.remove(deletion.id, account: owner)
+        PadOpenedStore.shared.removePad(deletion.id, account: owner)
+        if let account = AccountsStore.shared.accounts.first(where: { $0.id == owner }) {
+            // The detail cache is keyed by pad + client credentials, so the owning
+            // account's client reaches its entry.
+            PadDetailCacheStore.shared.remove(deletion.id, client: account.makeClient())
+        } else {
+            // With the account gone there is no client to key by, so every identity's
+            // entry for this pad id goes (#2349). Removing an account already purges
+            // its whole identity (#884); this covers the deletion arriving afterwards.
+            PadDetailCacheStore.shared.removeAll(padID: deletion.id)
+            logger.info("Cleaned up a pad deletion for an account that is no longer configured")
+        }
     }
 
     /// The question counterpart: the list cache (which also updates Spotlight) and
@@ -66,7 +94,10 @@ enum DeletionCleanup {
     /// account because per-org ids collide; a bare id applies only when exactly
     /// one account's cache holds it, mirroring the pad path (#1154).
     static func cleanUpDeletedQuestion(_ deletion: QuestionDeletion) {
-        guard let owner = deletion.account ?? soleCachedHolder(ofQuestion: deletion.id) else { return }
+        guard let owner = deletion.account ?? soleCachedHolder(ofQuestion: deletion.id) else {
+            logger.info("Dropped an unresolvable question deletion broadcast; no account owns it unambiguously")
+            return
+        }
 
         QuestionsCacheStore.shared.removeQuestion(id: deletion.id, account: owner)
         FavoriteQuestionsStore.shared.remove(deletion.id, account: owner)

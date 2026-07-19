@@ -168,6 +168,17 @@ final class PadDetailCacheStore {
         lru.removeAll { $0 == key }
     }
 
+    /// Drops every cached entry for a pad id, whatever client identity fetched it.
+    /// Used when a deletion arrives for an account that has already been removed, so
+    /// its detail entry cannot be reached by client any more (#2349).
+    func removeAll(padID: String) {
+        let stale = byPad.keys.filter { $0.padID == padID }
+        for key in stale {
+            byPad[key] = nil
+        }
+        lru.removeAll(where: stale.contains)
+    }
+
     /// Drops every cached detail fetched with this client identity, so removing
     /// or re-keying an account leaves none of its candidate code, event logs, or
     /// histories resident (#884, #719), and retires the identity so an in-flight
