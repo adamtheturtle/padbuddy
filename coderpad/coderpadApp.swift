@@ -198,7 +198,8 @@ struct CoderpadApp: App {
 
         switch url.host {
         case "pad":
-            let id = url.path().trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            guard let id = Self.padID(fromDeepLink: url) else { return }
+
             // An `account` query names which account owns the id, so a same-slug pad on
             // another custom server can't be opened instead (#2173). It is honoured only
             // when that account still exists; otherwise the id resolves as before.
@@ -208,7 +209,7 @@ struct CoderpadApp: App {
                 .flatMap { uuid in
                     AccountsStore.shared.accounts.contains { $0.id == uuid } ? uuid : nil
                 }
-            if !id.isEmpty { AppNavigation.shared.openPad(id: id, account: owner) }
+            AppNavigation.shared.openPad(id: id, account: owner)
 
         case "pads":
             AppNavigation.shared.show(.pads)
@@ -234,6 +235,18 @@ struct CoderpadApp: App {
         default:
             break
         }
+    }
+
+    static func padID(fromDeepLink url: URL) -> String? {
+        guard url.scheme == "coderpad", url.host == "pad",
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
+
+        let segments = components.percentEncodedPath.split(separator: "/", omittingEmptySubsequences: false)
+        guard segments.count == 2, segments[0].isEmpty,
+              let id = String(segments[1]).removingPercentEncoding, !id.isEmpty,
+              !id.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains) else { return nil }
+
+        return id
     }
 
     /// Moves the visible section forward (`+1`) or back (`-1`), wrapping at the

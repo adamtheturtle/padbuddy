@@ -16,6 +16,7 @@
 #else
     import UIKit
 #endif
+import Foundation
 import os
 import UserNotifications
 
@@ -61,6 +62,9 @@ final class PadUpdateNotifier: NSObject {
     /// The stable identifier prefix; the owning account's id is appended so each
     /// organization coalesces onto its own alert (#1144).
     private static let notificationID = "coderpad.padUpdates"
+    private static let padPathAllowed = CharacterSet(
+        charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
+    )
 
     /// Diagnostics for notifications that fail to schedule.
     private static let notificationLogger = Logger(subsystem: "com.coderpad.app", category: "pad-notifications")
@@ -198,9 +202,9 @@ final class PadUpdateNotifier: NSObject {
             // The owning account travels with the id: pad slugs are only unique per
             // server, so a bare id could open a same-slug pad in whichever account
             // happened to be current when the alert was tapped (#2173).
-            var link = "coderpad://pad/\(change.pad.id)"
-            if let accountID { link += "?account=\(accountID.uuidString)" }
-            content.userInfo = ["url": link]
+            if let link = Self.notificationURL(padID: change.pad.id, accountID: accountID) {
+                content.userInfo = ["url": link.absoluteString]
+            }
         } else {
             content.title = "Pads updated"
             content.body = hideTitles
@@ -233,6 +237,20 @@ final class PadUpdateNotifier: NSObject {
 
     private func isCurrent(identifier: String, generation: Int) -> Bool {
         !Task.isCancelled && generation == notificationGenerations[identifier]
+    }
+
+    static func notificationURL(padID: String, accountID: UUID?) -> URL? {
+        guard !padID.isEmpty,
+              let encodedID = padID.addingPercentEncoding(withAllowedCharacters: padPathAllowed) else { return nil }
+
+        var components = URLComponents()
+        components.scheme = "coderpad"
+        components.host = "pad"
+        components.percentEncodedPath = "/\(encodedID)"
+        if let accountID {
+            components.queryItems = [URLQueryItem(name: "account", value: accountID.uuidString)]
+        }
+        return components.url
     }
 
     /// A one-line body for a burst of changes. When they're all the same kind we
