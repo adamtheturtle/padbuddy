@@ -112,9 +112,7 @@ struct MergedScreenView: View {
         }
         guard selectedScopedID != id else { return }
 
-        DispatchQueue.main.async {
-            if selectedScopedID != id { selectedScopedID = id }
-        }
+        selectedScopedID = id
     }
 
     private func publishSelectedCampaign(_ id: String?) {
@@ -128,19 +126,14 @@ struct MergedScreenView: View {
 
         let campaign = scoped?.campaign
         let accountID = scoped?.accountID
-        let windowNav = windowNav
-        let routing = routing
-        guard windowNav.screenCampaignSelection != campaign || routing.selectedScreenAccountID != accountID else {
+        guard windowNav.screenCampaignSelection != campaign
+            || windowNav.screenCampaignAccountID != accountID
+            || routing.selectedScreenAccountID != accountID else {
             return
         }
 
-        DispatchQueue.main.async {
-            if windowNav.screenCampaignSelection != campaign
-                || windowNav.screenCampaignAccountID != accountID {
-                windowNav.publishScreenCampaign(campaign, accountID: accountID)
-            }
-            if routing.selectedScreenAccountID != accountID { routing.selectedScreenAccountID = accountID }
-        }
+        windowNav.publishScreenCampaign(campaign, accountID: accountID)
+        routing.selectedScreenAccountID = accountID
     }
 
     /// Right-click actions for a campaign row, mirroring the single-account view
