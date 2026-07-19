@@ -115,13 +115,23 @@
             deinit {}
 
             func reloadIfNeeded(_ newItems: [Item], reloadID newReloadID: AnyHashable?, force: Bool) {
-                let changed = force || newItems.map(\.id) != items.map(\.id) || newReloadID != reloadID
+                // Filtering changes the rows without touching `reloadID`, so the ids
+                // still have to be compared — but in place: mapping both sides to
+                // `[Item.ID]` allocated two arrays on every update pass, and this runs
+                // for every selection change, hover, and unrelated SwiftUI update (#2081).
+                let idsChanged = newItems.count != items.count
+                    || !newItems.elementsEqual(items) { $0.id == $1.id }
+                let changed = force || idsChanged || newReloadID != reloadID
                 items = newItems
                 reloadID = newReloadID
-                indexByID = Dictionary(newItems.enumerated().map { ($1.id, $0) },
-                                       uniquingKeysWith: { first, _ in first })
                 guard changed else { return }
 
+                // Row indices only move when the id list does, so the dictionary is
+                // rebuilt here rather than on every pass (#2081).
+                if idsChanged || force {
+                    indexByID = Dictionary(newItems.enumerated().map { ($1.id, $0) },
+                                           uniquingKeysWith: { first, _ in first })
+                }
                 tableView?.reloadData()
                 applySelection(parent.selection)
             }
