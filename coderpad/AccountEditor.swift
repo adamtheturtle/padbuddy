@@ -55,6 +55,7 @@ struct AccountEditor: View {
     /// a pile of in-flight probes against credentials the user had already replaced
     /// (#2194). Cancelling the task cancels them: `async let` children inherit it.
     @State var validationTask: Task<Void, Never>?
+    @State var nameEditGeneration = 0
     @State var showDeleteConfirmation = false
     /// Reveals the API key as plain text on explicit request. The field is a
     /// `SecureField` by default so macOS offers password AutoFill suggestions;
@@ -290,7 +291,7 @@ struct AccountEditor: View {
             // Saved-account autosave: persist Description / Your Email edits after typing
             // settles, and persist a re-validated key or server URL when validation flips
             // to `.valid` (which re-enables `canSave`). A no-op for the modal Add sheet.
-            .onChange(of: draft.name) { _, _ in commitLiveEdit() }
+            .onChange(of: draft.name) { _, _ in descriptionChanged() }
     }
 
     private var editorContent: some View {

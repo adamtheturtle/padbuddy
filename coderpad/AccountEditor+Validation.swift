@@ -32,15 +32,29 @@ extension AccountEditor {
         return EmailValidation.isPlausibleAddress(normalized) ? normalized : nil
     }
 
+    static func shouldAutofillValidatedName(
+        _ currentName: String,
+        currentGeneration: Int,
+        validatedGeneration: Int
+    ) -> Bool {
+        currentGeneration == validatedGeneration
+            && currentName.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
     func applyValidatedOrganization(
         _ org: Organization,
         client: CoderPadClient,
-        fingerprint: ValidationFingerprint
+        fingerprint: ValidationFingerprint,
+        nameGeneration: Int
     ) async -> Bool {
         guard validationStillMatches(fingerprint) else { return false }
 
         orgUsers = org.users
-        if draft.name.trimmingCharacters(in: .whitespaces).isEmpty {
+        if Self.shouldAutofillValidatedName(
+            draft.name,
+            currentGeneration: nameEditGeneration,
+            validatedGeneration: nameGeneration
+        ) {
             draft.name = org.organizationName
         }
         // Pre-select the signed-in user's email. The default /api/pads/ endpoint

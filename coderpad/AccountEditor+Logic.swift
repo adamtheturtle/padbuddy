@@ -197,6 +197,11 @@ extension AccountEditor {
         }
     }
 
+    func descriptionChanged() {
+        nameEditGeneration &+= 1
+        commitLiveEdit()
+    }
+
     /// Persists the current draft when autosave is allowed and the draft is in a valid
     /// saveable state. Called after the debounce and when the editor disappears, so a
     /// quick navigation away does not drop the latest valid edit.
@@ -341,12 +346,18 @@ extension AccountEditor {
             return
         }
         let fingerprint = currentValidationFingerprint
+        let validatedNameGeneration = nameEditGeneration
         validation = .validating
         scopeWarning = nil
         do {
             let client = CoderPadClient(apiKey: fingerprint.apiKey, baseURL: fingerprint.baseURL)
             let org = try await client.organization()
-            guard await applyValidatedOrganization(org, client: client, fingerprint: fingerprint) else { return }
+            guard await applyValidatedOrganization(
+                org,
+                client: client,
+                fingerprint: fingerprint,
+                nameGeneration: validatedNameGeneration
+            ) else { return }
         } catch {
             guard validationStillMatches(fingerprint) else { return }
 

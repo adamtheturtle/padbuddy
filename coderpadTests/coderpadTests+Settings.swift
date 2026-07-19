@@ -50,6 +50,30 @@ struct AccountOwnerEmailValidationTests {
     }
 }
 
+@Suite("Account validation name autofill")
+struct AccountValidationNameAutofillTests {
+    @Test
+    func `unchanged blank description accepts the organization name`() {
+        #expect(AccountEditor.shouldAutofillValidatedName(
+            "  ", currentGeneration: 2, validatedGeneration: 2
+        ))
+    }
+
+    @Test
+    func `an edit during validation preserves the current description`() {
+        #expect(!AccountEditor.shouldAutofillValidatedName(
+            "", currentGeneration: 3, validatedGeneration: 2
+        ))
+    }
+
+    @Test
+    func `an existing description is never replaced`() {
+        #expect(!AccountEditor.shouldAutofillValidatedName(
+            "Personal", currentGeneration: 2, validatedGeneration: 2
+        ))
+    }
+}
+
 @Suite("App appearance")
 struct AppAppearanceTests {
     @Test(arguments: [
