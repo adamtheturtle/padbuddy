@@ -100,8 +100,23 @@ enum IPadQuickAction: String {
     case showPads = "com.adamdangoor.padbuddy.show-pads"
     case showQuestions = "com.adamdangoor.padbuddy.show-questions"
 
+    /// List shortcuts remain useful without an account; creation shortcuts must
+    /// not enter an unsatisfiable flow on cold launch or while offline.
+    func isAvailable(canCreate: Bool) -> Bool {
+        switch self {
+        case .newPad, .newQuestion: canCreate
+        case .showPads, .showQuestions: true
+        }
+    }
+
     @MainActor
     func perform() {
+        let canCreate = AppCreationAvailability.canCreate(
+            accounts: AccountsStore.shared,
+            network: NetworkMonitor.shared
+        )
+        guard isAvailable(canCreate: canCreate) else { return }
+
         switch self {
         case .newPad:
             AppNavigation.shared.showPads(PadsRequest(startCreating: true))

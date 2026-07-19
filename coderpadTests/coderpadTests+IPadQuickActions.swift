@@ -49,4 +49,18 @@ struct IPadQuickActionTests {
         #expect(queue.enqueue(type: IPadQuickAction.showQuestions.rawValue))
         #expect(queue.drain() == [.showQuestions])
     }
+
+    @Test
+    func `creation shortcuts require creation availability`() {
+        #expect(!IPadQuickAction.newPad.isAvailable(canCreate: false))
+        #expect(!IPadQuickAction.newQuestion.isAvailable(canCreate: false))
+        #expect(IPadQuickAction.newPad.isAvailable(canCreate: true))
+        #expect(IPadQuickAction.newQuestion.isAvailable(canCreate: true))
+    }
+
+    @Test
+    func `list shortcuts remain available without creation access`() {
+        #expect(IPadQuickAction.showPads.isAvailable(canCreate: false))
+        #expect(IPadQuickAction.showQuestions.isAvailable(canCreate: false))
+    }
 }
