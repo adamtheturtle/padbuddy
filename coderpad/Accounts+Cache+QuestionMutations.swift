@@ -13,35 +13,77 @@
 import Foundation
 
 extension QuestionsCacheStore {
+    /// Whether a question id could have come from CoderPad.
+    ///
+    /// Ids are positive. A malformed mutation response carrying 0 or a negative id
+    /// was written straight into the cache, the disk snapshot, and the Spotlight
+    /// index, producing rows that can never be fetched or deleted normally (#2621).
+    private func isValidQuestionID(_ id: Int) -> Bool {
+        id > 0
+    }
+
+    /// Whether this account has a cached list at all.
+    ///
+    /// A write-back is a *patch* of a known list. With no list, there is nothing to
+    /// patch, and writing one row would present a single question to disk, Spotlight,
+    /// and every other cache-backed surface as though it were the account's complete
+    /// question bank (#2619). Nothing is stale in that state either — those surfaces
+    /// show nothing and load fresh — so declining is both safe and correct.
+    private func hasListSnapshot(_ account: UUID) -> Bool {
+        !get(account).isEmpty
+    }
+
     /// Replaces one question in the account's cached list and re-runs the `set` side
-    /// effects. A no-op when the account is unknown, the cached list doesn't contain
-    /// the question, or the cached row is already identical (so repeated broadcasts
-    /// don't churn Spotlight/disk).
-    func updateQuestion(_ question: Question, account: UUID?) {
-        // These write-backs happen under the account's current credentials, so the
-        // stored account's own client is the identity token `set` validates (#754);
-        // a vanished account simply no-ops.
+    /// effects.
+    ///
+    /// `client` must be the client the mutation was actually performed through, so
+    /// `set`'s credential check can reject a response that outlived its account's
+    /// re-key. Rebuilding a client from the stored account here instead would always
+    /// match by construction and defeat that check entirely (#754, #2623).
+    ///
+    /// A no-op when the account is unknown, no list has been cached yet, the id is
+    /// invalid, or the cached rows are already identical (so repeated broadcasts
+    /// don't churn Spotlight and disk).
+    func updateQuestion(_ question: Question, account: UUID?, via client: CoderPadClient? = nil) {
         guard let account,
-              let stored = AccountsStore.shared.accounts.first(where: { $0.id == account }) else { return }
+              let stored = AccountsStore.shared.accounts.first(where: { $0.id == account }),
+              isValidQuestionID(question.id),
+              hasListSnapshot(account) else { return }
 
         var questions = get(account)
-        guard let index = questions.firstIndex(where: { $0.id == question.id }),
-              questions[index] != question else { return }
+        // Every matching row, not just the first. Duplicate ids do turn up (a cache
+        // seed overlapping a fresh page), and repairing one left the stale twin
+        // visible on cache-backed surfaces and in Spotlight (#2620).
+        let matches = questions.indices.filter { questions[$0].id == question.id }
+        guard !matches.isEmpty else {
+            // The list is loaded but doesn't have this question — a detail view or
+            // deep link reached it directly. Add it rather than dropping the edit and
+            // leaving every cache-backed surface stale until a full reload (#2618).
+            questions.append(question)
+            set(account, questions: questions, via: client ?? stored.makeClient())
+            return
+        }
+        guard matches.contains(where: { questions[$0] != question }) else { return }
 
-        questions[index] = question
-        set(account, questions: questions, via: stored.makeClient())
+        for index in matches {
+            questions[index] = question
+        }
+        set(account, questions: questions, via: client ?? stored.makeClient())
     }
 
     /// Inserts a newly created question at the head of the account's cached list
     /// (mirroring `MergedQuestionsView.insert`), so the create is visible beyond the
-    /// list that made it.
-    func insertQuestion(_ question: Question, account: UUID?) {
+    /// list that made it. Declines when no list has been cached — see
+    /// `hasListSnapshot`.
+    func insertQuestion(_ question: Question, account: UUID?, via client: CoderPadClient? = nil) {
         guard let account,
-              let stored = AccountsStore.shared.accounts.first(where: { $0.id == account }) else { return }
+              let stored = AccountsStore.shared.accounts.first(where: { $0.id == account }),
+              isValidQuestionID(question.id),
+              hasListSnapshot(account) else { return }
 
         var questions = get(account)
         questions.removeAll { $0.id == question.id }
         questions.insert(question, at: 0)
-        set(account, questions: questions, via: stored.makeClient())
+        set(account, questions: questions, via: client ?? stored.makeClient())
     }
 }
