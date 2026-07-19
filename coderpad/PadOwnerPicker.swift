@@ -31,11 +31,24 @@ struct SearchableOwnerPicker: View {
 
     @State private var isPresented = false
     @State private var query = ""
+    @State private var members: OwnerPickerMembers
+    @State private var filteredUsers: [OrganizationUser]
+    @State private var customEmailCandidate: String?
     @FocusState private var searchFocused: Bool
     @Environment(\.orgDirectory) private var directory
     #if os(iOS)
         @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     #endif
+
+    init(ownerEmail: Binding<String>, users: [OrganizationUser], keyOwnerEmail: String?) {
+        _ownerEmail = ownerEmail
+        self.users = users
+        self.keyOwnerEmail = keyOwnerEmail
+        let prepared = OwnerPickerMembers(users: users, keyOwnerEmail: keyOwnerEmail)
+        _members = State(initialValue: prepared)
+        _filteredUsers = State(initialValue: prepared.rows)
+        _customEmailCandidate = State(initialValue: nil)
+    }
 
     private var trimmedOwner: String {
         ownerEmail.trimmingCharacters(in: .whitespaces)
@@ -46,9 +59,7 @@ struct SearchableOwnerPicker: View {
         // populated) when `users` hasn't loaded yet. Without it the closed button
         // showed the raw email on first render and flashed to the name a moment
         // later, once this pad's `orgUsers` fetch returned.
-        users.first { $0.email.caseInsensitiveCompare(email) == .orderedSame }?.name?
-            .nilIfEmpty
-            ?? directory.name(for: email)
+        members.name(for: email) ?? directory.name(for: email)
     }
 
     /// The current account's email, when known — used to recognize an explicitly
@@ -90,48 +101,17 @@ struct SearchableOwnerPicker: View {
         return displayName(forEmail: trimmedOwner) ?? trimmedOwner
     }
 
-    /// The selectable member rows: self excluded (it's the pinned "Me" row),
-    /// deduplicated by email so duplicate member records can't render duplicate
-    /// rows (#2206), and sorted by display label so the order is stable across
-    /// refreshes instead of following server order (#2207).
-    private var memberRows: [OrganizationUser] {
-        var seen = Set<String>()
-        var members: [OrganizationUser] = []
-        members.reserveCapacity(users.count)
-        for user in users {
-            guard user.email.caseInsensitiveCompare(selfEmail ?? "") != .orderedSame,
-                  seen.insert(user.email.lowercased()).inserted else { continue }
-
-            members.append(user)
-        }
-        return members.sorted { lhs, rhs in
-            (lhs.name?.nilIfEmpty ?? lhs.email)
-                .localizedCaseInsensitiveCompare(rhs.name?.nilIfEmpty ?? rhs.email) == .orderedAscending
-        }
-    }
-
-    private var filteredUsers: [OrganizationUser] {
-        let members = memberRows
+    private func refreshQueryResults() {
         let trimmed = query.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty else { return members }
-
-        return members.filter {
+        filteredUsers = trimmed.isEmpty ? members.rows : members.rows.filter {
             $0.email.localizedCaseInsensitiveContains(trimmed)
                 || ($0.name?.localizedCaseInsensitiveContains(trimmed) ?? false)
         }
-    }
-
-    /// A typed address that isn't already an existing member — offered as a
-    /// "Use …" row so free-text assignment still works. Requires a plausible
-    /// address, not just an at-sign, so "@" or control characters are never
-    /// offered as an owner (#2205), and is normalized (domain lowercased) so
-    /// case variants compare consistently downstream (#2210).
-    private var customEmailCandidate: String? {
-        let trimmed = query.trimmingCharacters(in: .whitespaces)
-        guard EmailValidation.isPlausibleAddress(trimmed) else { return nil }
-        guard !users.contains(where: { $0.email.caseInsensitiveCompare(trimmed) == .orderedSame }) else { return nil }
-
-        return EmailValidation.normalized(trimmed)
+        customEmailCandidate = if EmailValidation.isPlausibleAddress(trimmed), !members.contains(email: trimmed) {
+            EmailValidation.normalized(trimmed)
+        } else {
+            nil
+        }
     }
 
     #if os(iOS)
@@ -145,30 +125,41 @@ struct SearchableOwnerPicker: View {
     #endif
 
     var body: some View {
-        #if os(iOS)
-            if usesSheetPresentation {
-                button
-                    .sheet(isPresented: $isPresented) {
-                        NavigationStack {
-                            pickerContent(maxListHeight: nil)
-                                .navigationTitle("Owner")
-                                .navigationBarTitleDisplayMode(.inline)
-                                .toolbar {
-                                    ToolbarItem(placement: .cancellationAction) {
-                                        Button("Done") { isPresented = false }
+        Group {
+            #if os(iOS)
+                if usesSheetPresentation {
+                    button
+                        .sheet(isPresented: $isPresented) {
+                            NavigationStack {
+                                pickerContent(maxListHeight: nil)
+                                    .navigationTitle("Owner")
+                                    .navigationBarTitleDisplayMode(.inline)
+                                    .toolbar {
+                                        ToolbarItem(placement: .cancellationAction) {
+                                            Button("Done") { isPresented = false }
+                                        }
                                     }
-                                }
+                            }
+                            .presentationDetents([.large])
+                            .presentationDragIndicator(.visible)
+                            .onAppear { searchFocused = true }
                         }
-                        .presentationDetents([.large])
-                        .presentationDragIndicator(.visible)
-                        .onAppear { searchFocused = true }
-                    }
-            } else {
+                } else {
+                    popoverButton
+                }
+            #else
                 popoverButton
-            }
-        #else
-            popoverButton
-        #endif
+            #endif
+        }
+        .onChange(of: query) { _, _ in refreshQueryResults() }
+        .onChange(of: users) { _, users in
+            members = OwnerPickerMembers(users: users, keyOwnerEmail: keyOwnerEmail)
+            refreshQueryResults()
+        }
+        .onChange(of: keyOwnerEmail) { _, email in
+            members = OwnerPickerMembers(users: users, keyOwnerEmail: email)
+            refreshQueryResults()
+        }
     }
 
     private var popoverButton: some View {
