@@ -113,6 +113,11 @@ struct MCPWriteToolsTests {
         let object = try encodedObject(body)
 
         #expect(MCPTools.hasAnyUpdatePadField(["notes": ""]))
+        #expect(MCPTools.hasAnyUpdatePadField(["title": 42]))
+        #expect(!MCPTools.hasAnyUpdatePadField(["title": true]))
+        #expect(MCPTools.updatePadValidationError(["title": true])?.contains("title") == true)
+        #expect(MCPTools.updatePadValidationError(["title": NSNull()])?.contains("string or integer") == true)
+        #expect(MCPTools.updatePadValidationError(["title": ""]) == nil)
         #expect(!MCPTools.hasAnyUpdatePadField([:]))
         #expect((object["title"] as? String)?.isEmpty == true)
         #expect((object["notes"] as? String)?.isEmpty == true)

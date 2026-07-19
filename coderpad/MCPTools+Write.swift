@@ -88,9 +88,8 @@ nonisolated extension MCPTools {
 
     private static func updatePad(arguments: [String: Any], key: String, base: URL) async -> Outcome {
         guard let pad = string(arguments, "pad") else { return missing("pad") }
-        guard hasAnyUpdatePadField(arguments) else {
-            return missing("at least one of title / notes / owner_email / language")
-        }
+
+        if let error = updatePadValidationError(arguments) { return Outcome(text: error, isError: true) }
 
         let body = padUpdateBody(id: pad, arguments: arguments)
         // The pad id travels in the URL path per the API (PUT /api/pads/:id).
@@ -99,7 +98,17 @@ nonisolated extension MCPTools {
     }
 
     static func hasAnyUpdatePadField(_ arguments: [String: Any]) -> Bool {
-        ["title", "notes", "owner_email", "language"].contains { arguments.keys.contains($0) }
+        ["title", "notes", "owner_email", "language"].contains { presentString(arguments, $0) != nil }
+    }
+
+    static func updatePadValidationError(_ arguments: [String: Any]) -> String? {
+        let fields = ["title", "notes", "owner_email", "language"]
+        if let invalid = fields.first(where: { arguments.keys.contains($0) && presentString(arguments, $0) == nil }) {
+            return "Argument '\(invalid)' must be a string or integer."
+        }
+        return hasAnyUpdatePadField(arguments)
+            ? nil
+            : "Missing argument: at least one of title / notes / owner_email / language"
     }
 
     static func padUpdateBody(id pad: String, arguments: [String: Any]) -> PadUpdate {
