@@ -9,6 +9,14 @@ extension ScreenClient {
     /// Downloads report bytes to URLSession's temporary file, checking both the
     /// advertised and actual size before materializing the PDF in memory (#2767).
     nonisolated func reportData(for request: URLRequest) async throws -> (Data, HTTPURLResponse) {
+        let operationID = UUID()
+        try await withTaskCancellationHandler {
+            try await ScreenReportOperationLimiter.shared.acquire(id: operationID)
+        } onCancel: {
+            Task { await ScreenReportOperationLimiter.shared.cancel(id: operationID) }
+        }
+        defer { Task { await ScreenReportOperationLimiter.shared.release() } }
+
         let fileURL: URL
         let response: URLResponse
         do {
