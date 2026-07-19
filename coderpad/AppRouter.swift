@@ -21,6 +21,7 @@ struct PadMutation {
 struct PadDeletion {
     let id: String
     let account: UUID?
+    let clientIdentity: ClientTaskIdentity
 }
 
 /// A question mutation broadcast: the updated question and the account that owns
@@ -114,13 +115,18 @@ enum AppRouter {
 
     /// Broadcast that the pad with `id` (owned by `account`) was deleted, so
     /// lists drop the row.
-    static func padDeleted(id: String, account: UUID?) {
-        center.post(name: .padDeleted, object: id, userInfo: userInfo(account))
+    static func padDeleted(id: String, account: UUID?, via client: CoderPadClient) {
+        var info = userInfo(account) ?? [:]
+        info[clientIdentityUserInfoKey] = client.taskIdentity
+        center.post(name: .padDeleted, object: id, userInfo: info)
     }
 
     static var padDeletions: AsyncStream<PadDeletion> {
         payloadStream(.padDeleted) { note in
-            (note.object as? String).map { PadDeletion(id: $0, account: account(from: note)) }
+            guard let id = note.object as? String,
+                  let identity = note.userInfo?[clientIdentityUserInfoKey] as? ClientTaskIdentity else { return nil }
+
+            return PadDeletion(id: id, account: account(from: note), clientIdentity: identity)
         }
     }
 

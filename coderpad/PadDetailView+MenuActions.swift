@@ -118,7 +118,7 @@ extension PadDetailView {
         defer { isMutating = false }
         do {
             try await client.deletePad(id: pad.id)
-            AppRouter.padDeleted(id: pad.id, account: owningAccountID)
+            AppRouter.padDeleted(id: pad.id, account: owningAccountID, via: client)
         } catch {
             mutateError = error.localizedDescription
         }

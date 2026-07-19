@@ -36,8 +36,9 @@ extension MergedPadsView {
     /// the wrong org (#758).
     func deletePad(_ row: AccountScoped<Account, Pad>) async {
         do {
-            try await row.account.makeClient().deletePad(id: row.item.id)
-            AppRouter.padDeleted(id: row.item.id, account: row.account.id)
+            let client = row.account.makeClient()
+            try await client.deletePad(id: row.item.id)
+            AppRouter.padDeleted(id: row.item.id, account: row.account.id, via: client)
         } catch {
             deleteError = error.localizedDescription
         }

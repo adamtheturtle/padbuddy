@@ -57,9 +57,6 @@ extension PadsView {
                     selectedIDs.remove(id)
                     pads.removeAll { $0.id == id }
                     padsRevision += 1
-                    // Keep the disk cache, Spotlight index, and widget in step;
-                    // otherwise the deleted pad lingers there until a full reload.
-                    cache.removePad(id: id, account: deletion.account)
                     if wasPrimary, selectedIDs.isEmpty {
                         selectedIDs = neighbor.map { [$0.id] } ?? []
                     }

@@ -68,8 +68,13 @@ enum DeletionCleanup {
             logger.info("Dropped an unresolvable pad deletion broadcast; no account owns it unambiguously")
             return
         }
+        guard PadsCacheStore.shared.removePad(
+            id: deletion.id, account: owner, via: deletion.clientIdentity
+        ) else {
+            logger.info("Dropped a pad deletion from stale account credentials")
+            return
+        }
 
-        PadsCacheStore.shared.removePad(id: deletion.id, account: owner)
         // Keyed by the owning account id, so these run whether or not the account is
         // still configured. They used to sit behind the account lookup below, and an
         // account removed before its deletion broadcast arrived kept its pinned and

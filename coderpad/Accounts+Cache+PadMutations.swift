@@ -27,6 +27,31 @@ enum PadCacheMutation {
 }
 
 extension PadsCacheStore {
+    /// Removes one pad only when the deletion came from the account's current
+    /// client. This protects a rekeyed backend reusing the same account UUID from
+    /// stale cache, widget, badge, and Spotlight side effects (#1446).
+    @discardableResult
+    func removePad(
+        id padID: String, account accountID: UUID, via clientIdentity: ClientTaskIdentity
+    ) -> Bool {
+        guard let account = AccountsStore.shared.accounts.first(where: { $0.id == accountID }) else {
+            remove(accountID)
+            return true
+        }
+
+        let client = account.makeClient()
+        guard client.taskIdentity == clientIdentity else { return false }
+
+        let pads = get(accountID)
+        guard pads.contains(where: { $0.id == padID }) else {
+            SpotlightIndexer.removePad(id: padID, account: accountID)
+            return true
+        }
+
+        set(accountID, pads: pads.filter { $0.id != padID }, via: client)
+        return true
+    }
+
     /// Writes a freshly fetched standalone/detail pad through every cache side effect.
     /// Declines when no complete list exists so one detail row is never represented as
     /// the account's authoritative entire pad list.

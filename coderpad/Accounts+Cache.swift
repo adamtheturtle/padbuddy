@@ -207,47 +207,6 @@ final class PadsCacheStore {
         // Removing an account drops its pads from the badge's all-accounts total.
         DockBadgeController.refresh()
     }
-
-    /// Drop a single deleted pad from the cache so it stops appearing in Spotlight
-    /// and the Recent Pads widget — re-indexing only adds/updates, so the deleted
-    /// row needs an explicit removal. Slugs are unique on the hosted service but
-    /// can collide across custom servers, so when the owning `account` is known
-    /// only that account is touched; otherwise every account holding the slug is
-    /// updated (the prior, id-only behavior) (#761). Warms each account from disk
-    /// via `get` rather than scanning only the in-memory lists: deletion cleanup
-    /// exists precisely for the cold-cache case (#721), and gating on residency
-    /// left the widget snapshot and disk cache stale (#1032). Accounts already
-    /// consulted resolve from memory, so the warm-cache path is unchanged.
-    func removePad(id padID: String, account: UUID? = nil) {
-        if let account {
-            SpotlightIndexer.removePad(id: padID, account: account)
-        } else {
-            SpotlightIndexer.removePad(id: padID)
-        }
-        let knownAccounts = account.map { [$0] }
-            ?? Array(Set(AccountsStore.shared.accounts.map(\.id)).union(padsByAccount.keys))
-        for accountID in knownAccounts {
-            // `cached` for the id-only sweep, `get` when the caller named an account —
-            // see the matching note in `removeQuestion` (#2448).
-            let pads = account == nil ? cached(accountID) : get(accountID)
-            guard pads.contains(where: { $0.id == padID }) else { continue }
-
-            let reduced = pads.filter { $0.id != padID }
-            padsByAccount[accountID] = reduced
-            writeGeneration[accountID, default: 0] += 1
-            WidgetSync.refresh(pads: reduced, account: accountID,
-                               isCurrent: accountID == AccountsStore.shared.currentAccount?.id)
-            let persistenceEpoch = persistenceEpochs.advance(for: accountID)
-            let epochStore = persistenceEpochs
-            writeQueue.enqueue(coalescingKey: "pads.\(accountID.uuidString)") {
-                guard epochStore.isCurrent(persistenceEpoch, for: accountID) else { return }
-
-                CacheDisk.save(reduced, kind: "pads", account: accountID)
-            }
-        }
-        // A deleted pad may have been an active one, so re-derive the Dock badge.
-        DockBadgeController.refresh()
-    }
 }
 
 @Observable

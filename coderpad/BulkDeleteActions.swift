@@ -52,7 +52,7 @@ extension PadsView {
                     do {
                         try await client.deletePad(id: pad.id)
                         let owner = accounts.account(matching: client)?.id ?? accounts.currentAccountID
-                        AppRouter.padDeleted(id: pad.id, account: owner)
+                        AppRouter.padDeleted(id: pad.id, account: owner, via: client)
                         return nil
                     } catch {
                         return error
@@ -123,8 +123,9 @@ extension MergedPadsView {
                           !current.pointsAtDifferentBackend(than: row.account) else { return nil }
 
                     do {
-                        try await row.account.makeClient().deletePad(id: row.item.id)
-                        AppRouter.padDeleted(id: row.item.id, account: row.account.id)
+                        let client = current.makeClient()
+                        try await client.deletePad(id: row.item.id)
+                        AppRouter.padDeleted(id: row.item.id, account: row.account.id, via: client)
                         return nil
                     } catch {
                         return error

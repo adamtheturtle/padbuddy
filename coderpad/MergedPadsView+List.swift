@@ -243,8 +243,6 @@ extension MergedPadsView {
                         ? selectedID.flatMap { neighborRowID(forDeletedRowID: $0) } : nil
                     selectedIDs.subtract(removed)
                     removePad(id: id, account: deletion.account)
-                    // Keep the disk cache, Spotlight index, and widget in step.
-                    cache.removePad(id: id, account: deletion.account)
                     if wasPrimary, selectedIDs.isEmpty {
                         selectedIDs = neighbor.map { [$0] } ?? []
                     }

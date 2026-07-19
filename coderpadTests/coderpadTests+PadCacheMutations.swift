@@ -80,4 +80,27 @@ struct PadCacheMutationTests {
         #expect(accepted)
         #expect(QuestionsCacheStore.shared.cached(account.id).isEmpty)
     }
+
+    @Test @MainActor
+    func `pad deletion requires the current account client identity`() {
+        let account = Account(name: "Pad deletion provenance", apiKey: "current-\(UUID().uuidString)")
+        AccountsStore.shared.add(account)
+        defer { AccountsStore.shared.remove(id: account.id) }
+        let pad = Pad(id: "pad-\(UUID().uuidString)", title: "Pad")
+        PadsCacheStore.shared.set(account.id, pads: [pad], via: account.makeClient())
+        var staleAccount = account
+        staleAccount.apiKey = "stale-key"
+
+        let rejected = PadsCacheStore.shared.removePad(
+            id: pad.id, account: account.id, via: staleAccount.makeClient().taskIdentity
+        )
+        #expect(!rejected)
+        #expect(PadsCacheStore.shared.cached(account.id) == [pad])
+
+        let accepted = PadsCacheStore.shared.removePad(
+            id: pad.id, account: account.id, via: account.makeClient().taskIdentity
+        )
+        #expect(accepted)
+        #expect(PadsCacheStore.shared.cached(account.id).isEmpty)
+    }
 }
