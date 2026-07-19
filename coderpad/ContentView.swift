@@ -51,6 +51,10 @@ struct ContentView: View {
     @State private var openPadURLDraft: String = ""
     @State private var showOpenPadURL = false
     @State private var showCommandPalette = false
+    private let whatsNewEnvironment = WhatsNewEnvironment(
+        versionStore: UserDefaultsWhatsNewVersionStore(),
+        whatsNewCollection: [WhatsNewContent.current]
+    )
     @Environment(\.openAppSettings) private var openSettings
     #if os(iOS)
         @Environment(\.horizontalSizeClass) private var horizontalSizeClass
@@ -63,13 +67,7 @@ struct ContentView: View {
             // store is plain UserDefaults so it persists on both the App Store and
             // Developer ID builds (the latter can't carry the iCloud KVS entitlement).
             .whatsNewSheet()
-            .environment(
-                \.whatsNew,
-                WhatsNewEnvironment(
-                    versionStore: UserDefaultsWhatsNewVersionStore(),
-                    whatsNewCollection: [WhatsNewContent.current]
-                )
-            )
+            .environment(\.whatsNew, whatsNewEnvironment)
             .environment(windowNav)
             .environment(mergedRouting)
     }
