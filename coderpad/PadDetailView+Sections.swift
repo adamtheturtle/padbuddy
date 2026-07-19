@@ -214,7 +214,7 @@ extension PadDetailView {
             // organization's unsaved notes into another's pad (#1194).
             InlineEditableText(text: pad.notes ?? "", placeholder: "Empty", label: "notes",
                                draftKey: "pad/\(owningAccountID?.uuidString ?? "current")/\(pad.id)/notes") {
-                await commitNotes($0)
+                await commitNotes($0, basedOn: $1)
             }
         }
     }

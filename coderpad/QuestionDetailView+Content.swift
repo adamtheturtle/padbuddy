@@ -312,7 +312,7 @@ extension QuestionDetailView {
                     InlineEditableText(text: "", placeholder: "Empty",
                                        label: "candidate instructions",
                                        draftKey: emptyKey) {
-                        await commitInstruction(at: 0, original: "", text: $0)
+                        await commitInstruction(at: 0, original: "", text: $0, basedOn: $1)
                     }
                 } else {
                     // Each part is edited independently (#334): committing one part
@@ -354,7 +354,7 @@ extension QuestionDetailView {
                 label: total > 1 ? "part \(index + 1)" : "candidate instructions",
                 draftKey: inlineDraftKey("instructions-\(index)-\(InlineEditDrafts.contentToken(item.instructions))")
             ) {
-                await commitInstruction(at: index, original: item.instructions, text: $0)
+                await commitInstruction(at: index, original: item.instructions, text: $0, basedOn: $1)
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

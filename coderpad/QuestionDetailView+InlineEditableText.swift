@@ -85,7 +85,12 @@ struct InlineEditableText: View {
     /// Qualified by the window before use — see `stashKey`.
     let draftKey: String
     /// Commits the edited text, returning `true` on success so the editor closes.
-    let onSave: (String) async -> Bool
+    ///
+    /// `basedOn` is the source value this editor is currently showing — what the
+    /// user believes they are replacing. The commit checks the server still holds
+    /// it before overwriting, so an edit made elsewhere that never reached this
+    /// client is surfaced as a conflict rather than silently clobbered (#2647).
+    let onSave: (_ text: String, _ basedOn: String) async -> Bool
 
     /// While offline the app is read-only, so long-form fields aren't editable (#321).
     @Environment(\.isReadOnly) private var isReadOnly
@@ -265,7 +270,7 @@ struct InlineEditableText: View {
         // question, or nothing at all (#2653).
         let committedKey = stashKey
         saving = true
-        let saved = await onSave(draft)
+        let saved = await onSave(draft, text)
         // The spinner flag is cleared either way: it belongs to the reused state,
         // and leaving it set would strand the next field's editor mid-save.
         saving = false

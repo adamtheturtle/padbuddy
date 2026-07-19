@@ -8792,6 +8792,36 @@
           }
         }
       }
+    },
+    "The description changed elsewhere. Review the latest version, then save again." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "La descripción cambió en otro lugar. Revisa la última versión y vuelve a guardar."
+          }
+        }
+      }
+    },
+    "The solution changed elsewhere. Review the latest version, then save again." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "La solución cambió en otro lugar. Revisa la última versión y vuelve a guardar."
+          }
+        }
+      }
+    },
+    "The notes changed elsewhere. Review the latest version, then save again." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Las notas cambiaron en otro lugar. Revisa la última versión y vuelve a guardar."
+          }
+        }
+      }
     }
   },
   "version" : "1.3"

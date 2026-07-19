@@ -3,9 +3,10 @@
 //  coderpad
 //
 //  Serialization for the question detail view's inline saves: per-field metadata
-//  commits are queued so rapid control churn sends one trailing PUT, and
-//  whole-array candidate-instruction saves are chained so parallel part edits
-//  can't overwrite each other. Split from QuestionDetailView+Edit.
+//  commits are queued so rapid control churn sends one trailing PUT, and every
+//  long-form content save — description, solution, and the whole-array
+//  candidate-instruction writes — is chained per question so parallel edits can't
+//  interleave their read-modify-publish steps. Split from QuestionDetailView+Edit.
 //
 
 import Foundation
@@ -64,14 +65,18 @@ enum QuestionInlineCommitQueue {
     }
 }
 
-/// Serializes whole-array candidate-instruction saves per account + question:
-/// each save resends the entire instruction list, so two concurrent part edits
-/// would each PUT an array holding the other part's old text and the later one
-/// would win (#1188). Chaining them (and building each payload from the latest
-/// published question inside the chained block) makes the second save see the
-/// first one's result. Entries are removed when a chain drains.
+/// Serializes long-form content saves per account + question.
+///
+/// Candidate-instruction saves resend the entire instruction list, so two
+/// concurrent part edits would each PUT an array holding the other part's old
+/// text and the later one would win (#1188). Description and solution saves are
+/// single-field, but they share the same read-modify-publish shape — read the
+/// question, build a payload, publish the result — and interleaving those let a
+/// later publish drop an earlier edit from the merge base (#2649). One chain per
+/// question makes each save atomic with respect to the others. Entries are
+/// removed when a chain drains.
 @MainActor
-enum QuestionInstructionSaveChain {
+enum QuestionContentSaveChain {
     private static var tails: [String: Task<Void, Never>] = [:]
 
     static func run(key: String, operation: @escaping @MainActor () async -> Bool) async -> Bool {

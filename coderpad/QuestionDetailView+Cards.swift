@@ -144,7 +144,7 @@ extension QuestionDetailView {
     var descriptionCard: some View {
         editableLongFormCard(title: "Description", text: question.description ?? "",
                              placeholder: "Empty", label: "description") {
-            await commitDescription($0)
+            await commitDescription($0, basedOn: $1)
         }
     }
 
@@ -152,14 +152,14 @@ extension QuestionDetailView {
     var solutionCard: some View {
         editableLongFormCard(title: "Solution", text: question.solution ?? "",
                              placeholder: "Empty", label: "solution") {
-            await commitSolution($0)
+            await commitSolution($0, basedOn: $1)
         }
     }
 
     /// A card pairing a section header with an inline-editable long-form field.
     /// `onSave` returns `true` once the edit is committed so the editor can close.
     func editableLongFormCard(title: LocalizedStringKey, text: String, placeholder: LocalizedStringKey, label: String,
-                              onSave: @escaping (String) async -> Bool) -> some View {
+                              onSave: @escaping (String, String) async -> Bool) -> some View {
         Card {
             VStack(alignment: .leading, spacing: 10) {
                 SectionHeader(title: title, systemImage: "doc.text")
