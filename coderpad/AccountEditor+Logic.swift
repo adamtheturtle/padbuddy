@@ -174,66 +174,10 @@ extension AccountEditor {
         guard isEditing else { return false }
 
         let key = draft.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
-        let storedKey = initialAPIKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let storedKey = persistedDraft.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         let base = (draft.baseURL ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-        let storedBase = (initialBaseURL ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let storedBase = (persistedDraft.baseURL ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         return key == storedKey && base == storedBase
-    }
-
-    /// Saved accounts are managed like settings: changes autosave in the embedded
-    /// editor instead of waiting for an explicit Save button. Adding a new account stays
-    /// modal and explicit, because it is a multi-step validation flow.
-    var commitsLive: Bool {
-        embedded && isEditing
-    }
-
-    /// Schedules a debounced autosave for saved-account edits. Credential changes still
-    /// respect `canSave`, so a changed API key or server URL waits for validation before
-    /// the stored account is updated.
-    func commitLiveEdit() {
-        guard commitsLive else { return }
-
-        liveCommitTask?.cancel()
-        liveCommitTask = Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(450))
-            guard !Task.isCancelled else { return }
-
-            persistLiveEditIfPossible()
-        }
-    }
-
-    func descriptionChanged() {
-        nameEditGeneration &+= 1
-        commitLiveEdit()
-    }
-
-    /// Persists the current draft when autosave is allowed and the draft is in a valid
-    /// saveable state. Called after the debounce and when the editor disappears, so a
-    /// quick navigation away does not drop the latest valid edit.
-    func persistLiveEditIfPossible() {
-        guard commitsLive, canSave else { return }
-
-        // The account must still exist. A debounced autosave can fire after the user
-        // deleted the account (or dismissed the editor and then deleted it), and
-        // `onSave` on a removed id re-creates it from the stale draft (#2191).
-        guard AccountsStore.shared.accounts.contains(where: { $0.id == draft.id }) else { return }
-
-        finalizeNameIfNeeded()
-        guard !draft.name.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-
-        onSave(draft.normalizedForStorage)
-    }
-
-    /// Persists the draft now, cancelling any debounced autosave first.
-    ///
-    /// An explicit Save did not cancel the pending task, so an older scheduled draft
-    /// could land afterwards and overwrite the newer fields the user had just saved
-    /// (#2192).
-    func saveNow() {
-        liveCommitTask?.cancel()
-        liveCommitTask = nil
-        finalizeNameIfNeeded()
-        onSave(draft.normalizedForStorage)
     }
 
     @ViewBuilder
@@ -261,9 +205,17 @@ extension AccountEditor {
     }
 
     var validationBanner: some View {
-        // Interview-key success is signalled by enabling Save, not a banner, so the
-        // success text is omitted (the shared banner renders nothing on `.valid` then).
-        ValidationStatusBanner(validation, validating: "Validating API key…")
+        VStack(alignment: .leading, spacing: 6) {
+            // Interview-key success is signalled by enabling Save, not a banner, so the
+            // success text is omitted (the shared banner renders nothing on `.valid` then).
+            ValidationStatusBanner(validation, validating: "Validating API key…")
+            if commitsLive, hasUnsavedLiveChanges, !canSave {
+                Label("These changes aren’t saved yet. Fix the fields above and validate the API key before leaving.",
+                      systemImage: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.orange)
+                    .font(.callout)
+            }
+        }
     }
 
     /// A non-blocking, amber note shown when the key validated against the org but

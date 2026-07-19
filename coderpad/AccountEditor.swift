@@ -14,6 +14,7 @@ typealias ValidationState = CredentialValidationState
 
 struct AccountEditor: View {
     @State var draft: Account
+    @State var persistedDraft: Account
     let initialName: String
     /// When true, the editor is embedded inline in the Accounts pane (Mail-style)
     /// rather than presented as a modal sheet: it drops the fixed sheet frame, hides
@@ -31,11 +32,6 @@ struct AccountEditor: View {
     /// the Save button: those are cosmetic and need no validation. `nil` (Add mode)
     /// keeps the appearance in the draft until the account is saved.
     let onAppearanceChange: ((_ iconSymbol: String?, _ tintHex: String?) -> Void)?
-    /// The credentials the editor opened with. A saved account can be re-saved without
-    /// re-validating as long as these are untouched (e.g. a Description-only change);
-    /// changing either forces a fresh validation before Save re-enables.
-    let initialAPIKey: String
-    let initialBaseURL: String?
     @State var validation: ValidationState = .idle
     /// The organization name resolved by a successful key validation, used as the default
     /// account name. Held here since the shared `.valid` validation state is detail-free.
@@ -87,12 +83,11 @@ struct AccountEditor: View {
          onDelete: (() -> Void)? = nil,
          onAppearanceChange: ((String?, String?) -> Void)? = nil) {
         _draft = State(initialValue: initial)
+        _persistedDraft = State(initialValue: initial.normalizedForStorage)
         _screenExpanded = State(
             initialValue: !((initial.screenApiKey ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
         )
         initialName = initial.name
-        initialAPIKey = initial.apiKey
-        initialBaseURL = initial.baseURL
         self.embedded = embedded
         self.isCurrent = isCurrent
         self.onUse = onUse
