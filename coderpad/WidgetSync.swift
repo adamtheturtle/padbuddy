@@ -27,6 +27,17 @@ enum WidgetSync {
     /// its tombstone via `syncAccounts`.
     private nonisolated(unsafe) static var removedAccounts: Set<UUID> = []
 
+    /// Which account currently owns the default snapshot, guarded by `writeQueue`
+    /// (every access runs on it).
+    ///
+    /// The default snapshot is what an unconfigured widget shows, and callers used
+    /// to decide whether to write it by capturing an `isCurrent` flag at call time.
+    /// A refresh queued while account A was current then ran after a switch to B —
+    /// or after a sign-out cleared the snapshot — and rewrote it with A's pads
+    /// (#2583, #2584). Deciding on the queue, against the account that is current
+    /// *when the write actually happens*, removes the window entirely.
+    private nonisolated(unsafe) static var defaultSnapshotAccount: UUID?
+
     /// Mirrors one account's most recently updated pads into the shared container,
     /// keyed by account id so a configured widget can pin it. When `isCurrent`, it
     /// also rewrites the default snapshot an unconfigured widget reads. Cheap and
@@ -46,10 +57,14 @@ enum WidgetSync {
             guard !removedAccounts.contains(accountID) else { return }
 
             WidgetSharedStore.save(snapshots, account: accountID.uuidString)
-            if isCurrent {
+            // `isCurrent` can also *make* this account the default's owner: it is how
+            // an account switch repaints the unconfigured widget. Anything else only
+            // writes the default while this account still owns it.
+            if isCurrent { defaultSnapshotAccount = accountID }
+            if defaultSnapshotAccount == accountID {
                 WidgetSharedStore.save(snapshots)
             }
-            WidgetCenter.shared.reloadAllTimelines()
+            scheduleReload()
         }
     }
 
@@ -59,8 +74,11 @@ enum WidgetSync {
     /// and repopulate the snapshot it just emptied (#753).
     static func clearCurrent() {
         writeQueue.async {
+            // Disown the default snapshot as well as emptying it, so a refresh that
+            // was already queued for the signed-out account can't refill it (#2584).
+            defaultSnapshotAccount = nil
             WidgetSharedStore.save([])
-            WidgetCenter.shared.reloadAllTimelines()
+            scheduleReload()
         }
     }
 
@@ -151,7 +169,7 @@ enum WidgetSync {
             if wasCurrent {
                 WidgetSharedStore.save([])
             }
-            WidgetCenter.shared.reloadAllTimelines()
+            scheduleReload()
         }
     }
 
@@ -168,7 +186,44 @@ enum WidgetSync {
             if isCurrent {
                 WidgetSharedStore.save([])
             }
-            WidgetCenter.shared.reloadAllTimelines()
+            scheduleReload()
+        }
+    }
+
+    /// Whether a reload happened recently enough that another must wait, and
+    /// whether a write arrived during that wait. Both guarded by `writeQueue`.
+    private nonisolated(unsafe) static var reloadCoolingDown = false
+    private nonisolated(unsafe) static var reloadPending = false
+
+    /// The shortest gap between timeline reloads.
+    private static let reloadCoalescingWindow: DispatchTimeInterval = .milliseconds(500)
+
+    /// Asks WidgetKit to reload, at most once per `reloadCoalescingWindow`.
+    ///
+    /// Every write path called `reloadAllTimelines()` directly, and the writes are
+    /// not rare: an incremental list load fires one per page, and the five-minute
+    /// background refresh fires one per account. WidgetKit budgets reloads, so a
+    /// burst both wastes energy and can push real updates past the throttle (#2599).
+    ///
+    /// Leading *and* trailing: the first reload of a burst goes out immediately, so
+    /// the common single-write case is not delayed, and writes arriving during the
+    /// window are folded into exactly one more reload when it closes. Dropping them
+    /// instead would leave the widget showing the first write of a burst until some
+    /// unrelated later write happened to come along.
+    private static func scheduleReload() {
+        guard !reloadCoolingDown else {
+            reloadPending = true
+            return
+        }
+
+        reloadCoolingDown = true
+        WidgetCenter.shared.reloadAllTimelines()
+        writeQueue.asyncAfter(deadline: .now() + reloadCoalescingWindow) {
+            reloadCoolingDown = false
+            guard reloadPending else { return }
+
+            reloadPending = false
+            scheduleReload()
         }
     }
 
