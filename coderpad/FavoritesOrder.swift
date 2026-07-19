@@ -121,7 +121,12 @@ extension FavoritesOrderStore {
         var ordered = order(present: present, account: account)
         guard let from = ordered.firstIndex(of: ref), ordered.contains(target) else { return }
 
-        let before = byAccount[account] ?? []
+        // Snapshot the *reconciled* order, not the raw stored array. `ordered`
+        // includes favourites that are present but not yet recorded in `byAccount`
+        // (anything added since the last drag), so undoing against the raw array
+        // restored an order missing them — and the read-time reconciliation then
+        // re-appended them at the end instead of where they had been (#2508, #2509).
+        let before = ordered
         ordered.remove(at: from)
         let insertAt = ordered.firstIndex(of: target) ?? ordered.count
         ordered.insert(ref, at: insertAt)
@@ -138,7 +143,12 @@ extension FavoritesOrderStore {
         var ordered = order(present: present, account: account)
         guard let from = ordered.firstIndex(of: ref), let last = ordered.indices.last, from != last else { return }
 
-        let before = byAccount[account] ?? []
+        // Snapshot the *reconciled* order, not the raw stored array. `ordered`
+        // includes favourites that are present but not yet recorded in `byAccount`
+        // (anything added since the last drag), so undoing against the raw array
+        // restored an order missing them — and the read-time reconciliation then
+        // re-appended them at the end instead of where they had been (#2508, #2509).
+        let before = ordered
         ordered.remove(at: from)
         ordered.append(ref)
         byAccount[account] = ordered
@@ -165,7 +175,10 @@ extension FavoritesOrderStore {
         var ordered = merged(present: present)
         guard let from = ordered.firstIndex(of: ref), ordered.contains(target) else { return }
 
-        let before = mergedOrder
+        // The reconciled order, for the same reason as the per-account moves above:
+        // `mergedOrder` omits favourites that are present but not yet recorded, so
+        // undoing against it appended them rather than restoring their positions (#2510).
+        let before = ordered
         ordered.remove(at: from)
         let insertAt = ordered.firstIndex(of: target) ?? ordered.count
         ordered.insert(ref, at: insertAt)
@@ -179,13 +192,67 @@ extension FavoritesOrderStore {
         var ordered = merged(present: present)
         guard let from = ordered.firstIndex(of: ref), let last = ordered.indices.last, from != last else { return }
 
-        let before = mergedOrder
+        // The reconciled order, for the same reason as the per-account moves above:
+        // `mergedOrder` omits favourites that are present but not yet recorded, so
+        // undoing against it appended them rather than restoring their positions (#2510).
+        let before = ordered
         ordered.remove(at: from)
         ordered.append(ref)
         mergedOrder = ordered
         mergedChangedAt = Date()
         saveMerged()
         registerMergedUndo(to: before, undoManager: undoManager, actionName: "Move Favorite")
+    }
+
+    /// This account's saved order and its slice of the merged order, for a caller that
+    /// is about to `forget` a ref and wants to be able to put it back.
+    struct OrderSnapshot {
+        let account: [FavoriteRef]
+        let merged: [MergedFavoriteRef]
+    }
+
+    func snapshot(account: UUID) -> OrderSnapshot {
+        OrderSnapshot(account: byAccount[account] ?? [], merged: mergedOrder)
+    }
+
+    /// Puts back a snapshot taken before a `forget`, so undoing an unfavourite returns
+    /// the item to the slot it was dragged into rather than appending it (#2511, #2512).
+    func restore(_ snapshot: OrderSnapshot, account: UUID) {
+        guard byAccount[account] ?? [] != snapshot.account || mergedOrder != snapshot.merged else { return }
+
+        byAccount[account] = snapshot.account.isEmpty ? nil : snapshot.account
+        orderChangedAt[account] = Date()
+        mergedOrder = snapshot.merged
+        mergedChangedAt = Date()
+        save()
+        saveMerged()
+    }
+
+    /// Forgets one favourite's saved position, called when it is unfavourited.
+    ///
+    /// Read-time reconciliation already hides a ref whose item is no longer a
+    /// favourite, so nothing looked wrong — but the ref stayed in defaults and in the
+    /// iCloud mirror forever, and re-favouriting the same pad or question silently
+    /// restored its old position instead of appending it as new (#2511, #2512).
+    ///
+    /// The unfavourite that triggers this captures an `OrderSnapshot` first and hands
+    /// it to its undo, so undoing restores the position rather than appending.
+    func forget(_ ref: FavoriteRef, account: UUID) {
+        let hadAccountEntry = byAccount[account]?.contains(ref) == true
+        let mergedRef = MergedFavoriteRef(account: account, ref: ref)
+        let filteredMerged = mergedOrder.filter { $0 != mergedRef }
+        guard hadAccountEntry || filteredMerged.count != mergedOrder.count else { return }
+
+        if hadAccountEntry {
+            byAccount[account] = byAccount[account]?.filter { $0 != ref }
+            orderChangedAt[account] = Date()
+            save()
+        }
+        if filteredMerged.count != mergedOrder.count {
+            mergedOrder = filteredMerged
+            mergedChangedAt = Date()
+            saveMerged()
+        }
     }
 
     /// Drops an account's saved order, called when the account is removed or re-keyed so

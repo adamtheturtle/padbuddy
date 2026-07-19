@@ -154,9 +154,14 @@ final class FavoritePadsStore {
         var entries = byAccount[account] ?? []
         let before = entries
         let actionName: String
+        // Captured before the branch so an unfavourite can hand it to its undo; a
+        // favourite that isn't removed leaves the order untouched, so it costs nothing.
+        let order = FavoritesOrderStore.shared.snapshot(account: account)
         if let index = entries.firstIndex(where: { $0.id == id }) {
             entries.remove(at: index)
             recordRemoval(of: id, account: account)
+            // Same as `remove`: the saved drag position goes with the favourite (#2511, #2512).
+            FavoritesOrderStore.shared.forget(FavoriteRef.pad(id), account: account)
             actionName = "Remove Favorite"
         } else {
             entries.append(FavoritePad(id: id, title: title, addedAt: Date()))
@@ -164,7 +169,8 @@ final class FavoritePadsStore {
         }
         byAccount[account] = entries
         save()
-        registerUndo(to: before, account: account, undoManager: undoManager, actionName: actionName)
+        registerUndo(to: before, account: account, undoManager: undoManager,
+                     actionName: actionName, order: order)
     }
 
     func remove(_ id: String, account: UUID, undoManager: UndoManager? = nil) {
@@ -174,8 +180,15 @@ final class FavoritePadsStore {
         entries.remove(at: index)
         byAccount[account] = entries
         recordRemoval(of: id, account: account)
+        // Drop the saved drag position too. Reconciliation hid the stale ref, but it
+        // stayed in defaults and iCloud forever and silently restored the old position
+        // if this was ever favourited again (#2511, #2512). The snapshot lets undo put
+        // it back where it was rather than appending it.
+        let order = FavoritesOrderStore.shared.snapshot(account: account)
+        FavoritesOrderStore.shared.forget(FavoriteRef.pad(id), account: account)
         save()
-        registerUndo(to: before, account: account, undoManager: undoManager, actionName: "Remove Favorite")
+        registerUndo(to: before, account: account, undoManager: undoManager,
+                     actionName: "Remove Favorite", order: order)
     }
 
     /// Reorders `id` to sit immediately before `targetID`, persisting the new order
@@ -289,10 +302,15 @@ final class FavoritePadsStore {
         registerUndo(to: before, account: account, undoManager: undoManager, actionName: actionName)
     }
 
-    private func registerUndo(to entries: [FavoritePad], account: UUID, undoManager: UndoManager?, actionName: String) {
+    private func registerUndo(to entries: [FavoritePad], account: UUID, undoManager: UndoManager?,
+                              actionName: String,
+                              order: FavoritesOrderStore.OrderSnapshot? = nil) {
         guard let undoManager else { return }
 
         undoManager.registerUndo(withTarget: self) { store in
+            // Order first: `restore` re-adds the membership, and the sidebar
+            // reconciles against whatever order is in place at that moment.
+            if let order { FavoritesOrderStore.shared.restore(order, account: account) }
             store.restore(entries, account: account, undoManager: undoManager, actionName: actionName)
         }
         undoManager.setActionName(actionName)

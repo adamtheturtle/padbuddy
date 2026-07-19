@@ -34,8 +34,11 @@ struct FavoriteQuestion: Codable, Hashable {
 /// ``FavoriteQuestion``) so the sidebar never has to fall back to its bare id.
 @Observable
 final class FavoriteQuestionsStore {
+    // A few members below are internal rather than private because the undo/restore
+    // half of this store lives in Accounts+FavoriteQuestions+Undo.swift, split out to
+    // keep both files within the file-length limit.
     static let shared = FavoriteQuestionsStore()
-    private var byAccount: [UUID: [FavoriteQuestion]] = [:]
+    var byAccount: [UUID: [FavoriteQuestion]] = [:]
     /// Dated per-account deletion tombstones (keyed by the stringified question
     /// id), so an unstar converges across devices instead of being unioned back
     /// by another Mac's mirror (#738).
@@ -137,9 +140,14 @@ final class FavoriteQuestionsStore {
         var entries = byAccount[account] ?? []
         let before = entries
         let actionName: String
+        // Captured before the branch so an unfavourite can hand it to its undo; a
+        // favourite that isn't removed leaves the order untouched, so it costs nothing.
+        let order = FavoritesOrderStore.shared.snapshot(account: account)
         if let index = entries.firstIndex(where: { $0.id == id }) {
             entries.remove(at: index)
             recordRemoval(of: id, account: account)
+            // The saved drag position goes with the favourite (#2512).
+            FavoritesOrderStore.shared.forget(FavoriteRef.question(id), account: account)
             actionName = "Remove Favorite"
         } else {
             entries.append(FavoriteQuestion(id: id, title: title, addedAt: Date()))
@@ -150,7 +158,8 @@ final class FavoriteQuestionsStore {
         // Keep the New Pad widget button's question picker in step with this account's
         // favourites.
         WidgetSync.syncFavorites(account: account)
-        registerUndo(to: before, account: account, undoManager: undoManager, actionName: actionName)
+        registerUndo(to: before, account: account, undoManager: undoManager,
+                     actionName: actionName, order: order)
     }
 
     /// Favorites the question if it isn't already, preserving order. Used by the
@@ -221,14 +230,21 @@ final class FavoriteQuestionsStore {
         entries.remove(at: index)
         byAccount[account] = entries
         recordRemoval(of: id, account: account)
+        // Drop the saved drag position too. Reconciliation hid the stale ref, but it
+        // stayed in defaults and iCloud forever and silently restored the old position
+        // if this was ever favourited again (#2512). The snapshot lets undo put it back
+        // where it was rather than appending it.
+        let order = FavoritesOrderStore.shared.snapshot(account: account)
+        FavoritesOrderStore.shared.forget(FavoriteRef.question(id), account: account)
         save()
         WidgetSync.syncFavorites(account: account)
-        registerUndo(to: before, account: account, undoManager: undoManager, actionName: "Remove Favorite")
+        registerUndo(to: before, account: account, undoManager: undoManager,
+                     actionName: "Remove Favorite", order: order)
     }
 
     /// Records a dated deletion tombstone so the removal propagates through the
     /// additive iCloud merge instead of being unioned back (#738).
-    private func recordRemoval(of id: Int, account: UUID) {
+    func recordRemoval(of id: Int, account: UUID) {
         removedAt[account, default: [:]][String(id)] = Date()
     }
 
@@ -263,7 +279,7 @@ final class FavoriteQuestionsStore {
         WidgetSync.syncFavorites(account: account)
     }
 
-    private func save() {
+    func save() {
         // A present id retires its tombstone (re-starred locally, incl. via undo),
         // and old tombstones age out so the map stays bounded.
         for (account, entries) in byAccount {
@@ -284,43 +300,6 @@ final class FavoriteQuestionsStore {
             persistenceLogger.error("Failed to encode favorite questions: \(reason, privacy: .public)")
         }
         mirrorToCloud()
-    }
-
-    private func restore(_ entries: [FavoriteQuestion], account: UUID, undoManager: UndoManager?, actionName: String) {
-        let before = byAccount[account] ?? []
-        // Anything the restore drops relative to the current list is a removal to
-        // propagate; anything it (re-)introduces is stamped as freshly added so it
-        // beats any remote tombstone (#738).
-        let restoredIDs = Set(entries.map(\.id))
-        for entry in before where !restoredIDs.contains(entry.id) {
-            recordRemoval(of: entry.id, account: account)
-        }
-        // Only entries the restore actually brings back are restamped. Restamping
-        // every entry made unrelated old favourites look newly added, so they beat
-        // remote deletion tombstones and reappeared on other devices after an undo
-        // that had nothing to do with them (#2527).
-        let presentIDs = Set(before.map(\.id))
-        let now = Date()
-        byAccount[account] = entries.map { entry in
-            guard !presentIDs.contains(entry.id) else { return entry }
-
-            var entry = entry
-            entry.addedAt = now
-            return entry
-        }
-        save()
-        WidgetSync.syncFavorites(account: account)
-        registerUndo(to: before, account: account, undoManager: undoManager, actionName: actionName)
-    }
-
-    private func registerUndo(to entries: [FavoriteQuestion], account: UUID,
-                              undoManager: UndoManager?, actionName: String) {
-        guard let undoManager else { return }
-
-        undoManager.registerUndo(withTarget: self) { store in
-            store.restore(entries, account: account, undoManager: undoManager, actionName: actionName)
-        }
-        undoManager.setActionName(actionName)
     }
 
     /// Pushes the current favourites (and their deletion tombstones, #738) up to
