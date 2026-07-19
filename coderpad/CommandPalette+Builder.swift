@@ -63,6 +63,11 @@ enum CommandPaletteBuilder {
         return questions.filter { seen.insert($0.id).inserted }
     }
 
+    static func uniqueAccounts(_ accounts: [Account]) -> [Account] {
+        var seen = Set<UUID>()
+        return accounts.filter { seen.insert($0.id).inserted }
+    }
+
     private static func commands() -> [PaletteResult] {
         [
             PaletteResult(
@@ -119,7 +124,7 @@ enum CommandPaletteBuilder {
         // Only worth offering as a switch target when there's more than one account.
         guard store.accounts.count > 1 else { return [] }
 
-        return store.accounts.map { account in
+        return uniqueAccounts(store.accounts).map { account in
             PaletteResult(
                 id: "account.\(account.id.uuidString)",
                 kind: .account,

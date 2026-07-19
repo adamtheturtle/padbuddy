@@ -10,6 +10,19 @@ import Testing
 @Suite("Command palette builder")
 struct CommandPaletteBuilderTests {
     @Test
+    func `account candidates keep the first record for each id`() {
+        let id = UUID()
+        let first = Account(name: "First", apiKey: "key", id: id, userEmail: "first@example.com")
+        let duplicate = Account(name: "Duplicate", apiKey: "key", id: id, userEmail: "second@example.com")
+        let second = Account(name: "Second", apiKey: "key", id: UUID(), userEmail: "third@example.com")
+
+        let unique = CommandPaletteBuilder.uniqueAccounts([first, duplicate, second])
+
+        #expect(unique.map(\.id) == [first.id, second.id])
+        #expect(unique.map(\.name) == ["First", "Second"])
+    }
+
+    @Test
     func `pad titles are trimmed and blank titles fall back to the id`() {
         #expect(CommandPaletteBuilder.padTitle(title: "  Interview  ", id: "pad-1") == "Interview")
         #expect(CommandPaletteBuilder.padTitle(title: " \n\t ", id: "pad-1") == "pad-1")
