@@ -14,6 +14,7 @@ import SwiftUI
         /// Backs the "Open Pad in CoderPad" macOS Service; retained for the app's
         /// lifetime so `NSApp.servicesProvider` keeps a live target.
         private let servicesProvider = ServicesProvider()
+        let widgetRequestObserverRegistration = WidgetRequestObserverRegistration()
 
         func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
             false
@@ -40,6 +41,10 @@ import SwiftUI
         /// Group and brings the app forward; this consumes it once the app is active
         /// (#456, #485). Reading on activation (rather than via `onOpenURL`) also covers a
         /// cold launch, since the app activates after launching.
+        func applicationWillTerminate(_: Notification) {
+            unregisterNewPadRequestObserver()
+        }
+
         func applicationDidBecomeActive(_: Notification) {
             // When driving the seeded demo for screenshots/UI tests, grow the main window
             // to fill the screen so captures show the full three-column layout (and meet

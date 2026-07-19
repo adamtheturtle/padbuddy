@@ -21,6 +21,33 @@
         static var tail: Task<Void, Never>?
     }
 
+    final class WidgetRequestObserverRegistration {
+        nonisolated(unsafe) private var observer: UnsafeRawPointer?
+        nonisolated(unsafe) private var notifications: [String] = []
+
+        nonisolated var isEmpty: Bool { notifications.isEmpty }
+
+        nonisolated func append(_ notification: String, observer: UnsafeRawPointer) {
+            self.observer = observer
+            notifications.append(notification)
+        }
+
+        nonisolated func removeAll() {
+            guard let observer, !notifications.isEmpty else { return }
+
+            let center = CFNotificationCenterGetDarwinNotifyCenter()
+            for notification in notifications {
+                CFNotificationCenterRemoveObserver(center, observer, CFNotificationName(notification as CFString), nil)
+            }
+            notifications = []
+            self.observer = nil
+        }
+
+        deinit {
+            removeAll()
+        }
+    }
+
     extension AppDelegate {
         /// Observes the Darwin notifications `WidgetSharedStore.requestNewPad` and
         /// `requestOpenPad` post, so a widget / Control Center / Shortcuts request is
@@ -31,6 +58,8 @@
         /// a double fire with `applicationDidBecomeActive` is harmless (whichever loses
         /// finds the queue empty).
         func registerNewPadRequestObserver() {
+            guard widgetRequestObserverRegistration.isEmpty else { return }
+
             let notifications = [
                 WidgetSharedStore.newPadRequestNotification,
                 WidgetSharedStore.openPadRequestNotification
@@ -49,7 +78,15 @@
                     nil,
                     .deliverImmediately
                 )
+                widgetRequestObserverRegistration.append(
+                    notification,
+                    observer: Unmanaged.passUnretained(self).toOpaque()
+                )
             }
+        }
+
+        func unregisterNewPadRequestObserver() {
+            widgetRequestObserverRegistration.removeAll()
         }
 
         /// The `applicationDidBecomeActive` entry point (cold launch and
