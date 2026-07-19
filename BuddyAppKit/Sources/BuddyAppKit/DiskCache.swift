@@ -30,7 +30,7 @@ public nonisolated struct DiskCache: Sendable {
     }
 
     private func url(kind: String, account: UUID) -> URL? {
-        guard Self.isValidKind(kind) else { return nil }
+        guard Self.isValidKind(kind), Self.isValidDirectoryName(directoryName) else { return nil }
         guard let base = FileManager.default.urls(for: .applicationSupportDirectory,
                                                   in: .userDomainMask).first else { return nil }
 
@@ -55,6 +55,23 @@ public nonisolated struct DiskCache: Sendable {
             switch byte {
             case 45, 48 ... 57, 65 ... 90, 95, 97 ... 122: true
             default: false
+            }
+        }
+    }
+
+    /// Allows a short hierarchy such as `com.example.app/DataCache`, but no empty,
+    /// absolute, traversal, escaped, or platform-specific path components (#1264).
+    static func isValidDirectoryName(_ name: String) -> Bool {
+        guard !name.isEmpty, name.utf8.count <= 256 else { return false }
+
+        return name.split(separator: "/", omittingEmptySubsequences: false).allSatisfy { component in
+            guard !component.isEmpty, component != ".", component != ".." else { return false }
+
+            return component.utf8.allSatisfy { byte in
+                switch byte {
+                case 45 ... 46, 48 ... 57, 65 ... 90, 95, 97 ... 122: true
+                default: false
+                }
             }
         }
     }

@@ -25,6 +25,16 @@ struct DiskCacheTests {
         #expect(!DiskCache.isValidKind(String(repeating: "a", count: 65)))
     }
 
+    @Test(arguments: ["com.example.app", "com.example.app/DataCache", "Cache_2"])
+    func `safe relative cache directories are accepted`(name: String) {
+        #expect(DiskCache.isValidDirectoryName(name))
+    }
+
+    @Test(arguments: ["", "/tmp/cache", "../cache", "app/../cache", "app//cache", "app/", #"app\cache"#, "~"])
+    func `absolute traversal and escaped cache directories are rejected`(name: String) {
+        #expect(!DiskCache.isValidDirectoryName(name))
+    }
+
     @Test
     func `saved snapshots and their directory are private to the user`() throws {
         let suffix = UUID().uuidString
