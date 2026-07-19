@@ -37,6 +37,12 @@ struct PadWindow: View {
     @State private var loadFailed = false
     @State private var refreshError: String?
     @State private var fallbackAccountID: UUID?
+    /// Orders overlapping refreshes: each one claims the next generation and only
+    /// publishes if its claim is still the newest. `refresh` captures `value` at call
+    /// time, and cancellation is cooperative, so a fetch that ignores cancellation
+    /// could otherwise land after the window was restored or reused for another pad
+    /// and replace it (#2022).
+    @State private var loadGeneration = 0
 
     /// The owning account: the one named in the value, or the current account captured
     /// when a legacy/restored value omits it. The fallback is intentionally sticky so
@@ -139,8 +145,12 @@ struct PadWindow: View {
     private func refresh() async {
         guard let value, let account else { return }
 
+        loadGeneration += 1
+        let generation = loadGeneration
         do {
             let pad = try await account.makeClient().getPad(id: value.id)
+            guard generation == loadGeneration else { return }
+
             fetched = pad
             fetchedFor = value
             loadFailed = false
@@ -149,6 +159,8 @@ struct PadWindow: View {
         } catch is CancellationError {
             return
         } catch {
+            guard generation == loadGeneration else { return }
+
             if cachedPad == nil, fetched == nil {
                 loadFailed = true
             } else {
