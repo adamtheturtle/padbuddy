@@ -60,9 +60,10 @@ public struct MCPAccountSet: Equatable, Sendable {
         self.allowWrites = allowWrites
     }
 
-    /// The default account (the one named `defaultName`, else the first).
-    public var defaultAccount: MCPAccount {
-        accounts.first { $0.name == defaultName } ?? accounts[0]
+    /// The default account (the one named `defaultName`, else the first), or nil
+    /// for a directly constructed empty set (#1563).
+    public var defaultAccount: MCPAccount? {
+        accounts.first { $0.name == defaultName } ?? accounts.first
     }
 
     /// Resolves a tool call's `account` argument to a configured account by name

@@ -254,6 +254,7 @@ private func parseAccountQuestionResource(account: String, tail: [String]) -> Re
 
 public enum ResourceAccountResolution: Equatable {
     case account(MCPAccount)
+    case noAccounts
     case requiresAccount
     case unknownAccount(String)
 }
@@ -265,9 +266,11 @@ public func resolveResourceAccount(_ request: ResourceRequest, accountSet: MCPAc
         return .account(account)
     }
 
+    guard !accountSet.accounts.isEmpty else { return .noAccounts }
     guard accountSet.accounts.count == 1 else { return .requiresAccount }
+    guard let defaultAccount = accountSet.defaultAccount else { return .noAccounts }
 
-    return .account(accountSet.defaultAccount)
+    return .account(defaultAccount)
 }
 
 private func resourcePathComponent(_ value: String) -> String {

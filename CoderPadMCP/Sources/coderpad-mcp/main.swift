@@ -302,6 +302,9 @@ struct CoderPadProvider: MCPToolProvider {
         case let .account(account):
             account
 
+        case .noAccounts:
+            throw MCPError.invalidParams("No CoderPad accounts are configured.")
+
         case .requiresAccount:
             throw MCPError.invalidParams(
                 "Resource URI must include an account in multi-account configs: "

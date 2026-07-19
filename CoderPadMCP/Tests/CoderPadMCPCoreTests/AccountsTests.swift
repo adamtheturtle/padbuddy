@@ -25,9 +25,10 @@ struct AccountsTests {
             "CODERPAD_BASE_URL": "https://coderpad.acme.internal"
         ])
         #expect(set.accounts.count == 1)
-        #expect(set.defaultAccount.name == "default")
-        #expect(set.defaultAccount.apiKey == "k1")
-        #expect(set.defaultAccount.baseURL.absoluteString == "https://coderpad.acme.internal")
+        let defaultAccount = try #require(set.defaultAccount)
+        #expect(defaultAccount.name == "default")
+        #expect(defaultAccount.apiKey == "k1")
+        #expect(defaultAccount.baseURL.absoluteString == "https://coderpad.acme.internal")
         #expect(!set.allowWrites)
 
         #expect(throws: MCPConfigError.noAccounts) {
@@ -122,7 +123,7 @@ struct AccountsTests {
         ])
         #expect(set.allowWrites)
         #expect(set.anyScreenEnabled)
-        #expect(set.defaultAccount.screenBaseURL.absoluteString == "https://www.codingame.eu")
+        #expect(try #require(set.defaultAccount).screenBaseURL.absoluteString == "https://www.codingame.eu")
     }
 
     @Test
@@ -146,7 +147,7 @@ struct AccountsTests {
         ]
         let set = try makeAccountSet(config: config, environment: [:])
         #expect(set.accounts.count == 2)
-        #expect(set.defaultAccount.name == "Beta")
+        #expect(try #require(set.defaultAccount).name == "Beta")
         #expect(set.allowWrites)
         #expect(set.anyScreenEnabled)
     }
@@ -157,7 +158,7 @@ struct AccountsTests {
             ["name": "Acme", "api_key": "a", "base_url": "http://coderpad.acme.internal"]
         ]]
         let set = try makeAccountSet(config: config, environment: [:])
-        #expect(set.defaultAccount.baseURL.absoluteString == "http://coderpad.acme.internal")
+        #expect(try #require(set.defaultAccount).baseURL.absoluteString == "http://coderpad.acme.internal")
     }
 
     @Test
@@ -212,7 +213,8 @@ struct AccountsTests {
     @Test
     func `multi-account config without a marked default is rejected`() throws {
         let single: [String: Any] = ["accounts": [["name": "Acme", "api_key": "a"]]]
-        #expect(try makeAccountSet(config: single, environment: [:]).defaultAccount.name == "Acme")
+        let accountSet = try makeAccountSet(config: single, environment: [:])
+        #expect(try #require(accountSet.defaultAccount).name == "Acme")
 
         let config: [String: Any] = ["accounts": [
             ["name": "Acme", "api_key": "a"],
