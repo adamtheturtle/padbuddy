@@ -205,6 +205,39 @@ struct FavoriteQuestionEntityIDTests {
     }
 }
 
+@Suite("Favorite question entity filtering (#2140)")
+struct FavoriteQuestionEntityFilterTests {
+    private static let account = UUID()
+    private static let syncID = "sync|https://app.coderpad.io|me@example.com|abc123|42"
+    private static let legacyID = "\(account.uuidString):42"
+
+    @Test
+    func `a requested identifier matches in any of its accepted forms`() {
+        // The three forms `entities(for:)` accepts must all survive the pre-filter,
+        // or resolving a Shortcut configured before a key rotation would return
+        // nothing (#2140).
+        let rotated = "sync|https://app.coderpad.io|me@example.com|def456|42"
+        for requested in [Self.syncID, rotated, Self.legacyID] {
+            let wanted = FavoriteQuestionQuery.wantedIdentifiers(for: [requested])
+            #expect(FavoriteQuestionQuery.isWanted(id: Self.syncID,
+                                                   legacyID: Self.legacyID,
+                                                   in: wanted))
+        }
+    }
+
+    @Test
+    func `an unrequested favourite is skipped`() {
+        let wanted = FavoriteQuestionQuery
+            .wantedIdentifiers(for: ["sync|https://app.coderpad.io|me@example.com|abc123|43"])
+        #expect(!FavoriteQuestionQuery.isWanted(id: Self.syncID,
+                                                legacyID: Self.legacyID,
+                                                in: wanted))
+        #expect(!FavoriteQuestionQuery.isWanted(id: Self.syncID,
+                                                legacyID: Self.legacyID,
+                                                in: FavoriteQuestionQuery.wantedIdentifiers(for: [])))
+    }
+}
+
 @Suite("Widget handoff parameter validation (#2364)")
 struct WidgetHandoffValidationTests {
     @Test

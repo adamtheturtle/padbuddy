@@ -34,8 +34,12 @@ struct FavoriteQuestionQuery: EntityQuery {
             // order asked for. Filtering `all()` instead returned them in account
             // order, so an App Intents caller got its entities shuffled relative to
             // the identifiers it passed (#2361).
+            // Built only for the favourites actually asked for. Resolving a single
+            // configured entity used to construct one for every favourite of every
+            // account and then throw nearly all of them away (#2140).
+            let wanted = Self.wantedIdentifiers(for: identifiers)
             var byIdentifier: [String: FavoriteQuestionEntity] = [:]
-            for entity in all() {
+            for entity in all(matching: wanted) {
                 byIdentifier[entity.id] = entity
                 byIdentifier[entity.legacyID] = entity
                 // A re-key changes `syncID` — it folds in the API-key fingerprint —
@@ -74,6 +78,25 @@ struct FavoriteQuestionQuery: EntityQuery {
         return (parts[0 ... 2] + parts[4...]).joined(separator: "|")
     }
 
+    /// Every identifier a requested entity could answer to, so membership can be
+    /// tested without building the entity first. Each requested identifier is stored
+    /// alongside its key-independent alias, matching the aliases `entities(for:)`
+    /// accepts.
+    static func wantedIdentifiers(for identifiers: [String]) -> Set<String> {
+        var wanted = Set(identifiers)
+        for identifier in identifiers {
+            wanted.insert(keyIndependentID(identifier))
+        }
+        return wanted
+    }
+
+    /// Whether an entity with these identities was asked for. Both the sync id and
+    /// the legacy id are checked, and the sync id also in its key-independent form,
+    /// because a caller may have stored any of the three.
+    static func isWanted(id: String, legacyID: String, in wanted: Set<String>) -> Bool {
+        wanted.contains(id) || wanted.contains(keyIndependentID(id)) || wanted.contains(legacyID)
+    }
+
     /// How many favourites Shortcuts is offered at once. Enumerating every
     /// favourite of every account made configuration slow on a large collection,
     /// and a picker that long isn't usable anyway (#2362).
@@ -85,8 +108,10 @@ struct FavoriteQuestionQuery: EntityQuery {
         }
     }
 
+    /// Every favourite as an entity, or — when `wanted` is given — only those
+    /// answering to one of those identifiers.
     @MainActor
-    private func all() -> [FavoriteQuestionEntity] {
+    private func all(matching wanted: Set<String>? = nil) -> [FavoriteQuestionEntity] {
         // De-duplicated by sync identity: two records for the same endpoint, owner,
         // and key are the same account, and they produced entities sharing one id
         // (#2360). Accounts with no resolvable sync id keep their own local entry.
@@ -105,6 +130,11 @@ struct FavoriteQuestionQuery: EntityQuery {
                 let id = entityID(account: account, questionID: favorite.id)
                 guard emitted.insert(id).inserted else { return nil }
 
+                let legacyID = legacyEntityID(account: account, questionID: favorite.id)
+                // Filtered before any of the title work below, which is the part worth
+                // skipping for a favourite nobody asked about (#2140).
+                if let wanted, !Self.isWanted(id: id, legacyID: legacyID, in: wanted) { return nil }
+
                 // Trimmed before the check: a whitespace-only cloud title produced a
                 // blank Shortcuts choice rather than the "#id" fallback (#2363).
                 let stored = favorite.title.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -117,7 +147,7 @@ struct FavoriteQuestionQuery: EntityQuery {
                                               accountID: account.id.uuidString,
                                               questionID: favorite.id,
                                               title: label,
-                                              legacyID: legacyEntityID(account: account, questionID: favorite.id))
+                                              legacyID: legacyID)
             }
         }
     }
