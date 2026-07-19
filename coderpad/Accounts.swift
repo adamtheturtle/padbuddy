@@ -75,14 +75,24 @@ extension KeychainAccountStore where Account == CoderPad.Account {
     /// outlived an account removal or re-key (#754): a loader's client embeds the
     /// credentials it fetched with, so a removed account (no id) or a re-keyed one
     /// (different key/server) fails the comparison and the late result is dropped
-    /// instead of resurrecting purged data. Compares against `makeClient()` rather
-    /// than the raw stored fields so mock/demo clients (whose identity is derived,
-    /// not stored) validate the same way real ones do.
+    /// instead of resurrecting purged data.
     func isCurrentClient(_ client: CoderPadClient, for accountID: UUID) -> Bool {
         guard let account = accounts.first(where: { $0.id == accountID }) else { return false }
 
-        let current = account.makeClient()
-        return current.baseURL == client.baseURL && current.apiKey == client.apiKey
+        // A mock/demo client's identity is derived rather than stored, so it is still
+        // validated by building the client it would produce — which the memo makes
+        // cheap (#2111).
+        guard !account.isMock else {
+            let current = account.makeClient()
+            return current.baseURL == client.baseURL && current.apiKey == client.apiKey
+        }
+
+        // A real account's client identity is exactly its trimmed key and resolved
+        // server — the same comparison `account(matching:)` above makes. Going through
+        // `makeClient()` to reach it meant building a memo recipe and hashing the key
+        // and URL on every cache set, once per page of a paged streaming load (#2079).
+        return client.baseURL == account.resolvedBaseURL
+            && client.apiKey == account.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     func addDemoBadKeyIfMissing() {
