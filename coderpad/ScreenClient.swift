@@ -108,6 +108,7 @@ struct ScreenClient {
         if let limit, !(1 ... Self.maximumPageSize).contains(limit) {
             throw CoderPadError.decode("Screen pagination limit must be between 1 and \(Self.maximumPageSize).")
         }
+        try Self.validateTimeRange(from: from, until: until)
         var query: [URLQueryItem] = []
         if let campaignID { query.append(URLQueryItem(name: "campaignId", value: String(campaignID))) }
         if let product = filters.product { query.append(URLQueryItem(name: "product", value: product)) }
@@ -351,6 +352,15 @@ struct ScreenClient {
 }
 
 private extension ScreenClient {
+    nonisolated static func validateTimeRange(from: Int?, until: Int?) throws {
+        guard from.map({ $0 >= 0 }) ?? true, until.map({ $0 >= 0 }) ?? true else {
+            throw CoderPadError.decode("Screen time filters must not be negative.")
+        }
+        guard from.map({ start in until.map { start <= $0 } ?? true }) ?? true else {
+            throw CoderPadError.decode("Screen time filter start must not be later than its end.")
+        }
+    }
+
     nonisolated static func requirePositiveID(_ id: Int, kind: String) throws {
         guard id > 0 else { throw CoderPadError.decode("Screen \(kind) ID must be positive.") }
     }
