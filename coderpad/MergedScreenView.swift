@@ -315,6 +315,8 @@ struct MergedScreenView: View {
         let targets = screenAccounts.compactMap { account in
             account.makeScreenClient().map { (account: account, client: $0) }
         }
+        // Losing every credential must still revoke a published campaign (#1466).
+        pruneVanishedSelection()
         guard !targets.isEmpty else { return }
 
         clearRekeyedBuckets(for: targets)
@@ -375,6 +377,11 @@ struct MergedScreenView: View {
             bucketCredentials[id] = token
         } else if let errorText {
             accountErrors[id] = errorText
+            // Retain stale rows, but revoke this account's unverified action context (#1466).
+            if ScreenCampaignSelectionValidity.shouldRevoke(scopedID: selectedScopedID, failedAccountID: id) {
+                selectedScopedID = nil
+                publishSelectedCampaign(nil)
+            }
         }
     }
 

@@ -78,7 +78,6 @@ struct ScreenCampaignsView: View {
             }
             .onChange(of: client.taskIdentity) { _, _ in showWebhook = false }
             .task(id: client.taskIdentity) { await load() }
-            // Reload on ⌘R like the other lists (AppRouter.requestReload()).
             .onReloadRequest { await load() }
             // Restore the published selection on appear, and publish each change onward so
             // the detail column can show the selected campaign's test sessions (#448).
@@ -288,7 +287,6 @@ struct ScreenCampaignsView: View {
             campaigns = result.campaigns
             campaignSearchIndex = Self.makeCampaignSearchIndex(result.campaigns)
             loadError = result.diagnostic
-            // If the selected campaign vanished, clear the selection (and its detail).
             if let id = selectedCampaignID, !campaigns.contains(where: { $0.id == id }) {
                 selectedCampaignID = nil
             }
@@ -306,6 +304,8 @@ struct ScreenCampaignsView: View {
                                      currentClientIdentity: client.taskIdentity) else { return }
 
             loadError = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription
+            selectedCampaignID = nil
+            windowNav.publishScreenCampaign(nil, accountID: nil)
         }
     }
 }
