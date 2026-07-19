@@ -72,6 +72,37 @@ struct ScreenClientTests {
         #expect(pagination.total == 3)
     }
 
+    @Test(arguments: [-1, 0, ScreenClient.maximumPageSize + 1, Int.max])
+    func `listTests rejects invalid page limits before transport`(limit: Int) async {
+        let client = ScreenClient(apiKey: "key", session: URLSession(configuration: .ephemeral))
+        do {
+            _ = try await client.listTests(limit: limit)
+            Issue.record("Expected an invalid pagination limit to throw")
+        } catch let error as CoderPadError {
+            #expect(error.description.contains("limit must be between"))
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
+    }
+
+    @Test
+    func `listTests accepts the maximum page limit`() async throws {
+        _ = try await screenClient().listTests(limit: ScreenClient.maximumPageSize)
+    }
+
+    @Test
+    func `listTests rejects a negative starting offset before transport`() async {
+        let client = ScreenClient(apiKey: "key", session: URLSession(configuration: .ephemeral))
+        do {
+            _ = try await client.listTests(start: -1)
+            Issue.record("Expected a negative pagination start to throw")
+        } catch let error as CoderPadError {
+            #expect(error.description.contains("start must not be negative"))
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
+    }
+
     @Test
     func `listTests keeps valid sessions when one page item is malformed (#764)`() async throws {
         let page = try await screenClient().listTests(candidateEmail: "malformed@example.com")

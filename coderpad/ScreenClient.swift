@@ -33,6 +33,7 @@ struct ScreenClient {
     /// All endpoints live under this versioned prefix. The version is bumped only
     /// for breaking changes (added response fields are non-breaking — see `ScreenAPI`).
     private nonisolated static let apiPrefix = "/assessment/api/v1.1"
+    nonisolated static let maximumPageSize = 500
 
     init(apiKey: String,
          baseURL: URL = Self.defaultBaseURL,
@@ -88,6 +89,12 @@ struct ScreenClient {
                                until: Int? = nil,
                                start: Int? = nil,
                                limit: Int? = nil) async throws -> ScreenTestsPage {
+        if let start, start < 0 {
+            throw CoderPadError.decode("Screen pagination start must not be negative.")
+        }
+        if let limit, !(1 ... Self.maximumPageSize).contains(limit) {
+            throw CoderPadError.decode("Screen pagination limit must be between 1 and \(Self.maximumPageSize).")
+        }
         var query: [URLQueryItem] = []
         if let campaignID { query.append(URLQueryItem(name: "campaignId", value: String(campaignID))) }
         if let product { query.append(URLQueryItem(name: "product", value: product)) }
