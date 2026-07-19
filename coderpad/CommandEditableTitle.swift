@@ -154,6 +154,15 @@ struct CommandEditableTitle: View {
     private func beginEditing() {
         guard editingAllowed else { return }
 
+        // A menu command can fire while an editor is already open, including while
+        // its save is still in flight. Resetting the draft there let the older
+        // commit's completion close the editor over the newer input and discard it
+        // (#2017), so an edit request for a live session only re-focuses the field.
+        guard !isEditing, !isSaving else {
+            fieldFocused = true
+            return
+        }
+
         draft = title
         editingBaseTitle = title
         titleConflict = false
