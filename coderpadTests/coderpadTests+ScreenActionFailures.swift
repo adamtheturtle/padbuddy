@@ -4,6 +4,7 @@
 //
 
 @testable import CoderPad
+import Foundation
 import Testing
 
 @Suite("Screen action failure context")
@@ -40,5 +41,20 @@ struct ScreenCancelReconciliationTests {
         let current = ScreenTestSession(id: 42, status: "waiting")
         let fresh = ScreenTestSession(id: 42, status: "aborted", candidateName: "Fresh")
         #expect(ScreenCancelReconciliation.session(current: current, fresh: fresh) == fresh)
+    }
+}
+
+@Suite("Screen campaign diagnostics")
+struct ScreenCampaignDiagnosticTests {
+    @Test func `tolerant campaign list counts discarded records`() throws {
+        let data = Data(#"[{"id":1,"name":"Valid"},{"id":2,"name":"   "},{"name":"Missing id"}]"#.utf8)
+        let list = try JSONDecoder().decode(TolerantScreenList<ScreenCampaign>.self, from: data)
+        #expect(list.elements.map(\.id) == [1])
+        #expect(list.discardedCount == 2)
+        #expect(ScreenCampaignListResult(campaigns: list.elements, discardedCount: 2).diagnostic != nil)
+    }
+
+    @Test func `clean campaign list has no diagnostic`() {
+        #expect(ScreenCampaignListResult(campaigns: [], discardedCount: 0).diagnostic == nil)
     }
 }

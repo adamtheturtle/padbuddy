@@ -225,8 +225,9 @@ struct ScreenCampaignsView: View {
         isLoading = true
         defer { isLoading = false }
         do {
-            campaigns = try await client.listCampaigns()
-            loadError = nil
+            let result = try await client.listCampaignsResult()
+            campaigns = result.campaigns
+            loadError = result.diagnostic
             // If the selected campaign vanished, clear the selection (and its detail).
             if let id = selectedCampaignID, !campaigns.contains(where: { $0.id == id }) {
                 selectedCampaignID = nil

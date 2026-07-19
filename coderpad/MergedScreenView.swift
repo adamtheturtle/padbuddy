@@ -312,12 +312,6 @@ struct MergedScreenView: View {
             .joined(separator: ",")
     }
 
-    /// One account's Screen backend identity: responses and cached buckets only count
-    /// while the account still uses the credentials they were fetched with.
-    private func credentialToken(_ account: Account) -> String {
-        "\(account.screenApiKey ?? ""):\(account.screenRegion.rawValue)"
-    }
-
     /// Fan out `listCampaigns()` across every Screen-enabled account concurrently,
     /// applying each result as it lands and isolating per-account failure.
     private func load() async {
@@ -337,7 +331,8 @@ struct MergedScreenView: View {
                 let token = credentialToken(target.account)
                 group.addTask {
                     do {
-                        return try await (target.account.id, token, target.client.listCampaigns(), nil)
+                        let result = try await target.client.listCampaignsResult()
+                        return (target.account.id, token, result.campaigns, result.diagnostic)
                     } catch {
                         if error is CancellationError { return (target.account.id, token, nil, nil) }
                         let message = (error as? CoderPadError)?.errorDescription ?? error.localizedDescription

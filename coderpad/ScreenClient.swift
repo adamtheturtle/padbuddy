@@ -69,7 +69,12 @@ struct ScreenClient {
     /// one malformed campaign in the response is dropped rather than hiding every
     /// valid campaign behind a decode error (#896), matching the sessions page (#764).
     nonisolated func listCampaigns() async throws -> [ScreenCampaign] {
-        try await get(TolerantScreenList<ScreenCampaign>.self, path: "/campaigns").elements
+        try await listCampaignsResult().campaigns
+    }
+
+    nonisolated func listCampaignsResult() async throws -> ScreenCampaignListResult {
+        let list = try await get(TolerantScreenList<ScreenCampaign>.self, path: "/campaigns")
+        return ScreenCampaignListResult(campaigns: list.elements, discardedCount: list.discardedCount)
     }
 
     /// Invites a candidate to a campaign, creating a test session.
@@ -331,6 +336,17 @@ struct ScreenClient {
 
     private nonisolated func encode(_ body: some Encodable) throws -> Data {
         try Self.encoder.encode(body)
+    }
+}
+
+nonisolated struct ScreenCampaignListResult: Equatable {
+    let campaigns: [ScreenCampaign]
+    let discardedCount: Int
+
+    var diagnostic: String? {
+        guard discardedCount > 0 else { return nil }
+
+        return "Ignored \(discardedCount) malformed campaign \(discardedCount == 1 ? "record" : "records") from Screen."
     }
 }
 

@@ -20,6 +20,13 @@ extension ScopedScreenCampaign {
     }
 }
 
+extension MergedScreenView {
+    /// Responses and cached buckets only count while the account still uses these credentials.
+    func credentialToken(_ account: Account) -> String {
+        "\(account.screenApiKey ?? ""):\(account.screenRegion.rawValue)"
+    }
+}
+
 /// One merged campaign row: the campaign's own row plus a label naming its source
 /// account, matching the account tag on merged pad/question rows.
 struct MergedScreenCampaignRow: View {

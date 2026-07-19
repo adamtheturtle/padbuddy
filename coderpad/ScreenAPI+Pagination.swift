@@ -48,18 +48,23 @@ nonisolated struct ScreenTestsPage: Decodable, Hashable {
 /// (#764 for sessions, #896 for campaigns).
 nonisolated struct TolerantScreenList<Element: Decodable>: Decodable {
     let elements: [Element]
+    let discardedCount: Int
 
     init(from decoder: any Decoder) throws {
         var container = try decoder.unkeyedContainer()
         var decoded: [Element] = []
+        var discardedCount = 0
         while !container.isAtEnd {
             if let element = try? container.decode(Element.self) {
                 decoded.append(element)
             } else if (try? container.decode(DiscardedScreenValue.self)) == nil {
                 break
+            } else {
+                discardedCount += 1
             }
         }
         elements = decoded
+        self.discardedCount = discardedCount
     }
 }
 
