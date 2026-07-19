@@ -83,3 +83,31 @@ struct MergedFilterSnapshotTests {
         }
     }
 }
+
+@Suite("Named search name limit (#2555, #2556)")
+struct NamedSearchNameLimitTests {
+    @Test
+    func `an oversized name is clamped by the initializer`() {
+        let long = String(repeating: "a", count: NamedSearch.maxNameLength + 25)
+        #expect(NamedSearch(name: long).name.count == NamedSearch.maxNameLength)
+        // A name already inside the cap is untouched.
+        #expect(NamedSearch(name: "Onsites").name == "Onsites")
+    }
+
+    @Test
+    func `an oversized persisted name is clamped on decode`() throws {
+        // A legacy or corrupt defaults entry would otherwise reintroduce a name the
+        // initializer refuses, since Codable synthesis bypassed it entirely (#2556).
+        let long = String(repeating: "b", count: 200)
+        let json = #"{"id":"\#(UUID().uuidString)","name":"\#(long)","search":""}"#
+        let decoded = try JSONDecoder().decode(NamedSearch.self, from: Data(json.utf8))
+        #expect(decoded.name.count == NamedSearch.maxNameLength)
+    }
+
+    @Test
+    func `clamping counts characters, not bytes`() {
+        // Truncating by UTF-8 length would cut a multi-scalar emoji mid-sequence.
+        let emoji = String(repeating: "👩‍💻", count: NamedSearch.maxNameLength + 5)
+        #expect(NamedSearch(name: emoji).name.count == NamedSearch.maxNameLength)
+    }
+}

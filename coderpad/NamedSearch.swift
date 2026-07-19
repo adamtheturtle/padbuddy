@@ -45,7 +45,7 @@ struct NamedSearch: Identifiable, Codable, Hashable {
          updatedWindow: DateWindow? = nil, createdWindow: DateWindow? = nil,
          draftFilter: String? = nil) {
         self.id = id
-        self.name = name
+        self.name = Self.clampedName(name)
         self.search = search
         self.stateFilter = stateFilter
         self.languageFilter = languageFilter
@@ -55,6 +55,38 @@ struct NamedSearch: Identifiable, Codable, Hashable {
         self.updatedWindow = updatedWindow
         self.createdWindow = createdWindow
         self.draftFilter = draftFilter
+    }
+
+    /// Enforces `maxNameLength`, which the type advertises but nothing applied.
+    ///
+    /// The text field in the rename sheet clamps as you type, but that was the only
+    /// gate: a programmatic caller, a paste that bypassed it, or a persisted value
+    /// from before the cap existed could all carry an arbitrarily long name into the
+    /// model (#2555). Chips clamp their display, so the symptom was subtle — an
+    /// oversized name still travelled through export, sync, and comparison.
+    ///
+    /// Truncation is by character, not UTF-8 length, so a name of emoji or
+    /// combining marks is cut where a reader would expect.
+    static func clampedName(_ name: String) -> String {
+        name.count <= maxNameLength ? name : String(name.prefix(maxNameLength))
+    }
+
+    /// Decoding routes through the same clamp: a legacy or corrupt defaults entry
+    /// otherwise reintroduced an oversized name the initializer would have refused
+    /// (#2556).
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        name = try Self.clampedName(container.decode(String.self, forKey: .name))
+        search = try container.decode(String.self, forKey: .search)
+        stateFilter = try container.decodeIfPresent(PadState.self, forKey: .stateFilter)
+        languageFilter = try container.decodeIfPresent(String.self, forKey: .languageFilter)
+        ownerFilter = try container.decodeIfPresent(String.self, forKey: .ownerFilter)
+        teamFilter = try container.decodeIfPresent(String.self, forKey: .teamFilter)
+        typeFilter = try container.decodeIfPresent(String.self, forKey: .typeFilter)
+        updatedWindow = try container.decodeIfPresent(DateWindow.self, forKey: .updatedWindow)
+        createdWindow = try container.decodeIfPresent(DateWindow.self, forKey: .createdWindow)
+        draftFilter = try container.decodeIfPresent(String.self, forKey: .draftFilter)
     }
 
     /// Whether two searches carry the same filter criteria, ignoring `id` and
