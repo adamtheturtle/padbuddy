@@ -166,10 +166,17 @@ extension Sidebar {
     /// dragged into — nothing groups pads above questions. The section hides when there's
     /// nothing favourited and nothing being dragged (#440/#444): an empty `List` row still
     /// reserves a minimum height, so gating the whole section keeps no resting gap.
+    ///
+    /// The drag-in-flight signal comes from AppKit's `NSDraggingSession` callbacks,
+    /// which have no iOS counterpart — so on iPad the monitor never turned true, the
+    /// section stayed hidden with nothing favourited, and there was no target for the
+    /// documented `.draggable` favourite drop to land on (#2513). There, an empty
+    /// section is shown instead: a permanent header is a far better trade than a
+    /// feature that cannot be started.
     @ViewBuilder
     var favoritesSection: some View {
         let entries = favoriteEntries
-        if !entries.isEmpty || favoriteDragMonitor.isDragging {
+        if !entries.isEmpty || showsEmptyFavoritesSection {
             Section("Favorites", isExpanded: $favoritesSectionExpanded) {
                 favoritesBody(entries).sidebarGroupRow()
             }
@@ -301,8 +308,21 @@ extension Sidebar {
     private var favoriteDropSpacer: some View {
         Color.clear
             .frame(maxWidth: .infinity)
-            .frame(height: favoriteDragMonitor.isDragging ? 28 : 0)
+            .frame(height: showsEmptyFavoritesSection ? 28 : 0)
             .contentShape(Rectangle())
-            .animation(reduceMotion ? nil : .smooth, value: favoriteDragMonitor.isDragging)
+            .animation(reduceMotion ? nil : .smooth, value: showsEmptyFavoritesSection)
+    }
+
+    /// Whether an empty Favorites section should be present to receive a drop.
+    ///
+    /// macOS reveals it only while a favourite drag is in flight, so the section keeps
+    /// no resting gap (#440/#444). iOS has no drag-session callback to key that off,
+    /// so it stays available — see `favoritesSection` (#2513).
+    private var showsEmptyFavoritesSection: Bool {
+        #if os(macOS)
+            favoriteDragMonitor.isDragging(in: windowScope)
+        #else
+            true
+        #endif
     }
 }

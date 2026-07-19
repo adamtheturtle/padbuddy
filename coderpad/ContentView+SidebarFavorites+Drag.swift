@@ -114,13 +114,20 @@ extension Sidebar {
     }
 
     /// Decodes a within-sidebar `FavoriteReorder` from a provider and applies the move.
+    /// Decodes a within-sidebar `FavoriteReorder` from a provider and applies the move,
+    /// calling `onFailure` when there is no usable reorder payload so the caller can try
+    /// the provider's other representations.
     func loadFavoriteReorder(
         from provider: NSItemProvider,
-        onReorder: @escaping @MainActor (FavoriteReorder) -> Void
+        onReorder: @escaping @MainActor (FavoriteReorder) -> Void,
+        onFailure: @escaping @MainActor () -> Void = {}
     ) {
         provider.loadDataRepresentation(forTypeIdentifier: UTType.coderpadFavoriteReorder.identifier) { data, _ in
             guard let data, data.count <= Self.maxFavoritePayloadBytes,
-                  let reorder = try? JSONDecoder().decode(FavoriteReorder.self, from: data) else { return }
+                  let reorder = try? JSONDecoder().decode(FavoriteReorder.self, from: data) else {
+                Task { @MainActor in onFailure() }
+                return
+            }
 
             Task { @MainActor in onReorder(reorder) }
         }
@@ -193,6 +200,17 @@ extension Sidebar {
                     loadFavoriteReorder(from: reorder) { reorder in
                         reorderTargetID = nil
                         onReorder(reorder)
+                    } onFailure: {
+                        // A provider advertising a reorder was routed there and nothing
+                        // else was tried, so malformed reorder data lost the drop even
+                        // when the same provider also carried a perfectly good
+                        // add-favourite payload (#2518). Fall back to that.
+                        reorderTargetID = nil
+                        loadFavoriteDrops(from: [reorder]) { drops in
+                            for drop in drops {
+                                onAdd(drop)
+                            }
+                        }
                     }
                 }
                 loadFavoriteDrops(from: adds) { drops in

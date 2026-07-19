@@ -224,7 +224,8 @@ extension PadsView {
         .onTopRowChange { scheduleTopRowPersistence($0) }
         .scrollToRow(id: pendingScrollToID) { pendingScrollToID = nil }
         #if os(macOS)
-            .onDragSession(began: FavoriteDragLifecycle.onBegan, ended: FavoriteDragLifecycle.onEnded)
+            .onDragSession(began: FavoriteDragLifecycle.onBegan(in: windowScope),
+                           ended: FavoriteDragLifecycle.onEnded(in: windowScope))
         #endif
         #if DEBUG
             // Still prints the per-selection stall; row evals should now be ~0 since

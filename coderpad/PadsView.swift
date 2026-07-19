@@ -18,6 +18,9 @@ struct PadsView: View {
     @Environment(\.undoManager) var undoManager
     /// While offline the app is read-only, so create/delete controls disable (#321).
     @Environment(\.isReadOnly) var isReadOnly
+    /// Which window this list is in, so a favourite drag reveals the drop zone
+    /// only in this window's sidebar (#2514).
+    @Environment(\.windowScope) var windowScope
     @State var accounts = AccountsStore.shared
     @State var nav = AppNavigation.shared
     @State var cache = PadsCacheStore.shared

@@ -152,8 +152,27 @@ final class FavoriteDragMonitor {
     static let shared = FavoriteDragMonitor()
     private init() {}
 
-    /// True while a pad/question carrying a `coderpadFavorite` payload is in flight.
-    var isDragging = false
+    /// The windows with a favorite drag in flight.
+    ///
+    /// This was a single process-global flag, so starting a drag in one window
+    /// revealed and animated the empty-Favorites drop zone in every other window —
+    /// each of which has its own sidebar the drag can't be dropped into (#2514).
+    /// Tracking the originating window keeps the reveal where the drag is.
+    private var draggingWindows: Set<WindowScope> = []
+
+    /// True while a pad/question carrying a `coderpadFavorite` payload is in flight
+    /// in `window`.
+    func isDragging(in window: WindowScope) -> Bool {
+        draggingWindows.contains(window)
+    }
+
+    func begin(in window: WindowScope) {
+        draggingWindows.insert(window)
+    }
+
+    func end(in window: WindowScope) {
+        draggingWindows.remove(window)
+    }
 }
 
 #if os(macOS)
@@ -169,15 +188,19 @@ final class FavoriteDragMonitor {
     enum FavoriteDragLifecycle {
         /// A row drag began: reveal the drop zone only when the session actually carries a
         /// favorite payload, so a plain link-out drag doesn't reveal a target nothing can
-        /// drop on.
-        static let onBegan: (NSDraggingSession) -> Void = { session in
-            let canFavorite = session.draggingPasteboard
-                .canReadItem(withDataConformingToTypes: [UTType.coderpadFavorite.identifier])
-            if canFavorite { FavoriteDragMonitor.shared.isDragging = true }
+        /// drop on. Scoped to `window` so only that window's sidebar responds (#2514).
+        static func onBegan(in window: WindowScope) -> (NSDraggingSession) -> Void {
+            { session in
+                let canFavorite = session.draggingPasteboard
+                    .canReadItem(withDataConformingToTypes: [UTType.coderpadFavorite.identifier])
+                if canFavorite { FavoriteDragMonitor.shared.begin(in: window) }
+            }
         }
 
         /// The drag dropped or was cancelled: collapse the revealed drop zone again.
-        static let onEnded: () -> Void = { FavoriteDragMonitor.shared.isDragging = false }
+        static func onEnded(in window: WindowScope) -> () -> Void {
+            { FavoriteDragMonitor.shared.end(in: window) }
+        }
     }
 #endif
 

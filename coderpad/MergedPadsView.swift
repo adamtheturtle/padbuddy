@@ -26,6 +26,9 @@ struct MergedPadsView: View {
     @Environment(\.accessibilityReduceMotion) var reduceMotion
     /// While offline the app is read-only, so create/delete controls disable (#321).
     @Environment(\.isReadOnly) var isReadOnly
+    /// Which window this list is in, so a favourite drag reveals the drop zone
+    /// only in this window's sidebar (#2514).
+    @Environment(\.windowScope) var windowScope
     @Environment(\.openWindow) var openWindow
     @Environment(\.undoManager) var undoManager
     /// Cross-platform Settings opener (macOS window / iPad sheet), so an auth-failure

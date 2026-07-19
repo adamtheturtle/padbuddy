@@ -37,6 +37,9 @@ struct Sidebar: View {
     /// Drives the empty-Favourites drop zone to appear only while a favorite drag is in
     /// flight, so an empty section keeps no resting gap (#444).
     @State var favoriteDragMonitor = FavoriteDragMonitor.shared
+    /// Which window this sidebar is in, so it reveals its empty-Favorites drop zone
+    /// only for a drag started here (#2514).
+    @Environment(\.windowScope) var windowScope
     /// Whether the Favorites sidebar section is expanded. Kept as view state so the
     /// collapsed/expanded choice follows the current sidebar instance.
     @State var favoritesSectionExpanded = true
