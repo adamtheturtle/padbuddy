@@ -216,7 +216,11 @@ struct CommandEditableTitle: View {
     private func sourceTitleChanged(to newTitle: String) {
         guard isEditing, newTitle != editingBaseTitle else { return }
 
-        if draft == editingBaseTitle || draft == newTitle {
+        // Only an untouched draft follows the source silently. A remote title that
+        // happens to match what was typed here is still someone else's edit, and
+        // adopting it as the new base hid that from the user and let the next save
+        // report success over an unreviewed change (#2021).
+        if draft == editingBaseTitle {
             draft = newTitle
             editingBaseTitle = newTitle
             titleConflict = false
