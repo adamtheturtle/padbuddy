@@ -17,9 +17,14 @@ extension NavigationSessionLoader {
         // Per-account write tokens captured before the fetches begin: a slow warm
         // that completes after a fresher (user-initiated) write must not replace
         // it (#1242).
-        let tokens = Dictionary(uniqueKeysWithValues: targets.map {
+        //
+        // Keyed with `uniquingKeysWith` rather than `uniqueKeysWithValues` (#2066):
+        // the target list comes from the account store, and a duplicated account
+        // record would otherwise trap the whole warm at runtime. Duplicates name the
+        // same account, so keeping the first entry loses nothing.
+        let tokens = Dictionary(targets.map {
             ($0.id, PadsCacheStore.shared.writeGeneration[$0.id] ?? 0)
-        })
+        }, uniquingKeysWith: { first, _ in first })
         await withTaskGroup(of: (UUID, [Pad]?).self) { group in
             var iterator = targets.makeIterator()
             func addNext() {
@@ -42,7 +47,7 @@ extension NavigationSessionLoader {
                 addNext()
             }
 
-            let clientsByID = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, $0.client) })
+            let clientsByID = Dictionary(targets.map { ($0.id, $0.client) }, uniquingKeysWith: { first, _ in first })
             for await (id, pads) in group {
                 addNext()
                 if let pads, let client = clientsByID[id],
@@ -55,9 +60,9 @@ extension NavigationSessionLoader {
 
     static func prefetchMergedQuestions(_ targets: [(id: UUID, client: CoderPadClient)]) async {
         // See prefetchMergedPads for the write-token rationale (#1242).
-        let tokens = Dictionary(uniqueKeysWithValues: targets.map {
+        let tokens = Dictionary(targets.map {
             ($0.id, QuestionsCacheStore.shared.writeGeneration[$0.id] ?? 0)
-        })
+        }, uniquingKeysWith: { first, _ in first })
         await withTaskGroup(of: (UUID, [Question]?).self) { group in
             var iterator = targets.makeIterator()
             func addNext() {
@@ -77,7 +82,7 @@ extension NavigationSessionLoader {
                 addNext()
             }
 
-            let clientsByID = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, $0.client) })
+            let clientsByID = Dictionary(targets.map { ($0.id, $0.client) }, uniquingKeysWith: { first, _ in first })
             for await (id, questions) in group {
                 addNext()
                 if let questions, let client = clientsByID[id],
@@ -108,7 +113,7 @@ extension NavigationSessionLoader {
                 addNext()
             }
 
-            let clientsByID = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, $0.client) })
+            let clientsByID = Dictionary(targets.map { ($0.id, $0.client) }, uniquingKeysWith: { first, _ in first })
             for await (id, quota) in group {
                 addNext()
                 if let quota, let client = clientsByID[id] {
