@@ -25,21 +25,21 @@
     }
 
     final class IPadQuickActionSceneDelegate: NSObject, UIWindowSceneDelegate {
-        private var pendingShortcutItem: UIApplicationShortcutItem?
+        private var queue = IPadQuickActionQueue()
 
         func scene(
             _: UIScene,
             willConnectTo _: UISceneSession,
             options connectionOptions: UIScene.ConnectionOptions
         ) {
-            pendingShortcutItem = connectionOptions.shortcutItem
+            guard let shortcutItem = connectionOptions.shortcutItem else { return }
+
+            _ = queue.enqueue(type: shortcutItem.type)
         }
 
         func sceneDidBecomeActive(_: UIScene) {
-            guard let pendingShortcutItem else { return }
-
-            self.pendingShortcutItem = nil
-            _ = IPadQuickAction.handle(pendingShortcutItem)
+            queue.activate()
+            perform(queue.drain())
         }
 
         func windowScene(
@@ -47,36 +47,70 @@
             performActionFor shortcutItem: UIApplicationShortcutItem,
             completionHandler: (Bool) -> Void
         ) {
-            completionHandler(IPadQuickAction.handle(shortcutItem))
-        }
-    }
-
-    private enum IPadQuickAction: String {
-        case newPad = "com.adamdangoor.padbuddy.new-pad"
-        case newQuestion = "com.adamdangoor.padbuddy.new-question"
-        case showPads = "com.adamdangoor.padbuddy.show-pads"
-        case showQuestions = "com.adamdangoor.padbuddy.show-questions"
-
-        @MainActor
-        static func handle(_ shortcutItem: UIApplicationShortcutItem) -> Bool {
-            guard let action = Self(rawValue: shortcutItem.type) else { return false }
-
-            action.perform()
-            return true
+            // A shortcut can arrive before the scene is active, so queue it rather than
+            // running it against navigation state that is not ready yet (#2032).
+            let recognised = queue.enqueue(type: shortcutItem.type)
+            perform(queue.drain())
+            completionHandler(recognised)
         }
 
         @MainActor
-        private func perform() {
-            switch self {
-            case .newPad:
-                AppNavigation.shared.showPads(PadsRequest(startCreating: true))
-            case .newQuestion:
-                AppNavigation.shared.showQuestions(QuestionsRequest(startCreating: true))
-            case .showPads:
-                AppNavigation.shared.show(.pads)
-            case .showQuestions:
-                AppNavigation.shared.show(.questions)
+        private func perform(_ actions: [IPadQuickAction]) {
+            for action in actions {
+                action.perform()
             }
         }
     }
 #endif
+
+/// Buffers quick actions that arrive before the scene becomes active.
+///
+/// Only one shortcut used to be remembered, so a second one delivered before activation
+/// silently replaced the first; actions are now kept in arrival order (#2032).
+struct IPadQuickActionQueue {
+    private var pending: [IPadQuickAction] = []
+    private var isActive = false
+
+    /// Records `type`, returning whether it names a known quick action.
+    mutating func enqueue(type: String) -> Bool {
+        guard let action = IPadQuickAction(rawValue: type) else { return false }
+
+        pending.append(action)
+        return true
+    }
+
+    /// Marks the scene as active so queued actions can run.
+    mutating func activate() {
+        isActive = true
+    }
+
+    /// The actions to perform now, in arrival order. Empty until the scene is active.
+    mutating func drain() -> [IPadQuickAction] {
+        guard isActive else { return [] }
+
+        defer { pending.removeAll() }
+        return pending
+    }
+}
+
+/// The Home Screen quick actions, kept platform-neutral so the macOS build type-checks them.
+enum IPadQuickAction: String {
+    case newPad = "com.adamdangoor.padbuddy.new-pad"
+    case newQuestion = "com.adamdangoor.padbuddy.new-question"
+    case showPads = "com.adamdangoor.padbuddy.show-pads"
+    case showQuestions = "com.adamdangoor.padbuddy.show-questions"
+
+    @MainActor
+    func perform() {
+        switch self {
+        case .newPad:
+            AppNavigation.shared.showPads(PadsRequest(startCreating: true))
+        case .newQuestion:
+            AppNavigation.shared.showQuestions(QuestionsRequest(startCreating: true))
+        case .showPads:
+            AppNavigation.shared.show(.pads)
+        case .showQuestions:
+            AppNavigation.shared.show(.questions)
+        }
+    }
+}
