@@ -12,48 +12,6 @@
 import AppKit
 import SwiftUI
 
-func availableListSelection<ID: Hashable>(_ selection: Set<ID>, availableIDs: Set<ID>) -> Set<ID> {
-    selection.intersection(availableIDs)
-}
-
-/// One entry in a row's right-click menu, built by the caller and rendered as an
-/// `NSMenuItem` (the hosted SwiftUI content is hit-transparent, so the menu can't be a
-/// SwiftUI `.contextMenu`).
-public enum RowMenuItem {
-    case button(title: String, isDestructive: Bool = false, isEnabled: Bool = true, perform: () -> Void)
-    case separator
-}
-
-/// One swipe action on a row edge, rendered as an `NSTableViewRowAction`.
-public struct RowSwipeAction {
-    var title: String
-    var isDestructive: Bool
-    /// Background colour for the revealed button (e.g. yellow for favorite). `nil`
-    /// uses the system default (grey for regular, red for destructive).
-    var tint: NSColor?
-    /// An SF Symbol shown on the revealed button instead of the title (#454), the
-    /// standard macOS swipe look (Finder/Mail). `nil` falls back to the text title.
-    /// `title` is still set so VoiceOver announces the action. (NSTableViewRowAction
-    /// renders an image *or* a title, never both — true icon-over-text isn't
-    /// expressible with the native API.)
-    var systemImage: String?
-    var perform: () -> Void
-
-    public init(
-        title: String,
-        isDestructive: Bool = false,
-        tint: NSColor? = nil,
-        systemImage: String? = nil,
-        perform: @escaping () -> Void
-    ) {
-        self.title = title
-        self.isDestructive = isDestructive
-        self.tint = tint
-        self.systemImage = systemImage
-        self.perform = perform
-    }
-}
-
 /// Carries a menu item's closure as an `NSMenuItem.representedObject`, so a single
 /// `@objc` action can dispatch any item.
 private final class MenuActionBox {
@@ -215,7 +173,10 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
         coordinator.reloadIfNeeded(items, force: false)
         coordinator.applySelection(selection)
 
-        if let scrollToID, let row = coordinator.index(of: scrollToID) {
+        if scrollToID == nil {
+            coordinator.resetScrollRequest()
+        } else if let scrollToID, let row = coordinator.index(of: scrollToID),
+                  coordinator.consumeScrollRequest(scrollToID) {
             table.scrollRowToVisible(row)
             DispatchQueue.main.async { onScrolledToID() }
         }
@@ -227,6 +188,7 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
         weak var tableView: NSTableView?
         private var items: [Item] = []
         private var indexByID: [Item.ID: Int] = [:]
+        private var activeScrollRequestID: Item.ID?
         /// Guards against the selection binding and the table's selection ping-ponging.
         private var isApplyingSelection = false
 
@@ -258,6 +220,17 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
 
         func index(of id: Item.ID) -> Int? {
             indexByID[id]
+        }
+
+        func consumeScrollRequest(_ id: Item.ID) -> Bool {
+            guard activeScrollRequestID != id else { return false }
+
+            activeScrollRequestID = id
+            return true
+        }
+
+        func resetScrollRequest() {
+            activeScrollRequestID = nil
         }
 
         public func numberOfRows(in _: NSTableView) -> Int {
