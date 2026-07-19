@@ -7,6 +7,14 @@
 import Foundation
 import Testing
 
+@Suite("Focused router requests")
+@MainActor
+struct RouterWindowFocusTests {
+    @Test func `a window is unfocused until its environment is sampled`() {
+        #expect(!RouterWindowFocus().isFocused)
+    }
+}
+
 @Suite("Navigation prefetch health")
 @MainActor
 struct NavigationPrefetchHealthTests {

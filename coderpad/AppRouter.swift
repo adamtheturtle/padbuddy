@@ -245,21 +245,22 @@ private extension Notification.Name {
 /// capture a stale `controlActiveState` snapshot from one body evaluation.
 /// `controlActiveState` doesn't exist on iOS, where `scenePhase` gives the same
 /// signal: only the scene the user is in reports `.active` (#2685).
+@MainActor
+final class RouterWindowFocus {
+    /// An unmounted window has not established focus and must not consume a
+    /// process-wide request before its environment is sampled (#2062).
+    var isFocused = false
+}
+
 private struct FocusedWindowRequestModifier: ViewModifier {
     #if os(macOS)
         @Environment(\.controlActiveState) private var controlActiveState
     #else
         @Environment(\.scenePhase) private var scenePhase
     #endif
-    @State private var focus = FocusBox()
+    @State private var focus = RouterWindowFocus()
     let stream: () -> AsyncStream<Void>
     let action: @MainActor () async -> Void
-
-    @MainActor final class FocusBox {
-        /// Defaults to focused so a single-window app (and the interval before the
-        /// first `onAppear`) behaves exactly as before.
-        var isFocused = true
-    }
 
     func body(content: Content) -> some View {
         focusTracking(content)
