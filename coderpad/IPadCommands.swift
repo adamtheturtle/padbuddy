@@ -13,21 +13,35 @@
     import SwiftUI
 
     struct IPadCommands: Commands {
+        /// Observed, not read once: the Go items' availability and the creation
+        /// commands' gating depend on the live account, quota, and network state, and
+        /// a `Commands` body that reads the shared stores without observing them keeps
+        /// whatever was true when the command set was first built (#2366, #2367).
+        @State private var accounts = AccountsStore.shared
+        @State private var quotas = QuotaCacheStore.shared
+        @State private var network = NetworkMonitor.shared
         @FocusedValue(\.findAction) private var findAction
         @FocusedValue(\.printAction) private var printAction
         @FocusedValue(\.exportMarkdownAction) private var exportMarkdownAction
 
         var body: some Commands {
             CommandGroup(replacing: .newItem) {
+                // Creation needs an account to create in and a network to create over.
+                // Ungated, a hardware-keyboard user could open a create sheet the app
+                // had no way to complete, and only find out on submit (#2366) — the
+                // menu-bar extra and the macOS New Pad from Question submenu already
+                // disable themselves on the same conditions.
                 Button("New Pad") {
                     AppNavigation.shared.showPads(PadsRequest(startCreating: true))
                 }
                 .keyboardShortcut("n", modifiers: [.command])
+                .disabled(!canCreate)
 
                 Button("New Question") {
                     AppNavigation.shared.showQuestions(QuestionsRequest(startCreating: true))
                 }
                 .keyboardShortcut("n", modifiers: [.command, .shift])
+                .disabled(!canCreate)
 
                 Button("Open Pad by URL…") {
                     AppRouter.requestOpenPadByURL()
@@ -90,6 +104,14 @@
                 Button("Previous Section") { cycleSection(by: -1) }
                     .keyboardShortcut("[", modifiers: [.command, .shift])
             }
+        }
+
+        /// Whether a create command can actually complete: there has to be an account
+        /// with credentials to create under, and a network to reach it over.
+        private var canCreate: Bool {
+            guard !network.isOffline else { return false }
+
+            return accounts.accounts.contains { $0.isMock || !$0.apiKey.isEmpty }
         }
 
         private func postIfNavigable(_ section: AppSection) {
