@@ -62,12 +62,17 @@ struct FocusedQuestionFavoriteState: Equatable {
 }
 
 extension FocusedValues {
-    /// The selected question's web URL, published by `QuestionDetailView` so the
-    /// Question menu's Share/Copy URL commands can act on it. Built from the
-    /// account's server URL there (the question model has no URL of its own), so
-    /// the menu honors a custom CoderPad domain — the Pad menu's counterpart reads
-    /// `focusedPad.webURL` directly because pads carry an absolute API URL.
-    @Entry var focusedQuestionURL: URL?
+    @Entry var focusedQuestionLink: FocusedQuestionLink?
+}
+
+struct FocusedQuestionLink: Equatable {
+    let questionID: Int
+    let accountID: UUID?
+    let url: URL
+
+    func value(for questionID: Int, accountID: UUID?) -> URL? {
+        self.questionID == questionID && self.accountID == accountID ? url : nil
+    }
 }
 
 // MARK: - Focused scene values for Screen commands

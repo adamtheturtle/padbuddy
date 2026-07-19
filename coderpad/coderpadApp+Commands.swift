@@ -261,7 +261,7 @@
         @FocusedValue(\.focusedQuestion) private var question
         @FocusedValue(\.focusedQuestionAccountID) private var questionAccountID
         @FocusedValue(\.focusedQuestionFavoriteState) private var favoriteState
-        @FocusedValue(\.focusedQuestionURL) private var questionURL
+        @FocusedValue(\.focusedQuestionLink) private var questionLink
         /// Mirrors the window's read-only state (offline) so the mutating items disable
         /// to match the in-window controls (#321). `nil`/`false` means editable.
         @FocusedValue(\.isReadOnly) private var isReadOnly
@@ -273,6 +273,12 @@
             guard let question else { return nil }
 
             return favoriteState?.value(for: question.id, accountID: questionAccountID)
+        }
+
+        private var questionURL: URL? {
+            guard let question else { return nil }
+
+            return questionLink?.value(for: question.id, accountID: questionAccountID)
         }
 
         var body: some Commands {
@@ -334,7 +340,7 @@
 
                 // A live `ShareLink` rather than a routed command, mirroring the Pad
                 // menu: it needs a concrete URL at build time, published here as
-                // `focusedQuestionURL`. Falls back to a disabled button (so the item
+                // the focused question link. Falls back to a disabled button (so the item
                 // still appears) when no question is selected.
                 if let questionURL {
                     ShareLink("Share Question…", item: questionURL)

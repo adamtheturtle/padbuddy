@@ -205,6 +205,17 @@ struct FocusedFavoriteStateTests {
     }
 }
 
+struct FocusedQuestionLinkTests {
+    @Test func `link resolves only for the published question and account`() throws {
+        let accountID = UUID()
+        let url = try #require(URL(string: "https://example.com/questions/1"))
+        let link = FocusedQuestionLink(questionID: 1, accountID: accountID, url: url)
+        #expect(link.value(for: 1, accountID: accountID) == url)
+        #expect(link.value(for: 2, accountID: accountID) == nil)
+        #expect(link.value(for: 1, accountID: UUID()) == nil)
+    }
+}
+
 struct FocusFilterSnapshotTests {
     private let account = Account(name: "Acme", apiKey: "key", userEmail: "a@example.com")
 

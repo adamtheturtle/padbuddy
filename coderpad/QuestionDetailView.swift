@@ -219,7 +219,10 @@ struct QuestionDetailView: View {
                                                             isFavorite: isFavorite))
             // Publish the question's web URL so the Question menu's Share/Copy URL
             // commands act on the same link, built from this account's server URL.
-            .focusedSceneValue(\.focusedQuestionURL, questionURL)
+            .focusedSceneValue(\.focusedQuestionLink,
+                               FocusedQuestionLink(questionID: question.id,
+                                                   accountID: owningAccountID,
+                                                   url: questionURL))
             // Publish a print rendering so File ▸ Print (⌘P) can produce a hard copy
             // or PDF of the prompt, instructions, and solution.
             .focusedSceneValue(\.printAction, PrintAction(id: "question-\(question.id)",
