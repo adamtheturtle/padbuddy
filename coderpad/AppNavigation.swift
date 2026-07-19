@@ -296,12 +296,17 @@ final class AppNavigation {
     /// queues an empty wholesale search so the merged view also resets its search
     /// text and every filter, exactly as the single-account root row does; the
     /// presets alone left a lingering search/language/owner filter applied (#1001).
-    func showMergedRoot(kind: SavedSearchKind) {
+    /// Clears the merged list back to an unfiltered root before applying `preset`.
+    ///
+    /// `preset` is applied *after* the reset, so a shortcut that wants "active pads"
+    /// gets exactly that rather than active-pads-intersected-with-whatever-was-left
+    /// on screen (#2358).
+    func showMergedRoot(kind: SavedSearchKind, activeOnly: Bool = false) {
         switch kind {
         case .pads:
             sectionRequest = .pads
             mergedPadsMineRequest = false
-            mergedPadsActiveRequest = false
+            mergedPadsActiveRequest = activeOnly
             padsRequest = PadsRequest(applySearch: NamedSearch(name: ""))
 
         case .questions:

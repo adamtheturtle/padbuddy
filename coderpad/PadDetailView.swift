@@ -250,6 +250,15 @@ struct PadDetailView: View {
             // until the pad's code (environments or legacy inline contents) has loaded.
             .focusedSceneValue(\.padHasSavableCode, hasSavableCode)
             .task(id: pad.id) { await load() }
+            // A confirmed-but-not-yet-fired deletion is held in `deletionTask`, not
+            // run from `.task`, so leaving the detail would otherwise let it fire
+            // after the grace period with the Undo banner long gone from screen
+            // (#2368). Cancelling means navigating away abandons it, which matches
+            // what the banner disappearing implies.
+            .onDisappear {
+                deletionTask?.cancel()
+                deletionTask = nil
+            }
     }
 
     /// The end/delete confirmations, the failure alert, its error haptic, and the Markdown

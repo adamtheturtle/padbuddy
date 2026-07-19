@@ -188,7 +188,10 @@ struct OpenRecentPadsIntent: AppIntent {
         // Cancellation during the warm-up throws and exits before routing (#844).
         try await Task.sleep(for: .milliseconds(200))
         await MainActor.run {
-            UserDefaults.standard.set(PadSort.updatedDesc.rawValue, forKey: PadSort.storageKey)
+            // The user's chosen sort is left alone. Writing `updatedDesc` here changed
+            // it in every window and account, permanently, as a side effect of running
+            // a shortcut — and "recent" is what the list already shows by default
+            // (#2357). The intent's job is to open the pads list, not to re-sort it.
             if AccountsStore.shared.isMergedView {
                 AppNavigation.shared.showMergedRoot(kind: .pads)
             } else {
@@ -211,8 +214,9 @@ struct OpenActivePadsIntent: AppIntent {
         try await Task.sleep(for: .milliseconds(200))
         await MainActor.run {
             if AccountsStore.shared.isMergedView {
-                AppNavigation.shared.sectionRequest = .pads
-                AppNavigation.shared.mergedPadsActiveRequest = true
+                // Through the root reset, so a search, owner, or Mine filter left on
+                // screen can't hide the very pads this shortcut exists to show (#2358).
+                AppNavigation.shared.showMergedRoot(kind: .pads, activeOnly: true)
             } else {
                 let active = NamedSearch(name: String(localized: "Active Pads"), stateFilter: .active)
                 AppNavigation.shared.showPads(PadsRequest(applySearch: active))
@@ -260,7 +264,10 @@ struct FavoriteQuestionQuery: EntityQuery {
         let qualify = accounts.count > 1
         return accounts.flatMap { account in
             FavoriteQuestionsStore.shared.titledFavorites(account: account.id).map { favorite in
-                let title = favorite.title.isEmpty ? "#\(favorite.id)" : favorite.title
+                // Trimmed before the check: a whitespace-only cloud title produced a
+                // blank Shortcuts choice rather than the "#id" fallback (#2363).
+                let stored = favorite.title.trimmingCharacters(in: .whitespacesAndNewlines)
+                let title = stored.isEmpty ? "#\(favorite.id)" : stored
                 let label = qualify ? "\(title) · \(account.name)" : title
                 return FavoriteQuestionEntity(id: entityID(account: account, questionID: favorite.id),
                                               accountID: account.id.uuidString,
