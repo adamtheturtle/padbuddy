@@ -16,6 +16,8 @@ struct QuotaView: View {
     @State private var quota: Quota?
     @State private var isLoading = false
     @State private var error: (any Error)?
+    /// Only the newest overlapping reload may publish or end the loading state.
+    @State private var reloadGeneration = 0
     /// Recomputed when the quota changes rather than in `body`: building it runs
     /// Calendar date arithmetic against a freshly sampled `Date()`, which every
     /// redraw repeated (#2279). `now` is sampled alongside it so the trial card and
@@ -179,16 +181,26 @@ struct QuotaView: View {
     private func reload() async {
         guard !client.apiKey.isEmpty else { return }
 
+        reloadGeneration += 1
+        let generation = reloadGeneration
         isLoading = true
         error = nil
-        defer { isLoading = false }
+        defer {
+            if generation == reloadGeneration { isLoading = false }
+        }
         do {
             let fetched = try await client.quota()
+            guard generation == reloadGeneration, !Task.isCancelled else { return }
+
             quota = fetched
             if let id = accountID {
                 cache.set(id, quota: fetched, via: client)
             }
+        } catch is CancellationError {
+            return
         } catch {
+            guard generation == reloadGeneration, !Task.isCancelled else { return }
+
             self.error = error
         }
     }
