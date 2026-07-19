@@ -34,6 +34,7 @@ import Foundation
 
             try await Task.detached(priority: .userInitiated) {
                 try writeConfig(data, to: url)
+                try verifyJSONConfig(at: url, executablePath: executablePath)
             }.value
 
             let title = alreadyPresent ? "Updated \(client.displayName)" : "Added to \(client.displayName)"

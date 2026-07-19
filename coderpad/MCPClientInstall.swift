@@ -266,6 +266,7 @@ enum MCPClientInstall {
                 let merged = text.isEmpty ? appended : text + newline + appended
                 try await Task.detached(priority: .userInitiated) {
                     try writeConfig(Data(merged.utf8), to: url)
+                    try verifyCodexConfig(at: url, executablePath: executablePath)
                 }.value
                 showAlert(.informational, "Added to \(client.displayName)", client.restartHint)
 
@@ -284,6 +285,7 @@ enum MCPClientInstall {
                     .joined(separator: newline)
                 try await Task.detached(priority: .userInitiated) {
                     try writeConfig(Data(updated.utf8), to: url)
+                    try verifyCodexConfig(at: url, executablePath: executablePath)
                 }.value
                 showAlert(.informational, "Updated \(client.displayName)", client.restartHint)
 

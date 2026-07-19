@@ -10,6 +10,10 @@
 import Foundation
 
 extension MCPClientInstall {
+    struct ConfigVerificationError: LocalizedError {
+        let errorDescription: String?
+    }
+
     /// Whether `path` is something the client can actually execute: present, a
     /// regular file (not a directory or a dangling symlink), and executable.
     nonisolated static func isRunnableExecutable(_ path: String) -> Bool {
@@ -121,4 +125,43 @@ extension MCPClientInstall {
             throw error
         }
     }
+
+    #if os(macOS)
+        /// Reads the file back after replacement and verifies the exact server shape
+        /// the JSON clients consume before the installer reports success (#1134).
+        nonisolated static func verifyJSONConfig(at url: URL, executablePath: String) throws {
+            let data = try Data(contentsOf: url)
+            guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                  let servers = root["mcpServers"] as? [String: Any],
+                  let padbuddy = servers["padbuddy"] as? [String: Any],
+                  padbuddy["command"] as? String == executablePath,
+                  padbuddy["args"] as? [String] == ["--mcp"] else {
+                throw ConfigVerificationError(errorDescription: String(localized:
+                    "The written JSON configuration did not contain the expected PadBuddy server."))
+            }
+        }
+
+        /// Re-scans the written TOML and checks the generated command/arguments
+        /// survived the filesystem replacement before showing a success alert.
+        nonisolated static func verifyCodexConfig(at url: URL, executablePath: String) throws {
+            let text = try String(contentsOf: url, encoding: .utf8)
+            guard codexConfigStructuralProblem(in: text) == nil else {
+                throw ConfigVerificationError(errorDescription: String(localized:
+                    "The written config.toml could not be parsed safely."))
+            }
+
+            let scan = scanCodexConfig(text)
+            guard case .table = scan.declaration, let range = scan.tableLineRange else {
+                throw ConfigVerificationError(errorDescription: String(localized:
+                    "The written config.toml did not contain a PadBuddy server table."))
+            }
+
+            let table = scan.lines[range].map { $0.trimmingCharacters(in: .whitespaces) }
+            guard table.contains("command = \(tomlBasicString(executablePath))"),
+                  table.contains(#"args = ["--mcp"]"#) else {
+                throw ConfigVerificationError(errorDescription: String(localized:
+                    "The written PadBuddy server table did not preserve its command and arguments."))
+            }
+        }
+    #endif
 }
