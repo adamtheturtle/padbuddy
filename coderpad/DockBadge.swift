@@ -160,7 +160,13 @@ enum DockBadgeController {
             let (accountID, pads) = entry
             guard let email = canonicalEmails[accountID] else { return running }
 
+            // Counted per distinct pad id: a cache seed overlapping a fresh page can
+            // leave the same pad twice in one account's rows, which inflated the badge
+            // (#2172, the same duplication #2620 repaired elsewhere).
+            var seenPadIDs = Set<String>()
             return running + pads.count(where: {
+                guard seenPadIDs.insert($0.id).inserted else { return false }
+
                 // Status first: it's a cheap enum compare, and it rejects the great
                 // majority of pads before the canonicalization — which trims and
                 // lowercases into a fresh String, and used to run for every pad of
@@ -186,6 +192,7 @@ enum DockBadgeController {
                 // on the icon (#2580).
                 guard count > 0 else {
                     writeBadge(count: 0, center: center)
+                    await requestBadgePermissionIfNeeded(center: center)
                     return
                 }
 
@@ -213,11 +220,37 @@ enum DockBadgeController {
     }
 
     #if !os(macOS)
+        /// Resolves an undetermined badge permission while the badge is wanted but the
+        /// count is zero.
+        ///
+        /// Clearing needs no permission, so this path used to return without ever
+        /// asking — a user could enable badges, see nothing, and only meet the prompt
+        /// whenever a pad next went active, by which point the request has no visible
+        /// connection to the setting they changed (#2171). Only asks when the badge is
+        /// actually wanted, so turning it off never prompts.
+        @MainActor
+        private static func requestBadgePermissionIfNeeded(center: UNUserNotificationCenter) async {
+            guard scope != .off else { return }
+            guard await center.notificationSettings().authorizationStatus == .notDetermined else { return }
+
+            _ = try? await center.requestAuthorization(options: [.badge])
+        }
+
         @MainActor
         private static func writeBadge(count: Int, center: UNUserNotificationCenter) {
             center.setBadgeCount(count) { error in
-                if let error {
-                    print("Failed to update app icon badge: \(error.localizedDescription)")
+                guard let error else { return }
+
+                // A `print` left the failure invisible in a release build, with the
+                // preference still claiming the badge was on and the icon showing
+                // whatever it showed before (#2170). Logged so it is diagnosable, and
+                // the badge is reconciled once rather than retried in a loop — a
+                // permission or system failure will not fix itself by hammering it.
+                persistenceLogger.error(
+                    "Failed to update app icon badge: \(error.localizedDescription, privacy: .private)"
+                )
+                Task { @MainActor in
+                    center.setBadgeCount(0)
                 }
             }
         }
