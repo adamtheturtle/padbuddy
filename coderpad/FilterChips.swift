@@ -57,10 +57,17 @@ struct DateRangeFilterChip: View {
 
     /// No dashes in user-facing copy (house style): join the two dates with "to".
     private var customRangeLabel: String {
-        let style = SharedDateStyles.monthAndDay
-        let start = window.customStart.map { $0.formatted(style) } ?? "…"
-        let end = window.customEnd.map { $0.formatted(style) } ?? "…"
-        return String(localized: "\(start) to \(end)", comment: "A custom date range, e.g. \"March 1 to March 8\"")
+        Self.customRangeLabel(start: window.customStart, end: window.customEnd)
+    }
+
+    static func customRangeLabel(start: Date?, end: Date?) -> String {
+        let style = SharedDateStyles.longDate
+        let start = start.map { $0.formatted(style) } ?? "…"
+        let end = end.map { $0.formatted(style) } ?? "…"
+        return String(
+            localized: "\(start) to \(end)",
+            comment: "A custom date range, e.g. \"March 1, 2025 to March 8, 2026\""
+        )
     }
 
     private var chipText: String {
