@@ -43,6 +43,7 @@ enum CommandPaletteBuilder {
         var newPads: [PaletteResult] = []
         var content: [PaletteResult] = []
         for account in accounts {
+            let accountID = account.id
             let canCreate = creatableIDs.contains(account.id)
             let favoriteIDs = canCreate ? Set(FavoriteQuestionsStore.shared.favorites(account: account.id)) : []
             for pad in uniquePads(PadsCacheStore.shared.get(account.id)) {
@@ -77,7 +78,7 @@ enum CommandPaletteBuilder {
                         systemImage: "plus.rectangle.on.folder",
                         searchText: "New Pad from question \(question.displayTitle)",
                         onlyWhenSearching: !favoriteIDs.contains(question.id)
-                    ) { NewPadFromQuestionRunner.createAndOpen(question: question, account: account) })
+                    ) { NewPadFromQuestionRunner.createAndOpen(question: question, accountID: accountID) })
                 }
             }
         }

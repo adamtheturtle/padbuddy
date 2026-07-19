@@ -18,6 +18,19 @@ enum NewPadFromQuestionRunner {
     /// the first create returns (#1250).
     private static var inFlight: Set<String> = []
 
+    /// Palette actions can outlive the account snapshot used to build their labels.
+    /// Resolve the UUID at invocation so re-keying/removal cannot use stale credentials
+    /// or a stale server endpoint (#1979).
+    static func createAndOpen(question: Question, accountID: UUID) {
+        guard let account = resolveAccount(id: accountID, in: AccountsStore.shared.accounts) else { return }
+
+        createAndOpen(question: question, account: account)
+    }
+
+    nonisolated static func resolveAccount(id: UUID, in accounts: [Account]) -> Account? {
+        accounts.first { $0.id == id }
+    }
+
     /// Creates a pad directly from `question` and opens it in the user's browser.
     /// On failure it falls back to the in-app create sheet seeded
     /// with the question, matching the app's other create-pad recovery paths.
