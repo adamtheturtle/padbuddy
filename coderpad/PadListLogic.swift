@@ -199,7 +199,10 @@ enum PadListLogic {
                 || pad.id.localizedCaseInsensitiveContains(search)
                 || pad.ownerEmail.localizedCaseInsensitiveContains(search)
                 || display(pad.ownerEmail).localizedCaseInsensitiveContains(search)
-                || pad.participants.contains(where: { $0.localizedCaseInsensitiveContains(search) }))
+                || pad.participants.contains(where: {
+                    $0.localizedCaseInsensitiveContains(search)
+                        || display($0).localizedCaseInsensitiveContains(search)
+                }))
     }
 }
 
