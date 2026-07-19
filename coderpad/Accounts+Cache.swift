@@ -65,8 +65,9 @@ final class PadsCacheStore {
         if !diskConsulted.contains(accountID) {
             diskConsulted.insert(accountID)
             if let disk = CacheDisk.load([Pad].self, kind: "pads", account: accountID) {
-                padsByAccount[accountID] = disk
-                return disk
+                let normalized = Self.normalizedDiskPads(disk)
+                padsByAccount[accountID] = normalized
+                return normalized
             }
         }
         return []
@@ -87,8 +88,16 @@ final class PadsCacheStore {
             guard padsByAccount[accountID] == nil, !diskConsulted.contains(accountID) else { return }
 
             diskConsulted.insert(accountID)
-            if let disk { padsByAccount[accountID] = disk }
+            if let disk { padsByAccount[accountID] = Self.normalizedDiskPads(disk) }
         }
+    }
+
+    /// Disk snapshots are disposable and may come from an older/crashed writer.
+    /// Keep the first occurrence to preserve the stored order while guaranteeing
+    /// stable SwiftUI/cache identity before publication (#1438).
+    static func normalizedDiskPads(_ pads: [Pad]) -> [Pad] {
+        var seen: Set<String> = []
+        return pads.filter { seen.insert($0.id).inserted }
     }
 
     /// `persist: false` updates only the in-memory snapshot, skipping the disk write —

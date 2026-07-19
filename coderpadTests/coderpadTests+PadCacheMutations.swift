@@ -8,6 +8,14 @@ import Testing
 
 @Suite("Pad cache mutations")
 struct PadCacheMutationTests {
+    @Test func `disk hydration keeps the first row for each pad identity`() {
+        let first = Pad(id: "pad", title: "First")
+        let duplicate = Pad(id: "pad", title: "Duplicate")
+        let other = Pad(id: "other", title: "Other")
+
+        #expect(PadsCacheStore.normalizedDiskPads([first, duplicate, other, duplicate]) == [first, other])
+    }
+
     @Test func `fresh detail replaces every duplicate cached row`() {
         let stale = Pad(id: "pad", title: "Stale")
         let fresh = Pad(id: "pad", title: "Fresh")
