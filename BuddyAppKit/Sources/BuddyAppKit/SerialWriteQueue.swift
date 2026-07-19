@@ -12,6 +12,7 @@ import os
 public final class SerialWriteQueue: Sendable {
     private struct Job {
         let priority: TaskPriority
+        let coalescingKey: String?
         let work: @Sendable () -> Void
     }
 
@@ -20,18 +21,49 @@ public final class SerialWriteQueue: Sendable {
         var nextIndex = 0
         var isRunning = false
         var idleWaiters: [CheckedContinuation<Void, Never>] = []
+        var coalescedCount = 0
+        var droppedCount = 0
     }
 
     private let state = OSAllocatedUnfairLock<State>(initialState: State())
+    public let maximumPendingJobs: Int
 
-    public init() {}
+    public init(maximumPendingJobs: Int = 256) {
+        self.maximumPendingJobs = max(1, maximumPendingJobs)
+    }
+
+    public struct Metrics: Sendable, Equatable {
+        public let pendingCount: Int
+        public let coalescedCount: Int
+        public let droppedCount: Int
+    }
+
+    public var metrics: Metrics {
+        state.withLock {
+            Metrics(pendingCount: max(0, $0.jobs.count - $0.nextIndex),
+                    coalescedCount: $0.coalescedCount,
+                    droppedCount: $0.droppedCount)
+        }
+    }
 
     @preconcurrency public func enqueue(
         priority: TaskPriority = .utility,
+        coalescingKey: String? = nil,
         _ work: @Sendable @escaping () -> Void
     ) {
         let shouldStart = state.withLock { state in
-            state.jobs.append(Job(priority: priority, work: work))
+            let job = Job(priority: priority, coalescingKey: coalescingKey, work: work)
+            if let coalescingKey,
+               let index = state.jobs[state.nextIndex...].lastIndex(where: { $0.coalescingKey == coalescingKey }) {
+                state.jobs[index] = job
+                state.coalescedCount += 1
+                return false
+            }
+            if state.jobs.count - state.nextIndex >= maximumPendingJobs {
+                state.jobs.remove(at: state.nextIndex)
+                state.droppedCount += 1
+            }
+            state.jobs.append(job)
             guard !state.isRunning else { return false }
 
             state.isRunning = true
@@ -75,6 +107,10 @@ public final class SerialWriteQueue: Sendable {
 
             let job = state.jobs[state.nextIndex]
             state.nextIndex += 1
+            if state.nextIndex >= 64, state.nextIndex * 2 >= state.jobs.count {
+                state.jobs.removeFirst(state.nextIndex)
+                state.nextIndex = 0
+            }
             return (job, [])
         }
         result.1.forEach { $0.resume() }

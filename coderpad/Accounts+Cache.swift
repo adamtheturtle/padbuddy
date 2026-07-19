@@ -131,7 +131,7 @@ final class PadsCacheStore {
         // titles) are in hand — tracks renames and names a pad favourited while
         // still untitled, so the sidebar shows a current title (#654).
         FavoritePadsStore.shared.refreshTitles(from: pads, account: accountID)
-        writeQueue.enqueue {
+        writeQueue.enqueue(coalescingKey: "pads.\(accountID.uuidString)") {
             CacheDisk.save(pads, kind: "pads", account: accountID)
         }
     }
@@ -160,7 +160,7 @@ final class PadsCacheStore {
         // snapshot from disk back into memory (#755). The file is gone afterwards,
         // so a re-added account with the same id starts empty either way.
         diskConsulted.insert(accountID)
-        writeQueue.enqueue {
+        writeQueue.enqueue(coalescingKey: "pads.\(accountID.uuidString)") {
             CacheDisk.delete(kind: "pads", account: accountID)
         }
         // Drop the account's mirrored widget snapshot and refresh the picker index.
@@ -207,7 +207,7 @@ final class PadsCacheStore {
             writeGeneration[accountID, default: 0] += 1
             WidgetSync.refresh(pads: reduced, account: accountID,
                                isCurrent: accountID == AccountsStore.shared.currentAccount?.id)
-            writeQueue.enqueue {
+            writeQueue.enqueue(coalescingKey: "pads.\(accountID.uuidString)") {
                 CacheDisk.save(reduced, kind: "pads", account: accountID)
             }
         }
@@ -288,7 +288,7 @@ final class QuestionsCacheStore {
         FavoriteQuestionsStore.shared.refreshTitles(from: questions, account: accountID)
         // Refresh the widget's favourite-question titles for this account too.
         WidgetSync.syncFavorites(account: accountID)
-        writeQueue.enqueue {
+        writeQueue.enqueue(coalescingKey: "questions.\(accountID.uuidString)") {
             CacheDisk.save(questions, kind: "questions", account: accountID)
         }
     }
@@ -299,7 +299,7 @@ final class QuestionsCacheStore {
         // could rehydrate the purged snapshot from disk before the queued file
         // deletion runs (#755).
         diskConsulted.insert(accountID)
-        writeQueue.enqueue {
+        writeQueue.enqueue(coalescingKey: "questions.\(accountID.uuidString)") {
             CacheDisk.delete(kind: "questions", account: accountID)
         }
     }
@@ -338,7 +338,7 @@ final class QuestionsCacheStore {
             let reduced = questions.filter { $0.id != questionID }
             questionsByAccount[accountID] = reduced
             writeGeneration[accountID, default: 0] += 1
-            writeQueue.enqueue {
+            writeQueue.enqueue(coalescingKey: "questions.\(accountID.uuidString)") {
                 CacheDisk.save(reduced, kind: "questions", account: accountID)
             }
         }

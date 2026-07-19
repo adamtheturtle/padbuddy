@@ -210,7 +210,9 @@ public final class KeychainAccountStore<Account: StorableAccount> {
         // model never has to cross actors. Writes stay ordered via the queue so a slower
         // earlier write can't overwrite a newer snapshot.
         if accounts.isEmpty {
-            writeQueue.enqueue(priority: .userInitiated) { keychain.delete(account: key) }
+            writeQueue.enqueue(priority: .userInitiated, coalescingKey: "accounts") {
+                keychain.delete(account: key)
+            }
             return
         }
         guard let data = config.encode(accounts) else {
@@ -218,7 +220,9 @@ public final class KeychainAccountStore<Account: StorableAccount> {
             return
         }
 
-        writeQueue.enqueue(priority: .userInitiated) { keychain.write(data, account: key) }
+        writeQueue.enqueue(priority: .userInitiated, coalescingKey: "accounts") {
+            keychain.write(data, account: key)
+        }
     }
 
     private func persistCurrentID() {
