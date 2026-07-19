@@ -13,6 +13,18 @@ func padTypeLabel(_ raw: String) -> String {
     InterviewType(rawValue: raw)?.label ?? raw.capitalized
 }
 
+/// The interview type a new question starts as, and the fallback for anything that
+/// isn't one. `padType` is plain `String` state that the create body sends straight
+/// through while deriving `takeHome` from an equality check, so an unrecognized value
+/// produced a payload whose two type fields disagreed (#2335).
+enum QuestionPadType {
+    static let fallback = InterviewType.allCases.first?.rawValue ?? "live"
+
+    static func normalized(_ raw: String) -> String {
+        InterviewType(rawValue: raw) == nil ? fallback : raw
+    }
+}
+
 enum QuestionDraftSection: String, CaseIterable, Identifiable {
     case description
     case instructions
