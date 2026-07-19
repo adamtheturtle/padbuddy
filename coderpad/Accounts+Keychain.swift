@@ -114,15 +114,15 @@ nonisolated enum Keychain {
 
             let localRevision = revision(from: readData(account: accountsRevisionAccount))
             let cloudRevision = revision(from: readSynchronizableData(account: accountsRevisionAccount))
-            if cloudRevision > localRevision {
+            if shouldAdoptCloud(local: local, cloud: synced,
+                                localRevision: localRevision, cloudRevision: cloudRevision) {
                 write(synced, account: accountsAccount)
                 if let cloudRevisionData = readSynchronizableData(account: accountsRevisionAccount) {
                     write(cloudRevisionData, account: accountsRevisionAccount)
                 }
             } else {
-                // The local snapshot is as new or newer (e.g. an edit whose iCloud
-                // mirror failed or lagged): local wins and refreshes the cloud copy,
-                // instead of the stale cloud blob reverting the change (#768).
+                // The local snapshot wins by revision or deterministic tie-break and
+                // refreshes the cloud copy instead of allowing replicas to diverge.
                 mirrorAccountsToiCloudKeychain(local)
             }
         }
@@ -168,6 +168,15 @@ nonisolated enum Keychain {
               let value = TimeInterval(text) else { return 0 }
 
         return value
+    }
+
+    /// Newer revision wins. When equal revisions carry different bytes, choose the
+    /// lexicographically larger blob so every device selects the same snapshot no
+    /// matter which side happens to be called "local" (#2851).
+    static func shouldAdoptCloud(local: Data, cloud: Data,
+                                 localRevision: TimeInterval, cloudRevision: TimeInterval) -> Bool {
+        if cloudRevision != localRevision { return cloudRevision > localRevision }
+        return local.lexicographicallyPrecedes(cloud)
     }
 
     private static func synchronizableQuery(account: String) -> [String: Any] {

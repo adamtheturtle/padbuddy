@@ -26,3 +26,28 @@ struct KeychainServiceTests {
         #expect(Keychain.legacySingleKeyAccount == "apiKey")
     }
 }
+
+@Suite("Keychain reconciliation ordering")
+struct KeychainReconciliationOrderingTests {
+    @Test
+    func `equal revisions choose the same bytes on both device orientations`() {
+        let lower = Data("account-a".utf8)
+        let higher = Data("account-b".utf8)
+
+        #expect(Keychain.shouldAdoptCloud(local: lower, cloud: higher,
+                                          localRevision: 10, cloudRevision: 10))
+        #expect(!Keychain.shouldAdoptCloud(local: higher, cloud: lower,
+                                           localRevision: 10, cloudRevision: 10))
+    }
+
+    @Test
+    func `revision ordering remains authoritative`() {
+        let local = Data("z".utf8)
+        let cloud = Data("a".utf8)
+
+        #expect(Keychain.shouldAdoptCloud(local: local, cloud: cloud,
+                                          localRevision: 10, cloudRevision: 11))
+        #expect(!Keychain.shouldAdoptCloud(local: local, cloud: cloud,
+                                           localRevision: 11, cloudRevision: 10))
+    }
+}
