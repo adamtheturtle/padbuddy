@@ -57,13 +57,22 @@ final class FavoritePadsStore {
 
     /// Clamps a decoded entries array to the sanity caps (#1788).
     private static func sanitized(_ entries: [FavoritePad]) -> [FavoritePad] {
-        entries.prefix(maxEntriesPerAccount).map { entry in
-            var entry = entry
-            if entry.title.count > maxTitleLength {
-                entry.title = String(entry.title.prefix(maxTitleLength))
+        // De-duplicate by id first. Decoded data was trusted as-is, so a blob that
+        // had picked up a repeat — from a bad merge, a restore, or an older build —
+        // produced two sidebar rows for one pad, made `toggle` remove only one of
+        // them, and left tombstone resolution ambiguous (#2528). First occurrence
+        // wins, which keeps the pinned order the user arranged.
+        var seen = Set<String>()
+        return entries
+            .filter { seen.insert($0.id).inserted }
+            .prefix(maxEntriesPerAccount)
+            .map { entry in
+                var entry = entry
+                if entry.title.count > maxTitleLength {
+                    entry.title = String(entry.title.prefix(maxTitleLength))
+                }
+                return entry
             }
-            return entry
-        }
     }
 
     private init() {
@@ -78,7 +87,13 @@ final class FavoritePadsStore {
         // Re-pull and merge whenever iCloud reports an external change to our mirror.
         cloudObserverTask = Task { @MainActor in
             for await note in NotificationCenter.default.notifications(named: CloudSyncStore.didChangeExternally) {
-                guard note.userInfo?["key"] as? String == Self.cloudKey else { continue }
+                // The tombstone blob changes independently of the membership blob: a
+                // remote unfavourite writes only the former. Watching just the
+                // membership key left that removal unreconciled — the favourite stayed
+                // in the sidebar until some unrelated change happened to rewrite the
+                // membership blob as well (#2525, #2526).
+                let key = note.userInfo?["key"] as? String
+                guard key == Self.cloudKey || key == Self.cloudTombstonesKey else { continue }
 
                 Self.shared.syncFromCloud()
             }
@@ -110,11 +125,25 @@ final class FavoritePadsStore {
     /// Pins the pad if it isn't already, preserving order. Used by the sidebar drop
     /// target, where a drop should only ever add (never remove) a favorite.
     func add(_ id: String, title: String, account: UUID, undoManager: UndoManager? = nil) {
-        var entries = byAccount[account] ?? []
-        guard !entries.contains(where: { $0.id == id }) else { return }
+        // A drop payload is just a string. An empty or whitespace-only one can never
+        // resolve to a pad, so it would persist as an unusable sidebar row that pad
+        // cleanup never touches, because there is no pad for it to match (#2520).
+        let padID = id.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !padID.isEmpty else { return }
 
+        var entries = byAccount[account] ?? []
         let before = entries
-        entries.append(FavoritePad(id: id, title: title, addedAt: Date()))
+        if let index = entries.firstIndex(where: { $0.id == padID }) {
+            // Already pinned. Returning here meant dropping a renamed pad onto
+            // Favorites couldn't correct its captured title, which stayed stale until
+            // an unrelated cache refresh happened along (#2522). Take the newer title
+            // and leave `addedAt` alone — this is not a new pin.
+            guard entries[index].title != title else { return }
+
+            entries[index].title = title
+        } else {
+            entries.append(FavoritePad(id: padID, title: title, addedAt: Date()))
+        }
         byAccount[account] = entries
         save()
         registerUndo(to: before, account: account, undoManager: undoManager, actionName: "Add Favorite")
@@ -178,11 +207,13 @@ final class FavoritePadsStore {
         )
         var changed = false
         for index in entries.indices {
-            // Trimmed, not just non-empty: a whitespace-only pad name must not
-            // replace a usable stored label with a blank sidebar row (#1786).
-            guard let title = titles[entries[index].id],
-                  !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                  title != entries[index].title else { continue }
+            // A cleared title propagates. Blank titles used to be skipped so a
+            // usable stored label wasn't replaced by a blank sidebar row (#1786),
+            // but the sidebar now treats a blank stored title as absent and falls
+            // back to the live cache title and then the pad's slug (#1680, #1681) —
+            // so the row stays readable either way, and keeping the old text meant
+            // showing a name the server no longer has (#2524).
+            guard let title = titles[entries[index].id], title != entries[index].title else { continue }
 
             entries[index].title = title
             changed = true
@@ -241,9 +272,17 @@ final class FavoritePadsStore {
         for entry in before where !restoredIDs.contains(entry.id) {
             recordRemoval(of: entry.id, account: account)
         }
+        // Only entries the restore actually brings back are restamped. Restamping
+        // every entry made unrelated old favourites look newly added, so they beat
+        // remote deletion tombstones and reappeared on other devices after an
+        // undo that had nothing to do with them (#2527).
+        let presentIDs = Set(before.map(\.id))
+        let now = Date()
         byAccount[account] = entries.map { entry in
+            guard !presentIDs.contains(entry.id) else { return entry }
+
             var entry = entry
-            entry.addedAt = Date()
+            entry.addedAt = now
             return entry
         }
         save()
