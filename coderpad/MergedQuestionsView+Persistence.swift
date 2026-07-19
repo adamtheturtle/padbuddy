@@ -81,7 +81,7 @@ extension MergedQuestionsView {
                                             mineOnly: mineOnly,
                                             favoritesOnly: favoritesOnly)
         do {
-            let data = try JSONEncoder().encode(snapshot)
+            let data = try SharedCoders.encoder.encode(snapshot)
             // This window's own copy, and the shared seed for the next new window
             // (which is also what PreferenceCloudSync carries between devices).
             persistedLiveFilter = data.base64EncodedString()
@@ -108,7 +108,7 @@ extension MergedQuestionsView {
             ?? UserDefaults.standard.data(forKey: Self.liveFilterKey)
         guard let data else { return }
 
-        if let snapshot = try? JSONDecoder().decode(MergedFilterSnapshot.self, from: data) {
+        if let snapshot = try? SharedCoders.decoder.decode(MergedFilterSnapshot.self, from: data) {
             apply(snapshot.search)
             // An unconditional assignment: a saved filter whose account was removed
             // must restore as unfiltered rather than leaving any prior in-memory
@@ -118,7 +118,7 @@ extension MergedQuestionsView {
             mineOnly = snapshot.mineOnly
             // After apply(), which turns the preset off for a recalled filter set.
             favoritesOnly = snapshot.favoritesOnly
-        } else if let legacy = try? JSONDecoder().decode(NamedSearch.self, from: data) {
+        } else if let legacy = try? SharedCoders.decoder.decode(NamedSearch.self, from: data) {
             apply(legacy)
         } else {
             // A corrupted or schema-incompatible payload would fail again on every

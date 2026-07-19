@@ -121,7 +121,7 @@ extension MergedPadsView {
                                             accountFilterSyncID: MergedAccountFilter.syncID(for: accountFilter),
                                             mineOnly: mineOnly)
         do {
-            let data = try JSONEncoder().encode(snapshot)
+            let data = try SharedCoders.encoder.encode(snapshot)
             // This window's own copy, and the shared seed for the next new window
             // (which is also what PreferenceCloudSync carries between devices).
             persistedLiveFilter = data.base64EncodedString()
@@ -148,7 +148,7 @@ extension MergedPadsView {
             ?? UserDefaults.standard.data(forKey: Self.liveFilterKey)
         guard let data else { return }
 
-        if let snapshot = try? JSONDecoder().decode(MergedFilterSnapshot.self, from: data) {
+        if let snapshot = try? SharedCoders.decoder.decode(MergedFilterSnapshot.self, from: data) {
             apply(snapshot.search)
             // An unconditional assignment: a saved filter whose account was removed
             // must restore as unfiltered rather than leaving any prior in-memory
@@ -156,7 +156,7 @@ extension MergedPadsView {
             // cross-device sync id, and only accepts a still-mergeable account.
             accountFilter = MergedAccountFilter.resolve(snapshot)
             mineOnly = snapshot.mineOnly
-        } else if let legacy = try? JSONDecoder().decode(NamedSearch.self, from: data) {
+        } else if let legacy = try? SharedCoders.decoder.decode(NamedSearch.self, from: data) {
             apply(legacy)
         } else {
             // A corrupted or schema-incompatible payload would fail again on every

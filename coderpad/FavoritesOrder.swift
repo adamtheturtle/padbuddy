@@ -63,15 +63,15 @@ final class FavoritesOrderStore {
 
     private init() {
         if let data = UserDefaults.standard.data(forKey: Self.key),
-           let decoded = try? JSONDecoder().decode([UUID: [FavoriteRef]].self, from: data) {
+           let decoded = try? SharedCoders.decoder.decode([UUID: [FavoriteRef]].self, from: data) {
             byAccount = decoded.mapValues { Array($0.prefix(Self.maxOrderEntriesPerAccount)) }
         }
         if let data = UserDefaults.standard.data(forKey: Self.mergedKey),
-           let decoded = try? JSONDecoder().decode([MergedFavoriteRef].self, from: data) {
+           let decoded = try? SharedCoders.decoder.decode([MergedFavoriteRef].self, from: data) {
             mergedOrder = Array(decoded.prefix(Self.maxMergedOrderEntries))
         }
         if let data = UserDefaults.standard.data(forKey: Self.stampsKey),
-           let decoded = try? JSONDecoder().decode([UUID: Date].self, from: data) {
+           let decoded = try? SharedCoders.decoder.decode([UUID: Date].self, from: data) {
             orderChangedAt = decoded
         }
         mergedChangedAt = UserDefaults.standard.object(forKey: Self.mergedStampKey) as? Date
@@ -276,9 +276,9 @@ extension FavoritesOrderStore {
 
     func save() {
         do {
-            let data = try JSONEncoder().encode(byAccount)
+            let data = try SharedCoders.encoder.encode(byAccount)
             UserDefaults.standard.set(data, forKey: Self.key)
-            let stamps = try JSONEncoder().encode(orderChangedAt)
+            let stamps = try SharedCoders.encoder.encode(orderChangedAt)
             UserDefaults.standard.set(stamps, forKey: Self.stampsKey)
         } catch {
             let reason = error.localizedDescription
@@ -289,7 +289,7 @@ extension FavoritesOrderStore {
 
     func saveMerged() {
         do {
-            let data = try JSONEncoder().encode(mergedOrder)
+            let data = try SharedCoders.encoder.encode(mergedOrder)
             UserDefaults.standard.set(data, forKey: Self.mergedKey)
         } catch {
             let reason = error.localizedDescription

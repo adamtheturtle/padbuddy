@@ -22,15 +22,15 @@ extension FavoritesOrderStore {
         guard CloudSyncStore.shared.isAvailable else { return }
 
         if let data = CloudSyncStore.shared.data(forKey: Self.cloudKey),
-           var cloud = try? JSONDecoder().decode([String: [FavoriteRef]].self, from: data),
+           var cloud = try? SharedCoders.decoder.decode([String: [FavoriteRef]].self, from: data),
            cloud.removeValue(forKey: syncID) != nil,
-           let updated = try? JSONEncoder().encode(cloud) {
+           let updated = try? SharedCoders.encoder.encode(cloud) {
             CloudSyncStore.shared.mirror(updated, forKey: Self.cloudKey)
         }
         if let data = CloudSyncStore.shared.data(forKey: Self.cloudStampsKey),
-           var stamps = try? JSONDecoder().decode([String: Date].self, from: data),
+           var stamps = try? SharedCoders.decoder.decode([String: Date].self, from: data),
            stamps.removeValue(forKey: syncID) != nil,
-           let updated = try? JSONEncoder().encode(stamps) {
+           let updated = try? SharedCoders.encoder.encode(stamps) {
             CloudSyncStore.shared.mirror(updated, forKey: Self.cloudStampsKey)
         }
     }
@@ -44,10 +44,10 @@ extension FavoritesOrderStore {
         // Indexed once rather than scanned per account (#2439).
         let syncIDs = AccountsStore.shared.syncIDsByAccountID
         let syncID: (UUID) -> String? = { syncIDs[$0] }
-        if let data = try? JSONEncoder().encode(CloudSyncMerge.toCloud(byAccount, syncID: syncID)) {
+        if let data = try? SharedCoders.encoder.encode(CloudSyncMerge.toCloud(byAccount, syncID: syncID)) {
             CloudSyncStore.shared.mirror(data, forKey: Self.cloudKey)
         }
-        if let data = try? JSONEncoder().encode(CloudSyncMerge.toCloud(orderChangedAt, syncID: syncID)) {
+        if let data = try? SharedCoders.encoder.encode(CloudSyncMerge.toCloud(orderChangedAt, syncID: syncID)) {
             CloudSyncStore.shared.mirror(data, forKey: Self.cloudStampsKey)
         }
     }
@@ -65,10 +65,10 @@ extension FavoritesOrderStore {
         let cloudRefs: [CloudMergedRef] = mergedOrder.compactMap { entry in
             syncID(entry.account).map { CloudMergedRef(account: $0, ref: entry.ref) }
         }
-        if let data = try? JSONEncoder().encode(cloudRefs) {
+        if let data = try? SharedCoders.encoder.encode(cloudRefs) {
             CloudSyncStore.shared.mirror(data, forKey: Self.cloudMergedKey)
         }
-        if let mergedChangedAt, let data = try? JSONEncoder().encode(mergedChangedAt) {
+        if let mergedChangedAt, let data = try? SharedCoders.encoder.encode(mergedChangedAt) {
             CloudSyncStore.shared.mirror(data, forKey: Self.cloudMergedStampKey)
         }
     }
@@ -84,14 +84,14 @@ extension FavoritesOrderStore {
     /// unavailable (#536).
     func syncFromCloud() {
         guard let data = CloudSyncStore.shared.data(forKey: Self.cloudKey),
-              let cloud = try? JSONDecoder().decode([String: [FavoriteRef]].self, from: data) else { return }
+              let cloud = try? SharedCoders.decoder.decode([String: [FavoriteRef]].self, from: data) else { return }
 
         let uuidForSyncID: (String) -> UUID? = { identity in
             AccountsStore.shared.accounts.first { $0.syncID == identity }?.id
         }
         var cloudStamps: [UUID: Date] = [:]
         if let data = CloudSyncStore.shared.data(forKey: Self.cloudStampsKey),
-           let decoded = try? JSONDecoder().decode([String: Date].self, from: data) {
+           let decoded = try? SharedCoders.decoder.decode([String: Date].self, from: data) {
             for (identity, stamp) in decoded {
                 guard let uuid = uuidForSyncID(identity) else { continue }
 
@@ -133,9 +133,9 @@ extension FavoritesOrderStore {
     /// missing (#1151).
     private func syncMergedFromCloud(uuidForSyncID: (String) -> UUID?) {
         guard let stampData = CloudSyncStore.shared.data(forKey: Self.cloudMergedStampKey),
-              let cloudStamp = try? JSONDecoder().decode(Date.self, from: stampData),
+              let cloudStamp = try? SharedCoders.decoder.decode(Date.self, from: stampData),
               let data = CloudSyncStore.shared.data(forKey: Self.cloudMergedKey),
-              let cloudRefs = try? JSONDecoder().decode([CloudMergedRef].self, from: data)
+              let cloudRefs = try? SharedCoders.decoder.decode([CloudMergedRef].self, from: data)
         else { return }
 
         let adopted: [MergedFavoriteRef] = cloudRefs.prefix(Self.maxMergedOrderEntries).compactMap { entry in

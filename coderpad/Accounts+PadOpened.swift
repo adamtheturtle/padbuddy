@@ -36,11 +36,11 @@ final class PadOpenedStore {
 
     private init() {
         if let data = UserDefaults.standard.data(forKey: Self.key),
-           let decoded = try? JSONDecoder().decode([UUID: [String: Date]].self, from: data) {
+           let decoded = try? SharedCoders.decoder.decode([UUID: [String: Date]].self, from: data) {
             byAccount = decoded
         }
         if let data = UserDefaults.standard.data(forKey: Self.tombstonesKey),
-           let decoded = try? JSONDecoder().decode([UUID: [String: Date]].self, from: data) {
+           let decoded = try? SharedCoders.decoder.decode([UUID: [String: Date]].self, from: data) {
             removedAt = decoded
         }
         // Re-pull and merge whenever iCloud reports an external change to our mirror.
@@ -182,9 +182,9 @@ final class PadOpenedStore {
 
         for key in [Self.cloudKey, Self.cloudTombstonesKey] {
             guard let data = CloudSyncStore.shared.data(forKey: key),
-                  var cloud = try? JSONDecoder().decode([String: [String: Date]].self, from: data),
+                  var cloud = try? SharedCoders.decoder.decode([String: [String: Date]].self, from: data),
                   cloud.removeValue(forKey: syncID) != nil,
-                  let updated = try? JSONEncoder().encode(cloud)
+                  let updated = try? SharedCoders.encoder.encode(cloud)
             else { continue }
 
             CloudSyncStore.shared.mirror(updated, forKey: key)
@@ -230,8 +230,8 @@ final class PadOpenedStore {
         // a deleted pad's activity state comes back (#2625). Tombstones-without-
         // records is the harmless direction: the deletion is still honoured.
         do {
-            let history = try JSONEncoder().encode(byAccount)
-            let tombstones = try JSONEncoder().encode(removedAt)
+            let history = try SharedCoders.encoder.encode(byAccount)
+            let tombstones = try SharedCoders.encoder.encode(removedAt)
             UserDefaults.standard.set(tombstones, forKey: Self.tombstonesKey)
             UserDefaults.standard.set(history, forKey: Self.key)
         } catch {
@@ -268,12 +268,12 @@ final class PadOpenedStore {
     private func mirror(_ mine: [String: [String: Date]], forKey key: String) {
         var blob = mine
         if let data = CloudSyncStore.shared.data(forKey: key),
-           let existing = try? JSONDecoder().decode([String: [String: Date]].self, from: data) {
+           let existing = try? SharedCoders.decoder.decode([String: [String: Date]].self, from: data) {
             for (identity, entries) in existing where mine[identity] == nil {
                 blob[identity] = entries
             }
         }
-        guard let data = try? JSONEncoder().encode(blob) else { return }
+        guard let data = try? SharedCoders.encoder.encode(blob) else { return }
 
         CloudSyncStore.shared.mirror(data, forKey: key)
     }
@@ -285,7 +285,7 @@ final class PadOpenedStore {
     /// when iCloud is unavailable (#536).
     func syncFromCloud() {
         guard let data = CloudSyncStore.shared.data(forKey: Self.cloudKey),
-              let cloud = try? JSONDecoder().decode([String: [String: Date]].self, from: data) else { return }
+              let cloud = try? SharedCoders.decoder.decode([String: [String: Date]].self, from: data) else { return }
 
         let uuidForSyncID: (String) -> UUID? = { identity in
             AccountsStore.shared.accounts.first { $0.syncID == identity }?.id
@@ -294,7 +294,7 @@ final class PadOpenedStore {
                                                     uuidForSyncID: uuidForSyncID)
         var tombstones = removedAt
         if let data = CloudSyncStore.shared.data(forKey: Self.cloudTombstonesKey),
-           let cloudTombstones = try? JSONDecoder().decode([String: [String: Date]].self, from: data) {
+           let cloudTombstones = try? SharedCoders.decoder.decode([String: [String: Date]].self, from: data) {
             tombstones = CloudSyncMerge.mergeTimestamps(cloud: cloudTombstones, into: tombstones,
                                                         uuidForSyncID: uuidForSyncID)
         }

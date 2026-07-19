@@ -77,11 +77,11 @@ final class FavoritePadsStore {
 
     private init() {
         if let data = UserDefaults.standard.data(forKey: Self.key),
-           let decoded = try? JSONDecoder().decode([UUID: [FavoritePad]].self, from: data) {
+           let decoded = try? SharedCoders.decoder.decode([UUID: [FavoritePad]].self, from: data) {
             byAccount = decoded.mapValues(Self.sanitized)
         }
         if let data = UserDefaults.standard.data(forKey: Self.tombstonesKey),
-           let decoded = try? JSONDecoder().decode([UUID: [String: Date]].self, from: data) {
+           let decoded = try? SharedCoders.decoder.decode([UUID: [String: Date]].self, from: data) {
             removedAt = decoded
         }
         // Re-pull and merge whenever iCloud reports an external change to our mirror.
@@ -265,9 +265,9 @@ final class FavoritePadsStore {
             removedAt[account] = CloudTombstones.pruned(tombstones)
         }
         do {
-            let data = try JSONEncoder().encode(byAccount)
+            let data = try SharedCoders.encoder.encode(byAccount)
             UserDefaults.standard.set(data, forKey: Self.key)
-            let tombstones = try JSONEncoder().encode(removedAt)
+            let tombstones = try SharedCoders.encoder.encode(removedAt)
             UserDefaults.standard.set(tombstones, forKey: Self.tombstonesKey)
         } catch {
             let reason = error.localizedDescription
@@ -325,10 +325,10 @@ final class FavoritePadsStore {
         // Indexed once rather than scanned per account (#2439).
         let syncIDs = AccountsStore.shared.syncIDsByAccountID
         let syncID: (UUID) -> String? = { syncIDs[$0] }
-        if let data = try? JSONEncoder().encode(CloudSyncMerge.toCloud(byAccount, syncID: syncID)) {
+        if let data = try? SharedCoders.encoder.encode(CloudSyncMerge.toCloud(byAccount, syncID: syncID)) {
             CloudSyncStore.shared.mirror(data, forKey: Self.cloudKey)
         }
-        if let data = try? JSONEncoder().encode(CloudSyncMerge.toCloud(removedAt, syncID: syncID)) {
+        if let data = try? SharedCoders.encoder.encode(CloudSyncMerge.toCloud(removedAt, syncID: syncID)) {
             CloudSyncStore.shared.mirror(data, forKey: Self.cloudTombstonesKey)
         }
     }
@@ -340,7 +340,7 @@ final class FavoritePadsStore {
     /// when iCloud is unavailable (#536).
     func syncFromCloud() {
         guard let data = CloudSyncStore.shared.data(forKey: Self.cloudKey),
-              let decoded = try? JSONDecoder().decode([String: [FavoritePad]].self, from: data) else { return }
+              let decoded = try? SharedCoders.decoder.decode([String: [FavoritePad]].self, from: data) else { return }
 
         // The mirror is cross-device input: clamp it like the local blob (#1788).
         let cloud = decoded.mapValues(Self.sanitized)
@@ -358,7 +358,7 @@ final class FavoritePadsStore {
         )
         var tombstones = removedAt
         if let data = CloudSyncStore.shared.data(forKey: Self.cloudTombstonesKey),
-           let cloudTombstones = try? JSONDecoder().decode([String: [String: Date]].self, from: data) {
+           let cloudTombstones = try? SharedCoders.decoder.decode([String: [String: Date]].self, from: data) {
             tombstones = CloudSyncMerge.mergeTimestamps(cloud: cloudTombstones, into: tombstones,
                                                         uuidForSyncID: uuidForSyncID)
         }

@@ -128,7 +128,13 @@ enum DockBadgeController {
             guard let email = canonicalEmails[accountID] else { return running }
 
             return running + pads.count(where: {
-                $0.status == .active && $0.ownerEmail.canonicalOwnerEmail == email
+                // Status first: it's a cheap enum compare, and it rejects the great
+                // majority of pads before the canonicalization — which trims and
+                // lowercases into a fresh String, and used to run for every pad of
+                // every account on every badge refresh (#2436).
+                guard $0.status == .active else { return false }
+
+                return $0.ownerEmail == email || $0.ownerEmail.canonicalOwnerEmail == email
             })
         }
     }
