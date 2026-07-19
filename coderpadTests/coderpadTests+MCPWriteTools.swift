@@ -137,6 +137,11 @@ struct MCPWriteToolsTests {
         let object = try encodedObject(body)
 
         #expect(MCPTools.hasAnyUpdateQuestionField(["description": ""]))
+        #expect(MCPTools.hasAnyUpdateQuestionField(["title": 42]))
+        #expect(!MCPTools.hasAnyUpdateQuestionField(["solution": false]))
+        #expect(MCPTools.updateQuestionValidationError(["solution": false])?.contains("solution") == true)
+        #expect(MCPTools.updateQuestionValidationError(["contents": NSNull()])?.contains("string or integer") == true)
+        #expect(MCPTools.updateQuestionValidationError(["description": ""]) == nil)
         #expect(!MCPTools.hasAnyUpdateQuestionField([:]))
         // CoderPadKit's QuestionUpdate nests title/language under a `question`
         // object, matching the API contract; the empty title must survive there.

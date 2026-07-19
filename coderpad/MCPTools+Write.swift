@@ -138,9 +138,8 @@ nonisolated extension MCPTools {
 
     private static func updateQuestion(arguments: [String: Any], key: String, base: URL) async -> Outcome {
         guard let id = int(arguments, "question") else { return missing("question") }
-        guard hasAnyUpdateQuestionField(arguments) else {
-            return missing("at least one of title / language / description / solution / contents")
-        }
+
+        if let error = updateQuestionValidationError(arguments) { return Outcome(text: error, isError: true) }
 
         let body = questionUpdateBody(id: id, arguments: arguments)
         return await send("PUT", "/api/questions/\(id)", key: key, base: base, body: body,
@@ -148,7 +147,19 @@ nonisolated extension MCPTools {
     }
 
     static func hasAnyUpdateQuestionField(_ arguments: [String: Any]) -> Bool {
-        ["title", "language", "description", "solution", "contents"].contains { arguments.keys.contains($0) }
+        ["title", "language", "description", "solution", "contents"].contains {
+            presentString(arguments, $0) != nil
+        }
+    }
+
+    static func updateQuestionValidationError(_ arguments: [String: Any]) -> String? {
+        let fields = ["title", "language", "description", "solution", "contents"]
+        if let invalid = fields.first(where: { arguments.keys.contains($0) && presentString(arguments, $0) == nil }) {
+            return "Argument '\(invalid)' must be a string or integer."
+        }
+        return hasAnyUpdateQuestionField(arguments)
+            ? nil
+            : "Missing argument: at least one of title / language / description / solution / contents"
     }
 
     static func questionUpdateBody(id: Int, arguments: [String: Any]) -> QuestionUpdate {
