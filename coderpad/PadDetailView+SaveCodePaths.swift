@@ -16,6 +16,14 @@ extension PadDetailView {
         SaveCodePathHelpers.uniqueRelativePaths(paths)
     }
 
+    /// Whether `env` would produce any display files at all, without building them
+    /// (#2095). Deliberately mirrors `displayFiles(for:)`'s skip condition below —
+    /// that is the only thing deciding emptiness, since every file with contents
+    /// yields exactly one entry.
+    static func hasDisplayableFiles(in env: PadEnvironment) -> Bool {
+        env.fileContents.contains { !($0.contents ?? "").isEmpty }
+    }
+
     /// The non-empty files of an environment, each paired with a language
     /// inferred from its own extension. A multi-file project (e.g. a Django
     /// app) mixes `.py`, `.html`, and `.css`; deriving the language per file

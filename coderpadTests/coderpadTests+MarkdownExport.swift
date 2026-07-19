@@ -239,4 +239,24 @@ struct CodeExportPathTests {
 
         try CodeExportPathPlan.validateNoFileDirectoryConflicts(files)
     }
+
+    /// The cheap emptiness check must agree with building the files (#2095), or the
+    /// Save All Code command would enable and disable at the wrong times.
+    @Test
+    func `displayable-file check agrees with building the display files`() throws {
+        func environment(_ files: [[String: Any]]) throws -> PadEnvironment {
+            let data = try JSONSerialization.data(withJSONObject: ["id": 1, "file_contents": files])
+            return try CoderPadClient.decoder.decode(PadEnvironment.self, from: data)
+        }
+
+        let empty = try environment([])
+        // Files present, but none carrying contents: nothing to save.
+        let blank = try environment([["path": "main.py", "contents": ""], ["path": "empty.py"]])
+        let coded = try environment([["path": "main.py", "contents": ""],
+                                     ["path": "util.py", "contents": "x = 1"]])
+
+        #expect(!PadDetailView.hasDisplayableFiles(in: empty))
+        #expect(!PadDetailView.hasDisplayableFiles(in: blank))
+        #expect(PadDetailView.hasDisplayableFiles(in: coded))
+    }
 }

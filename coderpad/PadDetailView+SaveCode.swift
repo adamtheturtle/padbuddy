@@ -23,7 +23,13 @@ extension PadDetailView {
     /// so this stays false (disabling the menu item) until at least one carries
     /// files — or, for a legacy pad, until its inline `contents` is available.
     var hasSavableCode: Bool {
-        if environments.contains(where: { !displayFiles(for: $0).isEmpty }) { return true }
+        // Asked of the raw files rather than through `displayFiles(for:)`: whether
+        // there is anything to save turns only on some file carrying contents, so
+        // building the canonicalized, de-duplicated, per-file-language list of every
+        // environment just to check it isn't empty was wasted work. This is published
+        // via `.focusedSceneValue` and read by the toolbar's `.disabled`, so that scan
+        // ran on every body evaluation (#2095).
+        if environments.contains(where: { Self.hasDisplayableFiles(in: $0) }) { return true }
         return !(pad.contents ?? "").isEmpty
     }
 
