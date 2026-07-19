@@ -104,11 +104,11 @@ enum NavigationSessionLoader {
     }
 
     @MainActor
-    static func warmInactiveSections(store: AccountsStore, active section: AppSection) async {
+    static func warmInactiveSections(store: AccountsStore, active section: AppSection, warmQuota: Bool = true) async {
         if store.isMergedView {
             await prefetchInactiveMergedSections(accounts: store.mergeableAccounts, active: section)
         } else if let account = store.currentAccount {
-            await prefetchInactiveSections(account: account, active: section)
+            await prefetchInactiveSections(account: account, active: section, warmQuota: warmQuota)
         }
     }
 
@@ -235,7 +235,7 @@ enum NavigationSessionLoader {
     /// a duplicate request. The pads, questions, and quota warms run concurrently:
     /// they hit independent endpoints, and chaining them made the last section's
     /// warm wait out both earlier fetches for no reason (#1244).
-    private static func prefetchInactiveSections(account: Account, active: AppSection) async {
+    private static func prefetchInactiveSections(account: Account, active: AppSection, warmQuota: Bool = true) async {
         guard account.isMock || !account.apiKey.isEmpty else { return }
 
         let client = account.makeClient()
@@ -245,7 +245,7 @@ enum NavigationSessionLoader {
         async let questions: Void = active == .questions ? () : prefetchQuestions(id: id, client: client)
         // Warm the quota too, so the sidebar/tab set knows up front whether the plan
         // is unlimited without the user having to open Quota or Organization first.
-        async let quota: Void = prefetchQuota(id: id, client: client)
+        async let quota: Void = warmQuota ? prefetchQuota(id: id, client: client) : ()
         _ = await (pads, questions, quota)
     }
 

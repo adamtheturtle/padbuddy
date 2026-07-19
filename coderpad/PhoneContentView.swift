@@ -61,7 +61,11 @@
                 let available = NavigationSessionLoader.availableSection(from: section)
                 windowNav.section = available
                 Task {
-                    await NavigationSessionLoader.warmInactiveSections(store: store, active: available)
+                    await NavigationSessionLoader.warmInactiveSections(
+                        store: store,
+                        active: available,
+                        warmQuota: !quotaIsUnlimited
+                    )
                 }
             }
             // Switching accounts (or into/out of All Accounts) swaps every tab's
