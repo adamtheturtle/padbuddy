@@ -236,21 +236,6 @@ nonisolated struct ScreenTestQuestion: Decodable, Identifiable, Hashable {
 
 // MARK: - Reports
 
-private nonisolated struct DynamicScreenCodingKey: CodingKey {
-    let stringValue: String
-    let intValue: Int?
-
-    init(stringValue: String) {
-        self.stringValue = stringValue
-        intValue = nil
-    }
-
-    init?(intValue: Int) {
-        stringValue = String(intValue)
-        self.intValue = intValue
-    }
-}
-
 private nonisolated struct LenientScreenDictionary<Value: Decodable>: Decodable {
     let values: [String: Value]
     let discardedCount: Int
@@ -260,12 +245,16 @@ private nonisolated struct LenientScreenDictionary<Value: Decodable>: Decodable 
         var decodedValues: [String: Value] = [:]
         var discardedCount = 0
 
-        for key in container.allKeys {
-            if let value = try? container.decode(Value.self, forKey: key) {
-                decodedValues[key.stringValue] = value
-            } else {
+        for key in container.allKeys.sorted(by: { $0.stringValue < $1.stringValue }) {
+            guard let normalizedKey = normalizedScreenDictionaryKey(key.stringValue),
+                  decodedValues[normalizedKey] == nil,
+                  let value = try? container.decode(Value.self, forKey: key)
+            else {
                 discardedCount += 1
+                continue
             }
+
+            decodedValues[normalizedKey] = value
         }
 
         values = decodedValues

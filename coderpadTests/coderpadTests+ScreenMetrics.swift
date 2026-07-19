@@ -38,6 +38,27 @@ struct ScreenReportMetricTests {
         #expect(report.technologies["Invalid"] == nil)
     }
 
+    @Test
+    func `breakdown keys are normalized bounded and collision safe`() throws {
+        let longKey = "Long " + String(repeating: "x", count: 140)
+        let object: [String: Any] = [
+            "technologies": [
+                " Java\n\t": ["score": 10],
+                "Java": ["score": 20],
+                "\u{200B}": ["score": 30],
+                longKey: ["score": 40]
+            ]
+        ]
+        let data = try JSONSerialization.data(withJSONObject: object)
+        let report = try JSONDecoder().decode(ScreenReport.self, from: data)
+
+        #expect(report.technologies.keys.contains("Java"))
+        #expect(report.technologies.keys.contains(where: { $0.count == 100 }))
+        #expect(report.technologies.keys.allSatisfy { !$0.contains("\n") && !$0.contains("\t") })
+        #expect(report.technologies.count == 2)
+        #expect(report.omittedBreakdownEntries == 2)
+    }
+
     @Test(arguments: [
         #"{"duration":-1}"#,
         #"{"points":-1}"#,
