@@ -71,6 +71,7 @@ final class PreferenceCloudSync {
     private var defaultsObserver: (any NSObjectProtocol)?
     private var cloudObserver: (any NSObjectProtocol)?
     private var mirrorTask: Task<Void, Never>?
+    private var pendingChangedKeys = Set<String>()
     private var notificationAuthorizationGeneration = 0
 
     private init() {}
@@ -98,9 +99,10 @@ final class PreferenceCloudSync {
         cloudObserver = NotificationCenter.default.addObserver(
             forName: CloudSyncStore.didChangeExternally, object: nil, queue: .main
         ) { note in
-            let key = note.userInfo?["key"] as? String
+            let changedKey = note.userInfo?["key"] as? String
             MainActor.assumeIsolated {
-                guard let key, Self.syncedKeys.contains(key) else { return }
+                guard let changedKey,
+                      let key = Self.preferenceKey(forCloudChangeKey: changedKey) else { return }
 
                 Self.shared.pull(key: key)
             }
@@ -124,15 +126,14 @@ final class PreferenceCloudSync {
 
     /// Schedules a mirror pass only when a key we actually sync has changed.
     private func scheduleMirrorIfSyncedKeyChanged() {
-        var changed = false
         for key in Self.syncedKeys {
             let current = UserDefaults.standard.object(forKey: key)
             if !Self.plistValuesEqual(lastKnownValues[key], current) {
                 lastKnownValues[key] = current
-                changed = true
+                pendingChangedKeys.insert(key)
             }
         }
-        guard changed else { return }
+        guard !pendingChangedKeys.isEmpty else { return }
 
         scheduleMirror()
     }
@@ -143,7 +144,9 @@ final class PreferenceCloudSync {
             try? await Task.sleep(for: .milliseconds(500))
             guard !Task.isCancelled else { return }
 
-            mirrorChangedToCloud()
+            let keys = pendingChangedKeys
+            pendingChangedKeys.subtract(keys)
+            mirrorChangedToCloud(keys: keys)
         }
     }
 
@@ -151,8 +154,8 @@ final class PreferenceCloudSync {
     /// revision alongside it (both in the cloud and locally) so pulls can order the
     /// writers (#766). Cheap enough to run on every (debounced) defaults change: the
     /// list is short and KVS reads are in-memory.
-    private func mirrorChangedToCloud() {
-        for key in Self.syncedKeys {
+    private func mirrorChangedToCloud(keys: Set<String>) {
+        for key in keys {
             let local = UserDefaults.standard.object(forKey: key)
             let cloud = CloudSyncStore.shared.object(forKey: key)
             guard !Self.plistValuesEqual(local, cloud) else {
@@ -168,25 +171,13 @@ final class PreferenceCloudSync {
                 heldLocalValues[key] = nil
             }
 
-            // Push only when the local side is the newest writer. A differing cloud
-            // value with a newer revision is an inbound edit this device simply hasn't
-            // pulled yet (this scan runs on EVERY defaults change, for every key);
-            // pushing over it would stamp a fresher revision onto the stale value and
-            // silently revert the other Mac's change everywhere (#1017, #1023). Adopt
-            // it now instead of waiting for the external-change notification. Equal
-            // revisions break the tie by value (#1147), so both devices settle on the
-            // same side instead of each keeping its own write.
+            // This key came from an observed local defaults change, so it is a genuine
+            // local edit rather than an all-key scan encountering an unpulled cloud
+            // value. Advance beyond both replicas; a skewed legacy timestamp can be a
+            // baseline but can never permanently outrank later edits (#2791).
             let cloudRevision = Self.revision(CloudSyncStore.shared.object(forKey: Self.cloudRevisionKey(key)))
             let localRevision = UserDefaults.standard.double(forKey: Self.localRevisionKey(key))
-            let cloudWins = cloudRevision > localRevision
-                || (cloudRevision == localRevision
-                    && cloud.map { Self.tieBreakFavorsCloud(local: local, cloud: $0) } == true)
-            guard !cloudWins else {
-                pull(key: key)
-                continue
-            }
-
-            let revision = Date().timeIntervalSince1970
+            let revision = Self.nextRevision(local: localRevision, cloud: cloudRevision)
             UserDefaults.standard.set(revision, forKey: Self.localRevisionKey(key))
             CloudSyncStore.shared.mirrorObject(local, forKey: key)
             CloudSyncStore.shared.mirrorObject(revision, forKey: Self.cloudRevisionKey(key))
@@ -365,6 +356,15 @@ final class PreferenceCloudSync {
     /// The KVS key carrying `key`'s revision stamp. Internal for tests.
     static func cloudRevisionKey(_ key: String) -> String {
         "revision.\(key)"
+    }
+
+    static func preferenceKey(forCloudChangeKey changedKey: String) -> String? {
+        if syncedKeys.contains(changedKey) { return changedKey }
+        let prefix = "revision."
+        guard changedKey.hasPrefix(prefix) else { return nil }
+
+        let key = String(changedKey.dropFirst(prefix.count))
+        return syncedKeys.contains(key) ? key : nil
     }
 
     /// The device-local UserDefaults key remembering the revision of the last write
