@@ -199,7 +199,12 @@ struct DateRangeFilterChip: View {
             ?? today
         // Never seed an inverted range: the "To" picker's lower bound is `draftStart`,
         // so an end before the start would silently clamp and misrepresent the window.
-        draftEnd = max(draftStart, window.customEnd ?? today)
+        //
+        // The fresh default is the start of today rather than the current instant
+        // (#2012): the draft is a whole-day selection, and seeding it with a
+        // time-of-day left the committed range depending on when the popover
+        // happened to be opened.
+        draftEnd = max(draftStart, window.customEnd ?? calendar.startOfDay(for: today))
     }
 
     /// Commit the picker as an inclusive whole-day range: from the start of the
@@ -210,7 +215,12 @@ struct DateRangeFilterChip: View {
     private func applyCustom() {
         let calendar = Calendar.current
         let start = calendar.startOfDay(for: draftStart)
-        let end = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: draftEnd))
+        // The "To" picker is bounded by `draftStart`, but moving "From" past an
+        // already-chosen "To" leaves the stale earlier end in state, and applying it
+        // committed a range that ends before it begins — matching nothing (#2010).
+        // Normalizing here keeps the commit consistent with what the pickers show.
+        let endDay = max(draftStart, draftEnd)
+        let end = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: endDay))
             .map { Date(timeIntervalSinceReferenceDate: $0.timeIntervalSinceReferenceDate.nextDown) }
             ?? draftEnd
         window = DateWindow(customStart: start, customEnd: end)
