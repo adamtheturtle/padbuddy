@@ -10,7 +10,6 @@
 //
 
 import BuddyAppKit
-import CryptoKit
 import Foundation
 
 // MARK: - Stable cross-device identity
@@ -35,8 +34,10 @@ extension AccountsStore {
 extension Account {
     /// A stable identity that is identical across a user's devices, for keying
     /// iCloud-synced data (#536). The local ``id`` is a per-device random `UUID`, so
-    /// it can't line up between Macs; the normalized endpoint, owner email, and API-key
-    /// fingerprint do. Case-folded so trivial email differences don't fork the key.
+    /// it can't line up between Macs; the normalized endpoint and owner email do.
+    /// The API key is deliberately only an eligibility check, not identity: rotating
+    /// credentials must not strand the account's cloud state under the old key (#2141).
+    /// Case-folded so trivial email differences don't fork the key.
     /// Empty for an in-progress draft with no owner email or key yet, which the sync
     /// layer skips.
     var syncID: String {
@@ -46,7 +47,7 @@ extension Account {
         let key = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !key.isEmpty else { return "" }
 
-        return "\(syncEndpointID)|\(email)|\(Self.apiKeyFingerprint(key))"
+        return "\(syncEndpointID)|\(email)"
     }
 
     private var syncEndpointID: String {
@@ -75,13 +76,6 @@ extension Account {
         guard !segments.isEmpty else { return "" }
 
         return "/\(segments.joined(separator: "/"))"
-    }
-
-    private static func apiKeyFingerprint(_ key: String) -> String {
-        SHA256.hash(data: Data(key.utf8))
-            .prefix(12)
-            .map { String(format: "%02x", $0) }
-            .joined()
     }
 }
 

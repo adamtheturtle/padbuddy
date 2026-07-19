@@ -65,11 +65,11 @@ struct CloudSyncIdentityTests {
     }
 
     @Test
-    func `different API keys for the same owner and endpoint get different sync ids`() {
-        let orgA = account(email: "jane@acme.com", apiKey: "org-a-key")
-        let orgB = account(email: "jane@acme.com", apiKey: "org-b-key")
+    func `rotating an API key preserves the sync id`() {
+        let before = account(email: "jane@acme.com", apiKey: "old-key")
+        let after = account(email: "jane@acme.com", apiKey: "rotated-key")
 
-        #expect(orgA.syncID != orgB.syncID)
+        #expect(before.syncID == after.syncID)
     }
 
     @Test
