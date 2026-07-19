@@ -18,6 +18,7 @@
         @FocusedValue(\.isReadOnly) private var isReadOnly
         @FocusedValue(\.padHasSavableCode) private var padHasSavableCode
         @AppStorage(PadSort.storageKey) private var sort: PadSort = .updatedDesc
+        @State private var accounts = AccountsStore.shared
 
         private var isEnded: Bool {
             guard let pad else { return false }
@@ -25,15 +26,25 @@
             return pad.isEnded
         }
 
+        private var browserURL: URL? {
+            guard let pad else { return nil }
+
+            if let url = pad.webURL { return url }
+            guard let padAccountID,
+                  let account = accounts.accounts.first(where: { $0.id == padAccountID }) else { return nil }
+
+            return pad.webURL(fallbackBase: account.resolvedBaseURL)
+        }
+
         var body: some Commands {
             CommandMenu("Pad") {
                 Button("Open Pad in Browser") {
-                    guard let pad, let url = pad.webURL else { return }
+                    guard let url = browserURL else { return }
 
                     BrowserSettings.openExternally(url)
                 }
                 .keyboardShortcut(.return, modifiers: [.command])
-                .disabled(pad == nil)
+                .disabled(browserURL == nil)
 
                 Button("Watch Playback") {
                     guard let pad else { return }
@@ -98,7 +109,7 @@
                 }
                 .disabled(pad == nil)
 
-                if let url = pad?.webURL {
+                if let url = browserURL {
                     ShareLink("Share Pad…", item: url)
                 } else {
                     Button("Share Pad…") {}.disabled(true)

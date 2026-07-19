@@ -192,6 +192,16 @@ struct ModelConveniencesTests {
     }
 
     @Test
+    func `pad webURL falls back to the account base`() throws {
+        let missing = try pad(#"{"id": "P2"}"#)
+        let malformed = try pad(#"{"id": "P3", "url": "://not-a-url"}"#)
+        let base = try #require(URL(string: "https://custom.example.com/pads"))
+
+        #expect(missing.webURL(fallbackBase: base) == URL(string: "https://custom.example.com/pads/P2"))
+        #expect(malformed.webURL(fallbackBase: base) == URL(string: "https://custom.example.com/pads/P3"))
+    }
+
+    @Test
     func `question webURL is built from the account's base URL`() throws {
         let decoded = try question(#"{"id": 42, "title": "Two Sum"}"#)
         #expect(try decoded.webURL(baseURL: #require(URL(string: "https://app.coderpad.io")))
