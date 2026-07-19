@@ -238,3 +238,35 @@ struct AccountFooterDisplayNameTests {
         }
     }
 #endif
+
+@Suite("Markdown inline escaping (#2216)")
+struct MarkdownInlineEscapingTests {
+    @Test
+    func `special characters are escaped`() {
+        #expect(markdownInlineEscaped("a*b_c") == "a\\*b\\_c")
+        #expect(markdownInlineEscaped("[x](y)") == "\\[x\\](y)")
+        #expect(markdownInlineEscaped("a|b") == "a\\|b")
+        #expect(markdownInlineEscaped("back\\slash") == "back\\\\slash")
+    }
+
+    @Test
+    func `every newline form becomes a single space`() {
+        // CRLF is one Character in Swift, so the single-pass loop must not emit two
+        // spaces for it the way three sequential replacements did not (#2216).
+        #expect(markdownInlineEscaped("a\r\nb") == "a b")
+        #expect(markdownInlineEscaped("a\nb") == "a b")
+        #expect(markdownInlineEscaped("a\rb") == "a b")
+        #expect(markdownInlineEscaped("a\n\nb") == "a  b")
+    }
+
+    @Test
+    func `ordinary text is unchanged`() {
+        #expect(markdownInlineEscaped("Two Sum with Constraints") == "Two Sum with Constraints")
+        #expect(markdownInlineEscaped("").isEmpty)
+    }
+
+    @Test
+    func `newlines and specials combine`() {
+        #expect(markdownInlineEscaped("a*b\nc_d") == "a\\*b c\\_d")
+    }
+}

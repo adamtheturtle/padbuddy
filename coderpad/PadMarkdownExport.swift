@@ -182,15 +182,20 @@ private func finalizedMarkdown(_ lines: [String]) -> String {
 private let markdownInlineSpecials: Set<Character> = ["\\", "`", "*", "_", "[", "]", "<", ">", "|"]
 
 func markdownInlineEscaped(_ text: String) -> String {
+    // One pass. This used to walk the string for `reserveCapacity`, then three more
+    // times through sequential `replacingOccurrences` calls — each allocating another
+    // String — before the escaping loop, and it runs once per summary row and per file
+    // in an export (#2216). Newline normalization folds into the same loop: Swift's
+    // Character already treats CRLF as one grapheme, so it needs no separate pass.
     var result = ""
     result.reserveCapacity(text.count)
-    let inlineText = text
-        .replacingOccurrences(of: "\r\n", with: " ")
-        .replacingOccurrences(of: "\r", with: " ")
-        .replacingOccurrences(of: "\n", with: " ")
-    for character in inlineText {
-        if markdownInlineSpecials.contains(character) { result.append("\\") }
-        result.append(character)
+    for character in text {
+        if character.isNewline {
+            result.append(" ")
+        } else {
+            if markdownInlineSpecials.contains(character) { result.append("\\") }
+            result.append(character)
+        }
     }
     return result
 }
