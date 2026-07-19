@@ -26,12 +26,6 @@ struct ScopedScreenCampaign: Identifiable, Hashable {
     }
 }
 
-/// Memo holding the merged Screen list's filtered + sorted rows for one render (#2118).
-/// Mirrors `SortedQuestionsCache` in the merged questions list.
-final class FilteredScreenCampaignsCache {
-    var rows: [ScopedScreenCampaign] = []
-}
-
 /// The combined Screen section's content column: campaigns from every Screen-enabled
 /// account in one list, each tagged with its source account.
 struct MergedScreenView: View {
@@ -181,7 +175,7 @@ struct MergedScreenView: View {
         guard let id, let separator = id.firstIndex(of: ":"),
               let accountID = UUID(uuidString: String(id[id.startIndex ..< separator])),
               let campaignID = Int(id[id.index(after: separator)...]),
-              let account = screenAccounts.first(where: { $0.account.id == accountID })?.account,
+              let account = screenAccounts.first(where: { $0.id == accountID }),
               let campaign = campaignsByAccount[accountID]?.first(where: { $0.id == campaignID })
         else { return nil }
 
@@ -212,12 +206,13 @@ struct MergedScreenView: View {
 
     // MARK: - Data
 
-    /// Mergeable accounts that have a Screen client, paired with it. Accounts without
-    /// a Screen key never appear in the combined Screen view.
-    private var screenAccounts: [(account: Account, client: ScreenClient)] {
-        accounts.mergeableAccounts.compactMap { account in
-            account.makeScreenClient().map { (account, $0) }
-        }
+    /// Mergeable accounts that have Screen credentials. Accounts without a Screen key
+    /// never appear in the combined Screen view. This tests `hasScreenAccess` rather
+    /// than pairing each account with a client: the filter, count subtitle, error
+    /// summary, account key, and selection lookups all read it several times per render,
+    /// and each read used to build a `URLSession`-backed client per account (#2117).
+    private var screenAccounts: [Account] {
+        accounts.mergeableAccounts.filter(\.hasScreenAccess)
     }
 
     /// All loaded campaigns flattened to account-scoped rows, filtered by the search
@@ -235,7 +230,7 @@ struct MergedScreenView: View {
         // detail column), so this list ignores the query then — keeping it in view.
         let trimmed = search.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let query = selectedScopedID == nil ? trimmed : ""
-        let scoped = screenAccounts.flatMap { account, _ in
+        let scoped = screenAccounts.flatMap { account in
             let rowAccount = RowAccount(account)
             return (campaignsByAccount[account.id] ?? []).map {
                 ScopedScreenCampaign(accountID: account.id, account: rowAccount, campaign: $0)
@@ -261,16 +256,16 @@ struct MergedScreenView: View {
     /// the only case that warrants a full error state rather than partial results.
     private var allFailed: Bool {
         !hasAnyCampaign && !screenAccounts.isEmpty
-            && screenAccounts.allSatisfy { accountErrors[$0.account.id] != nil }
+            && screenAccounts.allSatisfy { accountErrors[$0.id] != nil }
     }
 
     /// One line per failed account for the stale-data banner (#802), or nil when
     /// every account refreshed cleanly.
     private var accountErrorSummary: String? {
-        let lines = screenAccounts.compactMap { scoped -> String? in
-            guard let error = accountErrors[scoped.account.id] else { return nil }
+        let lines = screenAccounts.compactMap { account -> String? in
+            guard let error = accountErrors[account.id] else { return nil }
 
-            return "\(scoped.account.name): \(error)"
+            return "\(account.name): \(error)"
         }
         return lines.isEmpty ? nil : lines.joined(separator: "\n")
     }
@@ -312,7 +307,7 @@ struct MergedScreenView: View {
     /// matching `MergedOrganizationView.accountKey`.
     private var accountKey: String {
         screenAccounts
-            .map { "\($0.account.id.uuidString):\($0.account.screenApiKey ?? ""):\($0.account.screenRegion.rawValue)" }
+            .map { "\($0.id.uuidString):\($0.screenApiKey ?? ""):\($0.screenRegion.rawValue)" }
             .joined(separator: ",")
     }
 
@@ -325,7 +320,10 @@ struct MergedScreenView: View {
     /// Fan out `listCampaigns()` across every Screen-enabled account concurrently,
     /// applying each result as it lands and isolating per-account failure.
     private func load() async {
-        let targets = screenAccounts
+        // The only place the clients are needed, so they're built once here (#2117).
+        let targets = screenAccounts.compactMap { account in
+            account.makeScreenClient().map { (account: account, client: $0) }
+        }
         guard !targets.isEmpty else { return }
 
         clearRekeyedBuckets(for: targets)
@@ -375,8 +373,8 @@ struct MergedScreenView: View {
     /// must not land last and overwrite the new key's campaigns with the old
     /// org's (#890).
     private func apply(id: UUID, token: String, campaigns: [ScreenCampaign]?, errorText: String?) {
-        guard let current = screenAccounts.first(where: { $0.account.id == id }),
-              credentialToken(current.account) == token else { return }
+        guard let current = screenAccounts.first(where: { $0.id == id }),
+              credentialToken(current) == token else { return }
 
         if let campaigns {
             campaignsByAccount[id] = campaigns

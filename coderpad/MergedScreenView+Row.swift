@@ -2,11 +2,17 @@
 //  MergedScreenView+Row.swift
 //  coderpad
 //
-//  The combined Screen list's row view and copy text, split out of
-//  MergedScreenView.swift to keep that file under the length limit.
+//  The combined Screen list's row view, copy text, and per-render row memo, split
+//  out of MergedScreenView.swift to keep that file under the length limit.
 //
 
 import SwiftUI
+
+/// Memo holding the merged Screen list's filtered + sorted rows for one render (#2118).
+/// Mirrors `SortedQuestionsCache` in the merged questions list.
+final class FilteredScreenCampaignsCache {
+    var rows: [ScopedScreenCampaign] = []
+}
 
 extension ScopedScreenCampaign {
     var copyText: String {

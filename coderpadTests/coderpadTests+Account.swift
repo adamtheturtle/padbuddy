@@ -131,6 +131,24 @@ struct AccountRoundTripTests {
     }
 
     @Test
+    func `hasScreenAccess agrees with makeScreenClient`() {
+        // Views filter Screen-enabled accounts with the cheap `hasScreenAccess` check
+        // instead of building a client each time (#2117), so the two must never
+        // disagree about which accounts belong in the Screen lists.
+        let accounts = [
+            Account(name: "None", apiKey: "k", userEmail: "me@acme.com"),
+            Account(name: "Blank", apiKey: "k", userEmail: "me@acme.com", screenApiKey: "   "),
+            Account(name: "Keyed", apiKey: "k", userEmail: "me@acme.com", screenApiKey: "s"),
+            Account(name: "Padded", apiKey: "k", userEmail: "me@acme.com", screenApiKey: " s "),
+            Account.demo(),
+            Account.demoBadKey()
+        ]
+        for account in accounts {
+            #expect(account.hasScreenAccess == (account.makeScreenClient() != nil), "\(account.name)")
+        }
+    }
+
+    @Test
     func `demo accounts use the in-process mock Screen client`() throws {
         // The demo account has no Screen key, but gets the mock client so the demo can
         // exercise the full Screen UI with fixture data.
