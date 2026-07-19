@@ -52,7 +52,14 @@ final class PadChipOptionsCache {
     var languages: [String] = []
     var owners: [String] = []
     var teams: [String] = []
-    /// The `padsRevision` these were computed for. Chip options depend only on the pad
-    /// collection, so an unrelated body pass (a selection change) reuses them.
-    var padsRevision: Int?
+    /// The inputs these were computed for, so an unrelated body pass (a selection
+    /// change) reuses them.
+    var key: Key?
+
+    struct Key: Equatable {
+        let padsRevision: Int
+        /// Owners are ordered by their resolved display names, so a directory load or
+        /// a rename changes the right order without touching the pads (#2487).
+        let directoryRevision: Int
+    }
 }

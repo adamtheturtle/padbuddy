@@ -127,7 +127,12 @@ enum PadListLogic {
             // Emails are case-insensitive: the Me shortcut or a persisted filter
             // may carry a different casing than the API's owner values (#1643).
             (criteria.owner.map { pad.ownerEmail.caseInsensitiveCompare($0) == .orderedSame } ?? true) &&
-            (criteria.team == nil || pad.team?.name == criteria.team) &&
+            // Case-insensitive like the owner comparison above: a team name is a
+            // free-text org label, and a saved or migrated filter carrying different
+            // casing matched nothing at all (#2488).
+            (criteria.team.map { team in
+                pad.team?.name.caseInsensitiveCompare(team) == .orderedSame
+            } ?? true) &&
             (criteria.type == nil || pad.interviewType?.rawValue == criteria.type) &&
             criteria.updated.contains(updatedValue, now: now) &&
             criteria.created.contains(createdValue, now: now) &&

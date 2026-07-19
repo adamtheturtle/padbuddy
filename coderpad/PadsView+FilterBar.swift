@@ -28,18 +28,36 @@ extension PadsView {
     /// org every time is what this avoids (#416). Called at the top of `body` alongside
     /// `refreshFiltered()`, so every `available*` read in that pass is O(1) and current.
     func refreshChipOptions() {
-        guard chipOptionsCache.padsRevision != padsRevision else { return }
+        // Keyed on the directory too. Owners are listed in the order their *display
+        // names* read, so a directory that finishes loading — or a member renamed —
+        // changes the right order without changing the pads at all, and keying on
+        // `padsRevision` alone left the list sorted by the previous names (#2487).
+        let key = PadChipOptionsCache.Key(padsRevision: padsRevision, directoryRevision: directory.revision)
+        guard chipOptionsCache.key != key else { return }
 
         chipOptionsCache.states = Array(Set(pads.map(\.status))).sorted { $0.label < $1.label }
-        chipOptionsCache.languages = Array(Set(pads.compactMap { $0.language?.lowercased() })
-            .filter { !$0.isEmpty }).sorted()
+        // Normalized before de-duplication and sorted locale-aware, so case variants
+        // don't become separate chips for the same filter and the order follows the
+        // user's locale rather than Unicode scalar values.
+        chipOptionsCache.languages = Set(pads.compactMap {
+            $0.language?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        })
+        .filter { !$0.isEmpty }
+        .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
         // Whitespace-only owner/team values would render blank-looking, hard to
         // deselect options (#1661, mirroring the question owners fix in #1662).
-        chipOptionsCache.owners = Array(Set(pads.map(\.ownerEmail))
-            .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }).sorted()
-        chipOptionsCache.teams = Array(Set(pads.compactMap { $0.team?.name })
-            .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }).sorted()
-        chipOptionsCache.padsRevision = padsRevision
+        chipOptionsCache.owners = Set(pads.map { $0.ownerEmail.trimmingCharacters(in: .whitespacesAndNewlines) })
+            .filter { !$0.isEmpty }
+            .sorted {
+                directory.display($0)
+                    .localizedCaseInsensitiveCompare(directory.display($1)) == .orderedAscending
+            }
+        chipOptionsCache.teams = Set(pads.compactMap {
+            $0.team?.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        })
+        .filter { !$0.isEmpty }
+        .sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+        chipOptionsCache.key = key
     }
 
     var filterBar: some View {
