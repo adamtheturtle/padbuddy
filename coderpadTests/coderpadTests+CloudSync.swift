@@ -51,6 +51,22 @@ struct CloudSyncTests {
     }
 
     @Test
+    func `endpoints that differ only in path spelling share one sync id`() {
+        let plain = account(email: "jane@acme.com", baseURL: "https://coderpad.acme.internal/api")
+        let doubled = account(email: "jane@acme.com", baseURL: "https://coderpad.acme.internal//api//")
+        let dotted = account(email: "jane@acme.com", baseURL: "https://coderpad.acme.internal/api/./v1/../")
+        let climbing = account(email: "jane@acme.com", baseURL: "https://coderpad.acme.internal/../api")
+        // `URL.path` percent-decodes, so an encoded spelling of the same path lands
+        // on the same identity rather than forking cloud state (#2143).
+        let encoded = account(email: "jane@acme.com", baseURL: "https://coderpad.acme.internal/%61pi")
+
+        #expect(plain.syncID == doubled.syncID)
+        #expect(plain.syncID == dotted.syncID)
+        #expect(plain.syncID == climbing.syncID)
+        #expect(plain.syncID == encoded.syncID)
+    }
+
+    @Test
     func `different API keys for the same owner and endpoint get different sync ids`() {
         let orgA = account(email: "jane@acme.com", apiKey: "org-a-key")
         let orgB = account(email: "jane@acme.com", apiKey: "org-b-key")

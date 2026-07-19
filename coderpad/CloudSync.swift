@@ -58,14 +58,23 @@ extension Account {
         return "\(scheme)://\(host)\(port)\(path)"
     }
 
+    /// Collapses a base-URL path to one canonical spelling. Repeated slashes are
+    /// dropped, and `.`/`..` segments are resolved (#2142): `/api/../api` and `/api`
+    /// address the same server, so leaving them distinct forked the account's cloud
+    /// state into two identities that never converged. A `..` that would climb above
+    /// the root is discarded, matching how a server resolves it.
     private func normalizedSyncPath(_ rawPath: String) -> String {
-        var path = rawPath.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-        guard !path.isEmpty else { return "" }
+        var segments: [Substring] = []
+        for segment in rawPath.split(separator: "/", omittingEmptySubsequences: true) {
+            switch segment {
+            case ".": continue
+            case "..": if !segments.isEmpty { segments.removeLast() }
+            default: segments.append(segment)
+            }
+        }
+        guard !segments.isEmpty else { return "" }
 
-        path = path
-            .split(separator: "/", omittingEmptySubsequences: true)
-            .joined(separator: "/")
-        return "/\(path)"
+        return "/\(segments.joined(separator: "/"))"
     }
 
     private static func apiKeyFingerprint(_ key: String) -> String {
