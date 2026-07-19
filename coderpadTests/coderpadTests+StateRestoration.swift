@@ -178,7 +178,7 @@ struct FocusFilterActionTests {
         let action = FocusFilterAction.decide(
             configuredID: UUID().uuidString, accounts: [account], hasSnapshot: true
         )
-        #expect(action == .ignoreStaleScope)
+        #expect(action == .staleScope)
     }
 
     @Test func `no configured account restores only when a snapshot exists`() {

@@ -96,19 +96,19 @@ struct AccountFocusEntityQuery: EntityQuery {
 
 /// What a Focus filter `perform()` call should do, decided from the configured account
 /// and whether a pre-Focus snapshot exists. Pure so the transitions are unit-testable;
-/// the key distinction is `ignoreStaleScope` (#796): a configured account that no longer
+/// the key distinction is `staleScope` (#796): a configured account that no longer
 /// resolves is stale configuration, not a Focus-off transition, so it must neither scope
 /// nor restore-and-clear the snapshot.
 enum FocusFilterAction: Equatable {
     case scope(UUID)
-    case ignoreStaleScope
+    case staleScope
     case restore
     case noChange
 
     static func decide(configuredID: String?, accounts: [Account], hasSnapshot: Bool) -> Self {
         guard let configuredID else { return hasSnapshot ? .restore : .noChange }
         guard let account = AccountFocusIdentity.resolve(configuredID, accounts: accounts) else {
-            return .ignoreStaleScope
+            return .staleScope
         }
 
         return .scope(account.id)
@@ -179,62 +179,73 @@ struct ScopeToAccountFocusFilter: SetFocusFilterIntent {
     private static let savedCurrentKey = "focusFilter.savedCurrentAccountID"
 
     func perform() async throws -> some IntentResult {
-        await MainActor.run {
-            let store = AccountsStore.shared
-            let defaults = UserDefaults.standard
-            let snapshot = FocusFilterSnapshot.resolve(
-                savedShowAll: defaults.object(forKey: Self.savedShowAllKey) as? Bool,
-                savedCurrentID: defaults.string(forKey: Self.savedCurrentKey),
-                accounts: store.accounts
+        let action = await applyFocusFilter()
+        if action == .staleScope {
+            throw $account.needsValueError(
+                "That account is no longer set up in PadBuddy. Choose another account in Focus settings."
             )
-            // A partial/corrupt pair cannot restore the original selection
-            // atomically. Discard it before deciding whether to scope or restore.
-            if snapshot == .incomplete {
-                defaults.removeObject(forKey: Self.savedShowAllKey)
-                defaults.removeObject(forKey: Self.savedCurrentKey)
-            }
-
-            switch FocusFilterAction.decide(
-                configuredID: account?.id,
-                accounts: store.accounts,
-                hasSnapshot: snapshot.isComplete
-            ) {
-            case let .scope(uuid):
-                // Entering a Focus-scoped state: snapshot the pre-Focus selection once,
-                // so a later Focus switch (account A -> account B with no "off" between)
-                // keeps the original snapshot to restore at the end.
-                if !snapshot.isComplete {
-                    defaults.set(store.showAllAccounts, forKey: Self.savedShowAllKey)
-                    defaults.set(
-                        store.currentAccountID?.uuidString ?? FocusFilterRestoredAccount.noAccountMarker,
-                        forKey: Self.savedCurrentKey
-                    )
-                }
-                store.showAllAccounts = false
-                store.currentAccountID = uuid
-
-            case .ignoreStaleScope, .noChange:
-                // Stale scope (#796): the configured account was removed, so this is
-                // not a Focus-off transition. Leave the selection and any snapshot
-                // untouched so the real off transition can still restore it.
-                break
-
-            case .restore:
-                // Focus turned off: restore whatever was selected before it began.
-                guard case let .complete(savedShowAll, restoredAccount) = snapshot else { break }
-
-                switch restoredAccount {
-                case let .account(uuid):
-                    store.currentAccountID = uuid
-                case .noAccount:
-                    store.currentAccountID = nil
-                case .missingSnapshot: preconditionFailure("Complete snapshots always resolve an account")
-                }
-                store.showAllAccounts = savedShowAll
-                defaults.removeObject(forKey: Self.savedShowAllKey)
-                defaults.removeObject(forKey: Self.savedCurrentKey)
-            }
         }
         return .result()
+    }
+
+    @MainActor
+    private func applyFocusFilter() -> FocusFilterAction {
+        let store = AccountsStore.shared
+        let defaults = UserDefaults.standard
+        let snapshot = FocusFilterSnapshot.resolve(
+            savedShowAll: defaults.object(forKey: Self.savedShowAllKey) as? Bool,
+            savedCurrentID: defaults.string(forKey: Self.savedCurrentKey),
+            accounts: store.accounts
+        )
+        let action = FocusFilterAction.decide(
+            configuredID: account?.id, accounts: store.accounts, hasSnapshot: snapshot.isComplete
+        )
+        guard action != .staleScope else { return action }
+
+        if snapshot == .incomplete {
+            defaults.removeObject(forKey: Self.savedShowAllKey)
+            defaults.removeObject(forKey: Self.savedCurrentKey)
+        }
+        Self.apply(action, snapshot: snapshot, store: store, defaults: defaults)
+        return action
+    }
+
+    @MainActor
+    private static func apply(_ action: FocusFilterAction, snapshot: FocusFilterSnapshot,
+                              store: AccountsStore, defaults: UserDefaults) {
+        switch action {
+        case let .scope(uuid):
+            if !snapshot.isComplete {
+                defaults.set(store.showAllAccounts, forKey: savedShowAllKey)
+                defaults.set(store.currentAccountID?.uuidString ?? FocusFilterRestoredAccount.noAccountMarker,
+                             forKey: savedCurrentKey)
+            }
+            store.showAllAccounts = false
+            store.currentAccountID = uuid
+
+        case .restore:
+            restore(snapshot, store: store, defaults: defaults)
+
+        case .noChange:
+            break
+
+        case .staleScope:
+            preconditionFailure("Stale scopes return before mutating state")
+        }
+    }
+
+    @MainActor
+    private static func restore(_ snapshot: FocusFilterSnapshot, store: AccountsStore,
+                                defaults: UserDefaults) {
+        guard case let .complete(savedShowAll, restoredAccount) = snapshot else { return }
+
+        switch restoredAccount {
+        case let .account(uuid): store.currentAccountID = uuid
+        case .noAccount: store.currentAccountID = nil
+        case .missingSnapshot: preconditionFailure("Complete snapshots always resolve an account")
+        }
+        store.showAllAccounts = savedShowAll
+        defaults.removeObject(forKey: savedShowAllKey)
+        defaults.removeObject(forKey: savedCurrentKey)
     }
 }
