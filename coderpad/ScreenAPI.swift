@@ -37,7 +37,14 @@ nonisolated struct ScreenCampaign: Decodable, Identifiable, Hashable {
 
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(Int.self, forKey: .id)
+        let decodedID = try container.decode(Int.self, forKey: .id)
+        guard decodedID > 0 else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .id, in: container, debugDescription: "Screen campaign ID must be positive."
+            )
+        }
+
+        id = decodedID
         let rawName = try container.decode(String.self, forKey: .name)
         let normalizedName = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedName.isEmpty else {
