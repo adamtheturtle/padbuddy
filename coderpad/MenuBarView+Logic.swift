@@ -82,17 +82,27 @@
         func padLabel(_ pad: Pad) -> String {
             let title = pad.title.isEmpty ? pad.id : pad.title
             let language = pad.language.flatMap { $0.isEmpty ? nil : " · \($0.coderPadLanguageDisplayName)" } ?? ""
-            return "\(title)\(language)"
+            return Self.safeMenuLabel("\(title)\(language)", fallback: pad.id)
         }
 
         func padRowLabel(_ row: MenuBarPadRow) -> String {
             let label = padLabel(row.pad)
-            return store.isMergedView ? "\(label) · \(row.account.name)" : label
+            let combined = store.isMergedView ? "\(label) · \(row.account.name)" : label
+            return Self.safeMenuLabel(combined, fallback: row.pad.id)
         }
 
         func questionRowLabel(_ row: MenuBarQuestionRow) -> String {
             let title = row.question.title.isEmpty ? "#\(row.question.id)" : row.question.title
-            return store.isMergedView ? "\(title) · \(row.account.name)" : title
+            let combined = store.isMergedView ? "\(title) · \(row.account.name)" : title
+            return Self.safeMenuLabel(combined, fallback: "#\(row.question.id)")
+        }
+
+        static func safeMenuLabel(_ value: String, fallback: String) -> String {
+            let normalized = value
+                .components(separatedBy: CharacterSet.whitespacesAndNewlines.union(.controlCharacters))
+                .filter { !$0.isEmpty }
+                .joined(separator: " ")
+            return String((normalized.isEmpty ? fallback : normalized).prefix(160))
         }
 
         /// Pads owned by each row's source account. In merged mode ownership is resolved

@@ -11,6 +11,21 @@ import Testing
 #if os(macOS)
     @Suite("Menu bar preferences")
     struct MenuBarPreferenceTests {
+        @Test
+        func `menu labels normalize remote text and remain bounded`() {
+            let label = MenuBarView.safeMenuLabel(
+                "  Remote\n\tTitle\0  " + String(repeating: "x", count: 200),
+                fallback: "Fallback"
+            )
+
+            #expect(!label.contains("\n"))
+            #expect(!label.contains("\t"))
+            #expect(!label.contains("\0"))
+            #expect(label.hasPrefix("Remote Title "))
+            #expect(label.count == 160)
+            #expect(MenuBarView.safeMenuLabel(" \n ", fallback: "Fallback") == "Fallback")
+        }
+
         @Test(arguments: [(-1, 0), (0, 0), (3, 3), (30, 30), (31, 30), (Int.max, 30)])
         func `top row count is bounded at every read`(stored: Int, expected: Int) {
             #expect(MenuBarView.normalizedTopCount(stored) == expected)
