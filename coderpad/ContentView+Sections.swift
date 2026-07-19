@@ -239,8 +239,11 @@ struct SectionDetail: View {
 
     /// The client a selected pad's detail should use. Pad slugs are only unique per
     /// server, so two custom servers can share one; in the combined view prefer the
-    /// account the list published for the *selected* pad, then the (collision-prone)
-    /// route map (#758). Never falls back to an arbitrary account (#912).
+    /// account the list published for the *selected* pad, then the route map (#758).
+    /// That map is not a guess: `account(forPadID:)` returns nil unless exactly one
+    /// merged account holds the slug (#1215), so an ambiguous slug resolves to the
+    /// unavailable placeholder rather than the wrong account. Never falls back to an
+    /// arbitrary account (#912).
     private func padClient(for pad: Pad) -> CoderPadClient? {
         if store.isMergedView {
             let account = router.selectedPadAccountID.flatMap { id in store.accounts.first { $0.id == id } }
@@ -250,20 +253,27 @@ struct SectionDetail: View {
         return store.currentAccount?.makeClient()
     }
 
-    /// The pad detail view's identity. Namespaced by the selected account in the
-    /// combined view so switching between two accounts' pads that share a slug
-    /// (possible across custom servers, #758) recreates the detail pane instead of
-    /// reusing stale state - the pad counterpart to `questionDetailID`.
+    /// The pad detail view's identity, namespaced by the owning account so switching
+    /// between two accounts' pads that share a slug (possible across custom servers,
+    /// #758) recreates the detail pane instead of reusing stale state - the pad
+    /// counterpart to `questionDetailID`.
+    ///
+    /// Only the combined view was namespaced. Selections are cleared when the current
+    /// account changes, but that runs after the change, and an un-namespaced identity
+    /// let the surviving frame pair the old selection with the new account's client
+    /// (#2294) - the same gap `screenTestsID` had (#2297).
     private func padDetailID(for pad: Pad) -> String {
-        if store.isMergedView, let account = router.selectedPadAccountID {
-            return "\(account.uuidString):\(pad.id)"
-        }
-        return pad.id
+        let account = store.isMergedView ? router.selectedPadAccountID : store.currentAccountID
+        guard let account else { return pad.id }
+
+        return "\(account.uuidString):\(pad.id)"
     }
 
     /// The account a selected question belongs to. Per-org question ids collide
     /// across accounts, so in the combined view prefer the account the list
-    /// published for the *selected* question, then the (collision-prone) id map.
+    /// published for the *selected* question, then the id map - which returns nil
+    /// unless exactly one merged account holds the id (#1215), so a collision
+    /// resolves to the unavailable placeholder rather than the wrong organization.
     /// Never falls back to an arbitrary account (#912).
     private func questionAccount(for question: Question) -> Account? {
         if store.isMergedView {
@@ -277,9 +287,9 @@ struct SectionDetail: View {
     /// combined view so switching between two accounts' questions that share a
     /// per-org id recreates the detail pane instead of reusing stale state.
     private func questionDetailID(for question: Question) -> String {
-        if store.isMergedView, let account = router.selectedQuestionAccountID {
-            return "\(account.uuidString):\(question.id)"
-        }
-        return String(question.id)
+        let account = store.isMergedView ? router.selectedQuestionAccountID : store.currentAccountID
+        guard let account else { return String(question.id) }
+
+        return "\(account.uuidString):\(question.id)"
     }
 }
