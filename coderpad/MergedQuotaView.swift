@@ -111,15 +111,14 @@ struct MergedQuotaView: View {
     /// Server URL changes - matching `MergedPadsView.accountKey`. Encoding only key
     /// presence missed non-empty rekeys and endpoint edits, leaving a stale or
     /// wrong-org quota card painting as current (#993/#1031).
-    private var accountKey: String {
-        accounts.mergeableAccounts.map {
-            FilterSignature.make([
-                $0.id.uuidString,
-                $0.apiKey.trimmingCharacters(in: .whitespacesAndNewlines),
-                $0.resolvedBaseURL.absoluteString
-            ])
-        }
-        .joined(separator: ",")
+    ///
+    /// Built from the values themselves rather than a joined string signature. This
+    /// feeds `.task(id:)`, which SwiftUI re-evaluates on every body pass, so the
+    /// previous form trimmed a key, serialized a URL, byte-counted each field, and
+    /// joined the lot once per account per render — all to detect a change (#2281).
+    /// Comparing the parts directly is free to build and just as precise.
+    private var accountKey: [MergedAccountToken] {
+        accounts.mergeableAccounts.map(MergedAccountToken.init(account:))
     }
 
     /// Drops the in-memory entries for accounts that can no longer have a card:
@@ -211,20 +210,35 @@ struct MergedQuotaView: View {
 /// this is the shared component the two would unify into.
 struct QuotaDetail: View {
     let quota: Quota
+    /// Computed when the quota changes, not inside `body`. Building it runs Calendar
+    /// date arithmetic against a freshly sampled `Date()`, and the combined view draws
+    /// one of these per account — so every redraw repeated that work for every card,
+    /// against a slightly different "now" each time (#2279).
+    @State private var pace: QuotaPace?
+    /// Sampled alongside the pace, so the trial card and the pace agree on when "now"
+    /// is instead of each reading the clock mid-render.
+    @State private var now = Date()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             statTiles
-            if let pace = QuotaPace(quota: quota, now: Date()) {
+            if let pace {
                 paceCard(pace)
             }
             // Only an active (future) trial is worth surfacing, and as its own card
             // rather than a Details row — matching the single-account Quota view. An
             // expired trial's end date is noise, so it's omitted entirely.
-            if let trial = quota.trialExpiresAt, trial > Date() {
+            if let trial = quota.trialExpiresAt, trial > now {
                 trialCard(trial)
             }
         }
+        .task(id: quota) { refreshPace() }
+    }
+
+    private func refreshPace() {
+        let sampled = Date()
+        now = sampled
+        pace = QuotaPace(quota: quota, now: sampled)
     }
 
     private var statTiles: some View {

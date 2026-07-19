@@ -112,9 +112,9 @@
         /// Whether the Screen tab should appear, mirroring `Sidebar.screenSectionAvailable`.
         private var screenSectionAvailable: Bool {
             if store.isMergedView {
-                return store.mergeableAccounts.contains { $0.makeScreenClient() != nil }
+                return store.mergeableAccounts.contains(where: \.hasScreenAccess)
             }
-            return store.currentAccount?.makeScreenClient() != nil
+            return store.currentAccount?.hasScreenAccess == true
         }
 
         private func clearNavigationState() {

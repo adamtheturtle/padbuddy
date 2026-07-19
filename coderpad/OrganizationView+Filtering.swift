@@ -9,25 +9,40 @@
 import SwiftUI
 
 extension OrganizationView {
-    func filteredUsers(_ org: Organization) -> [OrganizationUser] {
-        // De-duplicated by email: the rows are keyed by it, so a repeated member in
-        // the response produced unstable rows and a count that didn't match what was
-        // listed (#2380). Case-insensitive, since the same address in two casings is
-        // one person.
+    /// The organization's members, de-duplicated and sorted once — held in state and
+    /// recomputed only when the organization loads.
+    ///
+    /// De-duplicated by email: the rows are keyed by it, so a repeated member in the
+    /// response produced unstable rows and a count that didn't match what was listed
+    /// (#2380). Case-insensitive, since the same address in two casings is one person.
+    /// Sorted by display name so the list reads alphabetically rather than in the
+    /// API's arbitrary order.
+    ///
+    /// The sort used to run inside `filteredUsers`, so an O(n log n) pass of
+    /// locale-aware comparisons ran over the whole org on every keystroke (#2273).
+    /// Neither the membership nor the ordering depends on the query, so neither
+    /// belongs on that path.
+    static func preparedUsers(_ org: Organization) -> [OrganizationUser] {
         var seen = Set<String>()
-        let unique = org.users.filter { seen.insert($0.email.lowercased()).inserted }
+        return org.users
+            .filter { seen.insert($0.email.lowercased()).inserted }
+            .sorted {
+                ($0.name ?? $0.email).localizedCaseInsensitiveCompare($1.name ?? $1.email) == .orderedAscending
+            }
+    }
 
-        // Trimmed and locale-aware: a stray space from a paste made every row miss,
-        // and `lowercased().contains` doesn't fold diacritics — so searching "rene"
-        // skipped "René" (#2379).
+    /// The prepared list narrowed to the query. Only this cheap filter runs per
+    /// keystroke; the order it preserves is the one established above.
+    ///
+    /// Trimmed and locale-aware: a stray space from a paste made every row miss, and
+    /// `lowercased().contains` doesn't fold diacritics — so searching "rene" skipped
+    /// "René" (#2379).
+    func filteredUsers(_ users: [OrganizationUser]) -> [OrganizationUser] {
         let query = userSearch.trimmingCharacters(in: .whitespacesAndNewlines)
-        let matched = query.isEmpty ? unique : unique.filter {
+        guard !query.isEmpty else { return users }
+
+        return users.filter {
             ($0.name ?? "").localizedStandardContains(query) || $0.email.localizedStandardContains(query)
-        }
-        // Sort by display name so the list reads alphabetically rather than in
-        // the API's arbitrary order.
-        return matched.sorted {
-            ($0.name ?? $0.email).localizedCaseInsensitiveCompare($1.name ?? $1.email) == .orderedAscending
         }
     }
 

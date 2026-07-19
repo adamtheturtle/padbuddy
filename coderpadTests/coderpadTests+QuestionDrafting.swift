@@ -97,3 +97,27 @@ struct QuestionDrafterTests {
         #expect(QuestionDrafter.usableSolution("```ruby\nputs 1\n```", language: "python3").isEmpty)
     }
 }
+
+@Suite("Organization member preparation (#2273, #2380)")
+struct OrganizationMemberPreparationTests {
+    /// `Organization` is decode-only, so the demo server supplies a real one.
+    private let client = CoderPadClient.mock(key: "test-\(UUID().uuidString)")
+
+    @MainActor
+    @Test
+    func `members are de-duplicated and sorted once, independently of any query`() async throws {
+        let org = try await client.organization()
+        let prepared = OrganizationView.preparedUsers(org)
+
+        // One row per distinct address, compared case-insensitively (#2380).
+        let addresses = prepared.map { $0.email.lowercased() }
+        #expect(Set(addresses).count == addresses.count)
+        #expect(!prepared.isEmpty)
+
+        // Sorted by display name, which is what the query filter then preserves
+        // rather than re-establishing on every keystroke (#2273).
+        let names = prepared.map { $0.name ?? $0.email }
+        let sorted = names.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+        #expect(names == sorted)
+    }
+}

@@ -173,9 +173,9 @@ struct Sidebar: View {
     /// accounts' campaigns (#442); accounts without a key are simply absent from it.
     var screenSectionAvailable: Bool {
         if isMergedView {
-            return accounts.mergeableAccounts.contains { $0.makeScreenClient() != nil }
+            return accounts.mergeableAccounts.contains(where: \.hasScreenAccess)
         }
-        return accounts.currentAccount?.makeScreenClient() != nil
+        return accounts.currentAccount?.hasScreenAccess == true
     }
 
     /// The non-navigable Quota row shown on an unlimited plan: it states the plan is

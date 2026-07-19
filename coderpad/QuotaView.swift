@@ -16,6 +16,12 @@ struct QuotaView: View {
     @State private var quota: Quota?
     @State private var isLoading = false
     @State private var error: (any Error)?
+    /// Recomputed when the quota changes rather than in `body`: building it runs
+    /// Calendar date arithmetic against a freshly sampled `Date()`, which every
+    /// redraw repeated (#2279). `now` is sampled alongside it so the trial card and
+    /// the pace agree on when "now" is.
+    @State private var pace: QuotaPace?
+    @State private var now = Date()
 
     var body: some View {
         Group {
@@ -35,10 +41,10 @@ struct QuotaView: View {
                         }
                         if let quota {
                             statTiles(quota)
-                            if let pace = QuotaPace(quota: quota, now: Date()) {
+                            if let pace {
                                 paceCard(pace)
                             }
-                            if let trial = quota.trialExpiresAt, trial > Date() {
+                            if let trial = quota.trialExpiresAt, trial > now {
                                 trialCard(trial)
                             }
                         }
@@ -50,6 +56,11 @@ struct QuotaView: View {
                 }
                 .macPullToRefresh { await reload() }
             }
+        }
+        .task(id: quota) {
+            let sampled = Date()
+            now = sampled
+            pace = quota.flatMap { QuotaPace(quota: $0, now: sampled) }
         }
         .task(id: client.taskIdentity) {
             // Show the last-loaded quota immediately so re-entering the section

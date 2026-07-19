@@ -28,8 +28,8 @@ extension AppSection {
         if !quotaUnlimited { order.append(.quota) }
 
         let screenAvailable = merged
-            ? accounts.mergeableAccounts.contains { $0.makeScreenClient() != nil }
-            : accounts.currentAccount?.makeScreenClient() != nil
+            ? accounts.mergeableAccounts.contains(where: \.hasScreenAccess)
+            : accounts.currentAccount?.hasScreenAccess == true
         if screenAvailable { order.append(.screen) }
 
         return order

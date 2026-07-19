@@ -315,6 +315,17 @@ struct Account: Identifiable, Codable, Hashable {
     /// bad-key demo) so the demo exercises the full Screen UI with fixture data. Screen
     /// is additive to the Interview `apiKey`; for a real account the client is pointed at
     /// the US or EU server per `screenRegion`.
+    /// Whether this account has Screen credentials, without building a client.
+    ///
+    /// The sidebar, the phone tab set, and `AppSection.navigable` all asked this by
+    /// calling `makeScreenClient()` and testing for nil — constructing a whole client
+    /// per account, during body evaluation, on every render (#2257).
+    var hasScreenAccess: Bool {
+        if isMock { return true }
+
+        return !(screenApiKey?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "").isEmpty
+    }
+
     func makeScreenClient() -> ScreenClient? {
         if isMock {
             return .mock(unauthorized: isBadKeyDemo)

@@ -28,6 +28,9 @@ struct OrganizationView: View {
     @State var isLoading = false
     @State var error: (any Error)?
     @State var userSearch = ""
+    /// The de-duplicated, sorted member list, rebuilt only when the organization
+    /// changes — not on every keystroke (#2273). See `preparedUsers`.
+    @State var preparedUsers: [OrganizationUser] = []
     @FocusState private var userSearchFocused: Bool
     @AppStorage(StatsPeriod.storageKey) var period: StatsPeriod = .days7
     @State var statsTask: Task<Void, Never>?
@@ -58,7 +61,11 @@ struct OrganizationView: View {
                     if organization == nil { organization = orgCache.get(id) }
                     if quota == nil { quota = quotaCache.get(id) }
                 }
+                if let organization { preparedUsers = Self.preparedUsers(organization) }
                 await reload()
+            }
+            .onChange(of: organization) { _, org in
+                preparedUsers = org.map(Self.preparedUsers) ?? []
             }
             .onChange(of: period) { _, _ in
                 scheduleStatsReload()
@@ -252,10 +259,12 @@ struct OrganizationView: View {
         }
     }
 
-    private func usersSection(_ org: Organization) -> some View {
-        // Filter + sort the whole org once per render and reuse it for both the
-        // count and the grid, rather than running it twice on every keystroke (#369).
-        let users = filteredUsers(org)
+    private func usersSection(_: Organization) -> some View {
+        // Narrowed once per render and reused for both the count and the grid, rather
+        // than running twice on every keystroke (#369). The expensive de-duplication
+        // and sort happened here too until #2273; they now run only when the
+        // organization itself changes.
+        let users = filteredUsers(preparedUsers)
         return Card {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
