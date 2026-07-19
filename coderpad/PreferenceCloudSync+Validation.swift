@@ -48,6 +48,15 @@ extension PreferenceCloudSync {
         }
     }
 
+    static func shouldAdoptCloudValue(_ cloud: Any, forKey key: String, local: Any?,
+                                      cloudRevision: Double, localRevision: Double) -> Bool {
+        guard preferenceValueDisposition(cloud, forKey: key) == .value else { return false }
+        guard !plistValuesEqual(local, cloud) else { return false }
+
+        return cloudRevision > localRevision
+            || (cloudRevision == localRevision && tieBreakFavorsCloud(local: local, cloud: cloud))
+    }
+
     private static func enumValueDisposition(_ value: Any, forKey key: String) -> PreferenceValueDisposition {
         switch key {
         case "pads.sort": rawValueIsValid(value, as: PadSort.self)

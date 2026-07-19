@@ -74,4 +74,23 @@ struct PreferenceCloudOutboundValidationTests {
             Data("not json".utf8), forKey: "pads.merged.liveFilter"
         ) == .invalid)
     }
+
+    @Test
+    func `invalid inbound values cannot win or mask a corrected value`() {
+        let invalid: Any = "unknown"
+        let corrected: Any = "dark"
+        #expect(PreferenceCloudSync.preferenceValueDisposition(invalid,
+                                                               forKey: "general.appearance") == .invalid)
+        #expect(PreferenceCloudSync.preferenceValueDisposition(corrected,
+                                                               forKey: "general.appearance") == .value)
+        #expect(!PreferenceCloudSync.shouldAdoptCloudValue(
+            invalid, forKey: "general.appearance", local: "light", cloudRevision: 8, localRevision: 7
+        ))
+        #expect(PreferenceCloudSync.shouldAdoptCloudValue(
+            corrected, forKey: "general.appearance", local: "light", cloudRevision: 8, localRevision: 7
+        ))
+        #expect(!PreferenceCloudSync.shouldAdoptCloudValue(
+            corrected, forKey: "general.appearance", local: "light", cloudRevision: 6, localRevision: 7
+        ))
+    }
 }

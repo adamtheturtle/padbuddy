@@ -21,6 +21,7 @@
 //
 
 import Foundation
+import os
 
 @MainActor
 final class PreferenceCloudSync {
@@ -219,10 +220,13 @@ final class PreferenceCloudSync {
             if local != nil { applySideEffects(forPulledKey: key) }
             return
         }
-        guard !Self.plistValuesEqual(local, cloud) else { return }
-        guard cloudRevision > localRevision
-            || (cloudRevision == localRevision && Self.tieBreakFavorsCloud(local: local, cloud: cloud))
-        else { return }
+        guard Self.preferenceValueDisposition(cloud, forKey: key) == .value else {
+            persistenceLogger.error("Refused invalid cloud preference for \(key, privacy: .public)")
+            return
+        }
+        guard Self.shouldAdoptCloudValue(cloud, forKey: key, local: local,
+                                         cloudRevision: cloudRevision,
+                                         localRevision: localRevision) else { return }
 
         UserDefaults.standard.set(cloud, forKey: key)
         UserDefaults.standard.set(cloudRevision, forKey: Self.localRevisionKey(key))
