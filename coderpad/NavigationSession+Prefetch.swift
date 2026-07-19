@@ -1,0 +1,93 @@
+//
+//  NavigationSession+Prefetch.swift
+//  coderpad
+//
+//  The single-account warms: incremental pad/question paging and the quota fetch,
+//  split from NavigationSession.swift to keep that file within the type-body
+//  length limit.
+//
+
+import Foundation
+
+extension NavigationSessionLoader {
+    static func prefetchPads(id: UUID, client: CoderPadClient) async {
+        await withWarmClaim("pads:\(id.uuidString)") {
+            await performPadsPrefetch(id: id, client: client)
+        }
+    }
+
+    private static func performPadsPrefetch(id: UUID, client: CoderPadClient) async {
+        // Write-token coordination (#1242): every write re-checks that no OTHER
+        // writer (a user-initiated reload finishing after this warm began) touched
+        // the account since this warm's previous write. When one did, the warm
+        // stops writing - the fresher result wins - rather than replacing it.
+        var token = PadsCacheStore.shared.writeGeneration[id] ?? 0
+        func writeIfCurrent(_ pads: [Pad], persist: Bool) {
+            guard (PadsCacheStore.shared.writeGeneration[id] ?? 0) == token else { return }
+
+            PadsCacheStore.shared.set(id, pads: pads, via: client, persist: persist)
+            token = PadsCacheStore.shared.writeGeneration[id] ?? 0
+        }
+
+        // Progressive snapshots only warm a COLD cache: replacing an already
+        // complete list page by page would leave a truncated list in memory when
+        // a later page fails (#1836). A warm cache is replaced only by the final,
+        // complete result.
+        let hadCompleteList = !PadsCacheStore.shared.cached(id).isEmpty
+        var latest: [Pad] = []
+        do {
+            for try await snapshot in client.listPadsIncrementally() {
+                latest = snapshot
+                if !hadCompleteList { writeIfCurrent(snapshot, persist: false) }
+            }
+            writeIfCurrent(latest, persist: true)
+        } catch {
+            logPrefetchFailure("pads", account: id, error: error)
+            if !hadCompleteList, !latest.isEmpty { writeIfCurrent(latest, persist: false) }
+        }
+    }
+
+    static func prefetchQuestions(id: UUID, client: CoderPadClient) async {
+        await withWarmClaim("questions:\(id.uuidString)") {
+            await performQuestionsPrefetch(id: id, client: client)
+        }
+    }
+
+    private static func performQuestionsPrefetch(id: UUID, client: CoderPadClient) async {
+        // See performPadsPrefetch for the write-token rationale (#1242).
+        var token = QuestionsCacheStore.shared.writeGeneration[id] ?? 0
+        func writeIfCurrent(_ questions: [Question], persist: Bool) {
+            guard (QuestionsCacheStore.shared.writeGeneration[id] ?? 0) == token else { return }
+
+            QuestionsCacheStore.shared.set(id, questions: questions, via: client, persist: persist)
+            token = QuestionsCacheStore.shared.writeGeneration[id] ?? 0
+        }
+
+        // See performPadsPrefetch: progressive writes only warm a cold cache (#1836).
+        let hadCompleteList = !QuestionsCacheStore.shared.cached(id).isEmpty
+        var latest: [Question] = []
+        do {
+            for try await snapshot in client.listQuestionsIncrementally() {
+                latest = snapshot
+                if !hadCompleteList { writeIfCurrent(snapshot, persist: false) }
+            }
+            writeIfCurrent(latest, persist: true)
+        } catch {
+            logPrefetchFailure("questions", account: id, error: error)
+            if !hadCompleteList, !latest.isEmpty {
+                writeIfCurrent(latest, persist: false)
+            }
+        }
+    }
+
+    static func prefetchQuota(id: UUID, client: CoderPadClient) async {
+        await withWarmClaim("quota:\(id.uuidString)") {
+            do {
+                let quota = try await client.quota()
+                QuotaCacheStore.shared.set(id, quota: quota, via: client)
+            } catch {
+                logPrefetchFailure("quota", account: id, error: error)
+            }
+        }
+    }
+}

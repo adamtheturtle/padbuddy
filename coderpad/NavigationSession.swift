@@ -14,29 +14,6 @@ struct NavigationSessionKey: Hashable {
     let merged: Bool
 }
 
-@ViewBuilder
-func navigationStatusBanner(
-    store: AccountsStore,
-    network: NetworkMonitor,
-    monitor: AccountHealthMonitor
-) -> some View {
-    // A failed Keychain write outranks everything: the user's account changes
-    // will silently revert on relaunch unless they act, and neither network nor
-    // key state fixes that (#770).
-    if store.persistenceFailed {
-        AccountPersistenceBanner(store: store)
-    } else if network.isOffline {
-        // Offline takes precedence over the key state: when there's no path to
-        // CoderPad nothing can be edited regardless of the key, so show the
-        // offline banner and skip the now-moot unauthorized one (#321).
-        OfflineBanner()
-    } else if !store.isMergedView, let id = store.currentAccountID, monitor.isUnauthorized(id) {
-        // In the combined view, per-account fetch failures surface inline in the
-        // merged list, so the single-account unauthorized banner is suppressed.
-        UnauthorizedBanner(monitor: monitor)
-    }
-}
-
 enum NavigationSessionLoader {
     static func availableSection(from section: AppSection) -> AppSection {
         AppSection.navigable.contains(section) ? section : .pads
@@ -130,119 +107,21 @@ enum NavigationSessionLoader {
             .map { (id: $0.id, client: $0.makeClient()) }
         guard !targets.isEmpty else { return }
 
-        async let pads: Void = active == .pads ? () : prefetchMergedPads(targets)
-        async let questions: Void = active == .questions ? () : prefetchMergedQuestions(targets)
-        async let quota: Void = active == .quota ? () : prefetchMergedQuota(targets)
+        // Claimed like the single-account warms: `load` and `warmInactiveSections`
+        // can both reach here, and rapid navigation or re-appearance would otherwise
+        // start a second identical fan-out over the same accounts (#2679). The key
+        // spans the target set, so a warm for a different set of accounts still runs.
+        let claim = targets.map(\.id.uuidString).sorted().joined(separator: ",")
+        async let pads: Void = active == .pads ? () : withWarmClaim("merged-pads:\(claim)") {
+            await prefetchMergedPads(targets)
+        }
+        async let questions: Void = active == .questions ? () : withWarmClaim("merged-questions:\(claim)") {
+            await prefetchMergedQuestions(targets)
+        }
+        async let quota: Void = active == .quota ? () : withWarmClaim("merged-quota:\(claim)") {
+            await prefetchMergedQuota(targets)
+        }
         _ = await (pads, questions, quota)
-    }
-
-    /// How many accounts one merged warm fetches at a time: a large account set
-    /// must not fan out one request per account all at once (#1834).
-    private static let mergedPrefetchWidth = 4
-
-    private static func prefetchMergedPads(_ targets: [(id: UUID, client: CoderPadClient)]) async {
-        // Per-account write tokens captured before the fetches begin: a slow warm
-        // that completes after a fresher (user-initiated) write must not replace
-        // it (#1242).
-        let tokens = Dictionary(uniqueKeysWithValues: targets.map {
-            ($0.id, PadsCacheStore.shared.writeGeneration[$0.id] ?? 0)
-        })
-        await withTaskGroup(of: (UUID, [Pad]?).self) { group in
-            var iterator = targets.makeIterator()
-            func addNext() {
-                guard let target = iterator.next() else { return }
-
-                group.addTask {
-                    do {
-                        let pads = try await target.client.listPads(sort: "updated_at,desc")
-                        return (target.id, pads)
-                    } catch {
-                        // Logged, not swallowed: a quietly incomplete warm should be
-                        // diagnosable from Console (#1838); the merged views surface
-                        // their own per-account errors on their real loads.
-                        logPrefetchFailure("merged pads", account: target.id, error: error)
-                        return (target.id, nil)
-                    }
-                }
-            }
-            for _ in 0 ..< mergedPrefetchWidth {
-                addNext()
-            }
-
-            let clientsByID = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, $0.client) })
-            for await (id, pads) in group {
-                addNext()
-                if let pads, let client = clientsByID[id],
-                   (PadsCacheStore.shared.writeGeneration[id] ?? 0) == tokens[id] {
-                    PadsCacheStore.shared.set(id, pads: pads, via: client)
-                }
-            }
-        }
-    }
-
-    private static func prefetchMergedQuestions(_ targets: [(id: UUID, client: CoderPadClient)]) async {
-        // See prefetchMergedPads for the write-token rationale (#1242).
-        let tokens = Dictionary(uniqueKeysWithValues: targets.map {
-            ($0.id, QuestionsCacheStore.shared.writeGeneration[$0.id] ?? 0)
-        })
-        await withTaskGroup(of: (UUID, [Question]?).self) { group in
-            var iterator = targets.makeIterator()
-            func addNext() {
-                guard let target = iterator.next() else { return }
-
-                group.addTask {
-                    do {
-                        let questions = try await target.client.listQuestions(sort: "updated_at,desc")
-                        return (target.id, questions)
-                    } catch {
-                        logPrefetchFailure("merged questions", account: target.id, error: error)
-                        return (target.id, nil)
-                    }
-                }
-            }
-            for _ in 0 ..< mergedPrefetchWidth {
-                addNext()
-            }
-
-            let clientsByID = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, $0.client) })
-            for await (id, questions) in group {
-                addNext()
-                if let questions, let client = clientsByID[id],
-                   (QuestionsCacheStore.shared.writeGeneration[id] ?? 0) == tokens[id] {
-                    QuestionsCacheStore.shared.set(id, questions: questions, via: client)
-                }
-            }
-        }
-    }
-
-    private static func prefetchMergedQuota(_ targets: [(id: UUID, client: CoderPadClient)]) async {
-        await withTaskGroup(of: (UUID, Quota?).self) { group in
-            var iterator = targets.makeIterator()
-            func addNext() {
-                guard let target = iterator.next() else { return }
-
-                group.addTask {
-                    do {
-                        let quota = try await target.client.quota()
-                        return (target.id, quota)
-                    } catch {
-                        logPrefetchFailure("merged quota", account: target.id, error: error)
-                        return (target.id, nil)
-                    }
-                }
-            }
-            for _ in 0 ..< mergedPrefetchWidth {
-                addNext()
-            }
-
-            let clientsByID = Dictionary(uniqueKeysWithValues: targets.map { ($0.id, $0.client) })
-            for await (id, quota) in group {
-                addNext()
-                if let quota, let client = clientsByID[id] {
-                    QuotaCacheStore.shared.set(id, quota: quota, via: client)
-                }
-            }
-        }
     }
 
     /// Fetches whichever lists aren't currently displayed and stores them in the
@@ -279,7 +158,7 @@ enum NavigationSessionLoader {
     @MainActor private static var inFlightWarms: Set<String> = []
 
     @MainActor
-    private static func withWarmClaim(_ key: String, _ body: () async -> Void) async {
+    static func withWarmClaim(_ key: String, _ body: () async -> Void) async {
         guard !inFlightWarms.contains(key) else { return }
 
         inFlightWarms.insert(key)
@@ -287,88 +166,7 @@ enum NavigationSessionLoader {
         await body()
     }
 
-    private static func prefetchPads(id: UUID, client: CoderPadClient) async {
-        await withWarmClaim("pads:\(id.uuidString)") {
-            await performPadsPrefetch(id: id, client: client)
-        }
-    }
-
-    private static func performPadsPrefetch(id: UUID, client: CoderPadClient) async {
-        // Write-token coordination (#1242): every write re-checks that no OTHER
-        // writer (a user-initiated reload finishing after this warm began) touched
-        // the account since this warm's previous write. When one did, the warm
-        // stops writing - the fresher result wins - rather than replacing it.
-        var token = PadsCacheStore.shared.writeGeneration[id] ?? 0
-        func writeIfCurrent(_ pads: [Pad], persist: Bool) {
-            guard (PadsCacheStore.shared.writeGeneration[id] ?? 0) == token else { return }
-
-            PadsCacheStore.shared.set(id, pads: pads, via: client, persist: persist)
-            token = PadsCacheStore.shared.writeGeneration[id] ?? 0
-        }
-
-        // Progressive snapshots only warm a COLD cache: replacing an already
-        // complete list page by page would leave a truncated list in memory when
-        // a later page fails (#1836). A warm cache is replaced only by the final,
-        // complete result.
-        let hadCompleteList = !PadsCacheStore.shared.cached(id).isEmpty
-        var latest: [Pad] = []
-        do {
-            for try await snapshot in client.listPadsIncrementally() {
-                latest = snapshot
-                if !hadCompleteList { writeIfCurrent(snapshot, persist: false) }
-            }
-            writeIfCurrent(latest, persist: true)
-        } catch {
-            logPrefetchFailure("pads", account: id, error: error)
-            if !hadCompleteList, !latest.isEmpty { writeIfCurrent(latest, persist: false) }
-        }
-    }
-
-    private static func prefetchQuestions(id: UUID, client: CoderPadClient) async {
-        await withWarmClaim("questions:\(id.uuidString)") {
-            await performQuestionsPrefetch(id: id, client: client)
-        }
-    }
-
-    private static func performQuestionsPrefetch(id: UUID, client: CoderPadClient) async {
-        // See performPadsPrefetch for the write-token rationale (#1242).
-        var token = QuestionsCacheStore.shared.writeGeneration[id] ?? 0
-        func writeIfCurrent(_ questions: [Question], persist: Bool) {
-            guard (QuestionsCacheStore.shared.writeGeneration[id] ?? 0) == token else { return }
-
-            QuestionsCacheStore.shared.set(id, questions: questions, via: client, persist: persist)
-            token = QuestionsCacheStore.shared.writeGeneration[id] ?? 0
-        }
-
-        // See performPadsPrefetch: progressive writes only warm a cold cache (#1836).
-        let hadCompleteList = !QuestionsCacheStore.shared.cached(id).isEmpty
-        var latest: [Question] = []
-        do {
-            for try await snapshot in client.listQuestionsIncrementally() {
-                latest = snapshot
-                if !hadCompleteList { writeIfCurrent(snapshot, persist: false) }
-            }
-            writeIfCurrent(latest, persist: true)
-        } catch {
-            logPrefetchFailure("questions", account: id, error: error)
-            if !hadCompleteList, !latest.isEmpty {
-                writeIfCurrent(latest, persist: false)
-            }
-        }
-    }
-
-    private static func prefetchQuota(id: UUID, client: CoderPadClient) async {
-        await withWarmClaim("quota:\(id.uuidString)") {
-            do {
-                let quota = try await client.quota()
-                QuotaCacheStore.shared.set(id, quota: quota, via: client)
-            } catch {
-                logPrefetchFailure("quota", account: id, error: error)
-            }
-        }
-    }
-
-    private nonisolated static func logPrefetchFailure(_ kind: String, account: UUID, error: any Error) {
+    nonisolated static func logPrefetchFailure(_ kind: String, account: UUID, error: any Error) {
         persistenceLogger.info(
             """
             Background \(kind, privacy: .public) warm failed for account \

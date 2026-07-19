@@ -20,7 +20,7 @@ extension MainSplit {
     /// split, and the window-floor / separator-hider / toolbar-customization backgrounds.
     var splitLayout: some View {
         VStack(spacing: 0) {
-            navigationStatusBanner(store: store, network: network, monitor: monitor)
+            navigationStatusBanner(store: store, network: network, monitor: monitor, section: section)
             Group {
                 if showsDetailColumn {
                     threeColumnSplit
