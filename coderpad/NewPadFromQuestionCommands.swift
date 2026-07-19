@@ -41,6 +41,12 @@ enum NewPadFromQuestionRunner {
                 // or malformed url must not silently lose the just-created pad (#1004).
                 BrowserSettings.openExternally(pad.webURL(fallbackBase: account.resolvedBaseURL))
             } catch {
+                // A cancelled create is not a failure: teardown or navigation cancelling
+                // this task must not push the user into an in-app create sheet they
+                // never asked for, so drop it silently (#2041). Mirrors the widget
+                // New Pad path in `AppDelegate+NewPad`.
+                guard !Task.isCancelled, !(error is CancellationError) else { return }
+
                 // The create can outlive its account: routing the fallback sheet at
                 // an account removed mid-flight would present a create flow against
                 // credentials the user just discarded, so log and drop it (#1252).
