@@ -15,6 +15,9 @@ enum OnDeviceModelParsing {
     /// multiple lines, which a code block or a multi-sentence field needs. Labels the model
     /// omitted are simply absent from the result.
     static func labeledSections(_ reply: String, labels: [String]) -> [String: String] {
+        // Precompute the "Label:" needles once; building label + ":" inside the scan
+        // allocates a fresh String per remaining label on every line (#2267).
+        let needles = labels.map { $0 + ":" }
         var positions: [(label: String, range: Range<String.Index>)] = []
         // Labels must appear in the requested order: the model is instructed to
         // reply with the sections in exactly that order, and matching any label
@@ -41,18 +44,17 @@ enum OnDeviceModelParsing {
             if line.hasPrefix("```") {
                 inFence.toggle()
             } else if !inFence {
-                if let last = positions.last,
-                   let range = line.range(of: last.label + ":", options: [.anchored, .caseInsensitive]) {
+                if !positions.isEmpty,
+                   let range = line.range(of: needles[nextLabelIndex - 1], options: [.anchored, .caseInsensitive]) {
                     // The model corrected itself by re-emitting the current
                     // section's header: the later occurrence wins over the stale
                     // first answer (#1963). Only the *current* label re-matches;
                     // an earlier label repeated later stays content (#1716).
-                    positions[positions.count - 1] = (last.label, range)
+                    positions[positions.count - 1] = (labels[nextLabelIndex - 1], range)
                 } else {
                     for offset in nextLabelIndex ..< labels.count {
-                        let label = labels[offset]
-                        if let range = line.range(of: label + ":", options: [.anchored, .caseInsensitive]) {
-                            positions.append((label, range))
+                        if let range = line.range(of: needles[offset], options: [.anchored, .caseInsensitive]) {
+                            positions.append((labels[offset], range))
                             nextLabelIndex = offset + 1
                             break
                         }
@@ -90,12 +92,15 @@ enum OnDeviceModelParsing {
             let line = String(rawLine)
             guard let colon = line.firstIndex(of: ":") else { continue }
 
-            let key = line[..<colon]
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-                .lowercased()
-                .replacingOccurrences(of: " ", with: "")
-                .replacingOccurrences(of: "-", with: "")
-                .replacingOccurrences(of: "_", with: "")
+            // Normalize in one pass: lowercasing and dropping spaces/hyphens/underscores
+            // via chained replacingOccurrences rescans and reallocates the key four
+            // times per line (#2269).
+            let rawKey = line[..<colon].trimmingCharacters(in: .whitespacesAndNewlines)
+            var key = ""
+            key.reserveCapacity(rawKey.count)
+            for character in rawKey where character != " " && character != "-" && character != "_" {
+                key.append(contentsOf: character.lowercased())
+            }
             guard !key.isEmpty else { continue }
 
             var value = String(line[line.index(after: colon)...]).trimmingCharacters(in: .whitespacesAndNewlines)
