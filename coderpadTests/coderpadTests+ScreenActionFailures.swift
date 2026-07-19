@@ -64,6 +64,21 @@ struct ScreenCampaignDiagnosticTests {
     @Test func `clean campaign list has no diagnostic`() {
         #expect(ScreenCampaignListResult(campaigns: [], discardedCount: 0).diagnostic == nil)
     }
+
+    @Test func `deep malformed campaign is discarded without unbounded recursion`() throws {
+        var nested: Any = "leaf"
+        for index in 0 ..< 100 {
+            nested = ["level\(index)": nested]
+        }
+        let data = try JSONSerialization.data(withJSONObject: [
+            ["id": "invalid", "name": "Malformed", "nested": nested],
+            ["id": 1, "name": "Valid"]
+        ])
+
+        let list = try JSONDecoder().decode(TolerantScreenList<ScreenCampaign>.self, from: data)
+        #expect(list.elements.map(\.id) == [1])
+        #expect(list.discardedCount == 1)
+    }
 }
 
 @Suite("Screen session diagnostics")

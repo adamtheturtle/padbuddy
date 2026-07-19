@@ -106,7 +106,16 @@ nonisolated struct ScreenTestListResult: Equatable {
 }
 
 private nonisolated struct DiscardedScreenValue: Decodable {
+    private static let maximumNestingDepth = 64
+
     init(from decoder: any Decoder) throws {
+        guard decoder.codingPath.count <= Self.maximumNestingDepth else {
+            throw DecodingError.dataCorrupted(.init(
+                codingPath: decoder.codingPath,
+                debugDescription: "Discarded Screen value exceeded the nesting limit."
+            ))
+        }
+
         if var array = try? decoder.unkeyedContainer() {
             while !array.isAtEnd {
                 _ = try? array.decode(Self.self)
