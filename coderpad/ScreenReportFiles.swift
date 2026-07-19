@@ -125,6 +125,16 @@ nonisolated enum ScreenReportFiles {
         }
     }
 
+    /// A rejected workspace launch has no viewer that needs the staged bytes, so
+    /// remove candidate data immediately instead of waiting for the delayed sweep.
+    static func handleOpenResult(_ accepted: Bool, for url: URL) {
+        if accepted {
+            scheduleRemoval(of: url)
+        } else {
+            remove(url)
+        }
+    }
+
     /// Launch-time sweep of reports left behind by earlier runs (e.g. the app quit
     /// before a scheduled removal fired). Reports staged by this process are skipped,
     /// so a late sweep can't race a concurrently opened report (#1947).

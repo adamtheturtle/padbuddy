@@ -354,8 +354,8 @@ private extension ScreenTestDetailView {
                     // IDs collide across accounts, and reports hold candidate data, so the
                     // file is single-use and swept again after opening / at next launch.
                     let url = try ScreenReportFiles.stage(data, testID: test.id)
-                    NSWorkspace.shared.open(url)
-                    ScreenReportFiles.scheduleRemoval(of: url)
+                    let accepted = NSWorkspace.shared.open(url)
+                    ScreenReportFiles.handleOpenResult(accepted, for: url)
                 #else
                     // Quick Look previews the staged single-use file, which is swept
                     // again once the viewer has had time to load it (#808).

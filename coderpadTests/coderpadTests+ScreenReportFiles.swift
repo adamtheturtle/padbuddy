@@ -66,6 +66,16 @@ struct ScreenReportFilesTests {
     }
 
     @Test
+    func `a rejected viewer launch removes the staged report immediately`() throws {
+        let url = try ScreenReportFiles.stage(pdf, testID: 10)
+
+        ScreenReportFiles.handleOpenResult(false, for: url)
+
+        #expect(!FileManager.default.fileExists(atPath: url.path))
+        #expect(!FileManager.default.fileExists(atPath: url.deletingLastPathComponent().path))
+    }
+
+    @Test
     func `report size limit includes its boundary and rejects larger counts`() {
         #expect(ScreenReportFiles.isWithinSizeLimit(ScreenReportFiles.maxReportBytes))
         #expect(!ScreenReportFiles.isWithinSizeLimit(ScreenReportFiles.maxReportBytes + 1))
