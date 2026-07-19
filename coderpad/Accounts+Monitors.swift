@@ -161,6 +161,7 @@ final class PadsBackgroundRefresher {
     /// start never alerts about every existing pad.
     private var previousActivity: [UUID: AccountActivityState] = [:]
     static let maximumConcurrentFetches = 3
+    static let perAccountTimeout: Duration = .seconds(45)
     private init() {}
 
     /// Refetches the current account's pads on a fixed interval (default 5 min).
@@ -236,10 +237,28 @@ final class PadsBackgroundRefresher {
         to group: inout TaskGroup<FetchResult?>
     ) {
         group.addTask {
-            let client = CoderPadClient.live(apiKey: job.apiKey, baseURL: job.baseURL)
-            guard let pads = try? await client.listPads(sort: "updated_at,desc") else { return nil }
+            await fetch(job, timeout: perAccountTimeout)
+        }
+    }
 
-            return FetchResult(accountID: job.accountID, clientIdentity: client.taskIdentity, pads: pads)
+    private nonisolated static func fetch(_ job: FetchJob, timeout: Duration) async -> FetchResult? {
+        await withTaskGroup(of: FetchResult?.self) { group in
+            group.addTask {
+                let client = CoderPadClient.live(apiKey: job.apiKey, baseURL: job.baseURL)
+                guard let pads = try? await client.listPads(sort: "updated_at,desc") else { return nil }
+
+                return FetchResult(accountID: job.accountID, clientIdentity: client.taskIdentity, pads: pads)
+            }
+            group.addTask {
+                try? await Task.sleep(for: timeout)
+                return nil
+            }
+
+            let first = await group.next()
+            group.cancelAll()
+            guard let first else { return nil }
+
+            return first
         }
     }
 
