@@ -43,7 +43,7 @@
                         quotaTab
                     }
 
-                    if AppSection.navigable.contains(.screen) {
+                    if screenSectionAvailable {
                         screenTab
                     }
                 }
