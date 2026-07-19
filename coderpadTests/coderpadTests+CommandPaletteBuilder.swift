@@ -86,6 +86,19 @@ struct CommandPaletteBuilderTests {
     }
 
     @Test
+    func `pad candidate limit ignores duplicates and stops deterministically`() throws {
+        func pad(id: String) throws -> Pad {
+            let data = try JSONSerialization.data(withJSONObject: ["id": id, "title": id])
+            return try CoderPadClient.decoder.decode(Pad.self, from: data)
+        }
+
+        let pads = try [pad(id: "one"), pad(id: "one"), pad(id: "two"), pad(id: "three")]
+        let bounded = CommandPaletteBuilder.uniquePads(pads, limit: 2)
+
+        #expect(bounded.map(\.id) == ["one", "two"])
+    }
+
+    @Test
     func `new-pad candidates keep the first question for each id`() throws {
         func question(id: Int, title: String) throws -> Question {
             let data = try JSONSerialization.data(withJSONObject: ["id": id, "title": title])
@@ -102,5 +115,19 @@ struct CommandPaletteBuilderTests {
 
         #expect(unique.map(\.id) == [1, 2])
         #expect(unique.map(\.title) == ["First", "Second"])
+    }
+
+    @Test
+    func `question candidate limit ignores duplicates and stops deterministically`() throws {
+        func question(id: Int) throws -> Question {
+            let data = try JSONSerialization.data(withJSONObject: ["id": id, "title": "Question \(id)"])
+            return try CoderPadClient.decoder.decode(Question.self, from: data)
+        }
+
+        let questions = try [question(id: 1), question(id: 1), question(id: 2), question(id: 3)]
+        let bounded = CommandPaletteBuilder.uniqueQuestions(questions, limit: 2)
+
+        #expect(bounded.map(\.id) == [1, 2])
+        #expect(CommandPaletteBuilder.uniqueQuestions(questions, limit: 0).isEmpty)
     }
 }

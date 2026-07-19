@@ -22,6 +22,21 @@ enum CommandPaletteBuilder {
         let searchText: String
     }
 
+    private struct DynamicAccumulator {
+        var newPads: [PaletteResult] = []
+        var content: [PaletteResult] = []
+        var remainingPads = CommandPaletteBuilder.maximumPadResults
+        var remainingQuestions = CommandPaletteBuilder.maximumQuestionResults
+        var remainingNewPads = CommandPaletteBuilder.maximumNewPadResults
+    }
+
+    private struct DynamicAccountOptions {
+        let canCreate: Bool
+        let showContentAccount: Bool
+        let showCreateAccount: Bool
+        let favoriteIDs: Set<Int>
+    }
+
     static func build() -> [PaletteResult] {
         let dynamic = dynamicResults()
         var results: [PaletteResult] = []
@@ -47,64 +62,70 @@ enum CommandPaletteBuilder {
         let showContentAccount = accounts.count > 1
         let showCreateAccount = creatableAccounts.count > 1
 
-        var newPads: [PaletteResult] = []
-        var content: [PaletteResult] = []
+        var accumulator = DynamicAccumulator()
         for account in accounts {
-            let accountID = account.id, canCreate = creatableIDs.contains(account.id)
-            let favoriteIDs = canCreate ? Set(FavoriteQuestionsStore.shared.favorites(account: account.id)) : []
-            for pad in uniquePads(PadsCacheStore.shared.get(account.id)) {
-                let text = padPaletteText(pad, account: showContentAccount ? account.name : nil)
-                content.append(PaletteResult(
-                    id: "pad.\(account.id.uuidString).\(pad.id)",
-                    kind: .pad,
-                    title: text.title,
-                    subtitle: text.subtitle,
-                    systemImage: "doc.text",
-                    searchText: text.searchText
-                ) { jump(toPad: pad.id, in: account.id) })
-            }
+            let canCreate = creatableIDs.contains(account.id)
+            let options = DynamicAccountOptions(
+                canCreate: canCreate,
+                showContentAccount: showContentAccount,
+                showCreateAccount: showCreateAccount,
+                favoriteIDs: canCreate ? Set(FavoriteQuestionsStore.shared.favorites(account: account.id)) : []
+            )
+            appendPads(for: account, showAccount: showContentAccount,
+                       accumulator: &accumulator)
+            appendQuestions(for: account, options: options, accumulator: &accumulator)
+        }
+        return (accumulator.newPads, accumulator.content)
+    }
 
-            for question in uniqueQuestions(QuestionsCacheStore.shared.get(account.id)) {
-                let text = questionPaletteText(question)
-                content.append(PaletteResult(
-                    id: "question.\(account.id.uuidString).\(question.id)",
-                    kind: .question,
+    private static func appendPads(
+        for account: Account, showAccount: Bool,
+        accumulator: inout DynamicAccumulator
+    ) {
+        let pads = uniquePads(PadsCacheStore.shared.get(account.id), limit: accumulator.remainingPads)
+        accumulator.remainingPads -= pads.count
+        for pad in pads {
+            let text = padPaletteText(pad, account: showAccount ? account.name : nil)
+            accumulator.content.append(PaletteResult(
+                id: "pad.\(account.id.uuidString).\(pad.id)", kind: .pad,
+                title: text.title, subtitle: text.subtitle, systemImage: "doc.text",
+                searchText: text.searchText
+            ) { jump(toPad: pad.id, in: account.id) })
+        }
+    }
+
+    private static func appendQuestions(
+        for account: Account, options: DynamicAccountOptions,
+        accumulator: inout DynamicAccumulator
+    ) {
+        let limit = max(accumulator.remainingQuestions,
+                        options.canCreate ? accumulator.remainingNewPads : 0)
+        for question in uniqueQuestions(QuestionsCacheStore.shared.get(account.id), limit: limit) {
+            let text = questionPaletteText(question)
+            if accumulator.remainingQuestions > 0 {
+                accumulator.content.append(PaletteResult(
+                    id: "question.\(account.id.uuidString).\(question.id)", kind: .question,
                     title: text.title,
-                    subtitle: subtitle(account: showContentAccount ? account.name : nil, detail: text.language),
+                    subtitle: subtitle(account: options.showContentAccount ? account.name : nil,
+                                       detail: text.language),
                     systemImage: "questionmark.bubble",
                     searchText: sanitizedRemoteText("\(text.title) \(text.language)", limit: 320)
                 ) { jump(toQuestion: question.id, in: account.id) })
-
-                if canCreate {
-                    newPads.append(PaletteResult(
-                        id: "new-pad-from-question.\(account.id.uuidString).\(question.id)",
-                        kind: .command,
-                        title: sanitizedRemoteText("New Pad from \(text.title)"),
-                        subtitle: subtitle(account: showCreateAccount ? account.name : nil,
-                                           detail: "Create a pad from this question"),
-                        systemImage: "plus.rectangle.on.folder",
-                        searchText: sanitizedRemoteText("New Pad from question \(text.title)", limit: 320),
-                        onlyWhenSearching: !favoriteIDs.contains(question.id)
-                    ) { NewPadFromQuestionRunner.createAndOpen(question: question, accountID: accountID) })
-                }
+                accumulator.remainingQuestions -= 1
             }
+            guard options.canCreate, accumulator.remainingNewPads > 0 else { continue }
+
+            accumulator.newPads.append(PaletteResult(
+                id: "new-pad-from-question.\(account.id.uuidString).\(question.id)", kind: .command,
+                title: sanitizedRemoteText("New Pad from \(text.title)"),
+                subtitle: subtitle(account: options.showCreateAccount ? account.name : nil,
+                                   detail: "Create a pad from this question"),
+                systemImage: "plus.rectangle.on.folder",
+                searchText: sanitizedRemoteText("New Pad from question \(text.title)", limit: 320),
+                onlyWhenSearching: !options.favoriteIDs.contains(question.id)
+            ) { NewPadFromQuestionRunner.createAndOpen(question: question, accountID: account.id) })
+            accumulator.remainingNewPads -= 1
         }
-        return (newPads, content)
-    }
-
-    static func uniqueQuestions(_ questions: [Question]) -> [Question] {
-        var seen = Set<Int>()
-        return questions.filter { seen.insert($0.id).inserted }
-    }
-
-    static func uniquePads(_ pads: [Pad]) -> [Pad] {
-        var seen = Set<String>()
-        return pads.filter { seen.insert($0.id).inserted }
-    }
-
-    static func uniqueAccounts(_ accounts: [Account]) -> [Account] {
-        var seen = Set<UUID>()
-        return accounts.filter { seen.insert($0.id).inserted }
     }
 
     private static func commands() -> [PaletteResult] {
@@ -163,7 +184,7 @@ enum CommandPaletteBuilder {
         // Only worth offering as a switch target when there's more than one account.
         guard store.accounts.count > 1 else { return [] }
 
-        return uniqueAccounts(store.accounts).map { account in
+        return uniqueAccounts(store.accounts, limit: maximumAccountResults).map { account in
             PaletteResult(
                 id: "account.\(account.id.uuidString)",
                 kind: .account,
