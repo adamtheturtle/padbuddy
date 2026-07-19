@@ -140,12 +140,21 @@ enum DockBadgeController {
         #else
             let center = UNUserNotificationCenter.current()
             badgeTask = Task { @MainActor in
+                // Clearing takes no permission and is never unwanted, so a zero count
+                // skips the authorization checks entirely and just writes it. Going
+                // through them meant turning the badge off — or being denied after
+                // once being granted — returned early and left the last count sitting
+                // on the icon (#2580).
+                guard count > 0 else {
+                    writeBadge(count: 0, center: center)
+                    return
+                }
+
                 let settings = await center.notificationSettings()
                 guard isCurrentBadge(generation) else { return }
 
                 switch settings.authorizationStatus {
                 case .notDetermined:
-                    guard count > 0 else { return }
                     guard await (try? center.requestAuthorization(options: [.badge])) == true else { return }
 
                 case .denied:
@@ -159,14 +168,21 @@ enum DockBadgeController {
                 guard await center.notificationSettings().badgeSetting == .enabled else { return }
                 guard isCurrentBadge(generation) else { return }
 
-                center.setBadgeCount(count) { error in
-                    if let error {
-                        print("Failed to update app icon badge: \(error.localizedDescription)")
-                    }
-                }
+                writeBadge(count: count, center: center)
             }
         #endif
     }
+
+    #if !os(macOS)
+        @MainActor
+        private static func writeBadge(count: Int, center: UNUserNotificationCenter) {
+            center.setBadgeCount(count) { error in
+                if let error {
+                    print("Failed to update app icon badge: \(error.localizedDescription)")
+                }
+            }
+        }
+    #endif
 
     @MainActor
     private static func isCurrentBadge(_ generation: Int) -> Bool {
