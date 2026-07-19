@@ -98,6 +98,14 @@ struct AccountFooter: View {
                     } label: {
                         accountMenuLabel(for: account, selectedAccountID: currentAccount.id)
                     }
+                    // An account with no key or a malformed endpoint can't load
+                    // anything; selecting it swapped the working account for a broken
+                    // scope. The compact shell's menu has disabled these since #1670 —
+                    // this one still offered them, so the two menus presented different
+                    // switch targets for the same account list (#2224). Manage Accounts
+                    // remains the way to fix such an account.
+                    .disabled(!account.isMock
+                        && (account.apiKey.isEmpty || account.hasMalformedBaseURLOverride))
                 }
                 Divider()
                 Button("Manage Accounts…") { manageAccounts() }
