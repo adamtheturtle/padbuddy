@@ -16,6 +16,11 @@ struct ConfigLoaderTests {
         return url
     }
 
+    private func writeConfig(_ data: Data, to url: URL) throws {
+        try data.write(to: url)
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
+    }
+
     @Test
     func `missing default config falls back to environment`() throws {
         let home = try temporaryDirectory()
@@ -58,7 +63,7 @@ struct ConfigLoaderTests {
         let directory = try temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }
         let url = directory.appending(path: "config.json")
-        try Data("{".utf8).write(to: url)
+        try writeConfig(Data("{".utf8), to: url)
         #expect(throws: MCPConfigLoadError.malformedConfig(path: url.path)) {
             _ = try loadConfigObject(environment: ["CODERPAD_MCP_CONFIG": url.path])
         }
@@ -69,7 +74,7 @@ struct ConfigLoaderTests {
         let directory = try temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }
         let url = directory.appending(path: "config.json")
-        try Data("[]".utf8).write(to: url)
+        try writeConfig(Data("[]".utf8), to: url)
         #expect(throws: MCPConfigLoadError.nonObjectConfig(path: url.path)) {
             _ = try loadConfigObject(environment: ["CODERPAD_MCP_CONFIG": url.path])
         }
@@ -80,7 +85,7 @@ struct ConfigLoaderTests {
         let directory = try temporaryDirectory()
         defer { try? FileManager.default.removeItem(at: directory) }
         let url = directory.appending(path: "config.json")
-        try Data(#"{"accounts":[{"name":"Acme","api_key":"key"}]}"#.utf8).write(to: url)
+        try writeConfig(Data(#"{"accounts":[{"name":"Acme","api_key":"key"}]}"#.utf8), to: url)
         let config = try #require(try loadConfigObject(environment: ["CODERPAD_MCP_CONFIG": url.path]))
         let accounts = try #require(config["accounts"] as? [[String: Any]])
         #expect(accounts.count == 1)
@@ -94,7 +99,7 @@ struct ConfigLoaderTests {
         let url = directory.appending(path: "config.json")
         let limit = 1_048_576
         let prefix = #"{"accounts":[]}"#
-        try Data((prefix + String(repeating: " ", count: limit - prefix.utf8.count)).utf8).write(to: url)
+        try writeConfig(Data((prefix + String(repeating: " ", count: limit - prefix.utf8.count)).utf8), to: url)
 
         let config = try #require(try loadConfigObject(environment: ["CODERPAD_MCP_CONFIG": url.path]))
         #expect((config["accounts"] as? [Any])?.isEmpty == true)
@@ -106,10 +111,30 @@ struct ConfigLoaderTests {
         defer { try? FileManager.default.removeItem(at: directory) }
         let url = directory.appending(path: "config.json")
         let limit = 1_048_576
-        try Data(repeating: 0x20, count: limit + 1).write(to: url)
+        try writeConfig(Data(repeating: 0x20, count: limit + 1), to: url)
 
         #expect(throws: MCPConfigLoadError.configTooLarge(path: url.path, limit: limit)) {
             _ = try loadConfigObject(environment: ["CODERPAD_MCP_CONFIG": url.path])
+        }
+    }
+
+    @Test
+    func `group-readable and symbolic-link configs are rejected`() throws {
+        let directory = try temporaryDirectory()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let target = directory.appending(path: "target.json")
+        try writeConfig(Data(#"{"accounts":[]}"#.utf8), to: target)
+
+        try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: target.path)
+        #expect(throws: MCPConfigLoadError.insecurePermissions(path: target.path)) {
+            _ = try loadConfigObject(environment: ["CODERPAD_MCP_CONFIG": target.path])
+        }
+
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: target.path)
+        let link = directory.appending(path: "config-link.json")
+        try FileManager.default.createSymbolicLink(at: link, withDestinationURL: target)
+        #expect(throws: MCPConfigLoadError.symbolicLink(path: link.path)) {
+            _ = try loadConfigObject(environment: ["CODERPAD_MCP_CONFIG": link.path])
         }
     }
 }

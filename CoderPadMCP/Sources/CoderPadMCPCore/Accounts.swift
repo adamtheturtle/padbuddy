@@ -128,6 +128,9 @@ public enum MCPConfigLoadError: Error, Equatable, LocalizedError {
     case missingConfig(path: String)
     case permissionDenied(path: String)
     case notRegularFile(path: String)
+    case symbolicLink(path: String)
+    case wrongOwner(path: String)
+    case insecurePermissions(path: String)
     case readFailed(path: String)
     case configTooLarge(path: String, limit: Int)
     case malformedConfig(path: String)
@@ -141,6 +144,12 @@ public enum MCPConfigLoadError: Error, Equatable, LocalizedError {
             "Permission was denied while reading config file at \(path)."
         case let .notRegularFile(path):
             "Config path at \(path) is not a regular file."
+        case let .symbolicLink(path):
+            "Config path at \(path) must not be a symbolic link."
+        case let .wrongOwner(path):
+            "Config file at \(path) is not owned by the current user."
+        case let .insecurePermissions(path):
+            "Config file at \(path) must not be accessible by group or other users."
         case let .readFailed(path):
             "Could not read config file at \(path)."
         case let .configTooLarge(path, limit):
@@ -244,14 +253,11 @@ public func loadConfigObject(
     }
 
     let path = url.path
-    var isDirectory: ObjCBool = false
-    guard fileManager.fileExists(atPath: path, isDirectory: &isDirectory) else {
-        if explicitPath != nil { throw MCPConfigLoadError.missingConfig(path: path) }
-        return nil
-    }
-    guard !isDirectory.boolValue else { throw MCPConfigLoadError.notRegularFile(path: path) }
+    guard let attributes = try validatedConfigAttributes(
+        path: path, explicit: explicitPath != nil, fileManager: fileManager
+    ) else { return nil }
 
-    let size = try configFileSize(path: path, fileManager: fileManager)
+    let size = try configFileSize(path: path, attributes: attributes)
     guard size <= maximumConfigBytes else {
         throw MCPConfigLoadError.configTooLarge(path: path, limit: maximumConfigBytes)
     }
@@ -278,32 +284,6 @@ public func loadConfigObject(
     }
 
     return config
-}
-
-private func configFileSize(path: String, fileManager: FileManager) throws -> Int64 {
-    let attributes: [FileAttributeKey: Any]
-    do {
-        attributes = try fileManager.attributesOfItem(atPath: path)
-    } catch {
-        throw classifiedConfigReadError(path: path, error: error)
-    }
-    guard let size = attributes[.size] as? Int64 else {
-        throw MCPConfigLoadError.readFailed(path: path)
-    }
-
-    return size
-}
-
-func classifiedConfigReadError(path: String, error: any Error) -> MCPConfigLoadError {
-    let cocoa = error as? CocoaError
-    switch cocoa?.code {
-    case .fileReadNoSuchFile:
-        return .missingConfig(path: path)
-    case .fileReadNoPermission:
-        return .permissionDenied(path: path)
-    default:
-        return .readFailed(path: path)
-    }
 }
 
 /// Builds the account set from a parsed JSON config object, falling back to the legacy
