@@ -252,13 +252,15 @@ extension MergedPadsView {
     /// decision the single-account list uses, over namespaced row ids (#758). Reads
     /// the source dictionary rather than the per-render `scoped` memo, which can
     /// still be empty right after a cache seed.
-    func restoreSelectedPadIfNeeded() {
+    /// Every loaded row id, plus the row id per slug used to normalize a value
+    /// saved by a build before #758 (a bare slug, no account prefix).
+    ///
+    /// The slug map keeps only slugs owned by exactly one account. Account ordering
+    /// can change across launches, so first-match normalization could reopen a
+    /// colliding slug from a different server; ambiguous legacy slugs are dropped
+    /// instead (#1231).
+    private func loadedRowIndex() -> (rowIDs: Set<String>, rowIDBySlug: [String: String]) {
         var availableRowIDs: Set<String> = []
-        // The row id per slug for normalizing a value saved by a build before
-        // #758 (a bare slug, no account prefix) — kept only for slugs owned by
-        // exactly one account. Account ordering can change across launches, so
-        // first-match normalization could reopen a colliding slug from a
-        // different server; ambiguous legacy slugs are dropped instead (#1231).
         var rowIDBySlug: [String: String] = [:]
         var collidingSlugs: Set<String> = []
         for account in accounts.mergeableAccounts {
@@ -275,16 +277,48 @@ extension MergedPadsView {
         for slug in collidingSlugs {
             rowIDBySlug[slug] = nil
         }
+        return (availableRowIDs, rowIDBySlug)
+    }
+
+    /// `loadComplete` is true only at the end of the cross-account fan-out. Until
+    /// then a saved row that isn't in the list yet may simply belong to an account
+    /// or page still loading, so the one-shot restore waits rather than being spent
+    /// on an incomplete list (#2564).
+    func restoreSelectedPadIfNeeded(loadComplete: Bool = false) {
+        let (availableRowIDs, rowIDBySlug) = loadedRowIndex()
         guard !didRestoreSelection, !availableRowIDs.isEmpty else { return }
 
+        let savedSelection = Self.normalizedSavedRowID(
+            MergedRowPersistence.validatedRowID(persistedSelectedPad,
+                                                endpoint: persistedSelectedPadEndpoint),
+            rowIDBySlug: rowIDBySlug
+        )
+        let savedTop = Self.normalizedSavedRowID(
+            MergedRowPersistence.validatedRowID(persistedTopRow, endpoint: persistedTopRowEndpoint),
+            rowIDBySlug: rowIDBySlug
+        )
+        // A saved row missing from a partial list may still be coming. Spending the
+        // restore now would lose it for good, so hold until the fan-out reports in.
+        if !loadComplete,
+           [savedSelection, savedTop].contains(where: { $0.map { !availableRowIDs.contains($0) } ?? false }) {
+            return
+        }
+
         didRestoreSelection = true
+        // The load has finished and these rows aren't in it, so they're gone. Drop
+        // them rather than rechecking the same dead ids every launch and risking a
+        // future row that reuses one being selected without the user asking (#2566).
+        if let savedSelection, !availableRowIDs.contains(savedSelection) {
+            persistedSelectedPad = ""
+            persistedSelectedPadEndpoint = ""
+        }
+        if let savedTop, !availableRowIDs.contains(savedTop) {
+            persistedTopRow = ""
+            persistedTopRowEndpoint = ""
+        }
         let hasPendingOpen = nav.pendingMergedFavoritePad != nil || pendingSelectPadSlug != nil
         if let id = PadsView.padToRestore(
-            savedID: Self.normalizedSavedRowID(
-                MergedRowPersistence.validatedRowID(persistedSelectedPad,
-                                                    endpoint: persistedSelectedPadEndpoint),
-                rowIDBySlug: rowIDBySlug
-            ),
+            savedID: savedSelection,
             hasSelection: selection != nil,
             hasPendingOpen: hasPendingOpen,
             availableIDs: availableRowIDs
@@ -296,12 +330,7 @@ extension MergedPadsView {
             // Bring the restored row into view; the List won't scroll to it on its own.
             pendingScrollToID = id
         } else if selection == nil, !hasPendingOpen,
-                  let topID = Self.normalizedSavedRowID(
-                      MergedRowPersistence.validatedRowID(persistedTopRow,
-                                                          endpoint: persistedTopRowEndpoint),
-                      rowIDBySlug: rowIDBySlug
-                  ),
-                  availableRowIDs.contains(topID) {
+                  let topID = savedTop, availableRowIDs.contains(topID) {
             // Nothing to reselect — return the unselected list to where it was scrolled
             // last session (#273), without selecting anything.
             pendingScrollToID = topID

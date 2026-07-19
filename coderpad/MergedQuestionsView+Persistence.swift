@@ -189,7 +189,11 @@ extension MergedQuestionsView {
     /// persist), then reselects via `rowToRestore`. Builds the available row ids from
     /// the source dictionary rather than the per-render `scoped` memo, which can still
     /// be empty right after a cache seed.
-    func restoreSelectedRowIfNeeded() {
+    /// `loadComplete` is true only at the end of the cross-account fan-out. Until
+    /// then a saved row that isn't in the list yet may simply belong to an account
+    /// or page still loading, so the one-shot restore waits rather than being spent
+    /// on an incomplete list (#2565).
+    func restoreSelectedRowIfNeeded(loadComplete: Bool = false) {
         var availableRowIDs: Set<String> = []
         for account in accounts.mergeableAccounts {
             for question in questionsByAccount[account.id] ?? [] {
@@ -198,10 +202,32 @@ extension MergedQuestionsView {
         }
         guard !didRestoreSelection, !availableRowIDs.isEmpty else { return }
 
+        let savedSelection = MergedRowPersistence.validatedRowID(persistedSelectedRow,
+                                                                 endpoint: persistedSelectedRowEndpoint)
+        let savedTop = MergedRowPersistence.validatedRowID(persistedTopRow,
+                                                           endpoint: persistedTopRowEndpoint)
+        // A saved row missing from a partial list may still be coming. Spending the
+        // restore now would lose it for good, so hold until the fan-out reports in.
+        if !loadComplete,
+           [savedSelection, savedTop].contains(where: { $0.map { !availableRowIDs.contains($0) } ?? false }) {
+            return
+        }
+
         didRestoreSelection = true
+        // The load has finished and these rows aren't in it, so they're gone. Drop
+        // them rather than rechecking the same dead ids every launch — and leaving
+        // private identifiers persisted indefinitely — and risking a recreated
+        // question that reuses one being selected without the user asking (#2567).
+        if let savedSelection, !availableRowIDs.contains(savedSelection) {
+            persistedSelectedRow = ""
+            persistedSelectedRowEndpoint = ""
+        }
+        if let savedTop, !availableRowIDs.contains(savedTop) {
+            persistedTopRow = ""
+            persistedTopRowEndpoint = ""
+        }
         if let rowID = Self.rowToRestore(
-            savedRowID: MergedRowPersistence.validatedRowID(persistedSelectedRow,
-                                                            endpoint: persistedSelectedRowEndpoint),
+            savedRowID: savedSelection,
             hasSelection: selection != nil,
             hasPendingNavigation: nav.pendingMergedFavoriteQuestion != nil,
             availableRowIDs: availableRowIDs
@@ -210,9 +236,7 @@ extension MergedQuestionsView {
             // Bring the restored row into view; the List won't scroll to it on its own.
             pendingScrollToRowID = rowID
         } else if selection == nil, nav.pendingMergedFavoriteQuestion == nil,
-                  let topID = MergedRowPersistence.validatedRowID(persistedTopRow,
-                                                                  endpoint: persistedTopRowEndpoint),
-                  availableRowIDs.contains(topID) {
+                  let topID = savedTop, availableRowIDs.contains(topID) {
             // Nothing to reselect — return the unselected list to where it was scrolled
             // last session (#273), without selecting anything.
             pendingScrollToRowID = topID

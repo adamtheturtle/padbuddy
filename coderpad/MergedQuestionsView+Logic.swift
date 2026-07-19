@@ -381,7 +381,7 @@ extension MergedQuestionsView {
         // Cold start with empty caches: the list first appears here, so this is the
         // earliest the saved selection can be resolved. Idempotent (guarded by
         // `didRestoreSelection`), so the per-refresh calls after this are no-ops.
-        restoreSelectedRowIfNeeded()
+        restoreSelectedRowIfNeeded(loadComplete: true)
     }
 
     // The row mutations (edit/delete/create) and `publishRoutes` live in

@@ -374,7 +374,7 @@ extension MergedPadsView {
         // Cold start with empty caches: the list first appears here, so this is the
         // earliest the saved selection can be resolved. Idempotent (guarded by
         // `didRestoreSelection`), so the per-refresh calls after this are no-ops.
-        restoreSelectedPadIfNeeded()
+        restoreSelectedPadIfNeeded(loadComplete: true)
         // Same timing for a favourite tapped before the list loaded: its slug can
         // only resolve to a namespaced row id once the row exists (#758).
         resolvePendingSlugSelection()
