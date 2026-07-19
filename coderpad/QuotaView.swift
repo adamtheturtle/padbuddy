@@ -179,7 +179,7 @@ struct QuotaView: View {
     }
 
     private func reload() async {
-        guard !client.apiKey.isEmpty else { return }
+        guard !client.apiKey.isEmpty, let owner = accountID else { return }
 
         reloadGeneration += 1
         let generation = reloadGeneration
@@ -190,16 +190,16 @@ struct QuotaView: View {
         }
         do {
             let fetched = try await client.quota()
-            guard generation == reloadGeneration, !Task.isCancelled else { return }
+            guard generation == reloadGeneration, !Task.isCancelled,
+                  AccountsStore.shared.isCurrentClient(client, for: owner) else { return }
 
             quota = fetched
-            if let id = accountID {
-                cache.set(id, quota: fetched, via: client)
-            }
+            cache.set(owner, quota: fetched, via: client)
         } catch is CancellationError {
             return
         } catch {
-            guard generation == reloadGeneration, !Task.isCancelled else { return }
+            guard generation == reloadGeneration, !Task.isCancelled,
+                  AccountsStore.shared.isCurrentClient(client, for: owner) else { return }
 
             self.error = error
         }
