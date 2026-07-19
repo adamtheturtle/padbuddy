@@ -276,7 +276,8 @@ extension AccountEditor {
     /// Silent on failure: the saved email stays selectable and Validate remains the path
     /// that surfaces a real problem.
     func loadOrgMembersForEditing() async {
-        guard isEditing, !isValidated, orgUsers.isEmpty, !draft.hasMalformedBaseURLOverride else { return }
+        guard isEditing, !isValidated, orgUsers.isEmpty, !isLoadingMembers,
+              !draft.hasMalformedBaseURLOverride else { return }
 
         isLoadingMembers = true
         defer { isLoadingMembers = false }
