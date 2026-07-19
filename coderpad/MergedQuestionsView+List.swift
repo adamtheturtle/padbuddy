@@ -304,16 +304,15 @@ extension MergedQuestionsView {
         #endif
     }
 
+    /// Read on every body pass — the selection cascade re-runs `body` several times per
+    /// click — so it stays an interpolation of three Ints. Rebuilding a favourite id
+    /// string per mergeable account cost O(total favorites) allocations per render
+    /// (#2082). The scoped signature stands in for the mergeable account set, which
+    /// decides whose favourites apply.
     private var mergedQuestionListReloadID: String {
-        let favoriteSignature = accounts.mergeableAccounts
-            .map { account in
-                let ids = favorites.favorites(account: account.id).map(String.init).joined(separator: ",")
-                return "\(account.id.uuidString):\(ids)"
-            }
-            .joined(separator: "|")
         // Fold the content revision in so an in-place edit (rename, language, type)
         // redraws the visible row: the id list alone can't see it (#1003).
-        return "\(favoriteSignature)#\(questionsRevision)"
+        "\(favorites.revision)#\(questionsRevision)#\(scopedCache.signature ?? 0)"
     }
 
     /// Opens a combined-list question in its own window with its originating account.
