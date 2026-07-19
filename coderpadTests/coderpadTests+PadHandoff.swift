@@ -123,3 +123,44 @@ struct WidgetContainerSweepTests {
         }
     }
 }
+
+@Suite("Pad activity URL canonicalization (#2690)")
+struct PadActivityCanonicalURLTests {
+    @Test
+    func `a query and fragment are dropped`() throws {
+        // Only the pad's identity is needed to resume it; the full URL was going into
+        // Spotlight, Siri prediction, and Handoff metadata (#2690).
+        let url = URL(string: "https://app.coderpad.io/abc12345?token=secret&utm=x#section")
+        #expect(try PadActivity.canonicalPadURL(#require(url))?.absoluteString
+            == "https://app.coderpad.io/abc12345")
+    }
+
+    @Test
+    func `a plain pad URL is unchanged`() throws {
+        let url = URL(string: "https://app.coderpad.io/abc12345")
+        #expect(try PadActivity.canonicalPadURL(#require(url))?.absoluteString
+            == "https://app.coderpad.io/abc12345")
+    }
+
+    @Test
+    func `a known trailing page is kept`() throws {
+        // A handed-off playback view should resume where it was.
+        let url = URL(string: "https://app.coderpad.io/abc12345/playback?t=12")
+        #expect(try PadActivity.canonicalPadURL(#require(url))?.absoluteString
+            == "https://app.coderpad.io/abc12345/playback")
+    }
+
+    @Test
+    func `a custom server keeps its port`() throws {
+        let url = URL(string: "https://pads.example.com:8443/abc12345?x=1")
+        #expect(try PadActivity.canonicalPadURL(#require(url))?.absoluteString
+            == "https://pads.example.com:8443/abc12345")
+    }
+
+    @Test
+    func `a non-pad route has no canonical form`() throws {
+        #expect(try PadActivity.canonicalPadURL(#require(URL(string: "https://app.coderpad.io/login"))) == nil)
+        #expect(try PadActivity.canonicalPadURL(#require(URL(string: "https://app.coderpad.io/admin"))) == nil)
+        #expect(try PadActivity.canonicalPadURL(#require(URL(string: "https://app.coderpad.io/"))) == nil)
+    }
+}

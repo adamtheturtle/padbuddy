@@ -28,13 +28,19 @@ enum PadActivity {
     @MainActor
     static var trustedPadOrigins: Set<String> {
         var origins: Set<String> = []
-        if let origin = origin(of: CoderPadClient.defaultBaseURL) {
-            origins.insert(origin)
-        }
         for account in AccountsStore.shared.accounts {
             if let origin = origin(of: account.resolvedBaseURL) {
                 origins.insert(origin)
             }
+        }
+        // The hosted service is always trusted, independent of the configured accounts
+        // (#2688 proposed scoping this to accounts that use it). It stays: the trust
+        // this grants is "open a pad-shaped path on CoderPad's own service in the
+        // user's browser", which is not a meaningful attack surface — and scoping it
+        // would silently drop a Handoff of a hosted pad for a user whose own accounts
+        // are all self-hosted, with nothing to explain why.
+        if let origin = origin(of: CoderPadClient.defaultBaseURL) {
+            origins.insert(origin)
         }
         return origins
     }
@@ -73,7 +79,7 @@ enum PadActivity {
     /// Web-app routes served on the same origins as pads; a first path component
     /// naming one of these is app navigation, never a pad. Mirrors the Open Pad
     /// service's list (#1044).
-    private static let nonPadRoutes: Set<String> = [
+    private nonisolated static let nonPadRoutes: Set<String> = [
         "account", "accounts", "admin", "api", "billing", "candidates", "dashboard",
         "docs", "help", "interviews", "login", "logout", "pads", "profile",
         "questions", "register", "sandbox", "screen", "screens", "settings",
@@ -81,7 +87,7 @@ enum PadActivity {
     ]
 
     /// Path components that may trail a pad id in a shareable pad URL.
-    private static let padPathSuffixes: Set<String> = ["playback"]
+    private nonisolated static let padPathSuffixes: Set<String> = ["playback"]
 
     /// The pad a trusted Handoff URL names, together with the account whose server
     /// serves it — nil when the URL isn't a pad route on a configured origin.
@@ -102,6 +108,24 @@ enum PadActivity {
         // from the URL, and guessing would open the pad under the wrong credentials.
         let owners = AccountsStore.shared.accounts.filter { origin(of: $0.resolvedBaseURL) == padOrigin }
         return (id, owners.count == 1 ? owners.first?.id : nil)
+    }
+
+    /// `url` reduced to scheme, host, port, and the pad path — no query, no fragment.
+    /// Nil when it is not a pad route, so the caller can fall back to the URL as given.
+    nonisolated static func canonicalPadURL(_ url: URL) -> URL? {
+        guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return nil }
+
+        let parts = url.pathComponents.filter { $0 != "/" && !$0.isEmpty }
+        guard let first = parts.first, let id = PadIDValidation.normalize(first),
+              !nonPadRoutes.contains(id.lowercased()) else { return nil }
+
+        // Keep a known trailing page (e.g. /playback) so a handed-off playback view
+        // resumes where it was, and drop anything else.
+        let suffixes = parts.dropFirst().filter { padPathSuffixes.contains($0.lowercased()) }
+        components.path = "/" + ([id] + suffixes).joined(separator: "/")
+        components.query = nil
+        components.fragment = nil
+        return components.url
     }
 
     @MainActor
@@ -147,14 +171,19 @@ extension View {
     /// the Handoff banner and search result.
     @ViewBuilder
     func advertisesPadActivity(url: URL?, title: String?) -> some View {
-        if let url {
+        // Advertised in its canonical form: origin plus pad id, with any query and
+        // fragment dropped. Only the pad's identity is needed to resume it, and the
+        // full URL was being handed to Spotlight, Siri prediction, and Handoff metadata
+        // — where a token or tracking parameter in the query would have been persisted
+        // and synced with it (#2690).
+        if let url, let advertised = PadActivity.canonicalPadURL(url) ?? url as URL? {
             userActivity(PadActivity.type) { activity in
-                activity.title = (title?.isEmpty == false ? title : nil) ?? url.host ?? "Pad"
-                activity.targetContentIdentifier = url.absoluteString
+                activity.title = (title?.isEmpty == false ? title : nil) ?? advertised.host ?? "Pad"
+                activity.targetContentIdentifier = advertised.absoluteString
                 // Sets webpageURL plus the Handoff/Spotlight (and iOS-only prediction)
                 // eligibility flags shared across the interview apps (BuddyAppKit).
-                activity.applyBuddyHandoffFlags(webpageURL: url)
-                activity.addUserInfoEntries(from: [PadActivity.urlKey: url.absoluteString])
+                activity.applyBuddyHandoffFlags(webpageURL: advertised)
+                activity.addUserInfoEntries(from: [PadActivity.urlKey: advertised.absoluteString])
             }
         } else {
             self
