@@ -33,6 +33,10 @@ struct CommandEditableTitle: View {
     @FocusState private var fieldFocused: Bool
 
     private static let pencilReserve: CGFloat = 28
+    /// Hidden text exists only to estimate the field width. Measuring an entire
+    /// untrusted remote title makes CoreText work proportional to an otherwise
+    /// unbounded payload even though the result is clamped to the container.
+    private static let maximumMeasuredTitleLength = 512
     /// Floor for the width clamp. In a narrow layout the pencil reserve can consume
     /// the whole available width, which rendered the editing field at zero width
     /// with nothing to type into (#2020). This is a maximum, so a title narrower
@@ -162,7 +166,7 @@ struct CommandEditableTitle: View {
     }
 
     private var titleWidthReader: some View {
-        Text(title)
+        Text(String(title.prefix(Self.maximumMeasuredTitleLength)))
             .font(font)
             .lineLimit(1)
             .fixedSize()
