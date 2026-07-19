@@ -157,6 +157,11 @@ final class PreferenceCloudSync {
     private func mirrorChangedToCloud(keys: Set<String>) {
         for key in keys {
             let local = UserDefaults.standard.object(forKey: key)
+            guard Self.preferenceValueDisposition(local, forKey: key) != .invalid else {
+                persistenceLogger.error("Refused to mirror invalid local preference for \(key, privacy: .public)")
+                continue
+            }
+
             let cloud = CloudSyncStore.shared.object(forKey: key)
             guard !Self.plistValuesEqual(local, cloud) else {
                 heldLocalValues[key] = nil
