@@ -163,6 +163,8 @@ extension PadDetailView {
                     guard panel.runModal() == .OK, let url = panel.url else { return }
 
                     try files[0].contents.write(to: url, atomically: true, encoding: .utf8)
+                    try DurableExport.synchronizeFile(at: url)
+                    try DurableExport.synchronizeDirectory(at: url.deletingLastPathComponent())
                 } else {
                     let panel = NSOpenPanel()
                     panel.canChooseFiles = false
@@ -229,6 +231,7 @@ extension PadDetailView {
                 } else {
                     try fileManager.moveItem(at: staging, to: root)
                 }
+                try DurableExport.synchronizeDirectory(at: parent)
             } catch {
                 try? fileManager.removeItem(at: staging)
                 throw error
@@ -245,6 +248,7 @@ extension PadDetailView {
                                                 withIntermediateDirectories: true)
                 try file.contents.write(to: destination, atomically: true, encoding: .utf8)
             }
+            try DurableExport.synchronizeTree(at: root)
         }
     #endif
 
