@@ -33,6 +33,7 @@ nonisolated enum Keychain {
     /// and in iCloud Keychain), so reconciliation can tell which side is newer instead
     /// of letting a stale cloud copy unconditionally win (#768).
     static let accountsRevisionAccount = "accountsRevision"
+    static let syncedAccountsSnapshotAccount = "accountsSnapshotV2"
     static let legacySingleKeyAccount = "apiKey"
 
     private static let store = KeychainStore(service: service, logger: persistenceLogger)
@@ -79,7 +80,8 @@ nonisolated enum Keychain {
     @MainActor
     static func reconcileSyncedAccounts() {
         let local = readData(account: accountsAccount)
-        let synced = readSynchronizableData(account: accountsAccount)
+        let syncedSnapshot = readSyncedAccountsSnapshot()
+        let synced = syncedSnapshot?.accounts
 
         switch (local, synced) {
         case (nil, nil):
@@ -102,7 +104,7 @@ nonisolated enum Keychain {
             // never left ambiguous (#2853).
             mirrorAccountsToiCloudKeychain(
                 synced,
-                preservingRevision: readSynchronizableData(account: accountsRevisionAccount)
+                preservingRevision: syncedSnapshot?.revision
             )
 
         case let (local?, synced?):
@@ -117,11 +119,11 @@ nonisolated enum Keychain {
             }
 
             let localRevision = revision(from: readData(account: accountsRevisionAccount))
-            let cloudRevision = revision(from: readSynchronizableData(account: accountsRevisionAccount))
+            let cloudRevision = revision(from: syncedSnapshot?.revision)
             if shouldAdoptCloud(local: local, cloud: synced,
                                 localRevision: localRevision, cloudRevision: cloudRevision) {
                 write(synced, account: accountsAccount)
-                if let cloudRevisionData = readSynchronizableData(account: accountsRevisionAccount) {
+                if let cloudRevisionData = syncedSnapshot?.revision {
                     write(cloudRevisionData, account: accountsRevisionAccount)
                 }
             } else {
@@ -134,6 +136,7 @@ nonisolated enum Keychain {
 
     static func mirrorAccountsToiCloudKeychain(_ data: Data?, preservingRevision suppliedRevision: Data? = nil) {
         guard let data else {
+            deleteSynchronizable(account: syncedAccountsSnapshotAccount)
             deleteSynchronizable(account: accountsAccount)
             deleteSynchronizable(account: accountsRevisionAccount)
             delete(account: accountsRevisionAccount)
@@ -145,6 +148,13 @@ nonisolated enum Keychain {
         // the next launch's reconciliation (#768).
         let revision = normalizedRevisionData(suppliedRevision) ?? revisionData(Date())
         write(revision, account: accountsRevisionAccount)
+        if let snapshot = encodeSyncedAccountsSnapshot(accounts: data, revision: revision) {
+            // This versioned item is authoritative for new app versions: payload and
+            // ordering stamp land in one SecItem operation, so interruption cannot pair
+            // new account bytes with an old revision (#2854). The legacy items below
+            // remain as a compatibility mirror for older installed versions.
+            writeSynchronizable(snapshot, account: syncedAccountsSnapshotAccount)
+        }
         writeSynchronizable(data, account: accountsAccount)
         writeSynchronizable(revision, account: accountsRevisionAccount)
     }
@@ -165,13 +175,13 @@ nonisolated enum Keychain {
         return Set(accounts.map(\.id)).count == accounts.count
     }
 
-    private static func revisionData(_ date: Date) -> Data {
+    static func revisionData(_ date: Date) -> Data {
         Data(String(date.timeIntervalSince1970).utf8)
     }
 
     /// Parses a revision stamp, treating a missing or unreadable one as 0 (older than
     /// any stamped snapshot) so pre-revision installs upgrade cleanly.
-    private static func revision(from data: Data?) -> TimeInterval {
+    static func revision(from data: Data?) -> TimeInterval {
         guard let data, let text = String(bytes: data, encoding: .utf8),
               let value = TimeInterval(text) else { return 0 }
 
@@ -203,7 +213,7 @@ nonisolated enum Keychain {
         ]
     }
 
-    private static func readSynchronizableData(account: String) -> Data? {
+    static func readSynchronizableData(account: String) -> Data? {
         var query = synchronizableQuery(account: account)
         query[kSecReturnData as String] = true
         query[kSecMatchLimit as String] = kSecMatchLimitOne

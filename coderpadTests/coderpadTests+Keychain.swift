@@ -23,7 +23,48 @@ struct KeychainServiceTests {
     @Test
     func `the account-name keys are unchanged`() {
         #expect(Keychain.accountsAccount == "accounts")
+        #expect(Keychain.syncedAccountsSnapshotAccount == "accountsSnapshotV2")
         #expect(Keychain.legacySingleKeyAccount == "apiKey")
+    }
+}
+
+@Suite("Atomic synced account snapshots")
+struct AtomicSyncedAccountSnapshotTests {
+    @Test
+    func `account bytes and revision round-trip as one item`() throws {
+        let accounts = Data("accounts".utf8)
+        let revision = Data("123.5".utf8)
+        let encoded = try #require(Keychain.encodeSyncedAccountsSnapshot(accounts: accounts, revision: revision))
+
+        let decoded = try #require(Keychain.decodeSyncedAccountsSnapshot(encoded))
+        #expect(decoded.accounts == accounts)
+        #expect(decoded.revision == revision)
+    }
+
+    @Test
+    func `snapshot rejects an invalid revision`() throws {
+        let encoded = try #require(Keychain.encodeSyncedAccountsSnapshot(
+            accounts: Data("accounts".utf8),
+            revision: Data("not-a-revision".utf8)
+        ))
+
+        #expect(Keychain.decodeSyncedAccountsSnapshot(encoded) == nil)
+    }
+
+    @Test
+    func `legacy pair must be strictly newer than atomic snapshot`() {
+        let atomic = Keychain.SyncedAccountsSnapshot(
+            accounts: Data("atomic".utf8), revision: Data("10".utf8)
+        )
+        let interruptedLegacy = Keychain.SyncedAccountsSnapshot(
+            accounts: Data("new bytes, old stamp".utf8), revision: Data("10".utf8)
+        )
+        let completedLegacy = Keychain.SyncedAccountsSnapshot(
+            accounts: Data("new bytes, new stamp".utf8), revision: Data("11".utf8)
+        )
+
+        #expect(Keychain.newestSyncedSnapshot(atomic: atomic, legacy: interruptedLegacy) == atomic)
+        #expect(Keychain.newestSyncedSnapshot(atomic: atomic, legacy: completedLegacy) == completedLegacy)
     }
 }
 
