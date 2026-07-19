@@ -8,7 +8,22 @@
 
 import SwiftUI
 
+nonisolated struct OrganizationStatsOwner: Equatable {
+    let accountID: UUID?
+    let clientIdentity: ClientTaskIdentity
+}
+
 extension OrganizationView {
+    init(client: CoderPadClient) {
+        self.client = client
+        let accountID = AccountsStore.shared.currentAccountID
+        self.accountID = accountID
+        _statsOwner = State(initialValue: OrganizationStatsOwner(accountID: accountID,
+                                                                 clientIdentity: client.taskIdentity))
+        _organization = State(initialValue: accountID.flatMap { OrganizationCacheStore.shared.get($0) })
+        _quota = State(initialValue: accountID.flatMap { QuotaCacheStore.shared.get($0) })
+    }
+
     /// The organization's members, de-duplicated and sorted once — held in state and
     /// recomputed only when the organization loads.
     ///
@@ -60,6 +75,7 @@ extension OrganizationView {
         defer { isLoading = false }
         let window = window
         let requested = statsWindowToken
+        let requestedOwner = statsOwner
         async let orgFetch = client.organization()
         async let statsFetch = client.organizationStats(start: window.start, end: window.end)
         async let quotaFetch = client.quota()
@@ -83,7 +99,7 @@ extension OrganizationView {
         // keeps the previous stats, marked stale, instead of silently
         // clearing them to a placeholder (#799).
         let fetchedStats = try? await statsFetch
-        if requested == statsWindowToken {
+        if requested == statsWindowToken, requestedOwner == statsOwner, !Task.isCancelled {
             if let fetchedStats {
                 stats = fetchedStats
                 statsError = nil
@@ -137,9 +153,10 @@ extension OrganizationView {
 
         let window = window
         let requested = statsWindowToken
+        let requestedOwner = statsOwner
         let result = try? await client.organizationStats(start: window.start, end: window.end)
         // A newer request may have superseded this one while it was in flight.
-        guard !Task.isCancelled, requested == statsWindowToken else { return }
+        guard !Task.isCancelled, requested == statsWindowToken, requestedOwner == statsOwner else { return }
 
         if let result {
             stats = result

@@ -35,20 +35,15 @@ struct OrganizationView: View {
     @State private var findActionPublisherID = UUID()
     @AppStorage(StatsPeriod.storageKey) var period: StatsPeriod = .days7
     @State var statsTask: Task<Void, Never>?
+    @State var statsOwner: OrganizationStatsOwner
     @State var customStart = Calendar.current.date(byAdding: .day, value: -7, to: Date()) ?? Date()
     @State var customEnd = Date()
-
-    init(client: CoderPadClient) {
-        self.client = client
-        let accountID = AccountsStore.shared.currentAccountID
-        self.accountID = accountID
-        _organization = State(initialValue: accountID.flatMap { OrganizationCacheStore.shared.get($0) })
-        _quota = State(initialValue: accountID.flatMap { QuotaCacheStore.shared.get($0) })
-    }
 
     var body: some View {
         content
             .task(id: client.taskIdentity) {
+                statsTask?.cancel()
+                statsOwner = OrganizationStatsOwner(accountID: accountID, clientIdentity: client.taskIdentity)
                 // Show the last-loaded org/quota immediately so re-entering the
                 // section doesn't flash a spinner; reload refreshes them in place.
                 // Stats are period-dependent, so they reload rather than restore.
