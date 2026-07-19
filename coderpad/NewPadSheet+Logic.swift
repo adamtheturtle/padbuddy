@@ -39,6 +39,8 @@ extension NewPadSheet {
 
         questionsLoadGeneration += 1
         let generation = questionsLoadGeneration
+        questionsLoading = true
+        defer { if generation == questionsLoadGeneration { questionsLoading = false } }
         do {
             let fresh = try await client.listQuestions()
             // A newer load started while this one was in flight: its answer is the
@@ -102,6 +104,8 @@ extension NewPadSheet {
 
         organizationLoadGeneration += 1
         let generation = organizationLoadGeneration
+        organizationLoading = true
+        defer { if generation == organizationLoadGeneration { organizationLoading = false } }
         do {
             let org = try await OrganizationCacheStore.shared.organization(via: client)
             // Retry can overlap the opening load; only the newest response may

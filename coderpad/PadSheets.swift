@@ -63,6 +63,11 @@ struct NewPadSheet: View {
     /// not replace a fresher list or re-clear the selection (#2635, #2636).
     @State var questionsLoadGeneration = 0
     @State var organizationLoadGeneration = 0
+    /// Whether each load is still in flight. Create stays disabled until both
+    /// settle, so a cached question, owner, or team can't be submitted before the
+    /// authoritative data that would validate it arrives (#2631).
+    @State var questionsLoading = false
+    @State var organizationLoading = false
 
     var body: some View {
         sheetContent
@@ -203,6 +208,13 @@ struct NewPadSheet: View {
         }
     }
 
+    /// True while a prerequisite load is in flight. Creating now would send a
+    /// question, owner, or team that the arriving data might invalidate, so the
+    /// sheet waits rather than racing it (#2631).
+    private var isLoadingPrerequisites: Bool {
+        questionsLoading || organizationLoading
+    }
+
     private var createButton: some View {
         Button {
             Task { await submit() }
@@ -214,7 +226,10 @@ struct NewPadSheet: View {
             }
         }
         .keyboardShortcut(.defaultAction)
-        .disabled(isSubmitting)
+        .disabled(isSubmitting || isLoadingPrerequisites)
+        .help(isLoadingPrerequisites
+            ? Text("Waiting for the question and organization details to finish loading.")
+            : Text("Create the pad."))
     }
 
     /// The language picker's binding, marking the choice as user-made so the org
