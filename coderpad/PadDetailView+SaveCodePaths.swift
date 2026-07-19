@@ -101,10 +101,14 @@ nonisolated enum SaveCodePathHelpers {
     /// the colon, which Finder still treats as a separator) and control
     /// characters, so a remotely supplied name can't break out of its folder,
     /// fail the exporter, or behave differently between macOS and iOS (#1177).
+    /// Characters unsafe in a single path component. Built once: `CharacterSet`
+    /// unions are not cheap, and this runs per path component, file, and environment
+    /// label on every save or export (#2218).
+    private static let invalidPathCharacters = CharacterSet(charactersIn: "/\\:?%*|\"<>")
+        .union(.controlCharacters).union(.newlines)
+
     static func sanitizeComponent(_ name: String) -> String {
-        let invalid = CharacterSet(charactersIn: "/\\:?%*|\"<>")
-            .union(.controlCharacters).union(.newlines)
-        let cleaned = name.components(separatedBy: invalid).joined(separator: "-")
+        let cleaned = name.components(separatedBy: Self.invalidPathCharacters).joined(separator: "-")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleaned.isEmpty, !cleaned.allSatisfy({ $0 == "." }) else {
             return "untitled"

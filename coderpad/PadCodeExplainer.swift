@@ -26,7 +26,7 @@ struct CodeExplanation {
 enum PadCodeExplainer {
     /// The most source we feed the model, in characters, so a very large file
     /// doesn't overflow the context window or stall generation.
-    private static let maxCodeCharacters = 6000
+    static let maxCodeCharacters = 6000
 
     /// Whether the on-device model can explain code right now. See
     /// ``PadSummarizer/isAvailable`` for the conditions.
@@ -71,7 +71,7 @@ enum PadCodeExplainer {
 }
 
 #if canImport(FoundationModels)
-    private extension PadCodeExplainer {
+    extension PadCodeExplainer {
         /// The most source we feed the model, in UTF-8 bytes. Characters are only
         /// a proxy for model tokens: dense non-ASCII code could blow the context
         /// budget while under the character cap alone (#1719).
@@ -130,11 +130,22 @@ enum PadCodeExplainer {
 
         /// The source bounded by characters and by UTF-8 size (#1719).
         static func boundedCode(_ body: String) -> String {
-            var slice = String(body.prefix(maxCodeCharacters))
-            while slice.utf8.count > maxCodeUTF8Bytes, !slice.isEmpty {
-                slice = String(slice.prefix(slice.count * 3 / 4))
+            let bounded = String(body.prefix(maxCodeCharacters))
+            guard bounded.utf8.count > maxCodeUTF8Bytes else { return bounded }
+
+            // Truncate on the UTF-8 view directly, then back off to the nearest
+            // character boundary. The old loop re-walked the whole string twice per
+            // iteration — `utf8.count` and `count` are both O(n) — and rebuilt it each
+            // time, so a dense non-ASCII file walked it repeatedly (#2222).
+            let prefix = bounded.utf8.prefix(maxCodeUTF8Bytes)
+            if let exact = String(prefix) { return exact }
+
+            // The cut landed mid-scalar; step back until it doesn't.
+            for dropped in 1 ... 3 {
+                let shorter = bounded.utf8.prefix(maxCodeUTF8Bytes - dropped)
+                if let valid = String(shorter) { return valid }
             }
-            return slice
+            return ""
         }
 
         /// Reconstructs the three-part explanation from the model's labeled reply. Nil when

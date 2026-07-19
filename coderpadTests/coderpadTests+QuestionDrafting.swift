@@ -185,3 +185,56 @@ struct AccountFooterDisplayNameTests {
         #expect(!AccountFooter.displayName(for: account(name: " ", email: " ")).isEmpty)
     }
 }
+
+#if canImport(FoundationModels)
+    @Suite("Code explainer input bounds (#1719, #2222)")
+    struct PadCodeExplainerBoundsTests {
+        @Test
+        func `short ASCII source is unchanged`() {
+            let code = "func main() {}\n"
+            #expect(PadCodeExplainer.boundedCode(code) == code)
+        }
+
+        @Test
+        func `the character cap applies first`() {
+            let code = String(repeating: "a", count: PadCodeExplainer.maxCodeCharacters * 2)
+            #expect(PadCodeExplainer.boundedCode(code).count == PadCodeExplainer.maxCodeCharacters)
+        }
+
+        @Test
+        func `dense non-ascii source is bounded by bytes, not characters`() {
+            // Under the character cap but well over the byte cap: each emoji is four
+            // UTF-8 bytes, so 5000 of them is 20000 bytes (#1719).
+            let code = String(repeating: "😀", count: 5000)
+            let bounded = PadCodeExplainer.boundedCode(code)
+            #expect(bounded.utf8.count <= PadCodeExplainer.maxCodeUTF8Bytes)
+            #expect(!bounded.isEmpty)
+        }
+
+        @Test
+        func `truncation never splits a character`() {
+            // The byte cut can land mid-scalar; the result must still be valid text
+            // rather than replacement characters or an empty string (#2222).
+            for filler in ["😀", "é", "日", "🇬🇧"] {
+                let code = String(repeating: filler, count: 6000)
+                let bounded = PadCodeExplainer.boundedCode(code)
+                #expect(bounded.utf8.count <= PadCodeExplainer.maxCodeUTF8Bytes)
+                #expect(!bounded.contains("\u{FFFD}"))
+                #expect(bounded.allSatisfy { String($0) == filler })
+            }
+        }
+
+        @Test
+        func `a result at the byte cap is as long as it can be`() {
+            // Guards against backing off too far: the old loop cut to 3/4 repeatedly.
+            let code = String(repeating: "😀", count: 5000)
+            let bounded = PadCodeExplainer.boundedCode(code)
+            #expect(bounded.utf8.count > PadCodeExplainer.maxCodeUTF8Bytes - 8)
+        }
+
+        @Test
+        func `empty source stays empty`() {
+            #expect(PadCodeExplainer.boundedCode("").isEmpty)
+        }
+    }
+#endif

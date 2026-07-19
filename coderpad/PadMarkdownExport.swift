@@ -176,16 +176,20 @@ private func finalizedMarkdown(_ lines: [String]) -> String {
 /// Backslash-escapes the characters that carry inline Markdown meaning, so a title,
 /// owner name, or language renders literally rather than turning into emphasis, a link,
 /// or code.
+/// The characters an inline span has to escape. Hoisted out of the function: it runs
+/// for every summary label and value, every title, every test-case cell, and every
+/// file name in a document, and rebuilt this identical set each time (#2217).
+private let markdownInlineSpecials: Set<Character> = ["\\", "`", "*", "_", "[", "]", "<", ">", "|"]
+
 func markdownInlineEscaped(_ text: String) -> String {
     var result = ""
     result.reserveCapacity(text.count)
-    let special: Set<Character> = ["\\", "`", "*", "_", "[", "]", "<", ">", "|"]
     let inlineText = text
         .replacingOccurrences(of: "\r\n", with: " ")
         .replacingOccurrences(of: "\r", with: " ")
         .replacingOccurrences(of: "\n", with: " ")
     for character in inlineText {
-        if special.contains(character) { result.append("\\") }
+        if markdownInlineSpecials.contains(character) { result.append("\\") }
         result.append(character)
     }
     return result
