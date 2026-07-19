@@ -142,7 +142,7 @@ extension AccountEditor {
     /// re-validated (which reveals the picker and auto-detects the email) before it
     /// can be saved again.
     var canSave: Bool {
-        guard hasEmail else { return false }
+        guard hasEmail, screenCredentialsSaveable else { return false }
 
         // An explicit validation failure blocks saving even when the credentials are
         // back to their stored values. Otherwise a saved account whose check had just

@@ -65,7 +65,7 @@ struct AccountEditor: View {
     @State var revealScreenKey = false
     @State var revealAuthenticationTask: Task<Void, Never>?
     /// Validation state of the optional Screen key, kept separate from the Interview
-    /// key's `validation`: Screen is additive and never gates Save.
+    /// key's `validation`; changed Screen credentials gate persistence until valid.
     @State var screenValidation: ValidationState = .idle
     // SwiftUI @State read only via its $-projected binding (DisclosureGroup).
     // periphery:ignore
@@ -247,7 +247,6 @@ struct AccountEditor: View {
             .onChange(of: draft.apiKey) { _, _ in credentialsChanged() }
             .onChange(of: draft.baseURL) { _, _ in credentialsChanged() }
             // A changed Screen key or region invalidates any prior Screen validation result.
-            // Screen credentials don't gate `canSave`, so saved accounts autosave them too.
             .onChange(of: draft.screenApiKey) { _, _ in
                 screenValidationTask?.cancel()
                 revealScreenKey = false
@@ -272,6 +271,7 @@ struct AccountEditor: View {
             }
             .onChange(of: draft.userEmail) { _, _ in emailIdentityChanged() }
             .onChange(of: validation) { _, _ in commitLiveEdit() }
+            .onChange(of: screenValidation) { _, _ in commitLiveEdit() }
             // Icon and tint are cosmetic, so persist them the moment they change rather
             // than waiting for Save (which gates on validation/email for the credentials).
             .onChange(of: draft.iconSymbol) { _, _ in onAppearanceChange?(draft.iconSymbol, draft.tintHex) }

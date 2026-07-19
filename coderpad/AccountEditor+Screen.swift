@@ -3,14 +3,30 @@
 //  coderpad
 //
 //  The optional CoderPad Screen credentials section of the account editor. Screen is
-//  a separate product from the Interview API; these credentials are additive and never
-//  gate Save.
+//  a separate product from the Interview API; these credentials are additive but a
+//  changed key/region must validate before it can be persisted.
 //
 
 import BuddyDesignSystem
 import SwiftUI
 
 extension AccountEditor {
+    enum ScreenCredentialSavePolicy {
+        static func permits(
+            key: String?, region: ScreenRegion,
+            persistedKey: String?, persistedRegion: ScreenRegion,
+            validation: ValidationState
+        ) -> Bool {
+            let key = key?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let persistedKey = persistedKey?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            guard !key.isEmpty else { return true }
+
+            if case .invalid = validation { return false }
+            if validation == .valid { return true }
+            return key == persistedKey && region == persistedRegion
+        }
+    }
+
     /// Whether the draft carries a non-empty Screen API key.
     var hasScreenKey: Bool {
         !((draft.screenApiKey ?? "").trimmingCharacters(in: .whitespaces).isEmpty)
@@ -31,6 +47,14 @@ extension AccountEditor {
 
     var screenValidateDisabled: Bool {
         !hasScreenKey || screenValidation == .validating
+    }
+
+    var screenCredentialsSaveable: Bool {
+        ScreenCredentialSavePolicy.permits(
+            key: draft.screenApiKey, region: draft.screenRegion,
+            persistedKey: persistedDraft.screenApiKey, persistedRegion: persistedDraft.screenRegion,
+            validation: screenValidation
+        )
     }
 
     /// The optional CoderPad Screen credentials block: an API key (with the same reveal
