@@ -163,6 +163,9 @@ nonisolated extension WidgetSharedStore {
         }
     }
 
+    /// The most requests one drain will replay. See `takePendingRequestsInOrder`.
+    static let maxDrainedRequests = 10
+
     /// Returns and clears every pending widget/Shortcuts request, of both kinds, in
     /// the order the user issued them. The request filenames embed a millisecond
     /// timestamp, so a single combined drain can replay them chronologically and the
@@ -174,11 +177,42 @@ nonisolated extension WidgetSharedStore {
             legacyFileName: openPadRequestFile, prefix: openPadRequestPrefix, purpose: openPadPurpose
         ).map { (url: $0, isNewPad: false) }
 
-        let requests: [WidgetPendingRequest] = candidates
+        // Stale requests are discarded rather than replayed. A tap recorded days ago
+        // creating or opening a pad on a much later launch is surprising and
+        // unattributable (#2179). The sweep applies the same lifetime, but the drain
+        // cannot depend on the sweep having run first.
+        let now = Date()
+        let fresh = candidates.filter { candidate in
+            guard let modified = (try? candidate.url.resourceValues(forKeys: [.contentModificationDateKey]))?
+                .contentModificationDate else { return true }
+            guard now.timeIntervalSince(modified) <= pendingRequestLifetime else {
+                try? FileManager.default.removeItem(at: candidate.url)
+                return false
+            }
+
+            return true
+        }
+
+        let ordered = fresh
             .sorted {
                 (requestOrdinal(fileName: $0.url.lastPathComponent), $0.url.lastPathComponent)
                     < (requestOrdinal(fileName: $1.url.lastPathComponent), $1.url.lastPathComponent)
             }
+        // Bounded: repeated taps (a stuck button, a burst of impatient presses) would
+        // otherwise all replay at once as a startup flood of sheets and windows
+        // (#2180). The newest are kept, since the most recent action is what the user
+        // is actually waiting for, and the rest are dropped rather than left to replay
+        // on the next launch.
+        let excess = max(0, ordered.count - maxDrainedRequests)
+        for candidate in ordered.prefix(excess) {
+            try? FileManager.default.removeItem(at: candidate.url)
+        }
+        if excess > 0 {
+            logger.error("Dropped \(excess, privacy: .public) queued widget requests over the drain cap")
+        }
+
+        let requests: [WidgetPendingRequest] = ordered
+            .suffix(maxDrainedRequests)
             .compactMap { candidate in
                 if candidate.isNewPad {
                     return takeRequest(at: candidate.url, purpose: newPadPurpose, as: WidgetNewPadRequest.self)
