@@ -5,6 +5,9 @@ DerivedData/
 DerivedData_localrel/
 DerivedData_ipadbuild/
 DerivedData_agenttests/
+# Any per-destination DerivedData directory: these are build output with
+# absolute paths and vendored package checkouts, never tracked.
+DerivedData_*/
 default.profraw
 build/
 build_release/
