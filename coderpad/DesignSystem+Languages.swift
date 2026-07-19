@@ -145,7 +145,7 @@ enum CoderPadLanguages {
         guard let language else { return false }
 
         let normalized = language.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        return pickerOptions.contains(normalized)
+        return pickerOptionSet.contains(normalized)
     }
 
     /// Where to create the project and framework environments (React, Django, Rails,
