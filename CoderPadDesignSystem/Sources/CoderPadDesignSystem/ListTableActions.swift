@@ -9,6 +9,11 @@ func availableListSelection<ID: Hashable>(_ selection: Set<ID>, availableIDs: Se
     selection.intersection(availableIDs)
 }
 
+func uniqueListItems<Item: Identifiable>(_ items: [Item]) -> [Item] where Item.ID: Hashable {
+    var seen = Set<Item.ID>()
+    return items.filter { seen.insert($0.id).inserted }
+}
+
 /// One entry in a row's right-click menu, built by the caller and rendered as an `NSMenuItem`.
 public enum RowMenuItem {
     case button(title: String, isDestructive: Bool = false, isEnabled: Bool = true, perform: () -> Void)

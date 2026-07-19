@@ -206,9 +206,10 @@ public struct ListTable<Item: Identifiable>: NSViewRepresentable where Item.ID: 
         // MARK: Data
 
         func reloadIfNeeded(_ newItems: [Item], force: Bool) {
-            let changed = force || newItems.map(\.id) != items.map(\.id)
-            items = newItems
-            indexByID = Dictionary(newItems.enumerated().map { ($1.id, $0) }, uniquingKeysWith: { first, _ in first })
+            let normalizedItems = uniqueListItems(newItems)
+            let changed = force || normalizedItems.map(\.id) != items.map(\.id)
+            items = normalizedItems
+            indexByID = Dictionary(uniqueKeysWithValues: normalizedItems.enumerated().map { ($1.id, $0) })
             let normalizedSelection = availableListSelection(parent.selection, availableIDs: Set(indexByID.keys))
             if normalizedSelection != parent.selection { parent.selection = normalizedSelection }
             guard changed else { return }
