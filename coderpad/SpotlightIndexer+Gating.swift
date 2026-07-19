@@ -11,6 +11,9 @@ import CoreSpotlight
 import Foundation
 
 extension SpotlightIndexer {
+    @MainActor private static var seedTask: Task<Void, Never>?
+    @MainActor private static var seedGeneration = 0
+
     /// Accounts torn down this session. An account re-added later clears its own
     /// tombstone when its first index pass runs — see `mayIndex(account:)`.
     /// Internal, not private: `removeAccount` in SpotlightIndexer.swift inserts into
@@ -61,9 +64,17 @@ extension SpotlightIndexer {
     /// lets the run loop breathe between accounts; the work itself still has to happen
     /// on the main actor, since the caches live there.
     static func seedFromCaches() {
-        Task { @MainActor in
+        seedTask?.cancel()
+        seedGeneration += 1
+        let generation = seedGeneration
+        seedTask = Task { @MainActor in
+            defer {
+                if generation == seedGeneration { seedTask = nil }
+            }
             for account in AccountsStore.shared.accounts {
-                guard !Task.isCancelled, GeneralSettings.spotlightIndexing else { return }
+                guard !Task.isCancelled,
+                      generation == seedGeneration,
+                      GeneralSettings.spotlightIndexing else { return }
 
                 updatePads(PadsCacheStore.shared.get(account.id), account: account.id)
                 updateQuestions(QuestionsCacheStore.shared.get(account.id), account: account.id)
@@ -73,6 +84,9 @@ extension SpotlightIndexer {
     }
 
     static func clearAll() {
+        seedGeneration += 1
+        seedTask?.cancel()
+        seedTask = nil
         // Stop any running enrichment before dropping the bookkeeping it relies on, so
         // turning indexing off takes effect immediately rather than after the current
         // batch of model calls drains (#2409).
