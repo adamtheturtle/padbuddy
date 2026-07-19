@@ -49,9 +49,9 @@ nonisolated struct ScreenCampaign: Decodable, Identifiable, Hashable {
         }
 
         name = normalizedName
-        languages = (try? container.decodeIfPresent([String].self, forKey: .languages)) ?? []
-        pinned = (try? container.decodeIfPresent(Bool.self, forKey: .pinned)) ?? false
-        archived = (try? container.decodeIfPresent(Bool.self, forKey: .archived)) ?? false
+        languages = try container.decodeIfPresent([String].self, forKey: .languages) ?? []
+        pinned = try container.decodeIfPresent(Bool.self, forKey: .pinned) ?? false
+        archived = try container.decodeIfPresent(Bool.self, forKey: .archived) ?? false
     }
 
     enum CodingKeys: String, CodingKey {
@@ -106,8 +106,8 @@ nonisolated struct ScreenInvitationResult: Decodable, Hashable {
 
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try? container.decodeIfPresent(Int.self, forKey: .id)
-        testURL = try? container.decodeIfPresent(String.self, forKey: .testURL)
+        id = try container.decodeIfPresent(Int.self, forKey: .id)
+        testURL = try container.decodeIfPresent(String.self, forKey: .testURL)
     }
 
     enum CodingKeys: String, CodingKey {
@@ -176,26 +176,26 @@ nonisolated struct ScreenTestSession: Decodable, Identifiable, Hashable {
 
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        status = (try? container.decodeIfPresent(String.self, forKey: .status)) ?? "unknown"
-        url = try? container.decodeIfPresent(String.self, forKey: .url)
-        report = try? container.decodeIfPresent(ScreenReport.self, forKey: .report)
+        status = try container.decodeIfPresent(String.self, forKey: .status) ?? "unknown"
+        url = try container.decodeIfPresent(String.self, forKey: .url)
+        report = try container.decodeIfPresent(ScreenReport.self, forKey: .report)
         id = try validatedScreenID(
             container.decode(Int.self, forKey: .id), codingPath: decoder.codingPath + [CodingKeys.id], kind: "test"
         )
-        idTest = try? container.decodeIfPresent(Int.self, forKey: .idTest)
-        organizationID = try? container.decodeIfPresent(String.self, forKey: .organizationID)
-        campaignID = try? container.decodeIfPresent(Int.self, forKey: .campaignID)
-        candidateName = try? container.decodeIfPresent(String.self, forKey: .candidateName)
-        candidateEmail = try? container.decodeIfPresent(String.self, forKey: .candidateEmail)
-        tags = (try? container.decodeIfPresent([String].self, forKey: .tags)) ?? []
+        idTest = try container.decodeIfPresent(Int.self, forKey: .idTest)
+        organizationID = try container.decodeIfPresent(String.self, forKey: .organizationID)
+        campaignID = try container.decodeIfPresent(Int.self, forKey: .campaignID)
+        candidateName = try container.decodeIfPresent(String.self, forKey: .candidateName)
+        candidateEmail = try container.decodeIfPresent(String.self, forKey: .candidateEmail)
+        tags = try container.decodeIfPresent([String].self, forKey: .tags) ?? []
         sendTime = try ScreenEpochMilliseconds.decode(from: container, forKey: .sendTime)
         startTime = try ScreenEpochMilliseconds.decode(from: container, forKey: .startTime)
         endTime = try ScreenEpochMilliseconds.decode(from: container, forKey: .endTime)
         lastActivityTime = try ScreenEpochMilliseconds.decode(from: container, forKey: .lastActivityTime)
-        testURL = try? container.decodeIfPresent(String.self, forKey: .testURL)
-        candidateLanguage = try? container.decodeIfPresent(String.self, forKey: .candidateLanguage)
-        questions = (try? container.decodeIfPresent([ScreenTestQuestion].self, forKey: .questions)) ?? []
-        approvalStatus = try? container.decodeIfPresent(String.self, forKey: .approvalStatus)
+        testURL = try container.decodeIfPresent(String.self, forKey: .testURL)
+        candidateLanguage = try container.decodeIfPresent(String.self, forKey: .candidateLanguage)
+        questions = try container.decodeIfPresent([ScreenTestQuestion].self, forKey: .questions) ?? []
+        approvalStatus = try container.decodeIfPresent(String.self, forKey: .approvalStatus)
     }
 
     enum CodingKeys: String, CodingKey {
@@ -321,7 +321,7 @@ nonisolated struct ScreenReport: Decodable, Hashable {
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         duration = try ScreenReportMetric.nonnegativeInteger(from: container, forKey: .duration)
-        warnings = (try? container.decodeIfPresent(BoundedScreenWarnings.self, forKey: .warnings))?.values ?? []
+        warnings = try container.decodeIfPresent(BoundedScreenWarnings.self, forKey: .warnings)?.values ?? []
         points = try ScreenReportMetric.nonnegativeInteger(from: container, forKey: .points)
         score = try ScreenReportMetric.percentage(from: container, forKey: .score)
         let decodedTechnologies = container.decodeLenientScreenDictionary(

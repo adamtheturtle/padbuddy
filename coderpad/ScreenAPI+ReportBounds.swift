@@ -15,7 +15,7 @@ nonisolated struct BoundedScreenWarnings: Decodable {
         var decoded: [String] = []
         decoded.reserveCapacity(min(container.count ?? 0, Self.maximumEntries))
         while !container.isAtEnd, decoded.count < Self.maximumEntries {
-            guard let raw = try? container.decode(String.self) else { break }
+            let raw = try container.decode(String.self)
 
             let normalized = raw.components(separatedBy: .controlCharacters)
                 .joined(separator: " ")

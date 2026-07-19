@@ -65,6 +65,15 @@ struct ScreenCampaignDiagnosticTests {
         #expect(ScreenCampaignListResult(campaigns: [], discardedCount: 0).diagnostic == nil)
     }
 
+    @Test func `campaign field type mismatches discard the record`() throws {
+        let data = Data(#"[{"id":1,"name":"Valid","pinned":"yes"},{"id":2,"name":"Also valid"}]"#.utf8)
+
+        let list = try JSONDecoder().decode(TolerantScreenList<ScreenCampaign>.self, from: data)
+
+        #expect(list.elements.map(\.id) == [2])
+        #expect(list.discardedCount == 1)
+    }
+
     @Test func `deep malformed campaign is discarded without unbounded recursion`() throws {
         var nested: Any = "leaf"
         for index in 0 ..< 100 {
@@ -98,6 +107,33 @@ struct ScreenSessionDiagnosticTests {
         let data = try JSONSerialization.data(withJSONObject: ["id": id])
         #expect(throws: DecodingError.self) {
             try JSONDecoder().decode(ScreenTestQuestion.self, from: data)
+        }
+    }
+
+    @Test func `session field type mismatches discard the record`() throws {
+        let data = Data(
+            #"{"tests":[{"id":1,"candidate_email":42},{"id":2,"candidate_email":"ada@example.com"}]}"#.utf8
+        )
+
+        let page = try JSONDecoder().decode(ScreenTestsPage.self, from: data)
+
+        #expect(page.tests.map(\.id) == [2])
+        #expect(page.discardedTestCount == 1)
+    }
+
+    @Test func `malformed report fields do not disappear as missing data`() {
+        let data = Data(#"{"score":"perfect","warnings":[]}"#.utf8)
+
+        #expect(throws: DecodingError.self) {
+            try JSONDecoder().decode(ScreenReport.self, from: data)
+        }
+    }
+
+    @Test func `malformed report warnings do not truncate silently`() {
+        let data = Data(#"{"warnings":["valid",42]}"#.utf8)
+
+        #expect(throws: DecodingError.self) {
+            try JSONDecoder().decode(ScreenReport.self, from: data)
         }
     }
 }
