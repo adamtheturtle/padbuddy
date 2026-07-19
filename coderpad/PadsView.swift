@@ -113,6 +113,9 @@ struct PadsView: View {
     /// while a filtered (small) list stayed instant (#395). Any new assignment to
     /// `pads` must bump this.
     @State var padsRevision = 0
+    /// Id index for selection resolution, rebuilt when `padsRevision` moves on.
+    /// Internal, not private: the selection helpers live in PadsView+Actions.
+    @State var padIDIndex: (revision: Int, ids: Set<String>) = (-1, [])
     @State var padPendingDelete: Pad?
     @State var deleteError: String?
     /// Debounces marking a pad "opened" (which clears its activity dot) until the

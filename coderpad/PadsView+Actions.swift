@@ -47,11 +47,24 @@ extension PadsView {
         }
     }
 
+    /// Whether the loaded list holds this pad, via an id index rebuilt only when the
+    /// list itself changes.
+    ///
+    /// Both callers only needed to know *whether* the row is present, and
+    /// `resolvePendingPadSelection` repeats after every load until it turns up — so
+    /// the scan over the whole list ran once per page delivered (#2478).
+    private func containsPad(_ id: String) -> Bool {
+        if padIDIndex.revision != padsRevision {
+            padIDIndex = (padsRevision, Set(pads.map(\.id)))
+        }
+        return padIDIndex.ids.contains(id)
+    }
+
     /// Selects the pad with `id`, deferring until the list loads it when the favorite
     /// was picked before the pads arrived (e.g. right after a cold launch).
     /// `resolvePendingPadSelection` completes the deferred case.
     func selectPad(id: String) {
-        if pads.contains(where: { $0.id == id }) {
+        if containsPad(id) {
             selectedIDs = [id]
             // Reveal it: a favorite picked from the sidebar may sit far down the list.
             pendingScrollToID = id
@@ -64,7 +77,7 @@ extension PadsView {
     /// Applies a deferred favorite-pad selection once its pad has loaded. A no-op
     /// when nothing is pending, so it's safe to call after every load.
     func resolvePendingPadSelection() {
-        guard let id = pendingSelectPadID, pads.contains(where: { $0.id == id }) else { return }
+        guard let id = pendingSelectPadID, containsPad(id) else { return }
 
         selectedIDs = [id]
         pendingScrollToID = id

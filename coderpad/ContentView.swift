@@ -238,16 +238,24 @@ struct ContentView: View {
         // A bare slug resolves from the caches only when exactly one account holds
         // it, or via the current account's own copy: duplicate slugs on custom
         // servers must not open whichever account happened to be listed first (#1672).
-        let holders = store.accounts.filter { account in
-            PadsCacheStore.shared.get(account.id).contains { $0.id == id }
+        //
+        // One pass per account, keeping the match as it goes. This used to scan every
+        // account's whole pad list to count the holders, then scan the winner's list
+        // again for the pad, then possibly scan the current account's — two or three
+        // full O(accounts x pads) sweeps per id-based navigation, and `get` can reach
+        // disk (#2474).
+        var holders: [(account: Account, pad: Pad)] = []
+        for account in store.accounts {
+            guard let pad = PadsCacheStore.shared.get(account.id).first(where: { $0.id == id }) else { continue }
+
+            holders.append((account, pad))
         }
-        if holders.count == 1, let account = holders.first,
-           let pad = PadsCacheStore.shared.get(account.id).first(where: { $0.id == id }) {
-            return pad.webURL(fallbackBase: account.resolvedBaseURL)
+        if holders.count == 1, let match = holders.first {
+            return match.pad.webURL(fallbackBase: match.account.resolvedBaseURL)
         }
         if let current = store.currentAccount,
-           let pad = PadsCacheStore.shared.get(current.id).first(where: { $0.id == id }) {
-            return pad.webURL(fallbackBase: current.resolvedBaseURL)
+           let match = holders.first(where: { $0.account.id == current.id }) {
+            return match.pad.webURL(fallbackBase: current.resolvedBaseURL)
         }
         let base = store.currentAccount?.resolvedBaseURL ?? CoderPadClient.defaultBaseURL
         return base.appending(path: id)
