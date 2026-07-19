@@ -24,12 +24,25 @@ public nonisolated struct DiskCache: Sendable {
     }
 
     private func url(kind: String, account: UUID) -> URL? {
+        guard Self.isValidKind(kind) else { return nil }
         guard let base = FileManager.default.urls(for: .applicationSupportDirectory,
                                                   in: .userDomainMask).first else { return nil }
 
         let dir = base.appending(path: directoryName, directoryHint: .isDirectory)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         return dir.appending(path: "\(kind)-\(account.uuidString).json")
+    }
+
+    /// Cache kinds become filename prefixes, so accept only a short ASCII token.
+    /// Rejecting separators and punctuation keeps every operation in this cache's
+    /// directory even when a caller supplies an untrusted kind (#1263).
+    static func isValidKind(_ kind: String) -> Bool {
+        !kind.isEmpty && kind.utf8.count <= 64 && kind.utf8.allSatisfy { byte in
+            switch byte {
+            case 45, 48 ... 57, 65 ... 90, 95, 97 ... 122: true
+            default: false
+            }
+        }
     }
 
     public func load<T: Decodable>(_: T.Type, kind: String, account: UUID) -> T? {
