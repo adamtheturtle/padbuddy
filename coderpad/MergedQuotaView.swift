@@ -29,6 +29,9 @@ struct MergedQuotaView: View {
     /// Claim ticket for the newest reload, so an older overlapping fan-out can't
     /// publish over fresher quota or error state (#2393).
     @State private var reloadGeneration = 0
+    /// Cross-platform Settings opener (macOS window / iPad sheet), so the
+    /// no-accounts state can offer a route to add one (#2399).
+    @Environment(\.openAppSettings) private var openSettings
 
     var body: some View {
         ScrollView {
@@ -41,6 +44,20 @@ struct MergedQuotaView: View {
             .padding(.top, Spacing.paneV)
             .padding(.bottom, Spacing.paneV)
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .overlay {
+            // Without this the pane is simply blank, which reads as still-loading
+            // rather than "there is nothing to show and here's what to do" (#2399).
+            // Matches the merged pad and question lists' empty states (#618).
+            if accounts.mergeableAccounts.isEmpty {
+                ContentUnavailableView {
+                    Label("No Accounts", systemImage: "person.crop.circle.badge.questionmark")
+                } description: {
+                    Text("Add a CoderPad account to see its plan usage here.")
+                } actions: {
+                    Button("Open Settings") { openSettings() }
+                }
+            }
         }
         .macPullToRefresh { await reload() }
         .task(id: accountKey) {

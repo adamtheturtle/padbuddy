@@ -9017,6 +9017,26 @@
           }
         }
       }
+    },
+    "No Accounts" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "No hay cuentas"
+          }
+        }
+      }
+    },
+    "Add a CoderPad account to see its plan usage here." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "machine_translated",
+            "value" : "Añade una cuenta de CoderPad para ver aquí el uso de su plan."
+          }
+        }
+      }
     }
   },
   "version" : "1.3"
