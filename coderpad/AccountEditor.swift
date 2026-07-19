@@ -281,7 +281,11 @@ struct AccountEditor: View {
             .onChange(of: draft.baseURL) { _, _ in cancelValidation() }
             // A changed Screen key or region invalidates any prior Screen validation result.
             // Screen credentials don't gate `canSave`, so saved accounts autosave them too.
-            .onChange(of: draft.screenApiKey) { _, _ in screenValidation = .idle; commitLiveEdit() }
+            .onChange(of: draft.screenApiKey) { _, _ in
+                revealScreenKey = false
+                screenValidation = .idle
+                commitLiveEdit()
+            }
             .onChange(of: draft.screenRegion) { _, _ in screenValidation = .idle; commitLiveEdit() }
             // Saved-account autosave: persist Description / Your Email edits after typing
             // settles, and persist a re-validated key or server URL when validation flips
