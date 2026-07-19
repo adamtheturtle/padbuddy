@@ -36,8 +36,18 @@ extension Sidebar {
     /// view, so favourites can be rearranged exactly where they appear.
     private var favoriteEntries: [FavoriteEntry] {
         if isMergedView {
+            // One index per account, built once — the merged list interleaves accounts,
+            // so resolving each row on its own would rebuild these lookups for every
+            // row in every account (#2529).
+            let indexes = Dictionary(
+                accounts.mergeableAccounts.map { ($0.id, makeTitleIndex(forAccount: $0.id)) },
+                uniquingKeysWith: { first, _ in first }
+            )
             return favoritesOrder.merged(present: presentMergedRefs()).compactMap { item in
-                favoriteEntry(forAccount: item.account, ref: item.ref, namespaced: true)
+                guard let index = indexes[item.account] else { return nil }
+
+                return favoriteEntry(forAccount: item.account, ref: item.ref,
+                                     namespaced: true, index: index)
             }
         }
         guard let account = accountID else { return [] }
@@ -60,28 +70,55 @@ extension Sidebar {
         let questions = favorites.titledFavorites(account: account)
         guard !favoritePads.favorites(account: account).isEmpty || !questions.isEmpty else { return [] }
 
+        let index = makeTitleIndex(forAccount: account)
         let ordered = favoritesOrder.order(present: presentRefs(account: account), account: account)
-        return ordered.compactMap { favoriteEntry(forAccount: account, ref: $0, namespaced: namespaced) }
+        return ordered.compactMap {
+            favoriteEntry(forAccount: account, ref: $0, namespaced: namespaced, index: index)
+        }
     }
 
-    private func favoriteEntry(forAccount account: UUID, ref: FavoriteRef, namespaced: Bool) -> FavoriteEntry? {
-        let questions = favorites.titledFavorites(account: account)
-        let padTitles = Dictionary(
-            padsCache.cached(account).compactMap { pad in pad.title.isEmpty ? nil : (pad.id, pad.title) },
-            uniquingKeysWith: { first, _ in first }
+    /// One account's title lookups and membership sets.
+    ///
+    /// These used to be rebuilt inside the per-row call — four dictionaries over the
+    /// entire pads and questions caches, plus two linear membership scans, for every
+    /// favourite — which made a sidebar render quadratic in the number of favourites
+    /// and stalled the UI on accounts with many of them (#2529).
+    private func makeTitleIndex(forAccount account: UUID) -> FavoriteTitleIndex {
+        FavoriteTitleIndex(
+            padTitles: Dictionary(
+                padsCache.cached(account).compactMap { pad in pad.title.isEmpty ? nil : (pad.id, pad.title) },
+                uniquingKeysWith: { first, _ in first }
+            ),
+            storedPadTitles: Dictionary(
+                favoritePads.titledFavorites(account: account).map { ($0.id, $0.title) },
+                uniquingKeysWith: { first, _ in first }
+            ),
+            cacheTitles: Dictionary(
+                questionsCache.cached(account).map { ($0.id, $0.displayTitle) },
+                uniquingKeysWith: { first, _ in first }
+            ),
+            storedTitles: Dictionary(
+                favorites.titledFavorites(account: account).map { ($0.id, $0.title) },
+                uniquingKeysWith: { first, _ in first }
+            ),
+            padMembers: Set(favoritePads.favorites(account: account)),
+            questionMembers: Set(favorites.favorites(account: account))
         )
-        let storedPadTitles = Dictionary(
-            favoritePads.titledFavorites(account: account).map { ($0.id, $0.title) },
-            uniquingKeysWith: { first, _ in first }
-        )
-        let cacheTitles = Dictionary(
-            questionsCache.cached(account).map { ($0.id, $0.displayTitle) },
-            uniquingKeysWith: { first, _ in first }
-        )
-        let storedTitles = Dictionary(
-            questions.map { ($0.id, $0.title) },
-            uniquingKeysWith: { first, _ in first }
-        )
+    }
+
+    /// The per-section title lookups and membership sets a favourite row resolves
+    /// against, built once per render rather than once per row.
+    private struct FavoriteTitleIndex {
+        let padTitles: [String: String]
+        let storedPadTitles: [String: String]
+        let cacheTitles: [Int: String]
+        let storedTitles: [Int: String]
+        let padMembers: Set<String>
+        let questionMembers: Set<Int>
+    }
+
+    private func favoriteEntry(forAccount account: UUID, ref: FavoriteRef, namespaced: Bool,
+                               index: FavoriteTitleIndex) -> FavoriteEntry? {
         /// Whitespace-only titles count as absent, or they'd beat the slug /
         /// "Question #id" fallbacks and render blank rows (#1680, #1681).
         func presentable(_ title: String?) -> String? {
@@ -93,7 +130,7 @@ extension Sidebar {
 
         switch ref {
         case let .pad(padID):
-            guard favoritePads.favorites(account: account).contains(padID) else { return nil }
+            guard index.padMembers.contains(padID) else { return nil }
 
             // Prefer the live cache title (so renames show through), then the title
             // captured when the pad was pinned (#654), and only fall back to the bare
@@ -102,14 +139,16 @@ extension Sidebar {
                 id: namespaced ? "\(account.uuidString)-pad-\(padID)" : "pad-\(padID)",
                 ref: ref,
                 account: namespaced ? account : nil,
-                title: presentable(padTitles[padID]) ?? presentable(storedPadTitles[padID]) ?? padID
+                title: presentable(index.padTitles[padID])
+                    ?? presentable(index.storedPadTitles[padID])
+                    ?? padID
             )
 
         case let .question(questionID):
-            guard favorites.favorites(account: account).contains(questionID) else { return nil }
+            guard index.questionMembers.contains(questionID) else { return nil }
 
-            let resolved = presentable(cacheTitles[questionID])
-                ?? presentable(storedTitles[questionID])
+            let resolved = presentable(index.cacheTitles[questionID])
+                ?? presentable(index.storedTitles[questionID])
                 ?? "Question #\(questionID)"
             return FavoriteEntry(
                 id: namespaced ? "\(account.uuidString)-q-\(questionID)" : "q-\(questionID)",
