@@ -124,12 +124,18 @@ struct ScreenCampaignsView: View {
     private var selectedCampaignAction: ScreenCampaignAction? {
         guard let selectedCampaign else { return nil }
 
-        return ScreenCampaignAction(id: "screen-campaign-\(selectedCampaign.id)",
+        let selectedID = selectedCampaign.id
+
+        return ScreenCampaignAction(id: "screen-campaign-\(selectedID)",
                                     clientIdentity: client.taskIdentity,
                                     contentFingerprint: selectedCampaign.name.hashValue) {
-            Clipboard.copy(selectedCampaign.name)
+            guard let current = campaigns.first(where: { $0.id == selectedID }) else { return }
+
+            Clipboard.copy(current.name)
         } showTests: {
-            selectedCampaignID = selectedCampaign.id
+            guard campaigns.contains(where: { $0.id == selectedID }) else { return }
+
+            selectedCampaignID = selectedID
         }
     }
 

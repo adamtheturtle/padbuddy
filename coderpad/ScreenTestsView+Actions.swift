@@ -41,17 +41,29 @@ extension ScreenTestsView {
     var selectedTestAction: ScreenTestAction? {
         guard let selectedTest else { return nil }
 
-        return ScreenTestAction(id: selectedTest.id, accountID: accountID, status: selectedTest.status,
+        let selectedID = selectedTest.id
+
+        return ScreenTestAction(id: selectedID, accountID: accountID, status: selectedTest.status,
                                 contentFingerprint: selectedTest.screenCopyText.hashValue) {
-            Clipboard.copy(selectedTest.screenCopyText)
+            guard let current = tests.first(where: { $0.id == selectedID }) else { return }
+
+            Clipboard.copy(current.screenCopyText)
         } openWindow: {
-            openTestWindow(selectedTest)
+            guard let current = tests.first(where: { $0.id == selectedID }) else { return }
+
+            openTestWindow(current)
         } resend: {
-            Task { await resend(selectedTest) }
+            guard let current = tests.first(where: { $0.id == selectedID }) else { return }
+
+            Task { await resend(current) }
         } cancel: {
-            Task { await cancel(selectedTest) }
+            guard let current = tests.first(where: { $0.id == selectedID }) else { return }
+
+            Task { await cancel(current) }
         } delete: {
-            testPendingDelete = selectedTest
+            guard let current = tests.first(where: { $0.id == selectedID }) else { return }
+
+            testPendingDelete = current
         }
     }
 
@@ -77,7 +89,8 @@ extension ScreenTestsView {
         // mutation is in flight; each duplicate would email the candidate again
         // (#900), and a concurrent cancel could revoke the invitation being resent
         // (#1854). Offline, the write can only fail - don't start it (#1855).
-        guard !isReadOnly, mutatingIDs.insert(test.id).inserted else { return }
+        guard test.status == "waiting", !isReadOnly,
+              mutatingIDs.insert(test.id).inserted else { return }
 
         defer { mutatingIDs.remove(test.id) }
         do {
@@ -91,7 +104,8 @@ extension ScreenTestsView {
     func cancel(_ test: ScreenTestSession) async {
         // Same in-flight and read-only gate as resend: duplicate invocations raced
         // the row reload and sent concurrent cancellation requests (#1852, #1855).
-        guard !isReadOnly, mutatingIDs.insert(test.id).inserted else { return }
+        guard test.status == "waiting", !isReadOnly,
+              mutatingIDs.insert(test.id).inserted else { return }
 
         defer { mutatingIDs.remove(test.id) }
         do {

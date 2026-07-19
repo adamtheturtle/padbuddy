@@ -156,12 +156,14 @@ struct MergedScreenView: View {
     private var selectedCampaignAction: ScreenCampaignAction? {
         guard let selectedCampaign else { return nil }
 
-        return ScreenCampaignAction(id: "merged-screen-campaign-\(selectedCampaign.id)",
+        let selectedID = selectedCampaign.id
+
+        return ScreenCampaignAction(id: "merged-screen-campaign-\(selectedID)",
                                     clientIdentity: nil,
                                     contentFingerprint: selectedCampaign.copyText.hashValue) {
-            Clipboard.copy(selectedCampaign.copyText)
+            _ = scopedCampaign(id: selectedID).map { Clipboard.copy($0.copyText) }
         } showTests: {
-            selectedScopedID = selectedCampaign.id
+            if scopedCampaign(id: selectedID) != nil { selectedScopedID = selectedID }
         }
     }
 
