@@ -61,10 +61,22 @@ struct CoderPadShortcuts: AppShortcutsProvider {
 /// change the structure of the browser URL it's interpolated into rather than name a
 /// pad (#778). Pure so it's unit-testable.
 nonisolated enum PadIDValidation {
+    /// Characters allowed beyond ASCII letters and digits.
+    ///
+    /// Hyphen and underscore are accepted because a self-hosted server can issue
+    /// slugs containing them and the shortcut refused those outright (#2694). Neither
+    /// can change the structure of the URL the id is interpolated into — unlike `/`,
+    /// `?`, `#`, `:`, `@`, `.`, or whitespace, which stay rejected. That is the
+    /// property #778 was protecting, and it is unchanged.
+    private static let extraAllowed: Set<Character> = ["-", "_"]
+
     static func normalize(_ raw: String) -> String? {
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard (1 ... 64).contains(trimmed.count),
-              trimmed.allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber) })
+              trimmed.allSatisfy({ character in
+                  extraAllowed.contains(character)
+                      || (character.isASCII && (character.isLetter || character.isNumber))
+              })
         else { return nil }
 
         return trimmed

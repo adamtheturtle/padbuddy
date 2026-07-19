@@ -142,12 +142,30 @@ struct PadIDValidationTests {
     }
 
     @Test
+    func `accepts hyphens and underscores (#2694)`() {
+        // A self-hosted server can issue slugs containing these, and neither can
+        // change the structure of the URL the id is interpolated into.
+        #expect(PadIDValidation.normalize("my-pad_01") == "my-pad_01")
+        #expect(PadIDValidation.normalize("-_-") == "-_-")
+    }
+
+    @Test
     func `rejects input that would rewrite the opened URL (#778)`() {
         let bad = ["abcd?next", "abcd#frag", "foo/bar", "a b", "", "   ",
-                   "p\u{00E1}d", String(repeating: "a", count: 65)]
+                   "p\u{00E1}d", String(repeating: "a", count: 65),
+                   // Still rejected after #2694 widened the set: each of these can
+                   // change the path, query, fragment, authority, or extension of the
+                   // URL the id lands in.
+                   "a:b", "a@b", "a.b", "../etc", "a%2Fb", "a&b", "a=b"]
         for value in bad {
             #expect(PadIDValidation.normalize(value) == nil, "\(value) should be rejected")
         }
+    }
+
+    @Test
+    func `accepts the maximum length and rejects one more`() {
+        #expect(PadIDValidation.normalize(String(repeating: "a", count: 64)) != nil)
+        #expect(PadIDValidation.normalize(String(repeating: "a", count: 65)) == nil)
     }
 }
 
