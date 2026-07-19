@@ -70,7 +70,13 @@ struct InlineEditDraftsTests {
     @Test
     func `the unscoped window scope is stable across mounts`() {
         // Previews and render tests have no window, so their keys must not churn.
-        #expect(WindowScope.unscoped == WindowScope.unscoped)
-        #expect(WindowScope.unscoped != WindowScope())
+        let first = WindowScope.unscoped
+        let second = WindowScope.unscoped
+        #expect(first == second)
+        // A real window's scope is always distinct from it, and from every other.
+        let windowA = WindowScope()
+        let windowB = WindowScope()
+        #expect(windowA != first)
+        #expect(windowA != windowB)
     }
 }
