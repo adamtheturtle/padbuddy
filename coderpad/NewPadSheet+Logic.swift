@@ -204,6 +204,15 @@ extension NewPadSheet {
     }
 
     func submit() async {
+        guard let validationMessage = Self.createValidationMessage(title: title, ownerEmail: ownerEmail) else {
+            await performSubmit()
+            return
+        }
+
+        error = validationMessage
+    }
+
+    private func performSubmit() async {
         isSubmitting = true
         error = nil
         defer { isSubmitting = false }
@@ -252,6 +261,44 @@ extension NewPadSheet {
             questionID: draft.questionID,
             teamID: draft.teamID
         )
+    }
+
+    static func createValidationMessage(title: String?, ownerEmail: String?) -> String? {
+        if let title = trimmedOrNil(title), title.count > 255 {
+            return String(localized: "Title must be 255 characters or fewer.")
+        }
+        guard let owner = trimmedOrNil(ownerEmail) else { return nil }
+        guard isValidEmail(owner) else {
+            return String(localized: "Enter a valid owner email address, or clear the Owner field.")
+        }
+
+        return nil
+    }
+
+    private static func isValidEmail(_ value: String) -> Bool {
+        guard value.count <= 254, value.unicodeScalars.allSatisfy(\.isASCII),
+              !value.unicodeScalars.contains(where: CharacterSet.whitespacesAndNewlines.contains)
+        else { return false }
+
+        let parts = value.split(separator: "@", omittingEmptySubsequences: false)
+        guard parts.count == 2 else { return false }
+
+        let local = parts[0]
+        let domain = parts[1]
+        guard !local.isEmpty, local.count <= 64, local.first != ".", local.last != ".",
+              !local.contains(".."), domain.contains(".")
+        else { return false }
+
+        let localAllowed = CharacterSet(charactersIn:
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.!#$%&'*+-/=?^_`{|}~")
+        guard local.unicodeScalars.allSatisfy(localAllowed.contains) else { return false }
+
+        return domain.split(separator: ".", omittingEmptySubsequences: false).allSatisfy { label in
+            !label.isEmpty && label.count <= 63 && label.first != "-" && label.last != "-"
+                && label.unicodeScalars.allSatisfy {
+                    CharacterSet.alphanumerics.contains($0) || $0 == "-"
+                }
+        }
     }
 
     /// The language to send, or `nil` to let the account default apply.

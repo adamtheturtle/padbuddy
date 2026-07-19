@@ -237,7 +237,8 @@ struct NewPadSheet: View {
     }
 
     private var createButton: some View {
-        Button {
+        let validationMessage = Self.createValidationMessage(title: title, ownerEmail: ownerEmail)
+        return Button {
             Task { await submit() }
         } label: {
             if isSubmitting {
@@ -247,10 +248,18 @@ struct NewPadSheet: View {
             }
         }
         .keyboardShortcut(.defaultAction)
-        .disabled(isSubmitting || isLoadingPrerequisites)
-        .help(isLoadingPrerequisites
-            ? Text("Waiting for the question and organization details to finish loading.")
-            : Text("Create the pad."))
+        .disabled(isSubmitting || isLoadingPrerequisites || validationMessage != nil)
+        .help(createButtonHelp(validationMessage: validationMessage))
+    }
+
+    private func createButtonHelp(validationMessage: String?) -> Text {
+        if isLoadingPrerequisites {
+            return Text("Waiting for the question and organization details to finish loading.")
+        }
+        if let validationMessage {
+            return Text(validationMessage)
+        }
+        return Text("Create the pad.")
     }
 
     /// The language picker's binding, marking the choice as user-made so the org
