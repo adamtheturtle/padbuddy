@@ -81,3 +81,30 @@ struct TombstonePruningTests {
         #expect(pruned["k\(CloudTombstones.maxTombstones + 49)"] == nil)
     }
 }
+
+@Suite("Preference revision stamps (#2152)")
+struct PreferenceRevisionTests {
+    @Test
+    func `a double stamp reads back unchanged`() {
+        #expect(PreferenceCloudSync.revision(1_700_000_000.5) == 1_700_000_000.5)
+    }
+
+    @Test
+    func `an integer-backed stamp is not lost`() {
+        // KVS can hand a whole-numbered stamp back as an integer, which `as? Double`
+        // alone rejected — making a genuinely newer cloud write look older than every
+        // local one and never be adopted (#2152).
+        #expect(PreferenceCloudSync.revision(1_700_000_000) == 1_700_000_000)
+        // As KVS actually hands them back: a plist round-trip, which is where the
+        // integer-backed representation comes from.
+        // swiftlint:disable:next legacy_objc_type
+        let bridged = NSNumber(value: 1_700_000_000)
+        #expect(PreferenceCloudSync.revision(bridged) == 1_700_000_000)
+    }
+
+    @Test
+    func `a missing or non-numeric stamp counts as zero`() {
+        #expect(PreferenceCloudSync.revision(nil) == 0)
+        #expect(PreferenceCloudSync.revision("not a number") == 0)
+    }
+}

@@ -147,7 +147,7 @@ final class PreferenceCloudSync {
             // it now instead of waiting for the external-change notification. Equal
             // revisions break the tie by value (#1147), so both devices settle on the
             // same side instead of each keeping its own write.
-            let cloudRevision = CloudSyncStore.shared.object(forKey: Self.cloudRevisionKey(key)) as? Double ?? 0
+            let cloudRevision = Self.revision(CloudSyncStore.shared.object(forKey: Self.cloudRevisionKey(key)))
             let localRevision = UserDefaults.standard.double(forKey: Self.localRevisionKey(key))
             let cloudWins = cloudRevision > localRevision
                 || (cloudRevision == localRevision
@@ -183,7 +183,7 @@ final class PreferenceCloudSync {
         let local = UserDefaults.standard.object(forKey: key)
         guard !Self.plistValuesEqual(local, cloud) else { return }
 
-        let cloudRevision = CloudSyncStore.shared.object(forKey: Self.cloudRevisionKey(key)) as? Double ?? 0
+        let cloudRevision = Self.revision(CloudSyncStore.shared.object(forKey: Self.cloudRevisionKey(key)))
         let localRevision = UserDefaults.standard.double(forKey: Self.localRevisionKey(key))
         guard cloudRevision > localRevision
             || (cloudRevision == localRevision && Self.tieBreakFavorsCloud(local: local, cloud: cloud))
@@ -192,6 +192,20 @@ final class PreferenceCloudSync {
         UserDefaults.standard.set(cloud, forKey: key)
         UserDefaults.standard.set(cloudRevision, forKey: Self.localRevisionKey(key))
         applySideEffects(forPulledKey: key)
+    }
+
+    /// A stored revision stamp, whatever numeric representation it came back as.
+    ///
+    /// `as? Double` alone failed for a value bridged as an integer-backed number,
+    /// which made a valid stamp read as 0 — so a genuinely newer cloud write looked
+    /// older than every local one and was never adopted (#2152). Internal for tests.
+    static func revision(_ stored: Any?) -> Double {
+        switch stored {
+        case let value as Double: value
+        case let value as Int: Double(value)
+        case let value as Float: Double(value)
+        default: 0
+        }
     }
 
     /// The deterministic equal-revision tie-breaker (#1147): a never-written local
