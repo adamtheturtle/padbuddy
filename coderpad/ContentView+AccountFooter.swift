@@ -15,12 +15,13 @@ struct AccountFooter: View {
     @State private var monitor = AccountHealthMonitor.shared
     @Environment(\.openAppSettings) private var openSettings
     var body: some View {
+        let currentAccount = store.currentAccount
         HStack(spacing: 10) {
-            accountMenu
+            accountMenu(currentAccount: currentAccount)
             Spacer()
             // With an account active, "Manage Accounts" lives in the switcher menu;
             // with none, surface it as the footer's sole entry point (#455).
-            if store.currentAccount == nil {
+            if currentAccount == nil {
                 manageAccountsButton
             }
             #if !os(macOS)
@@ -69,8 +70,8 @@ struct AccountFooter: View {
     /// accounts are listed directly as top-level items — so switching is open →
     /// pick, instead of burying the choice under a nested "Switch Account" submenu.
     @ViewBuilder
-    private var accountMenu: some View {
-        if store.currentAccount != nil {
+    private func accountMenu(currentAccount: Account?) -> some View {
+        if let currentAccount {
             Menu {
                 // Direct Buttons (not a Picker): a Picker inside a Menu desyncs
                 // AppKit's cached menu-item reps during tracking ("rep returned
@@ -92,7 +93,7 @@ struct AccountFooter: View {
                         store.showAllAccounts = false
                         store.currentAccountID = account.id
                     } label: {
-                        accountMenuLabel(for: account)
+                        accountMenuLabel(for: account, selectedAccountID: currentAccount.id)
                     }
                 }
                 Divider()
@@ -105,7 +106,7 @@ struct AccountFooter: View {
                 // which logs the unsupported view-hierarchy SwiftUI fault. Wrapping in a
                 // SwiftUI container doesn't help because stacks are drawn into the host,
                 // not backed by a distinct UIView.
-                triggerLabel
+                triggerLabel(currentAccount: currentAccount)
             }
             // `.button` (not `.borderlessButton`) lets the rich label lay out at
             // its natural size; the borderless style renders a narrow popup that
@@ -124,8 +125,8 @@ struct AccountFooter: View {
     /// unauthorized gets a warning triangle and a "(bad key)" suffix; otherwise the
     /// checkmark (when active) or the account's own icon takes the symbol slot.
     @ViewBuilder
-    private func accountMenuLabel(for account: Account) -> some View {
-        let isSelected = !store.isMergedView && account.id == store.currentAccount?.id
+    private func accountMenuLabel(for account: Account, selectedAccountID: UUID) -> some View {
+        let isSelected = !store.isMergedView && account.id == selectedAccountID
         let isUnauthorized = monitor.isUnauthorized(account.id)
         let title = isUnauthorized ? String(localized: "\(account.name) (bad key)") : account.name
         if isSelected {
@@ -141,9 +142,9 @@ struct AccountFooter: View {
 
     /// The menu's trigger: the active account's identity, or "All Accounts" while
     /// the combined view is on.
-    private var triggerLabel: some View {
+    private func triggerLabel(currentAccount: Account) -> some View {
         let isMerged = store.isMergedView
-        let title = isMerged ? String(localized: "All Accounts") : (store.currentAccount?.name ?? "")
+        let title = isMerged ? String(localized: "All Accounts") : currentAccount.name
         let subtitle = isMerged
             ? String(localized: "\(store.mergeableAccounts.count) accounts combined")
             : (store.accounts.count > 1
@@ -152,17 +153,17 @@ struct AccountFooter: View {
         // The unauthorized state is shown only as a red warning triangle over the
         // avatar — color- and icon-only — so name it for VoiceOver, the way the menu
         // rows already append "(bad key)" (#79).
-        let unauthorized = !isMerged && (store.currentAccount.map { monitor.isUnauthorized($0.id) } ?? false)
+        let unauthorized = !isMerged && monitor.isUnauthorized(currentAccount.id)
         let accessibilityLabel = [title, subtitle, unauthorized ? String(localized: "API key invalid") : ""]
             .filter { !$0.isEmpty }
             .joined(separator: ", ")
         return HStack(spacing: 10) {
             if isMerged {
                 AvatarCircle(label: title, diameter: 30, tint: .accentColor, symbol: "person.2.fill")
-            } else if let account = store.currentAccount {
-                AvatarCircle(account: account, diameter: 30)
+            } else {
+                AvatarCircle(account: currentAccount, diameter: 30)
                     .overlay(alignment: .bottomTrailing) {
-                        if monitor.isUnauthorized(account.id) {
+                        if monitor.isUnauthorized(currentAccount.id) {
                             Image(systemName: "exclamationmark.triangle.fill")
                                 .font(.system(size: 11))
                                 .foregroundStyle(.red)
