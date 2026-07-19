@@ -12,13 +12,13 @@
     import AppKit
     import os
 
-    /// The tail of the serial widget-request drain chain: each drain awaits the one
-    /// before it, so queued requests replay strictly in the order the user issued
-    /// them and their pad creates run one at a time instead of as a burst of
-    /// detached tasks (#1253, #1254).
+    /// The active widget-request drain, plus a coalescing flag for repeated Darwin
+    /// notifications. While a drain is running, new notifications request one more
+    /// pass instead of scheduling another task (#2310).
     @MainActor
     private enum WidgetRequestDrain {
-        static var tail: Task<Void, Never>?
+        static var task: Task<Void, Never>?
+        static var requested = false
     }
 
     final class WidgetRequestObserverRegistration {
@@ -102,30 +102,34 @@
         /// it, replaying both kinds in the order the user issued them so the most recent
         /// action ends up on top (#1045). Shared by `applicationDidBecomeActive` and the
         /// Darwin observer (already-frontmost requests, #485); whichever activation path
-        /// runs second simply finds the queue empty. Each drain chains onto the previous
-        /// one and awaits every create, so queued creates run serially in request order
-        /// rather than as concurrent detached tasks (#1253), and a drain that races a
-        /// Darwin re-delivery takes the queue only after the prior batch fully finished
-        /// (#1254).
+        /// runs second simply asks the active drain for another pass. Repeated Darwin
+        /// notifications coalesce into one task, but a request that arrives while a pad
+        /// create is awaiting still gets drained before the task exits (#2310).
         @MainActor
         static func drainPendingWidgetRequests() {
-            let previous = WidgetRequestDrain.tail
-            WidgetRequestDrain.tail = Task { @MainActor in
-                await previous?.value
-                // A double-delivered intent can record identical requests back to
-                // back; within one batch a repeated identical New Pad request is a
-                // duplicate delivery, not a second tap — one tap makes one pad (#1254).
-                var startedCreates = Set<String>()
-                for pending in WidgetSharedStore.takePendingRequestsInOrder() {
-                    switch pending {
-                    case let .newPad(request):
-                        let key = "\(request.account ?? "")|\(request.question.map(String.init) ?? "")"
-                        guard startedCreates.insert(key).inserted else { continue }
+            WidgetRequestDrain.requested = true
+            guard WidgetRequestDrain.task == nil else { return }
 
-                        await createPadInBrowser(account: request.account, question: request.question)
+            WidgetRequestDrain.task = Task { @MainActor in
+                defer { WidgetRequestDrain.task = nil }
 
-                    case let .openPad(request):
-                        showPad(request)
+                while WidgetRequestDrain.requested {
+                    WidgetRequestDrain.requested = false
+                    // A double-delivered intent can record identical requests back to
+                    // back; within one batch a repeated identical New Pad request is a
+                    // duplicate delivery, not a second tap — one tap makes one pad (#1254).
+                    var startedCreates = Set<String>()
+                    for pending in WidgetSharedStore.takePendingRequestsInOrder() {
+                        switch pending {
+                        case let .newPad(request):
+                            let key = "\(request.account ?? "")|\(request.question.map(String.init) ?? "")"
+                            guard startedCreates.insert(key).inserted else { continue }
+
+                            await createPadInBrowser(account: request.account, question: request.question)
+
+                        case let .openPad(request):
+                            showPad(request)
+                        }
                     }
                 }
             }
