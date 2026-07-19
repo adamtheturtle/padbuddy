@@ -72,6 +72,13 @@ struct OrganizationView: View {
             }
             .focusedSceneValue(\.findAction, FindAction(id: "organization") { userSearchFocused = true })
             .onReloadRequest { await reload() }
+            // The stats fetch is held in state rather than run from `.task`, so
+            // SwiftUI doesn't cancel it when the view goes away — it would keep
+            // running and then write into state nobody is showing (#2385).
+            .onDisappear {
+                statsTask?.cancel()
+                statsTask = nil
+            }
             .toolbar(id: "organization") { organizationToolbar }
     }
 
