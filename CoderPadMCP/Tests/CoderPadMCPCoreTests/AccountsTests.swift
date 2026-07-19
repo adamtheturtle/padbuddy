@@ -222,6 +222,38 @@ struct AccountsTests {
     }
 
     @Test
+    func `credentials are bounded and reject control characters`() throws {
+        let oversized = String(repeating: "k", count: 4097)
+        #expect(throws: MCPConfigError.invalidCredential(account: "Acme", field: "api_key")) {
+            try makeAccountSet(config: ["accounts": [["name": "Acme", "api_key": oversized]]], environment: [:])
+        }
+        #expect(throws: MCPConfigError.invalidCredential(account: "Acme", field: "screen_api_key")) {
+            try makeAccountSet(config: ["accounts": [[
+                "name": "Acme", "api_key": "valid", "screen_api_key": "bad\u{0000}key"
+            ]]], environment: [:])
+        }
+
+        let set = try makeAccountSet(config: nil, environment: [
+            "CODERPAD_API_KEY": "  valid-key  ",
+            "CODERPAD_ACCOUNT_NAME": "  Demo\u{0007}" + String(repeating: "x", count: 150)
+        ])
+        #expect(set.defaultAccount?.apiKey == "valid-key")
+        #expect(set.defaultAccount?.name.count == 100)
+        #expect(set.defaultAccount?.name.contains("\u{0007}") == false)
+    }
+
+    @Test
+    func `environment credentials use the same validation`() {
+        #expect(throws: MCPConfigError.invalidCredential(
+            account: "default", field: "CODERPAD_SCREEN_API_KEY"
+        )) {
+            try makeAccountSet(config: nil, environment: [
+                "CODERPAD_API_KEY": "valid", "CODERPAD_SCREEN_API_KEY": String(repeating: "s", count: 4097)
+            ])
+        }
+    }
+
+    @Test
     func `the list_accounts directory carries names and flags but never keys`() throws {
         let set = try makeAccountSet(config: ["accounts": [
             ["name": "Acme", "api_key": "secret", "default": true],

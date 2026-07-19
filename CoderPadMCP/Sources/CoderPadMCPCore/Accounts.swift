@@ -121,6 +121,7 @@ public enum MCPConfigError: Error, Equatable {
     case invalidAllowWrites
     case invalidScreenRegion(account: String, region: String)
     case invalidBaseURL(account: String, baseURL: String)
+    case invalidCredential(account: String, field: String)
 }
 
 /// Why the standalone JSON config file could not be loaded.
@@ -188,6 +189,20 @@ private func sanitizedAccountName(_ raw: String?) -> String? {
     value = String(value.unicodeScalars.filter { !CharacterSet.controlCharacters.contains($0) })
     value = String(value.prefix(100)).trimmingCharacters(in: .whitespacesAndNewlines)
     return value.isEmpty ? nil : value
+}
+
+private func validatedCredential(_ raw: String?, account: String, field: String) throws -> String? {
+    guard let value = trimmedNonEmpty(raw) else { return nil }
+
+    let hasUnsafeScalar = value.unicodeScalars.contains { scalar in
+        let category = scalar.properties.generalCategory
+        return category == .control || category == .format
+    }
+    guard value.utf8.count <= 4096, !hasUnsafeScalar else {
+        throw MCPConfigError.invalidCredential(account: account, field: field)
+    }
+
+    return value
 }
 
 private func parseBaseURL(_ raw: String?, account: String) throws -> URL {
@@ -308,7 +323,8 @@ public func makeAccountSet(config: [String: Any]?, environment: [String: String]
         var seen = Set<String>()
         for entry in rawAccounts {
             let name = sanitizedAccountName(entry["name"] as? String) ?? "account-\(accounts.count + 1)"
-            guard let key = trimmedNonEmpty(entry["api_key"] as? String) else {
+            guard let key = try validatedCredential(entry["api_key"] as? String,
+                                                    account: name, field: "api_key") else {
                 throw MCPConfigError.missingAPIKey(account: name)
             }
             guard seen.insert(name.lowercased()).inserted else {
@@ -319,7 +335,8 @@ public func makeAccountSet(config: [String: Any]?, environment: [String: String]
                 name: name,
                 apiKey: key,
                 baseURL: parseConfigBaseURL(entry, account: name),
-                screenAPIKey: trimmedNonEmpty(entry["screen_api_key"] as? String),
+                screenAPIKey: validatedCredential(entry["screen_api_key"] as? String,
+                                                  account: name, field: "screen_api_key"),
                 screenRegion: screenRegion(from: entry["screen_region"] as? String, account: name)
             ))
             if (entry["default"] as? Bool) == true { defaultNames.append(name) }
@@ -340,25 +357,31 @@ public func makeAccountSet(config: [String: Any]?, environment: [String: String]
         return MCPAccountSet(accounts: accounts, defaultName: defaultName, allowWrites: allowWrites)
     }
 
-    // Legacy single-account env fallback.
-    guard let key = trimmedNonEmpty(environment["CODERPAD_API_KEY"]) else {
+    return try environmentAccountSet(environment, allowWrites: envWrites)
+}
+
+private func environmentAccountSet(_ environment: [String: String], allowWrites: Bool) throws -> MCPAccountSet {
+    let accountName = sanitizedAccountName(environment["CODERPAD_ACCOUNT_NAME"]) ?? "default"
+    guard let key = try validatedCredential(environment["CODERPAD_API_KEY"],
+                                            account: accountName, field: "CODERPAD_API_KEY") else {
         throw MCPConfigError.noAccounts
     }
 
     let account = try MCPAccount(
-        name: trimmedNonEmpty(environment["CODERPAD_ACCOUNT_NAME"]) ?? "default",
+        name: accountName,
         apiKey: key,
         baseURL: parseBaseURL(
             environment["CODERPAD_BASE_URL"],
-            account: trimmedNonEmpty(environment["CODERPAD_ACCOUNT_NAME"]) ?? "default"
+            account: accountName
         ),
-        screenAPIKey: trimmedNonEmpty(environment["CODERPAD_SCREEN_API_KEY"]),
+        screenAPIKey: validatedCredential(environment["CODERPAD_SCREEN_API_KEY"],
+                                          account: accountName, field: "CODERPAD_SCREEN_API_KEY"),
         screenRegion: screenRegion(
             from: environment["CODERPAD_SCREEN_REGION"],
-            account: trimmedNonEmpty(environment["CODERPAD_ACCOUNT_NAME"]) ?? "default"
+            account: accountName
         )
     )
-    return MCPAccountSet(accounts: [account], defaultName: account.name, allowWrites: envWrites)
+    return MCPAccountSet(accounts: [account], defaultName: account.name, allowWrites: allowWrites)
 }
 
 private func configuredAllowWrites(_ config: [String: Any]?) throws -> Bool {
