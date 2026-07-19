@@ -269,7 +269,7 @@ extension PadDetailView {
         /// silently incomplete playback (#1762); Refresh retries them.
         func fetch(_ request: PadHistoryRequest) async -> (history: PadFileHistory?, failed: Bool) {
             do {
-                let history = try await client.padHistory(historyURL: request.url)
+                let history = try await PadHistoryFetcher.fetch(request.url, accountBaseURL: client.baseURL)
                 guard !history.isEmpty else { return (nil, false) }
 
                 return (PadFileHistory(

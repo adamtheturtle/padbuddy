@@ -67,4 +67,15 @@ struct PadHistoryValidationTests {
         #expect(!allowed("https://attacker.europe-west1.firebasedatabase.app/abc"))
         #expect(!allowed("https://unrelated.coderpad.io/history"))
     }
+
+    @Test
+    func `redirects are checked against the same account policy`() throws {
+        let trusted = try #require(URL(string: "https://coderpad-1.firebaseio.com/next"))
+        let metadata = try #require(URL(string: "https://169.254.169.254/latest/meta-data/"))
+        let unrelated = try #require(URL(string: "https://unrelated-project.firebaseio.com/next"))
+
+        #expect(PadHistoryRedirectDelegate.isAllowed(trusted, accountBaseURL: hostedBase))
+        #expect(!PadHistoryRedirectDelegate.isAllowed(metadata, accountBaseURL: hostedBase))
+        #expect(!PadHistoryRedirectDelegate.isAllowed(unrelated, accountBaseURL: hostedBase))
+    }
 }
