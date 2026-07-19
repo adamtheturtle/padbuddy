@@ -114,6 +114,13 @@ struct WhiteboardImage: View {
             // URL cache (conditional GET when the server offers validators) and
             // refreshes the decoded copy (#792).
             phase = .success(cached.image, isAnimated: cached.isAnimated)
+            // Except while the entry is still brand new: `.task(id: url)` re-fires on
+            // every remount, and PadDetailView is keyed `.id(pad.id)`, so flicking
+            // between pads paid a round-trip and an off-main re-decode per
+            // reselection for a thumbnail that was just validated (#2096). The window
+            // is short enough that #792's "the drawing changed behind the URL" case
+            // still resolves on the next look.
+            if WhiteboardImageCache.isFresh(storedAt: cached.storedAt) { return }
         }
 
         do {
@@ -187,11 +194,28 @@ final class WhiteboardImageCache {
     final class Entry {
         let image: PlatformImage
         let isAnimated: Bool
+        /// When this thumbnail was decoded, backing the revalidation-skip window
+        /// (see `isFresh`).
+        let storedAt: Date
 
-        init(image: PlatformImage, isAnimated: Bool) {
+        init(image: PlatformImage, isAnimated: Bool, storedAt: Date = Date()) {
             self.image = image
             self.isAnimated = isAnimated
+            self.storedAt = storedAt
         }
+    }
+
+    /// How long a decoded thumbnail is trusted without revalidating (#2096). Long
+    /// enough to cover flicking through a list of pads, short enough that an edit
+    /// made behind an unchanged URL still shows up promptly (#792).
+    nonisolated static let freshnessWindow: TimeInterval = 30
+
+    /// Whether an entry decoded at `storedAt` is still inside `freshnessWindow`. A
+    /// future `storedAt` (a clock moved backwards) reads as stale rather than fresh
+    /// for the length of the jump, so a wall-clock change can't pin a stale drawing.
+    nonisolated static func isFresh(storedAt: Date, now: Date = Date()) -> Bool {
+        let age = now.timeIntervalSince(storedAt)
+        return age >= 0 && age < freshnessWindow
     }
 
     // Decoded, downsampled thumbnails. Each is a few MB of uncompressed bitmap, so an
