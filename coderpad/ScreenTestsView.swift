@@ -250,8 +250,17 @@ struct ScreenTestsView: View {
             : String(localized: "\(count) candidates")
     }
 
+    /// The selected rows, in list order.
+    ///
+    /// Read by `selectedTest` (which the detail column and the toolbar action both
+    /// consume), so the scan over the whole filtered campaign list ran several times
+    /// per render for what is usually a handful of selected rows. Short-circuiting on
+    /// an empty selection covers the common case; beyond that the membership test is
+    /// already O(1) against the Set (#2466).
     private var selectedTestsInOrder: [ScreenTestSession] {
-        filtered.filter { selectedIDs.contains($0.id) }
+        guard !selectedIDs.isEmpty else { return [] }
+
+        return filtered.filter { selectedIDs.contains($0.id) }
     }
 
     var selectedTest: ScreenTestSession? {

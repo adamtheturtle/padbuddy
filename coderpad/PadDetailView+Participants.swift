@@ -27,10 +27,12 @@ extension PadDetailView {
     private func participantList(names: [String]) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             // Key by position rather than the name itself: two participants can
-            // share a display name (or the same name can appear twice), and
-            // `id: \.self` would then hand the list duplicate IDs.
-            ForEach(Array(names.enumerated()), id: \.offset) { _, name in
-                participantRow(name: name)
+            // share a display name (or the same name can appear twice), and keying on
+            // the name would then hand the list duplicate IDs. Indices rather than
+            // `Array(names.enumerated())`, which materialized a copy of the whole
+            // participant list on every render of the detail view (#2471).
+            ForEach(names.indices, id: \.self) { index in
+                participantRow(name: names[index])
             }
         }
     }

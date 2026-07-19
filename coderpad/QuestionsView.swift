@@ -27,6 +27,9 @@ struct QuestionsView: View {
     /// re-runs `body` several times per click). Mirrors `PadsView.padsRevision` (#395).
     /// Any new assignment to `questions` must bump this.
     @State var questionsRevision = 0
+    /// Id index for selection resolution, rebuilt when `questionsRevision` moves on.
+    /// Internal, not private: the selection helpers live in QuestionsView+Selection.
+    @State var questionIDIndex: (revision: Int, ids: Set<Int>) = (-1, [])
 
     @State var isLoading = false
     @State var error: (any Error)?
@@ -331,26 +334,6 @@ struct QuestionsView: View {
     /// Selects the question with `id`, deferring until the list loads it when the
     /// favorite was picked before the questions arrived (e.g. right after a cold
     /// launch). `resolvePendingSelection` completes the deferred case.
-    private func selectQuestion(id: Int) {
-        if let match = questions.first(where: { $0.id == id }) {
-            selectedQuestionIDs = [match.id]
-            // Reveal it: a favorite picked from the sidebar may sit far down the list.
-            pendingScrollToID = match.id
-            pendingSelectQuestionID = nil
-        } else {
-            pendingSelectQuestionID = id
-        }
-    }
-
-    private func resolvePendingSelection() {
-        guard let id = pendingSelectQuestionID,
-              let match = questions.first(where: { $0.id == id }) else { return }
-
-        selectedQuestionIDs = [match.id]
-        pendingScrollToID = match.id
-        pendingSelectQuestionID = nil
-    }
-
     func reload() async {
         guard !client.apiKey.isEmpty else { return }
 
