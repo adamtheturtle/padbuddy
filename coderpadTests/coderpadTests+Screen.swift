@@ -16,6 +16,14 @@ import Testing
 @Suite("Screen API client")
 struct ScreenClientTests {
     @Test
+    func `live session bounds request and total resource duration`() {
+        let configuration = ScreenClient.makeLiveConfiguration()
+
+        #expect(configuration.timeoutIntervalForRequest == 60)
+        #expect(configuration.timeoutIntervalForResource == 120)
+    }
+
+    @Test
     func `listCampaigns decodes campaigns and their languages`() async throws {
         // The fixture includes one malformed entry; it must be dropped, not hide
         // the valid campaigns behind a decode error (#896).

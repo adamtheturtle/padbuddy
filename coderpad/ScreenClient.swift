@@ -43,11 +43,15 @@ struct ScreenClient {
     }
 
     /// The single construction point for the live session, mirroring `CoderPadClient`.
-    static let liveSession: URLSession = {
+    static let liveSession: URLSession = .init(configuration: makeLiveConfiguration())
+
+    /// Kept separate from the session so timeout policy is directly testable.
+    nonisolated static func makeLiveConfiguration() -> URLSessionConfiguration {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = 60
-        return URLSession(configuration: config)
-    }()
+        config.timeoutIntervalForResource = 120
+        return config
+    }
 
     static func live(apiKey: String, baseURL: URL = Self.defaultBaseURL) -> Self {
         Self(apiKey: apiKey, baseURL: baseURL, session: liveSession)
