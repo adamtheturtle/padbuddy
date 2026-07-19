@@ -5,6 +5,7 @@
 //  The change token for a merged view's account set.
 //
 
+import CryptoKit
 import Foundation
 
 /// One account's identity for change detection: which account, which credentials,
@@ -16,13 +17,28 @@ import Foundation
 /// per account per render purely to detect a change (#2281).
 struct MergedAccountToken: Hashable {
     let id: UUID
-    let apiKey: String
+    let apiKeyDigest: Data
     let baseURL: URL
 
     @MainActor
     init(account: Account) {
         id = account.id
-        apiKey = account.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let key = account.apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        apiKeyDigest = Data(SHA256.hash(data: Data(key.utf8)))
         baseURL = account.resolvedBaseURL
+    }
+}
+
+struct MergedScreenAccountToken: Hashable {
+    let id: UUID
+    let apiKeyDigest: Data
+    let baseURL: URL
+
+    @MainActor
+    init(account: Account) {
+        id = account.id
+        let key = (account.screenApiKey ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        apiKeyDigest = Data(SHA256.hash(data: Data(key.utf8)))
+        baseURL = account.screenRegion.baseURL
     }
 }

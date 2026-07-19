@@ -308,10 +308,8 @@ struct MergedScreenView: View {
     /// A token covering the Screen account set (ids + key + region) so the load task
     /// restarts when a Screen key is added, removed, rekeyed, or re-regioned —
     /// matching `MergedOrganizationView.accountKey`.
-    private var accountKey: String {
-        screenAccounts
-            .map { "\($0.id.uuidString):\($0.screenApiKey ?? ""):\($0.screenRegion.rawValue)" }
-            .joined(separator: ",")
+    private var accountKey: [MergedScreenAccountToken] {
+        screenAccounts.map(MergedScreenAccountToken.init(account:))
     }
 
     /// Fan out `listCampaigns()` across every Screen-enabled account concurrently,

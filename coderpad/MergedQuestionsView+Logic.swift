@@ -274,14 +274,8 @@ extension MergedQuestionsView {
         ])
     }
 
-    var accountKey: [FilterSignature] {
-        accounts.mergeableAccounts.map {
-            FilterSignature.makeExact([
-                $0.id.uuidString,
-                $0.apiKey.trimmingCharacters(in: .whitespacesAndNewlines),
-                $0.resolvedBaseURL.absoluteString
-            ])
-        }
+    var accountKey: [MergedAccountToken] {
+        accounts.mergeableAccounts.map(MergedAccountToken.init(account:))
     }
 
     // MARK: - Loading

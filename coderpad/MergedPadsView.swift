@@ -248,6 +248,6 @@ final class ScopedPadsCache {
 }
 
 struct MergedPadsTaskKey: Hashable {
-    let accountKey: [FilterSignature]
+    let accountKey: [MergedAccountToken]
     let phase: ScenePhase
 }

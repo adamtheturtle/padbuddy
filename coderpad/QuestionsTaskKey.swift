@@ -15,6 +15,6 @@ struct QuestionsTaskKey: Hashable {
 }
 
 struct MergedQuestionsTaskKey: Hashable {
-    let accountKey: [FilterSignature]
+    let accountKey: [MergedAccountToken]
     let phase: ScenePhase
 }
