@@ -228,6 +228,10 @@ struct EnvironmentCodeCard: View {
     /// at this width — a drag previews with a lightweight indicator and commits
     /// here on release (see `resizeHandle`), so no heavy relayout runs mid-drag.
     @AppStorage("padFileSidebarWidth") var storedWidth: Double = 180
+    var sidebarWidth: Double {
+        CodeSidebarWidth.clamped(storedWidth)
+    }
+
     /// The previewed width while a resize drag is in progress, or `nil` when not
     /// dragging. Only a thin indicator line follows this; the actual sidebar keeps
     /// its committed `storedWidth` until the drag ends, so dragging never forces
@@ -304,6 +308,11 @@ struct EnvironmentCodeCard: View {
             }
         }
         #endif
+        .onAppear {
+            // Render through the safe value immediately, then repair stale or
+            // externally edited persisted state for every later card (#1888).
+            storedWidth = sidebarWidth
+        }
         // When the environment's files change (added/removed/renamed — ids are
         // path-based), clear the retained selection so `selected` falls back to the
         // first file rather than pointing at a stale or wrong file. An in-place

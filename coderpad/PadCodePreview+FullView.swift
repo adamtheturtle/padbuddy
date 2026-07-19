@@ -81,7 +81,7 @@ extension EnvironmentCodeCard {
             .padding(6)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(width: CGFloat(storedWidth), alignment: .leading)
+        .frame(width: CGFloat(sidebarWidth), alignment: .leading)
         .frame(maxHeight: .infinity)
     }
 }

@@ -174,7 +174,7 @@ extension EnvironmentCodeCard {
         // taller and the two vertical scrolls renegotiate combinatorially, the same
         // main-thread hang as the code view (#494). Pinning it keeps the file list
         // independently scrollable within a fixed row.
-        .frame(width: CGFloat(storedWidth), height: 360)
+        .frame(width: CGFloat(sidebarWidth), height: 360)
     }
 
     /// The draggable divider between the file list and the code. It draws the
@@ -201,8 +201,8 @@ extension EnvironmentCodeCard {
                                 // Measure each drag from the committed width and
                                 // move only the lightweight preview indicator —
                                 // the heavy panes stay put until release.
-                                let next = storedWidth + Double(value.translation.width)
-                                liveWidth = min(max(120, next), 420)
+                                let next = sidebarWidth + Double(value.translation.width)
+                                liveWidth = CodeSidebarWidth.clamped(next)
                             }
                             .onEnded { _ in
                                 // Commit the previewed width (one relayout) and
@@ -217,11 +217,11 @@ extension EnvironmentCodeCard {
                     // bounds the drag clamps to (#351).
                     .accessibilityElement()
                     .accessibilityLabel("Code panel width")
-                    .accessibilityValue(Text("\(Int(storedWidth))"))
+                    .accessibilityValue(Text("\(Int(sidebarWidth))"))
                     .accessibilityAdjustableAction { direction in
                         switch direction {
-                        case .increment: storedWidth = min(storedWidth + 20, 420)
-                        case .decrement: storedWidth = max(storedWidth - 20, 120)
+                        case .increment: storedWidth = CodeSidebarWidth.clamped(sidebarWidth + 20)
+                        case .decrement: storedWidth = CodeSidebarWidth.clamped(sidebarWidth - 20)
                         @unknown default: break
                         }
                     }
