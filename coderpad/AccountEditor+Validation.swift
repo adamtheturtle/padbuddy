@@ -25,6 +25,13 @@ extension AccountEditor {
         currentValidationFingerprint == fingerprint
     }
 
+    static func validatedOwnerEmail(_ raw: String?) -> String? {
+        guard let raw else { return nil }
+
+        let normalized = EmailValidation.normalized(raw)
+        return EmailValidation.isPlausibleAddress(normalized) ? normalized : nil
+    }
+
     func applyValidatedOrganization(
         _ org: Organization,
         client: CoderPadClient,
@@ -43,10 +50,10 @@ extension AccountEditor {
             let detected = await detectUserEmail(client: client)
             guard validationStillMatches(fingerprint) else { return false }
 
-            if let detected, draft.userEmail.isEmpty {
+            if let detected = Self.validatedOwnerEmail(detected), draft.userEmail.isEmpty {
                 draft.userEmail = detected
             } else if draft.userEmail.isEmpty, org.users.count == 1 {
-                draft.userEmail = org.users.first?.email ?? ""
+                draft.userEmail = Self.validatedOwnerEmail(org.users.first?.email) ?? ""
             }
         }
         validation = .valid

@@ -36,6 +36,20 @@ struct SettingsAccountSelectionTests {
     }
 }
 
+@Suite("Account owner email validation")
+struct AccountOwnerEmailValidationTests {
+    @Test(arguments: ["", "not-an-email", "a@localhost", "a\u{200D}@example.com"])
+    func `malformed API owner emails are rejected`(email: String) {
+        #expect(AccountEditor.validatedOwnerEmail(email) == nil)
+        #expect(AccountEditor.validatedOwnerEmail(nil) == nil)
+    }
+
+    @Test
+    func `valid API owner emails are trimmed and normalize their domain`() {
+        #expect(AccountEditor.validatedOwnerEmail("  Owner@EXAMPLE.COM \n") == "Owner@example.com")
+    }
+}
+
 @Suite("App appearance")
 struct AppAppearanceTests {
     @Test(arguments: [
