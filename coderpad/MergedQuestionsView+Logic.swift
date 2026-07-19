@@ -86,25 +86,25 @@ extension MergedQuestionsView {
     /// pass in here (rather than a separately-recomputed `filtered`) so the list,
     /// overlay, and count bar share a single pass.
     func refreshSorted() {
-        // Precompute each account's favorites once per render, so both the favorites
-        // *filter* and every row's `isFavorite` check are O(1) and don't rebuild the
-        // array per row (#367). Stored on the cache so the row body and swipe actions
-        // share this pass.
-        let favoritesByAccount = Dictionary(uniqueKeysWithValues: accounts.mergeableAccounts.map {
-            ($0.id, Set(favorites.favorites(account: $0.id)))
-        })
         // Skip the filter+sort on selection-only body passes (mirrors #395). `scoped` is
-        // itself memoized, so its signature stands in for the rows; favoritesByAccount is
-        // in the key so toggling a favorite still re-runs.
+        // itself memoized, so its signature stands in for the rows; the favorites
+        // revision is in the key so toggling a favorite still re-runs.
         let key = SortedQuestionsCache.Key(
             scopedSignature: scopedCache.signature ?? 0,
             filterSignature: filterSignature,
             favoritesOnly: favoritesOnly,
-            favoritesByAccount: favoritesByAccount
+            favoritesRevision: favorites.revision
         )
         guard sortedCache.key != key else { return }
 
         sortedCache.key = key
+        // Precompute each account's favorites once per rebuild, so both the favorites
+        // *filter* and every row's `isFavorite` check are O(1) (#367), shared with the
+        // row body and swipe actions. Built past the guard: one Set per account just to
+        // compare in the key cost O(total favorites) allocations per render (#2084).
+        let favoritesByAccount = Dictionary(uniqueKeysWithValues: accounts.mergeableAccounts.map {
+            ($0.id, Set(favorites.favorites(account: $0.id)))
+        })
         sortedCache.favoritesByAccount = favoritesByAccount
         let searchQuery = search.trimmingCharacters(in: .whitespacesAndNewlines)
         // Both sides lowercased/case-insensitive; mirrors the single-account

@@ -203,7 +203,8 @@ final class SortedQuestionsCache {
         let filterSignature: String
         let favoritesOnly: Bool
         /// Favorites drive both the favorites filter and each row's star, so a toggle
-        /// must re-run; comparing the small id sets is cheap and exact.
-        let favoritesByAccount: [UUID: Set<Int>]
+        /// must re-run. `FavoriteQuestionsStore.revision` moves on every change, so
+        /// comparing it replaces rebuilding a Set per account each pass (#2084).
+        let favoritesRevision: Int
     }
 }
