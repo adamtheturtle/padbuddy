@@ -241,6 +241,24 @@ struct PadHistoryReplayTests {
         #expect(file.snapshots.map(\.contents) == ["a\nb\nc", "a\nb\nXc"])
         #expect(file.snapshots.map(\.changeLine) == [0, 2])
     }
+
+    @Test
+    func `malformed retain offsets are clamped to the document`() {
+        let history = PadHistory(entries: [
+            PadHistoryEntry(id: "seed", author: "Basil", operations: [.insert("a\nb")], timestamp: 1),
+            PadHistoryEntry(
+                id: "oversized",
+                author: "Basil",
+                operations: [.retain(.max), .retain(.max), .insert("x")],
+                timestamp: 2
+            ),
+            PadHistoryEntry(id: "negative", author: "Basil", operations: [.retain(-10), .insert("y")], timestamp: 3)
+        ])
+
+        let file = PadFileHistory(id: "history-url", title: "main.py", language: "python", history: history)
+
+        #expect(file.snapshots.map(\.changeLine) == [0, 1, 0])
+    }
 }
 
 // Serialized: OrgDirectory.load reaches a mock client and the suite asserts on

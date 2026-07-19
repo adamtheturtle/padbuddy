@@ -272,10 +272,18 @@ nonisolated struct PadFileHistory: Identifiable, Hashable {
         for operation in entry.operations {
             guard case let .retain(count) = operation else { break }
 
-            offset += count
+            let (sum, overflow) = offset.addingReportingOverflow(count)
+            if overflow {
+                offset = count >= 0 ? .max : .min
+            } else {
+                offset = sum
+            }
         }
+        // History is remote input. Keep malformed negative, oversized, or
+        // overflowing retains inside the post-edit document before slicing it.
+        let clampedOffset = min(max(0, offset), contents.utf16.count)
         let newline = "\n".utf16.first
-        return contents.utf16.prefix(offset).count(where: { $0 == newline })
+        return contents.utf16.prefix(clampedOffset).count(where: { $0 == newline })
     }
 }
 
