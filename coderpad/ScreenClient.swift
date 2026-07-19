@@ -36,6 +36,7 @@ struct ScreenClient {
     nonisolated static let maximumPageSize = 500
     nonisolated static let maximumProductFilterLength = 64
     nonisolated static let maximumEmailFilterLength = 320
+    nonisolated static let maximumErrorBodyBytes = 16 * 1024
 
     private nonisolated static func requirePositiveID(_ id: Int, kind: String) throws {
         guard id > 0 else { throw CoderPadError.decode("Screen \(kind) ID must be positive.") }
@@ -330,7 +331,11 @@ struct ScreenClient {
             throw CoderPadError.http(0, "No HTTP response")
         }
         guard (200 ..< 300).contains(http.statusCode) else {
-            throw CoderPadError.http(http.statusCode, String(data: data, encoding: .utf8) ?? "")
+            // Bound the extra copy retained by CoderPadError and any eventual UI/log
+            // presentation. URLSession has already received `data`; this specifically
+            // prevents duplicating an arbitrarily large server body as a String (#2771).
+            let bounded = data.prefix(Self.maximumErrorBodyBytes)
+            throw CoderPadError.http(http.statusCode, String(bytes: bounded, encoding: .utf8) ?? "")
         }
 
         return (data, http)

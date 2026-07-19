@@ -19,6 +19,19 @@ struct ScreenCancellationTests {
             _ = try await client.listCampaigns()
         }
     }
+
+    @Test
+    func `HTTP errors retain only a bounded response-body prefix`() async {
+        do {
+            _ = try await screenClient().getTest(id: 999_999)
+            Issue.record("Expected the mock server error")
+        } catch let CoderPadError.http(code, body) {
+            #expect(code == 451)
+            #expect(body.utf8.count <= ScreenClient.maximumErrorBodyBytes)
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
+    }
 }
 
 final nonisolated class CancelledScreenURLProtocol: URLProtocol {

@@ -59,6 +59,8 @@ final nonisolated class ScreenAPIMockURLProtocol: URLProtocol {
             (200, testsBody(query: query))
         case ("GET", "/tests/13188658"):
             (200, completedTestJSON)
+        case ("GET", "/tests/999999"):
+            (451, #"{"message":"# + String(repeating: "x", count: 50000) + #""}"#)
         case ("POST", "/tests/13188658/actions/cancel"),
              ("POST", "/tests/13188658/actions/resend"),
              ("DELETE", "/tests/13188658"):
