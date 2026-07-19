@@ -25,8 +25,10 @@
         // the menu showing an initial fetch status so often: each open cleared its own
         // copy and waited on the network (#327). Now the menu shows cached data instantly and `load`
         // refreshes it in the background without clearing.
-        @State private var padsCache = PadsCacheStore.shared
-        @State private var questionsCache = QuestionsCacheStore.shared
+        // Internal, not private: `refreshLists` reads them from MenuBarView+Logic,
+        // where it lives to keep this file within the length lint.
+        @State var padsCache = PadsCacheStore.shared
+        @State var questionsCache = QuestionsCacheStore.shared
         @State var isLoading = false
         @State var errorMessage: String?
         @State var creatingPadKeys: Set<String> = []
@@ -35,10 +37,11 @@
         /// only the newest may publish caches, `errorMessage`, or end `isLoading`, so
         /// an older, slower request can't overwrite a newer result (#775).
         @State var loadGeneration = 0
-        /// Per-render memo of the sorted pads/questions, refreshed once at the top of
-        /// `accountMenu` so the menu's several readers share one sort instead of
-        /// re-sorting the full cached lists on every access (#370). Internal, not
-        /// private: the ownership memo is read from MenuBarView+Logic.
+        /// Memo of the sorted pads/questions, refreshed at the top of `accountMenu` so
+        /// the menu's several readers share one sort instead of re-sorting the full
+        /// cached lists on every access (#370), and only when the caches or the
+        /// accounts in view actually changed (#2112). Internal, not private: the
+        /// ownership memo is read from MenuBarView+Logic.
         @State var listCache = MenuBarListCache()
         @AppStorage("menuBarTopN") private var topN: Int = 3
         @AppStorage("menuBarStartedOnly") var startedOnly = false
@@ -63,33 +66,6 @@
         /// mode (#674).
         var questionRows: [MenuBarQuestionRow] {
             listCache.questionRows
-        }
-
-        /// Sort cached pads/questions once per render into `listCache`. Mirrors the
-        /// list views' memo pattern; called at the top of `accountMenu` before any
-        /// reader touches menu data (#370/#674).
-        private func refreshLists() {
-            let accounts = store.isMergedView ? store.mergeableAccounts : store.currentAccount.map { [$0] } ?? []
-            guard !accounts.isEmpty else {
-                listCache.padRows = []
-                listCache.questionRows = []
-                listCache.myOwnedPads = []
-                return
-            }
-
-            let padRows = accounts.flatMap { account in
-                padsCache.get(account.id).map { MenuBarPadRow(account: account, pad: $0) }
-            }
-            listCache.padRows = padRows.sorted {
-                ($0.pad.updatedAt ?? .distantPast) > ($1.pad.updatedAt ?? .distantPast)
-            }
-
-            let questionRows = accounts.flatMap { account in
-                questionsCache.get(account.id).map { MenuBarQuestionRow(account: account, question: $0) }
-            }
-            listCache.questionRows = questionRows
-                .sorted { ($0.question.updatedAt ?? .distantPast) > ($1.question.updatedAt ?? .distantPast) }
-            listCache.myOwnedPads = computeMyOwnedPads()
         }
 
         private var menuLoadKey: String {
@@ -354,10 +330,13 @@
         }
     }
 
-    /// Per-render memo of the menu bar's sorted pads/questions. A plain reference type
-    /// (not `@Observable`) so `accountMenu` can refresh it without mutating SwiftUI
-    /// state mid-evaluation, mirroring the list views' filtered/sorted caches (#370).
+    /// Memo of the menu bar's sorted pads/questions. A plain reference type (not
+    /// `@Observable`) so `accountMenu` can refresh it without mutating SwiftUI state
+    /// mid-evaluation, mirroring the list views' filtered/sorted caches (#370).
     final class MenuBarListCache {
+        /// What the rows were built from, so they rebuild when the caches or the
+        /// accounts in view change rather than on every render (#2112).
+        var signature: Int?
         var padRows: [MenuBarPadRow] = []
         var questionRows: [MenuBarQuestionRow] = []
         /// The ownership filter's result, memoized alongside the sorted rows.

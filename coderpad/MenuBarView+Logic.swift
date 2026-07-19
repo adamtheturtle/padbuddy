@@ -17,6 +17,64 @@
             return "\(account.id.uuidString):\(seed)"
         }
 
+        /// Sort cached pads/questions into `listCache`. Mirrors the list views' memo
+        /// pattern; called at the top of `accountMenu` before any reader touches menu
+        /// data (#370/#674).
+        ///
+        /// Keyed to a cheap signature rather than "once per render": `body` re-runs on
+        /// every state change while the menu is open, and the O(n log n) sorts fan in
+        /// every account's full cache when merged, so they rebuilt from scratch each
+        /// pass even though the caches had not been written (#2112).
+        func refreshLists() {
+            let accounts = store.isMergedView ? store.mergeableAccounts : store.currentAccount.map { [$0] } ?? []
+            let signature = listSignature(accounts: accounts)
+            guard listCache.signature != signature else { return }
+
+            listCache.signature = signature
+            guard !accounts.isEmpty else {
+                listCache.padRows = []
+                listCache.questionRows = []
+                listCache.myOwnedPads = []
+                return
+            }
+
+            let padRows = accounts.flatMap { account in
+                padsCache.get(account.id).map { MenuBarPadRow(account: account, pad: $0) }
+            }
+            listCache.padRows = padRows.sorted {
+                ($0.pad.updatedAt ?? .distantPast) > ($1.pad.updatedAt ?? .distantPast)
+            }
+
+            let questionRows = accounts.flatMap { account in
+                questionsCache.get(account.id).map { MenuBarQuestionRow(account: account, question: $0) }
+            }
+            listCache.questionRows = questionRows
+                .sorted { ($0.question.updatedAt ?? .distantPast) > ($1.question.updatedAt ?? .distantPast) }
+            listCache.myOwnedPads = computeMyOwnedPads()
+        }
+
+        /// A signature of everything the memoized rows depend on: which accounts are in
+        /// view, the name and user email each row renders and resolves ownership
+        /// against (so a rename or a newly configured email rebuilds), and each cache's
+        /// write generation. The generation stands in for the cached items themselves,
+        /// so the check stays O(accounts) rather than hashing every pad and question —
+        /// the same trade the merged list views make (#1234). The counts cover the one
+        /// population that doesn't bump a generation: `get`'s synchronous disk fallback.
+        func listSignature(accounts: [Account]) -> Int {
+            var hasher = Hasher()
+            hasher.combine(store.isMergedView)
+            for account in accounts {
+                hasher.combine(account.id)
+                hasher.combine(account.name)
+                hasher.combine(account.userEmail)
+                hasher.combine(padsCache.writeGeneration[account.id] ?? 0)
+                hasher.combine(questionsCache.writeGeneration[account.id] ?? 0)
+                hasher.combine(padsCache.cached(account.id).count)
+                hasher.combine(questionsCache.cached(account.id).count)
+            }
+            return hasher.finalize()
+        }
+
         func padLabel(_ pad: Pad) -> String {
             let title = pad.title.isEmpty ? pad.id : pad.title
             let language = pad.language.flatMap { $0.isEmpty ? nil : " · \($0.coderPadLanguageDisplayName)" } ?? ""
