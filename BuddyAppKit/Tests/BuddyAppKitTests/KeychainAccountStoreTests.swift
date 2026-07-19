@@ -71,6 +71,21 @@ struct KeychainAccountStoreTests {
     }
 
     @Test
+    func `add upserts an existing account ID`() {
+        let id = UUID()
+        let original = MockAccount(accountID: id, key: "a")
+        let replacement = MockAccount(accountID: id, key: "b")
+        var rekeyed: [UUID] = []
+        let store = makeStore(seed: [original], onRekeyed: { rekeyed.append($0) })
+
+        store.add(replacement)
+
+        #expect(store.accounts == [replacement])
+        #expect(store.currentAccountID == id)
+        #expect(rekeyed == [id])
+    }
+
+    @Test
     func `update fires onRekeyed only when the backend changes`() {
         let id = UUID()
         var rekeyed: [UUID] = []
