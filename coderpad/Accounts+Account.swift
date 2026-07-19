@@ -294,10 +294,18 @@ struct Account: Identifiable, Codable, Hashable {
 
     /// The API client this account talks to: the in-process mock for demo accounts
     /// (answering 401 for the bad-key demo), otherwise the live hosted client.
+    ///
+    /// Memoized per set of credentials. Clients are built inside `body` — the section
+    /// content rebuilt one on every render pass, so each search keystroke allocated a
+    /// fresh REST transport stack (#2111). Two clients built from the same key and
+    /// server are interchangeable, so reuse changes nothing but the allocation.
     func makeClient() -> CoderPadClient {
         guard isMock else {
-            return .live(apiKey: apiKey.trimmingCharacters(in: .whitespacesAndNewlines),
-                         baseURL: resolvedBaseURL)
+            let key = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            let server = resolvedBaseURL
+            return ClientMemo.client(.init(apiKey: key, baseURL: server, isUnauthorizedMock: false)) {
+                .live(apiKey: key, baseURL: server)
+            }
         }
 
         // Key the mock client by the account's own apiKey so the good demo ("demo")
@@ -306,7 +314,9 @@ struct Account: Identifiable, Codable, Hashable {
         // client identity (server + key) — e.g. OrganizationCacheStore (#374) would
         // serve the good demo's cached org to the bad-key client after the good one
         // had loaded, instead of letting the bad key 401.
-        return .mock(unauthorized: isBadKeyDemo, key: apiKey)
+        return ClientMemo.client(.init(apiKey: apiKey, baseURL: nil, isUnauthorizedMock: isBadKeyDemo)) {
+            .mock(unauthorized: isBadKeyDemo, key: apiKey)
+        }
     }
 
     /// The CoderPad **Screen** client this account talks to, or `nil` when a real

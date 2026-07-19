@@ -54,6 +54,27 @@ struct AccountRoundTripTests {
     }
 
     @Test
+    func `makeClient memoizes one client per set of credentials (#2111)`() {
+        ClientMemo.removeAll()
+        var account = Account(name: "Acme", apiKey: "live-key", userEmail: "me@acme.com")
+
+        _ = account.makeClient()
+        _ = account.makeClient()
+        #expect(ClientMemo.count == 1)
+
+        // A re-keyed account misses the memo rather than being handed a client for
+        // credentials it no longer has.
+        account.apiKey = "rotated-key"
+        #expect(account.makeClient().apiKey == "rotated-key")
+        #expect(ClientMemo.count == 2)
+
+        // The two demos share a server but must stay distinct clients.
+        ClientMemo.removeAll()
+        #expect(Account.demo().makeClient().apiKey != Account.demoBadKey().makeClient().apiKey)
+        #expect(ClientMemo.count == 2)
+    }
+
+    @Test
     func `icon symbol and tint survive the round-trip`() throws {
         let original = Account(
             name: "Acme", apiKey: "k", userEmail: "me@acme.com",
