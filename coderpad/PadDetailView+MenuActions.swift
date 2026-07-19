@@ -203,6 +203,7 @@ extension PadDetailView {
         // availability that depends on them) stale. Both still run concurrently.
         let (loadedEnvironments, failedIDs) = await envs
         environments = loadedEnvironments
+        displayFilesByEnvironment = Self.normalizedDisplayFiles(for: loadedEnvironments)
         failedEnvironmentIDs = failedIDs
 
         do {

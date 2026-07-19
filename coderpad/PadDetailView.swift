@@ -16,6 +16,14 @@ struct PadDetailView: View {
     let pad: Pad
     @State var events: [PadEvent] = []
     @State var environments: [PadEnvironment] = []
+    /// Each environment's normalized display files, keyed by environment id.
+    ///
+    /// `displayFiles(for:)` re-walks and re-canonicalizes every file's contents,
+    /// and a single render asked for it from the code cards, the section list,
+    /// the header chip, and the save-availability check — five to ten times over
+    /// for a multi-file pad (#2089). It depends only on `environments`, so it is
+    /// computed wherever those are set and read from here.
+    @State var displayFilesByEnvironment: [Int: [CodeFile]] = [:]
     /// Environment ids whose fetch failed on the last load: the code cards show
     /// only the surviving environments, so these drive an explicit incomplete-code
     /// warning and block caching the partial result as complete (#713).
@@ -100,6 +108,9 @@ struct PadDetailView: View {
         if let cached = PadDetailCacheStore.shared.get(pad.id, client: client) {
             _events = State(initialValue: cached.events)
             _environments = State(initialValue: cached.environments)
+            _displayFilesByEnvironment = State(
+                initialValue: Self.normalizedDisplayFiles(for: cached.environments)
+            )
             _histories = State(initialValue: cached.histories)
             _isLoading = State(initialValue: false)
         }
@@ -371,24 +382,6 @@ struct PadDetailView: View {
         guard let account = owningAccountID else { return }
 
         favorites.toggle(pad.id, title: pad.title, account: account, undoManager: undoManager)
-    }
-}
-
-private extension PadDetailView {
-    var detailToolbarLeadingPlacement: ToolbarItemPlacement {
-        #if os(macOS)
-            .primaryAction
-        #else
-            .topBarLeading
-        #endif
-    }
-
-    var detailToolbarTrailingPlacement: ToolbarItemPlacement {
-        #if os(macOS)
-            .primaryAction
-        #else
-            .topBarTrailing
-        #endif
     }
 }
 

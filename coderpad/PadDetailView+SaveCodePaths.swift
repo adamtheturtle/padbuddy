@@ -30,6 +30,21 @@ extension PadDetailView {
     /// lets each be highlighted correctly instead of forcing the environment's
     /// single language onto all of them.
     func displayFiles(for env: PadEnvironment) -> [CodeFile] {
+        displayFilesByEnvironment[env.id] ?? Self.computeDisplayFiles(for: env)
+    }
+
+    /// Every environment's display files, keyed by id, for `displayFilesByEnvironment`.
+    static func normalizedDisplayFiles(for environments: [PadEnvironment]) -> [Int: [CodeFile]] {
+        var result: [Int: [CodeFile]] = [:]
+        for env in environments {
+            result[env.id] = computeDisplayFiles(for: env)
+        }
+        return result
+    }
+
+    /// The normalization itself. Callers go through `displayFiles(for:)`, which
+    /// reads the cached result rather than repeating this per render (#2089).
+    static func computeDisplayFiles(for env: PadEnvironment) -> [CodeFile] {
         var occurrences: [String: Int] = [:]
         var result: [CodeFile] = []
         for (index, file) in env.fileContents.enumerated() {
