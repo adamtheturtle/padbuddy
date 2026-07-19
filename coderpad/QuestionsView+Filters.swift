@@ -70,7 +70,7 @@ extension QuestionsView {
     /// memo), so the chip and the auto-clear guard both see a star toggled this
     /// same pass; mirrors `MergedQuestionsView.hasAnyFavorites`.
     var hasAnyFavorites: Bool {
-        !favorites.favorites(account: accounts.currentAccountID).isEmpty
+        favorites.hasFavorites(account: accounts.currentAccountID)
     }
 
     var hasActiveFilters: Bool {

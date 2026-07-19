@@ -128,6 +128,14 @@ final class FavoriteQuestionsStore {
         return (byAccount[account] ?? []).map(\.id)
     }
 
+    /// Whether the account has any starred questions, without allocating the id
+    /// array returned by `favorites(account:)` merely to inspect its emptiness.
+    func hasFavorites(account: UUID?) -> Bool {
+        guard let account else { return false }
+
+        return byAccount[account]?.isEmpty == false
+    }
+
     /// The favorite questions with their stored titles, in starred order, for the
     /// sidebar rows that show a name.
     func titledFavorites(account: UUID?) -> [FavoriteQuestion] {

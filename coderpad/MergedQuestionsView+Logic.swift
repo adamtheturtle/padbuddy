@@ -144,7 +144,7 @@ extension MergedQuestionsView {
     /// Whether any account has at least one starred question, gating the Favorites
     /// preset chip.
     var hasAnyFavorites: Bool {
-        accounts.mergeableAccounts.contains { !favorites.favorites(account: $0.id).isEmpty }
+        accounts.mergeableAccounts.contains { favorites.hasFavorites(account: $0.id) }
     }
 
     /// The scoped row for a namespaced row id, used to resolve the List selection
