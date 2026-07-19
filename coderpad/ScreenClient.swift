@@ -34,9 +34,41 @@ struct ScreenClient {
     /// for breaking changes (added response fields are non-breaking — see `ScreenAPI`).
     private nonisolated static let apiPrefix = "/assessment/api/v1.1"
     nonisolated static let maximumPageSize = 500
+    nonisolated static let maximumProductFilterLength = 64
+    nonisolated static let maximumEmailFilterLength = 320
 
     private nonisolated static func requirePositiveID(_ id: Int, kind: String) throws {
         guard id > 0 else { throw CoderPadError.decode("Screen \(kind) ID must be positive.") }
+    }
+
+    private nonisolated static func normalizedFilter(_ raw: String?, name: String, maximumLength: Int) throws
+        -> String? {
+        guard let raw else { return nil }
+
+        let value = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !value.isEmpty, value.count <= maximumLength,
+              !value.unicodeScalars.contains(where: { scalar in
+                  let category = scalar.properties.generalCategory
+                  return category == .control || category == .format
+              }) else {
+            throw CoderPadError.decode("Screen \(name) filter is invalid or too long.")
+        }
+
+        return value
+    }
+
+    private nonisolated static func normalizedListFilters(product: String?, candidateEmail: String?) throws
+        -> (product: String?, candidateEmail: String?) {
+        let product = try normalizedFilter(
+            product, name: "product", maximumLength: maximumProductFilterLength
+        )
+        let candidateEmail = try normalizedFilter(
+            candidateEmail, name: "candidate email", maximumLength: maximumEmailFilterLength
+        ).map(EmailValidation.normalized)
+        if let candidateEmail, !EmailValidation.isPlausibleAddress(candidateEmail) {
+            throw CoderPadError.decode("Screen candidate email filter is invalid or too long.")
+        }
+        return (product, candidateEmail)
     }
 
     init(apiKey: String,
@@ -95,6 +127,7 @@ struct ScreenClient {
                                start: Int? = nil,
                                limit: Int? = nil) async throws -> ScreenTestsPage {
         if let campaignID { try Self.requirePositiveID(campaignID, kind: "campaign") }
+        let filters = try Self.normalizedListFilters(product: product, candidateEmail: candidateEmail)
         if let start, start < 0 {
             throw CoderPadError.decode("Screen pagination start must not be negative.")
         }
@@ -103,8 +136,10 @@ struct ScreenClient {
         }
         var query: [URLQueryItem] = []
         if let campaignID { query.append(URLQueryItem(name: "campaignId", value: String(campaignID))) }
-        if let product { query.append(URLQueryItem(name: "product", value: product)) }
-        if let candidateEmail { query.append(URLQueryItem(name: "candidateEmail", value: candidateEmail)) }
+        if let product = filters.product { query.append(URLQueryItem(name: "product", value: product)) }
+        if let candidateEmail = filters.candidateEmail {
+            query.append(URLQueryItem(name: "candidateEmail", value: candidateEmail))
+        }
         if let from { query.append(URLQueryItem(name: "from", value: String(from))) }
         if let until { query.append(URLQueryItem(name: "to", value: String(until))) }
         if let start { query.append(URLQueryItem(name: "start", value: String(start))) }

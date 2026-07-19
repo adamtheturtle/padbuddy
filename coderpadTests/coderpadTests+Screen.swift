@@ -138,6 +138,35 @@ struct ScreenClientTests {
     }
 
     @Test
+    func `listTests rejects malformed or oversized string filters before transport`() async {
+        let client = ScreenClient(apiKey: "key", session: URLSession(configuration: .ephemeral))
+        let invalidFilters: [(product: String?, email: String?)] = [
+            ("   ", nil),
+            (String(repeating: "p", count: ScreenClient.maximumProductFilterLength + 1), nil),
+            (nil, "not-an-email"),
+            (nil, String(repeating: "e", count: ScreenClient.maximumEmailFilterLength + 1))
+        ]
+
+        for filters in invalidFilters {
+            do {
+                _ = try await client.listTests(product: filters.product, candidateEmail: filters.email)
+                Issue.record("Expected an invalid Screen filter to throw")
+            } catch let error as CoderPadError {
+                #expect(error.description.contains("filter is invalid or too long"))
+            } catch {
+                Issue.record("Unexpected error: \(error)")
+            }
+        }
+    }
+
+    @Test
+    func `listTests trims valid string filters`() async throws {
+        let page = try await screenClient().listTests(product: "  screen  ",
+                                                      candidateEmail: " malformed@EXAMPLE.COM ")
+        #expect(page.tests.map(\.id) == [1, 2])
+    }
+
+    @Test
     func `listAllTests follows pagination to the end`() async throws {
         let all = try await screenClient().listAllTests(campaignID: 42)
         #expect(all.count == 3)
