@@ -17,4 +17,8 @@ nonisolated enum StandaloneWindowAccountResolution {
     static func accountDisappeared(previous: UUID?, current: UUID?) -> Bool {
         previous != nil && current == nil
     }
+
+    static func shouldCaptureFallback(explicitTarget: UUID?, captured: UUID?, current: UUID?) -> Bool {
+        explicitTarget == nil && captured == nil && current != nil
+    }
 }

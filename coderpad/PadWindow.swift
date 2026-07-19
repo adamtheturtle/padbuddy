@@ -124,6 +124,17 @@ struct PadWindow: View {
         .onChange(of: account.map { cache.writeGeneration[$0.id] ?? 0 }) { _, _ in
             resolveCachedPad()
         }
+        .onChange(of: accounts.currentAccountID) { _, _ in
+            guard StandaloneWindowAccountResolution.shouldCaptureFallback(
+                explicitTarget: value?.account,
+                captured: fallbackAccountID,
+                current: accounts.currentAccountID
+            ) else { return }
+
+            captureFallbackAccountIfNeeded()
+            resolveCachedPad()
+            if fetched == nil { Task { await refresh() } }
+        }
         .onChange(of: account?.id) { previous, current in
             if StandaloneWindowAccountResolution.accountDisappeared(previous: previous, current: current) {
                 resetForMissingAccount()

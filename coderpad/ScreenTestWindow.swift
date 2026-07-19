@@ -85,7 +85,11 @@ struct ScreenTestWindow: View {
         // account was selected later (#1863): capture the first account that
         // appears, making the owner sticky from then on, and fill the window in.
         .onChange(of: accounts.currentAccountID) { _, _ in
-            guard value?.account == nil, fallbackAccountID == nil else { return }
+            guard StandaloneWindowAccountResolution.shouldCaptureFallback(
+                explicitTarget: value?.account,
+                captured: fallbackAccountID,
+                current: accounts.currentAccountID
+            ) else { return }
 
             captureFallbackAccountIfNeeded()
             if fetched == nil { Task { await refresh() } }

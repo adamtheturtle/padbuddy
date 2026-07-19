@@ -43,4 +43,20 @@ struct StandaloneWindowIDTests {
         #expect(!StandaloneWindowAccountResolution.accountDisappeared(previous: nil, current: nil))
         #expect(!StandaloneWindowAccountResolution.accountDisappeared(previous: id, current: UUID()))
     }
+
+    @Test func `legacy windows capture exactly the first available fallback`() {
+        let first = UUID()
+        #expect(StandaloneWindowAccountResolution.shouldCaptureFallback(
+            explicitTarget: nil, captured: nil, current: first
+        ))
+        #expect(!StandaloneWindowAccountResolution.shouldCaptureFallback(
+            explicitTarget: UUID(), captured: nil, current: first
+        ))
+        #expect(!StandaloneWindowAccountResolution.shouldCaptureFallback(
+            explicitTarget: nil, captured: first, current: UUID()
+        ))
+        #expect(!StandaloneWindowAccountResolution.shouldCaptureFallback(
+            explicitTarget: nil, captured: nil, current: nil
+        ))
+    }
 }
