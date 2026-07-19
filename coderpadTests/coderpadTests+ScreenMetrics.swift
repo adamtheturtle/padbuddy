@@ -59,6 +59,25 @@ struct ScreenReportMetricTests {
         #expect(report.omittedBreakdownEntries == 2)
     }
 
+    @Test
+    func `report collections and warning values are bounded`() throws {
+        let technologies = Dictionary(uniqueKeysWithValues: (0 ..< 120).map {
+            ("Technology \($0)", ["score": 50])
+        })
+        let warnings = [String(repeating: "x", count: 600)]
+            + (0 ..< 120).map { " Warning \($0)\n" }
+        let data = try JSONSerialization.data(withJSONObject: [
+            "technologies": technologies,
+            "warnings": warnings
+        ])
+        let report = try JSONDecoder().decode(ScreenReport.self, from: data)
+
+        #expect(report.technologies.count == 100)
+        #expect(report.omittedBreakdownEntries == 20)
+        #expect(report.warnings.count == 100)
+        #expect(report.warnings.allSatisfy { $0.count <= 500 && !$0.contains("\n") })
+    }
+
     @Test(arguments: [
         #"{"duration":-1}"#,
         #"{"points":-1}"#,

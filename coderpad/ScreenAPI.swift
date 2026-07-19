@@ -237,6 +237,10 @@ nonisolated struct ScreenTestQuestion: Decodable, Identifiable, Hashable {
 // MARK: - Reports
 
 private nonisolated struct LenientScreenDictionary<Value: Decodable>: Decodable {
+    private static var maximumEntries: Int {
+        100
+    }
+
     let values: [String: Value]
     let discardedCount: Int
 
@@ -245,7 +249,8 @@ private nonisolated struct LenientScreenDictionary<Value: Decodable>: Decodable 
         var decodedValues: [String: Value] = [:]
         var discardedCount = 0
 
-        for key in container.allKeys.sorted(by: { $0.stringValue < $1.stringValue }) {
+        let keys = container.allKeys.sorted(by: { $0.stringValue < $1.stringValue })
+        for key in keys.prefix(Self.maximumEntries) {
             guard let normalizedKey = normalizedScreenDictionaryKey(key.stringValue),
                   decodedValues[normalizedKey] == nil,
                   let value = try? container.decode(Value.self, forKey: key)
@@ -256,6 +261,8 @@ private nonisolated struct LenientScreenDictionary<Value: Decodable>: Decodable 
 
             decodedValues[normalizedKey] = value
         }
+
+        discardedCount += max(0, keys.count - Self.maximumEntries)
 
         values = decodedValues
         self.discardedCount = discardedCount
@@ -314,7 +321,7 @@ nonisolated struct ScreenReport: Decodable, Hashable {
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         duration = try ScreenReportMetric.nonnegativeInteger(from: container, forKey: .duration)
-        warnings = (try? container.decodeIfPresent([String].self, forKey: .warnings)) ?? []
+        warnings = (try? container.decodeIfPresent(BoundedScreenWarnings.self, forKey: .warnings))?.values ?? []
         points = try ScreenReportMetric.nonnegativeInteger(from: container, forKey: .points)
         score = try ScreenReportMetric.percentage(from: container, forKey: .score)
         let decodedTechnologies = container.decodeLenientScreenDictionary(
