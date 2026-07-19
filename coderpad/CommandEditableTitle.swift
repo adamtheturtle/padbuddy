@@ -112,6 +112,10 @@ struct CommandEditableTitle: View {
         .onTapGesture { beginEditing() }
         .help("Rename")
         .accessibilityAddTraits(.isButton)
+        // The tap gesture is pointer-only, so the button trait promised an
+        // activation that VoiceOver and Full Keyboard Access had no way to perform
+        // (#2019). The explicit default action is what they invoke.
+        .accessibilityAction { beginEditing() }
         .accessibilityHint("Edit title")
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { availableWidth = $0 }
     }
