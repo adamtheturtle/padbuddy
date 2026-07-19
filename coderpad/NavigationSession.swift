@@ -102,6 +102,12 @@ enum NavigationSessionLoader {
     /// per-account caches. The visible section loads itself, so each branch skips its
     /// own active case to avoid duplicate requests.
     private static func prefetchInactiveMergedSections(accounts: [Account], active: AppSection) async {
+        await withWarmBudget {
+            await performInactiveMergedPrefetch(accounts: accounts, active: active)
+        }
+    }
+
+    private static func performInactiveMergedPrefetch(accounts: [Account], active: AppSection) async {
         let targets = accounts
             .filter { $0.isMock || !$0.apiKey.isEmpty }
             .map { (id: $0.id, client: $0.makeClient()) }
@@ -130,6 +136,12 @@ enum NavigationSessionLoader {
     /// they hit independent endpoints, and chaining them made the last section's
     /// warm wait out both earlier fetches for no reason (#1244).
     private static func prefetchInactiveSections(account: Account, active: AppSection, warmQuota: Bool = true) async {
+        await withWarmBudget {
+            await performInactivePrefetch(account: account, active: active, warmQuota: warmQuota)
+        }
+    }
+
+    private static func performInactivePrefetch(account: Account, active: AppSection, warmQuota: Bool) async {
         guard account.isMock || !account.apiKey.isEmpty else { return }
 
         let client = account.makeClient()
@@ -156,6 +168,37 @@ enum NavigationSessionLoader {
     /// the same expensive list/quota request (#1837). The visible section's own
     /// load is separate by design - the loader always skips the active section.
     @MainActor private static var inFlightWarms: Set<String> = []
+
+    /// Wall-clock cap on one inactive-section warm. Warms are pure background work
+    /// that shares the connection pool with the section the user is actually looking
+    /// at; without a cap, a slow link lets directory/health/pads/questions/quota
+    /// warms compete with the visible load indefinitely (#2069). Generous enough
+    /// that a healthy fetch never trips it.
+    static let warmBudget: Duration = .seconds(30)
+
+    /// Runs an inactive-section warm under ``warmBudget``, cancelling it once the
+    /// budget elapses (#2069). Cancellation is cooperative: the prefetches check it
+    /// at their await points, and whatever the streamed pad/question snapshots
+    /// already wrote stays cached, so the next warm starts from warmer data rather
+    /// than from nothing. Outer cancellation (a session restart) is forwarded, so a
+    /// budgeted warm is no harder to stop than an unbudgeted one.
+    @MainActor
+    static func withWarmBudget(
+        _ budget: Duration = warmBudget,
+        _ body: @escaping @MainActor @Sendable () async -> Void
+    ) async {
+        let warm = Task { await body() }
+        let watchdog = Task {
+            try await Task.sleep(for: budget)
+            warm.cancel()
+        }
+        defer { watchdog.cancel() }
+        await withTaskCancellationHandler {
+            await warm.value
+        } onCancel: {
+            warm.cancel()
+        }
+    }
 
     @MainActor
     static func withWarmClaim(_ key: String, _ body: () async -> Void) async {
