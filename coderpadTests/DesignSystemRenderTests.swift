@@ -105,6 +105,17 @@ struct DesignSystemRenderTests {
         )
     }
 
+    @Test func `command editable title renders when clamped narrow`() {
+        // The width clamp subtracts a reserve for the pencil, which in a narrow
+        // layout used to leave the field zero-width (#2020).
+        expectRenders(
+            CommandEditableTitle(title: "A rather long pad title", clampsWidth: true,
+                                 editRequest: 0, onCommit: { _ in true })
+                .frame(width: 24),
+            "CommandEditableTitle clamped in a narrow layout"
+        )
+    }
+
     @Test func `question print document renders`() throws {
         // Populate every MarkdownText-backed section (description, candidate
         // instructions, solution) so the print document rasterizes each selectable

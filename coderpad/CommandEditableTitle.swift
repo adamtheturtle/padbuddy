@@ -33,6 +33,11 @@ struct CommandEditableTitle: View {
     @FocusState private var fieldFocused: Bool
 
     private static let pencilReserve: CGFloat = 28
+    /// Floor for the width clamp. In a narrow layout the pencil reserve can consume
+    /// the whole available width, which rendered the editing field at zero width
+    /// with nothing to type into (#2020). This is a maximum, so a title narrower
+    /// than the floor still lays out at its natural size.
+    private static let minimumClampedWidth: CGFloat = 80
 
     private var editingAllowed: Bool {
         isEditable && !isReadOnly
@@ -51,7 +56,7 @@ struct CommandEditableTitle: View {
     private var fieldWidth: CGFloat? {
         guard clampsWidth, naturalWidth > 0, availableWidth > 0 else { return nil }
 
-        return min(naturalWidth, max(0, availableWidth - Self.pencilReserve))
+        return max(Self.minimumClampedWidth, min(naturalWidth, availableWidth - Self.pencilReserve))
     }
 
     var body: some View {
