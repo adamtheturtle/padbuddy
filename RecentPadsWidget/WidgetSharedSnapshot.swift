@@ -113,19 +113,78 @@ enum WidgetSharedStore {
         "widget-favorites-\(account).json"
     }
 
-    private static func fileURL(_ name: String, purpose: String) -> URL? {
+    private static func containerURL(purpose: String) -> URL? {
         guard let container = FileManager.default
             .containerURL(forSecurityApplicationGroupIdentifier: appGroupID) else {
             logger.error("Widget shared container unavailable for \(purpose, privacy: .public)")
             return nil
         }
 
+        return container
+    }
+
+    private static func fileURL(_ name: String, purpose: String) -> URL? {
+        guard let container = containerURL(purpose: purpose) else { return nil }
+
         return container.appending(path: name, directoryHint: .notDirectory)
     }
 
     private static func requestFileName(prefix: String) -> String {
-        let milliseconds = Int64(Date().timeIntervalSince1970 * 1000)
-        return "\(prefix)\(milliseconds)-\(UUID().uuidString)\(requestFileExtension)"
+        // Zero-padded to a fixed width so lexical filename order is ordinal order;
+        // the UUID only keeps two files from colliding, it no longer decides order.
+        let ordinal = String(format: "%018llu", nextRequestOrdinal())
+        return "\(prefix)\(ordinal)-\(UUID().uuidString)\(requestFileExtension)"
+    }
+
+    /// A strictly increasing ordinal for the next request file, zero-padded so the
+    /// filenames sort lexically in issue order.
+    ///
+    /// Ordering used to come from `Date()` alone, with a random UUID breaking ties.
+    /// Two actions in the same millisecond therefore replayed in UUID order rather
+    /// than the order the user took them (#2590), and a clock change or skew between
+    /// the app, widget, and extension processes could make an older request sort
+    /// after a newer one (#2591) — both contradicting the newest-action-wins
+    /// behaviour the drain relies on.
+    ///
+    /// The ordinal starts from the wall clock, so unrelated drains still produce
+    /// sensible values, but is then forced above every ordinal already pending in
+    /// the container. Ordering only has to hold among requests that are pending at
+    /// the same time, and this makes it hold regardless of what the clock does.
+    private static func nextRequestOrdinal() -> UInt64 {
+        let now = UInt64(max(0, Date().timeIntervalSince1970 * 1000))
+        guard let container = containerURL(purpose: "handoff request ordinal"),
+              let names = try? FileManager.default
+              .contentsOfDirectory(at: container, includingPropertiesForKeys: nil)
+              .map(\.lastPathComponent)
+        else { return now }
+
+        let highest = names
+            .compactMap { name -> UInt64? in
+                guard name.hasPrefix(newPadRequestPrefix) || name.hasPrefix(openPadRequestPrefix) else {
+                    return nil
+                }
+
+                return requestOrdinal(fileName: name)
+            }
+            .max() ?? 0
+        return max(now, highest + 1)
+    }
+
+    /// The ordinal embedded in a request filename, or 0 for the legacy fixed-name
+    /// files (which predate ordering and sort first, as the oldest).
+    static func requestOrdinal(fileName: String) -> UInt64 {
+        // Strip the known prefix rather than scanning to the first "-": the prefixes
+        // themselves contain hyphens ("pending-new-pad-"), so splitting on one lands
+        // inside the prefix and finds no digits at all.
+        let remainder: Substring
+        if fileName.hasPrefix(newPadRequestPrefix) {
+            remainder = fileName.dropFirst(newPadRequestPrefix.count)
+        } else if fileName.hasPrefix(openPadRequestPrefix) {
+            remainder = fileName.dropFirst(openPadRequestPrefix.count)
+        } else {
+            return 0
+        }
+        return UInt64(remainder.prefix(while: \.isNumber)) ?? 0
     }
 
     private static func loadData(fileName: String, purpose: String) -> Data? {
@@ -253,7 +312,15 @@ enum WidgetSharedStore {
     /// App Group, with no suite-cache delay. A no-op when the container is unavailable.
     @discardableResult
     static func requestNewPad(account: String?, question: Int?) -> Bool {
-        guard write(WidgetNewPadRequest(account: account, question: question),
+        // CoderPad question ids are positive. A zero or negative one can only have
+        // come from malformed configuration, and seeding the create flow with it
+        // produces a request the server rejects, so drop the seed and let the flow
+        // open unseeded rather than failing (#2595).
+        let seed = question.flatMap { $0 > 0 ? $0 : nil }
+        if question != nil, seed == nil {
+            logger.error("Dropped a non-positive question seed from a new pad handoff request")
+        }
+        guard write(WidgetNewPadRequest(account: account, question: seed),
                     fileName: requestFileName(prefix: newPadRequestPrefix),
                     purpose: "new pad handoff request") else {
             return false
@@ -270,7 +337,15 @@ enum WidgetSharedStore {
     /// Records a recent-pad tap for the iPad app to route after `OpenPadIntent` opens it.
     @discardableResult
     static func requestOpenPad(id: String, account: String?) -> Bool {
-        guard write(WidgetOpenPadRequest(id: id, account: account),
+        // An empty id can only produce a handoff the app cannot act on: it would be
+        // drained, consumed, and silently do nothing, with no way for the user to
+        // retry (#2594). Refuse it at the source instead.
+        let padID = id.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !padID.isEmpty else {
+            logger.error("Refused an open pad handoff request with an empty pad id")
+            return false
+        }
+        guard write(WidgetOpenPadRequest(id: padID, account: account),
                     fileName: requestFileName(prefix: openPadRequestPrefix),
                     purpose: "open pad handoff request") else {
             return false

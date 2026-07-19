@@ -27,6 +27,9 @@ import OSLog
 /// by an unconfigured widget), and an account index (`widget-accounts.json`) that
 /// backs the configuration picker.
 nonisolated enum WidgetSharedStore {
+    /// Several members below are internal rather than private because the handoff
+    /// request half of this store lives in WidgetHandoffRequests.swift, split out to
+    /// keep both files under the file-length limit.
     /// Shared container identifier. iOS/iPadOS only supports the provisioned `group.`
     /// form. Non-App-Store macOS keeps the Team-ID-prefixed form to avoid requiring a
     /// provisioning profile (#451).
@@ -40,14 +43,14 @@ nonisolated enum WidgetSharedStore {
 
     private static let defaultPadsFile = "recent-pads.json"
     private static let accountsFile = "widget-accounts.json"
-    private static let newPadRequestFile = "pending-new-pad.json"
-    private static let openPadRequestFile = "pending-open-pad.json"
-    private static let newPadRequestPrefix = "pending-new-pad-"
-    private static let openPadRequestPrefix = "pending-open-pad-"
-    private static let requestFileExtension = ".json"
-    private static let newPadPurpose = "new pad handoff request"
-    private static let openPadPurpose = "open pad handoff request"
-    private static let logger = Logger(subsystem: "com.coderpad.app", category: "widget-shared-store")
+    static let newPadRequestFile = "pending-new-pad.json"
+    static let openPadRequestFile = "pending-open-pad.json"
+    static let newPadRequestPrefix = "pending-new-pad-"
+    static let openPadRequestPrefix = "pending-open-pad-"
+    static let requestFileExtension = ".json"
+    static let newPadPurpose = "new pad handoff request"
+    static let openPadPurpose = "open pad handoff request"
+    static let logger = Logger(subsystem: "com.coderpad.app", category: "widget-shared-store")
 
     /// Darwin notification posted when a New Pad request is recorded, so a running app
     /// drains it immediately — even while it's already frontmost, where a widget/control
@@ -73,7 +76,7 @@ nonisolated enum WidgetSharedStore {
         "widget-favorites-\(account).json"
     }
 
-    private static func containerURL(purpose: String) -> URL? {
+    static func containerURL(purpose: String) -> URL? {
         guard let container = FileManager.default
             .containerURL(forSecurityApplicationGroupIdentifier: appGroupID) else {
             logger.error("Widget shared container unavailable for \(purpose, privacy: .public)")
@@ -89,13 +92,66 @@ nonisolated enum WidgetSharedStore {
         return container.appending(path: name, directoryHint: .notDirectory)
     }
 
-    private static func requestFileName(prefix: String) -> String {
-        let milliseconds = Int64(Date().timeIntervalSince1970 * 1000)
-        return "\(prefix)\(milliseconds)-\(UUID().uuidString)\(requestFileExtension)"
+    static func requestFileName(prefix: String) -> String {
+        // Zero-padded to a fixed width so lexical filename order is ordinal order;
+        // the UUID only keeps two files from colliding, it no longer decides order.
+        let ordinal = String(format: "%018llu", nextRequestOrdinal())
+        return "\(prefix)\(ordinal)-\(UUID().uuidString)\(requestFileExtension)"
+    }
+
+    /// A strictly increasing ordinal for the next request file, zero-padded so the
+    /// filenames sort lexically in issue order.
+    ///
+    /// Ordering used to come from `Date()` alone, with a random UUID breaking ties.
+    /// Two actions in the same millisecond therefore replayed in UUID order rather
+    /// than the order the user took them (#2590), and a clock change or skew between
+    /// the app, widget, and extension processes could make an older request sort
+    /// after a newer one (#2591) — both contradicting the newest-action-wins
+    /// behaviour the drain relies on.
+    ///
+    /// The ordinal starts from the wall clock, so unrelated drains still produce
+    /// sensible values, but is then forced above every ordinal already pending in
+    /// the container. Ordering only has to hold among requests that are pending at
+    /// the same time, and this makes it hold regardless of what the clock does.
+    static func nextRequestOrdinal() -> UInt64 {
+        let now = UInt64(max(0, Date().timeIntervalSince1970 * 1000))
+        guard let container = containerURL(purpose: "handoff request ordinal"),
+              let names = try? FileManager.default
+              .contentsOfDirectory(at: container, includingPropertiesForKeys: nil)
+              .map(\.lastPathComponent)
+        else { return now }
+
+        let highest = names
+            .compactMap { name -> UInt64? in
+                guard name.hasPrefix(newPadRequestPrefix) || name.hasPrefix(openPadRequestPrefix) else {
+                    return nil
+                }
+
+                return requestOrdinal(fileName: name)
+            }
+            .max() ?? 0
+        return max(now, highest + 1)
+    }
+
+    /// The ordinal embedded in a request filename, or 0 for the legacy fixed-name
+    /// files (which predate ordering and sort first, as the oldest).
+    static func requestOrdinal(fileName: String) -> UInt64 {
+        // Strip the known prefix rather than scanning to the first "-": the prefixes
+        // themselves contain hyphens ("pending-new-pad-"), so splitting on one lands
+        // inside the prefix and finds no digits at all.
+        let remainder: Substring
+        if fileName.hasPrefix(newPadRequestPrefix) {
+            remainder = fileName.dropFirst(newPadRequestPrefix.count)
+        } else if fileName.hasPrefix(openPadRequestPrefix) {
+            remainder = fileName.dropFirst(openPadRequestPrefix.count)
+        } else {
+            return 0
+        }
+        return UInt64(remainder.prefix(while: \.isNumber)) ?? 0
     }
 
     @discardableResult
-    private static func save(_ value: some Encodable, fileName: String, purpose: String) -> Bool {
+    static func save(_ value: some Encodable, fileName: String, purpose: String) -> Bool {
         guard let url = fileURL(fileName, purpose: purpose) else { return false }
 
         do {
@@ -136,7 +192,7 @@ nonisolated enum WidgetSharedStore {
         return loadData(url: url, purpose: purpose)
     }
 
-    private static func loadData(url: URL, purpose: String) -> Data? {
+    static func loadData(url: URL, purpose: String) -> Data? {
         do {
             return try Data(contentsOf: url)
         } catch let error as CocoaError where error.code == .fileReadNoSuchFile {
@@ -150,7 +206,7 @@ nonisolated enum WidgetSharedStore {
         }
     }
 
-    private static func pendingRequestURLs(legacyFileName: String, prefix: String, purpose: String) -> [URL] {
+    static func pendingRequestURLs(legacyFileName: String, prefix: String, purpose: String) -> [URL] {
         guard let container = containerURL(purpose: purpose) else { return [] }
 
         do {
@@ -205,7 +261,7 @@ nonisolated enum WidgetSharedStore {
     /// claim (its newer bytes are the ones read) or after (its file survives for the
     /// next drain) - whereas read-then-delete could execute stale bytes while
     /// unlinking a newer write (#752).
-    private static func claim(url: URL, purpose: String) -> URL? {
+    static func claim(url: URL, purpose: String) -> URL? {
         let claimed = url.deletingLastPathComponent()
             .appendingPathComponent("claimed-\(UUID().uuidString).json")
         do {
@@ -224,7 +280,7 @@ nonisolated enum WidgetSharedStore {
 
     /// Claims, decodes, and deletes a single request file. Nil when another process
     /// won the claim race or when the payload fails to decode.
-    private static func takeRequest<Request: Decodable>(
+    static func takeRequest<Request: Decodable>(
         at url: URL,
         purpose: String,
         as type: Request.Type
@@ -260,95 +316,6 @@ nonisolated enum WidgetSharedStore {
     /// Atomically replaces `account`'s favourite-questions list.
     static func saveFavorites(_ favorites: [WidgetQuestion], account: String) {
         save(favorites, fileName: favoritesFileName(account: account), purpose: "widget favorite questions")
-    }
-
-    /// Records a New Pad request for the app to pick up on its next activation, written
-    /// as a file (not `UserDefaults`) so it's seen immediately across the App Group with
-    /// no suite-cache delay. Idempotent: `takePendingRequestsInOrder` is the single
-    /// consumer and deletes the file, so re-recording before consumption is harmless.
-    /// A no-op when the container is unavailable. Mirrors the widget target's copy
-    /// (`RecentPadsWidget/WidgetSharedSnapshot.swift`); it lives here too so the app-target
-    /// twin of `CreatePadIntent` — the one that lets the Control Center button open the
-    /// app (#485) — compiles against it.
-    @discardableResult
-    static func requestNewPad(account: String?, question: Int?) -> Bool {
-        guard save(WidgetNewPadRequest(account: account, question: question),
-                   fileName: requestFileName(prefix: newPadRequestPrefix),
-                   purpose: newPadPurpose) else {
-            return false
-        }
-
-        postNewPadRequestNotification()
-        logger.info("""
-        Recorded new pad handoff request accountScoped=\((account?.isEmpty == false), privacy: .public) \
-        questionSeeded=\(question != nil, privacy: .public)
-        """)
-        return true
-    }
-
-    /// Records an iPad widget recent-pad tap for the app to route after the intent opens it.
-    @discardableResult
-    static func requestOpenPad(id: String, account: String?) -> Bool {
-        guard save(WidgetOpenPadRequest(id: id, account: account),
-                   fileName: requestFileName(prefix: openPadRequestPrefix),
-                   purpose: openPadPurpose) else {
-            return false
-        }
-
-        postOpenPadRequestNotification()
-        logger.info("Recorded open pad handoff request accountScoped=\((account?.isEmpty == false), privacy: .public)")
-        return true
-    }
-
-    /// Nudges a running app to drain the just-recorded request right away.
-    /// `applicationDidBecomeActive` covers cold launch and background→foreground, but
-    /// not the case where the app is already frontmost (a control/widget tap then causes
-    /// no activation transition), so post a Darwin notification the app observes to drain
-    /// regardless of its activation state (#485). Cross-process and payload-free by design.
-    private static func postNewPadRequestNotification() {
-        CFNotificationCenterPostNotification(
-            CFNotificationCenterGetDarwinNotifyCenter(),
-            CFNotificationName(newPadRequestNotification as CFString),
-            nil, nil, true
-        )
-    }
-
-    private static func postOpenPadRequestNotification() {
-        CFNotificationCenterPostNotification(
-            CFNotificationCenterGetDarwinNotifyCenter(),
-            CFNotificationName(openPadRequestNotification as CFString),
-            nil, nil, true
-        )
-    }
-
-    /// Returns and clears every pending widget/Shortcuts request, of both kinds, in
-    /// the order the user issued them. The request filenames embed a millisecond
-    /// timestamp, so a single combined drain can replay them chronologically and the
-    /// user's most recent action ends up on top (#1045). Empty when none is pending.
-    static func takePendingRequestsInOrder() -> [WidgetPendingRequest] {
-        let candidates = pendingRequestURLs(
-            legacyFileName: newPadRequestFile, prefix: newPadRequestPrefix, purpose: newPadPurpose
-        ).map { (url: $0, isNewPad: true) } + pendingRequestURLs(
-            legacyFileName: openPadRequestFile, prefix: openPadRequestPrefix, purpose: openPadPurpose
-        ).map { (url: $0, isNewPad: false) }
-
-        let requests: [WidgetPendingRequest] = candidates
-            .sorted {
-                (requestTimestamp(fileName: $0.url.lastPathComponent), $0.url.lastPathComponent)
-                    < (requestTimestamp(fileName: $1.url.lastPathComponent), $1.url.lastPathComponent)
-            }
-            .compactMap { candidate in
-                if candidate.isNewPad {
-                    return takeRequest(at: candidate.url, purpose: newPadPurpose, as: WidgetNewPadRequest.self)
-                        .map(WidgetPendingRequest.newPad)
-                }
-                return takeRequest(at: candidate.url, purpose: openPadPurpose, as: WidgetOpenPadRequest.self)
-                    .map(WidgetPendingRequest.openPad)
-            }
-        if !requests.isEmpty {
-            logger.info("Drained \(requests.count, privacy: .public) pending widget requests in order")
-        }
-        return requests
     }
 
     /// Removes a removed account's per-account snapshot and favourites so they stop
