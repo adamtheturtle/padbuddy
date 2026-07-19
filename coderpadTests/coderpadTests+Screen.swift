@@ -29,6 +29,7 @@ struct ScreenClientTests {
         // the valid campaigns behind a decode error (#896).
         let campaigns = try await screenClient().listCampaigns()
         #expect(campaigns.count == 2)
+        #expect(campaigns.allSatisfy { !$0.name.isEmpty })
         let backend = try #require(campaigns.first { $0.id == 42 })
         #expect(backend.name == "Backend Screen")
         #expect(backend.languages == ["java", "python"])

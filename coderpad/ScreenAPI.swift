@@ -9,10 +9,7 @@
 //  authenticates with an `API-Key` header rather than a bearer token, and uses
 //  offset-based pagination. The networking client is `ScreenClient`.
 //
-//  These decode-only models use `try? decodeIfPresent` so a field the API adds or
-//  omits never fails the whole decode, since the docs explicitly
-//  warn that new response fields may appear within this API version without a version
-//  bump.
+//  Optional fields are tolerant of API additions; required row identity remains strict.
 //
 
 import Foundation
@@ -41,7 +38,15 @@ nonisolated struct ScreenCampaign: Decodable, Identifiable, Hashable {
     init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(Int.self, forKey: .id)
-        name = (try? container.decodeIfPresent(String.self, forKey: .name)) ?? ""
+        let rawName = try container.decode(String.self, forKey: .name)
+        let normalizedName = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !normalizedName.isEmpty else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .name, in: container, debugDescription: "Screen campaign name must not be blank."
+            )
+        }
+
+        name = normalizedName
         languages = (try? container.decodeIfPresent([String].self, forKey: .languages)) ?? []
         pinned = (try? container.decodeIfPresent(Bool.self, forKey: .pinned)) ?? false
         archived = (try? container.decodeIfPresent(Bool.self, forKey: .archived)) ?? false

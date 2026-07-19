@@ -127,6 +127,9 @@ final nonisolated class ScreenAPIMockURLProtocol: URLProtocol {
     [
       {"id": 42, "name": "Backend Screen", "languages": ["java", "python"], "pinned": true, "archived": false},
       {"id": "broken", "name": 7},
+      {"id": 44},
+      {"id": 45, "name": "   "},
+      {"id": 46, "name": 7},
       {"id": 43, "name": "Frontend Screen", "languages": ["javascript"], "pinned": false, "archived": true}
     ]
     """#
