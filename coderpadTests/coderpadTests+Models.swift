@@ -105,6 +105,14 @@ struct AppCreationAvailabilityTests {
 #if os(macOS)
     @Suite("Menu bar create actions")
     struct MenuBarCreateActionTests {
+        @Test func `my pads requires a configured account identity`() {
+            let missing = Account(name: "Missing", apiKey: "key", userEmail: " \n ")
+            let configured = Account(name: "Configured", apiKey: "key", userEmail: "me@example.com")
+
+            #expect(!MenuBarView.hasConfiguredOwnershipIdentity(missing))
+            #expect(MenuBarView.hasConfiguredOwnershipIdentity(configured))
+        }
+
         @Test func `create actions require a usable source account`() {
             let live = Account(name: "Live", apiKey: "key")
             let missingKey = Account(name: "Missing", apiKey: "")

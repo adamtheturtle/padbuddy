@@ -106,8 +106,8 @@
         }
 
         /// Pads owned by each row's source account. In merged mode ownership is resolved
-        /// per account, matching `MergedPadsView.isMine`; single-account mode keeps the
-        /// previous fallback for accounts without a configured user email (#674).
+        /// per account, matching `MergedPadsView.isMine`. An account without a configured
+        /// identity cannot safely identify any pad as the user's (#1493).
         private var myOwnedPads: [MenuBarPadRow] {
             listCache.myOwnedPads
         }
@@ -118,19 +118,13 @@
             if store.isMergedView {
                 return padRows.filter { $0.account.owns($0.pad.ownerEmail) }
             }
-            guard let account = store.currentAccount else { return [] }
+            guard let account = store.currentAccount, Self.hasConfiguredOwnershipIdentity(account) else { return [] }
 
-            if !account.userEmail.isEmpty {
-                return padRows.filter { $0.account.owns($0.pad.ownerEmail) }
-            }
-            let owners = padRows
-                .map(\.pad.ownerEmail)
-                .filter { !$0.isEmpty }
-                .reduce(into: [String: Int]()) { $0[$1, default: 0] += 1 }
-            if let mine = owners.max(by: { $0.value < $1.value })?.key {
-                return padRows.filter { $0.pad.ownerEmail == mine }
-            }
-            return padRows
+            return padRows.filter { $0.account.owns($0.pad.ownerEmail) }
+        }
+
+        static func hasConfiguredOwnershipIdentity(_ account: Account) -> Bool {
+            !account.userEmail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         }
 
         /// The user's pads, optionally narrowed to active interviews when the user enables
