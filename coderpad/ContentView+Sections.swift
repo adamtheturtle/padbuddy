@@ -144,10 +144,15 @@ struct SectionDetail: View {
             if let pad = padSelection {
                 if let client = padClient(for: pad) {
                     PadDetailView(client: client, pad: pad)
-                        .advertisesPadActivity(url: pad.webURL, title: pad.title)
+                        // Resolved against the routed account's server, not `webURL`
+                        // alone: a self-hosted pad whose response carries no absolute
+                        // URL advertised nothing, so Handoff and continuity silently
+                        // did not work for it (#2298).
+                        .advertisesPadActivity(url: pad.webURL(fallbackBase: client.baseURL),
+                                               title: pad.title)
                         .id(padDetailID(for: pad))
                 } else {
-                    unresolvedRoutePlaceholder(systemImage: "doc.text")
+                    unresolvedRoutePlaceholder(systemImage: "doc.text") { padSelection = nil }
                 }
             } else {
                 ContentUnavailableView("Select a pad", systemImage: "doc.text")
@@ -159,7 +164,7 @@ struct SectionDetail: View {
                     QuestionDetailView(client: account.makeClient(), question: question, accountID: account.id)
                         .id(questionDetailID(for: question))
                 } else {
-                    unresolvedRoutePlaceholder(systemImage: "questionmark.bubble")
+                    unresolvedRoutePlaceholder(systemImage: "questionmark.bubble") { questionSelection = nil }
                 }
             } else {
                 ContentUnavailableView("Select a question", systemImage: "questionmark.bubble")
@@ -195,15 +200,20 @@ struct SectionDetail: View {
         return store.currentAccount?.makeScreenClient()
     }
 
-    /// The Screen tests-list identity, namespaced by the routed account in the combined
-    /// view so switching between two accounts' campaigns that share a per-org id
-    /// recreates the detail pane (and re-fetches) instead of reusing stale state
-    /// (mirrors `questionDetailID`).
+    /// The Screen tests-list identity, namespaced by the owning account so switching
+    /// between two accounts' campaigns that share a per-org id recreates the detail
+    /// pane (and re-fetches) instead of reusing stale state (mirrors
+    /// `questionDetailID`).
+    ///
+    /// Only the combined view was namespaced. Campaign ids are per-org, so switching
+    /// between two single accounts whose campaigns happened to share an id kept the
+    /// same identity and reused `ScreenTestsView`'s state — showing the previous
+    /// account's sessions (#2297).
     private func screenTestsID(for campaign: ScreenCampaign) -> String {
-        if store.isMergedView, let account = router.selectedScreenAccountID {
-            return "\(account.uuidString):\(campaign.id)"
-        }
-        return String(campaign.id)
+        let account = store.isMergedView ? router.selectedScreenAccountID : store.currentAccountID
+        guard let account else { return String(campaign.id) }
+
+        return "\(account.uuidString):\(campaign.id)"
     }
 
     /// Shown when a merged selection's source account can't be resolved. Never
@@ -211,11 +221,19 @@ struct SectionDetail: View {
     /// per-org, and pad credentials are account-specific, so a guessed first
     /// account could edit or delete an unrelated item in the wrong org (#912).
     /// Routes rebuild as the merged list publishes, so reselecting recovers.
-    private func unresolvedRoutePlaceholder(systemImage: String) -> some View {
+    private func unresolvedRoutePlaceholder(systemImage: String,
+                                            clearSelection: @escaping () -> Void) -> some View {
         ContentUnavailableView {
             Label("Account Unavailable", systemImage: systemImage)
         } description: {
             Text("The account this item belongs to couldn't be determined. Select it in the list again.")
+        } actions: {
+            // The selection is retained deliberately - routes republish as the merged
+            // list loads, so a transient gap resolves itself and clearing would throw
+            // away a valid selection mid-load. But when the account really is gone the
+            // detail stays on this placeholder with nothing to act on, so there has to
+            // be a way out that doesn't require finding the row again (#2299).
+            Button("Clear Selection", action: clearSelection)
         }
     }
 

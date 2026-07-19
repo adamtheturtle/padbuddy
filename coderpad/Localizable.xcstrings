@@ -9137,6 +9137,16 @@
           }
         }
       }
+    },
+    "Clear Selection" : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Borrar selección"
+          }
+        }
+      }
     }
   },
   "version" : "1.3"
