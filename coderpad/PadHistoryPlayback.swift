@@ -206,7 +206,7 @@ extension HistoryPlaybackView {
     /// anonymized "Participant N"), seeds get their display name when they have
     /// one, and machine tokens get nothing (#1876).
     private func headerAuthorLabel(_ author: String) -> String? {
-        if timeline.participantAuthors.contains(author) { return laneName(for: author) }
+        if timeline.isParticipant(author) { return laneName(for: author) }
         return PadPlaybackAuthors.displayName(author)
     }
 
@@ -333,7 +333,7 @@ extension HistoryPlaybackView {
 
     private func laneName(for author: String) -> String {
         if let name = PadPlaybackAuthors.displayName(author) { return name }
-        let ordinal = (timeline.participantAuthors.firstIndex(of: author) ?? 0) + 1
+        let ordinal = (timeline.participantIndex[author] ?? 0) + 1
         return String(localized: "Participant \(ordinal)")
     }
 
@@ -342,7 +342,7 @@ extension HistoryPlaybackView {
     /// palette, colors are generated on distinct hues rather than cycling, so
     /// two participants never share a color (#1875).
     private func color(forAuthor author: String) -> Color {
-        guard let index = timeline.participantAuthors.firstIndex(of: author) else { return .gray }
+        guard let index = timeline.participantIndex[author] else { return .gray }
 
         if index < Self.authorPalette.count { return Self.authorPalette[index] }
 
@@ -387,7 +387,7 @@ extension HistoryPlaybackView {
     /// Nil for template/upload seeds, which aren't anyone's cursor.
     private func cursorLabel(for snapshot: PadHistorySnapshot) -> String? {
         let author = snapshot.entry.author
-        guard timeline.participantAuthors.contains(author) else { return nil }
+        guard timeline.isParticipant(author) else { return nil }
 
         return laneName(for: author)
     }

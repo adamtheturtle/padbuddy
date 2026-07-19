@@ -48,6 +48,16 @@ struct PadPlaybackTimelineTests {
         #expect(interleaved.participantAuthors == ["Basil", "Sybil"])
     }
 
+    /// The lane ordinals and palette colors read from this index instead of
+    /// scanning `participantAuthors` per lookup (#2094), so it has to agree with
+    /// the array it replaces — including on authors that aren't participants.
+    @Test
+    func `the participant index matches the participant order`() {
+        #expect(interleaved.participantIndex == ["Basil": 0, "Sybil": 1])
+        #expect(interleaved.isParticipant("Basil"))
+        #expect(!interleaved.isParticipant("CoderPad"))
+    }
+
     /// A realistic session: CoderPad seeds the template files, a bulk upload
     /// stamps each file with a one-shot Firebase push id, and one anonymous
     /// connection does the actual typing. Only that connection is a participant.

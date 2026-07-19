@@ -36,6 +36,11 @@ nonisolated struct PadPlaybackTimeline: Hashable {
     /// excluded: a bulk upload stamps every file with a fresh Firebase push id,
     /// which would otherwise read as dozens of participants.
     let participantAuthors: [String]
+    /// Each participant's position in `participantAuthors`. The playback view asks
+    /// for an author's lane ordinal and palette color once per lane *and* for the
+    /// cursor on every playhead change, so answering with `firstIndex(of:)` made a
+    /// many-participant session pay repeated linear scans per frame (#2094).
+    let participantIndex: [String: Int]
 
     /// One file item's place on the timeline, for the per-file lookup index.
     struct SnapshotRef: Hashable {
@@ -102,7 +107,12 @@ nonisolated struct PadPlaybackTimeline: Hashable {
             ordered.append(item.author)
         }
         authors = ordered
-        participantAuthors = ordered.filter(PadPlaybackAuthors.isParticipant)
+        let participants = ordered.filter(PadPlaybackAuthors.isParticipant)
+        participantAuthors = participants
+        // `ordered` is already de-duplicated, so no key can repeat; the non-trapping
+        // initializer is used anyway rather than betting a crash on that (#2497).
+        participantIndex = Dictionary(participants.enumerated().map { ($0.element, $0.offset) },
+                                      uniquingKeysWith: { first, _ in first })
 
         var byAuthor: [String: [Int]] = [:]
         var byFile: [String: [SnapshotRef]] = [:]
@@ -212,6 +222,12 @@ nonisolated struct PadPlaybackTimeline: Hashable {
             }
         }
         return result
+    }
+
+    /// Whether `author` is one of the session's participants (rather than a
+    /// template or upload seed), answered from `participantIndex` (#2094).
+    func isParticipant(_ author: String) -> Bool {
+        participantIndex[author] != nil
     }
 
     /// The edit by `author` closest in session time to `fraction`, so clicking
