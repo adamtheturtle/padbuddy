@@ -96,8 +96,8 @@ enum WidgetSharedStore {
     /// once configured — nothing here mutates their options — so one shared instance
     /// behaves identically. `nonisolated(unsafe)` because these are read from
     /// whichever thread the widget or the app's write queue happens to be on.
-    private nonisolated(unsafe) static let encoder = JSONEncoder()
-    private nonisolated(unsafe) static let decoder = JSONDecoder()
+    private static let encoder = JSONEncoder()
+    private static let decoder = JSONDecoder()
 
     /// Darwin notification posted when a New Pad request is recorded, so a running app
     /// drains it immediately — even while it's already frontmost, where a widget/control
