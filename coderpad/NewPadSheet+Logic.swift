@@ -228,14 +228,14 @@ extension NewPadSheet {
             teamID: selectedTeamID
         ))
         do {
-            let context = NewPadAccountContext(client: client, targetAccountID: targetAccountID)
+            let context = AccountClientContext(client: client, targetAccountID: targetAccountID)
             guard let account = context.resolve(in: AccountsStore.shared.accounts) else {
-                throw NewPadAccountError.accountChanged
+                throw AccountClientContextError.accountChanged
             }
 
             let pad = try await account.makeClient().createPad(body)
             guard context.resolve(in: AccountsStore.shared.accounts) != nil else {
-                throw NewPadAccountError.accountChanged
+                throw AccountClientContextError.accountChanged
             }
 
             onCreated(pad)

@@ -159,10 +159,8 @@ extension NewQuestionSheet {
         isSubmitting = true
         error = nil
         defer { isSubmitting = false }
-        // The account this sheet belongs to, captured before the request. A creation
-        // that lands after the account was switched or removed must not hand the new
-        // question to a context that no longer owns it (#2338).
         let owningAccount = accounts.account(matching: client)
+        let context = AccountClientContext(client: client, targetAccountID: owningAccount?.id)
         let body = Self.normalizedCreateBody(Self.CreateDraft(
             title: title,
             language: language,
@@ -172,8 +170,14 @@ extension NewQuestionSheet {
             padType: padType
         ))
         do {
-            let created = try await client.createQuestion(body)
-            guard BulkDeleteUndo.accountStillUsable(owningAccount, in: accounts) else { return }
+            guard let current = context.resolve(in: accounts.accounts) else {
+                throw AccountClientContextError.accountChanged
+            }
+
+            let created = try await current.makeClient().createQuestion(body)
+            guard context.resolve(in: accounts.accounts) != nil else {
+                throw AccountClientContextError.accountChanged
+            }
 
             onCreated(created)
         } catch is CancellationError {

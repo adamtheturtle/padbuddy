@@ -5,7 +5,7 @@
 
 import Foundation
 
-struct NewPadAccountContext {
+struct AccountClientContext {
     let accountID: UUID?
     let clientIdentity: ClientTaskIdentity
 
@@ -23,7 +23,7 @@ struct NewPadAccountContext {
     }
 }
 
-enum NewPadAccountError: LocalizedError {
+enum AccountClientContextError: LocalizedError {
     case accountChanged
 
     var errorDescription: String? {

@@ -10,7 +10,7 @@ extension coderpadTests {
     @Test @MainActor
     func `new pad context rejects removed and rekeyed target accounts`() {
         let original = Account(name: "Original", apiKey: "first")
-        let context = NewPadAccountContext(client: original.makeClient(), targetAccountID: original.id)
+        let context = AccountClientContext(client: original.makeClient(), targetAccountID: original.id)
         var renamed = original
         renamed.name = "Renamed"
         var rekeyed = original
