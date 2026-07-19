@@ -7,6 +7,15 @@ import SwiftUI
 
 // MARK: - Selection restore (#273) and detail settle (#326)
 
+struct SelectionRestoreProbe: Equatable {
+    let accountID: UUID?
+    let section: AppSection?
+    let count: Int
+    let generation: Int
+
+    static let inactive = SelectionRestoreProbe(accountID: nil, section: nil, count: 0, generation: 0)
+}
+
 extension MainSplit {
     /// UserDefaults key for the selected pad/question id, scoped to the current account.
     /// Only the single-account view persists a selection: the combined view's selection
@@ -23,8 +32,8 @@ extension MainSplit {
     /// rows first arrive, and when a refresh replaces the cache. The per-account
     /// write generation participates because a same-count replacement that now
     /// contains the saved row must re-run restoration too (#1665).
-    var restoreProbe: String {
-        guard !store.isMergedView, let account = store.currentAccountID else { return "none" }
+    var restoreProbe: SelectionRestoreProbe {
+        guard !store.isMergedView, let account = store.currentAccountID else { return .inactive }
 
         let count: Int
         let generation: Int
@@ -35,7 +44,7 @@ extension MainSplit {
             count = padsCache.cached(account).count
             generation = padsCache.writeGeneration[account] ?? 0
         }
-        return "\(account.uuidString):\(section.rawValue):\(count):\(generation)"
+        return SelectionRestoreProbe(accountID: account, section: section, count: count, generation: generation)
     }
 
     func scheduleRestoreSelectionIfNeeded() {
