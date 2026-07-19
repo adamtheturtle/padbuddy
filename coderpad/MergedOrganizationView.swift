@@ -345,7 +345,7 @@ private extension MergedOrganizationView {
     }
 
     func applyReloadResult(_ result: MergedOrganizationReloadResult,
-                           requestedToken: String, client: CoderPadClient?) {
+                           requestedToken: StatsWindowToken, client: CoderPadClient?) {
         if let org = result.org {
             orgByAccount[result.id] = org
             if let client { orgCache.set(result.id, organization: org, via: client) }
