@@ -175,6 +175,8 @@
                 // url is absent/malformed, so the created pad is never lost (#781).
                 openCreatedPad(pad.webURL(fallbackBase: fallbackBase))
             } catch {
+                guard !Task.isCancelled, !(error is CancellationError) else { return }
+
                 // Offline or a transient API error: surface the in-app create flow so the
                 // user can retry, rather than failing silently. Log why (privacy-safe:
                 // the account id and error text, never the key) so a repeated fallback
