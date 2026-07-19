@@ -26,8 +26,28 @@ final class PadDetailCacheStore {
         var apiKeyDigest: String
 
         init(baseURL: URL, apiKey: String) {
-            self.baseURL = baseURL
+            self.baseURL = Self.normalized(baseURL)
             apiKeyDigest = SHA256.hash(data: Data(apiKey.utf8)).map { String(format: "%02x", $0) }.joined()
+        }
+
+        /// Canonicalizes an endpoint so equivalent spellings compare equal.
+        ///
+        /// Identities were compared by exact `URL` equality, so the same server
+        /// written with a trailing slash, a different host casing, or an explicit
+        /// default port produced a different identity. Removing an account then
+        /// missed entries cached under the other spelling and left that pad's
+        /// candidate code and event log resident (#2616). Mirrors the normalization
+        /// `Account.syncID` already does for the same reason.
+        private static func normalized(_ url: URL) -> URL {
+            guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
+
+            components.scheme = components.scheme?.lowercased()
+            components.host = components.host?.lowercased()
+            let path = url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            components.path = path.isEmpty ? "" : "/\(path)"
+            components.query = nil
+            components.fragment = nil
+            return components.url ?? url
         }
     }
 
@@ -82,10 +102,18 @@ final class PadDetailCacheStore {
         return entry
     }
 
+    /// Caches a load that has no histories yet.
+    ///
+    /// Histories are deliberately *not* carried over from the previous entry. This
+    /// overload is called partway through a refresh — fresh events and environments
+    /// are in hand, the histories are still loading — and keeping the old ones
+    /// pinned them alongside the new files. A user who left and returned in that
+    /// window saw a previous state's code history presented against current files
+    /// (#2626), and a refresh that legitimately found no histories left the old ones
+    /// on screen (#2627). Showing none briefly, until the follow-up `set` supplies
+    /// the real ones, is the honest version.
     func set(_ padID: String, client: CoderPadClient, events: [PadEvent], environments: [PadEnvironment]) {
-        let key = Key(padID: padID, client: client)
-        let histories = byPad[key]?.histories ?? []
-        set(key, events: events, environments: environments, histories: histories)
+        set(Key(padID: padID, client: client), events: events, environments: environments, histories: [])
     }
 
     func set(_ padID: String, client: CoderPadClient, events: [PadEvent], environments: [PadEnvironment],

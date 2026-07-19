@@ -194,3 +194,36 @@ struct EditAndCacheTests {
         #expect(store.get(padID, client: account.makeClient()) == nil)
     }
 }
+
+@Suite("Pad detail cache identity (#2616)")
+@MainActor
+struct PadDetailCacheIdentityTests {
+    @Test
+    func `equivalent endpoint spellings share one identity`() throws {
+        // Exact URL equality treated these as different servers, so removing an
+        // account missed entries cached under the other spelling and left that pad's
+        // candidate code resident (#2616).
+        let key = "secret"
+        let canonical = try PadDetailCacheStore.ClientIdentity(
+            baseURL: #require(URL(string: "https://app.coderpad.io")), apiKey: key
+        )
+        for spelling in ["https://app.coderpad.io/",
+                         "https://APP.CoderPad.io",
+                         "https://app.coderpad.io//"] {
+            let identity = try PadDetailCacheStore.ClientIdentity(
+                baseURL: #require(URL(string: spelling)), apiKey: key
+            )
+            #expect(identity == canonical, "\(spelling) should match the canonical endpoint")
+        }
+    }
+
+    @Test
+    func `a different server or key is still a different identity`() throws {
+        let base = try #require(URL(string: "https://app.coderpad.io"))
+        let other = try #require(URL(string: "https://self-hosted.example.com"))
+        #expect(PadDetailCacheStore.ClientIdentity(baseURL: base, apiKey: "a")
+            != PadDetailCacheStore.ClientIdentity(baseURL: other, apiKey: "a"))
+        #expect(PadDetailCacheStore.ClientIdentity(baseURL: base, apiKey: "a")
+            != PadDetailCacheStore.ClientIdentity(baseURL: base, apiKey: "b"))
+    }
+}
