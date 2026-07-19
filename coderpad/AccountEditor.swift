@@ -40,6 +40,7 @@ struct AccountEditor: View {
     /// True while the saved account's organization members are loading.
     @State var isLoadingMembers = false
     @State var memberLoadError: String?
+    @State var measuredLabelColumnWidth: CGFloat = 0
     /// A non-blocking note when the key reaches the org but isn't authorized for
     /// one or more feature endpoints (a 403), so the user learns up front that a
     /// section will be empty rather than discovering it later. See `missingScopesWarning`.

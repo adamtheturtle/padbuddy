@@ -8,56 +8,6 @@ import Foundation
 import SwiftUI
 
 extension AccountEditor {
-    /// Width of the right-aligned label column, sized to hold the longest label
-    /// ("Description") so every field starts at the same x — the Mail look.
-    var labelColumnWidth: CGFloat {
-        #if os(macOS)
-            84
-        #else
-            // iPadOS draws the label at the larger system body size (17pt vs macOS's
-            // 13pt), where "Description" overflows the 84pt column and wraps to two
-            // lines (#553). Widen the column so the longest label fits on one line.
-            112
-        #endif
-    }
-
-    var usesCompactAccountEditorLayout: Bool {
-        #if os(macOS)
-            false
-        #else
-            horizontalSizeClass == .compact
-        #endif
-    }
-
-    /// One account-editor row. Regular widths use the Mail-style right-aligned label
-    /// column; compact iPhone widths stack labels over controls so fields stay inside
-    /// the sheet instead of forcing the whole editor wider than the screen.
-    @ViewBuilder
-    func fieldRow(_ label: String,
-                  alignment: VerticalAlignment = .firstTextBaseline,
-                  @ViewBuilder content: () -> some View) -> some View {
-        if usesCompactAccountEditorLayout {
-            VStack(alignment: .leading, spacing: 4) {
-                if !label.isEmpty {
-                    Text(LocalizedStringKey(label))
-                        .lineLimit(1)
-                        .foregroundStyle(.secondary)
-                }
-                content()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        } else {
-            HStack(alignment: alignment, spacing: 10) {
-                Text(LocalizedStringKey(label))
-                    .lineLimit(1)
-                    .frame(width: labelColumnWidth, alignment: .trailing)
-                    .foregroundStyle(.secondary)
-                content()
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
-    }
-
     /// Bridges the optional `baseURL` to the text field: an empty field means
     /// "use the default", which we store as `nil` rather than an empty string.
     var baseURLBinding: Binding<String> {

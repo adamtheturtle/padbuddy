@@ -110,5 +110,6 @@ extension AccountEditor {
                 screenSection
             }
         }
+        .onPreferenceChange(AccountEditorLabelWidthPreference.self) { updateMeasuredLabelWidth($0) }
     }
 }
