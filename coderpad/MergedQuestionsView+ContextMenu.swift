@@ -95,7 +95,7 @@ extension MergedQuestionsView {
             let item = NSPasteboardItem()
             item.setString(url.absoluteString, forType: .URL)
             item.setString(url.absoluteString, forType: .string)
-            if let data = try? JSONEncoder().encode(FavoriteDrop.question(
+            if let data = try? SharedCoders.encoder.encode(FavoriteDrop.question(
                 account: row.account.id,
                 id: row.item.id,
                 title: row.item.displayTitle

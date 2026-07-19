@@ -269,7 +269,7 @@ extension QuestionsView {
             item.setString(url.absoluteString, forType: .URL)
             item.setString(url.absoluteString, forType: .string)
             if let account = accounts.currentAccountID,
-               let data = try? JSONEncoder().encode(
+               let data = try? SharedCoders.encoder.encode(
                    FavoriteDrop.question(account: account, id: question.id, title: question.displayTitle)
                ) {
                 item.setData(data, forType: NSPasteboard.PasteboardType(UTType.coderpadFavorite.identifier))
