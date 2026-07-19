@@ -61,10 +61,51 @@ struct OpenPadURLSheet: View {
     let onCancel: () -> Void
 
     @State private var parsedURL: URL?
+    /// Why the current text can't be opened, or nil while it is blank or valid.
+    @State private var problem: String?
 
-    private static func parseURL(_ urlString: String) -> URL? {
+    /// The pad URL `urlString` names, or the reason it isn't one.
+    ///
+    /// This used to accept any URL carrying a scheme, so despite the sheet's
+    /// CoderPad-specific copy it would happily hand `file:///…`, a custom scheme, or
+    /// an unrelated site to the browser (#2163) — including one with an embedded
+    /// username and password, which would then be written into browser history and
+    /// sent to whatever host it named (#2164). Failures now say which part is wrong
+    /// instead of silently disabling Open (#2165).
+    static func parse(_ urlString: String) -> ParseOutcome {
         let trimmed = urlString.trimmingCharacters(in: .whitespacesAndNewlines)
-        return URL(string: trimmed).flatMap { $0.scheme != nil ? $0 : nil }
+        guard !trimmed.isEmpty else {
+            return .failure("")
+        }
+        guard let url = URL(string: trimmed), let scheme = url.scheme?.lowercased() else {
+            return .failure(String(localized: "That doesn't look like a web address."))
+        }
+        guard scheme == "https" || scheme == "http" else {
+            return .failure(String(localized: "Only https web addresses can be opened."))
+        }
+        guard let host = url.host(), !host.isEmpty else {
+            return .failure(String(localized: "That address is missing a server name."))
+        }
+        guard url.user() == nil, url.password() == nil else {
+            return .failure(String(localized: """
+            That address has a username or password in it. Remove them before opening it.
+            """))
+        }
+
+        // The path has to name a pad, not the site's own pages — the same rule Handoff
+        // and the Services item apply.
+        guard PadActivity.canonicalPadURL(url) != nil else {
+            return .failure(String(localized: "That address doesn't point to a pad."))
+        }
+
+        return .success(url)
+    }
+
+    /// A parsed pad URL, or the reason the text isn't one. Empty reason means the
+    /// field is simply blank.
+    enum ParseOutcome: Equatable {
+        case success(URL)
+        case failure(String)
     }
 
     var body: some View {
@@ -96,9 +137,25 @@ struct OpenPadURLSheet: View {
             TextField("https://app.coderpad.io/…", text: $urlString)
                 .textFieldStyle(.roundedBorder)
                 .onChange(of: urlString, initial: true) { _, newValue in
-                    parsedURL = Self.parseURL(newValue)
+                    switch Self.parse(newValue) {
+                    case let .success(url):
+                        parsedURL = url
+                        problem = nil
+
+                    case let .failure(reason):
+                        parsedURL = nil
+                        // Blank input isn't a mistake worth reporting; the user simply
+                        // hasn't typed yet.
+                        problem = reason.isEmpty ? nil : reason
+                    }
                 }
                 .onSubmit { if let url = parsedURL { onSubmit(url) } }
+            if let problem {
+                Label(problem, systemImage: "exclamationmark.triangle")
+                    .foregroundStyle(.orange)
+                    .font(.callout)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
     }
 

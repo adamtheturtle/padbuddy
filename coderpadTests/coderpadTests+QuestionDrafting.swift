@@ -301,3 +301,63 @@ struct WidgetFileSafeAccountTests {
         #expect(WidgetSharedStore.fileSafeAccount("abc/def").count == 7)
     }
 }
+
+@Suite("Open Pad by URL validation (#2163, #2164, #2165)")
+struct OpenPadURLParsingTests {
+    private func failure(_ raw: String) -> String? {
+        guard case let .failure(reason) = OpenPadURLSheet.parse(raw) else { return nil }
+
+        return reason
+    }
+
+    private func url(_ raw: String) -> URL? {
+        guard case let .success(url) = OpenPadURLSheet.parse(raw) else { return nil }
+
+        return url
+    }
+
+    @Test
+    func `a pad url is accepted`() {
+        #expect(url("https://app.coderpad.io/abc12345") != nil)
+        #expect(url("  https://app.coderpad.io/abc12345/playback  ") != nil)
+    }
+
+    @Test
+    func `blank input reports no problem to show`() {
+        #expect(failure("")?.isEmpty == true)
+        #expect(failure("   ")?.isEmpty == true)
+    }
+
+    @Test
+    func `non-web schemes are refused`() {
+        // The sheet hands its result to the browser, so file:// and custom schemes
+        // must not reach it (#2163).
+        #expect(url("file:///etc/passwd") == nil)
+        #expect(url("coderpad://pad/abc12345") == nil)
+        #expect(url("javascript:alert(1)") == nil)
+        #expect(failure("file:///etc/passwd")?.isEmpty == false)
+    }
+
+    @Test
+    func `embedded credentials are refused`() {
+        // Pasted secrets would land in browser history and be sent to the host (#2164).
+        #expect(url("https://user:secret@app.coderpad.io/abc12345") == nil)
+        #expect(url("https://user@app.coderpad.io/abc12345") == nil)
+    }
+
+    @Test
+    func `non-pad paths are refused`() {
+        #expect(url("https://app.coderpad.io/login") == nil)
+        #expect(url("https://app.coderpad.io") == nil)
+    }
+
+    @Test
+    func `every refusal explains itself`() {
+        // The point of #2165: Open is not just silently disabled.
+        for raw in ["file:///x", "https://user:p@app.coderpad.io/abc12345",
+                    "https://app.coderpad.io/login", "not a url at all"] {
+            let reason = failure(raw)
+            #expect(reason?.isEmpty == false, "\(raw) should explain itself")
+        }
+    }
+}

@@ -9217,6 +9217,56 @@
           }
         }
       }
+    },
+    "That doesn't look like a web address." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Eso no parece una dirección web."
+          }
+        }
+      }
+    },
+    "Only https web addresses can be opened." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Solo se pueden abrir direcciones web https."
+          }
+        }
+      }
+    },
+    "That address is missing a server name." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A esa dirección le falta el nombre del servidor."
+          }
+        }
+      }
+    },
+    "That address has a username or password in it. Remove them before opening it." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esa dirección contiene un nombre de usuario o una contraseña. Quítalos antes de abrirla."
+          }
+        }
+      }
+    },
+    "That address doesn't point to a pad." : {
+      "localizations" : {
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Esa dirección no apunta a un pad."
+          }
+        }
+      }
     }
   },
   "version" : "1.3"
