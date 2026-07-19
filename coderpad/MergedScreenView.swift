@@ -26,6 +26,12 @@ struct ScopedScreenCampaign: Identifiable, Hashable {
     }
 }
 
+/// Memo holding the merged Screen list's filtered + sorted rows for one render (#2118).
+/// Mirrors `SortedQuestionsCache` in the merged questions list.
+final class FilteredScreenCampaignsCache {
+    var rows: [ScopedScreenCampaign] = []
+}
+
 /// The combined Screen section's content column: campaigns from every Screen-enabled
 /// account in one list, each tagged with its source account.
 struct MergedScreenView: View {
@@ -49,8 +55,18 @@ struct MergedScreenView: View {
     /// campaign drives the detail column's test-sessions list and routes it to that
     /// campaign's account `ScreenClient` (#448); single-click never swaps this list.
     @State private var selectedScopedID: String?
+    /// Per-render memo for the filtered + sorted rows, so the list, the count subtitle,
+    /// and the status overlay share one pass (#2118), matching `MergedQuestionsView`.
+    @State private var filteredCache = FilteredScreenCampaignsCache()
 
     var body: some View {
+        // Recompute the filtered + sorted rows once per render; every read below hits
+        // the memo.
+        refreshFiltered()
+        return decorated
+    }
+
+    private var decorated: some View {
         List(selection: $selectedScopedID) {
             ForEach(filtered) { scoped in
                 MergedScreenCampaignRow(scoped: scoped)
@@ -205,19 +221,27 @@ struct MergedScreenView: View {
     }
 
     /// All loaded campaigns flattened to account-scoped rows, filtered by the search
-    /// and archived toggles. Pinned first, then by name, then by account so the order
-    /// is stable and predictable.
+    /// and archived toggles. Pinned first, then by name, then by account so the order is
+    /// stable. Memoized into `filteredCache` once per render by `refreshFiltered()`.
     private var filtered: [ScopedScreenCampaign] {
+        filteredCache.rows
+    }
+
+    /// Rebuild the memoized filtered + sorted rows for one render. The flatten, the
+    /// lowercasing search pass, and the `localizedStandardCompare` sort used to rerun
+    /// for each read in a render — list, count subtitle, and overlay (#2118).
+    private func refreshFiltered() {
         // While a campaign is selected the search field targets its candidates (the
         // detail column), so this list ignores the query then — keeping it in view.
         let trimmed = search.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         let query = selectedScopedID == nil ? trimmed : ""
         let scoped = screenAccounts.flatMap { account, _ in
-            (campaignsByAccount[account.id] ?? []).map {
-                ScopedScreenCampaign(accountID: account.id, account: RowAccount(account), campaign: $0)
+            let rowAccount = RowAccount(account)
+            return (campaignsByAccount[account.id] ?? []).map {
+                ScopedScreenCampaign(accountID: account.id, account: rowAccount, campaign: $0)
             }
         }
-        return scoped
+        filteredCache.rows = scoped
             .filter { (showArchived || !$0.campaign.archived)
                 && (query.isEmpty || $0.campaign.name.lowercased().contains(query))
             }
