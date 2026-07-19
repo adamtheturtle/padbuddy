@@ -6,20 +6,20 @@
 //
 
 import AsyncAlgorithms
-import BuddyAppKit
 import Foundation
 
-/// Re-checks the current account's key on a timer so a key revoked mid-session surfaces
-/// the unauthorized banner without needing a section switch. A thin app-specific wrapper
-/// around buddy-kit's generic ``BuddyAppKit/AccountHealthMonitor`` that folds in
-/// PadBuddy's account-eligibility rules and its `quota()` liveness probe, and keeps the
-/// `shared` singleton and `checkCurrentAccount()` name the app's call sites use.
+/// Re-checks account keys on a timer so a key revoked mid-session surfaces the
+/// unauthorized banner without needing a section switch. Each result remains tied to
+/// the exact client identity that initiated it, so rekeying or removing an account while
+/// its request is suspended cannot publish a stale verdict.
 @MainActor
 @Observable
 final class AccountHealthMonitor {
     static let shared = AccountHealthMonitor()
 
-    private let monitor: BuddyAppKit.AccountHealthMonitor<UUID>
+    private var currentUnauthorized: Set<UUID> = []
+    private(set) var lastChecked: Date?
+    @ObservationIgnored private var currentLoop: Task<Void, Never>?
     /// Bad keys detected on NON-current accounts by the rotation sweep (#1777);
     /// the generic monitor only tracks the account its probe closure names.
     private var sweepUnauthorized: Set<UUID> = []
@@ -27,35 +27,10 @@ final class AccountHealthMonitor {
     @ObservationIgnored private var sweepLoop: Task<Void, Never>?
 
     var unauthorizedAccountIDs: Set<UUID> {
-        monitor.unauthorizedAccountIDs.union(sweepUnauthorized)
+        currentUnauthorized.union(sweepUnauthorized)
     }
 
-    var lastChecked: Date? {
-        monitor.lastChecked
-    }
-
-    private init() {
-        monitor = BuddyAppKit.AccountHealthMonitor<UUID>(
-            accountToCheck: {
-                // The bad-key demo is intentionally checked so it surfaces the unauthorized
-                // banner; the mock-data demo is skipped since it's always authorized.
-                guard let account = AccountsStore.shared.currentAccount,
-                      account.isBadKeyDemo || (!account.isMock && !account.apiKey.isEmpty)
-                else { return nil }
-
-                return account.id
-            },
-            probe: { id in
-                guard let account = AccountsStore.shared.accounts.first(where: { $0.id == id }) else { return }
-
-                // A liveness probe only needs to learn whether the key still authenticates,
-                // so hit the tiny `/api/quota` endpoint rather than downloading the whole
-                // org (teams + every user) every interval just to read its status code (#374).
-                _ = try await account.makeClient().quota()
-            },
-            isUnauthorized: { ($0 as? CoderPadError)?.isUnauthorized == true }
-        )
-    }
+    private init() {}
 
     /// Re-checks the current account's key on a fixed interval (default 30 min),
     /// and sweeps every other eligible account on the same cadence: revoked
@@ -63,7 +38,19 @@ final class AccountHealthMonitor {
     /// must surface without a manual account switch (#1777). Idempotent: repeated
     /// calls keep the single existing timers.
     func start(every interval: Duration = .seconds(1800)) {
-        monitor.start(every: interval)
+        if currentLoop == nil {
+            let cadence = interval > .zero ? interval : .milliseconds(1)
+            currentLoop = Task { [weak self] in
+                while !Task.isCancelled {
+                    await self?.checkCurrentAccount()
+                    do {
+                        try await Task.sleep(for: cadence)
+                    } catch {
+                        break
+                    }
+                }
+            }
+        }
         guard sweepLoop == nil else { return }
 
         let interval = interval > .zero ? interval : .milliseconds(1)
@@ -77,13 +64,32 @@ final class AccountHealthMonitor {
     // Deliberate monitor lifecycle API, kept for start/stop symmetry.
     // periphery:ignore
     func stop() {
-        monitor.stop()
+        currentLoop?.cancel()
+        currentLoop = nil
         sweepLoop?.cancel()
         sweepLoop = nil
     }
 
     func checkCurrentAccount() async {
-        await monitor.check()
+        guard let account = AccountsStore.shared.currentAccount,
+              account.isBadKeyDemo || (!account.isMock && !account.apiKey.isEmpty) else { return }
+
+        let client = account.makeClient()
+        do {
+            _ = try await client.quota()
+            guard AccountsStore.shared.isCurrentClient(client, for: account.id) else { return }
+
+            currentUnauthorized.remove(account.id)
+        } catch {
+            guard AccountsStore.shared.isCurrentClient(client, for: account.id) else { return }
+
+            if (error as? CoderPadError)?.isUnauthorized == true {
+                currentUnauthorized.insert(account.id)
+            }
+        }
+        let live = Set(AccountsStore.shared.accounts.map(\.id))
+        currentUnauthorized.formIntersection(live)
+        lastChecked = Date()
     }
 
     /// Probes every eligible non-current account's key (#1777). Sequential to keep
@@ -93,10 +99,15 @@ final class AccountHealthMonitor {
         for account in AccountsStore.shared.accounts where account.id != currentID {
             guard account.isBadKeyDemo || (!account.isMock && !account.apiKey.isEmpty) else { continue }
 
+            let client = account.makeClient()
             do {
-                _ = try await account.makeClient().quota()
+                _ = try await client.quota()
+                guard AccountsStore.shared.isCurrentClient(client, for: account.id) else { continue }
+
                 sweepUnauthorized.remove(account.id)
             } catch {
+                guard AccountsStore.shared.isCurrentClient(client, for: account.id) else { continue }
+
                 if (error as? CoderPadError)?.isUnauthorized == true {
                     sweepUnauthorized.insert(account.id)
                 }
@@ -108,14 +119,14 @@ final class AccountHealthMonitor {
     }
 
     func isUnauthorized(_ accountID: UUID) -> Bool {
-        monitor.isUnauthorized(accountID) || sweepUnauthorized.contains(accountID)
+        currentUnauthorized.contains(accountID) || sweepUnauthorized.contains(accountID)
     }
 
     /// Clear a stale unauthorized verdict, e.g. when the account's key is changed
     /// in place. A fresh `checkCurrentAccount` re-flags it if the new key is also
     /// revoked, but until then the banner shouldn't claim the new key is bad.
     func clearUnauthorized(_ accountID: UUID) {
-        monitor.clearUnauthorized(accountID)
+        currentUnauthorized.remove(accountID)
         sweepUnauthorized.remove(accountID)
     }
 }
