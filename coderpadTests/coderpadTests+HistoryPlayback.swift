@@ -221,4 +221,19 @@ struct PadPlaybackAuthorsTests {
         // A short dash-prefixed name is not push-id shaped.
         #expect(PadPlaybackAuthors.isParticipant("-Ana"))
     }
+
+    /// The classification is byte-wise rather than regex-driven (#2091), so pin
+    /// the edges the character classes decide: accented names still read as
+    /// names, non-ASCII-only ones don't, and token shape counts characters.
+    @Test
+    func `classification survives non-ASCII and token-shaped authors`() {
+        #expect(PadPlaybackAuthors.displayName("Renée Dubois") == "Renée Dubois")
+        #expect(PadPlaybackAuthors.displayName("Jean-Luc") == "Jean-Luc")
+        #expect(PadPlaybackAuthors.displayName("日本語") == nil)
+        // Sixteen id characters with a digit is a connection token, not a name.
+        #expect(PadPlaybackAuthors.displayName("abcdef0123456789") == nil)
+        #expect(PadPlaybackAuthors.displayName("Manuel-the-waiter") == "Manuel-the-waiter")
+        #expect(!PadPlaybackAuthors.isPushID("-OxgyokRDnSHVMqK74T"))
+        #expect(PadPlaybackAuthors.isPushID("-OxgyokRDnSHVMqK74T0"))
+    }
 }

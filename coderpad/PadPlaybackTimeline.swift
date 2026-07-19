@@ -250,7 +250,40 @@ nonisolated enum PadPlaybackAuthors {
     /// characters). Uploading files into a pad stamps each file's seed edit
     /// with a fresh push id, so these mark uploads, not people.
     static func isPushID(_ raw: String) -> Bool {
-        raw.range(of: #"^-[A-Za-z0-9_-]{19}$"#, options: .regularExpression) != nil
+        let bytes = raw.utf8
+        return bytes.count == 20 && bytes.first == UInt8(ascii: "-") && bytes.allSatisfy(isIDByte)
+    }
+
+    /// Whether a byte belongs to the backend's id charset (`[A-Za-z0-9_-]`).
+    ///
+    /// These checks used `range(of:options:.regularExpression)`, which compiled a
+    /// fresh regex on every call — and they run per author while the timeline is
+    /// built, then several times per frame during playback (#2091). The patterns
+    /// were all plain ASCII character classes, so matching the bytes directly is
+    /// both equivalent and free of any compilation.
+    private static func isIDByte(_ byte: UInt8) -> Bool {
+        switch byte {
+        case UInt8(ascii: "a") ... UInt8(ascii: "z"),
+             UInt8(ascii: "A") ... UInt8(ascii: "Z"),
+             UInt8(ascii: "0") ... UInt8(ascii: "9"),
+             UInt8(ascii: "_"), UInt8(ascii: "-"):
+            true
+        default:
+            false
+        }
+    }
+
+    private static func isASCIILetter(_ byte: UInt8) -> Bool {
+        switch byte {
+        case UInt8(ascii: "a") ... UInt8(ascii: "z"), UInt8(ascii: "A") ... UInt8(ascii: "Z"):
+            true
+        default:
+            false
+        }
+    }
+
+    private static func isASCIIDigit(_ byte: UInt8) -> Bool {
+        UInt8(ascii: "0") ... UInt8(ascii: "9") ~= byte
     }
 
     /// Whether an author represents a session participant: a named author or an
@@ -266,13 +299,15 @@ nonisolated enum PadPlaybackAuthors {
     static func displayName(_ raw: String) -> String? {
         let author = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !author.isEmpty, author.count < 80 else { return nil }
-        guard author.range(of: #"[A-Za-z]"#, options: .regularExpression) != nil else { return nil }
+
+        let bytes = author.utf8
+        guard bytes.contains(where: isASCIILetter) else { return nil }
         guard !isPushID(author) else { return nil }
 
         // A long unbroken id-charset run is a backend connection token, not a
         // person's name — letters alone don't make it displayable (#1170).
-        let tokenShape = author.range(of: #"^[A-Za-z0-9_-]{16,}$"#, options: .regularExpression) != nil
-        let hasDigit = author.range(of: #"[0-9]"#, options: .regularExpression) != nil
+        let tokenShape = bytes.count >= 16 && bytes.allSatisfy(isIDByte)
+        let hasDigit = bytes.contains(where: isASCIIDigit)
         if tokenShape, hasDigit || author.count >= 24 { return nil }
         return author
     }
