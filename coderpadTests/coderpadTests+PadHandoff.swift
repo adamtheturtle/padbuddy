@@ -75,6 +75,33 @@ struct WidgetHandoffOrderingTests {
     }
 }
 
+@Suite("Widget handoff request classification (#2138)")
+struct WidgetHandoffRequestKindTests {
+    @Test
+    func `each request kind is recognized from its filename`() {
+        // One directory listing now serves both kinds, so the kind comes from the
+        // filename rather than from which listing found it (#2138).
+        #expect(WidgetSharedStore.isNewPadRequest(fileName: "pending-new-pad.json") == true)
+        #expect(WidgetSharedStore.isNewPadRequest(fileName: "pending-open-pad.json") == false)
+        let ordinal = String(format: "%018llu", UInt64(1_700_000_000_123))
+        #expect(WidgetSharedStore
+            .isNewPadRequest(fileName: "pending-new-pad-\(ordinal)-\(UUID().uuidString).json") == true)
+        #expect(WidgetSharedStore
+            .isNewPadRequest(fileName: "pending-open-pad-\(ordinal)-\(UUID().uuidString).json") == false)
+    }
+
+    @Test
+    func `anything else in the container is not a request`() {
+        for name in ["recent-pads.json",
+                     "widget-accounts.json",
+                     "claimed-pending-new-pad-1.json",
+                     "pending-new-pad-1.txt",
+                     ""] {
+            #expect(WidgetSharedStore.isNewPadRequest(fileName: name) == nil, "\(name) should not be a request")
+        }
+    }
+}
+
 @Suite("Widget shared container sweep (#2589, #2592, #2593, #2603)")
 struct WidgetContainerSweepTests {
     private let live: Set<String> = ["AAAA-1", "BBBB-2"]

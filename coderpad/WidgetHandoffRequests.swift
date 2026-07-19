@@ -126,6 +126,50 @@ nonisolated extension WidgetSharedStore {
         )
     }
 
+    /// Whether a filename names a new-pad request (`true`), an open-pad request
+    /// (`false`), or neither (`nil`). Both the legacy fixed names and the timestamped
+    /// ones are recognized.
+    static func isNewPadRequest(fileName: String) -> Bool? {
+        if fileName == newPadRequestFile { return true }
+        if fileName == openPadRequestFile { return false }
+        guard fileName.hasSuffix(requestFileExtension) else { return nil }
+
+        if fileName.hasPrefix(newPadRequestPrefix) { return true }
+        if fileName.hasPrefix(openPadRequestPrefix) { return false }
+
+        return nil
+    }
+
+    /// Every pending request file in the shared container, tagged by kind. One
+    /// listing covers both kinds: this runs on activation and on every Darwin
+    /// notification, and asking per kind enumerated the App Group directory twice
+    /// each time (#2138).
+    static func pendingRequestURLs(purpose: String) -> [(url: URL, isNewPad: Bool)] {
+        guard let container = containerURL(purpose: purpose) else { return [] }
+
+        do {
+            return try FileManager.default
+                .contentsOfDirectory(at: container, includingPropertiesForKeys: [.isRegularFileKey])
+                .compactMap { url in
+                    guard let isNewPad = isNewPadRequest(fileName: url.lastPathComponent) else { return nil }
+
+                    // Name-matching alone would also pick up a directory or a symlink
+                    // sitting in the App Group, which the drain would then try to claim,
+                    // move, and decode (#2183). Only a regular file is a request.
+                    guard (try? url.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true
+                    else { return nil }
+
+                    return (url: url, isNewPad: isNewPad)
+                }
+        } catch {
+            logger.error("""
+            Widget shared store list failed for \(purpose, privacy: .public): \
+            \(error.localizedDescription, privacy: .private)
+            """)
+            return []
+        }
+    }
+
     /// Drops any queued New Pad / Open Pad request naming `account`.
     ///
     /// Removing an account cleared its snapshots but left its queued handoffs behind,
@@ -136,11 +180,7 @@ nonisolated extension WidgetSharedStore {
         let owner = validatedAccount(account).flatMap(\.self)
         guard let owner else { return }
 
-        let candidates = pendingRequestURLs(
-            legacyFileName: newPadRequestFile, prefix: newPadRequestPrefix, purpose: newPadPurpose
-        ).map { (url: $0, isNewPad: true) } + pendingRequestURLs(
-            legacyFileName: openPadRequestFile, prefix: openPadRequestPrefix, purpose: openPadPurpose
-        ).map { (url: $0, isNewPad: false) }
+        let candidates = pendingRequestURLs(purpose: pendingRequestsPurpose)
 
         var discarded = 0
         for candidate in candidates {
@@ -171,11 +211,7 @@ nonisolated extension WidgetSharedStore {
     /// timestamp, so a single combined drain can replay them chronologically and the
     /// user's most recent action ends up on top (#1045). Empty when none is pending.
     static func takePendingRequestsInOrder() -> [WidgetPendingRequest] {
-        let candidates = pendingRequestURLs(
-            legacyFileName: newPadRequestFile, prefix: newPadRequestPrefix, purpose: newPadPurpose
-        ).map { (url: $0, isNewPad: true) } + pendingRequestURLs(
-            legacyFileName: openPadRequestFile, prefix: openPadRequestPrefix, purpose: openPadPurpose
-        ).map { (url: $0, isNewPad: false) }
+        let candidates = pendingRequestURLs(purpose: pendingRequestsPurpose)
 
         // Stale requests are discarded rather than replayed. A tap recorded days ago
         // creating or opening a pad on a much later launch is surprising and

@@ -50,6 +50,8 @@ nonisolated enum WidgetSharedStore {
     static let requestFileExtension = ".json"
     static let newPadPurpose = "new pad handoff request"
     static let openPadPurpose = "open pad handoff request"
+    /// Log label for the one listing that covers both request kinds (#2138).
+    static let pendingRequestsPurpose = "pending handoff requests"
     static let claimedRequestPrefix = "claimed-"
     static let corruptRequestPrefix = "corrupt-"
     static let padsFilePrefix = "recent-pads-"
@@ -222,31 +224,6 @@ nonisolated enum WidgetSharedStore {
             \(error.localizedDescription, privacy: .private)
             """)
             return nil
-        }
-    }
-
-    static func pendingRequestURLs(legacyFileName: String, prefix: String, purpose: String) -> [URL] {
-        guard let container = containerURL(purpose: purpose) else { return [] }
-
-        do {
-            return try FileManager.default
-                .contentsOfDirectory(at: container, includingPropertiesForKeys: [.isRegularFileKey])
-                .filter { url in
-                    let name = url.lastPathComponent
-                    guard name == legacyFileName
-                        || (name.hasPrefix(prefix) && name.hasSuffix(requestFileExtension)) else { return false }
-
-                    // Name-matching alone would also pick up a directory or a symlink
-                    // sitting in the App Group, which the drain would then try to claim,
-                    // move, and decode (#2183). Only a regular file is a request.
-                    return (try? url.resourceValues(forKeys: [.isRegularFileKey]))?.isRegularFile == true
-                }
-        } catch {
-            logger.error("""
-            Widget shared store list failed for \(purpose, privacy: .public): \
-            \(error.localizedDescription, privacy: .private)
-            """)
-            return []
         }
     }
 
