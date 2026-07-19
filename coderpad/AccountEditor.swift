@@ -4,7 +4,6 @@
 //
 
 import BuddyDesignSystem
-import LocalAuthentication
 import SwiftUI
 
 /// The validation status type now lives in BuddyDesignSystem (shared with RankBuddy's
@@ -59,6 +58,7 @@ struct AccountEditor: View {
     @State var revealKey = false
     /// Reveals the optional Screen API key as plain text, mirroring `revealKey`.
     @State var revealScreenKey = false
+    @State var revealAuthenticationTask: Task<Void, Never>?
     /// Validation state of the optional Screen key, kept separate from the Interview
     /// key's `validation`: Screen is additive and never gates Save.
     @State var screenValidation: ValidationState = .idle
@@ -95,44 +95,6 @@ struct AccountEditor: View {
         self.onCancel = onCancel
         self.onDelete = onDelete
         self.onAppearanceChange = onAppearanceChange
-    }
-
-    /// Reveals or hides the Interview API key. Hiding is immediate; revealing is gated
-    /// behind a Touch ID / password check.
-    func toggleReveal() {
-        toggleReveal(of: $revealKey, reason: "Reveal your saved CoderPad API key")
-    }
-
-    /// Reveals or hides the optional Screen API key, with the same biometric gating.
-    func toggleScreenReveal() {
-        toggleReveal(of: $revealScreenKey, reason: "Reveal your saved CoderPad Screen API key")
-    }
-
-    /// Shared reveal/hide logic for a secure key field. Hiding is immediate; revealing
-    /// requires a successful device owner authentication check.
-    private func toggleReveal(of revealed: Binding<Bool>, reason: String) {
-        if revealed.wrappedValue { revealed.wrappedValue = false; return }
-
-        Task {
-            if await authenticateForReveal(reason: reason) {
-                revealed.wrappedValue = true
-            }
-        }
-    }
-
-    private func authenticateForReveal(reason: String) async -> Bool {
-        let context = LAContext()
-        var error: NSError?
-
-        guard context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &error) else {
-            return false
-        }
-
-        do {
-            return try await context.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason)
-        } catch {
-            return false
-        }
     }
 
     /// On iPad, the modal Add-account sheet presents Cancel/Save in the navigation bar
@@ -302,6 +264,7 @@ struct AccountEditor: View {
             .onChange(of: draft.iconSymbol) { _, _ in onAppearanceChange?(draft.iconSymbol, draft.tintHex) }
             .onChange(of: draft.tintHex) { _, _ in onAppearanceChange?(draft.iconSymbol, draft.tintHex) }
             .onDisappear {
+                concealSecrets()
                 liveCommitTask?.cancel()
                 persistLiveEditIfPossible()
             }
