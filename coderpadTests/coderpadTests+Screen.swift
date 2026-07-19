@@ -270,9 +270,10 @@ struct ScreenClientTests {
     }
 
     @Test
-    func `sessions re-served across pages are deduplicated (#898)`() async throws {
-        let all = try await screenClient().listAllTests(campaignID: 777)
-        #expect(all.map(\.id) == [30, 31, 32])
+    func `sessions re-served across pages signal an unstable snapshot`() async {
+        await #expect(throws: CoderPadError.self) {
+            _ = try await screenClient().listAllTests(campaignID: 777)
+        }
     }
 
     @Test

@@ -89,8 +89,9 @@ final nonisolated class ScreenAPIMockURLProtocol: URLProtocol {
         }
     }
 
-    /// Routes `GET /tests` fixtures by query: the malformed page, the pagination
-    /// edge cases (#857/#858/#898), and the standard two-page listing.
+    // Routes `GET /tests` fixtures by query: the malformed page, the pagination
+    // edge cases (#857/#858/#898), and the standard two-page listing.
+    // swiftlint:disable:next cyclomatic_complexity
     private static func testsBody(query: [String: String]) -> String {
         switch (query["candidateEmail"], query["campaignId"], query["start"]) {
         case ("malformed@example.com", _, _):
@@ -114,6 +115,12 @@ final nonisolated class ScreenAPIMockURLProtocol: URLProtocol {
             backwardPageJSON
         case (_, "889", _):
             forwardPageJSON
+        case (_, "990", "1"):
+            changingTotalPage2JSON
+        case (_, "990", _):
+            changingTotalPage1JSON
+        case (_, "991", _):
+            incompleteTerminalPageJSON
         default:
             // Paginate by `start`: page 1 has two of three tests, page 2 the last.
             query["start"] == "2" ? testsPage2JSON : testsPage1JSON

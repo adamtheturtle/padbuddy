@@ -64,6 +64,20 @@ struct ScreenCancellationTests {
         }
     }
 
+    @Test
+    func `full pagination rejects a changing total`() async {
+        await #expect(throws: CoderPadError.self) {
+            _ = try await screenClient().listAllTests(campaignID: 990)
+        }
+    }
+
+    @Test
+    func `full pagination rejects an incomplete terminal snapshot`() async {
+        await #expect(throws: CoderPadError.self) {
+            _ = try await screenClient().listAllTests(campaignID: 991)
+        }
+    }
+
     @Test(arguments: [
         "http://screen.example.com",
         "https://screen.example.com",
