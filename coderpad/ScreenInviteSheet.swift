@@ -222,7 +222,8 @@ struct ScreenInviteSheet: View {
 
     /// The first field-level problem to surface under the form, nil when the form is
     /// sendable (or still empty).
-    private static func makeValidationState(candidateEmail: String, recruiterEmail: String) -> ScreenInviteValidationState {
+    private static func makeValidationState(candidateEmail: String,
+                                            recruiterEmail: String) -> ScreenInviteValidationState {
         let candidate = candidateEmail.trimmingCharacters(in: .whitespacesAndNewlines)
         if !candidate.isEmpty, !Self.isPlausibleEmail(candidate) {
             return ScreenInviteValidationState(

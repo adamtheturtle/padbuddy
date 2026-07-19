@@ -102,9 +102,19 @@ struct QuestionDetailView: View {
     /// sibling of "New Question". Delete stays out of the default toolbar, but
     /// remains available through the Question menu and as an opt-in customizable
     /// toolbar item.
+    ///
+    /// Split into leading and trailing halves so each stays inside the
+    /// function-body length limit.
     @ToolbarContentBuilder
     private func detailToolbar(questionURL: URL) -> some CustomizableToolbarContent {
         ToolbarSpacer(.fixed)
+        leadingToolbarItems
+        trailingToolbarItems(questionURL: questionURL)
+    }
+
+    /// Question-authoring actions: favoriting, and creating a pad from this question.
+    @ToolbarContentBuilder
+    private var leadingToolbarItems: some CustomizableToolbarContent {
         ToolbarItem(id: "favorite", placement: detailToolbarLeadingPlacement) {
             Button { toggleFavorite() } label: {
                 Label(isFavorite ? String(localized: "Favorited") : String(localized: "Favorite"),
@@ -130,6 +140,11 @@ struct QuestionDetailView: View {
             .help("Create a new interview pad from this question")
             .accessibilityLabel("New Pad")
         }
+    }
+
+    /// Sharing, document export, and the opt-in Delete item.
+    @ToolbarContentBuilder
+    private func trailingToolbarItems(questionURL: URL) -> some CustomizableToolbarContent {
         ToolbarItem(id: "share", placement: detailToolbarTrailingPlacement) {
             ShareLink(item: questionURL) {
                 Label("Share", systemImage: "square.and.arrow.up")
@@ -377,31 +392,5 @@ struct QuestionDetailView: View {
             createPadError = error.localizedDescription
             return nil
         }
-    }
-}
-
-/// The detail view's save/delete failure alerts, pulled into a `ViewModifier` so
-/// they don't inflate the `core` view body's type-check time past the warnings-as-errors
-/// limit. Pad-creation failures use an inline retry banner instead.
-private struct QuestionDetailErrorAlerts: ViewModifier {
-    @Binding var editError: String?
-    @Binding var deleteError: String?
-
-    func body(content: Content) -> some View {
-        content
-            .alert("Couldn’t save question",
-                   isPresented: Binding(get: { editError != nil },
-                                        set: { if !$0 { editError = nil } })) {
-                Button("OK", role: .cancel) { editError = nil }
-            } message: {
-                if let editError { Text(editError) }
-            }
-            .alert("Couldn’t delete question",
-                   isPresented: Binding(get: { deleteError != nil },
-                                        set: { if !$0 { deleteError = nil } })) {
-                Button("OK", role: .cancel) { deleteError = nil }
-            } message: {
-                if let deleteError { Text(deleteError) }
-            }
     }
 }

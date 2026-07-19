@@ -13,7 +13,7 @@ struct SelectionRestoreProbe: Equatable {
     let count: Int
     let generation: Int
 
-    static let inactive = SelectionRestoreProbe(accountID: nil, section: nil, count: 0, generation: 0)
+    static let inactive = Self(accountID: nil, section: nil, count: 0, generation: 0)
 }
 
 extension MainSplit {

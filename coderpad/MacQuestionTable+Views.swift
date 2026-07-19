@@ -111,7 +111,8 @@
 
             let starTrailingInset = FastListRowMetrics.dateColumnWidth + 32
             let railWidth = railView.widthAnchor.constraint(equalToConstant: 0)
-            let textLeading = textStack.leadingAnchor.constraint(equalTo: leadingGutterView.trailingAnchor, constant: 10)
+            let textLeading = textStack.leadingAnchor
+                .constraint(equalTo: leadingGutterView.trailingAnchor, constant: 10)
             railWidthConstraint = railWidth
             textLeadingConstraint = textLeading
 

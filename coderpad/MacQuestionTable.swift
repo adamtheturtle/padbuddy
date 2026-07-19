@@ -118,7 +118,8 @@
                 let changed = force || newItems.map(\.id) != items.map(\.id) || newReloadID != reloadID
                 items = newItems
                 reloadID = newReloadID
-                indexByID = Dictionary(newItems.enumerated().map { ($1.id, $0) }, uniquingKeysWith: { first, _ in first })
+                indexByID = Dictionary(newItems.enumerated().map { ($1.id, $0) },
+                                       uniquingKeysWith: { first, _ in first })
                 guard changed else { return }
 
                 tableView?.reloadData()
@@ -172,12 +173,14 @@
             func tableViewSelectionDidChange(_ notification: Notification) {
                 guard !isApplyingSelection, let tableView = notification.object as? NSTableView else { return }
 
-                let ids = Set(tableView.selectedRowIndexes.compactMap { items.indices.contains($0) ? items[$0].id : nil })
+                let ids = Set(tableView.selectedRowIndexes
+                    .compactMap { items.indices.contains($0) ? items[$0].id : nil })
                 if ids != parent.selection { parent.selection = ids }
             }
 
             @objc func handleDoubleClick() {
-                guard let tableView, tableView.clickedRow >= 0, items.indices.contains(tableView.clickedRow) else { return }
+                guard let tableView, tableView.clickedRow >= 0,
+                      items.indices.contains(tableView.clickedRow) else { return }
 
                 parent.onDoubleClick(items[tableView.clickedRow])
             }

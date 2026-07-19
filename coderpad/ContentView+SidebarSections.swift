@@ -23,7 +23,12 @@ final class SidebarDefaultItemsProvider {
         let pads = DefaultSearch.padDefaults(me: currentEmail)
             .map { SidebarSavedItem(id: "default-pads-\($0.id)", search: $0.search, kind: .pads, icon: $0.icon) }
         let questions = DefaultSearch.questionDefaults(me: currentEmail)
-            .map { SidebarSavedItem(id: "default-questions-\($0.id)", search: $0.search, kind: .questions, icon: $0.icon) }
+            .map {
+                SidebarSavedItem(id: "default-questions-\($0.id)",
+                                 search: $0.search,
+                                 kind: .questions,
+                                 icon: $0.icon)
+            }
         cachedEmail = currentEmail
         cachedItems = pads + questions
         hasCachedItems = true
