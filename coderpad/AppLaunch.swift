@@ -65,17 +65,21 @@ enum AppLaunch {
             PadsCacheStore.shared.prewarm(account.id)
             QuestionsCacheStore.shared.prewarm(account.id)
         }
-        startCloudSync()
         // Signing into iCloud while the app is running must start sync too: the
-        // bootstrap above returns immediately without an identity token and was
+        // bootstrap below returns immediately without an identity token and was
         // never retried, so favorites/preferences silently didn't sync until a
         // relaunch (#765). Everything startCloudSync() runs is idempotent, so
         // re-running it on an identity change is safe.
+        //
+        // Registered *before* the first attempt: an identity arriving in the window
+        // between the two was previously seen by neither, leaving sync inactive
+        // until some later change or a relaunch (#2671).
         identityObserver = NotificationCenter.default.addObserver(
             forName: .NSUbiquityIdentityDidChange, object: nil, queue: .main
         ) { _ in
             Task { @MainActor in scheduleCloudSyncRestart() }
         }
+        startCloudSync()
         // Keep the current account's pads fresh on a timer even when no window is open
         // and the menu is never clicked — the one state where nothing else fetches.
         // Writing to PadsCacheStore cascades to the widget snapshot and Dock badge.
