@@ -67,7 +67,8 @@
         func accountMenuRow(for account: Account) -> some View {
             let isSelected = !store.isMergedView && account.id == store.currentAccount?.id
             let isUnauthorized = monitor.isUnauthorized(account.id)
-            let title = isUnauthorized ? String(localized: "\(account.name) (bad key)") : account.name
+            let name = accountDisplayName(for: account)
+            let title = isUnauthorized ? String(localized: "\(name) (bad key)") : name
             if isSelected {
                 Label(title, systemImage: "checkmark")
             } else if isUnauthorized {
@@ -127,8 +128,16 @@
             .accessibilityHidden(true)
         }
 
+        func accountDisplayName(for account: Account) -> String {
+            let name = account.name.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !name.isEmpty { return name }
+
+            let email = account.userEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+            return email.isEmpty ? String(localized: "Unnamed Account") : email
+        }
+
         func accountInitials(for account: Account) -> String {
-            let words = account.name.split(whereSeparator: { !$0.isLetter && !$0.isNumber })
+            let words = accountDisplayName(for: account).split(whereSeparator: { !$0.isLetter && !$0.isNumber })
             let initials = words.prefix(2).compactMap(\.first)
             return initials.isEmpty ? "?" : String(initials).uppercased()
         }
