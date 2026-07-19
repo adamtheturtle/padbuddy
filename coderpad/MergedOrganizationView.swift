@@ -25,7 +25,8 @@ struct MergedOrganizationView: View {
     init() {
         let cachedOrgs = AccountsStore.shared.mergeableAccounts.compactMap { account -> (UUID, Organization)? in
             guard !account.apiKey.isEmpty,
-                  let organization = OrganizationCacheStore.shared.get(account.id) else { return nil }
+                  let organization = OrganizationCacheStore.shared.get(account.id, via: account.makeClient())
+            else { return nil }
 
             return (account.id, organization)
         }
@@ -265,7 +266,7 @@ private extension MergedOrganizationView {
         clearKeylessEntries()
         for account in accounts.mergeableAccounts
             where orgByAccount[account.id] == nil && !account.apiKey.isEmpty {
-            orgByAccount[account.id] = orgCache.get(account.id)
+            orgByAccount[account.id] = orgCache.get(account.id, via: account.makeClient())
         }
     }
 

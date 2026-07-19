@@ -18,7 +18,7 @@ import os
 final class OrganizationCacheStore {
     static let shared = OrganizationCacheStore()
     private static let logger = Logger(subsystem: "com.coderpad.app", category: "cache")
-    private(set) var byAccount: [UUID: Organization] = [:]
+    private var byAccount: [UUID: OrganizationCacheEntry<Organization>] = [:]
 
     /// Session cache + in-flight coalescing keyed by client identity (server + key),
     /// so the owner pickers, the new-pad sheet, and the org-name directory share one
@@ -38,8 +38,8 @@ final class OrganizationCacheStore {
 
     private init() {}
 
-    func get(_ accountID: UUID) -> Organization? {
-        byAccount[accountID]
+    func get(_ accountID: UUID, via client: CoderPadClient) -> Organization? {
+        byAccount[accountID]?.value(via: client.taskIdentity)
     }
 
     /// `client` is the client the organization was fetched through; a result whose
@@ -48,7 +48,7 @@ final class OrganizationCacheStore {
     func set(_ accountID: UUID, organization: Organization, via client: CoderPadClient) {
         guard AccountsStore.shared.isCurrentClient(client, for: accountID) else { return }
 
-        byAccount[accountID] = organization
+        byAccount[accountID] = OrganizationCacheEntry(clientIdentity: client.taskIdentity, value: organization)
     }
 
     func remove(_ accountID: UUID) {
@@ -155,5 +155,14 @@ final class OrganizationCacheStore {
         guard let host = client.baseURL.host, !host.isEmpty else { return "unknown" }
 
         return host
+    }
+}
+
+nonisolated struct OrganizationCacheEntry<Value> {
+    let clientIdentity: ClientTaskIdentity
+    let value: Value
+
+    func value(via currentClientIdentity: ClientTaskIdentity) -> Value? {
+        clientIdentity == currentClientIdentity ? value : nil
     }
 }

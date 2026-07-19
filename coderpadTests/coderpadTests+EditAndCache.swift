@@ -125,6 +125,22 @@ struct EditAndCacheTests {
         #expect(cached.organizationName == orgA.organizationName)
     }
 
+    @Test
+    func `account organization cache requires matching endpoint provenance (#1533)`() throws {
+        let original = try ClientTaskIdentity(
+            apiKey: "original",
+            baseURL: #require(URL(string: "https://first.example.com"))
+        )
+        let entry = OrganizationCacheEntry(clientIdentity: original, value: "First organization")
+
+        #expect(entry.value(via: original) == "First organization")
+        #expect(entry.value(via: ClientTaskIdentity(apiKey: "changed", baseURL: original.baseURL)) == nil)
+        #expect(entry.value(via: ClientTaskIdentity(
+            apiKey: "original",
+            baseURL: #require(URL(string: "https://second.example.com"))
+        )) == nil)
+    }
+
     @Test @MainActor
     func `pad detail cache separates same pad id by backend (#760)`() throws {
         let store = PadDetailCacheStore.shared

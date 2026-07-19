@@ -47,7 +47,9 @@ struct OrganizationView: View {
         self.accountID = accountID
         _statsOwner = State(initialValue: OrganizationStatsOwner(accountID: accountID,
                                                                  clientIdentity: client.taskIdentity))
-        _organization = State(initialValue: accountID.flatMap { OrganizationCacheStore.shared.get($0) })
+        _organization = State(initialValue: accountID.flatMap {
+            OrganizationCacheStore.shared.get($0, via: client)
+        })
         _quota = State(initialValue: accountID.flatMap { QuotaCacheStore.shared.get($0) })
     }
 
@@ -60,7 +62,7 @@ struct OrganizationView: View {
                 // section doesn't flash a spinner; reload refreshes them in place.
                 // Stats are period-dependent, so they reload rather than restore.
                 if let id = accountID {
-                    if organization == nil { organization = orgCache.get(id) }
+                    if organization == nil { organization = orgCache.get(id, via: client) }
                     if quota == nil { quota = quotaCache.get(id) }
                 }
                 if let organization { prepareUsers(organization) }
