@@ -57,6 +57,10 @@ struct QuestionWindow: View {
         return id.flatMap { id in accounts.accounts.first { $0.id == id } }
     }
 
+    private var isExplicitAccountMissing: Bool {
+        StandaloneWindowAccountResolution.isExplicitTargetMissing(value?.account, accounts: accounts.accounts)
+    }
+
     /// The question from the warm cache, if the owning account has it loaded.
     ///
     /// Resolved when the window's value, account, or cache changes rather than in
@@ -92,7 +96,7 @@ struct QuestionWindow: View {
                 // this the menu greys out whenever this window is key (#1011).
                 .focusedSceneValue(\.focusedQuestion, question)
                 .focusedSceneValue(\.focusedQuestionAccountID, account.id)
-            } else if value?.isValid != true || loadFailed {
+            } else if value?.isValid != true || isExplicitAccountMissing || loadFailed {
                 // The system can restore this window without a value, or the fetch
                 // can fail (e.g. the question was deleted); show a placeholder rather
                 // than a blank window.
@@ -101,7 +105,7 @@ struct QuestionWindow: View {
                 } description: {
                     Text("This question couldn’t be loaded.")
                 } actions: {
-                    if value?.isValid == true {
+                    if value?.isValid == true, !isExplicitAccountMissing {
                         Button("Retry") {
                             Task { await refresh() }
                         }

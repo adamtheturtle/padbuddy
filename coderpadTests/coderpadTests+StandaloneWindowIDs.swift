@@ -21,4 +21,19 @@ struct StandaloneWindowIDTests {
         #expect(!QuestionWindowID(account: nil, id: 0).isValid)
         #expect(QuestionWindowID(account: nil, id: 1).isValid)
     }
+
+    @Test
+    func `an explicit removed account is missing without using a fallback`() {
+        let present = Account(name: "Present", apiKey: "key")
+
+        #expect(StandaloneWindowAccountResolution.isExplicitTargetMissing(
+            UUID(), accounts: [present]
+        ))
+        #expect(!StandaloneWindowAccountResolution.isExplicitTargetMissing(
+            present.id, accounts: [present]
+        ))
+        #expect(!StandaloneWindowAccountResolution.isExplicitTargetMissing(
+            nil, accounts: [present]
+        ))
+    }
 }
