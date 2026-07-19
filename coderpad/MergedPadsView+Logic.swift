@@ -142,11 +142,11 @@ extension MergedPadsView {
         row.account.owns(row.item.ownerEmail)
     }
 
-    /// The scoped row for a namespaced row id, used to resolve the List selection
-    /// back to a specific account's pad (not just the first slug match, which can
-    /// be the wrong account when two custom servers share a slug, #758).
+    /// The scoped row for a namespaced row id, used to resolve the List selection back
+    /// to a specific account's pad (not just the first slug match, which can be the
+    /// wrong account when two servers share a slug, #758). Indexed, not scanned (#2100).
     func row(forRowID rowID: String) -> AccountScoped<Account, Pad>? {
-        scoped.first { $0.id == rowID }
+        scopedCache.rowsByID[rowID]
     }
 
     /// The row to select after the row with `rowID` is deleted: the next visible

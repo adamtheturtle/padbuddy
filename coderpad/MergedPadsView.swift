@@ -226,7 +226,18 @@ final class FilteredScopedPadsCache {
 /// rebuilt only when the merged pads or sort change (keyed by `signature`), so the
 /// O(n log n) sort and the option Sets no longer rerun on every render (#366).
 final class ScopedPadsCache {
-    var rows: [AccountScoped<Account, Pad>] = []
+    var rows: [AccountScoped<Account, Pad>] = [] {
+        // Row ids are account-namespaced, so they're unique; first-wins is only a
+        // defensive tie-break, matching the scan `row(forRowID:)` used to do.
+        didSet {
+            rowsByID = Dictionary(rows.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        }
+    }
+
+    /// The same rows keyed by their namespaced row id, so resolving a selection (or
+    /// each row of a bulk delete) is a lookup rather than a scan of the whole merged
+    /// list — that scan ran on every row click on a large merged org (#2100).
+    private(set) var rowsByID: [String: AccountScoped<Account, Pad>] = [:]
     var availableStates: [PadState] = []
     var availableLanguages: [String] = []
     var availableOwners: [String] = []
