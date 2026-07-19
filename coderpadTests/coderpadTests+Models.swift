@@ -20,6 +20,16 @@ struct AppNavigationRouteTests {
         #expect(AppNavigation.shared.openPadRequest == OpenPadNavigationRequest(id: "pad-1", accountID: accountID))
     }
 
+    @MainActor
+    @Test func `taking an open pad request clears its account scope`() {
+        let accountID = UUID()
+        AppNavigation.shared.openPad(id: "pad-1", account: accountID)
+        #expect(AppNavigation.shared.takeOpenPadRequest()
+            == OpenPadNavigationRequest(id: "pad-1", accountID: accountID))
+        #expect(AppNavigation.shared.openPadRequest == nil)
+        #expect(AppNavigation.shared.takeOpenPadRequest() == nil)
+    }
+
     @Test func `new pad route keeps seed when requested account exists`() {
         let accountID = UUID()
         let route = AppNavigation.resolveNewPadRoute(

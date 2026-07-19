@@ -212,9 +212,7 @@ struct ContentView: View {
     /// isn't reopened on the next change. Re-validates the id here as well as in the
     /// intent so a queued value can never rewrite the URL it's interpolated into (#778).
     private func consumeOpenPadRequest() {
-        guard let request = nav.openPadRequest else { return }
-
-        nav.openPadRequest = nil
+        guard let request = nav.takeOpenPadRequest() else { return }
         guard let id = PadIDValidation.normalize(request.id) else { return }
 
         BrowserSettings.openExternally(padURL(for: id, owningAccountID: request.accountID))

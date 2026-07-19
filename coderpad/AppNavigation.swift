@@ -360,4 +360,10 @@ final class AppNavigation {
     func openPad(id: String, account: UUID? = nil) {
         openPadRequest = OpenPadNavigationRequest(id: id, accountID: account)
     }
+
+    /// Atomically takes the pending request and clears every part of its scope.
+    func takeOpenPadRequest() -> OpenPadNavigationRequest? {
+        defer { openPadRequest = nil }
+        return openPadRequest
+    }
 }
